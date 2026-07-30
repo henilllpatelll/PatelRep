@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -18,7 +17,9 @@ import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { claimWorkOrder, listWorkOrders } from "@/lib/api/workOrders";
 import { countQueueSignals, splitWorkbench, type WorkOrder } from "@/lib/engineering/workOrders";
-import { C, R, shellTokens } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
 import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
 
@@ -38,6 +39,7 @@ type Row =
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
 
@@ -163,12 +165,36 @@ export default function WorkOrdersScreen() {
   const signals = useMemo(() => {
     const counts = countQueueSignals([...open, ...active]);
     return [
-      counts.urgent > 0 && { key: "urgent", label: t("workOrders.signalUrgent", { count: counts.urgent }), fg: C.alert, bg: C.alertSoft, line: C.alertLine },
-      counts.pastSla > 0 && { key: "sla", label: t("workOrders.signalPastSla", { count: counts.pastSla }), fg: C.alert, bg: C.alertSoft, line: C.alertLine },
-      counts.guest > 0 && { key: "guest", label: t("workOrders.signalGuest", { count: counts.guest }), fg: C.info, bg: C.infoSoft, line: C.infoLine },
-      counts.onHold > 0 && { key: "hold", label: t("workOrders.signalOnHold", { count: counts.onHold }), fg: C.caution, bg: C.cautionSoft, line: C.cautionLine },
+      counts.urgent > 0 && {
+        key: "urgent",
+        label: t("workOrders.signalUrgent", { count: counts.urgent }),
+        fg: theme.status.dirty,
+        bg: theme.status.dirtySoft,
+        line: theme.status.dirtyLine,
+      },
+      counts.pastSla > 0 && {
+        key: "sla",
+        label: t("workOrders.signalPastSla", { count: counts.pastSla }),
+        fg: theme.status.dirty,
+        bg: theme.status.dirtySoft,
+        line: theme.status.dirtyLine,
+      },
+      counts.guest > 0 && {
+        key: "guest",
+        label: t("workOrders.signalGuest", { count: counts.guest }),
+        fg: theme.status.clean,
+        bg: theme.status.cleanSoft,
+        line: theme.status.cleanLine,
+      },
+      counts.onHold > 0 && {
+        key: "hold",
+        label: t("workOrders.signalOnHold", { count: counts.onHold }),
+        fg: theme.status.pickup,
+        bg: theme.status.pickupSoft,
+        line: theme.status.pickupLine,
+      },
     ].filter(Boolean) as { key: string; label: string; fg: string; bg: string; line: string }[];
-  }, [open, active, t]);
+  }, [open, active, t, theme]);
 
   const rows = useMemo<Row[]>(() => {
     const filteredBench = bench.filter(matchesSearch);
@@ -211,23 +237,23 @@ export default function WorkOrdersScreen() {
 
   const header = (
     <View>
-      <View style={styles.topBleed} />
-      <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
+      <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
+      <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
+          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("workOrders.kicker")}</Text>
           <TouchableOpacity
-            style={styles.heroNewWoBtn}
+            style={[styles.heroNewWoBtn, { backgroundColor: theme.primaryAction }]}
             onPress={() => setShowCreateWo(true)}
             activeOpacity={0.8}
             accessibilityRole="button"
             testID="wo-new"
           >
-            <Ionicons name="add" size={14} color={shellTokens.ink} />
-            <Text style={styles.heroRoomsText}>{t("workOrders.newWorkOrder")}</Text>
+            <Ionicons name="add" size={14} color={theme.shell.ink} />
+            <Text style={[styles.heroRoomsText, { color: theme.shell.ink }]}>{t("workOrders.newWorkOrder")}</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.heroTitle}>{t("workOrders.title")}</Text>
-        <Text style={styles.heroSummary}>
+        <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("workOrders.title")}</Text>
+        <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
           {t("workOrders.summary", { open: open.length, active: active.length })}
         </Text>
         {signals.length > 0 ? (
@@ -240,19 +266,19 @@ export default function WorkOrdersScreen() {
           </View>
         ) : null}
       </View>
-      <View style={styles.searchBar}>
-        <Ionicons name="search-outline" size={15} color={C.ink4} />
+      <View style={[styles.searchBar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Ionicons name="search-outline" size={15} color={theme.textDisabled} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.textPrimary }]}
           value={search}
           onChangeText={setSearch}
           placeholder={t("workOrders.searchPlaceholder", { defaultValue: "Search work orders…" })}
-          placeholderTextColor={C.ink4}
+          placeholderTextColor={theme.textDisabled}
           returnKeyType="search"
         />
         {search ? (
           <TouchableOpacity onPress={() => setSearch("")} hitSlop={8} accessibilityRole="button">
-            <Ionicons name="close-circle" size={16} color={C.ink4} />
+            <Ionicons name="close-circle" size={16} color={theme.textDisabled} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -264,8 +290,8 @@ export default function WorkOrdersScreen() {
       case "section":
         return (
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>{item.title}</Text>
-            {item.hint ? <Text style={styles.sectionHint}>{item.hint}</Text> : null}
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{item.title}</Text>
+            {item.hint ? <Text style={[styles.sectionHint, { color: theme.textDisabled }]}>{item.hint}</Text> : null}
           </View>
         );
       case "wo":
@@ -283,47 +309,55 @@ export default function WorkOrdersScreen() {
       case "doneToggle":
         return (
           <TouchableOpacity
-            style={styles.doneToggle}
+            style={[styles.doneToggle, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
             onPress={() => setDoneExpanded((prev) => !prev)}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityState={{ expanded: doneExpanded }}
             testID="wo-done-toggle"
           >
-            <Ionicons name="checkmark-done-outline" size={15} color={C.ink2} />
-            <Text style={styles.doneToggleText}>{t("workOrders.sectionDone")}</Text>
+            <Ionicons name="checkmark-done-outline" size={15} color={theme.textSecondary} />
+            <Text style={[styles.doneToggleText, { color: theme.textSecondary }]}>{t("workOrders.sectionDone")}</Text>
             {doneLoaded && done.length > 0 ? (
-              <Text style={styles.doneToggleHint}>{done.length}</Text>
+              <Text style={[styles.doneToggleHint, { color: theme.textDisabled }]}>{done.length}</Text>
             ) : null}
             <Ionicons
               name={doneExpanded ? "chevron-up" : "chevron-down"}
               size={14}
-              color={C.ink4}
+              color={theme.textDisabled}
               style={styles.doneChevron}
             />
           </TouchableOpacity>
         );
       case "queueEmpty":
         return (
-          <View style={styles.inlineEmpty}>
-            <Text style={styles.inlineEmptyTitle}>{t("workOrders.emptyOpen")}</Text>
-            <Text style={styles.inlineEmptyHint}>{t("workOrders.emptyOpenHint")}</Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="list-outline"
+            emptyTitle={t("workOrders.emptyOpen")}
+            emptyBody={t("workOrders.emptyOpenHint")}
+            style={[styles.inlineEmpty, { borderColor: theme.borderSubtle, backgroundColor: theme.surfaceSubtle }]}
+          />
         );
       case "doneEmpty":
         return (
-          <View style={styles.inlineEmpty}>
-            <Text style={styles.inlineEmptyTitle}>{t("workOrders.emptyDone")}</Text>
-            <Text style={styles.inlineEmptyHint}>{t("workOrders.emptyDoneHint")}</Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="checkmark-done-outline"
+            emptyTitle={t("workOrders.emptyDone")}
+            emptyBody={t("workOrders.emptyDoneHint")}
+            style={[styles.inlineEmpty, { borderColor: theme.borderSubtle, backgroundColor: theme.surfaceSubtle }]}
+          />
         );
       case "allEmpty":
         return (
-          <View style={styles.empty}>
-            <Ionicons name="checkmark-done-outline" size={30} color={C.ink4} />
-            <Text style={styles.emptyTitle}>{t("workOrders.emptyOpen")}</Text>
-            <Text style={styles.emptyHint}>{t("workOrders.emptyOpenHint")}</Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="checkmark-done-outline"
+            emptyTitle={t("workOrders.emptyOpen")}
+            emptyBody={t("workOrders.emptyOpenHint")}
+            style={styles.empty}
+          />
         );
       default:
         return null;
@@ -331,10 +365,10 @@ export default function WorkOrdersScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={C.accent} />
+          <StateBlock status="loading" />
         </View>
       ) : (
         <FlatList
@@ -342,7 +376,7 @@ export default function WorkOrdersScreen() {
           keyExtractor={(item) => item.key}
           ListHeaderComponent={header}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
           renderItem={renderRow}
         />
       )}
@@ -359,15 +393,14 @@ export default function WorkOrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingBottom: 28 },
 
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -376,21 +409,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: C.accent,
     borderRadius: 999,
     paddingHorizontal: 11,
     minHeight: 32,
   },
   heroKicker: {
-    color: shellTokens.ink3,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  heroRoomsText: { color: shellTokens.ink, fontSize: 11.5, fontWeight: "700" },
-  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroSummary: { color: shellTokens.ink2, fontSize: 13, marginTop: 7 },
+  heroRoomsText: { fontSize: 11.5, fontWeight: "700" },
+  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
+  heroSummary: { fontSize: 13, marginTop: 7 },
   signalRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
   signalChip: {
     borderWidth: 1,
@@ -409,12 +440,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.md,
   },
-  searchInput: { flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 13.5, paddingVertical: 0 },
 
   sectionRow: {
     flexDirection: "row",
@@ -425,13 +454,12 @@ const styles = StyleSheet.create({
     paddingBottom: 9,
   },
   sectionTitle: {
-    color: C.ink3,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0.8,
     textTransform: "uppercase",
   },
-  sectionHint: { color: C.ink4, fontSize: 11, fontWeight: "700" },
+  sectionHint: { fontSize: 11, fontWeight: "700" },
 
   cardWrap: { paddingHorizontal: 16, paddingBottom: 11 },
 
@@ -446,29 +474,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: R.md,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
   },
-  doneToggleText: { color: C.ink2, fontSize: 13, fontWeight: "700" },
-  doneToggleHint: { color: C.ink4, fontSize: 12, fontWeight: "700" },
+  doneToggleText: { fontSize: 13, fontWeight: "700" },
+  doneToggleHint: { fontSize: 12, fontWeight: "700" },
   doneChevron: { marginLeft: "auto" },
 
   inlineEmpty: {
     marginHorizontal: 16,
     marginBottom: 11,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
     borderRadius: R.md,
     borderWidth: 1,
-    borderColor: C.line2,
-    backgroundColor: C.surface2,
-    alignItems: "center",
-    gap: 3,
   },
-  inlineEmptyTitle: { color: C.ink2, fontSize: 13, fontWeight: "700" },
-  inlineEmptyHint: { color: C.ink4, fontSize: 12, textAlign: "center" },
 
-  empty: { alignItems: "center", paddingVertical: 52, paddingHorizontal: 32, gap: 7 },
-  emptyTitle: { color: C.ink, fontSize: 15.5, fontWeight: "700", marginTop: 4 },
-  emptyHint: { color: C.ink3, fontSize: 12.5, textAlign: "center", lineHeight: 18 },
+  empty: { paddingVertical: 52 },
 });
