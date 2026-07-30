@@ -1,7 +1,5 @@
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -13,7 +11,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { createWorkOrder } from "@/lib/api/workOrders";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { monoFont, R } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
 
 const CATEGORIES = [
   { key: "plumbing", label: "Plumbing" },
@@ -28,11 +29,13 @@ const CATEGORIES = [
   { key: "general", label: "General" },
 ] as const;
 
-const PRIORITIES = [
-  { key: "emergency" as const, label: "Emergency", color: "#CC0000" },
-  { key: "urgent" as const, label: "Urgent", color: C.alert },
-  { key: "normal" as const, label: "Normal", color: C.accent },
-  { key: "low" as const, label: "Low", color: C.ink3 },
+/** Priority color is resolved from `theme.*` at render time (see PRIORITY_COLOR
+ * below) rather than baked into this list, so it stays theme-reactive. */
+const PRIORITIES: { key: "emergency" | "urgent" | "normal" | "low"; label: string }[] = [
+  { key: "emergency", label: "Emergency" },
+  { key: "urgent", label: "Urgent" },
+  { key: "normal", label: "Normal" },
+  { key: "low", label: "Low" },
 ];
 
 const SOURCES: { key: "guest" | "staff_patrol" | "pm" | "self"; label: string }[] = [
@@ -52,6 +55,8 @@ interface Props {
 
 export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onClose, onCreated }: Props) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const toast = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -59,6 +64,15 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
   const [priority, setPriority] = useState<"urgent" | "normal" | "low" | "emergency">("normal");
   const [source, setSource] = useState<"guest" | "staff_patrol" | "pm" | "self">("self");
   const [loading, setLoading] = useState(false);
+
+  // Emergency keeps its own distinct hardcoded red (pre-existing, not a status
+  // token) — the other three route through theme per the migration map.
+  function priorityColor(key: "emergency" | "urgent" | "normal" | "low"): string {
+    if (key === "emergency") return "#CC0000";
+    if (key === "urgent") return theme.status.dirty;
+    if (key === "low") return theme.textMuted;
+    return theme.primaryAction;
+  }
 
   function reset() {
     setTitle("");
@@ -86,9 +100,10 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
       reset();
       onCreated?.();
       const body = roomNumber ? `Submitted for room ${roomNumber}.` : "Work order submitted.";
-      Alert.alert("Work Order Created", body, [{ text: "OK", onPress: onClose }]);
+      toast.success(body);
+      onClose();
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message ?? "Failed to create work order");
+      toast.error((err as Error).message ?? "Failed to create work order");
     } finally {
       setLoading(false);
     }
@@ -97,32 +112,39 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]} activeOpacity={1}>
+        <TouchableOpacity
+          style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 16 }]}
+          activeOpacity={1}
+        >
           <View style={styles.titleRow}>
-            <Ionicons name="construct-outline" size={16} color={C.accent} />
-            <Text style={styles.title}>New Work Order</Text>
+            <Ionicons name="construct-outline" size={16} color={theme.primaryAction} />
+            <Text style={[styles.title, { color: theme.textPrimary }]}>New Work Order</Text>
             {roomNumber ? (
-              <View style={styles.roomBadge}>
-                <Text style={styles.roomBadgeText}>{roomNumber}</Text>
+              <View style={[styles.roomBadge, { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]}>
+                <Text style={[styles.roomBadgeText, { color: theme.primaryAction }]}>{roomNumber}</Text>
               </View>
             ) : null}
           </View>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="What needs to be fixed?"
-            placeholderTextColor={C.ink3}
+            placeholderTextColor={theme.textMuted}
             autoFocus
           />
 
           <TextInput
-            style={[styles.input, styles.inputMulti]}
+            style={[
+              styles.input,
+              styles.inputMulti,
+              { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary },
+            ]}
             value={description}
             onChangeText={setDescription}
             placeholder="Details (optional)"
-            placeholderTextColor={C.ink3}
+            placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={2}
             textAlignVertical="top"
@@ -130,49 +152,65 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
 
           {!roomId ? (
             <>
-              <Text style={styles.sectionLabel}>Location</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Location</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
                 value={location}
                 onChangeText={setLocation}
                 placeholder="Room number or area (e.g. 204, Lobby HVAC)"
-                placeholderTextColor={C.ink3}
+                placeholderTextColor={theme.textMuted}
               />
             </>
           ) : null}
 
-          <Text style={styles.sectionLabel}>Category</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {CATEGORIES.map((cat) => {
               const active = category === cat.key;
               return (
                 <TouchableOpacity
                   key={cat.key}
-                  style={[styles.chip, active && styles.chipActive]}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: active ? theme.primaryLine : theme.border,
+                      backgroundColor: active ? theme.primarySoft : theme.surfaceSubtle,
+                    },
+                  ]}
                   onPress={() => setCategory(cat.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{cat.label}</Text>
+                  <Text style={[styles.chipText, { color: active ? theme.primaryAction : theme.textMuted }]}>
+                    {cat.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
 
-          <Text style={styles.sectionLabel}>Priority</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Priority</Text>
           <View style={styles.priorityRow}>
             {PRIORITIES.map((p) => {
               const active = priority === p.key;
+              const color = priorityColor(p.key);
               return (
                 <TouchableOpacity
                   key={p.key}
                   style={[
                     styles.priorityBtn,
-                    active && { borderColor: p.color, backgroundColor: p.color + "1A" },
+                    { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
+                    active && { borderColor: color, backgroundColor: color + "1A" },
                   ]}
                   onPress={() => setPriority(p.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.priorityText, active && { color: p.color, fontWeight: "800" }]}>
+                  <Text
+                    style={[
+                      styles.priorityText,
+                      { color: theme.textMuted },
+                      active && { color, fontWeight: "800" },
+                    ]}
+                  >
                     {p.label}
                   </Text>
                 </TouchableOpacity>
@@ -180,42 +218,45 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>Reported By</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Reported By</Text>
           <View style={styles.sourceRow}>
             {SOURCES.map((s) => {
               const active = source === s.key;
               return (
                 <TouchableOpacity
                   key={s.key}
-                  style={[styles.sourceBtn, active && styles.sourceBtnActive]}
+                  style={[
+                    styles.sourceBtn,
+                    { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
+                    active && { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine },
+                  ]}
                   onPress={() => setSource(s.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.sourceText, active && styles.sourceTextActive]}>{s.label}</Text>
+                  <Text
+                    style={[
+                      styles.sourceText,
+                      { color: theme.textMuted },
+                      active && { color: theme.primaryAction },
+                    ]}
+                  >
+                    {s.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.submitBtn, (!title.trim() || loading) && styles.submitBtnDisabled]}
+            <Button
+              label="Create Work Order"
+              icon="construct-outline"
               onPress={submit}
+              loading={loading}
               disabled={!title.trim() || loading}
-              activeOpacity={0.86}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="construct-outline" size={14} color="#fff" />
-                  <Text style={styles.submitText}>Create Work Order</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+              style={styles.submitBtn}
+            />
+            <Button label="Cancel" variant="ghost" size="sm" onPress={onClose} />
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -226,38 +267,31 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   sheet: {
-    backgroundColor: C.surface,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     padding: 20,
     gap: 12,
   },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 16, fontWeight: "900", color: C.ink, flex: 1 },
+  title: { fontSize: 16, fontWeight: "900", flex: 1 },
   roomBadge: {
-    backgroundColor: C.accentSoft,
     borderRadius: 8,
     paddingHorizontal: 9,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: C.accentLine,
   },
-  roomBadgeText: { fontFamily: monoFont, fontSize: 13, fontWeight: "700", color: C.accent },
+  roomBadgeText: { fontFamily: monoFont, fontSize: 13, fontWeight: "700" },
   input: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 13,
     paddingVertical: 11,
     fontSize: 13.5,
-    color: C.ink,
   },
   inputMulti: { minHeight: 60 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: C.ink3,
     textTransform: "uppercase",
     letterSpacing: 0.7,
     marginBottom: -4,
@@ -266,14 +300,10 @@ const styles = StyleSheet.create({
   chip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  chipActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
-  chipText: { fontSize: 12, fontWeight: "700", color: C.ink3 },
-  chipTextActive: { color: C.accent },
+  chipText: { fontSize: 12, fontWeight: "700" },
   priorityRow: { flexDirection: "row", gap: 8 },
   priorityBtn: {
     flex: 1,
@@ -282,10 +312,8 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderRadius: R.md,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
   },
-  priorityText: { fontSize: 13, fontWeight: "700", color: C.ink3 },
+  priorityText: { fontSize: 13, fontWeight: "700" },
   sourceRow: { flexDirection: "row", gap: 6 },
   sourceBtn: {
     flex: 1,
@@ -294,25 +322,9 @@ const styles = StyleSheet.create({
     minHeight: 38,
     borderRadius: R.md,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 4,
   },
-  sourceBtnActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
-  sourceText: { fontSize: 11, fontWeight: "700", color: C.ink3, textAlign: "center" },
-  sourceTextActive: { color: C.accent },
+  sourceText: { fontSize: 11, fontWeight: "700", textAlign: "center" },
   actions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 4 },
-  submitBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: C.accent,
-    borderRadius: 12,
-    minHeight: 50,
-  },
-  submitBtnDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  cancelText: { fontSize: 13, color: C.ink3, fontWeight: "700" },
+  submitBtn: { flex: 1, borderRadius: 12 },
 });

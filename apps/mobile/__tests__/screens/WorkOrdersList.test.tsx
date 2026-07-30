@@ -37,12 +37,15 @@ jest.mock("@/lib/offline/db", () => ({
 import { listWorkOrders } from "@/lib/api/workOrders";
 import { enqueueAction } from "@/lib/offline/db";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { ToastProvider } from "@/lib/theme/ToastProvider";
 import WorkOrdersScreen from "@/app/(app)/work-orders/index";
 
 function renderScreen() {
   return render(
     <ThemeProvider>
-      <WorkOrdersScreen />
+      <ToastProvider>
+        <WorkOrdersScreen />
+      </ToastProvider>
     </ThemeProvider>,
   );
 }
