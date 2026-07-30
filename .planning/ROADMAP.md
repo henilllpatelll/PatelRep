@@ -27,7 +27,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 **Milestone Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens, without changing any behavior, data, routing, or RBAC.
 
 - [x] **Phase 7: Theme Foundation & Primitives** - Reactive theme shell, missing UI primitives, and mobile i18n lint gate — zero visual change
-- [ ] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives
+- [x] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives (completed 2026-07-30)
 - [ ] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives
 - [ ] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified
 
@@ -71,7 +71,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - [x] 08-05-PLAN.md — Work Orders list + WorkOrderCard rebuild + CreateWorkOrderModal (FLOOR-03) [wave 3]
 - [x] 08-06-PLAN.md — Work Orders detail; 10 alerts → Toast, escalate-confirm stays blocking (FLOOR-03) [wave 3]
 - [x] 08-07-PLAN.md — Tasks list + TaskCard rebuild on Card+StatusBadge+Button (FLOOR-04) [wave 4]
-- [ ] 08-08-PLAN.md — Inspect screen; migrate existing fail-checklist as-is, no new photo capture (FLOOR-05) [wave 5]
+- [x] 08-08-PLAN.md — Inspect screen; migrate existing fail-checklist as-is, no new photo capture (FLOOR-05) [wave 5]
 **UI hint**: yes
 
 ### Phase 9: Remaining Screens Rollout
@@ -125,6 +125,6 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
-| 8. Floor-Role Rollout | v1.1 | 8/9 | In Progress|  |
+| 8. Floor-Role Rollout | v1.1 | 9/9 | Complete   | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
