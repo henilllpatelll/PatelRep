@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,7 +7,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -31,44 +29,50 @@ import {
   type BoardSegment,
   type FloorRoom,
 } from "@/lib/housekeeping/supervisor";
-import { C, R, shellTokens } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
 import { SectionLabel } from "@/components/shared/mobileHandoff";
 import { HeroSignalRow, RoomStatusTile, type HeroSignal } from "@/components/supervisor/atoms";
-import { STATUS_META } from "@/components/shared/evening";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 import { RoomDetailSheet } from "@/components/supervisor/RoomDetailSheet";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 
 /* ─── Room Board — the live floor, one tile per room ────────────────────────
    Dark shell hero with the day's shape, a status segmented, and the board
    grouped by floor in the protected status colors. Tapping a tile opens
    the room sheet: flags, timing, the latest note, and the assign action. */
 
+type ThemeTokens = ReturnType<typeof useTheme>;
+
 const SEGMENTS: BoardSegment[] = ["all", "toClean", "working", "ready"];
 
 /* ─── Status color legend ───────────────────────────────────────────────────
-   5 grouped entries matching the tile color contract. Shown once below the
-   segmented control so supervisors can read the board without prior context. */
+   5 grouped entries matching the tile color contract, rendered via
+   StatusBadge so the room StatusKey mapping stays the single source of
+   truth for chip color/icon/label. Shown once below the segmented control
+   so supervisors can read the board without prior context. */
 
-const LEGEND_ENTRIES = [
-  { key: "dirty",     status: "DIRTY",     labelKey: "roomBoard.legend.dirty"     },
-  { key: "pickup",    status: "PICKUP",    labelKey: "roomBoard.legend.pickup"    },
-  { key: "submitted", status: "CLEAN",     labelKey: "roomBoard.legend.submitted" },
-  { key: "ready",     status: "INSPECTED", labelKey: "roomBoard.legend.ready"     },
-  { key: "ooo",       status: "OOO",       labelKey: "roomBoard.legend.ooo"       },
-] as const;
+const LEGEND_ENTRIES: { key: string; statusKey: StatusKey; labelKey: string }[] = [
+  { key: "dirty", statusKey: "dirty", labelKey: "roomBoard.legend.dirty" },
+  { key: "pickup", statusKey: "pickup", labelKey: "roomBoard.legend.pickup" },
+  { key: "submitted", statusKey: "clean", labelKey: "roomBoard.legend.submitted" },
+  { key: "ready", statusKey: "ready", labelKey: "roomBoard.legend.ready" },
+  { key: "ooo", statusKey: "outOfOrder", labelKey: "roomBoard.legend.ooo" },
+];
 
-function ColorLegend({ t }: { t: (key: string) => string }) {
+function ColorLegend({ t, theme }: { t: (key: string) => string; theme: ThemeTokens }) {
   return (
-    <View style={legendStyles.row} testID="color-legend">
-      {LEGEND_ENTRIES.map(({ key, status, labelKey }) => {
-        const meta = STATUS_META[status];
-        return (
-          <View key={key} style={legendStyles.item}>
-            <View style={[legendStyles.dot, { backgroundColor: meta.fg }]} />
-            <Text style={legendStyles.label}>{t(labelKey)}</Text>
-          </View>
-        );
-      })}
+    <View
+      style={[
+        legendStyles.row,
+        { borderBottomColor: theme.borderSubtle, backgroundColor: theme.background },
+      ]}
+      testID="color-legend"
+    >
+      {LEGEND_ENTRIES.map(({ key, statusKey, labelKey }) => (
+        <StatusBadge key={key} statusKey={statusKey} label={t(labelKey)} />
+      ))}
     </View>
   );
 }
@@ -82,12 +86,7 @@ const legendStyles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
-    backgroundColor: C.paper,
   },
-  item: { flexDirection: "row", alignItems: "center", gap: 5 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  label: { fontSize: 11, fontWeight: "600", color: C.ink3 },
 });
 
 const SEGMENT_LABEL_KEYS: Record<BoardSegment, string> = {
@@ -101,6 +100,7 @@ export default function RoomBoardScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isOnline, user } = useAppStore();
+  const theme = useTheme();
   const locale = i18n.language === "es" ? "es-MX" : "en-US";
 
   const [rooms, setRooms] = useState<FloorRoom[]>([]);
@@ -168,26 +168,26 @@ export default function RoomBoardScreen() {
         snapshot.unassigned > 0 && {
           key: "unassigned",
           label: t("roomBoard.signalUnassigned", { count: snapshot.unassigned }),
-          fg: C.alert,
-          bg: C.alertSoft,
-          line: C.alertLine,
+          fg: theme.status.dirty,
+          bg: theme.status.dirtySoft,
+          line: theme.status.dirtyLine,
         },
         snapshot.submitted > 0 && {
           key: "submitted",
           label: t("roomBoard.signalSubmitted", { count: snapshot.submitted }),
-          fg: C.info,
-          bg: C.infoSoft,
-          line: C.infoLine,
+          fg: theme.status.clean,
+          bg: theme.status.cleanSoft,
+          line: theme.status.cleanLine,
         },
         snapshot.dnd > 0 && {
           key: "dnd",
           label: t("roomBoard.signalDnd", { count: snapshot.dnd }),
-          fg: C.ink2,
-          bg: C.surface3,
-          line: C.line,
+          fg: theme.textSecondary,
+          bg: theme.surfaceMuted,
+          line: theme.border,
         },
       ].filter(Boolean) as HeroSignal[],
-    [snapshot, t],
+    [snapshot, t, theme],
   );
 
   const segmentCounts = useMemo<Record<BoardSegment, number>>(
@@ -237,24 +237,26 @@ export default function RoomBoardScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />
+        }
       >
-        <View style={styles.topBleed} />
-        <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-          <Text style={styles.heroKicker}>{t("roomBoard.kicker")}</Text>
-          <Text style={styles.heroTitle}>{t("tabs.roomBoard")}</Text>
-          <Text style={styles.heroSummary}>
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
+        <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
+          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("roomBoard.kicker")}</Text>
+          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomBoard")}</Text>
+          <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
             {t("roomBoard.summary", {
               ready: snapshot.ready,
               total: snapshot.total,
@@ -264,20 +266,31 @@ export default function RoomBoardScreen() {
           <HeroSignalRow signals={signals} />
         </View>
 
-        <View style={styles.segmented}>
+        <View style={[styles.segmented, { backgroundColor: theme.surfaceMuted }]}>
           {SEGMENTS.map((key) => {
             const isActive = segment === key;
             const count = segmentCounts[key];
             return (
               <TouchableOpacity
                 key={key}
-                style={[styles.segment, isActive && styles.segmentActive]}
+                style={[
+                  styles.segment,
+                  isActive && [
+                    styles.segmentActive,
+                    { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
+                  ],
+                ]}
                 onPress={() => setSegment(key)}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
               >
-                <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+                <Text
+                  style={[
+                    styles.segmentLabel,
+                    { color: isActive ? theme.textPrimary : theme.textMuted },
+                  ]}
+                >
                   {t(SEGMENT_LABEL_KEYS[key])}
                   {count > 0 ? ` ${count}` : ""}
                 </Text>
@@ -286,7 +299,7 @@ export default function RoomBoardScreen() {
           })}
         </View>
 
-        <ColorLegend t={t} />
+        <ColorLegend t={t} theme={theme} />
 
         <View style={styles.body}>
           {floors.map(({ floor, rooms: floorRooms }) => (
@@ -308,13 +321,12 @@ export default function RoomBoardScreen() {
           ))}
 
           {floors.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="bed-outline" size={30} color={C.ink4} />
-              <Text style={styles.emptyTitle}>
-                {rooms.length === 0 ? t("roomBoard.noRoomsLoaded") : t("roomBoard.segmentEmpty")}
-              </Text>
-              <Text style={styles.emptyHint}>{t("roomBoard.pullToRefresh")}</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="bed-outline"
+              emptyTitle={rooms.length === 0 ? t("roomBoard.noRoomsLoaded") : t("roomBoard.segmentEmpty")}
+              emptyBody={t("roomBoard.pullToRefresh")}
+            />
           ) : null}
         </View>
       </ScrollView>
@@ -351,35 +363,32 @@ export default function RoomBoardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 28 },
 
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
   heroKicker: {
-    color: shellTokens.ink3,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroSummary: { color: shellTokens.ink2, fontSize: 13, marginTop: 7 },
+  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
+  heroSummary: { fontSize: 13, marginTop: 7 },
 
   segmented: {
     flexDirection: "row",
     marginHorizontal: 18,
     marginTop: 14,
     marginBottom: 12,
-    backgroundColor: C.surface3,
     borderRadius: R.md,
     padding: 3,
     gap: 3,
@@ -392,22 +401,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   segmentActive: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
-    shadowColor: C.ink,
     shadowOpacity: 0.06,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  segmentLabel: { color: C.ink3, fontSize: 12, fontWeight: "700" },
-  segmentLabelActive: { color: C.ink },
+  segmentLabel: { fontSize: 12, fontWeight: "700" },
 
   body: { paddingHorizontal: 16, gap: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-
-  empty: { alignItems: "center", paddingVertical: 52, paddingHorizontal: 32, gap: 7 },
-  emptyTitle: { color: C.ink, fontSize: 15.5, fontWeight: "700", marginTop: 4 },
-  emptyHint: { color: C.ink3, fontSize: 12.5, textAlign: "center", lineHeight: 18 },
 });
