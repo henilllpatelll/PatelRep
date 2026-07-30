@@ -126,3 +126,14 @@ None - no external service configuration required.
 ---
 *Phase: 08-floor-role-rollout*
 *Completed: 2026-07-30*
+
+## Self-Check: PASSED
+
+- FOUND: `apps/mobile/components/engineering/WorkOrderCard.tsx`
+- FOUND: `apps/mobile/app/(app)/work-orders/index.tsx`
+- FOUND: `apps/mobile/components/engineering/CreateWorkOrderModal.tsx`
+- FOUND: `.planning/phases/08-floor-role-rollout/08-05-SUMMARY.md`
+- FOUND commit: `9779be98` (Task 1)
+- FOUND commit: `47913f02` (Task 2)
+- FOUND commit: `f02b89c0` (Task 3)
+- FOUND commit: `4d101378` (docs: summary)
