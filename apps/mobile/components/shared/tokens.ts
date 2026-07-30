@@ -96,6 +96,7 @@ export const darkTheme = {
   // that read C.surface2 have a same-shape reactive key in both themes (Wave 0 precedent).
   surfaceSubtle: "#141110",
   surfaceElevated: "#232019",
+  surfaceSubtle: "#232019",
   surfaceMuted: "#2B2720",
   textPrimary: "#F1EDE4",
   textSecondary: "#C5BEAF",

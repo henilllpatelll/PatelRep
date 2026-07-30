@@ -6,14 +6,15 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { createWorkOrder, type CreateWorkOrderPayload } from "@/lib/api/workOrders";
-import { C, monoFont } from "@/components/shared/tokens";
+import { monoFont } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Button } from "@/components/ui/Button";
 
 const CATEGORIES = [
   { value: "appliance",   label: "Appliance" },
@@ -41,6 +42,7 @@ interface ReportIssueModalProps {
 
 export default function ReportIssueModal({ visible, roomId, roomNumber, onClose }: ReportIssueModalProps) {
   const isOnline = useAppStore((s) => s.isOnline);
+  const theme = useTheme();
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState<"urgent" | "normal" | "low">("normal");
@@ -88,61 +90,65 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.card}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Submit Work Order</Text>
-            <Text style={styles.subtitle}>Room {roomNumber}</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Submit Work Order</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted }]}>Room {roomNumber}</Text>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
             {/* Issue title */}
-            <Text style={styles.label}>Issue title <Text style={styles.required}>*</Text></Text>
+            <Text style={[styles.label, { color: theme.textMuted }]}>Issue title <Text style={{ color: theme.status.dirty }}>*</Text></Text>
             <TextInput
               testID="title-input"
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
               placeholder="e.g. Toilet not flushing, A/C not cooling"
-              placeholderTextColor={C.ink3}
+              placeholderTextColor={theme.textMuted}
               value={title}
               onChangeText={setTitle}
               returnKeyType="next"
             />
 
             {/* Category */}
-            <Text style={[styles.label, { marginTop: 14 }]}>Category <Text style={styles.required}>*</Text></Text>
+            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>Category <Text style={{ color: theme.status.dirty }}>*</Text></Text>
             <TouchableOpacity
               testID="category-select"
-              style={styles.selectRow}
+              style={[styles.selectRow, { borderColor: theme.border, backgroundColor: theme.background }]}
               onPress={() => setCategoryOpen((v) => !v)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.selectValue, !category && styles.selectPlaceholder]}>
+              <Text style={[styles.selectValue, { color: category ? theme.textPrimary : theme.textMuted }]}>
                 {CATEGORIES.find((c) => c.value === category)?.label ?? "Select a category"}
               </Text>
               <Ionicons
                 name={categoryOpen ? "chevron-up" : "chevron-down"}
                 size={16}
-                color={C.ink3}
+                color={theme.textMuted}
               />
             </TouchableOpacity>
             {categoryOpen && (
-              <View style={styles.dropdownList}>
+              <View style={[styles.dropdownList, { borderColor: theme.border, backgroundColor: theme.surface }]}>
                 {CATEGORIES.map((c, i) => (
                   <TouchableOpacity
                     testID={`category-option-${c.value}`}
                     key={c.value}
                     style={[
                       styles.dropdownItem,
-                      i < CATEGORIES.length - 1 && styles.dropdownItemBorder,
-                      c.value === category && styles.dropdownItemActive,
+                      i < CATEGORIES.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.borderSubtle },
+                      c.value === category && { backgroundColor: theme.accentBrassSoft },
                     ]}
                     onPress={() => { setCategory(c.value); setCategoryOpen(false); }}
                     activeOpacity={0.75}
                   >
-                    <Text style={[styles.dropdownItemText, c.value === category && styles.dropdownItemTextActive]}>
+                    <Text style={[
+                      styles.dropdownItemText,
+                      { color: c.value === category ? theme.accentBrass : theme.textSecondary },
+                      c.value === category && styles.dropdownItemTextActive,
+                    ]}>
                       {c.label}
                     </Text>
                     {c.value === category && (
-                      <Ionicons name="checkmark" size={15} color={C.brass} />
+                      <Ionicons name="checkmark" size={15} color={theme.accentBrass} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -150,37 +156,44 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             )}
 
             {/* Priority */}
-            <Text style={[styles.label, { marginTop: 14 }]}>Priority</Text>
+            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>Priority</Text>
             <View style={styles.priorityRow}>
-              {PRIORITIES.map((p) => (
-                <TouchableOpacity
-                  key={p.value}
-                  style={[
-                    styles.priorityBtn,
-                    priority === p.value && styles.priorityBtnActive,
-                    priority === p.value && p.value === "urgent" && { backgroundColor: C.alert, borderColor: C.alert },
-                    priority === p.value && p.value === "low" && { backgroundColor: C.info, borderColor: C.info },
-                  ]}
-                  onPress={() => setPriority(p.value)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[
-                    styles.priorityText,
-                    priority === p.value && styles.priorityTextActive,
-                  ]}>
-                    {p.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {PRIORITIES.map((p) => {
+                const isActive = priority === p.value;
+                let activeBg: string | undefined;
+                if (isActive) {
+                  if (p.value === "urgent") activeBg = theme.status.dirty;
+                  else if (p.value === "low") activeBg = theme.status.clean;
+                  else activeBg = theme.primaryAction;
+                }
+                return (
+                  <TouchableOpacity
+                    key={p.value}
+                    style={[
+                      styles.priorityBtn,
+                      { borderColor: isActive ? activeBg : theme.border, backgroundColor: isActive ? activeBg : theme.background },
+                    ]}
+                    onPress={() => setPriority(p.value)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[
+                      styles.priorityText,
+                      { color: isActive ? "#fff" : theme.textSecondary },
+                    ]}>
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Details */}
-            <Text style={[styles.label, { marginTop: 14 }]}>Details <Text style={styles.optional}>(optional)</Text></Text>
+            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>Details <Text style={{ color: theme.textMuted, fontWeight: "400" }}>(optional)</Text></Text>
             <TextInput
               testID="description-input"
-              style={[styles.input, styles.textarea]}
+              style={[styles.input, styles.textarea, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
               placeholder="Describe what you found…"
-              placeholderTextColor={C.ink3}
+              placeholderTextColor={theme.textMuted}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -188,24 +201,25 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
               textAlignVertical="top"
             />
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? <Text style={[styles.errorText, { color: theme.status.dirty }]}>{error}</Text> : null}
           </ScrollView>
 
-          <View style={styles.footer}>
-            <TouchableOpacity testID="cancel-button" style={styles.cancelBtn} onPress={onClose} activeOpacity={0.8}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+          <View style={[styles.footer, { borderTopColor: theme.border }]}>
+            <Button
+              label="Cancel"
+              onPress={onClose}
+              variant="secondary"
+              style={styles.cancelBtn}
+            />
+            <Button
               testID="submit-button"
-              style={[styles.submitBtn, (!title.trim() || !category || submitting) && styles.submitDisabled]}
+              label="Submit to Engineering"
               onPress={handleSubmit}
+              variant="primary"
+              loading={submitting}
               disabled={!title.trim() || !category || submitting}
-              activeOpacity={0.85}
-            >
-              {submitting
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.submitText}>Submit to Engineering</Text>}
-            </TouchableOpacity>
+              style={styles.submitBtn}
+            />
           </View>
         </View>
       </View>
@@ -220,7 +234,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   card: {
-    backgroundColor: C.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "88%",
@@ -230,26 +243,20 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: C.line,
   },
-  title: { fontSize: 17, fontWeight: "700", color: C.ink },
-  subtitle: { fontSize: 12, color: C.ink3, marginTop: 2, fontFamily: monoFont },
+  title: { fontSize: 17, fontWeight: "700" },
+  subtitle: { fontSize: 12, marginTop: 2, fontFamily: monoFont },
 
   body: { paddingHorizontal: 18, paddingTop: 16 },
 
-  label: { fontSize: 12, color: C.ink3, fontWeight: "600", marginBottom: 6 },
-  required: { color: C.alert },
-  optional: { color: C.ink3, fontWeight: "400" },
+  label: { fontSize: 12, fontWeight: "600", marginBottom: 6 },
 
   input: {
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: C.ink,
-    backgroundColor: C.paper,
   },
   textarea: { minHeight: 72, textAlignVertical: "top" },
 
@@ -258,20 +265,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: C.paper,
   },
-  selectValue: { fontSize: 14, color: C.ink },
-  selectPlaceholder: { color: C.ink3 },
+  selectValue: { fontSize: 14 },
   dropdownList: {
     marginTop: 4,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 10,
-    backgroundColor: C.surface,
     overflow: "hidden",
   },
   dropdownItem: {
@@ -281,27 +283,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
   },
-  dropdownItemBorder: { borderBottomWidth: 1, borderBottomColor: C.line2 },
-  dropdownItemActive: { backgroundColor: C.brassSoft },
-  dropdownItemText: { fontSize: 14, color: C.ink2 },
-  dropdownItemTextActive: { color: C.brass, fontWeight: "600" },
+  dropdownItemText: { fontSize: 14 },
+  dropdownItemTextActive: { fontWeight: "600" },
 
   priorityRow: { flexDirection: "row", gap: 8 },
   priorityBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 10,
     minHeight: 44,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: C.paper,
   },
-  priorityBtnActive: { backgroundColor: C.accent, borderColor: C.accent },
-  priorityText: { fontSize: 13, fontWeight: "600", color: C.ink2 },
-  priorityTextActive: { color: "#fff" },
+  priorityText: { fontSize: 13, fontWeight: "600" },
 
-  errorText: { fontSize: 12, color: C.alert, marginTop: 8 },
+  errorText: { fontSize: 12, marginTop: 8 },
 
   footer: {
     flexDirection: "row",
@@ -310,27 +306,13 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: C.line,
   },
   cancelBtn: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 12,
-    minHeight: 48,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: C.paper,
   },
-  cancelText: { fontSize: 14, fontWeight: "600", color: C.ink2 },
   submitBtn: {
     flex: 2,
     borderRadius: 12,
-    minHeight: 48,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: C.accent,
   },
-  submitDisabled: { opacity: 0.45 },
-  submitText: { fontSize: 14, fontWeight: "700", color: "#fff" },
 });
