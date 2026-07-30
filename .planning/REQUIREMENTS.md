@@ -25,11 +25,11 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 
 ### Floor-Role Rollout
 
-- [ ] **FLOOR-01**: The My Rooms screen (list + room detail) renders using the new Button/Card/StateBlock/Toast/StatusBadge primitives, with no change to existing offline-sync or data behavior.
-- [ ] **FLOOR-02**: The Room Board screen renders using the new primitives, with no change to existing offline-sync or data behavior.
-- [ ] **FLOOR-03**: The Work Orders screens (list + detail) render using the new primitives, with no change to existing RBAC or data behavior.
-- [ ] **FLOOR-04**: The Tasks screen renders using the new primitives, with no change to existing data behavior.
-- [ ] **FLOOR-05**: The Inspect screen/modal renders using the new primitives (including the photo-on-fail prompt), with no change to existing inspection-submission behavior.
+- [x] **FLOOR-01**: The My Rooms screen (list + room detail) renders using the new Button/Card/StateBlock/Toast/StatusBadge primitives, with no change to existing offline-sync or data behavior.
+- [x] **FLOOR-02**: The Room Board screen renders using the new primitives, with no change to existing offline-sync or data behavior.
+- [x] **FLOOR-03**: The Work Orders screens (list + detail) render using the new primitives, with no change to existing RBAC or data behavior.
+- [x] **FLOOR-04**: The Tasks screen renders using the new primitives, with no change to existing data behavior.
+- [x] **FLOOR-05**: The Inspect screen/modal renders using the new primitives (including the photo-on-fail prompt), with no change to existing inspection-submission behavior.
 
 ### Remaining Screens Rollout
 
@@ -85,11 +85,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-03 | Phase 7 | Validated |
 | UI-04 | Phase 7 | Validated |
 | I18N-01 | Phase 7 | Validated |
-| FLOOR-01 | Phase 8 | Pending |
-| FLOOR-02 | Phase 8 | Pending |
-| FLOOR-03 | Phase 8 | Pending |
-| FLOOR-04 | Phase 8 | Pending |
-| FLOOR-05 | Phase 8 | Pending |
+| FLOOR-01 | Phase 8 | Complete |
+| FLOOR-02 | Phase 8 | Complete |
+| FLOOR-03 | Phase 8 | Complete |
+| FLOOR-04 | Phase 8 | Complete |
+| FLOOR-05 | Phase 8 | Complete |
 | SCREENS-01 | Phase 9 | Pending |
 | SCREENS-02 | Phase 9 | Pending |
 | SCREENS-03 | Phase 9 | Pending |

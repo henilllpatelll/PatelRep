@@ -125,6 +125,6 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
-| 8. Floor-Role Rollout | v1.1 | 9/9 | Complete   | 2026-07-30 |
+| 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
