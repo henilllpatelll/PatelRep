@@ -19,7 +19,12 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont, shellTokens } from "@/components/shared/tokens";
+import { C, monoFont } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { StateBlock } from "@/components/ui/StateBlock";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
 import SupplyRequestModal from "@/components/housekeeping/SupplyRequestModal";
@@ -43,17 +48,50 @@ import {
   type RoomBlocker,
 } from "@/lib/housekeeping/roomBlockers";
 
-const STATUS_COLOR: Record<string, string> = {
-  DIRTY: C.alert,
-  OCCUPIED: C.alert,
-  PICKUP: C.caution,
-  IN_PROGRESS: C.caution,
-  CLEAN: C.info,
-  INSPECTED: C.ready,
-  OOO: C.ooo,
-  OUT_OF_ORDER: C.ooo,
-  OUT_OF_SERVICE: C.ooo,
-};
+type Theme = ReturnType<typeof useTheme>;
+
+function getRoomStatusKey(status: string): StatusKey {
+  switch (status) {
+    case "OCCUPIED":
+      return "occupied";
+    case "PICKUP":
+      return "pickup";
+    case "IN_PROGRESS":
+      return "inProgress";
+    case "CLEAN":
+      return "clean";
+    case "INSPECTED":
+      return "ready";
+    case "OOO":
+    case "OUT_OF_ORDER":
+    case "OUT_OF_SERVICE":
+      return "outOfOrder";
+    case "DIRTY":
+    default:
+      return "dirty";
+  }
+}
+
+function getStatusColor(status: string, theme: Theme): string {
+  switch (status) {
+    case "DIRTY":
+    case "OCCUPIED":
+      return theme.status.dirty;
+    case "PICKUP":
+    case "IN_PROGRESS":
+      return theme.status.pickup;
+    case "CLEAN":
+      return theme.status.clean;
+    case "INSPECTED":
+      return theme.status.ready;
+    case "OOO":
+    case "OUT_OF_ORDER":
+    case "OUT_OF_SERVICE":
+      return theme.status.outOfOrder;
+    default:
+      return theme.textMuted;
+  }
+}
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   DIRTY: "rooms.detail.status.DIRTY",
@@ -73,14 +111,15 @@ const CLEAN_TYPE_LABEL_KEYS: Record<string, string> = {
   LIGHT: "rooms.detail.cleanType.LIGHT",
 };
 
-const CLEAN_TYPE_META: Record<
-  string,
-  { icon: ComponentProps<typeof Ionicons>["name"]; bg: string; fg: string; border: string }
-> = {
-  DEP: { icon: "log-out-outline", bg: C.alertSoft, fg: C.alert, border: C.alertLine },
-  FULL: { icon: "refresh-circle-outline", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  LIGHT: { icon: "flash-outline", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-};
+function getCleanTypeMeta(
+  theme: Theme,
+): Record<string, { icon: ComponentProps<typeof Ionicons>["name"]; bg: string; fg: string; border: string }> {
+  return {
+    DEP: { icon: "log-out-outline", bg: theme.status.dirtySoft, fg: theme.status.dirty, border: theme.status.dirtyLine },
+    FULL: { icon: "refresh-circle-outline", bg: theme.status.pickupSoft, fg: theme.status.pickup, border: theme.status.pickupLine },
+    LIGHT: { icon: "flash-outline", bg: theme.status.pickupSoft, fg: theme.status.pickup, border: theme.status.pickupLine },
+  };
+}
 
 const STATUS_ACTION_TIMEOUT_MS = 12000;
 
@@ -206,6 +245,8 @@ export default function RoomDetailScreen() {
     refreshRooms,
   } = useAppStore();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const toast = useToast();
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,7 +389,7 @@ export default function RoomDetailScreen() {
       }
     } catch (err: unknown) {
       updateLocalRoom(previous.id, previous);
-      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.updateRoomFailed"));
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.updateRoomFailed"));
     } finally {
       stopStatusLoading();
     }
@@ -449,7 +490,7 @@ export default function RoomDetailScreen() {
       if (blocker.key === "come_back_later") {
         const newCount = incrementDndAttempt(room.id);
         if (newCount >= 2) {
-          Alert.alert(t("rooms.detail.alerts.dndEscalationTitle"));
+          toast.info(t("rooms.detail.alerts.dndEscalationTitle"));
           await sendSupervisorEscalation(room.room_number);
           resetDndAttempt(room.id);
         }
@@ -467,7 +508,7 @@ export default function RoomDetailScreen() {
 
   async function handleToggleDnd() {
     if (!room || !isOnline) {
-      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.dndNeedsConnection"));
+      toast.info(t("rooms.detail.alerts.dndNeedsConnection"));
       return;
     }
     const next = !room.dnd_flag;
@@ -477,7 +518,7 @@ export default function RoomDetailScreen() {
       await api.patch(`/rooms/${room.id}/dnd`, { dnd: next });
     } catch (err: unknown) {
       updateLocalRoom(room.id, { dnd_flag: !next });
-      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.updateDndFailed"));
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.updateDndFailed"));
     } finally {
       setDndLoading(false);
     }
@@ -485,7 +526,7 @@ export default function RoomDetailScreen() {
 
   async function handleToggleDeclineService() {
     if (!room || !isOnline) {
-      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.serviceNeedsConnection"));
+      toast.info(t("rooms.detail.alerts.serviceNeedsConnection"));
       return;
     }
     const next = !room.do_not_service;
@@ -495,7 +536,7 @@ export default function RoomDetailScreen() {
       await api.patch(`/rooms/${room.id}/decline-service`, { decline: next });
     } catch (err: unknown) {
       updateLocalRoom(room.id, { do_not_service: !next });
-      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.updateServiceFailed"));
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.updateServiceFailed"));
     } finally {
       setDeclineLoading(false);
     }
@@ -523,18 +564,16 @@ export default function RoomDetailScreen() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={C.accent} />
-      </View>
-    );
+    return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
   }
 
   if (!room) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{t("common.error")}</Text>
-      </View>
+      <StateBlock
+        status="error"
+        errorMessage={t("common.error")}
+        style={[styles.center, { backgroundColor: theme.background }]}
+      />
     );
   }
 
@@ -544,12 +583,12 @@ export default function RoomDetailScreen() {
   const startBlockedByInProgress = action.targetStatus === "IN_PROGRESS" && hasRoomInProgress(myRooms, room.id);
   const primaryDisabled = !action.targetStatus || startBlockedByInProgress;
   const showUndo = isOnline && Boolean(action.allowUndo);
-  const statusColor = STATUS_COLOR[status] ?? C.ink3;
+  const statusColor = getStatusColor(status, theme);
   const statusLabel = t(STATUS_LABEL_KEYS[status] ?? "rooms.detail.status.UNKNOWN", { status: status.replace(/_/g, " ") });
   const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
   const cleanTypeKey = getCleanTypeKey(room);
   const cleanType = cleanTypeKey ? t(cleanTypeKey) : room.clean_type_label ?? null;
-  const cleanTypeMeta = room.clean_type ? CLEAN_TYPE_META[room.clean_type] : null;
+  const cleanTypeMeta = room.clean_type ? getCleanTypeMeta(theme)[room.clean_type] : null;
   const hideCleanTypeIcon = room.status === "PICKUP" && (room.clean_type === "FULL" || room.clean_type === "LIGHT");
   const warnings = [...getBeforeEnterWarnings(room)].sort((a, b) => {
     if (a.key === "note") return -1;
@@ -581,93 +620,92 @@ export default function RoomDetailScreen() {
   ].filter((row): row is { labelKey: string; value: string } => Boolean(row?.value));
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <View style={[styles.navBar, { paddingTop: insets.top + 10, backgroundColor: theme.background, borderBottomColor: theme.borderSubtle }]}>
         <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)} style={styles.backBtn} hitSlop={10}>
-          <Ionicons name="chevron-back" size={20} color={C.accent} />
-          <Text style={styles.backLabel}>{t("rooms.title")}</Text>
+          <Ionicons name="chevron-back" size={20} color={theme.primaryAction} />
+          <Text style={[styles.backLabel, { color: theme.primaryAction }]}>{t("rooms.title")}</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 132 }]}>
-        <View style={styles.hero}>
+      <ScrollView style={[styles.scroll, { backgroundColor: theme.background }]} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 132 }]}>
+        <View style={[styles.hero, { backgroundColor: theme.shell.bg, borderColor: theme.shell.line }]}>
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.roomEyebrow}>{t("rooms.detail.roomEyebrow")}</Text>
-              <Text style={styles.roomNum}>{room.room_number}</Text>
+              <Text style={[styles.roomEyebrow, { color: theme.shell.ink3 }]}>{t("rooms.detail.roomEyebrow")}</Text>
+              <Text style={[styles.roomNum, { color: theme.shell.ink }]}>{room.room_number}</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-              <Text style={styles.statusBadgeText}>{statusLabel}</Text>
-            </View>
+            <StatusBadge statusKey={getRoomStatusKey(status)} label={statusLabel} />
           </View>
           <View style={styles.heroMeta}>
-            {roomType ? <Text style={styles.heroMetaText}>{roomType}</Text> : null}
+            {roomType ? <Text style={[styles.heroMetaText, { color: theme.shell.ink2, backgroundColor: theme.shell.raised, borderColor: theme.shell.line }]}>{roomType}</Text> : null}
             {cleanType ? (
               <View
                 accessible
                 accessibilityLabel={t("rooms.detail.cleanTypeAccessibility", { type: cleanType })}
                 style={[
                   styles.cleanTypeChip,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle },
                   cleanTypeMeta && { backgroundColor: cleanTypeMeta.bg, borderColor: cleanTypeMeta.border },
                 ]}
               >
                 {cleanTypeMeta && !hideCleanTypeIcon ? (
                   <Ionicons name={cleanTypeMeta.icon} size={12} color={cleanTypeMeta.fg} />
                 ) : null}
-                <Text style={[styles.cleanTypeChipText, cleanTypeMeta && { color: cleanTypeMeta.fg }]}>{cleanType}</Text>
+                <Text style={[styles.cleanTypeChipText, { color: theme.textSecondary }, cleanTypeMeta && { color: cleanTypeMeta.fg }]}>{cleanType}</Text>
               </View>
             ) : null}
           </View>
         </View>
 
         {isDepRoom ? (
-          <View style={styles.depBanner}>
-            <Ionicons name="log-out-outline" size={16} color={C.alert} />
+          <View style={[styles.depBanner, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
+            <Ionicons name="log-out-outline" size={16} color={theme.status.dirty} />
             <View style={styles.depBannerCopy}>
-              <Text style={styles.depBannerTitle}>{t("rooms.detail.departure.title")}</Text>
-              <Text style={styles.depBannerSub}>{t("rooms.detail.departure.subtitle")}</Text>
+              <Text style={[styles.depBannerTitle, { color: theme.status.dirty }]}>{t("rooms.detail.departure.title")}</Text>
+              <Text style={[styles.depBannerSub, { color: theme.status.dirty }]}>{t("rooms.detail.departure.subtitle")}</Text>
             </View>
           </View>
         ) : null}
 
         {insight.lines.length > 0 ? (
-          <View style={styles.aiInsightCard}>
+          <View style={[styles.aiInsightCard, { backgroundColor: theme.surface, borderColor: theme.ai.line }]}>
             <View style={styles.aiInsightHeader}>
-              <Ionicons name="sparkles" size={13} color={C.ai} />
-              <Text style={styles.aiInsightTitle}>{t("ai.insight.title")}</Text>
+              <Ionicons name="sparkles" size={13} color={theme.ai.primary} />
+              <Text style={[styles.aiInsightTitle, { color: theme.ai.primary }]}>{t("ai.insight.title")}</Text>
             </View>
             {insight.lines.map((line) => (
               <View key={line.key} style={styles.aiInsightRow}>
-                <View style={styles.aiInsightDot} />
-                <Text style={styles.aiInsightText}>{line.text}</Text>
+                <View style={[styles.aiInsightDot, { backgroundColor: theme.ai.primary }]} />
+                <Text style={[styles.aiInsightText, { color: theme.textSecondary }]}>{line.text}</Text>
               </View>
             ))}
-            <TouchableOpacity style={styles.aiAskBtn} onPress={() => router.push("/(app)/copilot")} activeOpacity={0.82}>
-              <Ionicons name="chatbubble-ellipses-outline" size={13} color={C.ai} />
-              <Text style={styles.aiAskText}>{t("ai.askAboutRoom")}</Text>
+            <TouchableOpacity style={[styles.aiAskBtn, { borderColor: theme.ai.line, backgroundColor: theme.ai.soft }]} onPress={() => router.push("/(app)/copilot")} activeOpacity={0.82}>
+              <Ionicons name="chatbubble-ellipses-outline" size={13} color={theme.ai.primary} />
+              <Text style={[styles.aiAskText, { color: theme.ai.primary }]}>{t("ai.askAboutRoom")}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
 
         {warnings.length > 0 ? (
-          <View style={styles.warningSection}>
-            <Text style={styles.warningTitle}>{t("rooms.detail.beforeEnter")}</Text>
+          <View style={[styles.warningSection, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
+            <Text style={[styles.warningTitle, { color: theme.status.dirty }]}>{t("rooms.detail.beforeEnter")}</Text>
             {warnings.map((warning) => {
               const critical = warning.severity === "critical";
               const warningCopy = getWarningCopy(warning, room, t);
               return (
-                <View key={warning.key} style={[styles.warningRow, critical && styles.warningRowCritical]}>
-                  <Ionicons name={critical ? "warning" : "alert-circle-outline"} size={16} color={critical ? C.alert : C.caution} />
+                <View key={warning.key} style={[styles.warningRow, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }, critical && { borderColor: theme.status.dirtyLine, backgroundColor: "#FFF7F7" }]}>
+                  <Ionicons name={critical ? "warning" : "alert-circle-outline"} size={16} color={critical ? theme.status.dirty : theme.status.pickup} />
                   <View style={styles.warningCopy}>
                     <View style={styles.warningHeaderRow}>
-                      <Text style={[styles.warningLabel, critical && styles.warningLabelCritical]}>{warningCopy.label}</Text>
+                      <Text style={[styles.warningLabel, { color: theme.textPrimary }, critical && { color: theme.status.dirty }]}>{warningCopy.label}</Text>
                       {warning.key === "note" && canRemoveLatestNote ? (
                         <TouchableOpacity onPress={removeLatestNote} activeOpacity={0.8}>
-                          <Text style={styles.removeNoteText}>{t("rooms.detail.removeNote")}</Text>
+                          <Text style={[styles.removeNoteText, { color: theme.primaryAction }]}>{t("rooms.detail.removeNote")}</Text>
                         </TouchableOpacity>
                       ) : null}
                     </View>
-                    <Text style={styles.warningDetail}>{warningCopy.detail}</Text>
+                    <Text style={[styles.warningDetail, { color: theme.textSecondary }]}>{warningCopy.detail}</Text>
                   </View>
                 </View>
               );
@@ -675,25 +713,25 @@ export default function RoomDetailScreen() {
           </View>
         ) : null}
 
-        <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>{t("rooms.detail.reservationTiming")}</Text>
+        <View style={[styles.cardSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("rooms.detail.reservationTiming")}</Text>
           {timingRows.length > 0 ? (
             <View style={styles.infoGrid}>
               {timingRows.map((row, idx) => (
-                <View key={row.labelKey} style={[styles.infoRow, idx === timingRows.length - 1 && styles.infoRowLast]}>
-                  <Text style={styles.infoLabel}>{t(row.labelKey)}</Text>
-                  <Text style={styles.infoValue}>{row.value}</Text>
+                <View key={row.labelKey} style={[styles.infoRow, { borderBottomColor: theme.borderSubtle }, idx === timingRows.length - 1 && styles.infoRowLast]}>
+                  <Text style={[styles.infoLabel, { color: theme.textMuted }]}>{t(row.labelKey)}</Text>
+                  <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{row.value}</Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.mutedText}>{t("rooms.detail.noReservationTiming")}</Text>
+            <Text style={[styles.mutedText, { color: theme.textMuted }]}>{t("rooms.detail.noReservationTiming")}</Text>
           )}
         </View>
 
         {blockers.length > 0 ? (
-          <View style={styles.cardSection}>
-            <Text style={styles.sectionTitle}>{sectionLabel}</Text>
+          <View style={[styles.cardSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{sectionLabel}</Text>
             <View style={styles.blockerGrid}>
               {blockers.map((blocker) => {
                 const busy = blockerBusy === blocker.key;
@@ -704,8 +742,8 @@ export default function RoomDetailScreen() {
                     key={blocker.key}
                     style={[
                       styles.blockerBtn,
-                      open && styles.blockerBtnOpen,
-                      activated && styles.blockerBtnActivated,
+                      { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                      (open || activated) && { borderColor: theme.primaryLine, backgroundColor: theme.primarySoft },
                       (noteLoading || blockerBusy != null) && !busy && styles.btnDisabled,
                     ]}
                     onPress={() => {
@@ -721,19 +759,19 @@ export default function RoomDetailScreen() {
                     activeOpacity={0.82}
                   >
                     {busy ? (
-                      <ActivityIndicator size="small" color={C.accent} />
+                      <ActivityIndicator size="small" color={theme.primaryAction} />
                     ) : (
                       <View style={styles.blockerBtnContent}>
-                        <Text style={[styles.blockerText, activated && styles.blockerTextActivated]}>{t(blocker.labelKey)}</Text>
-                        {activated ? <Ionicons name="arrow-undo-outline" size={13} color={C.accent} /> : null}
+                        <Text style={[styles.blockerText, { color: theme.textSecondary }, activated && { color: theme.primaryAction }]}>{t(blocker.labelKey)}</Text>
+                        {activated ? <Ionicons name="arrow-undo-outline" size={13} color={theme.primaryAction} /> : null}
                       </View>
                     )}
                   </TouchableOpacity>
                 );
               })}
-              <TouchableOpacity style={styles.blockerBtnCustom} onPress={() => setCustomOpen(true)} activeOpacity={0.82}>
-                <Ionicons name="pencil-outline" size={13} color={C.ink3} />
-                <Text style={styles.blockerText}>{t("rooms.detail.customFlag.short")}</Text>
+              <TouchableOpacity style={[styles.blockerBtnCustom, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} onPress={() => setCustomOpen(true)} activeOpacity={0.82}>
+                <Ionicons name="pencil-outline" size={13} color={theme.textMuted} />
+                <Text style={[styles.blockerText, { color: theme.textSecondary }]}>{t("rooms.detail.customFlag.short")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -741,41 +779,36 @@ export default function RoomDetailScreen() {
               const active = blockers.find((blocker) => blocker.key === timeEntryKey);
               if (!active) return null;
               return (
-                <View style={styles.timeEntry}>
-                  <Text style={styles.timeEntryLabel}>{t("blockers.timePrompt")}</Text>
+                <View style={[styles.timeEntry, { borderTopColor: theme.borderSubtle }]}>
+                  <Text style={[styles.timeEntryLabel, { color: theme.textSecondary }]}>{t("blockers.timePrompt")}</Text>
                   <View style={styles.timeChipRow}>
                     {(active.timePresets ?? []).map((preset) => (
                       <TouchableOpacity
                         key={preset}
-                        style={[styles.timeChip, timeText === preset && styles.timeChipActive]}
+                        style={[styles.timeChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }, timeText === preset && { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]}
                         onPress={() => setTimeText(preset)}
                         activeOpacity={0.82}
                       >
-                        <Text style={[styles.timeChipText, timeText === preset && styles.timeChipTextActive]}>{preset}</Text>
+                        <Text style={[styles.timeChipText, { color: theme.textSecondary }, timeText === preset && { color: theme.primaryAction }]}>{preset}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                   <View style={styles.timeEntryActions}>
                     <TextInput
-                      style={styles.timeInput}
+                      style={[styles.timeInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
                       value={timeText}
                       onChangeText={setTimeText}
                       onEndEditing={() => setTimeText(formatBlockerTimeInput(timeText))}
                       placeholder={t("blockers.timePlaceholder")}
-                      placeholderTextColor={C.ink3}
+                      placeholderTextColor={theme.textMuted}
                     />
-                    <TouchableOpacity
-                      style={[styles.timeSendBtn, (!timeText.trim() || blockerBusy != null) && styles.btnDisabled]}
+                    <Button
+                      label={t("blockers.report")}
                       onPress={() => void submitBlocker(active, timeText)}
+                      loading={blockerBusy === active.key}
                       disabled={!timeText.trim() || blockerBusy != null}
-                      activeOpacity={0.85}
-                    >
-                      {blockerBusy === active.key ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={styles.timeSendText}>{t("blockers.report")}</Text>
-                      )}
-                    </TouchableOpacity>
+                      size="sm"
+                    />
                   </View>
                 </View>
               );
@@ -784,72 +817,69 @@ export default function RoomDetailScreen() {
         ) : null}
 
         {/* Actions — note form renders ABOVE chips to keep chip positions stable when form opens */}
-        <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>{t("rooms.detailActions.title")}</Text>
+        <View style={[styles.cardSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("rooms.detailActions.title")}</Text>
           {noteOpen ? (
-            <View style={styles.noteForm}>
+            <View style={[styles.noteForm, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
               <TextInput
-                style={styles.noteInput}
+                style={[styles.noteInput, { color: theme.textPrimary }]}
                 value={noteText}
                 onChangeText={setNoteText}
                 placeholder={t("rooms.detailActions.notePlaceholder")}
-                placeholderTextColor={C.ink3}
+                placeholderTextColor={theme.textMuted}
                 multiline
                 numberOfLines={2}
                 autoFocus
               />
-              <View style={styles.noteActions}>
-                <TouchableOpacity
-                  style={[styles.noteSendBtn, (!noteText.trim() || noteLoading) && styles.btnDisabled]}
+              <View style={[styles.noteActions, { borderTopColor: theme.borderSubtle }]}>
+                <Button
+                  label={t("rooms.detailActions.saveNote")}
+                  icon="send"
                   onPress={() => void submitNote(noteText)}
+                  loading={noteLoading}
                   disabled={!noteText.trim() || noteLoading}
-                  activeOpacity={0.85}
-                >
-                  {noteLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="send" size={13} color="#fff" />
-                      <Text style={styles.noteSendText}>{t("rooms.detailActions.saveNote")}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                  size="sm"
+                />
                 <TouchableOpacity onPress={() => setNoteOpen(false)}>
-                  <Text style={styles.noteCancelText}>{t("rooms.detailActions.cancel")}</Text>
+                  <Text style={[styles.noteCancelText, { color: theme.textMuted }]}>{t("rooms.detailActions.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : null}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionChip} onPress={() => setNoteOpen((v) => !v)} activeOpacity={0.82}>
-              <Ionicons name="chatbubble-outline" size={14} color={C.info} />
-              <Text style={[styles.actionChipText, { color: C.info }]}>{t("rooms.detailActions.addNote")}</Text>
+            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]} onPress={() => setNoteOpen((v) => !v)} activeOpacity={0.82}>
+              <Ionicons name="chatbubble-outline" size={14} color={theme.status.clean} />
+              <Text style={[styles.actionChipText, { color: theme.status.clean }]}>{t("rooms.detailActions.addNote")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, styles.actionChipWork]} onPress={() => setShowReportIssue(true)} activeOpacity={0.82}>
-              <Ionicons name="build-outline" size={14} color={C.brass} />
-              <Text style={[styles.actionChipText, { color: C.brass }]}>{t("rooms.detailActions.workOrder")}</Text>
+            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }]} onPress={() => setShowReportIssue(true)} activeOpacity={0.82}>
+              <Ionicons name="build-outline" size={14} color={theme.accentBrass} />
+              <Text style={[styles.actionChipText, { color: theme.accentBrass }]}>{t("rooms.detailActions.workOrder")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, styles.actionChipFound]} onPress={() => setShowFoundItem(true)} activeOpacity={0.82}>
-              <Ionicons name="bag-outline" size={14} color={C.caution} />
-              <Text style={[styles.actionChipText, { color: C.caution }]}>{t("rooms.detailActions.lostFound")}</Text>
+            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]} onPress={() => setShowFoundItem(true)} activeOpacity={0.82}>
+              <Ionicons name="bag-outline" size={14} color={theme.status.pickup} />
+              <Text style={[styles.actionChipText, { color: theme.status.pickup }]}>{t("rooms.detailActions.lostFound")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, styles.actionChipSupply]} onPress={() => setShowSupplyRequest(true)} activeOpacity={0.82}>
-              <Ionicons name="cube-outline" size={14} color={C.accent} />
-              <Text style={[styles.actionChipText, { color: C.accent }]}>{t("rooms.detailActions.supplies")}</Text>
+            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]} onPress={() => setShowSupplyRequest(true)} activeOpacity={0.82}>
+              <Ionicons name="cube-outline" size={14} color={theme.primaryAction} />
+              <Text style={[styles.actionChipText, { color: theme.primaryAction }]}>{t("rooms.detailActions.supplies")}</Text>
             </TouchableOpacity>
             {showDndChip ? (
               <TouchableOpacity
-                style={[styles.actionChip, styles.actionChipDnd, room.dnd_flag && styles.actionChipDndActive]}
+                style={[
+                  styles.actionChip,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                  room.dnd_flag && { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine },
+                ]}
                 onPress={() => void handleToggleDnd()}
                 disabled={dndLoading}
                 activeOpacity={0.82}
               >
                 {dndLoading ? (
-                  <ActivityIndicator size="small" color={room.dnd_flag ? C.alert : C.ink3} />
+                  <ActivityIndicator size="small" color={room.dnd_flag ? theme.status.dirty : theme.textMuted} />
                 ) : (
                   <>
-                    <Ionicons name={room.dnd_flag ? "close-circle-outline" : "hand-left-outline"} size={14} color={room.dnd_flag ? C.alert : C.ink3} />
-                    <Text style={[styles.actionChipText, { color: room.dnd_flag ? C.alert : C.ink3 }]}>
+                    <Ionicons name={room.dnd_flag ? "close-circle-outline" : "hand-left-outline"} size={14} color={room.dnd_flag ? theme.status.dirty : theme.textMuted} />
+                    <Text style={[styles.actionChipText, { color: room.dnd_flag ? theme.status.dirty : theme.textMuted }]}>
                       {room.dnd_flag ? t("rooms.detailActions.clearDnd") : t("rooms.detailActions.skipDnd")}
                     </Text>
                   </>
@@ -858,17 +888,21 @@ export default function RoomDetailScreen() {
             ) : null}
             {room.status === "PICKUP" ? (
               <TouchableOpacity
-                style={[styles.actionChip, styles.actionChipDnd, room.do_not_service && styles.actionChipDndActive]}
+                style={[
+                  styles.actionChip,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                  room.do_not_service && { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine },
+                ]}
                 onPress={() => void handleToggleDeclineService()}
                 disabled={declineLoading}
                 activeOpacity={0.82}
               >
                 {declineLoading ? (
-                  <ActivityIndicator size="small" color={room.do_not_service ? C.alert : C.ink3} />
+                  <ActivityIndicator size="small" color={room.do_not_service ? theme.status.dirty : theme.textMuted} />
                 ) : (
                   <>
-                    <Ionicons name={room.do_not_service ? "refresh-outline" : "close-outline"} size={14} color={room.do_not_service ? C.alert : C.ink3} />
-                    <Text style={[styles.actionChipText, { color: room.do_not_service ? C.alert : C.ink3 }]}>
+                    <Ionicons name={room.do_not_service ? "refresh-outline" : "close-outline"} size={14} color={room.do_not_service ? theme.status.dirty : theme.textMuted} />
+                    <Text style={[styles.actionChipText, { color: room.do_not_service ? theme.status.dirty : theme.textMuted }]}>
                       {room.do_not_service ? t("rooms.detailActions.restoreService") : t("rooms.detailActions.declineService")}
                     </Text>
                   </>
@@ -891,39 +925,41 @@ export default function RoomDetailScreen() {
         />
       </ScrollView>
 
-      <View style={[styles.stickyAction, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={[styles.stickyAction, { paddingBottom: insets.bottom + 12, borderTopColor: theme.border, backgroundColor: theme.surface }]}>
         <View style={styles.stickyStatusRow}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <Text style={[styles.stickyStatusText, { color: statusColor }]}>{statusLabel}</Text>
           {lastAction ? (
-            <Text style={styles.stickyLastAction} numberOfLines={1}>· {lastAction}</Text>
+            <Text style={[styles.stickyLastAction, { color: theme.textMuted }]} numberOfLines={1}>· {lastAction}</Text>
           ) : null}
           {cleanSuccess ? (
-            <Text style={styles.cleanSuccessText}>{t("rooms.detail.cleanSuccess")}</Text>
+            <Text style={[styles.cleanSuccessText, { color: theme.status.ready }]}>{t("rooms.detail.cleanSuccess")}</Text>
           ) : noteSuccess ? (
-            <Text style={styles.noteSuccessText}>{t("rooms.detailActions.noteSaved")}</Text>
+            <Text style={[styles.noteSuccessText, { color: theme.status.ready }]}>{t("rooms.detailActions.noteSaved")}</Text>
           ) : null}
         </View>
         {startBlockedByInProgress ? (
-          <Text style={styles.inProgressBlockText}>{t("rooms.detail.finishCurrentRoom")}</Text>
+          <Text style={[styles.inProgressBlockText, { color: theme.status.pickup }]}>{t("rooms.detail.finishCurrentRoom")}</Text>
         ) : checklistIncomplete ? (
-          <Text style={styles.inProgressBlockText}>
+          <Text style={[styles.inProgressBlockText, { color: theme.status.pickup }]}>
             {t("rooms.detail.checklistGateHint", { done: checkedCount, total: checklist.length })}
           </Text>
         ) : null}
         <View style={styles.stickyButtons}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, primaryDisabledFinal && styles.primaryBtnDisabled]}
+          <Button
+            label={primaryLabel}
             onPress={handlePrimaryAction}
             disabled={primaryDisabledFinal}
-            activeOpacity={0.86}
-          >
-            <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
-          </TouchableOpacity>
+            size="lg"
+            style={styles.primaryBtnFlex}
+          />
           {showUndo ? (
-            <TouchableOpacity style={styles.secondaryBtn} onPress={handleUndo} activeOpacity={0.82}>
-              <Text style={styles.secondaryBtnText}>{t("rooms.detail.primary.undo")}</Text>
-            </TouchableOpacity>
+            <Button
+              label={t("rooms.detail.primary.undo")}
+              onPress={handleUndo}
+              variant="secondary"
+              size="lg"
+            />
           ) : null}
         </View>
       </View>
@@ -936,10 +972,10 @@ export default function RoomDetailScreen() {
 
       <Modal visible={customOpen} transparent animationType="slide" onRequestClose={() => setCustomOpen(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCustomOpen(false)}>
-          <TouchableOpacity style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]} activeOpacity={1}>
-            <Text style={styles.modalTitle}>{t("rooms.detail.customFlag.title")}</Text>
+          <TouchableOpacity style={[styles.modalSheet, { paddingBottom: insets.bottom + 16, backgroundColor: C.surface }]} activeOpacity={1}>
+            <Text style={[styles.modalTitle, { color: C.ink }]}>{t("rooms.detail.customFlag.title")}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { borderColor: C.line, backgroundColor: C.surface2, color: C.ink }]}
               value={customText}
               onChangeText={setCustomText}
               placeholder={t("rooms.detail.customFlag.placeholder")}
@@ -948,9 +984,9 @@ export default function RoomDetailScreen() {
               numberOfLines={3}
               autoFocus
             />
-            <View style={styles.noteActions}>
+            <View style={[styles.noteActions, { borderTopColor: C.line2 }]}>
               <TouchableOpacity
-                style={[styles.noteSendBtn, (!customText.trim() || noteLoading) && styles.btnDisabled]}
+                style={[styles.noteSendBtn, { backgroundColor: C.accent }, (!customText.trim() || noteLoading) && styles.btnDisabled]}
                 onPress={() => {
                   void submitNote(customText).then(() => {
                     setCustomText("");
@@ -970,7 +1006,7 @@ export default function RoomDetailScreen() {
                 )}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setCustomOpen(false)}>
-                <Text style={styles.noteCancelText}>{t("rooms.detailActions.cancel")}</Text>
+                <Text style={[styles.noteCancelText, { color: C.ink3 }]}>{t("rooms.detailActions.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -981,157 +1017,128 @@ export default function RoomDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: C.paper },
-  errorText: { color: C.ink3, fontSize: 14 },
+  root: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 13,
-    backgroundColor: C.paper,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
   },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 2, padding: 2 },
-  backLabel: { fontSize: 15, color: C.accent, fontWeight: "600" },
-  scroll: { flex: 1, backgroundColor: C.paper },
+  backLabel: { fontSize: 15, fontWeight: "600" },
+  scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 16, gap: 14 },
 
-  hero: { backgroundColor: shellTokens.bg, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 18, padding: 18, gap: 12 },
+  hero: { borderWidth: 1, borderRadius: 18, padding: 18, gap: 12 },
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
-  roomEyebrow: { color: shellTokens.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  roomNum: { fontFamily: monoFont, color: shellTokens.ink, fontSize: 48, lineHeight: 52, fontWeight: "800" },
-  statusBadge: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginTop: 4 },
-  statusBadgeText: { color: "#fff", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
+  roomEyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  roomNum: { fontFamily: monoFont, fontSize: 48, lineHeight: 52, fontWeight: "800" },
   heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  heroMetaText: { color: shellTokens.ink2, backgroundColor: shellTokens.raised, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
+  heroMetaText: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
 
-  depBanner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.alertSoft, borderWidth: 1.5, borderColor: C.alertLine, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  depBanner: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
   depBannerCopy: { flex: 1 },
-  depBannerTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.9, color: C.alert, textTransform: "uppercase" },
-  depBannerSub: { fontSize: 12, color: C.alert, fontWeight: "600", marginTop: 1 },
+  depBannerTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.9, textTransform: "uppercase" },
+  depBannerSub: { fontSize: 12, fontWeight: "600", marginTop: 1 },
 
-  aiInsightCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.aiLine, borderRadius: 16, padding: 14, gap: 8 },
+  aiInsightCard: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 8 },
   aiInsightHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  aiInsightTitle: { color: C.ai, fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
+  aiInsightTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
   aiInsightRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  aiInsightDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: C.ai, marginTop: 6 },
-  aiInsightText: { flex: 1, color: C.ink2, fontSize: 13, lineHeight: 18 },
+  aiInsightDot: { width: 5, height: 5, borderRadius: 3, marginTop: 6 },
+  aiInsightText: { flex: 1, fontSize: 13, lineHeight: 18 },
   aiAskBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    marginTop: 3, minHeight: 40, borderRadius: 10, borderWidth: 1, borderColor: C.aiLine, backgroundColor: C.aiSoft,
+    marginTop: 3, minHeight: 40, borderRadius: 10, borderWidth: 1,
   },
-  aiAskText: { color: C.ai, fontSize: 12.5, fontWeight: "800" },
+  aiAskText: { fontSize: 12.5, fontWeight: "800" },
 
   cleanTypeChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4,
+    borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4,
   },
-  cleanTypeChipText: { color: C.ink2, fontSize: 12, fontWeight: "800" },
+  cleanTypeChipText: { fontSize: 12, fontWeight: "800" },
 
-  warningSection: { backgroundColor: C.alertSoft, borderWidth: 1, borderColor: C.alertLine, borderRadius: 16, padding: 14, gap: 10 },
-  warningTitle: { fontSize: 16, fontWeight: "900", color: C.alert },
-  warningRow: { flexDirection: "row", alignItems: "flex-start", gap: 9, backgroundColor: C.surface, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: C.line2 },
-  warningRowCritical: { borderColor: C.alertLine, backgroundColor: "#FFF7F7" },
+  warningSection: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
+  warningTitle: { fontSize: 16, fontWeight: "900" },
+  warningRow: { flexDirection: "row", alignItems: "flex-start", gap: 9, borderRadius: 12, padding: 10, borderWidth: 1 },
   warningCopy: { flex: 1, gap: 2 },
   warningHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  warningLabel: { fontSize: 13, fontWeight: "800", color: C.ink },
-  warningLabelCritical: { color: C.alert },
-  warningDetail: { fontSize: 12, color: C.ink2, lineHeight: 17 },
-  removeNoteText: { color: C.accent, fontSize: 12, fontWeight: "900" },
+  warningLabel: { fontSize: 13, fontWeight: "800" },
+  warningDetail: { fontSize: 12, lineHeight: 17 },
+  removeNoteText: { fontSize: 12, fontWeight: "900" },
 
-  cardSection: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 16, padding: 14, gap: 10 },
-  sectionTitle: { color: C.ink3, fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
-  mutedText: { color: C.ink3, fontSize: 13 },
+  cardSection: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
+  sectionTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
+  mutedText: { fontSize: 13 },
   infoGrid: { gap: 8 },
-  infoRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 14, borderBottomWidth: 1, borderBottomColor: C.line2, paddingBottom: 7 },
+  infoRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 14, borderBottomWidth: 1, paddingBottom: 7 },
   infoRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
-  infoLabel: { color: C.ink3, fontSize: 12, fontWeight: "700" },
-  infoValue: { color: C.ink, fontSize: 13, fontWeight: "700", textAlign: "right", flexShrink: 1 },
+  infoLabel: { fontSize: 12, fontWeight: "700" },
+  infoValue: { fontSize: 13, fontWeight: "700", textAlign: "right", flexShrink: 1 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  noteSuccessText: { fontSize: 12, color: C.ready, fontWeight: "700" },
-  cleanSuccessText: { fontSize: 12, color: C.ready, fontWeight: "800" },
+  noteSuccessText: { fontSize: 12, fontWeight: "700" },
+  cleanSuccessText: { fontSize: 12, fontWeight: "800" },
 
   blockerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   blockerBtn: {
-    minWidth: "47%", flexGrow: 1, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line,
+    minWidth: "47%", flexGrow: 1, borderWidth: 1,
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10, alignItems: "center",
   },
   blockerBtnContent: { flexDirection: "row", alignItems: "center", gap: 6 },
-  blockerText: { fontSize: 13, fontWeight: "800", color: C.ink2 },
-  blockerTextActivated: { color: C.accent },
-  blockerBtnOpen: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
-  blockerBtnActivated: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
+  blockerText: { fontSize: 13, fontWeight: "800" },
   blockerBtnCustom: {
     minWidth: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
-    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line, borderStyle: "dashed",
+    borderWidth: 1, borderStyle: "dashed",
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10,
   },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
-  modalTitle: { fontSize: 15, fontWeight: "900", color: C.ink },
+  modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
+  modalTitle: { fontSize: 15, fontWeight: "900" },
   modalInput: {
-    minHeight: 88, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface2,
-    paddingHorizontal: 12, paddingTop: 10, fontSize: 14, color: C.ink, textAlignVertical: "top",
+    minHeight: 88, borderRadius: 12, borderWidth: 1,
+    paddingHorizontal: 12, paddingTop: 10, fontSize: 14, textAlignVertical: "top",
   },
   btnDisabled: { opacity: 0.5 },
 
-  timeEntry: { gap: 9, borderTopWidth: 1, borderTopColor: C.line2, paddingTop: 11 },
-  timeEntryLabel: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+  timeEntry: { gap: 9, borderTopWidth: 1, paddingTop: 11 },
+  timeEntryLabel: { fontSize: 12.5, fontWeight: "700" },
   timeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   timeChip: {
-    minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: C.line,
-    backgroundColor: C.surface2, paddingHorizontal: 13, alignItems: "center", justifyContent: "center",
+    minHeight: 40, borderRadius: 999, borderWidth: 1,
+    paddingHorizontal: 13, alignItems: "center", justifyContent: "center",
   },
-  timeChipActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
-  timeChipText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
-  timeChipTextActive: { color: C.accent },
+  timeChipText: { fontSize: 12.5, fontWeight: "700" },
   timeEntryActions: { flexDirection: "row", gap: 8, alignItems: "center" },
   timeInput: {
-    flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: C.line,
-    backgroundColor: C.surface2, paddingHorizontal: 12, fontSize: 13, color: C.ink,
+    flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, fontSize: 13,
   },
-  timeSendBtn: {
-    minHeight: 44, borderRadius: 10, backgroundColor: C.accent,
-    paddingHorizontal: 16, alignItems: "center", justifyContent: "center",
-  },
-  timeSendText: { color: "#fff", fontSize: 13, fontWeight: "800" },
 
   actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   actionChip: {
     flex: 1, minWidth: "47%", flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, backgroundColor: C.infoSoft, borderRadius: 10, minHeight: 46, paddingHorizontal: 12,
-    borderWidth: 1, borderColor: C.infoLine,
+    gap: 5, borderRadius: 10, minHeight: 46, paddingHorizontal: 12,
+    borderWidth: 1,
   },
-  actionChipWork: { backgroundColor: C.brassSoft, borderColor: C.brassLine },
-  actionChipFound: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
-  actionChipSupply: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
-  actionChipDnd: { backgroundColor: C.surface2, borderColor: C.line },
-  actionChipDndActive: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
   actionChipText: { fontSize: 12, fontWeight: "800" },
-  noteForm: { backgroundColor: C.surface2, borderRadius: 12, borderWidth: 1, borderColor: C.line, overflow: "hidden" },
-  noteInput: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6, fontSize: 13, color: C.ink, minHeight: 64, textAlignVertical: "top" },
-  noteActions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: C.line2 },
-  noteSendBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: C.accent, borderRadius: 9, minHeight: 48, paddingHorizontal: 14, justifyContent: "center" },
+  noteForm: { borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  noteInput: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6, fontSize: 13, minHeight: 64, textAlignVertical: "top" },
+  noteActions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1 },
+  noteSendBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, minHeight: 48, paddingHorizontal: 14, justifyContent: "center" },
   noteSendText: { color: "#fff", fontSize: 12, fontWeight: "800" },
-  noteCancelText: { fontSize: 12, color: C.ink3, fontWeight: "700" },
+  noteCancelText: { fontSize: 12, fontWeight: "700" },
 
   stickyAction: {
     position: "absolute", left: 0, right: 0, bottom: 0, gap: 9,
-    paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.surface,
+    paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1,
   },
-  inProgressBlockText: { fontSize: 12, color: C.caution, fontWeight: "700", textAlign: "center" },
+  inProgressBlockText: { fontSize: 12, fontWeight: "700", textAlign: "center" },
   stickyStatusRow: { flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },
   stickyStatusText: { fontSize: 13, fontWeight: "800" },
-  stickyLastAction: { flex: 1, color: C.ink3, fontSize: 11.5, minWidth: 0 },
+  stickyLastAction: { flex: 1, fontSize: 11.5, minWidth: 0 },
   stickyButtons: { flexDirection: "row", gap: 10 },
-  primaryBtn: { flex: 1, minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: C.accent, paddingHorizontal: 14 },
-  primaryBtnDisabled: { backgroundColor: C.ink4 },
-  primaryBtnText: { color: "#fff", fontSize: 15, fontWeight: "900", textAlign: "center" },
-  secondaryBtn: {
-    minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, paddingHorizontal: 18,
-  },
-  secondaryBtnText: { color: C.ink2, fontSize: 14, fontWeight: "800" },
+  primaryBtnFlex: { flex: 1 },
 });
