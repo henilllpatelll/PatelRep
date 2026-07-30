@@ -99,3 +99,12 @@ None - no external service configuration required.
 ---
 *Phase: 08-floor-role-rollout*
 *Completed: 2026-07-30*
+
+## Self-Check: PASSED
+
+- FOUND: `apps/mobile/app/(app)/work-orders/[woId].tsx`
+- FOUND: `apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx`
+- FOUND: `.planning/phases/08-floor-role-rollout/08-06-SUMMARY.md`
+- FOUND commit `1fac00dc` (Task 1)
+- FOUND commit `0246c40f` (Task 2)
+- FOUND commit `a7d219d3` (docs: complete plan)
