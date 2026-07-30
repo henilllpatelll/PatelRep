@@ -43,7 +43,7 @@ import {
 } from "@/lib/engineering/workOrders";
 import { normalizeBoardRooms } from "@/lib/housekeeping/supervisor";
 import { localDate } from "@/lib/utils/date";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { R, monoFont } from "@/components/shared/tokens";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
 import { SectionHeader } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -237,7 +237,7 @@ export default function WorkOrderDetailScreen() {
         await load();
       }
     } catch (err) {
-      Alert.alert(t("common.error"), (err as Error).message);
+      toast.error((err as Error).message ?? t("workOrders.alerts.addCommentFailed"));
     } finally {
       setBusy(null);
     }
@@ -290,7 +290,7 @@ export default function WorkOrderDetailScreen() {
     if (!wo) return;
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(t("workOrders.photos"), t("workOrders.cameraDenied"));
+      toast.error(t("workOrders.cameraDenied"));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
@@ -308,7 +308,7 @@ export default function WorkOrderDetailScreen() {
         setWo({ ...wo, work_order_photos: [...(wo.work_order_photos ?? []), photo] });
       }
     } catch (err) {
-      Alert.alert(t("common.error"), (err as Error).message);
+      toast.error((err as Error).message ?? t("workOrders.alerts.addPhotoFailed"));
     } finally {
       setBusy(null);
     }
@@ -480,8 +480,8 @@ export default function WorkOrderDetailScreen() {
         {wo.description ? (
           <View>
             <SectionHeader title={t("workOrders.details")} />
-            <View style={styles.card}>
-              <Text style={styles.descriptionText}>{wo.description}</Text>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.descriptionText, { color: theme.textPrimary }]}>{wo.description}</Text>
             </View>
           </View>
         ) : null}
@@ -490,14 +490,14 @@ export default function WorkOrderDetailScreen() {
         {wo.assets?.name ? (
           <View>
             <SectionHeader title={t("workOrders.asset")} />
-            <View style={[styles.card, styles.assetCard]}>
-              <View style={styles.assetTile}>
-                <Ionicons name="cube-outline" size={17} color={C.primary} />
+            <View style={[styles.card, styles.assetCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.assetTile, { backgroundColor: theme.primarySoft }]}>
+                <Ionicons name="cube-outline" size={17} color={theme.primary} />
               </View>
               <View style={styles.assetBody}>
-                <Text style={styles.assetName}>{wo.assets.name}</Text>
+                <Text style={[styles.assetName, { color: theme.textPrimary }]}>{wo.assets.name}</Text>
                 {wo.assets.location_text ? (
-                  <Text style={styles.assetSub}>{wo.assets.location_text}</Text>
+                  <Text style={[styles.assetSub, { color: theme.textMuted }]}>{wo.assets.location_text}</Text>
                 ) : null}
               </View>
             </View>
@@ -514,12 +514,16 @@ export default function WorkOrderDetailScreen() {
             {photos.map((photo: WorkOrderPhoto) => {
               const url = workOrderPhotoUrl(photo);
               return url ? (
-                <Image key={photo.id} source={{ uri: url }} style={styles.photoThumb} />
+                <Image key={photo.id} source={{ uri: url }} style={[styles.photoThumb, { backgroundColor: theme.surfaceMuted }]} />
               ) : null;
             })}
             {wo.status !== "completed" && wo.status !== "cancelled" ? (
               <TouchableOpacity
-                style={[styles.photoAdd, (!isOnline || busy === "photo") && styles.disabled]}
+                style={[
+                  styles.photoAdd,
+                  { borderColor: theme.primaryLine, backgroundColor: theme.primarySoft },
+                  (!isOnline || busy === "photo") && styles.disabled,
+                ]}
                 onPress={handleAddPhoto}
                 disabled={!isOnline || busy === "photo"}
                 activeOpacity={0.8}
@@ -527,16 +531,16 @@ export default function WorkOrderDetailScreen() {
                 accessibilityLabel={t("workOrders.addPhoto")}
               >
                 {busy === "photo" ? (
-                  <ActivityIndicator size="small" color={C.accent} />
+                  <ActivityIndicator size="small" color={theme.primaryAction} />
                 ) : (
                   <>
-                    <Ionicons name="camera-outline" size={19} color={C.accent} />
-                    <Text style={styles.photoAddText}>{t("workOrders.addPhoto")}</Text>
+                    <Ionicons name="camera-outline" size={19} color={theme.primaryAction} />
+                    <Text style={[styles.photoAddText, { color: theme.primaryAction }]}>{t("workOrders.addPhoto")}</Text>
                   </>
                 )}
               </TouchableOpacity>
             ) : photos.length === 0 ? (
-              <Text style={styles.photoEmpty}>{t("workOrders.noPhotos")}</Text>
+              <Text style={[styles.photoEmpty, { color: theme.textDisabled }]}>{t("workOrders.noPhotos")}</Text>
             ) : null}
           </ScrollView>
         </View>
@@ -544,21 +548,38 @@ export default function WorkOrderDetailScreen() {
         {/* Activity trail */}
         <View>
           <SectionHeader title={t("workOrders.activity")} />
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {comments.length === 0 ? (
-              <Text style={styles.activityEmpty}>{t("workOrders.noActivity")}</Text>
+              <Text style={[styles.activityEmpty, { color: theme.textDisabled }]}>{t("workOrders.noActivity")}</Text>
             ) : (
               comments.map((entry: WorkOrderComment, index: number) => {
                 const age = minutesSince(entry.created_at, now);
                 return (
-                  <View key={entry.id} style={[styles.activityRow, index > 0 && styles.activityBorder]}>
-                    <View style={[styles.activityDot, entry.is_system && styles.activityDotSystem]} />
+                  <View
+                    key={entry.id}
+                    style={[
+                      styles.activityRow,
+                      index > 0 && [styles.activityBorder, { borderTopColor: theme.borderSubtle }],
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.activityDot,
+                        { backgroundColor: entry.is_system ? theme.textDisabled : theme.primaryAction },
+                      ]}
+                    />
                     <View style={styles.activityBody}>
-                      <Text style={[styles.activityText, entry.is_system && styles.activityTextSystem]}>
+                      <Text
+                        style={[
+                          styles.activityText,
+                          { color: theme.textPrimary },
+                          entry.is_system && [styles.activityTextSystem, { color: theme.textMuted }],
+                        ]}
+                      >
                         {entry.comment}
                       </Text>
                       {age != null ? (
-                        <Text style={styles.activityTime}>
+                        <Text style={[styles.activityTime, { color: theme.textDisabled }]}>
                           {t("workOrders.ago", { time: formatDuration(age) })}
                         </Text>
                       ) : null}
@@ -569,16 +590,20 @@ export default function WorkOrderDetailScreen() {
             )}
             <View style={styles.composer}>
               <TextInput
-                style={styles.composerInput}
+                style={[styles.composerInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
                 placeholder={t("workOrders.commentPlaceholder")}
-                placeholderTextColor={C.ink4}
+                placeholderTextColor={theme.textDisabled}
                 value={comment}
                 onChangeText={setComment}
                 editable={isOnline}
                 testID="wo-comment-input"
               />
               <TouchableOpacity
-                style={[styles.composerSend, (!isOnline || !comment.trim() || busy === "comment") && styles.disabled]}
+                style={[
+                  styles.composerSend,
+                  { backgroundColor: theme.primaryAction },
+                  (!isOnline || !comment.trim() || busy === "comment") && styles.disabled,
+                ]}
                 onPress={handleAddComment}
                 disabled={!isOnline || !comment.trim() || busy === "comment"}
                 accessibilityRole="button"
@@ -610,24 +635,24 @@ export default function WorkOrderDetailScreen() {
         {showWrapUp ? (
           <View>
             <SectionHeader title={t("workOrders.wrapUp")} />
-            <View style={[styles.card, styles.wrapUpCard]}>
-              <Text style={styles.fieldLabel}>{t("workOrders.notesLabel")}</Text>
+            <View style={[styles.card, styles.wrapUpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.notesLabel")}</Text>
               <TextInput
                 testID="completion-notes"
-                style={styles.notesInput}
+                style={[styles.notesInput, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
                 multiline
                 numberOfLines={3}
                 placeholder={t("workOrders.completionPlaceholder")}
-                placeholderTextColor={C.ink4}
+                placeholderTextColor={theme.textDisabled}
                 value={notes}
                 onChangeText={setNotes}
               />
-              <Text style={styles.fieldLabel}>{t("workOrders.partsLabel")}</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.partsLabel")}</Text>
               <TextInput
                 testID="parts-used"
-                style={styles.partsInput}
+                style={[styles.partsInput, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
                 placeholder={t("workOrders.partsPlaceholder")}
-                placeholderTextColor={C.ink4}
+                placeholderTextColor={theme.textDisabled}
                 value={parts}
                 onChangeText={setParts}
               />
@@ -639,17 +664,17 @@ export default function WorkOrderDetailScreen() {
         {wo.status === "completed" && (wo.notes || wo.parts_used) ? (
           <View>
             <SectionHeader title={t("workOrders.wrapUp")} />
-            <View style={[styles.card, styles.wrapUpCard]}>
+            <View style={[styles.card, styles.wrapUpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               {wo.notes ? (
                 <>
-                  <Text style={styles.fieldLabel}>{t("workOrders.notesLabel")}</Text>
-                  <Text style={styles.recordText}>{wo.notes}</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.notesLabel")}</Text>
+                  <Text style={[styles.recordText, { color: theme.textPrimary }]}>{wo.notes}</Text>
                 </>
               ) : null}
               {wo.parts_used ? (
                 <>
-                  <Text style={styles.fieldLabel}>{t("workOrders.partsLabel")}</Text>
-                  <Text style={styles.recordText}>{wo.parts_used}</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.partsLabel")}</Text>
+                  <Text style={[styles.recordText, { color: theme.textPrimary }]}>{wo.parts_used}</Text>
                 </>
               ) : null}
             </View>
@@ -782,91 +807,76 @@ const styles = StyleSheet.create({
   noticeText: { fontSize: 12.5 },
 
   card: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.lg,
     padding: 14,
   },
-  descriptionText: { color: C.ink, fontSize: 14, lineHeight: 21 },
+  descriptionText: { fontSize: 14, lineHeight: 21 },
 
   assetCard: { flexDirection: "row", alignItems: "center", gap: 12 },
-  assetTile: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.accentSoft, alignItems: "center", justifyContent: "center" },
+  assetTile: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   assetBody: { flex: 1 },
-  assetName: { color: C.ink, fontSize: 14, fontWeight: "700" },
-  assetSub: { color: C.ink3, fontSize: 12, marginTop: 2 },
+  assetName: { fontSize: 14, fontWeight: "700" },
+  assetSub: { fontSize: 12, marginTop: 2 },
 
   photoStrip: { gap: 9, alignItems: "center", paddingRight: 8 },
-  photoThumb: { width: 86, height: 86, borderRadius: 12, backgroundColor: C.surface3 },
+  photoThumb: { width: 86, height: 86, borderRadius: 12 },
   photoAdd: {
     width: 86,
     height: 86,
     borderRadius: 12,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: C.accentLine,
-    backgroundColor: C.accentSoft,
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
   },
-  photoAddText: { color: C.accent, fontSize: 10.5, fontWeight: "700" },
-  photoEmpty: { color: C.ink4, fontSize: 12.5 },
+  photoAddText: { fontSize: 10.5, fontWeight: "700" },
+  photoEmpty: { fontSize: 12.5 },
 
-  activityEmpty: { color: C.ink4, fontSize: 13 },
+  activityEmpty: { fontSize: 13 },
   activityRow: { flexDirection: "row", gap: 10, paddingVertical: 9 },
-  activityBorder: { borderTopWidth: 1, borderTopColor: C.line2 },
-  activityDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.accent, marginTop: 5 },
-  activityDotSystem: { backgroundColor: C.ink4 },
+  activityBorder: { borderTopWidth: 1 },
+  activityDot: { width: 7, height: 7, borderRadius: 3.5, marginTop: 5 },
   activityBody: { flex: 1, gap: 2 },
-  activityText: { color: C.ink, fontSize: 13.5, lineHeight: 19 },
-  activityTextSystem: { color: C.ink3, fontStyle: "italic" },
-  activityTime: { color: C.ink4, fontSize: 11, fontFamily: monoFont },
+  activityText: { fontSize: 13.5, lineHeight: 19 },
+  activityTextSystem: { fontStyle: "italic" },
+  activityTime: { fontSize: 11, fontFamily: monoFont },
   composer: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
   composerInput: {
     flex: 1,
     minHeight: 42,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 11,
-    backgroundColor: C.surface2,
     paddingHorizontal: 12,
-    color: C.ink,
     fontSize: 13.5,
   },
   composerSend: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: C.accent,
     alignItems: "center",
     justifyContent: "center",
   },
 
   wrapUpCard: { gap: 8 },
-  fieldLabel: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
+  fieldLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
   notesInput: {
     minHeight: 84,
     textAlignVertical: "top",
-    backgroundColor: C.surface2,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 11,
     padding: 12,
-    color: C.ink,
     fontSize: 14,
   },
   partsInput: {
     minHeight: 44,
-    backgroundColor: C.surface2,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 11,
     paddingHorizontal: 12,
-    color: C.ink,
     fontSize: 14,
   },
-  recordText: { color: C.ink, fontSize: 13.5, lineHeight: 19 },
+  recordText: { fontSize: 13.5, lineHeight: 19 },
 
   footer: {
     position: "absolute",
