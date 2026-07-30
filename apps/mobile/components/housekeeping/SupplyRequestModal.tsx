@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
-import { C } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
 
 const SUPPLY_ITEMS = [
   { key: "towels", label: "Extra towels" },
@@ -22,6 +24,8 @@ interface Props {
 
 export default function SupplyRequestModal({ visible, roomId, roomNumber, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const toast = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customNote, setCustomNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,7 +48,7 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
     const items = SUPPLY_ITEMS.filter((item) => selected.has(item.key)).map((item) => item.label);
     const allItems = customNote.trim() ? [...items, customNote.trim()] : items;
     if (allItems.length === 0) {
-      Alert.alert("Nothing selected", "Pick at least one item to request.");
+      toast.error("Pick at least one item to request.");
       return;
     }
     setLoading(true);
@@ -56,11 +60,11 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
         priority: "normal",
         room_id: roomId,
       });
-      Alert.alert("Requested", "Your supervisor has been notified.", [
-        { text: "OK", onPress: () => { reset(); onClose(); } },
-      ]);
+      toast.success("Your supervisor has been notified.");
+      reset();
+      onClose();
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message ?? "Failed to send request");
+      toast.error((err as Error).message ?? "Failed to send request");
     } finally {
       setLoading(false);
     }
@@ -69,56 +73,76 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]} activeOpacity={1}>
+        <TouchableOpacity
+          style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 16 }]}
+          activeOpacity={1}
+        >
           <View style={styles.titleRow}>
-            <Ionicons name="cube-outline" size={16} color={C.accent} />
-            <Text style={styles.title}>Request Supplies</Text>
+            <Ionicons name="cube-outline" size={16} color={theme.primaryAction} />
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Request Supplies</Text>
           </View>
-          <Text style={styles.sub}>Room {roomNumber} — tap what you need</Text>
+          <Text style={[styles.sub, { color: theme.textMuted }]}>Room {roomNumber} — tap what you need</Text>
           <View style={styles.items}>
             {SUPPLY_ITEMS.map((item) => {
               const active = selected.has(item.key);
               return (
                 <TouchableOpacity
                   key={item.key}
-                  style={[styles.item, active && styles.itemActive]}
+                  style={[
+                    styles.item,
+                    {
+                      backgroundColor: active ? theme.primarySoft : theme.surfaceSubtle,
+                      borderColor: active ? theme.primaryLine : theme.border,
+                    },
+                  ]}
                   onPress={() => toggle(item.key)}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.check, active && styles.checkActive]}>
+                  <View
+                    style={[
+                      styles.check,
+                      {
+                        borderColor: active ? theme.primaryAction : theme.border,
+                        backgroundColor: active ? theme.primaryAction : "transparent",
+                      },
+                    ]}
+                  >
                     {active ? <Ionicons name="checkmark" size={13} color="#fff" /> : null}
                   </View>
-                  <Text style={[styles.itemLabel, active && styles.itemLabelActive]}>{item.label}</Text>
+                  <Text
+                    style={[
+                      styles.itemLabel,
+                      { color: active ? theme.primaryAction : theme.textSecondary, fontWeight: active ? "700" : "600" },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
           <TextInput
-            style={styles.customInput}
+            style={[styles.customInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
             value={customNote}
             onChangeText={setCustomNote}
             placeholder="Other (e.g. extra pillow, folding cot...)"
-            placeholderTextColor={C.ink3}
+            placeholderTextColor={theme.textMuted}
           />
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.sendBtn, (loading || (selected.size === 0 && !customNote.trim())) && styles.sendBtnDisabled]}
+            <Button
+              label="Send Request"
+              icon="send"
               onPress={submit}
+              loading={loading}
               disabled={loading || (selected.size === 0 && !customNote.trim())}
-              activeOpacity={0.86}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="send" size={13} color="#fff" />
-                  <Text style={styles.sendText}>Send Request</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { reset(); onClose(); }}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+              style={styles.sendBtn}
+            />
+            <Button
+              label="Cancel"
+              variant="ghost"
+              size="sm"
+              onPress={() => { reset(); onClose(); }}
+            />
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -128,40 +152,29 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 14 },
+  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 14 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 16, fontWeight: "900", color: C.ink },
-  sub: { fontSize: 12.5, color: C.ink3, marginTop: -6 },
+  title: { fontSize: 16, fontWeight: "900" },
+  sub: { fontSize: 12.5, marginTop: -6 },
   items: { gap: 8 },
   item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: C.surface2,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
   },
-  itemActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
-  check: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: C.line, alignItems: "center", justifyContent: "center" },
-  checkActive: { backgroundColor: C.accent, borderColor: C.accent },
-  itemLabel: { fontSize: 14, fontWeight: "600", color: C.ink2 },
-  itemLabelActive: { color: C.accent, fontWeight: "700" },
+  check: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
+  itemLabel: { fontSize: 14 },
   customInput: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 13,
     paddingVertical: 12,
     fontSize: 13,
-    color: C.ink,
   },
   actions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  sendBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: C.accent, borderRadius: 12, minHeight: 50 },
-  sendBtnDisabled: { opacity: 0.5 },
-  sendText: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  cancelText: { fontSize: 13, color: C.ink3, fontWeight: "700" },
+  sendBtn: { flex: 1, borderRadius: 12 },
 });

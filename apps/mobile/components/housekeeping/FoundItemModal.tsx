@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Image,
   Alert,
 } from "react-native";
@@ -16,6 +15,9 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "@/stores/appStore";
 import { createLostFoundItem, uploadLostFoundPhoto } from "@/lib/api/lostFound";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
 
 interface FoundItemModalProps {
   visible: boolean;
@@ -32,6 +34,8 @@ export default function FoundItemModal({
 }: FoundItemModalProps) {
   const { t } = useTranslation();
   const { isOnline } = useAppStore();
+  const theme = useTheme();
+  const toast = useToast();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -60,10 +64,7 @@ export default function FoundItemModal({
   async function pickFromCamera() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        t("foundItem.cameraPermissionTitle"),
-        t("foundItem.cameraPermissionMessage")
-      );
+      toast.error(t("foundItem.cameraPermissionMessage"));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -76,6 +77,9 @@ export default function FoundItemModal({
   }
 
   function showPhotoOptions() {
+    // Genuine 3-way choice (take photo / choose gallery / cancel) — stays a
+    // blocking native alert per 08-03-PLAN.md alert_classification; do not
+    // convert to Toast.
     Alert.alert(t("foundItem.addPhoto"), undefined, [
       { text: t("foundItem.takePhoto"), onPress: () => void pickFromCamera() },
       { text: t("foundItem.chooseGallery"), onPress: () => void pickFromGallery() },
@@ -95,7 +99,7 @@ export default function FoundItemModal({
   async function handleSubmit() {
     if (!description.trim()) return;
     if (!isOnline) {
-      Alert.alert(t("common.error"), t("foundItem.offlineError"));
+      toast.error(t("foundItem.offlineError"));
       return;
     }
 
@@ -131,13 +135,20 @@ export default function FoundItemModal({
       onRequestClose={handleCancel}
     >
       <View style={styles.overlay}>
-        <View style={styles.card}>
-          <Text style={styles.title}>{t("foundItem.title")}</Text>
-          <Text style={styles.subtitle}>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>{t("foundItem.title")}</Text>
+          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
             {t("foundItem.room", { room: roomNumber })}
           </Text>
 
-          <TouchableOpacity style={styles.photoBox} onPress={showPhotoOptions}>
+          {/* Displays either an image preview or an icon+text placeholder —
+              kept as a themed TouchableOpacity rather than <Button> because
+              the Button primitive has no Image/children slot for the photo
+              preview (would drop the preview feature). */}
+          <TouchableOpacity
+            style={[styles.photoBox, { borderColor: theme.border }]}
+            onPress={showPhotoOptions}
+          >
             {photoUri ? (
               <Image
                 source={{ uri: photoUri }}
@@ -145,9 +156,9 @@ export default function FoundItemModal({
                 resizeMode="cover"
               />
             ) : (
-              <View style={styles.photoPlaceholder}>
-                <Ionicons name="camera-outline" size={28} color="#807a70" />
-                <Text style={styles.photoPlaceholderText}>
+              <View style={[styles.photoPlaceholder, { backgroundColor: theme.surfaceSubtle }]}>
+                <Ionicons name="camera-outline" size={28} color={theme.textMuted} />
+                <Text style={[styles.photoPlaceholderText, { color: theme.textMuted }]}>
                   {t("foundItem.addPhoto")}
                 </Text>
               </View>
@@ -155,37 +166,30 @@ export default function FoundItemModal({
           </TouchableOpacity>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.surface }]}
             multiline
             placeholder={t("foundItem.descriptionPlaceholder")}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.textMuted}
             value={description}
             onChangeText={setDescription}
             numberOfLines={3}
           />
 
           <View style={styles.buttons}>
-            <TouchableOpacity
-              style={[styles.btn, styles.cancelBtn]}
+            <Button
+              label={t("common.cancel")}
+              variant="secondary"
               onPress={handleCancel}
-            >
-              <Text style={styles.cancelText}>{t("common.cancel")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.btn,
-                styles.submitBtn,
-                (!description.trim() || submitting) && styles.submitDisabled,
-              ]}
+              style={styles.btn}
+            />
+            <Button
+              label={t("foundItem.submit")}
+              variant="primary"
               onPress={() => void handleSubmit()}
+              loading={submitting}
               disabled={!description.trim() || submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitText}>{t("foundItem.submit")}</Text>
-              )}
-            </TouchableOpacity>
+              style={styles.btn}
+            />
           </View>
         </View>
       </View>
@@ -200,7 +204,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   card: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 16,
@@ -209,19 +212,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
     marginBottom: 2,
   },
   subtitle: {
     fontSize: 13,
-    color: "#807a70",
     marginBottom: 14,
   },
   photoBox: {
     height: 140,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e6dfd1",
     borderStyle: "dashed",
     overflow: "hidden",
     marginBottom: 12,
@@ -231,11 +231,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#f7f4ee",
   },
   photoPlaceholderText: {
     fontSize: 13,
-    color: "#807a70",
   },
   photoPreview: {
     width: "100%",
@@ -243,15 +241,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e6dfd1",
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: "#111827",
     minHeight: 80,
     textAlignVertical: "top",
     marginBottom: 16,
-    backgroundColor: "#fdfbf8",
   },
   buttons: {
     flexDirection: "row",
@@ -259,28 +254,6 @@ const styles = StyleSheet.create({
   },
   btn: {
     flex: 1,
-    padding: 14,
     borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelBtn: {
-    backgroundColor: "#f3f4f6",
-  },
-  cancelText: {
-    color: "#374151",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  submitBtn: {
-    backgroundColor: "#b8431c",
-  },
-  submitDisabled: {
-    backgroundColor: "#e0a896",
-  },
-  submitText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
   },
 });

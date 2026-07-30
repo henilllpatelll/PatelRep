@@ -92,6 +92,7 @@ export const darkTheme = {
   background: "#0F0D0B",
   surface: "#191512",
   surfaceElevated: "#232019",
+  surfaceSubtle: "#232019",
   surfaceMuted: "#2B2720",
   textPrimary: "#F1EDE4",
   textSecondary: "#C5BEAF",
