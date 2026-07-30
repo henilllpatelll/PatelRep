@@ -24,6 +24,7 @@ export interface ButtonProps {
   disabled?: boolean;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 const SIZE_STYLES: Record<
@@ -44,6 +45,7 @@ export function Button({
   disabled = false,
   icon,
   style,
+  testID,
 }: ButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || loading;
@@ -73,6 +75,7 @@ export function Button({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"

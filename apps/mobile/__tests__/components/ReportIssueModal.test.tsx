@@ -1,5 +1,6 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 // Mock dependencies
 jest.mock("@/lib/api/client", () => ({
@@ -53,7 +54,9 @@ describe("ReportIssueModal", () => {
     );
 
     const { getByTestId } = render(
-      <ReportIssueModal {...defaultProps} />
+      <ThemeProvider>
+        <ReportIssueModal {...defaultProps} />
+      </ThemeProvider>
     );
 
     expect(getByTestId("description-input")).toBeTruthy();
@@ -66,7 +69,9 @@ describe("ReportIssueModal", () => {
     mockCreateWorkOrder.mockResolvedValue({ data: { id: "wo-new" } });
 
     const { getByTestId } = render(
-      <ReportIssueModal {...defaultProps} />
+      <ThemeProvider>
+        <ReportIssueModal {...defaultProps} />
+      </ThemeProvider>
     );
 
     fireEvent.changeText(getByTestId("title-input"), "A/C not cooling");
@@ -97,7 +102,9 @@ describe("ReportIssueModal", () => {
     );
 
     const { getByTestId } = render(
-      <ReportIssueModal {...defaultProps} />
+      <ThemeProvider>
+        <ReportIssueModal {...defaultProps} />
+      </ThemeProvider>
     );
 
     fireEvent.changeText(getByTestId("title-input"), "Toilet clogged");
@@ -132,7 +139,9 @@ describe("ReportIssueModal", () => {
     const onClose = jest.fn();
 
     const { getByText, getByTestId } = render(
-      <ReportIssueModal {...defaultProps} onClose={onClose} />
+      <ThemeProvider>
+        <ReportIssueModal {...defaultProps} onClose={onClose} />
+      </ThemeProvider>
     );
 
     const cancelButton =
