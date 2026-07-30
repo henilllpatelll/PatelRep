@@ -22,6 +22,8 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 *Defining requirements for milestone v1.1 (see below).*
 
+- ✓ Floor-role screens (My Rooms list/detail, Room Board, Work Orders list/detail, Tasks, Inspect, and their 4 reachable modals) migrated onto Phase 7's design primitives — Validated in Phase 8: Floor-role rollout, closed 2026-07-30 (9/9 plans; verified 5/5 must-haves, full mobile suite 135/135 green).
+
 ## Current Milestone: v1.1 Mobile UI Parity
 
 **Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens.
@@ -29,7 +31,7 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 **Target features:**
 - Shared React Native design-token file (colors/typography/spacing) matching web's warm paper/terracotta palette, dark mode, and semantic status families
 - Shared RN primitive components mirroring web's Button/IconButton, Card, EmptyState/StateBlock, and Toast
-- Floor-role screens (housekeeper, engineer — My Rooms, Room Board, Work Orders, Tasks, Inspect) migrated first
+- Floor-role screens (housekeeper, engineer — My Rooms, Room Board, Work Orders, Tasks, Inspect) migrated first — done, Phase 8 closed 2026-07-30
 - Remaining screens (profile, supervisor, home dashboards) migrated after floor-role rollout
 
 ### Out of Scope
@@ -83,4 +85,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-28 — milestone v1.1 "Mobile UI Parity" started.*
+*Last updated: 2026-07-30 — Phase 8 (Floor-Role Rollout) closed.*
