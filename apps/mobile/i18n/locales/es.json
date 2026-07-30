@@ -528,6 +528,15 @@
     "emptyOpenHint": "Los nuevos reportes aparecen aquí.",
     "emptyDone": "Nada completado aún",
     "emptyDoneHint": "El trabajo terminado queda aquí para el cambio de turno.",
+    "alerts": {
+      "claimFailed": "No se pudo tomar la orden de trabajo",
+      "completeFailed": "No se pudo completar la orden de trabajo",
+      "setStatusFailed": "No se pudo actualizar el estado",
+      "addCommentFailed": "No se pudo agregar la nota",
+      "arriveFailed": "No se pudo registrar la llegada",
+      "escalateFailed": "No se pudo escalar la orden de trabajo",
+      "addPhotoFailed": "No se pudo agregar la foto"
+    },
     "status": {
       "open": "Abierta",
       "in_progress": "En progreso",

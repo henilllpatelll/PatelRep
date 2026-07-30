@@ -52,6 +52,8 @@ jest.mock("@/lib/offline/db", () => ({
   enqueueAction: jest.fn().mockResolvedValue(undefined),
 }));
 
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { getWorkOrder, completeWorkOrder } from "@/lib/api/workOrders";
 import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import WorkOrderDetailScreen from "@/app/(app)/work-orders/[woId]";
@@ -59,6 +61,18 @@ import WorkOrderDetailScreen from "@/app/(app)/work-orders/[woId]";
 const mockGet = getWorkOrder as jest.Mock;
 const mockComplete = completeWorkOrder as jest.Mock;
 const mockFetchBoard = fetchBoard as jest.Mock;
+
+// WorkOrderDetailScreen consumes useTheme()/useToast(), both of which throw outside their
+// providers — wrap every render the same way _layout.tsx nests them at runtime.
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <ToastProvider>
+        <WorkOrderDetailScreen />
+      </ToastProvider>
+    </ThemeProvider>,
+  );
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -90,13 +104,13 @@ beforeEach(() => {
 
 describe("WorkOrderDetailScreen", () => {
   it("renders wrap-up notes input when assigned engineer views an in-progress WO", async () => {
-    const { getByTestId } = render(<WorkOrderDetailScreen />);
+    const { getByTestId } = renderScreen();
     await waitFor(() => expect(getByTestId("completion-notes")).toBeTruthy());
     expect(getByTestId("parts-used")).toBeTruthy();
   });
 
   it("completes with notes and parts_used via the typed API", async () => {
-    const { getByTestId, getByText } = render(<WorkOrderDetailScreen />);
+    const { getByTestId, getByText } = renderScreen();
 
     await waitFor(() => expect(getByTestId("completion-notes")).toBeTruthy());
 
@@ -122,13 +136,13 @@ describe("WorkOrderDetailScreen", () => {
       work_order_photos: [],
       work_order_comments: [],
     });
-    const { getByText, queryByTestId } = render(<WorkOrderDetailScreen />);
+    const { getByText, queryByTestId } = renderScreen();
     await waitFor(() => expect(getByText("workOrders.claimStart")).toBeTruthy());
     expect(queryByTestId("completion-notes")).toBeNull();
   });
 
   it("shows room occupancy for a room-linked work order", async () => {
-    const { getByText } = render(<WorkOrderDetailScreen />);
+    const { getByText } = renderScreen();
     await waitFor(() => expect(getByText("Occupied")).toBeTruthy());
   });
 
@@ -144,7 +158,7 @@ describe("WorkOrderDetailScreen", () => {
       work_order_comments: [],
     });
 
-    const { getByText, queryByTestId } = render(<WorkOrderDetailScreen />);
+    const { getByText, queryByTestId } = renderScreen();
     await waitFor(() => expect(getByText("workOrders.claimedElsewhere")).toBeTruthy());
     expect(queryByTestId("completion-notes")).toBeNull();
   });

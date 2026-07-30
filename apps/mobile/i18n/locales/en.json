@@ -528,6 +528,15 @@
     "emptyOpenHint": "New issues land here as they're reported.",
     "emptyDone": "Nothing completed yet",
     "emptyDoneHint": "Finished work shows here for shift handoff.",
+    "alerts": {
+      "claimFailed": "Failed to claim work order",
+      "completeFailed": "Failed to complete work order",
+      "setStatusFailed": "Failed to update status",
+      "addCommentFailed": "Failed to add comment",
+      "arriveFailed": "Failed to log arrival",
+      "escalateFailed": "Failed to escalate work order",
+      "addPhotoFailed": "Failed to add photo"
+    },
     "status": {
       "open": "Open",
       "in_progress": "In progress",
