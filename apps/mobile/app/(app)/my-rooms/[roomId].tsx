@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -19,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont } from "@/components/shared/tokens";
+import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { Button } from "@/components/ui/Button";
@@ -438,14 +437,14 @@ export default function RoomDetailScreen() {
       }
     } catch (err: unknown) {
       updateLocalRoom(failsafe.id, failsafe);
-      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.undoFailed"));
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.undoFailed"));
     }
   }
 
   async function submitNote(text: string) {
     if (!room || !text.trim()) return;
     if (!isOnline) {
-      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.notesNeedConnection"));
+      toast.info(t("rooms.detail.alerts.notesNeedConnection"));
       return;
     }
 
@@ -463,7 +462,7 @@ export default function RoomDetailScreen() {
       if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
       noteSuccessTimer.current = setTimeout(() => setNoteSuccess(false), 4000);
     } catch (err: unknown) {
-      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.saveNoteFailed"));
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.saveNoteFailed"));
     } finally {
       setNoteLoading(false);
     }
@@ -472,7 +471,7 @@ export default function RoomDetailScreen() {
   async function submitBlocker(blocker: RoomBlocker, time?: string) {
     if (!room) return;
     if (!isOnline) {
-      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.blockersNeedConnection"));
+      toast.info(t("rooms.detail.alerts.blockersNeedConnection"));
       return;
     }
     setBlockerBusy(blocker.key);
@@ -500,7 +499,7 @@ export default function RoomDetailScreen() {
         await sendDeclinedServiceAlert(room.room_number);
       }
     } catch (err: unknown) {
-      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.reportBlockerFailed"));
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.reportBlockerFailed"));
     } finally {
       setBlockerBusy(null);
     }
@@ -972,41 +971,34 @@ export default function RoomDetailScreen() {
 
       <Modal visible={customOpen} transparent animationType="slide" onRequestClose={() => setCustomOpen(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCustomOpen(false)}>
-          <TouchableOpacity style={[styles.modalSheet, { paddingBottom: insets.bottom + 16, backgroundColor: C.surface }]} activeOpacity={1}>
-            <Text style={[styles.modalTitle, { color: C.ink }]}>{t("rooms.detail.customFlag.title")}</Text>
+          <TouchableOpacity style={[styles.modalSheet, { paddingBottom: insets.bottom + 16, backgroundColor: theme.surface }]} activeOpacity={1}>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t("rooms.detail.customFlag.title")}</Text>
             <TextInput
-              style={[styles.modalInput, { borderColor: C.line, backgroundColor: C.surface2, color: C.ink }]}
+              style={[styles.modalInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
               value={customText}
               onChangeText={setCustomText}
               placeholder={t("rooms.detail.customFlag.placeholder")}
-              placeholderTextColor={C.ink3}
+              placeholderTextColor={theme.textMuted}
               multiline
               numberOfLines={3}
               autoFocus
             />
-            <View style={[styles.noteActions, { borderTopColor: C.line2 }]}>
-              <TouchableOpacity
-                style={[styles.noteSendBtn, { backgroundColor: C.accent }, (!customText.trim() || noteLoading) && styles.btnDisabled]}
+            <View style={[styles.noteActions, { borderTopColor: theme.borderSubtle }]}>
+              <Button
+                label={t("rooms.detail.customFlag.add")}
+                icon="send"
                 onPress={() => {
                   void submitNote(customText).then(() => {
                     setCustomText("");
                     setCustomOpen(false);
                   });
                 }}
+                loading={noteLoading}
                 disabled={!customText.trim() || noteLoading}
-                activeOpacity={0.85}
-              >
-                {noteLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={13} color="#fff" />
-                    <Text style={styles.noteSendText}>{t("rooms.detail.customFlag.add")}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                size="sm"
+              />
               <TouchableOpacity onPress={() => setCustomOpen(false)}>
-                <Text style={[styles.noteCancelText, { color: C.ink3 }]}>{t("rooms.detailActions.cancel")}</Text>
+                <Text style={[styles.noteCancelText, { color: theme.textMuted }]}>{t("rooms.detailActions.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -1127,8 +1119,6 @@ const styles = StyleSheet.create({
   noteForm: { borderRadius: 12, borderWidth: 1, overflow: "hidden" },
   noteInput: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6, fontSize: 13, minHeight: 64, textAlignVertical: "top" },
   noteActions: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1 },
-  noteSendBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, minHeight: 48, paddingHorizontal: 14, justifyContent: "center" },
-  noteSendText: { color: "#fff", fontSize: 12, fontWeight: "800" },
   noteCancelText: { fontSize: 12, fontWeight: "700" },
 
   stickyAction: {
