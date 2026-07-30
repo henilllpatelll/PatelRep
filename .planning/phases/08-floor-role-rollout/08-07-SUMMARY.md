@@ -106,3 +106,12 @@ _No plan-metadata commit yet — this commit (SUMMARY.md) follows._
 ---
 *Phase: 08-floor-role-rollout*
 *Completed: 2026-07-30*
+
+## Self-Check: PASSED
+
+- FOUND: apps/mobile/components/tasks/TaskCard.tsx
+- FOUND: apps/mobile/app/(app)/tasks/index.tsx
+- FOUND: .planning/phases/08-floor-role-rollout/08-07-SUMMARY.md
+- FOUND commit: dc00dc38 (Task 1)
+- FOUND commit: 79295de7 (Task 2)
+- FOUND commit: 775fe3c7 (SUMMARY)
