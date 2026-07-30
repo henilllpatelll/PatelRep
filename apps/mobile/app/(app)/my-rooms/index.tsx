@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   AppState,
   RefreshControl,
   ScrollView,
@@ -13,11 +12,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/lib/theme/useTheme";
 import { api } from "@/lib/api/client";
 import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont, shellTokens } from "@/components/shared/tokens";
+import { monoFont } from "@/components/shared/tokens";
 import { ProgressBar, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { localDate } from "@/lib/utils/date";
 import {
   buildBuildingGroups,
@@ -61,6 +62,7 @@ function getRoomActionLabelKey(room: Room): string {
 
 export default function MyRoomsScreen() {
   const { t, i18n } = useTranslation();
+  const theme = useTheme();
   const { isOnline, myRooms, setMyRooms } = useAppStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
@@ -146,8 +148,8 @@ export default function MyRoomsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
@@ -161,35 +163,40 @@ export default function MyRoomsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {!isOnline ? (
-        <View style={[styles.offlineBanner, { paddingTop: insets.top + 8 }]}>
+        <View style={[styles.offlineBanner, { backgroundColor: theme.status.dirty, paddingTop: insets.top + 8 }]}>
           <Ionicons name="cloud-offline-outline" size={14} color="#fff" />
           <Text style={styles.offlineText}>{t("common.offline")}</Text>
         </View>
       ) : null}
 
-      <View style={[styles.shellHeader, { paddingTop: (isOnline ? insets.top : 0) + 12 }]}>
+      <View
+        style={[
+          styles.shellHeader,
+          { backgroundColor: theme.shell.bg, borderBottomColor: theme.shell.line, paddingTop: (isOnline ? insets.top : 0) + 12 },
+        ]}
+      >
         <View style={styles.shellTopRow}>
           <View style={styles.shellTitleBlock}>
-            <Text style={styles.shellTitle}>{t("rooms.title")}</Text>
-            <Text style={styles.shellDate}>{dayLabel(i18n.resolvedLanguage ?? i18n.language)}</Text>
+            <Text style={[styles.shellTitle, { color: theme.shell.ink }]}>{t("rooms.title")}</Text>
+            <Text style={[styles.shellDate, { color: theme.shell.ink3 }]}>{dayLabel(i18n.resolvedLanguage ?? i18n.language)}</Text>
           </View>
           <View style={styles.shellCountBlock}>
-            <Text style={styles.shellCountValue}>
+            <Text style={[styles.shellCountValue, { color: theme.shell.ink }]}>
               {counts.completed}
-              <Text style={styles.shellCountTotal}>/{counts.total}</Text>
+              <Text style={[styles.shellCountTotal, { color: theme.shell.ink3 }]}>/{counts.total}</Text>
             </Text>
-            <Text style={styles.shellCountLabel}>{progressPercent}%</Text>
+            <Text style={[styles.shellCountLabel, { color: theme.shell.ink3 }]}>{progressPercent}%</Text>
           </View>
         </View>
         {counts.total > 0 ? (
           <View style={styles.shellProgress}>
-            <ProgressBar value={counts.completed} total={counts.total} color={C.ready} />
+            <ProgressBar value={counts.completed} total={counts.total} color={theme.status.ready} />
           </View>
         ) : null}
 
-        <View style={styles.modeToggle}>
+        <View style={[styles.modeToggle, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
           {(
             [
               {
@@ -211,11 +218,11 @@ export default function MyRoomsScreen() {
               <TouchableOpacity
                 key={mode.key}
                 onPress={() => setViewMode(mode.key)}
-                style={[styles.modeBtn, active && styles.modeBtnActive]}
+                style={[styles.modeBtn, active && { backgroundColor: theme.shell.raised }]}
                 activeOpacity={0.85}
               >
-                <Ionicons name={mode.icon} size={13} color={active ? shellTokens.ink : shellTokens.ink3} />
-                <Text style={[styles.modeText, active && styles.modeTextActive]}>
+                <Ionicons name={mode.icon} size={13} color={active ? theme.shell.ink : theme.shell.ink3} />
+                <Text style={[styles.modeText, { color: active ? theme.shell.ink : theme.shell.ink3 }]}>
                   {mode.label} {mode.count}
                 </Text>
               </TouchableOpacity>
@@ -227,20 +234,21 @@ export default function MyRoomsScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
         {counts.total === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{t("rooms.noRooms")}</Text>
-            <Text style={styles.emptyText}>{t("rooms.pullToRefreshHint")}</Text>
-            {apiError ? <Text style={styles.errorText}>{t("rooms.apiError", { error: apiError })}</Text> : null}
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="checkmark-done-outline"
+            emptyTitle={t("rooms.noRooms")}
+            emptyBody={apiError ? t("rooms.apiError", { error: apiError }) : t("rooms.pullToRefreshHint")}
+          />
         ) : viewMode === "remaining" ? (
           <View style={styles.sections}>
             {inProgressRooms.length > 0 ? (
               <View style={styles.section}>
                 <SectionHeader title={t("rooms.sections.nowCleaning")} hint={String(inProgressRooms.length)} />
-                <View style={[styles.sectionList, styles.activeSection]}>
+                <View style={[styles.sectionList, styles.activeSection, { borderLeftColor: theme.status.pickup }]}>
                   {inProgressRooms.map((room) => (
                     <RoomQueueCard
                       key={room.id}
@@ -261,12 +269,12 @@ export default function MyRoomsScreen() {
                     <SectionHeader
                       title={t(`rooms.sections.building.${buildingGroup.building}`)}
                       hint={String(buildingGroup.floors.reduce((s, f) => s + f.rooms.length, 0))}
-                      action={<Ionicons name={collapsed ? "chevron-forward" : "chevron-down"} size={15} color={shellTokens.ink3} />}
+                      action={<Ionicons name={collapsed ? "chevron-forward" : "chevron-down"} size={15} color={theme.shell.ink3} />}
                     />
                   </TouchableOpacity>
                   {!collapsed && buildingGroup.floors.map((floorGroup) => (
                     <View key={floorGroup.floor} style={styles.section}>
-                      <Text style={styles.floorLabel}>
+                      <Text style={[styles.floorLabel, { color: theme.shell.ink3 }]}>
                         {t("rooms.sections.floor", { floor: floorGroup.floor })}
                       </Text>
                       <View style={styles.sectionList}>
@@ -289,10 +297,12 @@ export default function MyRoomsScreen() {
                 );
               })
             ) : inProgressRooms.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyTitle}>{t("rooms.allRoomsDone")}</Text>
-                <Text style={styles.emptyText}>{t("rooms.allRoomsDoneHint")}</Text>
-              </View>
+              <StateBlock
+                status="empty"
+                emptyIcon="checkmark-done-outline"
+                emptyTitle={t("rooms.allRoomsDone")}
+                emptyBody={t("rooms.allRoomsDoneHint")}
+              />
             ) : null}
           </View>
         ) : (
@@ -308,10 +318,12 @@ export default function MyRoomsScreen() {
               </View>
             ))}
             {counts.completed + counts.blocked === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyTitle}>{t("rooms.nothingDoneYet")}</Text>
-                <Text style={styles.emptyText}>{t("rooms.nothingDoneYetHint")}</Text>
-              </View>
+              <StateBlock
+                status="empty"
+                emptyIcon="checkmark-done-outline"
+                emptyTitle={t("rooms.nothingDoneYet")}
+                emptyBody={t("rooms.nothingDoneYetHint")}
+              />
             ) : null}
           </View>
         )}
@@ -321,38 +333,34 @@ export default function MyRoomsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 42 },
 
-  offlineBanner: { backgroundColor: C.alert, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
+  offlineBanner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
   offlineText: { flex: 1, color: "#fff", fontSize: 12 },
 
   shellHeader: {
-    backgroundColor: shellTokens.bg,
     borderBottomWidth: 1,
-    borderBottomColor: shellTokens.line,
     paddingHorizontal: 18,
     paddingBottom: 14,
     gap: 10,
   },
   shellTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 14 },
   shellTitleBlock: { flex: 1, minWidth: 0 },
-  shellTitle: { fontSize: 28, fontWeight: "700", color: shellTokens.ink, lineHeight: 33 },
-  shellDate: { fontSize: 12.5, color: shellTokens.ink3, marginTop: 2 },
+  shellTitle: { fontSize: 28, fontWeight: "700", lineHeight: 33 },
+  shellDate: { fontSize: 12.5, marginTop: 2 },
   shellCountBlock: { alignItems: "flex-end" },
-  shellCountValue: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", color: shellTokens.ink },
-  shellCountTotal: { fontSize: 14, color: shellTokens.ink3 },
-  shellCountLabel: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: shellTokens.ink3, marginTop: 1 },
+  shellCountValue: { fontFamily: monoFont, fontSize: 22, fontWeight: "800" },
+  shellCountTotal: { fontSize: 14 },
+  shellCountLabel: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", marginTop: 1 },
   shellProgress: {},
 
   modeToggle: {
     flexDirection: "row",
     gap: 4,
-    backgroundColor: shellTokens.surface,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     borderRadius: 12,
     padding: 3,
   },
@@ -365,15 +373,12 @@ const styles = StyleSheet.create({
     minHeight: 38,
     borderRadius: 9,
   },
-  modeBtnActive: { backgroundColor: shellTokens.raised },
-  modeText: { color: shellTokens.ink3, fontSize: 12.5, fontWeight: "700" },
-  modeTextActive: { color: shellTokens.ink },
+  modeText: { fontSize: 12.5, fontWeight: "700" },
 
   sections: { gap: 20 },
   buildingSection: { gap: 10 },
   section: { gap: 6, paddingLeft: 4 },
   floorLabel: {
-    color: shellTokens.ink3,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -382,10 +387,5 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sectionList: { gap: 12 },
-  activeSection: { borderLeftWidth: 3, borderLeftColor: C.caution, paddingLeft: 8, borderRadius: 4 },
-
-  emptyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
-  emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },
-  emptyText: { color: C.ink3, fontSize: 12, marginTop: 4 },
-  errorText: { color: C.alert, fontSize: 11, marginTop: 6, fontFamily: monoFont },
+  activeSection: { borderLeftWidth: 3, paddingLeft: 8, borderRadius: 4 },
 });

@@ -85,9 +85,18 @@ jest.mock("@/stores/appStore", () => ({
 }));
 
 import { api } from "@/lib/api/client";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import MyRoomsScreen from "@/app/(app)/my-rooms";
 
 const mockApiGet = api.get as jest.Mock;
+
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <MyRoomsScreen />
+    </ThemeProvider>
+  );
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -124,7 +133,7 @@ describe("MyRoomsScreen", () => {
     const expectedSpanishDate = new Date().toLocaleDateString("es-US", { weekday: "long", month: "long", day: "numeric" });
     const expectedEnglishDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-    const { getByText, queryByText } = render(<MyRoomsScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
     expect(getByText(expectedSpanishDate)).toBeTruthy();
@@ -132,7 +141,7 @@ describe("MyRoomsScreen", () => {
   });
 
   it("renders building-grouped sections for remaining rooms", async () => {
-    const { getByText } = render(<MyRoomsScreen />);
+    const { getByText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
@@ -145,7 +154,7 @@ describe("MyRoomsScreen", () => {
   });
 
   it("renders translated departure, full, and light clean-type labels", async () => {
-    const { getAllByLabelText } = render(<MyRoomsScreen />);
+    const { getAllByLabelText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
@@ -165,7 +174,7 @@ describe("MyRoomsScreen", () => {
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
-    const { getByText, queryByText } = render(<MyRoomsScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
@@ -181,7 +190,7 @@ describe("MyRoomsScreen", () => {
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
-    const { getByText, queryByText } = render(<MyRoomsScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
@@ -197,7 +206,7 @@ describe("MyRoomsScreen", () => {
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
-    const { getByText, getAllByText, queryByText } = render(<MyRoomsScreen />);
+    const { getByText, getAllByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("Building A")).toBeTruthy());
     expect(getByText("Floor 1")).toBeTruthy();
@@ -213,7 +222,7 @@ describe("MyRoomsScreen", () => {
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
-    const { getByText } = render(<MyRoomsScreen />);
+    const { getByText } = renderScreen();
 
     await waitFor(() => expect(getByText("Building A")).toBeTruthy());
     expect(getByText("Floor 1")).toBeTruthy();
@@ -230,7 +239,7 @@ describe("MyRoomsScreen", () => {
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
-    const { getByText, queryByText } = render(<MyRoomsScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("Building A")).toBeTruthy());
     expect(queryByText("rooms.sections.submitted")).toBeNull();
