@@ -68,8 +68,8 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - [x] 08-02-PLAN.md — My Rooms detail + ChecklistSection; 11 alerts → Toast (FLOOR-01) [wave 1]
 - [x] 08-03-PLAN.md — My Rooms modals: ReportIssue/Knock/SupplyRequest/FoundItem (FLOOR-01) [wave 1]
 - [x] 08-04-PLAN.md — Room Board + new render test scaffold (FLOOR-02) [wave 2]
-- [ ] 08-05-PLAN.md — Work Orders list + WorkOrderCard rebuild + CreateWorkOrderModal (FLOOR-03) [wave 3]
-- [ ] 08-06-PLAN.md — Work Orders detail; 10 alerts → Toast, escalate-confirm stays blocking (FLOOR-03) [wave 3]
+- [x] 08-05-PLAN.md — Work Orders list + WorkOrderCard rebuild + CreateWorkOrderModal (FLOOR-03) [wave 3]
+- [x] 08-06-PLAN.md — Work Orders detail; 10 alerts → Toast, escalate-confirm stays blocking (FLOOR-03) [wave 3]
 - [ ] 08-07-PLAN.md — Tasks list + TaskCard rebuild on Card+StatusBadge+Button (FLOOR-04) [wave 4]
 - [ ] 08-08-PLAN.md — Inspect screen; migrate existing fail-checklist as-is, no new photo capture (FLOOR-05) [wave 5]
 **UI hint**: yes
@@ -125,6 +125,6 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
-| 8. Floor-Role Rollout | v1.1 | 5/9 | In Progress|  |
+| 8. Floor-Role Rollout | v1.1 | 7/9 | In Progress|  |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
