@@ -44,6 +44,11 @@ This is a **visual/structural migration, not a rebuild**, same boundary as Phase
 - Per-`Alert.alert` classification across all 13 screens + the 7 supervisor files (D-10's rule, applied case-by-case) — no need to re-ask for each instance.
 - Exact `copilot/index.tsx` bubble/input primitive mapping beyond "no Card force-fit" (D-09) — whatever best fits Button/Toast without an awkward chat-UI compromise.
 
+### Resolved during research (09-RESEARCH.md Open Questions, confirmed post-research 2026-07-30)
+- **D-11 (copilot dark theme):** `copilot/index.tsx` is built entirely on hardcoded `darkTheme.*` tokens (intentional dark AI-chat aesthetic), not `C.*` like other screens — 3 keys (`surfaceElevated`/`glass`/`glassBorder`) have no `lightTheme` equivalent. Resolved: **keep dark, minimal migration** — preserve the dark aesthetic as-is; migrate only the 1 real `C.*` ref (`C.alert`→`theme.status.dirty`), convert all 6 `Alert.alert` calls to Toast, adopt `Button`/`IconButton` on send/mic/quick-action/confirm-card controls. No `tokens.ts` changes; `MobileVisualTokens.test.ts` untouched. The `confirmCard` (chat action-confirmation container) may become a `Card` primitive; message bubbles stay as-is (D-09 still forbids force-fitting `Card` onto bubbles).
+- **D-12 (i18n gate width):** The mandatory i18n backlog's 22 raw literals (16 JSX-text nodes the `markupOnly:true` gate enforces + 6 placeholder attributes it doesn't) must ALL be wired with `t()` + EN/ES keys. Resolved: **wire all 22, keep the gate narrow** — do not flip `markupOnly` to enforce placeholder/title/aria-label text app-wide; that stays out of this phase's scope.
+- **D-13 (criterion #5 scope):** "No screen still imports the legacy `C` token constant" reads as **route/screen files only** — `components/shared/evening.tsx` (a shared-component library, not a screen) may keep importing `C` for its composites (`StatusPill`/`StatusRail`/`ProgressBar`/`Chip`/`AIBriefingCard`/`SectionHeader`), matching Phase 8's precedent. Screens keep calling these composites unchanged; only each screen's own `C.*` refs migrate.
+
 </decisions>
 
 <canonical_refs>
