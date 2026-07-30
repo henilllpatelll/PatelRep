@@ -3,10 +3,13 @@ import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
-import { C, monoFont } from "@/components/shared/tokens";
+import { monoFont } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
 import { createWorkOrder, uploadWorkOrderPhoto } from "@/lib/api/workOrders";
 import { LOST_FOUND_CHECK_KEY } from "@/lib/housekeeping/roomWorkflow";
 import type { Room } from "@/stores/appStore";
+
+type Theme = ReturnType<typeof useTheme>;
 
 interface Props {
   room: Room;
@@ -24,31 +27,33 @@ function LinenStepper({
   label,
   value,
   onChange,
+  theme,
 }: {
   label: string;
   value: number;
   onChange: (n: number) => void;
+  theme: Theme;
 }) {
   return (
     <View style={styles.stepperRow}>
-      <Text style={styles.stepperLabel}>{label}</Text>
+      <Text style={[styles.stepperLabel, { color: theme.textSecondary }]}>{label}</Text>
       <View style={styles.stepperControls}>
         <TouchableOpacity
-          style={styles.stepBtn}
+          style={[styles.stepBtn, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
           onPress={() => onChange(Math.max(0, value - 1))}
           activeOpacity={0.8}
           hitSlop={8}
         >
-          <Text style={styles.stepBtnText}>−</Text>
+          <Text style={[styles.stepBtnText, { color: theme.textPrimary }]}>−</Text>
         </TouchableOpacity>
-        <Text style={styles.stepCount}>{value}</Text>
+        <Text style={[styles.stepCount, { color: theme.textPrimary }]}>{value}</Text>
         <TouchableOpacity
-          style={styles.stepBtn}
+          style={[styles.stepBtn, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
           onPress={() => onChange(value + 1)}
           activeOpacity={0.8}
           hitSlop={8}
         >
-          <Text style={styles.stepBtnText}>+</Text>
+          <Text style={[styles.stepBtnText, { color: theme.textPrimary }]}>+</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -67,6 +72,7 @@ export default function ChecklistSection({
   onReportFoundItem,
 }: Props) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [damageBannerDismissed, setDamageBannerDismissed] = useState(false);
   const [damageUploading, setDamageUploading] = useState(false);
 
@@ -108,33 +114,33 @@ export default function ChecklistSection({
   return (
     <>
       {showDamageBanner ? (
-        <View style={styles.damageBanner}>
-          <Ionicons name="camera-outline" size={16} color={C.brass} />
-          <Text style={styles.damageBannerText}>{t("rooms.detail.damageBanner.text")}</Text>
+        <View style={[styles.damageBanner, { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }]}>
+          <Ionicons name="camera-outline" size={16} color={theme.accentBrass} />
+          <Text style={[styles.damageBannerText, { color: theme.accentBrass }]}>{t("rooms.detail.damageBanner.text")}</Text>
           <View style={styles.damageBannerBtns}>
             <TouchableOpacity
-              style={[styles.damagePhotoBtn, damageUploading && styles.damagePhotoBtnDisabled]}
+              style={[styles.damagePhotoBtn, { backgroundColor: theme.accentBrass }, damageUploading && styles.damagePhotoBtnDisabled]}
               onPress={() => void handleDamagePhoto()}
               disabled={damageUploading}
               activeOpacity={0.82}
             >
               {damageUploading ? (
-                <ActivityIndicator size="small" color={C.brass} />
+                <ActivityIndicator size="small" color={theme.accentBrass} />
               ) : (
                 <Text style={styles.damagePhotoBtnText}>{t("rooms.detail.damageBanner.addPhoto")}</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setDamageBannerDismissed(true)} activeOpacity={0.8}>
-              <Text style={styles.damageSkipText}>{t("rooms.detail.damageBanner.skip")}</Text>
+              <Text style={[styles.damageSkipText, { color: theme.textMuted }]}>{t("rooms.detail.damageBanner.skip")}</Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : null}
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.checklistHeader}>
-          <Text style={styles.sectionTitle}>{t("rooms.detail.cleaningChecklist")}</Text>
-          <Text style={styles.checklistCount}>
+          <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("rooms.detail.cleaningChecklist")}</Text>
+          <Text style={[styles.checklistCount, { color: theme.textMuted }]}>
             {checkedCount}/{checklist.length}
           </Text>
         </View>
@@ -154,10 +160,16 @@ export default function ChecklistSection({
                   }}
                   activeOpacity={isLocked ? 1 : 0.78}
                 >
-                  <View style={[styles.checkBox, checked && styles.checkBoxActive]}>
+                  <View
+                    style={[
+                      styles.checkBox,
+                      { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
+                      checked && { backgroundColor: theme.status.ready, borderColor: theme.status.ready },
+                    ]}
+                  >
                     {checked ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
                   </View>
-                  <Text style={[styles.checkText, checked && styles.checkTextDone]}>{t(item)}</Text>
+                  <Text style={[styles.checkText, { color: theme.textPrimary }, checked && { color: theme.textMuted, textDecorationLine: "line-through" }]}>{t(item)}</Text>
                 </TouchableOpacity>
 
                 {isLostFound && checked ? (
@@ -166,8 +178,8 @@ export default function ChecklistSection({
                     onPress={onReportFoundItem}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="bag-outline" size={13} color={C.caution} />
-                    <Text style={styles.lostFoundLinkText}>{t("rooms.detail.lostFoundLink")}</Text>
+                    <Ionicons name="bag-outline" size={13} color={theme.status.pickup} />
+                    <Text style={[styles.lostFoundLinkText, { color: theme.status.pickup }]}>{t("rooms.detail.lostFoundLink")}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -177,17 +189,19 @@ export default function ChecklistSection({
       </View>
 
       {isDep ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("rooms.detail.linen.title")}</Text>
+        <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("rooms.detail.linen.title")}</Text>
           <LinenStepper
             label={t("rooms.detail.linen.dirtyOut")}
             value={linenOut}
             onChange={onLinenOut}
+            theme={theme}
           />
           <LinenStepper
             label={t("rooms.detail.linen.cleanIn")}
             value={linenIn}
             onChange={onLinenIn}
+            theme={theme}
           />
         </View>
       ) : null}
@@ -197,9 +211,7 @@ export default function ChecklistSection({
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: 16,
     padding: 14,
     gap: 10,
@@ -210,7 +222,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: {
-    color: C.ink3,
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 0.8,
@@ -218,7 +229,6 @@ const styles = StyleSheet.create({
   },
   checklistCount: {
     fontFamily: monoFont,
-    color: C.ink3,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -234,14 +244,10 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 7,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkBoxActive: { backgroundColor: C.ready, borderColor: C.ready },
-  checkText: { flex: 1, color: C.ink, fontSize: 14, fontWeight: "600", lineHeight: 20 },
-  checkTextDone: { color: C.ink3, textDecorationLine: "line-through" },
+  checkText: { flex: 1, fontSize: 14, fontWeight: "600", lineHeight: 20 },
 
   lostFoundLink: {
     flexDirection: "row",
@@ -251,7 +257,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   lostFoundLinkText: {
-    color: C.caution,
     fontSize: 12.5,
     fontWeight: "800",
     textDecorationLine: "underline",
@@ -262,16 +267,13 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     alignItems: "center",
     gap: 10,
-    backgroundColor: C.brassSoft,
     borderWidth: 1.5,
-    borderColor: C.brassLine,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   damageBannerText: {
     flex: 1,
-    color: C.brass,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,
@@ -286,7 +288,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: C.brass,
     borderRadius: 9,
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   },
   damagePhotoBtnDisabled: { opacity: 0.55 },
   damagePhotoBtnText: { color: "#fff", fontSize: 13, fontWeight: "800" },
-  damageSkipText: { color: C.ink3, fontSize: 13, fontWeight: "700" },
+  damageSkipText: { fontSize: 13, fontWeight: "700" },
 
   stepperRow: {
     flexDirection: "row",
@@ -302,22 +303,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 6,
   },
-  stepperLabel: { color: C.ink2, fontSize: 14, fontWeight: "600", flex: 1 },
+  stepperLabel: { fontSize: 14, fontWeight: "600", flex: 1 },
   stepperControls: { flexDirection: "row", alignItems: "center", gap: 16 },
   stepBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     alignItems: "center",
     justifyContent: "center",
   },
-  stepBtnText: { color: C.ink, fontSize: 20, fontWeight: "700", lineHeight: 24 },
+  stepBtnText: { fontSize: 20, fontWeight: "700", lineHeight: 24 },
   stepCount: {
     fontFamily: monoFont,
-    color: C.ink,
     fontSize: 18,
     fontWeight: "800",
     minWidth: 28,

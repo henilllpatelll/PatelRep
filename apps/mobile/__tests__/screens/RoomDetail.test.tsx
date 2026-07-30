@@ -3,6 +3,8 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Alert, StyleSheet } from "react-native";
 import type { Room } from "@/stores/appStore";
 import { C } from "@/components/shared/tokens";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { ToastProvider } from "@/lib/theme/ToastProvider";
 
 const mockSetMyRooms = jest.fn();
 const mockEnqueueAction = jest.fn();
@@ -85,6 +87,22 @@ import RoomDetailScreen from "@/app/(app)/my-rooms/[roomId]";
 const mockApiPost = api.post as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
 
+// RoomDetailScreen consumes useTheme()/useToast(), both of which throw outside their
+// providers — wrap every render/rerender the same way _layout.tsx nests them at runtime.
+function withProviders() {
+  return (
+    <ThemeProvider>
+      <ToastProvider>
+        <RoomDetailScreen />
+      </ToastProvider>
+    </ThemeProvider>
+  );
+}
+
+function renderScreen() {
+  return render(withProviders());
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockRooms = [makeRoom()];
@@ -101,7 +119,7 @@ beforeEach(() => {
 
 describe("RoomDetailScreen", () => {
   it("shows a compact last-action line in the sticky bar instead of a status section", async () => {
-    const { getByText, queryByText } = render(<RoomDetailScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
     await waitFor(() => expect(getByText(/rooms\.detail\.lastAction\.at/)).toBeTruthy());
@@ -123,7 +141,7 @@ describe("RoomDetailScreen", () => {
       }),
     ];
 
-    const { getByText, queryByText } = render(<RoomDetailScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("rooms.detail.beforeEnter")).toBeTruthy());
     expect(getByText("rooms.detail.warnings.dnd.label")).toBeTruthy();
@@ -147,7 +165,7 @@ describe("RoomDetailScreen", () => {
       }),
     ];
 
-    const { getByText } = render(<RoomDetailScreen />);
+    const { getByText } = renderScreen();
 
     await waitFor(() => expect(getByText("rooms.detail.reservationTiming")).toBeTruthy());
     expect(getByText("rooms.detail.timing.guest")).toBeTruthy();
@@ -163,7 +181,7 @@ describe("RoomDetailScreen", () => {
   it("shows the room type code in room detail instead of the room type name", async () => {
     mockRooms = [makeRoom({ room_type_code: "KS", room_type_name: "King Suite" })];
 
-    const { getByText, queryByText } = render(<RoomDetailScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
 
@@ -174,7 +192,7 @@ describe("RoomDetailScreen", () => {
   it("shows a local cleaning checklist based on clean_type", async () => {
     mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL", clean_type_label: "Full" })];
 
-    const { getByLabelText, getByText } = render(<RoomDetailScreen />);
+    const { getByLabelText, getByText } = renderScreen();
 
     await waitFor(() => expect(getByText("rooms.detail.cleaningChecklist")).toBeTruthy());
     const fullChip = getByLabelText("rooms.detail.cleanTypeAccessibility");
@@ -193,20 +211,20 @@ describe("RoomDetailScreen", () => {
   it("removes Full and Light clean-type symbols from pickup room hero chips", async () => {
     mockRooms = [makeRoom({ status: "PICKUP", clean_type: "FULL", clean_type_label: "Full" })];
 
-    const { getByLabelText, queryByTestId, rerender } = render(<RoomDetailScreen />);
+    const { getByLabelText, queryByTestId, rerender } = renderScreen();
 
     await waitFor(() => expect(getByLabelText("rooms.detail.cleanTypeAccessibility")).toBeTruthy());
     expect(queryByTestId("icon-refresh-circle-outline")).toBeNull();
 
     mockRooms = [makeRoom({ status: "PICKUP", clean_type: "LIGHT", clean_type_label: "Light" })];
-    rerender(<RoomDetailScreen />);
+    rerender(withProviders());
 
     await waitFor(() => expect(getByLabelText("rooms.detail.cleanTypeAccessibility")).toBeTruthy());
     expect(queryByTestId("icon-flash-outline")).toBeNull();
   });
 
   it("keeps room detail actions compact, button-driven, and translated", async () => {
-    const { getByText } = render(<RoomDetailScreen />);
+    const { getByText } = renderScreen();
 
     await waitFor(() => expect(getByText("rooms.detailActions.addNote")).toBeTruthy());
     expect(getByText("rooms.detailActions.workOrder")).toBeTruthy();
@@ -226,7 +244,7 @@ describe("RoomDetailScreen", () => {
       }),
     ];
 
-    const { getAllByText, getByText, queryByText } = render(<RoomDetailScreen />);
+    const { getAllByText, getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("rooms.detail.roomEyebrow")).toBeTruthy());
     expect(getAllByText("rooms.detail.status.DIRTY").length).toBeGreaterThan(0);
@@ -245,7 +263,7 @@ describe("RoomDetailScreen", () => {
   it("lets housekeepers remove the latest quick-blocker note instead of showing Undo", async () => {
     mockRooms = [makeRoom({ status: "PICKUP", latest_note: null, latest_note_at: null })];
 
-    const { getByText, queryByText } = render(<RoomDetailScreen />);
+    const { getByText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("blockers.guestInside")).toBeTruthy());
     fireEvent.press(getByText("blockers.guestInside"));
@@ -267,7 +285,7 @@ describe("RoomDetailScreen", () => {
   it("formats typed come-back-later time before saving the blocker note", async () => {
     mockRooms = [makeRoom({ status: "PICKUP", latest_note: null, latest_note_at: null })];
 
-    const { getByPlaceholderText, getByText } = render(<RoomDetailScreen />);
+    const { getByPlaceholderText, getByText } = renderScreen();
 
     await waitFor(() => expect(getByText("blockers.comeBackLater")).toBeTruthy());
     fireEvent.press(getByText("blockers.comeBackLater"));
@@ -288,7 +306,7 @@ describe("RoomDetailScreen", () => {
     });
 
     try {
-      const { getByText } = render(<RoomDetailScreen />);
+      const { getByText } = renderScreen();
 
       await waitFor(() => expect(getByText("rooms.detail.primary.markClean")).toBeTruthy());
       await act(async () => {

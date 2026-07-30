@@ -91,6 +91,10 @@ export const lightTheme = {
 export const darkTheme = {
   background: "#0F0D0B",
   surface: "#191512",
+  // Sits between background and surface, mirroring lightTheme.surfaceSubtle's position
+  // (lighter than background, dimmer than surface) — added so useTheme() screen migrations
+  // that read C.surface2 have a same-shape reactive key in both themes (Wave 0 precedent).
+  surfaceSubtle: "#141110",
   surfaceElevated: "#232019",
   surfaceMuted: "#2B2720",
   textPrimary: "#F1EDE4",
