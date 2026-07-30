@@ -84,7 +84,24 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
   3. Guest-service screens (guest requests list + detail, lost & found), Logbook screens (list + new entry), and SOP screens (list + detail) render using the new primitives.
   4. The AI Copilot screen, Alerts/Notifications screens, and the Room Status screen render using the new primitives.
   5. No screen in the app still imports the legacy frozen `C` token constant or renders a bare `Alert.alert()` for non-destructive feedback.
-**Plans**: TBD
+**Plans**: 17 plans (8 waves, incl. Wave 0)
+- [ ] 09-00-PLAN.md — i18n gate-widening: wire 22 literals (16 text + 6 placeholders) + EN/ES keys, remove 4 ignores (I18N-01 backlog) [wave 0]
+- [ ] 09-01-PLAN.md — Profile screen on primitives; sign-out Alert stays blocking (SCREENS-01) [wave 1]
+- [ ] 09-02-PLAN.md — home/index.tsx (Housekeeper/FrontDesk/GM inline) + CompanionHome (SCREENS-02) [wave 1]
+- [ ] 09-03-PLAN.md — SupervisorHome.tsx (57 C. refs, dedicated) (SCREENS-02) [wave 1]
+- [ ] 09-04-PLAN.md — EngineerHome.tsx (largest file, dedicated) (SCREENS-02) [wave 1]
+- [ ] 09-05-PLAN.md — assignments/index.tsx (largest screen); :238 sheet stays, :361 lateCo → Toast (SCREENS-03) [wave 2]
+- [ ] 09-06-PLAN.md — scheduling + staff screens (SCREENS-03) [wave 2]
+- [ ] 09-07-PLAN.md — RoomDetailSheet.tsx (own plan, D-08); 2 confirms stay, 2 outcomes → Toast (SCREENS-03) [wave 2]
+- [ ] 09-08-PLAN.md — 6 supervisor files (atoms first) + 6 alerts → Toast (SCREENS-03, D-07) [wave 2]
+- [ ] 09-09-PLAN.md — assets + pm-schedules; 4 alerts → Toast (SCREENS-04) [wave 3]
+- [ ] 09-10-PLAN.md — guest-requests list + [requestId] detail (D-02) (SCREENS-05) [wave 4]
+- [ ] 09-11-PLAN.md — lost-found/index.tsx; :99 error → Toast (SCREENS-05) [wave 4]
+- [ ] 09-12-PLAN.md — logbook list + new (D-02) (SCREENS-06) [wave 5]
+- [ ] 09-13-PLAN.md — sop list + [sopId] detail (D-02) (SCREENS-07) [wave 5]
+- [ ] 09-14-PLAN.md — copilot minimal migration (keep dark, D-11); 1 C. ref + 6 alerts → Toast (SCREENS-08) [wave 6]
+- [ ] 09-15-PLAN.md — alerts + notifications screens (SCREENS-09) [wave 7]
+- [ ] 09-16-PLAN.md — room-status/index.tsx (D-04 modal verify); 2 sheets stay, 3 errors → Toast (SCREENS-10) [wave 7]
 **UI hint**: yes
 
 ### Phase 10: Dark Mode & Accessibility QA
@@ -126,5 +143,5 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
-| 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
+| 9. Remaining Screens Rollout | v1.1 | 0/17 | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
