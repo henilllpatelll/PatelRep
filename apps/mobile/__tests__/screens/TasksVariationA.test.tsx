@@ -77,7 +77,16 @@ jest.mock("@/stores/appStore", () => ({
   useAppStore: () => ({ isOnline: true }),
 }));
 
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import TasksScreen from "@/app/(app)/tasks";
+
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <TasksScreen />
+    </ThemeProvider>,
+  );
+}
 
 const NOW = Date.now();
 
@@ -121,7 +130,7 @@ beforeEach(() => {
 
 describe("TasksScreen", () => {
   it("renders the AI briefing and smart-order buckets", async () => {
-    const { getByText, getAllByLabelText, queryByText } = render(<TasksScreen />);
+    const { getByText, getAllByLabelText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
@@ -151,7 +160,7 @@ describe("TasksScreen", () => {
   });
 
   it("requires a confirmation before completing a task", async () => {
-    const { getByText, getByLabelText, queryByText } = render(<TasksScreen />);
+    const { getByText, getByLabelText, queryByText } = renderScreen();
 
     await waitFor(() => expect(getByText("Restock cart - floor 2")).toBeTruthy());
 
@@ -184,7 +193,7 @@ describe("TasksScreen", () => {
       return Promise.resolve({});
     });
 
-    const { getByText, getByTestId, getByPlaceholderText, getByLabelText } = render(<TasksScreen />);
+    const { getByText, getByTestId, getByPlaceholderText, getByLabelText } = renderScreen();
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
