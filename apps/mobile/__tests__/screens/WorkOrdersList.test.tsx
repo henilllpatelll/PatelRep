@@ -36,7 +36,16 @@ jest.mock("@/lib/offline/db", () => ({
 
 import { listWorkOrders } from "@/lib/api/workOrders";
 import { enqueueAction } from "@/lib/offline/db";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import WorkOrdersScreen from "@/app/(app)/work-orders/index";
+
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <WorkOrdersScreen />
+    </ThemeProvider>,
+  );
+}
 
 const mockList = listWorkOrders as jest.Mock;
 
@@ -57,14 +66,14 @@ beforeEach(() => {
 
 describe("WorkOrdersScreen", () => {
   it("renders WO card with title, room number, and urgent chip", async () => {
-    render(<WorkOrdersScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByText(/Fix AC/)).toBeTruthy());
     expect(screen.getByText(/101/)).toBeTruthy();
     expect(screen.getByText("workOrders.chipUrgent")).toBeTruthy();
   });
 
   it("groups open orders under the queue section with a Done toggle below", async () => {
-    render(<WorkOrdersScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByText("workOrders.sectionQueue")).toBeTruthy());
     expect(screen.getByTestId("wo-done-toggle")).toBeTruthy();
     // No bench or team work in this fixture — those sections stay hidden.
@@ -73,12 +82,12 @@ describe("WorkOrdersScreen", () => {
   });
 
   it("shows Claim button on open unassigned WOs", async () => {
-    render(<WorkOrdersScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByText("workOrders.claim")).toBeTruthy());
   });
 
   it("enqueues work_order/claim when offline and Claim is tapped", async () => {
-    render(<WorkOrdersScreen />);
+    renderScreen();
     await waitFor(() => screen.getByText("workOrders.claim"));
     fireEvent.press(screen.getByText("workOrders.claim"));
     await waitFor(() =>
