@@ -90,6 +90,15 @@ None - no external service configuration required.
 - Room Board is now on primitives and covered by an automated render test; `room-status/index.tsx` (D-10, a different screen) remains untouched and its own test (`RoomStatusList.test.tsx`) stays green, ready for its own migration in a future Phase 9 plan.
 - No blockers for the rest of Phase 8 wave 2/3 plans.
 
+## Self-Check: PASSED
+
+- FOUND: apps/mobile/__tests__/screens/RoomBoard.test.tsx
+- FOUND: apps/mobile/app/(app)/room-board/index.tsx
+- FOUND: .planning/phases/08-floor-role-rollout/08-04-SUMMARY.md
+- FOUND commit: af625ce0 (Task 1)
+- FOUND commit: 14bf1ea8 (Task 2)
+- FOUND commit: 8103ce1f (SUMMARY)
+
 ---
 *Phase: 08-floor-role-rollout*
 *Completed: 2026-07-30*
