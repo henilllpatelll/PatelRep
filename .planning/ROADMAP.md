@@ -63,10 +63,10 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
   4. Any floor role can view and complete Tasks rendered with the new primitives; data behavior is unchanged.
   5. Any floor role can complete an Inspection (including the photo-on-fail prompt) rendered with the new primitives; inspection-submission behavior is unchanged.
 **Plans**: 9 plans (6 waves)
-- [ ] 08-00-PLAN.md — Wave 0 prereq: add textDisabled/accentBrassSoft/accentBrassLine to lightTheme/darkTheme (unblocks C.ink4/brassSoft/brassLine burn-down) [wave 0]
-- [ ] 08-01-PLAN.md — My Rooms list + RoomQueueCard rebuild on Card+Pressable (FLOOR-01) [wave 1]
-- [ ] 08-02-PLAN.md — My Rooms detail + ChecklistSection; 11 alerts → Toast (FLOOR-01) [wave 1]
-- [ ] 08-03-PLAN.md — My Rooms modals: ReportIssue/Knock/SupplyRequest/FoundItem (FLOOR-01) [wave 1]
+- [x] 08-00-PLAN.md — Wave 0 prereq: add textDisabled/accentBrassSoft/accentBrassLine to lightTheme/darkTheme (unblocks C.ink4/brassSoft/brassLine burn-down) [wave 0]
+- [x] 08-01-PLAN.md — My Rooms list + RoomQueueCard rebuild on Card+Pressable (FLOOR-01) [wave 1]
+- [x] 08-02-PLAN.md — My Rooms detail + ChecklistSection; 11 alerts → Toast (FLOOR-01) [wave 1]
+- [x] 08-03-PLAN.md — My Rooms modals: ReportIssue/Knock/SupplyRequest/FoundItem (FLOOR-01) [wave 1]
 - [ ] 08-04-PLAN.md — Room Board + new render test scaffold (FLOOR-02) [wave 2]
 - [ ] 08-05-PLAN.md — Work Orders list + WorkOrderCard rebuild + CreateWorkOrderModal (FLOOR-03) [wave 3]
 - [ ] 08-06-PLAN.md — Work Orders detail; 10 alerts → Toast, escalate-confirm stays blocking (FLOOR-03) [wave 3]
@@ -125,6 +125,6 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
-| 8. Floor-Role Rollout | v1.1 | 0/9 | Not started | - |
+| 8. Floor-Role Rollout | v1.1 | 4/9 | In Progress|  |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
