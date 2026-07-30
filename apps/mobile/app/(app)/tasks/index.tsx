@@ -16,7 +16,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, monoFont, shellTokens } from "@/components/shared/tokens";
+import { monoFont } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import {
@@ -47,6 +49,7 @@ function dayLabel(locale: string) {
 export default function TasksScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es-MX" : "en-US";
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -148,29 +151,36 @@ export default function TasksScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {/* Evening Lobby shell header */}
-      <View style={[styles.shellHeader, { paddingTop: insets.top + 12 }]}>
+      <View
+        style={[
+          styles.shellHeader,
+          { paddingTop: insets.top + 12, backgroundColor: theme.shell.bg, borderBottomColor: theme.shell.line },
+        ]}
+      >
         <View style={styles.shellTopRow}>
           <View style={styles.shellTitleBlock}>
-            <Text style={styles.shellTitle}>{t("tasks.title")}</Text>
-            <Text style={styles.shellDate}>{dayLabel(locale)}</Text>
+            <Text style={[styles.shellTitle, { color: theme.shell.ink }]}>{t("tasks.title")}</Text>
+            <Text style={[styles.shellDate, { color: theme.shell.ink3 }]}>{dayLabel(locale)}</Text>
           </View>
           <View style={styles.shellCountBlock}>
-            <Text style={styles.shellCountValue}>{queue.length}</Text>
-            <Text style={styles.shellCountLabel}>{t("tasks.openLabel")}</Text>
+            <Text style={[styles.shellCountValue, { color: theme.shell.ink }]}>{queue.length}</Text>
+            <Text style={[styles.shellCountLabel, { color: theme.shell.ink3 }]}>{t("tasks.openLabel")}</Text>
             {doneToday > 0 ? (
-              <Text style={styles.shellDoneLabel}>{t("tasks.doneToday", { count: doneToday })}</Text>
+              <Text style={[styles.shellDoneLabel, { color: theme.status.ready }]}>
+                {t("tasks.doneToday", { count: doneToday })}
+              </Text>
             ) : null}
           </View>
         </View>
@@ -180,7 +190,9 @@ export default function TasksScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />
+        }
       >
         <AIBriefingCard
           kicker={t("tasks.aiKicker")}
@@ -190,11 +202,12 @@ export default function TasksScreen() {
         />
 
         {queue.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="checkmark-circle-outline" size={40} color={C.ink4} />
-            <Text style={styles.emptyTitle}>{t("tasks.emptyTitle")}</Text>
-            <Text style={styles.emptyMeta}>{t("tasks.emptyAiHint")}</Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="checkmark-circle-outline"
+            emptyTitle={t("tasks.emptyTitle")}
+            emptyBody={t("tasks.emptyAiHint")}
+          />
         ) : (
           sections.map((section) => (
             <View key={section.bucket} style={styles.section}>
@@ -219,22 +232,36 @@ export default function TasksScreen() {
       </ScrollView>
 
       {/* AI quick-add composer */}
-      <View style={[styles.composerWrap, { paddingBottom: insets.bottom + 10 }]}>
+      <View
+        style={[
+          styles.composerWrap,
+          { paddingBottom: insets.bottom + 10, borderTopColor: theme.shell.line, backgroundColor: theme.shell.bg },
+        ]}
+      >
         {aiPreview ? (
-          <View style={styles.previewCard} testID="ai-task-preview">
+          <View
+            style={[styles.previewCard, { backgroundColor: theme.shell.surface, borderColor: theme.ai.line }]}
+            testID="ai-task-preview"
+          >
             <View style={styles.previewHeader}>
-              <Ionicons name="sparkles" size={12} color={C.ai} />
-              <Text style={styles.previewLabel}>{t("tasks.aiPreviewLabel")}</Text>
+              <Ionicons name="sparkles" size={12} color={theme.ai.primary} />
+              <Text style={[styles.previewLabel, { color: theme.ai.primary }]}>{t("tasks.aiPreviewLabel")}</Text>
             </View>
-            <Text style={styles.previewTitle}>{aiPreview.title}</Text>
+            <Text style={[styles.previewTitle, { color: theme.shell.ink }]}>{aiPreview.title}</Text>
             <View style={styles.previewMetaRow}>
-              {aiPreview.room_number ? <Text style={styles.previewMeta}>Room {aiPreview.room_number}</Text> : null}
-              <Text style={styles.previewMeta}>{aiPreview.priority?.toUpperCase()}</Text>
-              <Text style={styles.previewMeta}>{aiPreview.task_type}</Text>
+              {aiPreview.room_number ? (
+                <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>Room {aiPreview.room_number}</Text>
+              ) : null}
+              <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{aiPreview.priority?.toUpperCase()}</Text>
+              <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{aiPreview.task_type}</Text>
             </View>
             <View style={styles.previewActions}>
               <TouchableOpacity
-                style={[styles.previewCreateBtn, aiCreating && styles.btnDisabled]}
+                style={[
+                  styles.previewCreateBtn,
+                  { backgroundColor: theme.primaryAction },
+                  aiCreating && styles.btnDisabled,
+                ]}
                 onPress={() => void createFromPreview()}
                 disabled={aiCreating}
                 activeOpacity={0.85}
@@ -245,20 +272,24 @@ export default function TasksScreen() {
                   <Text style={styles.previewCreateText}>{t("copilot.create")}</Text>
                 )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.previewDismissBtn} onPress={() => setAiPreview(null)} activeOpacity={0.85}>
-                <Text style={styles.previewDismissText}>{t("copilot.dismiss")}</Text>
+              <TouchableOpacity
+                style={[styles.previewDismissBtn, { borderColor: theme.shell.line }]}
+                onPress={() => setAiPreview(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.previewDismissText, { color: theme.shell.ink2 }]}>{t("copilot.dismiss")}</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : null}
-        {aiMessage ? <Text style={styles.aiMessage}>{aiMessage}</Text> : null}
+        {aiMessage ? <Text style={[styles.aiMessage, { color: theme.shell.ink2 }]}>{aiMessage}</Text> : null}
         <View style={styles.composerRow}>
           <TextInput
-            style={styles.composerInput}
+            style={[styles.composerInput, { borderColor: theme.shell.line, backgroundColor: theme.shell.surface, color: theme.shell.ink }]}
             value={composerText}
             onChangeText={setComposerText}
             placeholder={isOnline ? t("tasks.addPlaceholder") : t("common.offline")}
-            placeholderTextColor={C.ink4}
+            placeholderTextColor={theme.textDisabled}
             editable={isOnline && !aiParsing}
             maxLength={300}
             onSubmitEditing={() => void submitToAI()}
@@ -266,7 +297,11 @@ export default function TasksScreen() {
           />
           <TouchableOpacity
             accessibilityLabel={t("tasks.addWithAI")}
-            style={[styles.composerSend, (!composerText.trim() || aiParsing || !isOnline) && styles.btnDisabled]}
+            style={[
+              styles.composerSend,
+              { backgroundColor: theme.ai.primary, shadowColor: theme.ai.primary },
+              (!composerText.trim() || aiParsing || !isOnline) && styles.btnDisabled,
+            ]}
             onPress={() => void submitToAI()}
             disabled={!composerText.trim() || aiParsing || !isOnline}
             activeOpacity={0.85}
@@ -280,38 +315,30 @@ export default function TasksScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 24, gap: 18 },
 
   shellHeader: {
-    backgroundColor: shellTokens.bg,
     borderBottomWidth: 1,
-    borderBottomColor: shellTokens.line,
     paddingHorizontal: 18,
     paddingBottom: 16,
   },
   shellTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 14 },
   shellTitleBlock: { flex: 1, minWidth: 0 },
-  shellTitle: { fontSize: 28, fontWeight: "700", color: shellTokens.ink, lineHeight: 33 },
-  shellDate: { fontSize: 12.5, color: shellTokens.ink3, marginTop: 2 },
+  shellTitle: { fontSize: 28, fontWeight: "700", lineHeight: 33 },
+  shellDate: { fontSize: 12.5, marginTop: 2 },
   shellCountBlock: { alignItems: "flex-end" },
-  shellCountValue: { fontFamily: monoFont, fontSize: 24, fontWeight: "800", color: shellTokens.ink },
-  shellCountLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase", color: shellTokens.ink3 },
-  shellDoneLabel: { fontFamily: monoFont, fontSize: 10.5, color: C.ready, marginTop: 2 },
+  shellCountValue: { fontFamily: monoFont, fontSize: 24, fontWeight: "800" },
+  shellCountLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  shellDoneLabel: { fontFamily: monoFont, fontSize: 10.5, marginTop: 2 },
 
   section: { gap: 9 },
   taskStack: { gap: 9 },
 
-  emptyState: { alignItems: "center", paddingVertical: 36, gap: 8 },
-  emptyTitle: { color: C.ink2, fontSize: 16, fontWeight: "700", marginTop: 4 },
-  emptyMeta: { color: C.ink4, fontSize: 13, textAlign: "center", maxWidth: 250 },
-
   composerWrap: {
     borderTopWidth: 1,
-    borderTopColor: shellTokens.line,
-    backgroundColor: shellTokens.bg,
     paddingHorizontal: 14,
     paddingTop: 10,
     gap: 9,
@@ -323,9 +350,6 @@ const styles = StyleSheet.create({
     maxHeight: 90,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: shellTokens.line,
-    backgroundColor: shellTokens.surface,
-    color: shellTokens.ink,
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontSize: 13.5,
@@ -334,37 +358,32 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 13,
-    backgroundColor: C.ai,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: C.ai,
     shadowOpacity: 0.4,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
   btnDisabled: { opacity: 0.45 },
-  aiMessage: { color: shellTokens.ink2, fontSize: 12, paddingHorizontal: 2 },
+  aiMessage: { fontSize: 12, paddingHorizontal: 2 },
 
   previewCard: {
-    backgroundColor: shellTokens.surface,
     borderWidth: 1,
-    borderColor: C.aiLine,
     borderRadius: 14,
     padding: 13,
     gap: 7,
   },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
-  previewLabel: { color: C.ai, fontSize: 10, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  previewTitle: { color: shellTokens.ink, fontSize: 14.5, fontWeight: "700" },
+  previewLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  previewTitle: { fontSize: 14.5, fontWeight: "700" },
   previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  previewMeta: { color: shellTokens.ink2, fontSize: 11.5, fontFamily: monoFont },
+  previewMeta: { fontSize: 11.5, fontFamily: monoFont },
   previewActions: { flexDirection: "row", gap: 8, marginTop: 2 },
   previewCreateBtn: {
     flex: 1,
     minHeight: 42,
     borderRadius: 10,
-    backgroundColor: C.accent,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -374,9 +393,8 @@ const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     alignItems: "center",
     justifyContent: "center",
   },
-  previewDismissText: { color: shellTokens.ink2, fontSize: 13, fontWeight: "700" },
+  previewDismissText: { fontSize: 13, fontWeight: "700" },
 });
