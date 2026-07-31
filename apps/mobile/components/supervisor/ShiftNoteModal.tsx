@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
-import { C } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   visible: boolean;
@@ -12,6 +14,8 @@ interface Props {
 
 export default function ShiftNoteModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const toast = useToast();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,9 +29,10 @@ export default function ShiftNoteModal({ visible, onClose }: Props) {
         is_private: false,
       });
       setText("");
-      Alert.alert("Saved", "Shift note logged.", [{ text: "OK", onPress: onClose }]);
+      toast.success("Shift note logged.");
+      onClose();
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message ?? "Failed to save note");
+      toast.error((err as Error).message ?? "Failed to save note");
     } finally {
       setLoading(false);
     }
@@ -36,41 +41,32 @@ export default function ShiftNoteModal({ visible, onClose }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]} activeOpacity={1}>
+        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16, backgroundColor: theme.surface }]} activeOpacity={1}>
           <View style={styles.titleRow}>
-            <Ionicons name="book-outline" size={16} color={C.info} />
-            <Text style={styles.title}>Shift Note</Text>
+            <Ionicons name="book-outline" size={16} color={theme.status.clean} />
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Shift Note</Text>
           </View>
-          <Text style={styles.sub}>Logged to the shift logbook — visible to all supervisors</Text>
+          <Text style={[styles.sub, { color: theme.textMuted }]}>Logged to the shift logbook — visible to all supervisors</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
             value={text}
             onChangeText={setText}
             placeholder="e.g. VIP arrival in 201, extra linen requested for floor 3..."
-            placeholderTextColor={C.ink3}
+            placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={4}
             autoFocus
           />
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.sendBtn, (!text.trim() || loading) && styles.sendBtnDisabled]}
+            <Button
+              label="Log Note"
               onPress={submit}
-              disabled={!text.trim() || loading}
-              activeOpacity={0.86}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle-outline" size={14} color="#fff" />
-                  <Text style={styles.sendText}>Log Note</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+              loading={loading}
+              disabled={!text.trim()}
+              icon="checkmark-circle-outline"
+              style={styles.sendBtn}
+            />
+            <Button label="Cancel" onPress={onClose} variant="ghost" />
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -80,25 +76,19 @@ export default function ShiftNoteModal({ visible, onClose }: Props) {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 14 },
+  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 14 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 16, fontWeight: "900", color: C.ink },
-  sub: { fontSize: 12.5, color: C.ink3, marginTop: -6 },
+  title: { fontSize: 16, fontWeight: "900" },
+  sub: { fontSize: 12.5, marginTop: -6 },
   input: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 13,
     paddingVertical: 12,
     fontSize: 13.5,
-    color: C.ink,
     minHeight: 100,
     textAlignVertical: "top",
   },
   actions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  sendBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: C.info, borderRadius: 12, minHeight: 50 },
-  sendBtnDisabled: { opacity: 0.5 },
-  sendText: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  cancelText: { fontSize: 13, color: C.ink3, fontWeight: "700" },
+  sendBtn: { flex: 1 },
 });

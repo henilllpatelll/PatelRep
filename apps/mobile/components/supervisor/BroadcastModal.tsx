@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
-import { C } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
 
 const QUICK_MESSAGES = [
   "Break time — 15 minutes",
@@ -19,6 +21,8 @@ interface Props {
 
 export default function BroadcastModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const toast = useToast();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,9 +39,10 @@ export default function BroadcastModal({ visible, onClose }: Props) {
         broadcast: true,
       });
       setMessage("");
-      Alert.alert("Sent", "Message queued for all housekeeping staff.", [{ text: "OK", onPress: onClose }]);
+      toast.success("Message queued for all housekeeping staff.");
+      onClose();
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message ?? "Failed to send broadcast");
+      toast.error((err as Error).message ?? "Failed to send broadcast");
     } finally {
       setLoading(false);
     }
@@ -46,52 +51,47 @@ export default function BroadcastModal({ visible, onClose }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]} activeOpacity={1}>
+        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16, backgroundColor: theme.surface }]} activeOpacity={1}>
           <View style={styles.titleRow}>
-            <Ionicons name="megaphone-outline" size={16} color={C.caution} />
-            <Text style={styles.title}>Message Team</Text>
+            <Ionicons name="megaphone-outline" size={16} color={theme.status.pickup} />
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Message Team</Text>
           </View>
-          <Text style={styles.sub}>Sends to all housekeeping staff on shift</Text>
+          <Text style={[styles.sub, { color: theme.textMuted }]}>Sends to all housekeeping staff on shift</Text>
           <View style={styles.quickRow}>
             {QUICK_MESSAGES.map((msg) => (
               <TouchableOpacity
                 key={msg}
-                style={[styles.quickChip, message === msg && styles.quickChipActive]}
+                style={[
+                  styles.quickChip,
+                  { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+                  message === msg && { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine },
+                ]}
                 onPress={() => setMessage(msg)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.quickText, message === msg && styles.quickTextActive]} numberOfLines={2}>{msg}</Text>
+                <Text style={[styles.quickText, { color: theme.textSecondary }, message === msg && { color: theme.status.pickup, fontWeight: "700" }]} numberOfLines={2}>{msg}</Text>
               </TouchableOpacity>
             ))}
           </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
             value={message}
             onChangeText={setMessage}
             placeholder="Or type a custom message..."
-            placeholderTextColor={C.ink3}
+            placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={3}
           />
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.sendBtn, (!message.trim() || loading) && styles.sendBtnDisabled]}
+            <Button
+              label="Send"
               onPress={send}
-              disabled={!message.trim() || loading}
-              activeOpacity={0.86}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="megaphone-outline" size={14} color="#fff" />
-                  <Text style={styles.sendText}>Send</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+              loading={loading}
+              disabled={!message.trim()}
+              icon="megaphone-outline"
+              style={styles.sendBtn}
+            />
+            <Button label="Cancel" onPress={onClose} variant="ghost" />
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -101,37 +101,27 @@ export default function BroadcastModal({ visible, onClose }: Props) {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 12 },
+  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 12 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 16, fontWeight: "900", color: C.ink },
-  sub: { fontSize: 12.5, color: C.ink3, marginTop: -4 },
+  title: { fontSize: 16, fontWeight: "900" },
+  sub: { fontSize: 12.5, marginTop: -4 },
   quickRow: { gap: 7 },
   quickChip: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  quickChipActive: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
-  quickText: { fontSize: 13, fontWeight: "600", color: C.ink2 },
-  quickTextActive: { color: C.caution, fontWeight: "700" },
+  quickText: { fontSize: 13, fontWeight: "600" },
   input: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
     paddingHorizontal: 13,
     paddingVertical: 11,
     fontSize: 13.5,
-    color: C.ink,
     minHeight: 72,
     textAlignVertical: "top",
   },
   actions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  sendBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: C.caution, borderRadius: 12, minHeight: 50 },
-  sendBtnDisabled: { opacity: 0.5 },
-  sendText: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  cancelText: { fontSize: 13, color: C.ink3, fontWeight: "700" },
+  sendBtn: { flex: 1 },
 });
