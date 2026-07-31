@@ -19,7 +19,15 @@
     "password": "Contraseña",
     "magicLink": "Enviar enlace mágico",
     "magicLinkSent": "Revisa tu correo para el enlace de acceso",
-    "signInWith": "Iniciar sesión con correo/contraseña"
+    "signInWith": "Iniciar sesión con correo/contraseña",
+    "propertySubtitle": "v2 - {{property}}",
+    "signInEyebrow": "Iniciar sesión",
+    "welcomeBack": "Te damos la bienvenida.",
+    "startShift": "Inicia sesión para comenzar tu turno.",
+    "signInWithPhone": "Iniciar sesión con teléfono",
+    "newTo": "¿Primera vez en PatelRep?",
+    "getInviteLink": "Obtén el enlace de invitación",
+    "errorTitle": "Error"
   },
   "tabs": {
     "home": "Inicio",

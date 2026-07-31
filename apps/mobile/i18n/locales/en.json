@@ -19,7 +19,15 @@
     "password": "Password",
     "magicLink": "Send Magic Link",
     "magicLinkSent": "Check your email for a login link",
-    "signInWith": "Sign in with email/password"
+    "signInWith": "Sign in with email/password",
+    "propertySubtitle": "v2 - {{property}}",
+    "signInEyebrow": "Sign in",
+    "welcomeBack": "Welcome back.",
+    "startShift": "Sign in to start your shift.",
+    "signInWithPhone": "Sign in with phone",
+    "newTo": "New to PatelRep?",
+    "getInviteLink": "Get the invite link",
+    "errorTitle": "Error"
   },
   "tabs": {
     "home": "Home",
