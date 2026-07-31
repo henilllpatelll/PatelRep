@@ -17,6 +17,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "./useTheme";
 import { R } from "@/components/shared/tokens";
+import { useReducedMotion } from "@/lib/accessibility/useReducedMotion";
 
 export type ToastVariant = "success" | "error" | "info";
 
@@ -84,12 +85,33 @@ const VARIANT_ICON: Record<ToastVariant, React.ComponentProps<typeof Ionicons>["
 
 export function ToastViewport({ topOffset }: { topOffset: number }) {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
   const { toast, dismiss } = useToastState();
   const translateY = useRef(new Animated.Value(-20)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const dragX = useRef(new Animated.Value(0)).current;
+  const reducedMotionRef = useRef(reducedMotion);
+
+  useEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+    if (reducedMotion && toast) {
+      translateY.stopAnimation();
+      opacity.stopAnimation();
+      dragX.stopAnimation();
+      translateY.setValue(0);
+      opacity.setValue(1);
+      dragX.setValue(0);
+    }
+  }, [dragX, opacity, reducedMotion, toast, translateY]);
 
   const runExit = useCallback(() => {
+    if (reducedMotionRef.current) {
+      translateY.setValue(-20);
+      opacity.setValue(0);
+      dismiss();
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(translateY, { toValue: -20, duration: 150, useNativeDriver: true }),
       Animated.timing(opacity, { toValue: 0, duration: 150, useNativeDriver: true }),
@@ -108,10 +130,15 @@ export function ToastViewport({ topOffset }: { topOffset: number }) {
     opacity.setValue(0);
     dragX.setValue(0);
 
-    Animated.parallel([
-      Animated.timing(translateY, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    if (reducedMotionRef.current) {
+      translateY.setValue(0);
+      opacity.setValue(1);
+    } else {
+      Animated.parallel([
+        Animated.timing(translateY, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    }
 
     const timer = setTimeout(() => {
       runExit();
@@ -121,8 +148,9 @@ export function ToastViewport({ topOffset }: { topOffset: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast?.id]);
 
-  const panResponder = useRef(
-    PanResponder.create({
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
       onMoveShouldSetPanResponder: (_evt, gesture) => Math.abs(gesture.dx) > 4,
       onPanResponderMove: (_evt, gesture) => {
         dragX.setValue(gesture.dx);
@@ -130,21 +158,19 @@ export function ToastViewport({ topOffset }: { topOffset: number }) {
       onPanResponderRelease: (_evt, gesture) => {
         if (Math.abs(gesture.dx) > SWIPE_DISMISS_THRESHOLD) {
           runExit();
+        } else if (reducedMotionRef.current) {
+          dragX.setValue(0);
         } else {
           Animated.spring(dragX, { toValue: 0, useNativeDriver: true }).start();
         }
       },
-    }),
-  ).current;
+      }),
+    [dragX, runExit],
+  );
 
   if (!toast) return null;
 
-  const fill =
-    toast.variant === "success"
-      ? theme.status.ready
-      : toast.variant === "error"
-        ? theme.status.dirty
-        : theme.shell.bg;
+  const colors = theme.toast[toast.variant];
 
   return (
     <Animated.View
@@ -158,9 +184,30 @@ export function ToastViewport({ topOffset }: { topOffset: number }) {
       ]}
       {...panResponder.panHandlers}
     >
-      <View style={[styles.card, { backgroundColor: fill }]}>
-        <Ionicons name={VARIANT_ICON[toast.variant]} size={18} color="#FFFFFF" />
-        <Text style={styles.message} numberOfLines={2}>
+      <View
+        accessible
+        accessibilityRole="alert"
+        accessibilityLiveRegion="assertive"
+        accessibilityLabel={toast.message}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+            shadowColor: theme.textPrimary,
+          },
+        ]}
+      >
+        <Ionicons
+          name={VARIANT_ICON[toast.variant]}
+          size={18}
+          color={colors.foreground}
+          accessible={false}
+        />
+        <Text
+          accessible={false}
+          style={[styles.message, { color: colors.foreground }]}
+        >
           {toast.message}
         </Text>
       </View>
@@ -181,8 +228,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
     gap: 12,
-    shadowColor: "#000",
     shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -190,8 +237,9 @@ const styles = StyleSheet.create({
   },
   message: {
     flex: 1,
-    color: "#FFFFFF",
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: "600",
+    lineHeight: 21,
   },
 });
