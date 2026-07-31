@@ -4,6 +4,7 @@ import {
   act,
   fireEvent,
   render,
+  renderHook,
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text, View } from "react-native";
@@ -88,6 +89,17 @@ beforeEach(() => {
   mockSystemScheme = "light";
   (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
   (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+});
+
+it("rejects theme hooks used outside ThemeProvider", () => {
+  expect(() => renderHook(() => useThemeMode())).toThrow(
+    "useThemeMode must be used within a ThemeProvider",
+  );
+  expect(() =>
+    renderHook(() => useAppearancePreference()),
+  ).toThrow(
+    "useAppearancePreference must be used within a ThemeProvider",
+  );
 });
 
 it("defaults missing storage to System and follows the current OS scheme", async () => {
