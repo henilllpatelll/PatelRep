@@ -255,6 +255,15 @@ None of these boundaries contradicts a locked Phase 10 success criterion.
 **Score:** 5/5 ROADMAP truths; 5/5 DARK requirements  
 **Required gaps:** `[]`
 
+## Self-Check: PASSED
+
+- The report exists and directly contains DARK-01 through DARK-05, both EAS build IDs and durable dashboard links, the exact build commit and common fingerprint, Android device/build identifiers, rows 1-10, and the exact approval statement.
+- Both EAS records were independently re-read as `FINISHED`; the build commit resolves locally and is an ancestor of current HEAD.
+- The installed APK and independently downloaded preview artifact have the same SHA-256 and signer digest.
+- Current focused/full tests, type-check, lint/i18n, locale parity, static runtime audit, and Android export all pass.
+- No unfinished marker, required gap, empty evidence field, or credential material is present.
+- `status: passed`, the 5/5 score, and `gaps: []` agree with the evidence tables.
+
 ---
 
 _Verifier: GSD executor closeout audit_  
