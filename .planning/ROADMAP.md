@@ -29,7 +29,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 7: Theme Foundation & Primitives** - Reactive theme shell, missing UI primitives, and mobile i18n lint gate — zero visual change
 - [x] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives (completed 2026-07-30)
 - [ ] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives
-- [ ] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified
+- [x] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified (completed 2026-07-31)
 
 ## Phase Details
 
@@ -144,4 +144,4 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 0/17 | Not started | - |
-| 10. Dark Mode & Accessibility QA | v1.1 | 10/11 | In progress | - |
+| 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
