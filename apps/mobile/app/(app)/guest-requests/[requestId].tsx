@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,8 +11,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { R, monoFont } from "@/components/shared/tokens";
 import { AIInsightCard, Pill, HeroButton } from "@/components/shared/mobileHandoff";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import type { GuestRequest } from "./index";
 
 type StaffMember = { id: string; full_name: string };
@@ -37,6 +41,11 @@ const STATUS_TONES: Record<string, ToneType> = {
   escalated: "alert",
 };
 
+const REQUEST_STATUS_BADGE_KEYS: Partial<Record<GuestRequest["status"], StatusKey>> = {
+  in_progress: "inProgress",
+  resolved: "completed",
+};
+
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -49,6 +58,7 @@ function timeAgo(iso: string) {
 
 export default function GuestRequestDetailScreen() {
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
+  const theme = useTheme();
   const { isOnline } = useAppStore();
   const [request, setRequest] = useState<GuestRequest | null>(null);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -95,52 +105,67 @@ export default function GuestRequestDetailScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
-      </View>
-    );
+    return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
   }
 
   if (!request) {
     return (
-      <View style={styles.center}>
-        <Ionicons name="alert-circle-outline" size={32} color={C.ink4} />
-        <Text style={styles.emptyTitle}>Request not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>Go back</Text>
-        </TouchableOpacity>
-      </View>
+      <StateBlock
+        status="error"
+        errorIcon="alert-circle-outline"
+        errorMessage="Request not found"
+        onRetry={() => router.back()}
+        retryLabel="Go back"
+        style={[styles.center, { backgroundColor: theme.background }]}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topBar}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View
+        style={[
+          styles.topBar,
+          { backgroundColor: theme.background, borderBottomColor: theme.borderSubtle },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={C.accent} />
+          <Ionicons name="chevron-back" size={22} color={theme.primaryAction} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Request Detail</Text>
-        <Pill tone={STATUS_TONES[request.status] ?? "neutral"}>
-          {STATUS_LABELS[request.status] ?? request.status}
-        </Pill>
+        <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>Request Detail</Text>
+        {REQUEST_STATUS_BADGE_KEYS[request.status] ? (
+          <StatusBadge
+            statusKey={REQUEST_STATUS_BADGE_KEYS[request.status]!}
+            label={STATUS_LABELS[request.status] ?? request.status}
+          />
+        ) : (
+          <Pill tone={STATUS_TONES[request.status] ?? "neutral"}>
+            {STATUS_LABELS[request.status] ?? request.status}
+          </Pill>
+        )}
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.card}>
+        <Card style={styles.cardLayoutOverrides}>
           <View style={styles.cardHeader}>
-            <Text style={styles.roomLabel}>Room {request.room_number}</Text>
-            {request.guest_name ? <Text style={styles.guestName}>{request.guest_name}</Text> : null}
-          </View>
-          <Text style={styles.requestType}>{request.request_type}</Text>
-          <Text style={styles.description}>{request.description}</Text>
-          <View style={styles.meta}>
-            <Text style={styles.metaText}>{timeAgo(request.created_at)}</Text>
-            {request.assigned_to_name ? (
-              <Text style={styles.metaText}>Assigned to {request.assigned_to_name}</Text>
+            <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>Room {request.room_number}</Text>
+            {request.guest_name ? (
+              <Text style={[styles.guestName, { color: theme.textMuted }]}>
+                {request.guest_name}
+              </Text>
             ) : null}
           </View>
-        </View>
+          <Text style={[styles.requestType, { color: theme.textPrimary }]}>{request.request_type}</Text>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>{request.description}</Text>
+          <View style={styles.meta}>
+            <Text style={[styles.metaText, { color: theme.textDisabled }]}>{timeAgo(request.created_at)}</Text>
+            {request.assigned_to_name ? (
+              <Text style={[styles.metaText, { color: theme.textDisabled }]}>
+                Assigned to {request.assigned_to_name}
+              </Text>
+            ) : null}
+          </View>
+        </Card>
 
         <AIInsightCard
           title="AI recovery"
@@ -158,68 +183,80 @@ export default function GuestRequestDetailScreen() {
 
         {request.status !== "resolved" ? (
           <>
-            <Text style={styles.sectionTitle}>Update Status</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Update Status</Text>
             <View style={styles.statusRow}>
               {STATUS_OPTIONS.map((s) => (
-                <TouchableOpacity
+                <Button
                   key={s}
-                  style={[styles.statusBtn, selectedStatus === s && styles.statusBtnActive]}
+                  label={STATUS_LABELS[s]}
+                  style={styles.statusBtn}
                   onPress={() => setSelectedStatus(s)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[styles.statusLabel, selectedStatus === s && styles.statusLabelActive]}>
-                    {STATUS_LABELS[s]}
-                  </Text>
-                </TouchableOpacity>
+                  variant={selectedStatus === s ? "primary" : "secondary"}
+                  size="sm"
+                />
               ))}
             </View>
 
-            <Text style={styles.sectionTitle}>Assign To</Text>
-            <TouchableOpacity
-              style={styles.assignRow}
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Assign To</Text>
+            <Button
+              label={request.assigned_to_name ?? "Select staff member"}
+              style={styles.assignButton}
               onPress={() => setShowStaffPicker(!showStaffPicker)}
-              activeOpacity={0.75}
-            >
-              <Text style={styles.assignLabel}>
-                {request.assigned_to_name ?? "Select staff member"}
-              </Text>
-              <Ionicons name={showStaffPicker ? "chevron-up" : "chevron-down"} size={14} color={C.ink4} />
-            </TouchableOpacity>
+              variant="secondary"
+              size="sm"
+              icon={showStaffPicker ? "chevron-up" : "chevron-down"}
+            />
             {showStaffPicker ? (
-              <View style={styles.staffList}>
+              <View style={[styles.staffList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 {staff.map((member) => (
-                  <TouchableOpacity
+                  <Button
                     key={member.id}
-                    style={styles.staffItem}
-                    onPress={() => { setShowStaffPicker(false); saveUpdate(undefined, member.id); }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.staffName}>{member.full_name}</Text>
-                  </TouchableOpacity>
+                    label={member.full_name}
+                    style={[styles.staffItem, { borderBottomColor: theme.border }]}
+                    onPress={() => {
+                      setShowStaffPicker(false);
+                      saveUpdate(undefined, member.id);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                  />
                 ))}
               </View>
             ) : null}
 
-            <Text style={styles.sectionTitle}>Resolution Notes</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Resolution Notes</Text>
             <TextInput
-              style={styles.notesInput}
+              style={[
+                styles.notesInput,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.textPrimary,
+                },
+              ]}
               value={resolutionNotes}
               onChangeText={setResolutionNotes}
               placeholder="Describe what was done..."
-              placeholderTextColor={C.ink4}
+              placeholderTextColor={theme.textDisabled}
               multiline
               numberOfLines={3}
             />
 
-            <HeroButton primary onPress={() => saveUpdate()}>
-              {saving ? "Saving..." : "Save Update"}
-            </HeroButton>
+            <Button label="Save Update" onPress={() => saveUpdate()} loading={saving} size="md" />
           </>
         ) : (
-          <View style={[styles.card, { backgroundColor: C.readySoft, borderColor: C.readyLine }]}>
-            <Ionicons name="checkmark-circle" size={20} color={C.ready} />
-            <Text style={[styles.requestType, { color: C.ready }]}>Resolved</Text>
-          </View>
+          <Card
+            style={[
+              styles.cardLayoutOverrides,
+              {
+                backgroundColor: theme.status.readySoft,
+                borderColor: theme.status.readyLine,
+              },
+            ]}
+          >
+            <Ionicons name="checkmark-circle" size={20} color={theme.status.ready} />
+            <Text style={[styles.requestType, { color: theme.status.ready }]}>Resolved</Text>
+          </Card>
         )}
       </ScrollView>
     </View>
@@ -227,8 +264,8 @@ export default function GuestRequestDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper, gap: 10 },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -236,82 +273,50 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
-    backgroundColor: C.paper,
     gap: 10,
   },
   backBtn: { padding: 2 },
-  topBarTitle: { flex: 1, fontSize: 16, fontWeight: "700", color: C.ink },
+  topBarTitle: { flex: 1, fontSize: 16, fontWeight: "700" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 32, gap: 14 },
-  card: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
+  cardLayoutOverrides: {
     padding: 14,
     gap: 6,
   },
   cardHeader: { gap: 2 },
-  roomLabel: { fontSize: 15, fontWeight: "700", color: C.ink },
-  guestName: { fontSize: 12, color: C.ink3 },
-  requestType: { fontSize: 15, fontWeight: "600", color: C.ink },
-  description: { fontSize: 13, color: C.ink2, lineHeight: 19 },
+  roomLabel: { fontSize: 15, fontWeight: "700" },
+  guestName: { fontSize: 12 },
+  requestType: { fontSize: 15, fontWeight: "600" },
+  description: { fontSize: 13, lineHeight: 19 },
   meta: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  metaText: { fontSize: 11, color: C.ink4, fontFamily: monoFont },
-  sectionTitle: { fontSize: 12, fontWeight: "700", color: C.ink3, textTransform: "uppercase", letterSpacing: 0.8 },
+  metaText: { fontSize: 11, fontFamily: monoFont },
+  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
   statusRow: { flexDirection: "row", gap: 8 },
   statusBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: R.md,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    alignItems: "center",
+    paddingHorizontal: 8,
   },
-  statusBtnActive: { backgroundColor: C.ink, borderColor: C.ink },
-  statusLabel: { fontSize: 12, fontWeight: "600", color: C.ink3 },
-  statusLabelActive: { color: C.paper },
-  assignRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  assignButton: {
     justifyContent: "space-between",
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.md,
     paddingHorizontal: 12,
-    paddingVertical: 10,
   },
-  assignLabel: { fontSize: 13, color: C.ink2 },
   staffList: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.md,
     overflow: "hidden",
   },
   staffItem: {
     paddingHorizontal: 14,
-    paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: C.line,
+    justifyContent: "flex-start",
   },
-  staffName: { fontSize: 13, color: C.ink },
   notesInput: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
-    color: C.ink,
     minHeight: 80,
     textAlignVertical: "top",
   },
-
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
-  backLink: { fontSize: 14, color: C.accent, fontWeight: "600" },
 });
