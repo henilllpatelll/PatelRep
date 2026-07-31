@@ -165,9 +165,23 @@ export default function MyRoomsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {!isOnline ? (
-        <View style={[styles.offlineBanner, { backgroundColor: theme.status.dirty, paddingTop: insets.top + 8 }]}>
-          <Ionicons name="cloud-offline-outline" size={14} color="#fff" />
-          <Text style={styles.offlineText}>{t("common.offline")}</Text>
+        <View
+          accessible
+          accessibilityRole="alert"
+          accessibilityLabel={t("common.offline")}
+          style={[
+            styles.offlineBanner,
+            {
+              backgroundColor: theme.banner.offline.background,
+              borderBottomColor: theme.banner.offline.border,
+              paddingTop: insets.top + 8,
+            },
+          ]}
+        >
+          <Ionicons name="cloud-offline-outline" size={14} color={theme.banner.offline.foreground} />
+          <Text style={[styles.offlineText, { color: theme.banner.offline.foreground }]}>
+            {t("common.offline")}
+          </Text>
         </View>
       ) : null}
 
@@ -220,6 +234,9 @@ export default function MyRoomsScreen() {
                 onPress={() => setViewMode(mode.key)}
                 style={[styles.modeBtn, active && { backgroundColor: theme.shell.raised }]}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`${mode.label} ${mode.count}`}
+                accessibilityState={{ selected: active }}
               >
                 <Ionicons name={mode.icon} size={13} color={active ? theme.shell.ink : theme.shell.ink3} />
                 <Text style={[styles.modeText, { color: active ? theme.shell.ink : theme.shell.ink3 }]}>
@@ -265,7 +282,14 @@ export default function MyRoomsScreen() {
                 const collapsed = collapsedBuildings.has(buildingGroup.building);
                 return (
                 <View key={buildingGroup.building} style={styles.buildingSection}>
-                  <TouchableOpacity onPress={() => toggleBuilding(buildingGroup.building)} activeOpacity={0.75}>
+                  <TouchableOpacity
+                    onPress={() => toggleBuilding(buildingGroup.building)}
+                    activeOpacity={0.75}
+                    style={styles.buildingToggle}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(`rooms.sections.building.${buildingGroup.building}`)}
+                    accessibilityState={{ expanded: !collapsed }}
+                  >
                     <SectionHeader
                       title={t(`rooms.sections.building.${buildingGroup.building}`)}
                       hint={String(buildingGroup.floors.reduce((s, f) => s + f.rooms.length, 0))}
@@ -338,8 +362,15 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 42 },
 
-  offlineBanner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
-  offlineText: { flex: 1, color: "#fff", fontSize: 12 },
+  offlineBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+  },
+  offlineText: { flex: 1, fontSize: 12 },
 
   shellHeader: {
     borderBottomWidth: 1,
@@ -370,13 +401,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    minHeight: 38,
+    minHeight: 44,
     borderRadius: 9,
   },
   modeText: { fontSize: 12.5, fontWeight: "700" },
 
   sections: { gap: 20 },
   buildingSection: { gap: 10 },
+  buildingToggle: { minHeight: 44, justifyContent: "center" },
   section: { gap: 6, paddingLeft: 4 },
   floorLabel: {
     fontSize: 11,

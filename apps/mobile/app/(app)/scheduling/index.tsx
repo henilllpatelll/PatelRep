@@ -85,15 +85,15 @@ export default function SchedulingScreen() {
               { backgroundColor: todayAssignment ? theme.primaryAction : theme.surface, borderColor: theme.border },
             ]}
           >
-            <Text style={[styles.todayMeta, { color: todayAssignment ? "rgba(255,255,255,0.86)" : theme.textMuted }]}>
+            <Text style={[styles.todayMeta, { color: todayAssignment ? theme.onPrimary : theme.textMuted }]}>
               Today — {DAY_LABELS[today.getDay()]} {SHORT_MONTHS[today.getMonth()]} {today.getDate()}
             </Text>
             {todayAssignment?.shifts ? (
               <>
-                <Text style={[styles.todayTime, { color: "#fff" }]}>
+                <Text style={[styles.todayTime, { color: theme.onPrimary }]}>
                   {formatTime(todayAssignment.shifts.start_time)} – {formatTime(todayAssignment.shifts.end_time)}
                 </Text>
-                <Text style={[styles.todaySub, { color: "rgba(255,255,255,0.86)" }]}>{todayAssignment.shifts.name}</Text>
+                <Text style={[styles.todaySub, { color: theme.onPrimary }]}>{todayAssignment.shifts.name}</Text>
                 <View style={styles.todayPills}>
                   <Pill tone="neutral">{todayAssignment.is_on_shift ? "On shift" : "Scheduled"}</Pill>
                   {todayAssignment.clocked_in_at ? <Pill tone="ready">Clocked in</Pill> : null}

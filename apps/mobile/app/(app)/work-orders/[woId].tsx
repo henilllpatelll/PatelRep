@@ -529,6 +529,10 @@ export default function WorkOrderDetailScreen() {
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={t("workOrders.addPhoto")}
+                accessibilityState={{
+                  disabled: !isOnline || busy === "photo",
+                  busy: busy === "photo",
+                }}
               >
                 {busy === "photo" ? (
                   <ActivityIndicator size="small" color={theme.primaryAction} />
@@ -608,11 +612,15 @@ export default function WorkOrderDetailScreen() {
                 disabled={!isOnline || !comment.trim() || busy === "comment"}
                 accessibilityRole="button"
                 accessibilityLabel={t("workOrders.sendComment")}
+                accessibilityState={{
+                  disabled: !isOnline || !comment.trim() || busy === "comment",
+                  busy: busy === "comment",
+                }}
               >
                 {busy === "comment" ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={theme.onPrimary} />
                 ) : (
-                  <Ionicons name="arrow-up" size={16} color="#fff" />
+                  <Ionicons name="arrow-up" size={16} color={theme.onPrimary} />
                 )}
               </TouchableOpacity>
             </View>
@@ -709,6 +717,10 @@ export default function WorkOrderDetailScreen() {
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel={t("workOrders.hold")}
+                accessibilityState={{
+                  disabled: !isOnline || busy != null,
+                  busy: busy === "hold",
+                }}
               >
                 {busy === "hold" ? (
                   <ActivityIndicator size="small" color={theme.textSecondary} />
@@ -757,7 +769,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 26,
   },
   heroNav: { flexDirection: "row", alignItems: "center", gap: 8 },
-  backButton: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  backButton: { minWidth: 44, minHeight: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   headerBody: { flex: 1 },
   headerKicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
 
@@ -845,15 +857,15 @@ const styles = StyleSheet.create({
   composer: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
   composerInput: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: 11,
     paddingHorizontal: 12,
     fontSize: 13.5,
   },
   composerSend: {
-    width: 38,
-    height: 38,
+    minWidth: 44,
+    minHeight: 44,
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",

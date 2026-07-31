@@ -621,7 +621,13 @@ export default function RoomDetailScreen() {
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <View style={[styles.navBar, { paddingTop: insets.top + 10, backgroundColor: theme.background, borderBottomColor: theme.borderSubtle }]}>
-        <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)} style={styles.backBtn} hitSlop={10}>
+        <TouchableOpacity
+          onPress={() => router.push("/(app)/my-rooms" as never)}
+          style={styles.backBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("rooms.title")}
+        >
           <Ionicons name="chevron-back" size={20} color={theme.primaryAction} />
           <Text style={[styles.backLabel, { color: theme.primaryAction }]}>{t("rooms.title")}</Text>
         </TouchableOpacity>
@@ -679,7 +685,13 @@ export default function RoomDetailScreen() {
                 <Text style={[styles.aiInsightText, { color: theme.textSecondary }]}>{line.text}</Text>
               </View>
             ))}
-            <TouchableOpacity style={[styles.aiAskBtn, { borderColor: theme.ai.line, backgroundColor: theme.ai.soft }]} onPress={() => router.push("/(app)/copilot")} activeOpacity={0.82}>
+            <TouchableOpacity
+              style={[styles.aiAskBtn, { borderColor: theme.ai.line, backgroundColor: theme.ai.soft }]}
+              onPress={() => router.push("/(app)/copilot")}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={t("ai.askAboutRoom")}
+            >
               <Ionicons name="chatbubble-ellipses-outline" size={13} color={theme.ai.primary} />
               <Text style={[styles.aiAskText, { color: theme.ai.primary }]}>{t("ai.askAboutRoom")}</Text>
             </TouchableOpacity>
@@ -693,13 +705,19 @@ export default function RoomDetailScreen() {
               const critical = warning.severity === "critical";
               const warningCopy = getWarningCopy(warning, room, t);
               return (
-                <View key={warning.key} style={[styles.warningRow, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }, critical && { borderColor: theme.status.dirtyLine, backgroundColor: "#FFF7F7" }]}>
+                <View key={warning.key} style={[styles.warningRow, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }, critical && { borderColor: theme.status.dirtyLine, backgroundColor: theme.status.dirtySoft }]}>
                   <Ionicons name={critical ? "warning" : "alert-circle-outline"} size={16} color={critical ? theme.status.dirty : theme.status.pickup} />
                   <View style={styles.warningCopy}>
                     <View style={styles.warningHeaderRow}>
                       <Text style={[styles.warningLabel, { color: theme.textPrimary }, critical && { color: theme.status.dirty }]}>{warningCopy.label}</Text>
                       {warning.key === "note" && canRemoveLatestNote ? (
-                        <TouchableOpacity onPress={removeLatestNote} activeOpacity={0.8}>
+                        <TouchableOpacity
+                          onPress={removeLatestNote}
+                          activeOpacity={0.8}
+                          style={styles.inlineTextButton}
+                          accessibilityRole="button"
+                          accessibilityLabel={t("rooms.detail.removeNote")}
+                        >
                           <Text style={[styles.removeNoteText, { color: theme.primaryAction }]}>{t("rooms.detail.removeNote")}</Text>
                         </TouchableOpacity>
                       ) : null}
@@ -756,6 +774,13 @@ export default function RoomDetailScreen() {
                     }}
                     disabled={noteLoading || blockerBusy != null}
                     activeOpacity={0.82}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(blocker.labelKey)}
+                    accessibilityState={{
+                      selected: open || activated,
+                      disabled: noteLoading || blockerBusy != null,
+                      busy,
+                    }}
                   >
                     {busy ? (
                       <ActivityIndicator size="small" color={theme.primaryAction} />
@@ -768,7 +793,13 @@ export default function RoomDetailScreen() {
                   </TouchableOpacity>
                 );
               })}
-              <TouchableOpacity style={[styles.blockerBtnCustom, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} onPress={() => setCustomOpen(true)} activeOpacity={0.82}>
+              <TouchableOpacity
+                style={[styles.blockerBtnCustom, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+                onPress={() => setCustomOpen(true)}
+                activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel={t("rooms.detail.customFlag.short")}
+              >
                 <Ionicons name="pencil-outline" size={13} color={theme.textMuted} />
                 <Text style={[styles.blockerText, { color: theme.textSecondary }]}>{t("rooms.detail.customFlag.short")}</Text>
               </TouchableOpacity>
@@ -787,6 +818,9 @@ export default function RoomDetailScreen() {
                         style={[styles.timeChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }, timeText === preset && { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]}
                         onPress={() => setTimeText(preset)}
                         activeOpacity={0.82}
+                        accessibilityRole="button"
+                        accessibilityLabel={preset}
+                        accessibilityState={{ selected: timeText === preset }}
                       >
                         <Text style={[styles.timeChipText, { color: theme.textSecondary }, timeText === preset && { color: theme.primaryAction }]}>{preset}</Text>
                       </TouchableOpacity>
@@ -839,26 +873,56 @@ export default function RoomDetailScreen() {
                   disabled={!noteText.trim() || noteLoading}
                   size="sm"
                 />
-                <TouchableOpacity onPress={() => setNoteOpen(false)}>
+                <TouchableOpacity
+                  onPress={() => setNoteOpen(false)}
+                  style={styles.inlineTextButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("rooms.detailActions.cancel")}
+                >
                   <Text style={[styles.noteCancelText, { color: theme.textMuted }]}>{t("rooms.detailActions.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : null}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]} onPress={() => setNoteOpen((v) => !v)} activeOpacity={0.82}>
+            <TouchableOpacity
+              style={[styles.actionChip, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]}
+              onPress={() => setNoteOpen((v) => !v)}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={t("rooms.detailActions.addNote")}
+              accessibilityState={{ selected: noteOpen }}
+            >
               <Ionicons name="chatbubble-outline" size={14} color={theme.status.clean} />
               <Text style={[styles.actionChipText, { color: theme.status.clean }]}>{t("rooms.detailActions.addNote")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }]} onPress={() => setShowReportIssue(true)} activeOpacity={0.82}>
+            <TouchableOpacity
+              style={[styles.actionChip, { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }]}
+              onPress={() => setShowReportIssue(true)}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={t("rooms.detailActions.workOrder")}
+            >
               <Ionicons name="build-outline" size={14} color={theme.accentBrass} />
               <Text style={[styles.actionChipText, { color: theme.accentBrass }]}>{t("rooms.detailActions.workOrder")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]} onPress={() => setShowFoundItem(true)} activeOpacity={0.82}>
+            <TouchableOpacity
+              style={[styles.actionChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
+              onPress={() => setShowFoundItem(true)}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={t("rooms.detailActions.lostFound")}
+            >
               <Ionicons name="bag-outline" size={14} color={theme.status.pickup} />
               <Text style={[styles.actionChipText, { color: theme.status.pickup }]}>{t("rooms.detailActions.lostFound")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]} onPress={() => setShowSupplyRequest(true)} activeOpacity={0.82}>
+            <TouchableOpacity
+              style={[styles.actionChip, { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]}
+              onPress={() => setShowSupplyRequest(true)}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={t("rooms.detailActions.supplies")}
+            >
               <Ionicons name="cube-outline" size={14} color={theme.primaryAction} />
               <Text style={[styles.actionChipText, { color: theme.primaryAction }]}>{t("rooms.detailActions.supplies")}</Text>
             </TouchableOpacity>
@@ -872,6 +936,9 @@ export default function RoomDetailScreen() {
                 onPress={() => void handleToggleDnd()}
                 disabled={dndLoading}
                 activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel={room.dnd_flag ? t("rooms.detailActions.clearDnd") : t("rooms.detailActions.skipDnd")}
+                accessibilityState={{ selected: room.dnd_flag, disabled: dndLoading, busy: dndLoading }}
               >
                 {dndLoading ? (
                   <ActivityIndicator size="small" color={room.dnd_flag ? theme.status.dirty : theme.textMuted} />
@@ -895,6 +962,9 @@ export default function RoomDetailScreen() {
                 onPress={() => void handleToggleDeclineService()}
                 disabled={declineLoading}
                 activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel={room.do_not_service ? t("rooms.detailActions.restoreService") : t("rooms.detailActions.declineService")}
+                accessibilityState={{ selected: room.do_not_service, disabled: declineLoading, busy: declineLoading }}
               >
                 {declineLoading ? (
                   <ActivityIndicator size="small" color={room.do_not_service ? theme.status.dirty : theme.textMuted} />
@@ -997,7 +1067,12 @@ export default function RoomDetailScreen() {
                 disabled={!customText.trim() || noteLoading}
                 size="sm"
               />
-              <TouchableOpacity onPress={() => setCustomOpen(false)}>
+              <TouchableOpacity
+                onPress={() => setCustomOpen(false)}
+                style={styles.inlineTextButton}
+                accessibilityRole="button"
+                accessibilityLabel={t("rooms.detailActions.cancel")}
+              >
                 <Text style={[styles.noteCancelText, { color: theme.textMuted }]}>{t("rooms.detailActions.cancel")}</Text>
               </TouchableOpacity>
             </View>
@@ -1018,7 +1093,7 @@ const styles = StyleSheet.create({
     paddingBottom: 13,
     borderBottomWidth: 1,
   },
-  backBtn: { flexDirection: "row", alignItems: "center", gap: 2, padding: 2 },
+  backBtn: { flexDirection: "row", alignItems: "center", gap: 2, padding: 2, minHeight: 44 },
   backLabel: { fontSize: 15, fontWeight: "600" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 16, gap: 14 },
@@ -1043,7 +1118,7 @@ const styles = StyleSheet.create({
   aiInsightText: { flex: 1, fontSize: 13, lineHeight: 18 },
   aiAskBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    marginTop: 3, minHeight: 40, borderRadius: 10, borderWidth: 1,
+    marginTop: 3, minHeight: 44, borderRadius: 10, borderWidth: 1,
   },
   aiAskText: { fontSize: 12.5, fontWeight: "800" },
 
@@ -1061,6 +1136,7 @@ const styles = StyleSheet.create({
   warningLabel: { fontSize: 13, fontWeight: "800" },
   warningDetail: { fontSize: 12, lineHeight: 17 },
   removeNoteText: { fontSize: 12, fontWeight: "900" },
+  inlineTextButton: { minHeight: 44, justifyContent: "center" },
 
   cardSection: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
   sectionTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
@@ -1077,14 +1153,14 @@ const styles = StyleSheet.create({
   blockerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   blockerBtn: {
     minWidth: "47%", flexGrow: 1, borderWidth: 1,
-    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10, alignItems: "center",
+    borderRadius: 12, minHeight: 44, paddingVertical: 12, paddingHorizontal: 10, alignItems: "center",
   },
   blockerBtnContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   blockerText: { fontSize: 13, fontWeight: "800" },
   blockerBtnCustom: {
     minWidth: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
     borderWidth: 1, borderStyle: "dashed",
-    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10,
+    borderRadius: 12, minHeight: 44, paddingVertical: 12, paddingHorizontal: 10,
   },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
@@ -1099,7 +1175,7 @@ const styles = StyleSheet.create({
   timeEntryLabel: { fontSize: 12.5, fontWeight: "700" },
   timeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   timeChip: {
-    minHeight: 40, borderRadius: 999, borderWidth: 1,
+    minHeight: 44, borderRadius: 999, borderWidth: 1,
     paddingHorizontal: 13, alignItems: "center", justifyContent: "center",
   },
   timeChipText: { fontSize: 12.5, fontWeight: "700" },

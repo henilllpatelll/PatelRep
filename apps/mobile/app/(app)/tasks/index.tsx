@@ -267,17 +267,22 @@ export default function TasksScreen() {
                 onPress={() => void createFromPreview()}
                 disabled={aiCreating}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t("copilot.create")}
+                accessibilityState={{ disabled: aiCreating, busy: aiCreating }}
               >
                 {aiCreating ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={theme.onPrimary} />
                 ) : (
-                  <Text style={styles.previewCreateText}>{t("copilot.create")}</Text>
+                  <Text style={[styles.previewCreateText, { color: theme.onPrimary }]}>{t("copilot.create")}</Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.previewDismissBtn, { borderColor: theme.shell.line }]}
                 onPress={() => setAiPreview(null)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t("copilot.dismiss")}
               >
                 <Text style={[styles.previewDismissText, { color: theme.shell.ink2 }]}>{t("copilot.dismiss")}</Text>
               </TouchableOpacity>
@@ -299,6 +304,7 @@ export default function TasksScreen() {
           />
           <TouchableOpacity
             accessibilityLabel={t("tasks.addWithAI")}
+            accessibilityRole="button"
             style={[
               styles.composerSend,
               { backgroundColor: theme.ai.primary, shadowColor: theme.ai.primary },
@@ -307,8 +313,16 @@ export default function TasksScreen() {
             onPress={() => void submitToAI()}
             disabled={!composerText.trim() || aiParsing || !isOnline}
             activeOpacity={0.85}
+            accessibilityState={{
+              disabled: !composerText.trim() || aiParsing || !isOnline,
+              busy: aiParsing,
+            }}
           >
-            {aiParsing ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="sparkles" size={17} color="#fff" />}
+            {aiParsing ? (
+              <ActivityIndicator size="small" color={theme.onAi} />
+            ) : (
+              <Ionicons name="sparkles" size={17} color={theme.onAi} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -384,15 +398,15 @@ const styles = StyleSheet.create({
   previewActions: { flexDirection: "row", gap: 8, marginTop: 2 },
   previewCreateBtn: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 44,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  previewCreateText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  previewCreateText: { fontSize: 13, fontWeight: "800" },
   previewDismissBtn: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 44,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: "center",
