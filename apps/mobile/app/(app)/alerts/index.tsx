@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,8 +10,12 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont } from "@/components/shared/tokens";
-import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
+import { R, monoFont } from "@/components/shared/tokens";
+import { SectionLabel } from "@/components/shared/mobileHandoff";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { useTheme } from "@/lib/theme/useTheme";
 
 type RiskAlert = {
   id: string;
@@ -26,13 +29,10 @@ type RiskAlert = {
   is_read: boolean;
 };
 
-type ToneType = "alert" | "caution" | "info" | "neutral";
-
-const SEVERITY_TONES: Record<string, ToneType> = {
-  critical: "alert",
-  high: "alert",
-  medium: "caution",
-  low: "info",
+const SEVERITY_STATUS: Partial<Record<RiskAlert["severity"], StatusKey>> = {
+  critical: "emergency",
+  high: "urgent",
+  low: "low",
 };
 
 function useTimeAgo() {
@@ -50,6 +50,7 @@ function useTimeAgo() {
 export default function AlertsScreen() {
   const { t } = useTranslation();
   const timeAgo = useTimeAgo();
+  const theme = useTheme();
   const { isOnline } = useAppStore();
   const [alerts, setAlerts] = useState<RiskAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,44 +81,71 @@ export default function AlertsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("tabs.alerts")}</Text>
-        <Text style={styles.subtitle}>{t("alerts.subtitle")}</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.background, borderBottomColor: theme.borderSubtle },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("tabs.alerts")}</Text>
+        <Text style={[styles.subtitle, { color: theme.textMuted }]}>{t("alerts.subtitle")}</Text>
       </View>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primaryAction}
+          />
+        }
       >
         {critical.length > 0 ? (
           <View>
             <SectionLabel hint={`${critical.length} ${t("alerts.items")}`}>{t("alerts.needsAttention")}</SectionLabel>
             {critical.map((alert) => (
-              <View key={alert.id} style={[styles.card, styles.cardCritical]}>
+              <Card
+                key={alert.id}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: theme.status.dirtySoft,
+                    borderColor: theme.status.dirtyLine,
+                  },
+                ]}
+              >
                 <View style={styles.cardTop}>
-                  <Ionicons name="warning" size={16} color={C.alert} />
-                  <Text style={styles.alertTitle}>{alert.title}</Text>
-                  <Pill tone={SEVERITY_TONES[alert.severity] ?? "neutral"}>{alert.severity}</Pill>
+                  <Ionicons name="warning" size={16} color={theme.status.dirty} />
+                  <Text style={[styles.alertTitle, { color: theme.textPrimary }]}>{alert.title}</Text>
+                  <StatusBadge
+                    statusKey={SEVERITY_STATUS[alert.severity] ?? "urgent"}
+                    label={alert.severity}
+                  />
                 </View>
-                <Text style={styles.alertDesc}>{alert.description}</Text>
+                <Text style={[styles.alertDesc, { color: theme.textSecondary }]}>
+                  {alert.description}
+                </Text>
                 {(alert.room_number || alert.asset_name) ? (
-                  <Text style={styles.alertMeta}>
+                  <Text style={[styles.alertMeta, { color: theme.textDisabled }]}>
                     {alert.room_number ? `Room ${alert.room_number}` : alert.asset_name}
                     {" · "}{timeAgo(alert.created_at)}
                   </Text>
                 ) : (
-                  <Text style={styles.alertMeta}>{timeAgo(alert.created_at)}</Text>
+                  <Text style={[styles.alertMeta, { color: theme.textDisabled }]}>
+                    {timeAgo(alert.created_at)}
+                  </Text>
                 )}
-              </View>
+              </Card>
             ))}
           </View>
         ) : null}
@@ -126,25 +154,54 @@ export default function AlertsScreen() {
           <View>
             <SectionLabel hint={`${other.length} ${t("alerts.items")}`}>{t("alerts.watchList")}</SectionLabel>
             {other.map((alert) => (
-              <View key={alert.id} style={styles.card}>
+              <Card key={alert.id} style={styles.card}>
                 <View style={styles.cardTop}>
-                  <Ionicons name="information-circle-outline" size={16} color={C.caution} />
-                  <Text style={styles.alertTitle}>{alert.title}</Text>
-                  <Pill tone={SEVERITY_TONES[alert.severity] ?? "neutral"}>{alert.severity}</Pill>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={16}
+                    color={theme.status.pickup}
+                  />
+                  <Text style={[styles.alertTitle, { color: theme.textPrimary }]}>{alert.title}</Text>
+                  {SEVERITY_STATUS[alert.severity] ? (
+                    <StatusBadge
+                      statusKey={SEVERITY_STATUS[alert.severity] as StatusKey}
+                      label={alert.severity}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.severityChip,
+                        {
+                          backgroundColor: theme.status.pickupSoft,
+                          borderColor: theme.status.pickupLine,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.severityChipText, { color: theme.status.pickup }]}>
+                        {alert.severity}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <Text style={styles.alertDesc}>{alert.description}</Text>
-                <Text style={styles.alertMeta}>{timeAgo(alert.created_at)}</Text>
-              </View>
+                <Text style={[styles.alertDesc, { color: theme.textSecondary }]}>
+                  {alert.description}
+                </Text>
+                <Text style={[styles.alertMeta, { color: theme.textDisabled }]}>
+                  {timeAgo(alert.created_at)}
+                </Text>
+              </Card>
             ))}
           </View>
         ) : null}
 
         {alerts.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="shield-checkmark-outline" size={36} color={C.ready} />
-            <Text style={styles.emptyTitle}>{t("alerts.allClear")}</Text>
-            <Text style={styles.emptyText}>{t("alerts.noAlerts")}</Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="shield-checkmark-outline"
+            emptyTitle={t("alerts.allClear")}
+            emptyBody={t("alerts.noAlerts")}
+            style={styles.emptyCard}
+          />
         ) : null}
       </ScrollView>
     </View>
@@ -152,26 +209,33 @@ export default function AlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: C.line2, backgroundColor: C.paper, gap: 3,
+    borderBottomWidth: 1, gap: 3,
   },
-  title: { fontSize: 22, fontWeight: "700", color: C.ink },
-  subtitle: { fontSize: 12, color: C.ink3 },
+  title: { fontSize: 22, fontWeight: "700" },
+  subtitle: { fontSize: 12 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32, gap: 8 },
-  card: {
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.line,
-    borderRadius: R.lg, padding: 14, gap: 6,
-  },
-  cardCritical: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+  card: { borderRadius: R.lg, padding: 14, gap: 6 },
   cardTop: { flexDirection: "row", alignItems: "center", gap: 8 },
-  alertTitle: { flex: 1, fontSize: 14, fontWeight: "700", color: C.ink },
-  alertDesc: { fontSize: 13, color: C.ink2, lineHeight: 18 },
-  alertMeta: { fontSize: 11, color: C.ink4, fontFamily: monoFont },
+  alertTitle: { flex: 1, fontSize: 14, fontWeight: "700" },
+  alertDesc: { fontSize: 13, lineHeight: 18 },
+  alertMeta: { fontSize: 11, fontFamily: monoFont },
+  severityChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minHeight: 22,
+  },
+  severityChipText: {
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
   emptyCard: { alignItems: "center", paddingVertical: 56, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ready },
-  emptyText: { fontSize: 13, color: C.ink3 },
 });
