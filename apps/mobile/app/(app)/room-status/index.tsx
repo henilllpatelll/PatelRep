@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -18,8 +18,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
-import { Chip, SectionHeader, StatusRail, StatusPill } from "@/components/shared/evening";
+import { R, monoFont } from "@/components/shared/tokens";
+import { Chip, SectionHeader, StatusRail } from "@/components/shared/evening";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { Button } from "@/components/ui/Button";
 
 /* ─── Rooms — the property atlas ────────────────────────────────────────────
    Every room in the hotel, grouped by floor. The room number IS the card's
@@ -80,6 +85,18 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   OUT_OF_SERVICE: "roomStatus.statusLabels.OUT_OF_SERVICE",
 };
 
+const STATUS_BADGE_KEYS: Record<string, StatusKey> = {
+  DIRTY: "dirty",
+  IN_PROGRESS: "inProgress",
+  PICKUP: "pickup",
+  CLEAN: "clean",
+  INSPECTED: "ready",
+  OCCUPIED: "occupied",
+  OOO: "outOfOrder",
+  OUT_OF_ORDER: "outOfOrder",
+  OUT_OF_SERVICE: "outOfOrder",
+};
+
 /** Occupied by any signal: Opera FO status, or a stay-driven room status. */
 function isOccupiedRoom(room: RoomRow): boolean {
   return room.fo_status === "OCC" || room.status === "OCCUPIED" || room.status === "PICKUP";
@@ -96,12 +113,10 @@ function roomNumberValue(room: RoomRow): number {
 
 const FILTER_OPTIONS = ["all", "VACANT", "OCCUPIED", "OOO"];
 
-// Pastel readouts for the dark hero (mirror the mosaic dark-soft text rule).
-const HERO_VALUE_COLORS = { vacant: "#A7D2C9", occupied: "#E7A9B0", ready: "#A7D2C9" };
-
 export default function RoomStatusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline, user } = useAppStore();
   const isEngineer = String(user?.effective_role ?? user?.role) === "engineer";
@@ -183,56 +198,89 @@ export default function RoomStatusScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />
+        }
         stickyHeaderIndices={[1]}
       >
         <View>
-          <View style={styles.topBleed} />
-          <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-            <Text style={styles.heroKicker}>{t("roomStatus.kicker")}</Text>
-            <Text style={styles.heroTitle}>{t("tabs.roomStatus")}</Text>
+          <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
+          <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
+            <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("roomStatus.kicker")}</Text>
+            <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomStatus")}</Text>
             <View style={styles.heroStats}>
-              <View style={styles.heroStat}>
-                <Text style={[styles.heroStatValue, { color: HERO_VALUE_COLORS.vacant }]}>{vacantCount}</Text>
-                <Text style={styles.heroStatLabel}>{t("roomStatus.statVacant")}</Text>
+              <View
+                style={[
+                  styles.heroStat,
+                  { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
+                ]}
+              >
+                <Text style={[styles.heroStatValue, { color: theme.status.readyLine }]}>{vacantCount}</Text>
+                <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
+                  {t("roomStatus.statVacant")}
+                </Text>
               </View>
-              <View style={styles.heroStat}>
-                <Text style={[styles.heroStatValue, { color: HERO_VALUE_COLORS.occupied }]}>{occupiedCount}</Text>
-                <Text style={styles.heroStatLabel}>{t("roomStatus.statOccupied")}</Text>
+              <View
+                style={[
+                  styles.heroStat,
+                  { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
+                ]}
+              >
+                <Text style={[styles.heroStatValue, { color: theme.status.dirtyLine }]}>{occupiedCount}</Text>
+                <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
+                  {t("roomStatus.statOccupied")}
+                </Text>
               </View>
-              <View style={styles.heroStat}>
-                <Text style={[styles.heroStatValue, { color: HERO_VALUE_COLORS.ready }]}>{readyCount}</Text>
-                <Text style={styles.heroStatLabel}>{t("roomStatus.statReady")}</Text>
+              <View
+                style={[
+                  styles.heroStat,
+                  { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
+                ]}
+              >
+                <Text style={[styles.heroStatValue, { color: theme.status.readyLine }]}>{readyCount}</Text>
+                <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
+                  {t("roomStatus.statReady")}
+                </Text>
               </View>
             </View>
           </View>
         </View>
 
         {/* Sticky search + filters so long hotels stay navigable */}
-        <View style={styles.controls}>
-          <View style={styles.searchRow}>
-            <Ionicons name="search-outline" size={15} color={C.ink4} style={styles.searchIcon} />
+        <View
+          style={[
+            styles.controls,
+            { backgroundColor: theme.background, borderBottomColor: theme.borderSubtle },
+          ]}
+        >
+          <View style={[styles.searchRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons
+              name="search-outline"
+              size={15}
+              color={theme.textDisabled}
+              style={styles.searchIcon}
+            />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: theme.textPrimary }]}
               value={search}
               onChangeText={setSearch}
               placeholder={t("roomStatus.searchPlaceholder")}
-              placeholderTextColor={C.ink4}
+              placeholderTextColor={theme.textDisabled}
             />
             {search ? (
               <TouchableOpacity onPress={() => setSearch("")} hitSlop={8} accessibilityRole="button">
-                <Ionicons name="close-circle" size={16} color={C.ink4} />
+                <Ionicons name="close-circle" size={16} color={theme.textDisabled} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -242,14 +290,25 @@ export default function RoomStatusScreen() {
               return (
                 <TouchableOpacity
                   key={f}
-                  style={[styles.filterBtn, active && styles.filterBtnActive]}
+                  style={[
+                    styles.filterBtn,
+                    {
+                      backgroundColor: active ? theme.primary : theme.surface,
+                      borderColor: active ? theme.primary : theme.border,
+                    },
+                  ]}
                   onPress={() => setStatusFilter(f)}
                   activeOpacity={0.75}
                   testID={`room-filter-${f}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>
+                  <Text
+                    style={[
+                      styles.filterLabel,
+                      { color: active ? theme.shell.ink : theme.textMuted },
+                    ]}
+                  >
                     {f === "all"
                       ? t("roomStatus.all")
                       : f === "VACANT"
@@ -271,9 +330,10 @@ export default function RoomStatusScreen() {
                   const occupied = isOccupiedRoom(room);
                   const hasMetaRow = Boolean(room.guest_name || room.checkout_time || room.vip_flag || room.dnd_flag);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={room.id}
-                      style={styles.roomCard}
+                      testID={`room-status-card-${room.id}`}
+                      style={({ pressed }) => (pressed && isEngineer ? styles.roomCardPressed : undefined)}
                       onPress={isEngineer ? () => {
                         const isOoo = isOutOfOrderRoom(room);
 
@@ -337,47 +397,92 @@ export default function RoomStatusScreen() {
                           ]
                         );
                       } : undefined}
-                      activeOpacity={isEngineer ? 0.82 : 1}
+                      disabled={!isEngineer}
                       accessibilityRole={isEngineer ? "button" : undefined}
+                      accessibilityLabel={
+                        isEngineer
+                          ? t("roomStatus.roomActionTitle", { room: room.room_number })
+                          : undefined
+                      }
                     >
-                      <StatusRail status={room.status} />
-                      <View style={styles.cardBody}>
-                        <View style={styles.cardTopRow}>
-                          <StatusPill status={room.status} />
-                          <View style={[styles.occBadge, occupied ? styles.occBadgeOccupied : styles.occBadgeVacant]}>
-                            <View style={[styles.occDot, { backgroundColor: occupied ? C.alert : C.ready }]} />
-                            <Text style={[styles.occText, { color: occupied ? C.alert : C.ready }]}>
+                      <Card style={styles.cardLayoutOverrides}>
+                        <StatusRail status={room.status} />
+                        <View style={styles.cardBody}>
+                          <View style={styles.cardTopRow}>
+                            <StatusBadge
+                              statusKey={STATUS_BADGE_KEYS[room.status] ?? "dirty"}
+                              label={t(STATUS_LABEL_KEYS[room.status] ?? "roomStatus.statusLabels.DIRTY")}
+                            />
+                            <View
+                              style={[
+                                styles.occBadge,
+                                {
+                                  backgroundColor: occupied
+                                    ? theme.status.dirtySoft
+                                    : theme.status.readySoft,
+                                  borderColor: occupied
+                                    ? theme.status.dirtyLine
+                                    : theme.status.readyLine,
+                                },
+                              ]}
+                            >
+                              <View
+                                style={[
+                                  styles.occDot,
+                                  {
+                                    backgroundColor: occupied
+                                      ? theme.status.dirty
+                                      : theme.status.ready,
+                                  },
+                                ]}
+                              />
+                              <Text
+                                style={[
+                                  styles.occText,
+                                  {
+                                    color: occupied
+                                      ? theme.status.dirty
+                                      : theme.status.ready,
+                                  },
+                                ]}
+                              >
                               {occupied ? t("roomStatus.occupiedNow") : t("roomStatus.vacantNow")}
-                            </Text>
+                              </Text>
+                            </View>
                           </View>
+                          <Text style={[styles.roomNumber, { color: theme.textPrimary }]}>
+                            {room.room_number}
+                          </Text>
+                          {hasMetaRow ? (
+                            <View style={styles.metaRow}>
+                              {room.guest_name ? (
+                                <Text
+                                  style={[styles.guestText, { color: theme.textSecondary }]}
+                                  numberOfLines={1}
+                                >
+                                  {room.guest_name}
+                                </Text>
+                              ) : null}
+                              {room.checkout_time ? (
+                                <Text style={[styles.checkoutText, { color: theme.status.pickup }]}>
+                                  {t("roomStatus.checkout", { time: room.checkout_time })}
+                                </Text>
+                              ) : null}
+                              {room.vip_flag ? (
+                                <Chip tone="caution" icon="star-outline">
+                                  VIP
+                                </Chip>
+                              ) : null}
+                              {room.dnd_flag ? (
+                                <Chip tone="neutral" icon="moon-outline">
+                                  DND
+                                </Chip>
+                              ) : null}
+                            </View>
+                          ) : null}
                         </View>
-                        <Text style={styles.roomNumber}>{room.room_number}</Text>
-                        {hasMetaRow ? (
-                          <View style={styles.metaRow}>
-                            {room.guest_name ? (
-                              <Text style={styles.guestText} numberOfLines={1}>
-                                {room.guest_name}
-                              </Text>
-                            ) : null}
-                            {room.checkout_time ? (
-                              <Text style={styles.checkoutText}>
-                                {t("roomStatus.checkout", { time: room.checkout_time })}
-                              </Text>
-                            ) : null}
-                            {room.vip_flag ? (
-                              <Chip tone="caution" icon="star-outline">
-                                VIP
-                              </Chip>
-                            ) : null}
-                            {room.dnd_flag ? (
-                              <Chip tone="neutral" icon="moon-outline">
-                                DND
-                              </Chip>
-                            ) : null}
-                          </View>
-                        ) : null}
-                      </View>
-                    </TouchableOpacity>
+                      </Card>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -385,11 +490,13 @@ export default function RoomStatusScreen() {
           ))}
 
           {filtered.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Ionicons name="bed-outline" size={32} color={C.ink4} />
-              <Text style={styles.emptyTitle}>{t("roomStatus.noRoomsMatch")}</Text>
-              <Text style={styles.emptyText}>{t("roomStatus.noRoomsMatchHint")}</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="bed-outline"
+              emptyTitle={t("roomStatus.noRoomsMatch")}
+              emptyBody={t("roomStatus.noRoomsMatchHint")}
+              style={styles.emptyCard}
+            />
           ) : null}
         </View>
       </ScrollView>
@@ -406,22 +513,37 @@ export default function RoomStatusScreen() {
 
       <Modal visible={Boolean(oooReasonModal)} transparent animationType="fade" onRequestClose={() => setOooReasonModal(null)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setOooReasonModal(null)} />
-        <View style={styles.modalSheet}>
-          <Text style={styles.modalTitle}>{t("roomStatus.oooReasonModalTitle")}</Text>
+        <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+          <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+            {t("roomStatus.oooReasonModalTitle")}
+          </Text>
           <TextInput
-            style={styles.modalInput}
+            style={[
+              styles.modalInput,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.textPrimary,
+              },
+            ]}
             value={oooReasonText}
             onChangeText={setOooReasonText}
             placeholder={t("roomStatus.oooReasonPlaceholder")}
-            placeholderTextColor={C.ink4}
+            placeholderTextColor={theme.textDisabled}
             multiline
             autoFocus
           />
           <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setOooReasonModal(null)}>
-              <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            <Button
+              label={t("common.cancel")}
+              variant="secondary"
+              size="md"
+              style={styles.modalCancel}
+              onPress={() => setOooReasonModal(null)}
+            />
+            <Button
+              label={t("roomStatus.oooReasonModalConfirm")}
+              size="md"
               style={styles.modalConfirm}
               onPress={() => {
                 const modal = oooReasonModal;
@@ -434,9 +556,7 @@ export default function RoomStatusScreen() {
                     .finally(() => setOooLoading(null));
                 }
               }}
-            >
-              <Text style={styles.modalConfirmText}>{t("roomStatus.oooReasonModalConfirm")}</Text>
-            </TouchableOpacity>
+            />
           </View>
         </View>
       </Modal>
@@ -445,54 +565,47 @@ export default function RoomStatusScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
   content: { paddingBottom: 32 },
 
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
-  heroKicker: { color: shellTokens.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
+  heroKicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
   heroStats: { flexDirection: "row", gap: 9, marginTop: 14 },
   heroStat: {
     flex: 1,
-    backgroundColor: shellTokens.surface,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   heroStatValue: { fontSize: 22, lineHeight: 26, fontWeight: "700", fontFamily: monoFont },
-  heroStatLabel: { color: shellTokens.ink2, fontSize: 10.5, marginTop: 3 },
+  heroStatLabel: { fontSize: 10.5, marginTop: 3 },
 
   controls: {
-    backgroundColor: C.paper,
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 10,
     gap: 9,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
   },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.md,
     paddingHorizontal: 10,
   },
   searchIcon: { marginRight: 6 },
-  searchInput: { flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 10 },
+  searchInput: { flex: 1, fontSize: 13.5, paddingVertical: 10 },
   filterRow: { flexDirection: "row", gap: 6 },
   filterBtn: {
     flex: 1,
@@ -500,35 +613,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
   },
-  filterBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
-  filterLabel: { fontSize: 12, fontWeight: "700", color: C.ink3 },
-  filterLabelActive: { color: "#fff" },
+  filterLabel: { fontSize: 12, fontWeight: "700" },
 
   body: { paddingHorizontal: 16, paddingTop: 12, gap: 18 },
   floorSection: { gap: 2 },
   roomList: { gap: 9 },
-  roomCard: {
+  cardLayoutOverrides: {
     position: "relative",
     overflow: "hidden",
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
     paddingLeft: 16,
     paddingRight: 12,
-    shadowColor: C.ink,
-    shadowOpacity: 0.04,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
+    paddingVertical: 0,
   },
+  roomCardPressed: { opacity: 0.82 },
   cardBody: { flex: 1, minWidth: 0, paddingVertical: 13, gap: 7 },
   cardTopRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
-  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800", color: C.ink },
+  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800" },
   occBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -538,39 +640,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  occBadgeVacant: { backgroundColor: C.readySoft, borderColor: C.readyLine },
-  occBadgeOccupied: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
   occDot: { width: 6, height: 6, borderRadius: 3 },
   occText: { fontSize: 10.5, fontWeight: "800" },
   metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
-  guestText: { color: C.ink2, fontSize: 12, fontWeight: "600", flexShrink: 1 },
-  checkoutText: { color: C.caution, fontSize: 11, fontWeight: "600", fontFamily: monoFont },
+  guestText: { fontSize: 12, fontWeight: "600", flexShrink: 1 },
+  checkoutText: { fontSize: 11, fontWeight: "600", fontFamily: monoFont },
 
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
-  emptyText: { fontSize: 13, color: C.ink3 },
 
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
   modalSheet: {
     position: "absolute", bottom: 0, left: 0, right: 0,
-    backgroundColor: C.paper, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, gap: 14,
   },
-  modalTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
+  modalTitle: { fontSize: 16, fontWeight: "700" },
   modalInput: {
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.line,
-    borderRadius: R.md, padding: 12, fontSize: 14, color: C.ink,
+    borderWidth: 1, borderRadius: R.md, padding: 12, fontSize: 14,
     minHeight: 80, textAlignVertical: "top",
   },
   modalActions: { flexDirection: "row", gap: 10 },
-  modalCancel: {
-    flex: 1, minHeight: 46, alignItems: "center", justifyContent: "center",
-    borderRadius: R.md, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface,
-  },
-  modalCancelText: { color: C.ink3, fontSize: 14, fontWeight: "700" },
-  modalConfirm: {
-    flex: 2, minHeight: 46, alignItems: "center", justifyContent: "center",
-    borderRadius: R.md, backgroundColor: C.primary,
-  },
-  modalConfirmText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  modalCancel: { flex: 1 },
+  modalConfirm: { flex: 2 },
 });
