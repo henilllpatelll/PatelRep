@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,8 +12,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
-import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
+import { monoFont } from "@/components/shared/tokens";
+import { SectionLabel } from "@/components/shared/mobileHandoff";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
 
 type PMSchedule = {
   id: string;
@@ -28,19 +32,12 @@ type PMSchedule = {
   status: "due" | "upcoming" | "overdue" | "completed";
 };
 
-function dueTone(status: PMSchedule["status"]): "alert" | "caution" | "ready" | "info" {
-  if (status === "overdue") return "alert";
-  if (status === "due") return "caution";
-  if (status === "completed") return "ready";
-  return "info";
+function dueStatusKey(status: PMSchedule["status"]): StatusKey {
+  if (status === "overdue") return "overdue";
+  if (status === "due") return "pickup";
+  if (status === "completed") return "completed";
+  return "clean";
 }
-
-const TONE_COLORS = {
-  alert: { fg: C.alert, bg: C.alertSoft },
-  caution: { fg: C.caution, bg: C.cautionSoft },
-  ready: { fg: C.ready, bg: C.readySoft },
-  info: { fg: C.info, bg: C.infoSoft },
-} as const;
 
 function useDueLabel() {
   const { t } = useTranslation();
@@ -55,6 +52,8 @@ function useDueLabel() {
 export default function PMSchedulesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const toast = useToast();
   const dueLabel = useDueLabel();
   const { isOnline } = useAppStore();
   const [schedules, setSchedules] = useState<PMSchedule[]>([]);
@@ -90,11 +89,11 @@ export default function PMSchedulesScreen() {
       await api.post(`/assets/pm-schedules/${scheduleId}/complete`, {});
       await loadSchedules();
     } catch {
-      Alert.alert(t("common.error"), t("pmSchedules.completeError"));
+      toast.error(t("pmSchedules.completeError"));
     } finally {
       setCompleting(null);
     }
-  }, [completing, loadSchedules, t]);
+  }, [completing, loadSchedules, t, toast]);
 
   const filtered = filter === "all"
     ? schedules
@@ -105,39 +104,39 @@ export default function PMSchedulesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
-        <View style={styles.topBleed} />
-        <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-          <Text style={styles.heroKicker}>{t("pmSchedules.kicker")}</Text>
-          <Text style={styles.heroTitle}>{t("pmSchedules.title")}</Text>
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
+        <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
+          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("pmSchedules.kicker")}</Text>
+          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("pmSchedules.title")}</Text>
           <View style={styles.stats}>
             {overdueCount > 0 ? (
-              <View style={[styles.statChip, { backgroundColor: C.alertSoft, borderColor: C.alertLine }]}>
-                <Text style={[styles.statNum, { color: C.alert }]}>{overdueCount}</Text>
-                <Text style={[styles.statLabel, { color: C.alert }]}>{t("pmSchedules.overdue")}</Text>
+              <View style={[styles.statChip, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
+                <Text style={[styles.statNum, { color: theme.status.dirty }]}>{overdueCount}</Text>
+                <Text style={[styles.statLabel, { color: theme.status.dirty }]}>{t("pmSchedules.overdue")}</Text>
               </View>
             ) : null}
             {dueCount > 0 ? (
-              <View style={[styles.statChip, { backgroundColor: C.cautionSoft, borderColor: C.cautionLine }]}>
-                <Text style={[styles.statNum, { color: C.caution }]}>{dueCount}</Text>
-                <Text style={[styles.statLabel, { color: C.caution }]}>{t("pmSchedules.dueToday")}</Text>
+              <View style={[styles.statChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
+                <Text style={[styles.statNum, { color: theme.status.pickup }]}>{dueCount}</Text>
+                <Text style={[styles.statLabel, { color: theme.status.pickup }]}>{t("pmSchedules.dueToday")}</Text>
               </View>
             ) : null}
-            <View style={styles.statChip}>
-              <Text style={styles.statNum}>{schedules.length}</Text>
-              <Text style={styles.statLabel}>{t("pmSchedules.total")}</Text>
+            <View style={[styles.statChip, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
+              <Text style={[styles.statNum, { color: theme.shell.ink }]}>{schedules.length}</Text>
+              <Text style={[styles.statLabel, { color: theme.shell.ink2 }]}>{t("pmSchedules.total")}</Text>
             </View>
           </View>
         </View>
@@ -146,18 +145,22 @@ export default function PMSchedulesScreen() {
           {(["all", "due", "overdue"] as const).map((f) => {
             const isActive = filter === f;
             return (
-              <TouchableOpacity
+              <Pressable
                 key={f}
-                style={[styles.segment, isActive && styles.segmentActive]}
+                style={({ pressed }) => [
+                  styles.segment,
+                  isActive && styles.segmentActive,
+                  isActive && { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
+                  { opacity: pressed ? 0.8 : 1 },
+                ]}
                 onPress={() => setFilter(f)}
-                activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
               >
-                <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+                <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive, { color: isActive ? theme.textPrimary : theme.textMuted }]}>
                   {f === "all" ? t("pmSchedules.all") : f === "due" ? t("pmSchedules.due") : t("pmSchedules.overdue")}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </View>
@@ -167,67 +170,73 @@ export default function PMSchedulesScreen() {
         </SectionLabel>
 
         {filtered.map((schedule) => {
-          const tone = TONE_COLORS[dueTone(schedule.status)];
+          const tone = {
+            overdue: { fg: theme.status.dirty, bg: theme.status.dirtySoft },
+            due: { fg: theme.status.pickup, bg: theme.status.pickupSoft },
+            completed: { fg: theme.status.ready, bg: theme.status.readySoft },
+            upcoming: { fg: theme.status.clean, bg: theme.status.cleanSoft },
+          }[schedule.status];
           return (
-            <View key={schedule.id} style={styles.card}>
+            <Card key={schedule.id} style={styles.card}>
               <View style={[styles.rail, { backgroundColor: tone.fg }]} />
               <View style={styles.cardTop}>
                 <View style={[styles.cardTile, { backgroundColor: tone.bg }]}>
                   <Ionicons name="calendar-outline" size={16} color={tone.fg} />
                 </View>
                 <View style={styles.cardLeft}>
-                  <Text style={styles.assetName}>{schedule.asset_name}</Text>
-                  <Text style={styles.location}>{schedule.location}</Text>
+                  <Text style={[styles.assetName, { color: theme.textPrimary }]}>{schedule.asset_name}</Text>
+                  <Text style={[styles.location, { color: theme.textMuted }]}>{schedule.location}</Text>
                 </View>
-                <Pill tone={dueTone(schedule.status)}>{dueLabel(schedule.status)}</Pill>
+                <StatusBadge statusKey={dueStatusKey(schedule.status)} label={dueLabel(schedule.status)} />
               </View>
-              <Text style={styles.taskName}>{schedule.task_name}</Text>
+              <Text style={[styles.taskName, { color: theme.textSecondary }]}>{schedule.task_name}</Text>
               <View style={styles.cardMeta}>
                 <View style={styles.metaItem}>
-                  <Ionicons name="refresh-outline" size={12} color={C.ink4} />
-                  <Text style={styles.metaText}>{schedule.frequency}</Text>
+                  <Ionicons name="refresh-outline" size={12} color={theme.textDisabled} />
+                  <Text style={[styles.metaText, { color: theme.textDisabled }]}>{schedule.frequency}</Text>
                 </View>
                 <View style={styles.metaItem}>
-                  <Ionicons name="calendar-outline" size={12} color={C.ink4} />
-                  <Text style={styles.metaText}>{t("pmSchedules.due")} {schedule.next_due}</Text>
+                  <Ionicons name="calendar-outline" size={12} color={theme.textDisabled} />
+                  <Text style={[styles.metaText, { color: theme.textDisabled }]}>
+                    {t("pmSchedules.due")} {schedule.next_due}
+                  </Text>
                 </View>
                 {schedule.last_completed ? (
                   <View style={styles.metaItem}>
-                    <Ionicons name="checkmark-circle-outline" size={12} color={C.ready} />
-                    <Text style={[styles.metaText, { color: C.ready }]}>{t("pmSchedules.done")}: {schedule.last_completed}</Text>
+                    <Ionicons name="checkmark-circle-outline" size={12} color={theme.status.ready} />
+                    <Text style={[styles.metaText, { color: theme.status.ready }]}>
+                      {t("pmSchedules.done")}: {schedule.last_completed}
+                    </Text>
                   </View>
                 ) : null}
               </View>
               {schedule.status !== "completed" ? (
-                <TouchableOpacity
-                  style={[styles.completeBtn, completing === schedule.id && styles.completeBtnLoading]}
+                <Button
+                  label={t("pmSchedules.logComplete")}
                   onPress={() => void handleComplete(schedule.id)}
                   disabled={completing !== null}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                >
-                  {completing === schedule.id ? (
-                    <ActivityIndicator size="small" color={C.ready} />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle-outline" size={14} color={C.ready} />
-                      <Text style={styles.completeBtnText}>{t("pmSchedules.logComplete")}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                  loading={completing === schedule.id}
+                  variant="secondary"
+                  size="sm"
+                  icon="checkmark-circle-outline"
+                  style={[
+                    styles.completeBtn,
+                    { backgroundColor: theme.status.readySoft, borderColor: theme.status.readyLine },
+                  ]}
+                />
               ) : null}
-            </View>
+            </Card>
           );
         })}
 
         {filtered.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="calendar-outline" size={32} color={C.ink4} />
-            <Text style={styles.emptyTitle}>{t("pmSchedules.noSchedules")}</Text>
-            <Text style={styles.emptyText}>
-              {filter === "all" ? t("pmSchedules.noSchedulesConfigured") : t("pmSchedules.noItemsFound", { filter })}
-            </Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="calendar-outline"
+            emptyTitle={t("pmSchedules.noSchedules")}
+            emptyBody={filter === "all" ? t("pmSchedules.noSchedulesConfigured") : t("pmSchedules.noItemsFound", { filter })}
+            style={[styles.emptyCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}
+          />
         ) : null}
         </View>
       </ScrollView>
@@ -236,19 +245,18 @@ export default function PMSchedulesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
     gap: 4,
   },
-  heroKicker: { color: shellTokens.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600" },
+  heroKicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600" },
   stats: { flexDirection: "row", gap: 8, marginTop: 10 },
   statChip: {
     flexDirection: "row",
@@ -256,51 +264,41 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.md,
+    borderRadius: 12,
   },
-  statNum: { fontSize: 14, fontWeight: "700", color: C.ink },
-  statLabel: { fontSize: 11, color: C.ink3 },
+  statNum: { fontSize: 14, fontWeight: "700" },
+  statLabel: { fontSize: 11 },
   segmented: {
     flexDirection: "row",
     marginHorizontal: 16,
     marginTop: 14,
-    backgroundColor: C.surface3,
-    borderRadius: R.md,
+    borderRadius: 12,
     padding: 3,
     gap: 3,
   },
   segment: {
     flex: 1,
     minHeight: 38,
-    borderRadius: R.md - 3,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
   segmentActive: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
-    shadowColor: C.ink,
     shadowOpacity: 0.06,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  segmentLabel: { color: C.ink3, fontSize: 12.5, fontWeight: "700" },
-  segmentLabelActive: { color: C.ink },
+  segmentLabel: { fontSize: 12.5, fontWeight: "700" },
+  segmentLabelActive: {},
   scroll: { flex: 1 },
   content: { paddingBottom: 32 },
   body: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
   card: {
     position: "relative",
     overflow: "hidden",
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
     paddingVertical: 14,
     paddingRight: 14,
     paddingLeft: 16,
@@ -310,27 +308,14 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   cardTile: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   cardLeft: { flex: 1 },
-  assetName: { fontSize: 14, fontWeight: "700", color: C.ink },
-  location: { fontSize: 11, color: C.ink3 },
-  taskName: { fontSize: 13, color: C.ink2 },
+  assetName: { fontSize: 14, fontWeight: "700" },
+  location: { fontSize: 11 },
+  taskName: { fontSize: 13 },
   cardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
-  metaText: { fontSize: 11, color: C.ink4, fontFamily: monoFont },
-  emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
-  emptyText: { fontSize: 13, color: C.ink3, textAlign: "center" },
+  metaText: { fontSize: 11, fontFamily: monoFont },
+  emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8, borderWidth: 1 },
   completeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minHeight: 38,
-    borderRadius: R.md,
-    borderWidth: 1,
-    borderColor: C.readyLine,
-    backgroundColor: C.readySoft,
     marginTop: 4,
   },
-  completeBtnLoading: { opacity: 0.6 },
-  completeBtnText: { color: C.ready, fontSize: 12.5, fontWeight: "700" },
 });
