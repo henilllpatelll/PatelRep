@@ -1,12 +1,19 @@
 import React from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 let mockLanguage = "en";
+let mockPreference: "system" | "light" | "dark" = "system";
+const mockSetPreference = jest.fn().mockResolvedValue(undefined);
 
-const EN: Record<string, string> = {
+const mockEn: Record<string, string> = {
   "profile.me": "Me",
   "profile.preferences": "Preferences",
   "profile.language": "Language",
+  "profile.appearance.label": "Appearance",
+  "profile.appearance.system": "System",
+  "profile.appearance.light": "Light",
+  "profile.appearance.dark": "Dark",
   "profile.notifications": "Notifications",
   "profile.notificationsUnread": "{{count}} unread",
   "profile.myWork": "My work",
@@ -28,10 +35,41 @@ const EN: Record<string, string> = {
   "common.cancel": "Cancel",
 };
 
+const mockEs: Record<string, string> = {
+  ...mockEn,
+  "profile.me": "Yo",
+  "profile.preferences": "Preferencias",
+  "profile.language": "Idioma",
+  "profile.appearance.label": "Apariencia",
+  "profile.appearance.system": "Sistema",
+  "profile.appearance.light": "Claro",
+  "profile.appearance.dark": "Oscuro",
+  "profile.notifications": "Notificaciones",
+  "profile.notificationsUnread": "{{count}} sin leer",
+  "profile.myWork": "Mi trabajo",
+  "profile.schedule": "Mi horario",
+  "profile.sopLibrary": "Biblioteca SOP",
+  "profile.dataSync": "Datos y sincronización",
+  "profile.offlineChanges": "Cambios sin conexión",
+  "profile.upToDate": "Al día",
+  "profile.pendingChanges": "{{count}} por sincronizar",
+  "profile.syncNow": "Sincronizar",
+  "profile.connection.online": "En línea — todo está sincronizado",
+  "profile.connection.offline": "Sin conexión — tus cambios se sincronizarán después",
+  "profile.connection.pending": "En línea — {{count}} cambio(s) por sincronizar",
+  "profile.account": "Cuenta",
+  "profile.signOut": "Cerrar sesión",
+  "profile.signOutTitle": "Cerrar sesión",
+  "profile.signOutConfirm": "¿Estás seguro?",
+  "staff.roles.housekeeper": "Ama de llaves",
+  "common.cancel": "Cancelar",
+};
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) => {
-      const template = EN[key] ?? key;
+      const messages = mockLanguage === "es" ? mockEs : mockEn;
+      const template = messages[key] ?? key;
       if (!values) return template;
       return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values[k] ?? `{{${k}}}`));
     },
@@ -48,6 +86,12 @@ jest.mock("react-native-safe-area-context", () => ({
 
 jest.mock("@/lib/theme/ThemeProvider", () => ({
   useThemeMode: () => "light",
+  useAppearancePreference: () => ({
+    preference: mockPreference,
+    mode: "light",
+    setPreference: mockSetPreference,
+    isHydrated: true,
+  }),
 }));
 
 const mockPush = jest.fn();
@@ -108,6 +152,8 @@ import ProfileScreen from "@/app/(app)/profile";
 describe("ProfileScreen settings redesign", () => {
   beforeEach(() => {
     mockLanguage = "en";
+    mockPreference = "system";
+    mockSetPreference.mockClear();
   });
 
   it("renders identity hero, grouped settings, sync state, and sign out — no fake stats", async () => {
@@ -160,5 +206,62 @@ describe("ProfileScreen settings redesign", () => {
     await waitFor(() => expect(getByText("Ingl\u00e9s")).toBeTruthy());
     expect(getByText("Espa\u00f1ol")).toBeTruthy();
     expect(queryByText("English")).toBeNull();
+  });
+
+  it("exposes immediate System, Light, and Dark radio choices with 44pt targets", async () => {
+    const { getByRole, getByTestId, getByText } = render(<ProfileScreen />);
+    await waitFor(() => expect(getByText("Lone Star Inn")).toBeTruthy());
+
+    const group = getByTestId("appearance-segmented");
+    expect(group.props.accessibilityRole).toBe("radiogroup");
+    expect(group.props.accessibilityLabel).toBe("Appearance");
+
+    const choices = [
+      { label: "System", value: "system", selected: true },
+      { label: "Light", value: "light", selected: false },
+      { label: "Dark", value: "dark", selected: false },
+    ] as const;
+
+    for (const choice of choices) {
+      const radio = getByRole("radio", { name: choice.label });
+      expect(radio.props.accessibilityState).toEqual({ selected: choice.selected });
+      expect(StyleSheet.flatten(radio.props.style).minHeight).toBeGreaterThanOrEqual(44);
+
+      fireEvent.press(getByTestId(`appearance-${choice.value}`));
+    }
+
+    expect(mockSetPreference).toHaveBeenNthCalledWith(1, "system");
+    expect(mockSetPreference).toHaveBeenNthCalledWith(2, "light");
+    expect(mockSetPreference).toHaveBeenNthCalledWith(3, "dark");
+  });
+
+  it("keeps neighboring Profile controls radio-semantic and at least 44pt", async () => {
+    const { getByRole, getByTestId, getByText } = render(<ProfileScreen />);
+    await waitFor(() => expect(getByText("Lone Star Inn")).toBeTruthy());
+
+    const english = getByRole("radio", { name: "English" });
+    const spanish = getByRole("radio", { name: "Espa\u00f1ol" });
+    expect(english.props.accessibilityState).toEqual({ selected: true });
+    expect(spanish.props.accessibilityState).toEqual({ selected: false });
+    expect(StyleSheet.flatten(english.props.style).minHeight).toBeGreaterThanOrEqual(44);
+    expect(StyleSheet.flatten(spanish.props.style).minHeight).toBeGreaterThanOrEqual(44);
+
+    const bellStyle = StyleSheet.flatten(getByTestId("profile-bell").props.style);
+    expect(bellStyle.width).toBeGreaterThanOrEqual(44);
+    expect(bellStyle.height).toBeGreaterThanOrEqual(44);
+  });
+
+  it("renders distinct Spanish appearance choices without English fallback", async () => {
+    mockLanguage = "es";
+    const { getByRole, getByText, queryByText } = render(<ProfileScreen />);
+    await waitFor(() => expect(getByText("Lone Star Inn")).toBeTruthy());
+
+    expect(getByText("Apariencia")).toBeTruthy();
+    expect(getByRole("radio", { name: "Sistema" })).toBeTruthy();
+    expect(getByRole("radio", { name: "Claro" })).toBeTruthy();
+    expect(getByRole("radio", { name: "Oscuro" })).toBeTruthy();
+    expect(queryByText("System")).toBeNull();
+    expect(queryByText("Light")).toBeNull();
+    expect(queryByText("Dark")).toBeNull();
   });
 });

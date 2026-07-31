@@ -19,6 +19,7 @@ import { useAppStore } from "@/stores/appStore";
 import { monoFont } from "@/components/shared/tokens";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { SectionHeader } from "@/components/shared/evening";
+import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -107,6 +108,7 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { preference, setPreference } = useAppearancePreference();
   const { user, isOnline, pendingActions, flushQueue, unreadCount } = useAppStore();
   const [hotelName, setHotelName] = useState<string | null>(null);
   const [language, setLanguage] = useState(i18n.language);
@@ -206,7 +208,9 @@ export default function ProfileScreen() {
               <Ionicons name="notifications-outline" size={18} color={theme.shell.ink} />
               {unreadCount > 0 ? (
                 <View style={[styles.bellBadge, { backgroundColor: theme.status.dirty }]}>
-                  <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+                  <Text style={[styles.bellBadgeText, { color: theme.onDestructive }]}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Text>
                 </View>
               ) : null}
             </TouchableOpacity>
@@ -230,16 +234,72 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <SectionHeader title={t("profile.preferences")} />
             <Card style={styles.card}>
-              <View style={styles.row}>
-                <View style={[styles.rowIconWrap, { backgroundColor: theme.primarySoft }]}>
-                  <Ionicons name="globe-outline" size={16} color={theme.primary} />
+              <View style={styles.preferenceControl}>
+                <View style={styles.preferenceHeader}>
+                  <View style={[styles.rowIconWrap, { backgroundColor: theme.primarySoft }]}>
+                    <Ionicons name="contrast-outline" size={16} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>
+                    {t("profile.appearance.label")}
+                  </Text>
                 </View>
-                <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>{t("profile.language")}</Text>
                 <View
                   style={[
                     styles.segmented,
                     { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle },
                   ]}
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel={t("profile.appearance.label")}
+                  testID="appearance-segmented"
+                >
+                  {(
+                    [
+                      { value: "system" as const, label: t("profile.appearance.system") },
+                      { value: "light" as const, label: t("profile.appearance.light") },
+                      { value: "dark" as const, label: t("profile.appearance.dark") },
+                    ]
+                  ).map((option) => {
+                    const active = preference === option.value;
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[styles.segment, active && { backgroundColor: theme.primaryAction }]}
+                        onPress={() => void setPreference(option.value)}
+                        activeOpacity={0.85}
+                        accessibilityRole="radio"
+                        accessibilityLabel={option.label}
+                        accessibilityState={{ selected: active }}
+                        testID={`appearance-${option.value}`}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            { color: active ? theme.onPrimary : theme.textSecondary },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+              <View style={[styles.preferenceControl, styles.rowBorder, { borderTopColor: theme.borderSubtle }]}>
+                <View style={styles.preferenceHeader}>
+                  <View style={[styles.rowIconWrap, { backgroundColor: theme.primarySoft }]}>
+                    <Ionicons name="globe-outline" size={16} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>
+                    {t("profile.language")}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.segmented,
+                    { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle },
+                  ]}
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel={t("profile.language")}
                   testID="language-segmented"
                 >
                   {(
@@ -255,11 +315,17 @@ export default function ProfileScreen() {
                         style={[styles.segment, active && { backgroundColor: theme.primaryAction }]}
                         onPress={() => void selectLanguage(option.code)}
                         activeOpacity={0.85}
-                        accessibilityRole="button"
+                        accessibilityRole="radio"
+                        accessibilityLabel={option.label}
                         accessibilityState={{ selected: active }}
                         testID={`language-${option.code}`}
                       >
-                        <Text style={[styles.segmentText, { color: active ? "#fff" : theme.textSecondary }]}>
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            { color: active ? theme.onPrimary : theme.textSecondary },
+                          ]}
+                        >
                           {option.label}
                         </Text>
                       </TouchableOpacity>
@@ -376,9 +442,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   bellBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -395,7 +461,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bellBadgeText: {
-    color: "#fff",
     fontSize: 9.5,
     fontWeight: "800",
   },
@@ -458,6 +523,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -474,29 +540,48 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     flex: 1,
+    minWidth: 0,
     fontSize: 14,
     fontWeight: "600",
   },
   rowValue: {
+    flexShrink: 1,
+    maxWidth: "48%",
+    textAlign: "right",
     fontSize: 12.5,
+  },
+  preferenceControl: {
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  preferenceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   segmented: {
     flexDirection: "row",
+    alignSelf: "stretch",
     borderWidth: 1,
     borderRadius: 10,
     padding: 2,
     gap: 2,
   },
   segment: {
-    minHeight: 32,
+    minHeight: 44,
+    flex: 1,
+    minWidth: 0,
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     alignItems: "center",
     justifyContent: "center",
   },
   segmentText: {
     fontSize: 12.5,
     fontWeight: "700",
+    textAlign: "center",
   },
   syncBtn: {
     minWidth: 92,

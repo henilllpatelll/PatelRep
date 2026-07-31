@@ -694,6 +694,12 @@
     "me": "Yo",
     "preferences": "Preferencias",
     "language": "Idioma",
+    "appearance": {
+      "label": "Apariencia",
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
     "notifications": "Notificaciones",
     "notificationsUnread": "{{count}} sin leer",
     "myWork": "Mi trabajo",

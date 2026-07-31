@@ -694,6 +694,12 @@
     "me": "Me",
     "preferences": "Preferences",
     "language": "Language",
+    "appearance": {
+      "label": "Appearance",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "notifications": "Notifications",
     "notificationsUnread": "{{count}} unread",
     "myWork": "My work",
