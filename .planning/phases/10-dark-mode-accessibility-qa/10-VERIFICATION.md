@@ -1,8 +1,13 @@
 ---
 phase: 10-dark-mode-accessibility-qa
-verified: 2026-07-31T10:22:35Z
+verified: 2026-07-31T10:41:00Z
 status: passed
 score: "5/5 ROADMAP truths and 5/5 DARK requirements verified"
+re_verification:
+  previous_status: passed
+  previous_score: "5/5 ROADMAP truths and 5/5 DARK requirements verified"
+  independent_status: passed
+  regressions: []
 gaps: []
 limitations:
   - "Android-only release and human verification; IOS-01 remains deferred."
@@ -14,12 +19,28 @@ limitations:
 
 **Phase Goal:** Users can toggle dark mode across the fully migrated mobile app, with navigator chrome themed correctly, contrast verified, the Android production build green, and EN/ES, offline-sync, and RBAC behavior unchanged.
 
-**Verified:** 2026-07-31T10:22:35Z  
+**Verified:** 2026-07-31T10:41:00Z
+
 **Status:** passed  
+
 **Score:** 5/5 ROADMAP truths; DARK-01 through DARK-05 satisfied  
+
 **Required gaps:** none
 
+**Re-verification:** Yes — independent goal-backward audit of the prior passing report
+
 This is a fail-closed result. Automated checks, EAS cloud builds, installed-build identity, and human Android acceptance are separate evidence classes below. The phase is passing because all four classes are present, not because one class substitutes for another.
+
+## Independent Re-verification
+
+The independent verifier used the five ROADMAP success criteria as the authoritative observable truths, read all plans and summaries, and checked actual source, tests, configuration, commits, EAS records, and the attached Android target rather than accepting summary claims.
+
+- Current HEAD is `7f4adb3e785dc09ede4cde823f001765615860dd`; EAS source commit `9d75a06c09d85ac86697e939a3fdd62af45ca1d7` is its ancestor, and the intervening diff contains planning files only.
+- All 32 plan-declared artifacts exist and are substantive. Their 28 declared wiring contracts were confirmed against implementation/tests/evidence. The installed GSD helper could not parse this repository's nested `must_haves` YAML and returned `No must_haves...`; artifact and link checks were therefore completed manually, not skipped.
+- Fresh gates passed: focused Jest 6/6 suites and 161/161 tests; full Jest 44/44 suites and 408/408 tests; TypeScript; lint/i18n; exact EN/ES parity at 906/906 leaf keys; static runtime theme/D-11/chrome audit; and Android export at 1,372 modules, 43 assets, 45 files, and 8,733,236 bytes. Only the new run-specific export directory was removed.
+- EAS independently returned production build `098af561-9b45-48e4-995f-052a6446855c` and preview build `95d7754c-8841-4025-a2bc-bae83f8b3543` as `FINISHED`, from the same commit and fingerprint.
+- `emulator-5554` independently reported Android 15/API 35, package `com.patelrep.app`, version `1.0.0`, versionCode `1`, targetSdk 36, and the PatelRep main activity top-resumed. The downloaded preview and installed base APK were both 110,129,241 bytes with SHA-256 `70350a0166f376ee8b9f275ac9a20cde7e56899a5332605465e9179bde58fce9` and signer SHA-256 `8cb1d38bcf43997989a96343895e85ec999a70fb9d0b7b652123ab2db95c51ed`.
+- The exact approval statement is committed unchanged in `10-10-SUMMARY.md` by `11ab864fa336a6498c1725448a12b8b1fa9edb52` and is scoped specifically to rows 1-10, preview `95d7754c-8841-4025-a2bc-bae83f8b3543`, and `emulator-5554`. No raw chat export or separate screenshot bundle is claimed.
 
 ## Goal Achievement
 
@@ -125,7 +146,7 @@ Copilot D-11 final dark-only ratios: body/canvas **16.60**, secondary/bubble **8
 
 ## Final Automated and Bundle Gates
 
-These commands were rerun against current HEAD `11ab864fa336a6498c1725448a12b8b1fa9edb52` after loading and auditing the Phase 10 source and tests:
+These commands were rerun against current HEAD `7f4adb3e785dc09ede4cde823f001765615860dd` after loading and auditing the Phase 10 source and tests:
 
 | Command / check | Result |
 |---|---|
@@ -134,10 +155,10 @@ These commands were rerun against current HEAD `11ab864fa336a6498c1725448a12b8b1
 | `npm run type-check` | PASS — `tsc --noEmit` |
 | `npm run lint` | PASS — `eslint .`, including the i18n literal-string gate |
 | Recursive locale parity | PASS — English 906 leaf keys; Spanish 906; exact parity |
-| `npx expo export --platform android --output-dir .expo-export-10-11-verify` | PASS — 1,372 modules, 43 assets, one Hermes bundle, metadata |
+| `npx expo export --platform android --output-dir .expo-export-10-independent-verify` | PASS — 1,372 modules, 43 assets, one Hermes bundle, metadata |
 | Export inventory / cleanup | PASS — 45 files, 8,733,236 bytes; run-specific directory removed and confirmed absent |
 | Build-source ancestry | PASS — EAS source commit exists and is an ancestor of current HEAD |
-| Runtime delta after EAS source commit | Planning metadata only (`10-10-SUMMARY.md`, STATE, ROADMAP); no runtime/package delta |
+| Runtime delta after EAS source commit | Planning metadata only (ROADMAP, STATE, `10-10-SUMMARY.md`, `10-11-SUMMARY.md`, and `10-VERIFICATION.md`); no runtime/package delta |
 
 The full Jest run emits known pre-existing non-failing React `act(...)` warnings in older render fixtures and the deliberate simulated offline network warning. All 408 tests pass. These warnings are not represented as new Phase 10 failures and were not hidden.
 
@@ -266,5 +287,6 @@ None of these boundaries contradicts a locked Phase 10 success criterion.
 
 ---
 
-_Verifier: GSD executor closeout audit_  
-_Verified: 2026-07-31T10:22:35Z_
+_Verifier: Codex (gsd-verifier, independent re-verification)_
+
+_Verified: 2026-07-31T10:41:00Z_
