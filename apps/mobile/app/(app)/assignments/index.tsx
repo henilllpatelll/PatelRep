@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   RefreshControl,
@@ -38,11 +37,13 @@ import {
   type FloorRoom,
   type TeamLoad,
 } from "@/lib/housekeeping/supervisor";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
+import { C, R, monoFont } from "@/components/shared/tokens";
 import { Avatar, SectionLabel } from "@/components/shared/mobileHandoff";
 import { getStatusMeta, ProgressBar, StatusRail } from "@/components/shared/evening";
 import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
+import { useTheme } from "@/lib/theme/useTheme";
+import { StateBlock } from "@/components/ui/StateBlock";
 
 /* ─── Assignments — who cleans what today ───────────────────────────────────
    Dark shell hero with the assignment shape of the day and an AI balance
@@ -52,6 +53,7 @@ import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 export default function AssignmentsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { isOnline, user } = useAppStore();
 
   const [rooms, setRooms] = useState<FloorRoom[]>([]);
@@ -140,12 +142,12 @@ export default function AssignmentsScreen() {
         unassigned.length > 0 && {
           key: "unassigned",
           label: t("assignments.signalUnassigned", { count: unassigned.length }),
-          fg: C.alert,
-          bg: C.alertSoft,
-          line: C.alertLine,
+          fg: theme.status.dirty,
+          bg: theme.status.dirtySoft,
+          line: theme.status.dirtyLine,
         },
       ].filter(Boolean) as HeroSignal[],
-    [unassigned.length, t],
+    [theme, unassigned.length, t],
   );
 
   /* ── AI balance: suggest → review → apply ── */
@@ -259,25 +261,25 @@ export default function AssignmentsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
-        <View style={styles.topBleed} />
-        <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-          <Text style={styles.heroKicker}>
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
+        <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
+          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>
             {dynamicShiftMeta(user?.language_pref ?? "en", t("assignments.kicker"))}
           </Text>
-          <Text style={styles.heroTitle}>{t("assignments.title")}</Text>
-          <Text style={styles.heroSummary}>
+          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("assignments.title")}</Text>
+          <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
             {t("assignments.summary", {
               assigned: assignedCount,
               unassigned: unassigned.length,
@@ -287,14 +289,18 @@ export default function AssignmentsScreen() {
           <HeroSignalRow signals={signals} />
           {snapshot.toClean + snapshot.inProgress > 0 ? (
             <TouchableOpacity
-              style={[styles.aiBtn, suggesting && styles.dimmed]}
+              style={[
+                styles.aiBtn,
+                { borderColor: theme.shell.line, backgroundColor: theme.shell.surface },
+                suggesting && styles.dimmed,
+              ]}
               onPress={() => void requestSuggestions()}
               disabled={suggesting}
               activeOpacity={0.82}
               testID="ai-balance"
             >
-              <Ionicons name="sparkles" size={13} color="#CBB8F0" />
-              <Text style={styles.aiBtnText}>
+              <Ionicons name="sparkles" size={13} color={theme.ai.primary} />
+              <Text style={[styles.aiBtnText, { color: theme.shell.ink2 }]}>
                 {suggesting ? t("assignments.suggesting") : t("assignments.aiBalance")}
               </Text>
             </TouchableOpacity>
@@ -304,7 +310,7 @@ export default function AssignmentsScreen() {
         <View style={styles.body}>
           {suggestNotice ? (
             <View style={styles.noticeCard}>
-              <Ionicons name="information-circle-outline" size={15} color={C.ink3} />
+              <Ionicons name="information-circle-outline" size={15} color={theme.textMuted} />
               <Text style={styles.noticeText}>{suggestNotice}</Text>
             </View>
           ) : null}
@@ -404,11 +410,13 @@ export default function AssignmentsScreen() {
           ) : null}
 
           {teamLoads.length === 0 && unassigned.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="people-outline" size={30} color={C.ink4} />
-              <Text style={styles.emptyTitle}>{t("assignments.noAssignments")}</Text>
-              <Text style={styles.emptyHint}>{t("assignments.noAssignmentsHint")}</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="people-outline"
+              emptyTitle={t("assignments.noAssignments")}
+              emptyBody={t("assignments.noAssignmentsHint")}
+              style={styles.empty}
+            />
           ) : null}
         </View>
       </ScrollView>
@@ -542,28 +550,26 @@ function HousekeeperLoadCard({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  scroll: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  scroll: { flex: 1 },
   scrollContent: { paddingBottom: 28 },
 
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
   heroKicker: {
-    color: shellTokens.ink3,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroSummary: { color: shellTokens.ink2, fontSize: 13, marginTop: 7 },
+  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
+  heroSummary: { fontSize: 13, marginTop: 7 },
   aiBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -571,14 +577,12 @@ const styles = StyleSheet.create({
     gap: 6,
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: shellTokens.line,
-    backgroundColor: shellTokens.surface,
     borderRadius: 11,
     minHeight: 44,
     paddingHorizontal: 14,
     marginTop: 13,
   },
-  aiBtnText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
+  aiBtnText: { fontSize: 12.5, fontWeight: "700" },
 
   body: { paddingHorizontal: 16, paddingTop: 14, gap: 16 },
   rows: { gap: 8 },
@@ -664,8 +668,6 @@ const styles = StyleSheet.create({
   roomChipText: { fontFamily: monoFont, fontSize: 12.5, fontWeight: "800" },
 
   empty: { alignItems: "center", paddingVertical: 52, paddingHorizontal: 32, gap: 7 },
-  emptyTitle: { color: C.ink, fontSize: 15.5, fontWeight: "700", marginTop: 4 },
-  emptyHint: { color: C.ink3, fontSize: 12.5, textAlign: "center", lineHeight: 18 },
 
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: {
