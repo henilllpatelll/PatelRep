@@ -10,7 +10,13 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, aiTokens, darkTheme, monoFont, statusTokens } from "@/components/shared/tokens";
+import {
+  R,
+  darkTheme,
+  lightTheme,
+  monoFont,
+  type ThemeTokens,
+} from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 
 export type Tone =
@@ -28,24 +34,79 @@ export type Tone =
   | "info"
   | "ooo";
 
-const toneColors: Record<Tone, { bg: string; fg: string; line: string }> = {
-  neutral: { bg: C.surface3, fg: C.ink2, line: C.line },
-  dirty: { bg: C.alertSoft, fg: C.alert, line: C.alertLine },
-  occupied: { bg: C.alertSoft, fg: C.occupied, line: C.alertLine },
-  progress: { bg: C.cautionSoft, fg: C.caution, line: C.cautionLine },
-  clean: { bg: C.infoSoft, fg: C.info, line: C.infoLine },
-  ready: { bg: C.readySoft, fg: C.ready, line: C.readyLine },
-  pickup: { bg: C.cautionSoft, fg: C.caution, line: C.cautionLine },
-  accent: { bg: C.accentSoft, fg: C.accent, line: C.accentLine },
-  ai: { bg: C.aiSoft, fg: C.ai, line: C.aiLine },
-  alert: { bg: C.alertSoft, fg: C.alert, line: C.alertLine },
-  caution: { bg: C.cautionSoft, fg: C.caution, line: C.cautionLine },
-  info: { bg: C.infoSoft, fg: C.info, line: C.infoLine },
-  ooo: { bg: C.oooSoft, fg: C.ooo, line: C.oooLine },
-};
+export function getToneColors(
+  tone: Tone,
+  theme: ThemeTokens = lightTheme,
+) {
+  const tones: Record<Tone, { bg: string; fg: string; line: string }> = {
+    neutral: {
+      bg: theme.surfaceMuted,
+      fg: theme.textSecondary,
+      line: theme.border,
+    },
+    dirty: {
+      bg: theme.status.dirtySoft,
+      fg: theme.status.dirty,
+      line: theme.status.dirtyLine,
+    },
+    occupied: {
+      bg: theme.status.dirtySoft,
+      fg: theme.status.occupied,
+      line: theme.status.dirtyLine,
+    },
+    progress: {
+      bg: theme.status.inProgressSoft,
+      fg: theme.status.inProgress,
+      line: theme.status.inProgressLine,
+    },
+    clean: {
+      bg: theme.status.cleanSoft,
+      fg: theme.status.clean,
+      line: theme.status.cleanLine,
+    },
+    ready: {
+      bg: theme.status.readySoft,
+      fg: theme.status.ready,
+      line: theme.status.readyLine,
+    },
+    pickup: {
+      bg: theme.status.pickupSoft,
+      fg: theme.status.pickup,
+      line: theme.status.pickupLine,
+    },
+    accent: {
+      bg: theme.primarySoft,
+      fg: theme.primaryAction,
+      line: theme.primaryLine,
+    },
+    ai: {
+      bg: theme.ai.soft,
+      fg: theme.ai.primary,
+      line: theme.ai.line,
+    },
+    alert: {
+      bg: theme.status.dirtySoft,
+      fg: theme.status.dirty,
+      line: theme.status.dirtyLine,
+    },
+    caution: {
+      bg: theme.status.pickupSoft,
+      fg: theme.status.pickup,
+      line: theme.status.pickupLine,
+    },
+    info: {
+      bg: theme.status.cleanSoft,
+      fg: theme.status.clean,
+      line: theme.status.cleanLine,
+    },
+    ooo: {
+      bg: theme.status.outOfOrderSoft,
+      fg: theme.status.outOfOrder,
+      line: theme.status.outOfOrderLine,
+    },
+  };
 
-export function getToneColors(tone: Tone) {
-  return toneColors[tone];
+  return tones[tone];
 }
 
 export function getRoomTone(status?: string): Tone {
@@ -76,6 +137,7 @@ export function Mono({ children, style }: { children: React.ReactNode; style?: S
 }
 
 export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
+  const theme = useTheme();
   const initials = name
     .split(" ")
     .filter(Boolean)
@@ -83,7 +145,14 @@ export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const palette = [C.accent, C.ready, C.caution, C.info, C.brass, C.ai];
+  const palette = [
+    theme.primaryAction,
+    theme.status.ready,
+    theme.status.pickup,
+    theme.status.clean,
+    theme.accentBrass,
+    theme.ai.primary,
+  ];
   const hash = name.split("").reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) >>> 0, 0);
 
   return (
@@ -98,7 +167,14 @@ export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
         },
       ]}
     >
-      <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>{initials || "?"}</Text>
+      <Text
+        style={[
+          styles.avatarText,
+          { color: theme.shell.ink, fontSize: size * 0.38 },
+        ]}
+      >
+        {initials || "?"}
+      </Text>
     </View>
   );
 }
@@ -106,50 +182,64 @@ export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
 export function IconButton({
   icon,
   tone = "neutral",
-  size = 36,
+  size = 44,
   accessibilityLabel,
+  onPress,
+  disabled = false,
 }: {
   icon: React.ComponentProps<typeof Ionicons>["name"];
   tone?: Tone;
   size?: number;
   accessibilityLabel?: string;
+  onPress?: () => void;
+  disabled?: boolean;
 }) {
   const theme = useTheme();
-
-  const toneColors: Record<Tone, { bg: string; fg: string; line: string }> = {
-    neutral: { bg: theme.surfaceMuted, fg: theme.textSecondary, line: theme.border },
-    dirty: { bg: theme.status.dirtySoft, fg: theme.status.dirty, line: theme.status.dirtyLine },
-    occupied: { bg: theme.status.dirtySoft, fg: theme.status.occupied, line: theme.status.dirtyLine },
-    progress: { bg: theme.status.pickupSoft, fg: theme.status.pickup, line: theme.status.pickupLine },
-    clean: { bg: theme.status.cleanSoft, fg: theme.status.clean, line: theme.status.cleanLine },
-    ready: { bg: theme.status.readySoft, fg: theme.status.ready, line: theme.status.readyLine },
-    pickup: { bg: theme.status.pickupSoft, fg: theme.status.pickup, line: theme.status.pickupLine },
-    accent: { bg: theme.primarySoft, fg: theme.primaryAction, line: theme.primaryLine },
-    ai: { bg: theme.ai.soft, fg: theme.ai.primary, line: theme.ai.line },
-    alert: { bg: theme.status.dirtySoft, fg: theme.status.dirty, line: theme.status.dirtyLine },
-    caution: { bg: theme.status.pickupSoft, fg: theme.status.pickup, line: theme.status.pickupLine },
-    info: { bg: theme.status.cleanSoft, fg: theme.status.clean, line: theme.status.cleanLine },
-    ooo: { bg: theme.status.outOfOrderSoft, fg: theme.status.outOfOrder, line: theme.status.outOfOrderLine },
+  const colors = getToneColors(tone, theme);
+  const targetSize = Math.max(size, 44);
+  const content = (
+    <Ionicons
+      name={icon}
+      size={targetSize > 40 ? 18 : 16}
+      color={colors.fg}
+    />
+  );
+  const visualStyle = {
+    width: targetSize,
+    height: targetSize,
+    borderRadius: R.md,
+    backgroundColor: colors.bg,
+    borderColor: colors.line,
   };
 
-  const colors = toneColors[tone];
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ disabled }}
+        style={({ pressed }) => [
+          styles.iconButton,
+          visualStyle,
+          pressed && !disabled ? styles.pressed : null,
+          disabled ? styles.disabled : null,
+        ]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
 
   return (
     <View
-      accessible={!!accessibilityLabel}
+      accessible={Boolean(accessibilityLabel)}
+      accessibilityRole={accessibilityLabel ? "image" : undefined}
       accessibilityLabel={accessibilityLabel}
-      style={[
-        styles.iconButton,
-        {
-          width: size,
-          height: size,
-          borderRadius: R.md,
-          backgroundColor: colors.bg,
-          borderColor: colors.line,
-        },
-      ]}
+      style={[styles.iconButton, visualStyle]}
     >
-      <Ionicons name={icon} size={size > 40 ? 18 : 16} color={colors.fg} />
+      {content}
     </View>
   );
 }
@@ -163,7 +253,8 @@ export function Pill({
   tone?: Tone;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }) {
-  const colors = toneColors[tone];
+  const theme = useTheme();
+  const colors = getToneColors(tone, theme);
 
   return (
     <View style={[styles.pill, { backgroundColor: colors.bg, borderColor: colors.line }]}>
@@ -174,11 +265,23 @@ export function Pill({
 }
 
 export function AILabel({ children = "AI", confidence }: { children?: string; confidence?: number }) {
+  const theme = useTheme();
   return (
-    <View style={[styles.aiLabel, { backgroundColor: C.aiSoft, borderColor: C.aiLine }]}>
-      <Ionicons name="sparkles" size={9} color={C.ai} />
-      <Text style={styles.aiLabelText}>{children}</Text>
-      {confidence != null ? <Mono style={styles.aiConfidence}>{confidence}%</Mono> : null}
+    <View
+      style={[
+        styles.aiLabel,
+        { backgroundColor: theme.ai.soft, borderColor: theme.ai.line },
+      ]}
+    >
+      <Ionicons name="sparkles" size={9} color={theme.ai.primary} />
+      <Text style={[styles.aiLabelText, { color: theme.ai.primary }]}>
+        {children}
+      </Text>
+      {confidence != null ? (
+        <Mono style={[styles.aiConfidence, { color: theme.ai.primary }]}>
+          {confidence}%
+        </Mono>
+      ) : null}
     </View>
   );
 }
@@ -190,10 +293,18 @@ export function AIChip({
   children: React.ReactNode;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }) {
+  const theme = useTheme();
   return (
-    <View style={styles.aiChip}>
-      <Ionicons name={icon} size={10} color={C.ai} />
-      <Text style={styles.aiChipText}>{children}</Text>
+    <View
+      style={[
+        styles.aiChip,
+        { borderColor: theme.ai.line, backgroundColor: theme.ai.soft },
+      ]}
+    >
+      <Ionicons name={icon} size={10} color={theme.ai.primary} />
+      <Text style={[styles.aiChipText, { color: theme.ai.primary }]}>
+        {children}
+      </Text>
     </View>
   );
 }
@@ -209,11 +320,29 @@ export function AIInsightCard({
   actions?: React.ReactNode;
   compact?: boolean;
 }) {
+  const theme = useTheme();
   return (
-    <View style={[styles.aiInsightCard, compact && styles.aiInsightCardCompact]}>
+    <View
+      style={[
+        styles.aiInsightCard,
+        {
+          backgroundColor: theme.ai.soft,
+          borderColor: theme.ai.line,
+        },
+        compact && styles.aiInsightCardCompact,
+      ]}
+    >
       <AILabel>{title}</AILabel>
       {typeof children === "string" || typeof children === "number" ? (
-        <Text style={[styles.aiInsightText, compact && styles.aiInsightTextCompact]}>{children}</Text>
+        <Text
+          style={[
+            styles.aiInsightText,
+            { color: theme.textPrimary },
+            compact && styles.aiInsightTextCompact,
+          ]}
+        >
+          {children}
+        </Text>
       ) : (
         <View style={styles.aiInsightContent}>{children}</View>
       )}
@@ -231,11 +360,18 @@ export function SectionLabel({
   hint?: string;
   action?: React.ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <View style={styles.sectionLabel}>
       <View style={styles.sectionLeft}>
-        <Text style={styles.sectionText}>{children}</Text>
-        {hint ? <Mono style={styles.sectionHint}>{hint}</Mono> : null}
+        <Text style={[styles.sectionText, { color: theme.textMuted }]}>
+          {children}
+        </Text>
+        {hint ? (
+          <Mono style={[styles.sectionHint, { color: theme.textDisabled }]}>
+            {hint}
+          </Mono>
+        ) : null}
       </View>
       {action}
     </View>
@@ -248,23 +384,46 @@ export function HeroButton({
   primary,
   onDark = true,
   onPress,
+  accessibilityLabel,
+  disabled = false,
 }: {
   children: React.ReactNode;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
   primary?: boolean;
   onDark?: boolean;
   onPress?: () => void;
+  accessibilityLabel?: string;
+  disabled?: boolean;
 }) {
-  const backgroundColor = primary ? C.accent : onDark ? "rgba(255,253,252,0.11)" : C.surface;
-  const color = primary ? "#fff" : onDark ? C.paper : C.ink;
+  const theme = useTheme();
+  const palette = onDark ? darkTheme : theme;
+  const backgroundColor = primary
+    ? palette.primaryAction
+    : onDark
+      ? darkTheme.glass
+      : palette.surface;
+  const color = primary
+    ? palette.onPrimary
+    : onDark
+      ? darkTheme.textPrimary
+      : palette.textPrimary;
+  const fallbackLabel =
+    typeof children === "string" || typeof children === "number"
+      ? String(children)
+      : undefined;
 
   return (
     <TouchableOpacity
       activeOpacity={0.84}
       onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? fallbackLabel}
+      accessibilityState={{ disabled }}
       style={[
         styles.heroButton,
         { backgroundColor },
+        disabled ? styles.disabled : null,
       ]}
     >
       {icon ? <Ionicons name={icon} size={14} color={color} /> : null}
@@ -277,49 +436,115 @@ export function HeroButton({
 export function FloatingAIButton({
   onPress,
   bottom = 92,
+  accessibilityLabel = "Open AI Copilot",
+  disabled = false,
 }: {
   onPress?: () => void;
   bottom?: number;
+  accessibilityLabel?: string;
+  disabled?: boolean;
 }) {
+  const theme = useTheme();
   return (
     <TouchableOpacity
       activeOpacity={0.84}
       onPress={onPress}
-      style={[styles.floatingAIButton, { bottom }]}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      style={[
+        styles.floatingAIButton,
+        {
+          bottom,
+          backgroundColor: theme.ai.primary,
+          borderColor: theme.ai.line,
+          shadowColor: theme.ai.primary,
+        },
+        disabled ? styles.disabled : null,
+      ]}
     >
-      <Ionicons name="sparkles" size={20} color="#fff" />
+      <Ionicons name="sparkles" size={20} color={theme.onAi} />
     </TouchableOpacity>
   );
 }
 
 export function Segmented({
   items,
+  accessibilityLabel,
 }: {
-  items: Array<{ label: string; count?: number; active?: boolean; onPress?: () => void }>;
+  items: Array<{
+    label: string;
+    count?: number;
+    active?: boolean;
+    disabled?: boolean;
+    onPress?: () => void;
+  }>;
+  accessibilityLabel?: string;
 }) {
+  const theme = useTheme();
   return (
-    <View style={styles.segmented}>
-      {items.map((item) => (
-        <TouchableOpacity
-          key={item.label}
-          onPress={item.onPress}
-          activeOpacity={item.onPress ? 0.7 : 1}
-          style={[
-            styles.segment,
-            {
-              backgroundColor: item.active ? C.ink : C.surface,
-              borderColor: item.active ? C.primary : C.line,
-            },
-          ]}
-        >
-          <Text style={[styles.segmentText, { color: item.active ? C.paper : C.ink2 }]}>{item.label}</Text>
-          {item.count != null ? (
-            <Mono style={[styles.segmentCount, { color: item.active ? C.paper : C.ink3 }]}>
-              {item.count}
-            </Mono>
-          ) : null}
-        </TouchableOpacity>
-      ))}
+    <View
+      style={styles.segmented}
+      accessibilityRole="radiogroup"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {items.map((item) => {
+        const disabled = item.disabled === true || !item.onPress;
+        return (
+          <TouchableOpacity
+            key={item.label}
+            onPress={item.onPress}
+            disabled={disabled}
+            activeOpacity={disabled ? 1 : 0.7}
+            accessibilityRole="radio"
+            accessibilityLabel={item.label}
+            accessibilityState={{
+              selected: item.active === true,
+              disabled,
+            }}
+            style={[
+              styles.segment,
+              {
+                backgroundColor: item.active
+                  ? theme.textPrimary
+                  : theme.surface,
+                borderColor: item.active
+                  ? theme.primary
+                  : theme.border,
+              },
+              disabled ? styles.disabled : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color: item.active
+                    ? theme.background
+                    : theme.textSecondary,
+                },
+              ]}
+            >
+              {item.label}
+            </Text>
+            {item.count != null ? (
+              <Mono
+                style={[
+                  styles.segmentCount,
+                  {
+                    color: item.active
+                      ? theme.background
+                      : theme.textMuted,
+                  },
+                ]}
+              >
+                {item.count}
+              </Mono>
+            ) : null}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -339,40 +564,87 @@ export function CopilotHero({
   foot?: React.ReactNode;
   tone?: "dark" | "violet";
 }) {
+  const theme = useTheme();
   const dark = tone === "dark";
+  const presentation = dark ? darkTheme : theme;
 
   return (
     <View
       style={[
         styles.copilotHero,
         {
-          backgroundColor: dark ? darkTheme.surfaceElevated : C.aiSoft,
+          backgroundColor: dark
+            ? darkTheme.surfaceElevated
+            : presentation.ai.soft,
           borderWidth: 1,
-          borderColor: dark ? darkTheme.glassBorder : C.aiLine,
+          borderColor: dark
+            ? darkTheme.glassBorder
+            : presentation.ai.line,
         },
       ]}
     >
-      <View style={[styles.sparkWash, { backgroundColor: dark ? darkTheme.ai.line : aiTokens.line }]} />
+      <View
+        style={[
+          styles.sparkWash,
+          { backgroundColor: presentation.ai.line },
+        ]}
+      />
       <View style={styles.copilotHeader}>
-        <View style={[styles.sparkAvatar, { backgroundColor: dark ? darkTheme.ai.primary : C.ai }]}>
-          <Ionicons name="sparkles" size={12} color="#fff" />
+        <View
+          style={[
+            styles.sparkAvatar,
+            { backgroundColor: presentation.ai.primary },
+          ]}
+        >
+          <Ionicons name="sparkles" size={12} color={presentation.onAi} />
         </View>
-        <Text style={[styles.copilotKicker, { color: dark ? darkTheme.ai.primary : C.ai }]}>
+        <Text
+          style={[
+            styles.copilotKicker,
+            { color: presentation.ai.primary },
+          ]}
+        >
           {kicker}
         </Text>
         {confidence != null ? (
           <View style={styles.confidence}>
-            <View style={styles.confidenceDot} />
-            <Mono style={[styles.confidenceText, { color: dark ? darkTheme.ai.secondary : C.ai }]}>
+            <View
+              style={[
+                styles.confidenceDot,
+                { backgroundColor: presentation.status.ready },
+              ]}
+            />
+            <Mono
+              style={[
+                styles.confidenceText,
+                { color: presentation.ai.secondary },
+              ]}
+            >
               {confidence}% sure
             </Mono>
           </View>
         ) : null}
       </View>
-      <Text style={[styles.copilotBody, { color: dark ? C.paper : C.ink }]}>{children}</Text>
+      <Text
+        style={[
+          styles.copilotBody,
+          { color: presentation.textPrimary },
+        ]}
+      >
+        {children}
+      </Text>
       {actions ? <View style={styles.heroActions}>{actions}</View> : null}
       {foot ? (
-        <View style={[styles.heroFoot, { borderTopColor: dark ? darkTheme.glassBorder : C.aiLine }]}>
+        <View
+          style={[
+            styles.heroFoot,
+            {
+              borderTopColor: dark
+                ? darkTheme.glassBorder
+                : presentation.ai.line,
+            },
+          ]}
+        >
           {foot}
         </View>
       ) : null}
@@ -389,8 +661,9 @@ export function RoomNumberTile({
   status: string;
   size?: number;
 }) {
+  const theme = useTheme();
   const tone = getRoomTone(status);
-  const colors = toneColors[tone];
+  const colors = getToneColors(tone, theme);
 
   return (
     <View
@@ -405,7 +678,14 @@ export function RoomNumberTile({
         },
       ]}
     >
-      <Mono style={[styles.roomTileNumber, { fontSize: size >= 40 ? 14 : 13 }]}>{roomNumber}</Mono>
+      <Mono
+        style={[
+          styles.roomTileNumber,
+          { color: theme.textPrimary, fontSize: size >= 40 ? 14 : 13 },
+        ]}
+      >
+        {roomNumber}
+      </Mono>
       <View style={[styles.statusDot, { backgroundColor: colors.fg }]} />
     </View>
   );
@@ -418,11 +698,26 @@ export function ProgressRing({
   value: number;
   total: number;
 }) {
+  const theme = useTheme();
   return (
-    <View style={styles.ringOuter}>
-      <View style={styles.ringInner}>
-        <Text style={styles.ringValue}>{value}</Text>
-        <Mono style={styles.ringSub}>of {total}</Mono>
+    <View
+      style={[
+        styles.ringOuter,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.status.ready,
+        },
+      ]}
+    >
+      <View
+        style={[styles.ringInner, { backgroundColor: theme.surface }]}
+      >
+        <Text style={[styles.ringValue, { color: theme.textPrimary }]}>
+          {value}
+        </Text>
+        <Mono style={[styles.ringSub, { color: theme.textMuted }]}>
+          of {total}
+        </Mono>
       </View>
     </View>
   );
@@ -445,12 +740,29 @@ export function HandoffRow({
   onPress?: () => void;
   testID?: string;
 }) {
+  const theme = useTheme();
   return (
-    <Pressable onPress={onPress} style={[styles.row, style]} testID={testID}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+      style={[
+        styles.row,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+        },
+        style,
+      ]}
+      testID={testID}
+    >
       {lead}
       <View style={styles.rowBody}>
         <View style={styles.rowTitle}>{title}</View>
-        {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
+        {sub ? (
+          <Text style={[styles.rowSub, { color: theme.textMuted }]}>
+            {sub}
+          </Text>
+        ) : null}
       </View>
       {right ? <View style={styles.rowRight}>{right}</View> : null}
     </Pressable>
@@ -468,7 +780,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   avatarText: {
-    color: "#fff",
     fontWeight: "600",
     letterSpacing: 0.3,
   },
@@ -505,22 +816,18 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   aiLabelText: {
-    color: C.ai,
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   aiConfidence: {
-    color: C.ai,
     fontSize: 10,
     opacity: 0.72,
   },
   aiChip: {
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: C.aiLine,
-    backgroundColor: C.aiSoft,
     borderRadius: 999,
     minHeight: 24,
     paddingHorizontal: 8,
@@ -530,7 +837,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   aiChipText: {
-    color: C.ai,
     fontSize: 10.5,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -538,8 +844,6 @@ const styles = StyleSheet.create({
   aiInsightCard: {
     borderRadius: R.lg,
     borderWidth: 1,
-    borderColor: C.aiLine,
-    backgroundColor: C.aiSoft,
     padding: 14,
     gap: 8,
   },
@@ -547,7 +851,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   aiInsightText: {
-    color: C.ink,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "500",
@@ -580,11 +883,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1.1,
-    color: C.ink3,
   },
   sectionHint: {
     fontSize: 11,
-    color: C.ink4,
   },
   copilotHero: {
     position: "relative",
@@ -629,7 +930,6 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: C.ready,
   },
   confidenceText: {
     fontSize: 11,
@@ -664,6 +964,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   heroButtonText: {
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: "600",
   },
@@ -675,10 +976,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: C.ai,
     borderWidth: 1,
-    borderColor: C.aiLine,
-    shadowColor: C.ai,
     shadowOpacity: 0.24,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -716,7 +1014,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   roomTileNumber: {
-    color: C.ink,
     fontWeight: "700",
   },
   statusDot: {
@@ -729,32 +1026,25 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 44,
     borderWidth: 7,
-    borderColor: statusTokens.ready,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: C.surface,
   },
   ringInner: {
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: C.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   ringValue: {
     fontSize: 26,
     lineHeight: 28,
-    color: C.ink,
   },
   ringSub: {
     fontSize: 10,
-    color: C.ink3,
   },
   row: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.lg,
     paddingHorizontal: 15,
     paddingVertical: 14,
@@ -774,7 +1064,6 @@ const styles = StyleSheet.create({
   },
   rowSub: {
     fontSize: 13,
-    color: C.ink3,
     marginTop: 3,
     lineHeight: 16,
   },
@@ -782,4 +1071,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: 5,
   },
+  disabled: { opacity: 0.55 },
+  pressed: { opacity: 0.8 },
 });

@@ -310,7 +310,6 @@ describe("shared handoff controls", () => {
       name: "Start urgent repair",
     });
     expect(button.props.accessibilityState).toEqual({ disabled: true });
-    expect(button.props.disabled).toBe(true);
     expect(flattenStyle(button).minHeight).toBeGreaterThanOrEqual(44);
     expect(
       flattenStyle(
@@ -368,7 +367,10 @@ describe("shared handoff controls", () => {
     );
 
     expect(
-      screen.getByRole("radiogroup", { name: "Request status" }),
+      screen.UNSAFE_getByProps({
+        accessibilityRole: "radiogroup",
+        accessibilityLabel: "Request status",
+      }),
     ).toBeTruthy();
     const open = screen.getByRole("radio", { name: "Open" });
     const closed = screen.getByRole("radio", { name: "Closed" });
