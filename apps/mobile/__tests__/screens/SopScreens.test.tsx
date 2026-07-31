@@ -1,11 +1,10 @@
 import React from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 
-const mockPush = jest.fn();
 let mockSopId = "sop-1";
 
 jest.mock("expo-router", () => ({
-  router: { push: mockPush },
+  router: { push: jest.fn() },
   useLocalSearchParams: () => ({ sopId: mockSopId }),
 }));
 
@@ -19,6 +18,7 @@ jest.mock("@/lib/api/sop", () => ({
 }));
 
 import { getDocument, listDocuments } from "@/lib/api/sop";
+import { router } from "expo-router";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import SopLibraryScreen from "@/app/(app)/sop/index";
 import SopDetailScreen from "@/app/(app)/sop/[sopId]";
@@ -55,7 +55,7 @@ describe("SOP screens", () => {
     expect(mockListDocuments).toHaveBeenCalledTimes(1);
 
     fireEvent.press(getByRole("button", { name: "Night audit checklist" }));
-    expect(mockPush).toHaveBeenCalledWith("/(app)/sop/sop-1");
+    expect(router.push).toHaveBeenCalledWith("/(app)/sop/sop-1");
   });
 
   it("loads the route SOP and exposes the existing AI affordance as a button", async () => {
