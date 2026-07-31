@@ -21,6 +21,7 @@ import { useAppStore } from "@/stores/appStore";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Chip, SectionHeader, StatusRail } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
@@ -117,6 +118,7 @@ export default function RoomStatusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const toast = useToast();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline, user } = useAppStore();
   const isEngineer = String(user?.effective_role ?? user?.role) === "engineer";
@@ -343,7 +345,7 @@ export default function RoomStatusScreen() {
                             await api.patch(`/rooms/${room.id}/status`, { status: "OOO", notes });
                             await loadRooms();
                           } catch {
-                            Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                            toast.error(t("roomStatus.oooError"));
                           } finally {
                             setOooLoading(null);
                           }
@@ -355,7 +357,7 @@ export default function RoomStatusScreen() {
                             await api.patch(`/rooms/${room.id}/status`, { status: "DIRTY" });
                             await loadRooms();
                           } catch {
-                            Alert.alert(t("common.error"), t("roomStatus.removeOooError"));
+                            toast.error(t("roomStatus.removeOooError"));
                           } finally {
                             setOooLoading(null);
                           }
@@ -552,7 +554,7 @@ export default function RoomStatusScreen() {
                   setOooLoading(modal.roomId);
                   api.patch(`/rooms/${modal.roomId}/status`, { status: "OOO", notes: oooReasonText.trim() || undefined })
                     .then(() => loadRooms())
-                    .catch(() => Alert.alert(t("common.error"), t("roomStatus.oooError")))
+                    .catch(() => toast.error(t("roomStatus.oooError")))
                     .finally(() => setOooLoading(null));
                 }
               }}
