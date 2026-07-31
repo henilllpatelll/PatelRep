@@ -2,8 +2,9 @@ import React from "react";
 import { act, render, fireEvent, waitFor, screen } from "@testing-library/react-native";
 import { Alert, type AlertButton } from "react-native";
 
+let mockSearchParams: { filter?: string } = {};
 jest.mock("expo-router", () => ({
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockSearchParams,
   router: { push: jest.fn() },
 }));
 jest.mock("react-i18next", () => ({
@@ -28,8 +29,9 @@ jest.mock("@/lib/theme/useToast", () => ({
   }),
 }));
 let mockStoreUser: { role: string; effective_role?: string } | null = null;
+let mockIsOnline = true;
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({ isOnline: true, user: mockStoreUser }),
+  useAppStore: () => ({ isOnline: mockIsOnline, user: mockStoreUser }),
 }));
 jest.mock("@/lib/api/workOrders", () => ({
   createWorkOrder: jest.fn(),
@@ -75,7 +77,9 @@ async function pressAlertButton(callIndex: number, text: string) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSearchParams = {};
   mockStoreUser = null;
+  mockIsOnline = true;
   mockApiGet.mockResolvedValue({ data: rows });
   mockApiPatch.mockResolvedValue({ data: {} });
   mockCreateWorkOrder.mockResolvedValue({ id: "wo-1" });
@@ -137,6 +141,23 @@ describe("RoomStatusScreen", () => {
     expect(screen.queryByText("204")).toBeNull();
   });
 
+  it("honors a valid initial OOO filter from route params", async () => {
+    mockSearchParams = { filter: "OOO" };
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByText("105")).toBeTruthy());
+    expect(screen.queryByText("101")).toBeNull();
+    expect(screen.queryByText("102")).toBeNull();
+  });
+
+  it("shows the shared empty state when the board request fails", async () => {
+    mockApiGet.mockRejectedValueOnce(new Error("offline"));
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByText("roomStatus.noRoomsMatch")).toBeTruthy());
+    expect(screen.getByText("roomStatus.noRoomsMatchHint")).toBeTruthy();
+  });
+
   it("renders translated room statuses through the shared status badge contract", async () => {
     renderScreen();
 
@@ -183,6 +204,23 @@ describe("RoomStatusScreen", () => {
     );
     expect(mockToastError).toHaveBeenCalledWith("roomStatus.oooError");
     expect(Alert.alert).toHaveBeenCalledTimes(2);
+  });
+
+  it("reloads the tenant-scoped board after a successful no-reason OOO update", async () => {
+    mockStoreUser = { role: "engineer", effective_role: "engineer" };
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId("room-status-card-r1")).toBeTruthy());
+
+    fireEvent.press(screen.getByTestId("room-status-card-r1"));
+    await pressAlertButton(0, "roomStatus.placeOOO");
+    await pressAlertButton(1, "roomStatus.oooNoReason");
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledTimes(2));
+    expect(mockApiPatch).toHaveBeenCalledWith("/rooms/r1/status", {
+      status: "OOO",
+      notes: undefined,
+    });
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 
   it("reports return-to-service failures with toast.error without adding another alert", async () => {
