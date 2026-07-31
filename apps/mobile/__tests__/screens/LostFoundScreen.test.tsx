@@ -36,6 +36,7 @@ jest.mock("@/lib/theme/useToast", () => ({
 }));
 
 import { createLostFoundItem, listItems, listRooms } from "@/lib/api/lostFound";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import LostFoundScreen from "@/app/(app)/lost-found/index";
 
 const mockCreateLostFoundItem = createLostFoundItem as jest.Mock;
@@ -49,9 +50,17 @@ beforeEach(() => {
   mockCreateLostFoundItem.mockRejectedValue(new Error("Network unavailable"));
 });
 
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <LostFoundScreen />
+    </ThemeProvider>,
+  );
+}
+
 describe("LostFoundScreen", () => {
   it("shows toast feedback when logging a found item fails", async () => {
-    render(<LostFoundScreen />);
+    renderScreen();
 
     await waitFor(() => expect(mockListItems).toHaveBeenCalled());
     fireEvent.press(screen.getByText("Log a found item"));
@@ -69,5 +78,14 @@ describe("LostFoundScreen", () => {
       }),
     );
     await waitFor(() => expect(mockToastError).toHaveBeenCalledWith("Could not log item. Try again."));
+  });
+
+  it("shows a retryable state block when loading items fails", async () => {
+    mockListItems.mockRejectedValueOnce(new Error("Network unavailable"));
+
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByText("Could not load found items.")).toBeTruthy());
+    expect(screen.getByText("Try again")).toBeTruthy();
   });
 });

@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, displayFont } from "@/components/shared/tokens";
+import { displayFont } from "@/components/shared/tokens";
 import { IconButton, Segmented } from "@/components/shared/mobileHandoff";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { listItems, createLostFoundItem, listRooms, type LostFoundItem, type SimpleRoom } from "@/lib/api/lostFound";
+import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
 type Tab = "all" | "unclaimed" | "claimed";
@@ -22,9 +26,11 @@ function timeSince(iso: string): string {
 }
 
 export default function LostFoundScreen() {
+  const theme = useTheme();
   const toast = useToast();
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,8 +47,10 @@ export default function LostFoundScreen() {
     try {
       const res = await listItems(TAB_STATUS[tab]);
       setItems(res.data);
+      setLoadError(false);
     } catch {
       setItems([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -60,8 +68,14 @@ export default function LostFoundScreen() {
     setActiveTab(tab);
     setLoading(true);
     listItems(TAB_STATUS[tab])
-      .then((res) => setItems(res.data))
-      .catch(() => setItems([]))
+      .then((res) => {
+        setItems(res.data);
+        setLoadError(false);
+      })
+      .catch(() => {
+        setItems([]);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -112,18 +126,18 @@ export default function LostFoundScreen() {
   const claimed = items.filter((i) => i.status === "claimed").length;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerMeta}>{items.length} item{items.length !== 1 ? "s" : ""} held</Text>
-        <Text style={styles.title}>Lost & found</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{items.length} item{items.length !== 1 ? "s" : ""} held</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Lost & found</Text>
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={C.accent} /></View>
+        <StateBlock status="loading" style={styles.center} />
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
         >
           <Segmented
             items={[
@@ -134,120 +148,130 @@ export default function LostFoundScreen() {
           />
 
           <View style={styles.rows}>
-            {items.length === 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>No items found</Text>
-                <Text style={styles.emptySub}>Log a found item using the button below.</Text>
-              </View>
+            {loadError ? (
+              <StateBlock
+                status="error"
+                errorIcon="cloud-offline-outline"
+                errorMessage="Could not load found items."
+                onRetry={() => void load()}
+                retryLabel="Try again"
+                style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              />
+            ) : items.length === 0 ? (
+              <StateBlock
+                status="empty"
+                emptyIcon="cube-outline"
+                emptyTitle="No items found"
+                emptyBody="Log a found item using the button below."
+                style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              />
             ) : (
               items.map((item) => (
-                <View key={item.id} style={styles.row}>
+                <Card key={item.id} style={styles.row}>
                   <IconButton
                     icon="cube-outline"
                     tone={item.status === "claimed" ? "ready" : item.status === "unclaimed" ? "caution" : "neutral"}
                     size={46}
                   />
                   <View style={styles.rowBody}>
-                    <Text style={styles.rowTitle}>{item.description}</Text>
-                    <Text style={styles.rowSub}>
+                    <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{item.description}</Text>
+                    <Text style={[styles.rowSub, { color: theme.textMuted }]}>
                       {item.location_found ?? item.rooms?.room_number ?? "Location unknown"} — {timeSince(item.created_at)}
                     </Text>
                     {item.claimed_by_name ? (
-                      <Text style={styles.claimedBy}>Claimed by {item.claimed_by_name}</Text>
+                      <Text style={[styles.claimedBy, { color: theme.status.ready }]}>Claimed by {item.claimed_by_name}</Text>
                     ) : null}
                   </View>
-                  <Ionicons name="chevron-forward" size={15} color={C.ink4} />
-                </View>
+                  <Ionicons name="chevron-forward" size={15} color={theme.textDisabled} />
+                </Card>
               ))
             )}
           </View>
         </ScrollView>
       )}
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.cta} onPress={openModal}>
-          <Ionicons name="camera-outline" size={18} color={C.paper} />
-          <Text style={styles.ctaText}>Log a found item</Text>
-        </TouchableOpacity>
+      <View style={[styles.footer, { backgroundColor: theme.background }]}>
+        <Button label="Log a found item" onPress={() => void openModal()} icon="camera-outline" />
       </View>
 
       <Modal visible={modalVisible} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Log found item</Text>
-              <TouchableOpacity onPress={closeModal}>
-                <Ionicons name="close" size={22} color={C.ink} />
-              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Log found item</Text>
+              <Pressable onPress={closeModal} accessibilityRole="button" accessibilityLabel="Close">
+                <Ionicons name="close" size={22} color={theme.textPrimary} />
+              </Pressable>
             </View>
 
-            <Text style={styles.fieldLabel}>Description *</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>Description *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder="e.g. iPhone charger, reading glasses..."
-              placeholderTextColor={C.ink4}
+              placeholderTextColor={theme.textDisabled}
               value={description}
               onChangeText={setDescription}
               maxLength={200}
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Room (optional)</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>Room (optional)</Text>
             {selectedRoom ? (
-              <View style={styles.roomChip}>
-                <Ionicons name="bed-outline" size={14} color={C.ink3} />
-                <Text style={styles.roomChipText}>Room {selectedRoom.room_number}</Text>
-                <TouchableOpacity onPress={() => { setSelectedRoom(null); setRoomQuery(""); }}>
-                  <Ionicons name="close-circle" size={16} color={C.ink3} />
-                </TouchableOpacity>
+              <View style={[styles.roomChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Ionicons name="bed-outline" size={14} color={theme.textMuted} />
+                <Text style={[styles.roomChipText, { color: theme.textPrimary }]}>Room {selectedRoom.room_number}</Text>
+                <Pressable onPress={() => { setSelectedRoom(null); setRoomQuery(""); }} accessibilityRole="button" accessibilityLabel="Clear room">
+                  <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+                </Pressable>
               </View>
             ) : (
               <View>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
                   placeholder="Search room number…"
-                  placeholderTextColor={C.ink4}
+                  placeholderTextColor={theme.textDisabled}
                   value={roomQuery}
                   onChangeText={setRoomQuery}
                   keyboardType="numeric"
                   maxLength={10}
                 />
                 {filteredRooms.length > 0 && (
-                  <View style={styles.roomDropdown}>
+                  <View style={[styles.roomDropdown, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     {filteredRooms.slice(0, 5).map((r) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={r.id}
-                        style={styles.roomOption}
+                        style={[styles.roomOption, { borderBottomColor: theme.borderSubtle }]}
                         onPress={() => { setSelectedRoom(r); setRoomQuery(""); }}
-                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Room ${r.room_number}`}
                       >
-                        <Text style={styles.roomOptionNum}>Room {r.room_number}</Text>
+                        <Text style={[styles.roomOptionNum, { color: theme.textPrimary }]}>Room {r.room_number}</Text>
                         {r.floor != null && (
-                          <Text style={styles.roomOptionFloor}>Floor {r.floor}</Text>
+                          <Text style={[styles.roomOptionFloor, { color: theme.textMuted }]}>Floor {r.floor}</Text>
                         )}
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </View>
                 )}
               </View>
             )}
 
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Location found</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>Location found</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder="e.g. lobby, pool area, hallway..."
-              placeholderTextColor={C.ink4}
+              placeholderTextColor={theme.textDisabled}
               value={locationFound}
               onChangeText={setLocationFound}
               maxLength={100}
             />
 
-            <TouchableOpacity
-              style={[styles.submitBtn, (!description.trim() || submitting) && styles.submitBtnDim]}
-              onPress={handleSubmit}
-              disabled={!description.trim() || submitting}
-            >
-              <Text style={styles.submitText}>{submitting ? "Logging…" : "Log item"}</Text>
-            </TouchableOpacity>
+            <Button
+              label="Log item"
+              onPress={() => void handleSubmit()}
+              loading={submitting}
+              disabled={!description.trim()}
+              style={styles.submitBtn}
+            />
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -256,37 +280,31 @@ export default function LostFoundScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: C.line2 },
-  headerMeta: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
+  header: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 18, borderBottomWidth: 1 },
+  headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
   content: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 120, gap: 13 },
   rows: { gap: 8 },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12 },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
   rowBody: { flex: 1, minWidth: 0 },
-  rowTitle: { color: C.ink, fontSize: 13.5, fontWeight: "600" },
-  rowSub: { color: C.ink3, fontSize: 11.5, marginTop: 2 },
-  claimedBy: { color: C.ready, fontSize: 11, marginTop: 3, fontWeight: "600" },
-  empty: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 20, alignItems: "center" },
-  emptyTitle: { fontSize: 14, fontWeight: "700", color: C.ink },
-  emptySub: { fontSize: 12, color: C.ink3, marginTop: 4 },
-  footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 26, backgroundColor: C.paper },
-  cta: { minHeight: 46, borderRadius: 12, backgroundColor: C.ink, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  ctaText: { color: C.paper, fontSize: 15, fontWeight: "700" },
+  rowTitle: { fontSize: 13.5, fontWeight: "600" },
+  rowSub: { fontSize: 11.5, marginTop: 2 },
+  claimedBy: { fontSize: 11, marginTop: 3, fontWeight: "600" },
+  empty: { borderWidth: 1, borderRadius: 12 },
+  footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 26 },
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
-  modalSheet: { backgroundColor: C.paper, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20 },
+  modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20 },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { fontFamily: displayFont, fontSize: 22, color: C.ink },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.ink3, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
-  input: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.ink },
-  roomChip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11 },
-  roomChipText: { flex: 1, fontSize: 14, fontWeight: "600", color: C.ink },
-  roomDropdown: { marginTop: 4, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 10, overflow: "hidden" },
-  roomOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.line2 },
-  roomOptionNum: { fontSize: 14, fontWeight: "600", color: C.ink },
-  roomOptionFloor: { fontSize: 12, color: C.ink3 },
-  submitBtn: { marginTop: 20, minHeight: 46, borderRadius: 12, backgroundColor: C.ink, alignItems: "center", justifyContent: "center" },
-  submitBtnDim: { opacity: 0.4 },
-  submitText: { color: C.paper, fontSize: 15, fontWeight: "700" },
+  modalTitle: { fontFamily: displayFont, fontSize: 22 },
+  fieldLabel: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
+  roomChip: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  roomChipText: { flex: 1, fontSize: 14, fontWeight: "600" },
+  roomDropdown: { marginTop: 4, borderWidth: 1, borderRadius: 10, overflow: "hidden" },
+  roomOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1 },
+  roomOptionNum: { fontSize: 14, fontWeight: "600" },
+  roomOptionFloor: { fontSize: 12 },
+  submitBtn: { marginTop: 20 },
 });
