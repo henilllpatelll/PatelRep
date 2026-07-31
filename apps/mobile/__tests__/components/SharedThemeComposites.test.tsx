@@ -41,6 +41,15 @@ import {
   getStatusMeta,
 } from "@/components/shared/evening";
 import { getTileVisual } from "@/components/home/CompanionHome";
+import {
+  CopilotHero,
+  FloatingAIButton,
+  HeroButton,
+  IconButton,
+  Pill,
+  Segmented,
+  getToneColors,
+} from "@/components/shared/mobileHandoff";
 
 type TestNode = {
   props: {
@@ -240,6 +249,176 @@ describe("Evening status composites", () => {
     );
     expect(getTileVisual("INSPECTED", darkTheme).fg).toBe(
       darkTheme.shell.ink,
+    );
+  });
+});
+
+describe("shared handoff controls", () => {
+  beforeEach(() => {
+    mockTheme = lightTheme;
+  });
+
+  it("resolves every tone family from the supplied theme and keeps progress purple", () => {
+    expect(getToneColors("neutral", lightTheme)).toEqual({
+      bg: lightTheme.surfaceMuted,
+      fg: lightTheme.textSecondary,
+      line: lightTheme.border,
+    });
+    expect(getToneColors("ready", darkTheme)).toEqual({
+      bg: darkTheme.status.readySoft,
+      fg: darkTheme.status.ready,
+      line: darkTheme.status.readyLine,
+    });
+    expect(getToneColors("progress", darkTheme)).toEqual({
+      bg: darkTheme.status.inProgressSoft,
+      fg: darkTheme.status.inProgress,
+      line: darkTheme.status.inProgressLine,
+    });
+    expect(getToneColors("progress", darkTheme).fg).not.toBe(
+      darkTheme.status.pickup,
+    );
+  });
+
+  it("renders normal pills from the active app theme", () => {
+    mockTheme = darkTheme;
+    const screen = render(<Pill tone="progress">Working</Pill>);
+    const label = screen.getByText("Working");
+    expect(flattenStyle(label).color).toBe(darkTheme.status.inProgress);
+
+    const shell = findViewByStyle(
+      screen.UNSAFE_getAllByType(View),
+      (style) => style.borderRadius === 999,
+    );
+    expect(flattenStyle(shell)).toMatchObject({
+      backgroundColor: darkTheme.status.inProgressSoft,
+      borderColor: darkTheme.status.inProgressLine,
+    });
+  });
+
+  it("forwards HeroButton name and disabled state with a wrapping 44pt target", () => {
+    const screen = render(
+      <HeroButton
+        onPress={jest.fn()}
+        accessibilityLabel="Start urgent repair"
+        disabled
+      >
+        Start urgent repair in the west mechanical room
+      </HeroButton>,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "Start urgent repair",
+    });
+    expect(button.props.accessibilityState).toEqual({ disabled: true });
+    expect(button.props.disabled).toBe(true);
+    expect(flattenStyle(button).minHeight).toBeGreaterThanOrEqual(44);
+    expect(
+      flattenStyle(
+        screen.getByText("Start urgent repair in the west mechanical room"),
+      ).flexShrink,
+    ).toBe(1);
+  });
+
+  it("gives floating and icon-only actions meaningful 44pt button semantics", () => {
+    mockTheme = darkTheme;
+    const floating = render(
+      <FloatingAIButton
+        onPress={jest.fn()}
+        accessibilityLabel="Open AI Copilot"
+      />,
+    );
+    const floatingButton = floating.getByRole("button", {
+      name: "Open AI Copilot",
+    });
+    expect(flattenStyle(floatingButton)).toMatchObject({
+      width: 52,
+      height: 52,
+      backgroundColor: darkTheme.ai.primary,
+    });
+
+    const icon = render(
+      <IconButton
+        icon="send"
+        tone="ai"
+        size={36}
+        onPress={jest.fn()}
+        accessibilityLabel="Send message"
+        disabled
+      />,
+    );
+    const iconButton = icon.getByRole("button", {
+      name: "Send message",
+    });
+    expect(flattenStyle(iconButton).width).toBeGreaterThanOrEqual(44);
+    expect(flattenStyle(iconButton).height).toBeGreaterThanOrEqual(44);
+    expect(iconButton.props.accessibilityState).toEqual({
+      disabled: true,
+    });
+  });
+
+  it("announces segmented options as selected or disabled radios", () => {
+    const screen = render(
+      <Segmented
+        accessibilityLabel="Request status"
+        items={[
+          { label: "Open", active: true, onPress: jest.fn() },
+          { label: "Closed", disabled: true, onPress: jest.fn() },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("radiogroup", { name: "Request status" }),
+    ).toBeTruthy();
+    const open = screen.getByRole("radio", { name: "Open" });
+    const closed = screen.getByRole("radio", { name: "Closed" });
+    expect(open.props.accessibilityState).toEqual({
+      selected: true,
+      disabled: false,
+    });
+    expect(closed.props.accessibilityState).toEqual({
+      selected: false,
+      disabled: true,
+    });
+    expect(flattenStyle(open).minHeight).toBeGreaterThanOrEqual(44);
+  });
+
+  it("keeps the Copilot dark branch explicit while its alternate follows the app theme", () => {
+    mockTheme = lightTheme;
+    const dark = render(
+      <CopilotHero kicker="AI brief" tone="dark">
+        Dark summary
+      </CopilotHero>,
+    );
+    const darkSurface = findViewByStyle(
+      dark.UNSAFE_getAllByType(View),
+      (style) => style.borderRadius === 16,
+    );
+    expect(flattenStyle(darkSurface)).toMatchObject({
+      backgroundColor: darkTheme.surfaceElevated,
+      borderColor: darkTheme.glassBorder,
+    });
+    expect(flattenStyle(dark.getByText("Dark summary")).color).toBe(
+      darkTheme.textPrimary,
+    );
+
+    dark.unmount();
+    mockTheme = darkTheme;
+    const alternate = render(
+      <CopilotHero kicker="AI brief" tone="violet">
+        Themed summary
+      </CopilotHero>,
+    );
+    const alternateSurface = findViewByStyle(
+      alternate.UNSAFE_getAllByType(View),
+      (style) => style.borderRadius === 16,
+    );
+    expect(flattenStyle(alternateSurface)).toMatchObject({
+      backgroundColor: darkTheme.ai.soft,
+      borderColor: darkTheme.ai.line,
+    });
+    expect(flattenStyle(alternate.getByText("Themed summary")).color).toBe(
+      darkTheme.textPrimary,
     );
   });
 });
