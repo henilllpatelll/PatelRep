@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -17,9 +16,12 @@ import i18n from "@/i18n";
 import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
+import { monoFont } from "@/components/shared/tokens";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { SectionHeader } from "@/components/shared/evening";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 const KNOWN_ROLES = new Set([
   "housekeeper",
@@ -59,28 +61,37 @@ function SettingsRow({
   right?: React.ReactNode;
   testID?: string;
 }) {
-  const fg = destructive ? C.alert : C.ink;
+  const theme = useTheme();
+  const fg = destructive ? theme.status.dirty : theme.textPrimary;
   const body = (
     <>
-      <View style={[styles.rowIconWrap, destructive && styles.rowIconWrapAlert]}>
-        <Ionicons name={icon} size={16} color={destructive ? C.alert : C.primary} />
+      <View
+        style={[
+          styles.rowIconWrap,
+          { backgroundColor: destructive ? theme.status.dirtySoft : theme.primarySoft },
+        ]}
+      >
+        <Ionicons name={icon} size={16} color={destructive ? theme.status.dirty : theme.primary} />
       </View>
       <Text style={[styles.rowLabel, { color: fg }]}>{label}</Text>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
+      {value ? <Text style={[styles.rowValue, { color: theme.textMuted }]}>{value}</Text> : null}
       {right}
-      {onPress && !right ? <Ionicons name="chevron-forward" size={15} color={C.ink4} /> : null}
+      {onPress && !right ? <Ionicons name="chevron-forward" size={15} color={theme.textDisabled} /> : null}
     </>
   );
   if (!onPress) {
     return (
-      <View style={[styles.row, !first && styles.rowBorder]} testID={testID}>
+      <View
+        style={[styles.row, !first && styles.rowBorder, !first && { borderTopColor: theme.borderSubtle }]}
+        testID={testID}
+      >
         {body}
       </View>
     );
   }
   return (
     <TouchableOpacity
-      style={[styles.row, !first && styles.rowBorder]}
+      style={[styles.row, !first && styles.rowBorder, !first && { borderTopColor: theme.borderSubtle }]}
       onPress={onPress}
       activeOpacity={0.8}
       accessibilityRole="button"
@@ -95,6 +106,7 @@ function SettingsRow({
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { user, isOnline, pendingActions, flushQueue, unreadCount } = useAppStore();
   const [hotelName, setHotelName] = useState<string | null>(null);
   const [language, setLanguage] = useState(i18n.language);
@@ -128,13 +140,13 @@ export default function ProfileScreen() {
 
   const connection = useMemo(() => {
     if (!isOnline) {
-      return { color: C.ooo, text: t("profile.connection.offline") };
+      return { color: theme.status.outOfOrder, text: t("profile.connection.offline") };
     }
     if (pendingCount > 0) {
-      return { color: C.caution, text: t("profile.connection.pending", { count: pendingCount }) };
+      return { color: theme.status.pickup, text: t("profile.connection.pending", { count: pendingCount }) };
     }
-    return { color: C.ready, text: t("profile.connection.online") };
-  }, [isOnline, pendingCount, t]);
+    return { color: theme.status.ready, text: t("profile.connection.online") };
+  }, [isOnline, pendingCount, t, theme]);
 
   async function selectLanguage(next: "en" | "es") {
     if (next === language) return;
@@ -174,56 +186,62 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <View style={[styles.container, { backgroundColor: theme.shell.bg }]}>
+      <ScrollView style={[styles.scroll, { backgroundColor: theme.background }]} contentContainerStyle={styles.scrollContent}>
         {/* Dark bleed behind iOS overscroll so the hero reads full-bleed */}
-        <View style={styles.topBleed} />
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
 
         {/* Identity hero — who you are, where you work, and your sync state */}
-        <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
+        <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
           <View style={styles.heroTop}>
             <Avatar name={name} size={56} />
             <TouchableOpacity
-              style={styles.bellBtn}
+              style={[styles.bellBtn, { backgroundColor: theme.shell.raised, borderColor: theme.shell.line }]}
               onPress={() => router.push("/(app)/notifications" as never)}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel={t("profile.notifications")}
               testID="profile-bell"
             >
-              <Ionicons name="notifications-outline" size={18} color={shellTokens.ink} />
+              <Ionicons name="notifications-outline" size={18} color={theme.shell.ink} />
               {unreadCount > 0 ? (
-                <View style={styles.bellBadge}>
+                <View style={[styles.bellBadge, { backgroundColor: theme.status.dirty }]}>
                   <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
                 </View>
               ) : null}
             </TouchableOpacity>
           </View>
-          <Text style={styles.heroName}>{name}</Text>
+          <Text style={[styles.heroName, { color: theme.shell.ink }]}>{name}</Text>
           <View style={styles.heroMetaRow}>
             {roleDisplay ? (
-              <View style={styles.roleChip}>
-                <Text style={styles.roleChipText}>{roleDisplay}</Text>
+              <View style={[styles.roleChip, { backgroundColor: theme.shell.raised, borderColor: theme.shell.line }]}>
+                <Text style={[styles.roleChipText, { color: theme.shell.ink }]}>{roleDisplay}</Text>
               </View>
             ) : null}
-            {hotelName ? <Text style={styles.heroHotel}>{hotelName}</Text> : null}
+            {hotelName ? <Text style={[styles.heroHotel, { color: theme.shell.ink2 }]}>{hotelName}</Text> : null}
           </View>
           <View style={styles.connRow} testID="connection-status">
             <View style={[styles.connDot, { backgroundColor: connection.color }]} />
-            <Text style={styles.connText}>{connection.text}</Text>
+            <Text style={[styles.connText, { color: theme.shell.ink2 }]}>{connection.text}</Text>
           </View>
         </View>
 
         <View style={styles.body}>
           <View style={styles.section}>
             <SectionHeader title={t("profile.preferences")} />
-            <View style={styles.card}>
+            <Card style={styles.card}>
               <View style={styles.row}>
-                <View style={styles.rowIconWrap}>
-                  <Ionicons name="globe-outline" size={16} color={C.primary} />
+                <View style={[styles.rowIconWrap, { backgroundColor: theme.primarySoft }]}>
+                  <Ionicons name="globe-outline" size={16} color={theme.primary} />
                 </View>
-                <Text style={styles.rowLabel}>{t("profile.language")}</Text>
-                <View style={styles.segmented} testID="language-segmented">
+                <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>{t("profile.language")}</Text>
+                <View
+                  style={[
+                    styles.segmented,
+                    { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle },
+                  ]}
+                  testID="language-segmented"
+                >
                   {(
                     [
                       { code: "en" as const, label: language === "es" ? "Ingl\u00e9s" : "English" },
@@ -234,14 +252,14 @@ export default function ProfileScreen() {
                     return (
                       <TouchableOpacity
                         key={option.code}
-                        style={[styles.segment, active && styles.segmentActive]}
+                        style={[styles.segment, active && { backgroundColor: theme.primaryAction }]}
                         onPress={() => void selectLanguage(option.code)}
                         activeOpacity={0.85}
                         accessibilityRole="button"
                         accessibilityState={{ selected: active }}
                         testID={`language-${option.code}`}
                       >
-                        <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                        <Text style={[styles.segmentText, { color: active ? "#fff" : theme.textSecondary }]}>
                           {option.label}
                         </Text>
                       </TouchableOpacity>
@@ -256,12 +274,12 @@ export default function ProfileScreen() {
                 onPress={() => router.push("/(app)/notifications" as never)}
                 testID="row-notifications"
               />
-            </View>
+            </Card>
           </View>
 
           <View style={styles.section}>
             <SectionHeader title={t("profile.myWork")} />
-            <View style={styles.card}>
+            <Card style={styles.card}>
               <SettingsRow
                 icon="calendar-outline"
                 label={t("profile.schedule")}
@@ -275,12 +293,12 @@ export default function ProfileScreen() {
                 onPress={() => router.push("/(app)/sop" as never)}
                 testID="row-sop"
               />
-            </View>
+            </Card>
           </View>
 
           <View style={styles.section}>
             <SectionHeader title={t("profile.dataSync")} />
-            <View style={styles.card}>
+            <Card style={styles.card}>
               <SettingsRow
                 icon={pendingCount > 0 ? "cloud-upload-outline" : "cloud-done-outline"}
                 label={t("profile.offlineChanges")}
@@ -292,29 +310,24 @@ export default function ProfileScreen() {
                 first
                 right={
                   pendingCount > 0 && isOnline ? (
-                    <TouchableOpacity
-                      style={styles.syncBtn}
+                    <Button
+                      label={t("profile.syncNow")}
                       onPress={() => void syncNow()}
-                      disabled={syncing}
-                      activeOpacity={0.85}
+                      loading={syncing}
+                      size="sm"
+                      style={styles.syncBtn}
                       testID="sync-now"
-                    >
-                      {syncing ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={styles.syncBtnText}>{t("profile.syncNow")}</Text>
-                      )}
-                    </TouchableOpacity>
+                    />
                   ) : undefined
                 }
                 testID="row-sync"
               />
-            </View>
+            </Card>
           </View>
 
           <View style={styles.section}>
             <SectionHeader title={t("profile.account")} />
-            <View style={styles.card}>
+            <Card style={styles.card}>
               <SettingsRow
                 icon="log-out-outline"
                 label={t("profile.signOut")}
@@ -323,10 +336,10 @@ export default function ProfileScreen() {
                 first
                 testID="row-sign-out"
               />
-            </View>
+            </Card>
           </View>
 
-          <Text style={styles.version}>PatelRep v{appVersion}</Text>
+          <Text style={[styles.version, { color: theme.textDisabled }]}>PatelRep v{appVersion}</Text>
         </View>
       </ScrollView>
     </View>
@@ -336,11 +349,9 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: shellTokens.bg,
   },
   scroll: {
     flex: 1,
-    backgroundColor: C.paper,
   },
   scrollContent: {
     flexGrow: 1,
@@ -351,12 +362,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 600,
-    backgroundColor: shellTokens.bg,
   },
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -370,9 +379,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: shellTokens.raised,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -384,7 +391,6 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     paddingHorizontal: 3,
-    backgroundColor: C.alert,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -397,7 +403,6 @@ const styles = StyleSheet.create({
     fontSize: 27,
     lineHeight: 32,
     fontWeight: "600",
-    color: shellTokens.ink,
   },
   heroMetaRow: {
     flexDirection: "row",
@@ -407,20 +412,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   roleChip: {
-    backgroundColor: shellTokens.raised,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   roleChipText: {
-    color: shellTokens.ink,
     fontSize: 11.5,
     fontWeight: "800",
   },
   heroHotel: {
-    color: shellTokens.ink2,
     fontSize: 13,
   },
   connRow: {
@@ -436,7 +437,6 @@ const styles = StyleSheet.create({
   },
   connText: {
     flex: 1,
-    color: shellTokens.ink2,
     fontSize: 12.5,
     lineHeight: 17,
   },
@@ -451,10 +451,7 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   card: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
+    padding: 0,
     overflow: "hidden",
   },
   row: {
@@ -467,34 +464,25 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderTopWidth: 1,
-    borderTopColor: C.line2,
   },
   rowIconWrap: {
     width: 30,
     height: 30,
     borderRadius: 9,
-    backgroundColor: C.accentSoft,
     alignItems: "center",
     justifyContent: "center",
-  },
-  rowIconWrapAlert: {
-    backgroundColor: C.alertSoft,
   },
   rowLabel: {
     flex: 1,
     fontSize: 14,
     fontWeight: "600",
-    color: C.ink,
   },
   rowValue: {
-    color: C.ink3,
     fontSize: 12.5,
   },
   segmented: {
     flexDirection: "row",
-    backgroundColor: C.surface3,
     borderWidth: 1,
-    borderColor: C.line2,
     borderRadius: 10,
     padding: 2,
     gap: 2,
@@ -506,33 +494,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  segmentActive: {
-    backgroundColor: C.accent,
-  },
   segmentText: {
     fontSize: 12.5,
     fontWeight: "700",
-    color: C.ink2,
-  },
-  segmentTextActive: {
-    color: "#fff",
   },
   syncBtn: {
-    minHeight: 34,
-    borderRadius: 9,
-    paddingHorizontal: 12,
-    backgroundColor: C.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  syncBtnText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "800",
+    minWidth: 92,
   },
   version: {
     textAlign: "center",
-    color: C.ink4,
     fontFamily: monoFont,
     fontSize: 11,
   },
