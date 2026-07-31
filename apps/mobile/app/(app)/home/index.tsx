@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   AppState,
   RefreshControl,
   ScrollView,
@@ -17,14 +16,18 @@ import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, R, shellTokens } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Avatar, IconButton } from "@/components/shared/mobileHandoff";
 import { AIBriefingCard } from "@/components/shared/evening";
 import { FocusCard, ShiftMosaic, SignalChips } from "@/components/home/CompanionHome";
 import { SupervisorHome } from "@/components/home/SupervisorHome";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
 import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
+import { useTheme } from "@/lib/theme/useTheme";
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
@@ -32,6 +35,7 @@ function firstName(name?: string | null) {
 
 export default function HousekeeperHomeScreen() {
   const { t } = useTranslation();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
   const effectiveRole = user?.effective_role ?? user?.role;
@@ -132,35 +136,39 @@ export default function HousekeeperHomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.companionContainer}>
+    <View style={[styles.companionContainer, { backgroundColor: theme.shell.bg }]}>
       <ScrollView
-        style={styles.companionScroll}
+        style={[styles.companionScroll, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.companionScrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={shellTokens.ink2} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.shell.ink2} />}
       >
         {/* Dark bleed behind iOS overscroll so the hero reads full-bleed */}
-        <View style={styles.topBleed} />
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
 
         {/* Evening Lobby hero — greeting, check-in, and the shift mosaic */}
-        <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.shellHeader, { paddingTop: insets.top + 10, backgroundColor: theme.shell.bg }]}>
           <View style={styles.headerTop}>
             <Avatar name={user?.full_name ?? "Staff"} size={34} />
             <IconButton icon="notifications-outline" />
           </View>
-          <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
-          <Text style={styles.shellTitle}>{t(getGreetingKey(), { name: firstName(user?.full_name) })}</Text>
-          <Text style={styles.shellCompanion}>{checkin.message}</Text>
+          <Text style={[styles.shellHeaderMeta, { color: theme.shell.ink3 }]}>
+            {dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}
+          </Text>
+          <Text style={[styles.shellTitle, { color: theme.shell.ink }]}>
+            {t(getGreetingKey(), { name: firstName(user?.full_name) })}
+          </Text>
+          <Text style={[styles.shellCompanion, { color: theme.shell.ink2 }]}>{checkin.message}</Text>
           {snapshot.total > 0 ? (
             <>
               <ShiftMosaic rooms={myRooms} onPressRoom={openRoom} />
-              <Text style={styles.heroPaceLine}>
+              <Text style={[styles.heroPaceLine, { color: theme.shell.ink2 }]}>
                 {t("home.heroProgress", { done: snapshot.done, total: snapshot.total })}
                 {snapshot.minutesLeft > 0 ? ` · ${t("home.minutesLeft", { minutes: snapshot.minutesLeft })}` : ""}
                 {snapshot.finishByLabel ? ` · ${t("home.finishBy", { time: snapshot.finishByLabel })}` : ""}
@@ -193,52 +201,64 @@ export default function HousekeeperHomeScreen() {
             >
               <View style={styles.briefingActions}>
                 <TouchableOpacity
-                  style={styles.briefingGhostBtn}
+                  style={[
+                    styles.briefingGhostBtn,
+                    { borderColor: theme.shell.line, backgroundColor: theme.shell.surface },
+                  ]}
                   onPress={() => void requestAiBriefing()}
                   disabled={briefingLoading}
                   activeOpacity={0.82}
                 >
                   <Ionicons name="sparkles" size={12} color="#CBB8F0" />
-                  <Text style={styles.briefingGhostText}>{t("ai.briefing.refresh")}</Text>
+                  <Text style={[styles.briefingGhostText, { color: theme.shell.ink2 }]}>
+                    {t("ai.briefing.refresh")}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.briefingGhostBtn}
+                  style={[
+                    styles.briefingGhostBtn,
+                    { borderColor: theme.shell.line, backgroundColor: theme.shell.surface },
+                  ]}
                   onPress={() => router.push("/(app)/copilot")}
                   activeOpacity={0.82}
                 >
-                  <Text style={styles.briefingGhostText}>{t("home.askAI")}</Text>
+                  <Text style={[styles.briefingGhostText, { color: theme.shell.ink2 }]}>{t("home.askAI")}</Text>
                 </TouchableOpacity>
               </View>
             </AIBriefingCard>
           ) : null}
 
           {checkin.tip ? (
-            <View style={styles.tipCard} testID="companion-tip">
-              <View style={styles.tipIconWrap}>
-                <Ionicons name="leaf-outline" size={15} color={C.primary} />
+            <View
+              style={[styles.tipCard, { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]}
+              testID="companion-tip"
+            >
+              <View style={[styles.tipIconWrap, { backgroundColor: theme.surface }]}>
+                <Ionicons name="leaf-outline" size={15} color={theme.primary} />
               </View>
               <View style={styles.tipBody}>
-                <Text style={styles.tipKicker}>{t("home.companion.kicker")}</Text>
-                <Text style={styles.tipText}>{checkin.tip}</Text>
+                <Text style={[styles.tipKicker, { color: theme.primary }]}>{t("home.companion.kicker")}</Text>
+                <Text style={[styles.tipText, { color: theme.textPrimary }]}>{checkin.tip}</Text>
               </View>
             </View>
           ) : null}
 
           {snapshot.stage === "done" || snapshot.stage === "empty" ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
-              <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="checkmark-circle-outline"
+              emptyTitle={t("home.allDone")}
+              emptyBody={t("home.pullToRefresh")}
+              style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            />
           ) : null}
 
-          <TouchableOpacity
-            style={styles.myRoomsBtn}
+          <Button
+            label={t("home.openMyRooms")}
             onPress={() => router.push("/(app)/my-rooms" as never)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.myRoomsBtnText}>{t("home.openMyRooms")}</Text>
-            <Ionicons name="arrow-forward" size={15} color={C.accent} />
-          </TouchableOpacity>
+            variant="secondary"
+            icon="arrow-forward"
+          />
         </View>
       </ScrollView>
     </View>
@@ -247,6 +267,7 @@ export default function HousekeeperHomeScreen() {
 
 function FrontDeskHomeScreen({ name }: { name: string }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { isOnline } = useAppStore();
   const [stats, setStats] = useState({ newReq: "—", inProgress: "—", resolved: "—" });
 
@@ -266,32 +287,35 @@ function FrontDeskHomeScreen({ name }: { name: string }) {
   }, [isOnline]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.borderSubtle, backgroundColor: theme.background }]}>
         <View style={styles.headerTop}>
           <Avatar name={name} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>{t("home.frontDesk.shiftMeta")}</Text>
-        <Text style={styles.title}>{t("home.frontDesk.greeting", { name: firstName(name) })}</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("home.frontDesk.shiftMeta")}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("home.frontDesk.greeting", { name: firstName(name) })}</Text>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.engineerStats}>
           {[
-            { value: stats.newReq, label: t("home.frontDesk.newRequests"), color: C.info },
-            { value: stats.inProgress, label: t("home.frontDesk.inProgress"), color: C.caution },
-            { value: stats.resolved, label: t("home.frontDesk.resolvedToday"), color: C.ready },
+            { value: stats.newReq, label: t("home.frontDesk.newRequests"), color: theme.status.clean },
+            { value: stats.inProgress, label: t("home.frontDesk.inProgress"), color: theme.status.pickup },
+            { value: stats.resolved, label: t("home.frontDesk.resolvedToday"), color: theme.status.ready },
           ].map((stat) => (
-            <View key={stat.label} style={styles.engineerStat}>
+            <Card key={stat.label} style={styles.engineerStat}>
               <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
-              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
-            </View>
+              <Text style={[styles.engineerStatLabel, { color: theme.textMuted }]}>{stat.label}</Text>
+            </Card>
           ))}
         </View>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>{t("home.frontDesk.requestsTitle")}</Text>
-          <Text style={styles.emptyText}>{t("home.frontDesk.requestsHint")}</Text>
-        </View>
+        <StateBlock
+          status="empty"
+          emptyIcon="chatbubbles-outline"
+          emptyTitle={t("home.frontDesk.requestsTitle")}
+          emptyBody={t("home.frontDesk.requestsHint")}
+          style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        />
       </ScrollView>
     </View>
   );
@@ -299,6 +323,7 @@ function FrontDeskHomeScreen({ name }: { name: string }) {
 
 function GMHomeScreen({ name }: { name: string }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { isOnline } = useAppStore();
   const [stats, setStats] = useState({ cleanPct: "—", openWOs: "—", newRequests: "—" });
 
@@ -323,32 +348,35 @@ function GMHomeScreen({ name }: { name: string }) {
   }, [isOnline]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.borderSubtle, backgroundColor: theme.background }]}>
         <View style={styles.headerTop}>
           <Avatar name={name} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>{t("home.gm.shiftMeta")}</Text>
-        <Text style={styles.title}>{t("home.gm.greeting", { name: firstName(name) })}</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("home.gm.shiftMeta")}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("home.gm.greeting", { name: firstName(name) })}</Text>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.engineerStats}>
           {[
             { value: stats.cleanPct, label: t("home.gm.roomsClean") },
-            { value: stats.openWOs, label: t("home.gm.openWOs"), color: C.caution },
-            { value: stats.newRequests, label: t("home.gm.guestRequests"), color: C.info },
+            { value: stats.openWOs, label: t("home.gm.openWOs"), color: theme.status.pickup },
+            { value: stats.newRequests, label: t("home.gm.guestRequests"), color: theme.status.clean },
           ].map((stat) => (
-            <View key={stat.label} style={styles.engineerStat}>
-              <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
-              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
-            </View>
+            <Card key={stat.label} style={styles.engineerStat}>
+              <Text style={[styles.engineerStatValue, { color: stat.color ?? theme.textPrimary }]}>{stat.value}</Text>
+              <Text style={[styles.engineerStatLabel, { color: theme.textMuted }]}>{stat.label}</Text>
+            </Card>
           ))}
         </View>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>{t("home.gm.alertsTitle")}</Text>
-          <Text style={styles.emptyText}>{t("home.gm.alertsHint")}</Text>
-        </View>
+        <StateBlock
+          status="empty"
+          emptyIcon="notifications-outline"
+          emptyTitle={t("home.gm.alertsTitle")}
+          emptyBody={t("home.gm.alertsHint")}
+          style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        />
       </ScrollView>
     </View>
   );
@@ -357,21 +385,17 @@ function GMHomeScreen({ name }: { name: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: C.paper,
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: C.paper,
   },
   header: {
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 18,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
-    backgroundColor: C.paper,
   },
   headerTop: {
     flexDirection: "row",
@@ -384,14 +408,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: C.ink3,
     marginBottom: 4,
   },
   title: {
     fontSize: 30,
     fontWeight: "600",
     lineHeight: 34,
-    color: C.ink,
   },
   scroll: {
     flex: 1,
@@ -404,11 +426,9 @@ const styles = StyleSheet.create({
   },
   companionContainer: {
     flex: 1,
-    backgroundColor: shellTokens.bg,
   },
   companionScroll: {
     flex: 1,
-    backgroundColor: C.paper,
   },
   companionScrollContent: {
     flexGrow: 1,
@@ -419,7 +439,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 600,
-    backgroundColor: shellTokens.bg,
   },
   companionBody: {
     flex: 1,
@@ -431,7 +450,6 @@ const styles = StyleSheet.create({
   shellHeader: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -440,26 +458,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: shellTokens.ink3,
     marginBottom: 4,
   },
   shellTitle: {
     fontSize: 30,
     fontWeight: "600",
     lineHeight: 34,
-    color: shellTokens.ink,
   },
   shellCompanion: {
     marginTop: 7,
     fontSize: 14.5,
     lineHeight: 21,
-    color: shellTokens.ink2,
   },
   heroPaceLine: {
     marginTop: 12,
     fontSize: 12,
     fontWeight: "700",
-    color: shellTokens.ink2,
   },
   briefingActions: {
     flexDirection: "row",
@@ -472,21 +486,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     borderWidth: 1,
-    borderColor: shellTokens.line,
-    backgroundColor: shellTokens.surface,
     borderRadius: 11,
     minHeight: 44,
     paddingHorizontal: 13,
     justifyContent: "center",
   },
-  briefingGhostText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
+  briefingGhostText: { fontSize: 12.5, fontWeight: "700" },
   tipCard: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 11,
-    backgroundColor: C.accentSoft,
     borderWidth: 1,
-    borderColor: C.accentLine,
     borderRadius: R.lg,
     padding: 14,
   },
@@ -494,7 +504,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: C.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -504,45 +513,15 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: C.primary,
   },
   tipText: {
     fontSize: 13,
     lineHeight: 19,
-    color: C.ink,
-  },
-  myRoomsBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    minHeight: 48,
-    borderRadius: R.md,
-    borderWidth: 1,
-    borderColor: C.accentLine,
-    backgroundColor: C.surface,
-  },
-  myRoomsBtnText: {
-    color: C.accent,
-    fontSize: 13.5,
-    fontWeight: "800",
   },
   emptyCard: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.lg,
     padding: 16,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: C.ink,
-  },
-  emptyText: {
-    fontSize: 12,
-    color: C.ink3,
-    marginTop: 4,
   },
   engineerStats: {
     flexDirection: "row",
@@ -550,9 +529,6 @@ const styles = StyleSheet.create({
   },
   engineerStat: {
     flex: 1,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.lg,
     paddingHorizontal: 14,
     paddingVertical: 13,
@@ -560,10 +536,8 @@ const styles = StyleSheet.create({
   engineerStatValue: {
     fontSize: 26,
     lineHeight: 28,
-    color: C.ink,
   },
   engineerStatLabel: {
-    color: C.ink3,
     fontSize: 11,
     marginTop: 5,
   },
