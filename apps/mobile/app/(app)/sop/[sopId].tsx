@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { C, displayFont } from "@/components/shared/tokens";
-import { CopilotHero, HeroButton, SectionLabel } from "@/components/shared/mobileHandoff";
+import { displayFont } from "@/components/shared/tokens";
+import { CopilotHero, SectionLabel } from "@/components/shared/mobileHandoff";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { getDocument, type SOPDocument } from "@/lib/api/sop";
+import { useTheme } from "@/lib/theme/useTheme";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
@@ -12,6 +16,7 @@ function formatDate(iso: string): string {
 
 export default function SopDetailScreen() {
   const { sopId } = useLocalSearchParams<{ sopId: string }>();
+  const theme = useTheme();
   const [doc, setDoc] = useState<SOPDocument | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,33 +29,32 @@ export default function SopDetailScreen() {
   }, [sopId]);
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
-      </View>
-    );
+    return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
   }
 
   if (!doc) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Document not found.</Text>
-      </View>
+      <StateBlock
+        status="error"
+        errorIcon="document-text-outline"
+        errorMessage="Document not found."
+        style={[styles.center, { backgroundColor: theme.background }]}
+      />
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
       <View>
-        <Text style={styles.headerMeta}>{doc.category ?? "General"}{doc.page_count ? ` — ${doc.page_count} pages` : ""}</Text>
-        <Text style={styles.title}>{doc.title}</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{doc.category ?? "General"}{doc.page_count ? ` — ${doc.page_count} pages` : ""}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{doc.title}</Text>
       </View>
 
       <View style={styles.metaLine}>
-        <Ionicons name="document-text-outline" size={13} color={C.ink3} />
-        <Text style={styles.metaText}>Updated {formatDate(doc.created_at)}</Text>
-        <View style={styles.metaDot} />
-        <Text style={[styles.metaText, doc.indexing_status === "indexed" ? { color: C.ready } : { color: C.caution }]}>
+        <Ionicons name="document-text-outline" size={13} color={theme.textMuted} />
+        <Text style={[styles.metaText, { color: theme.textMuted }]}>Updated {formatDate(doc.created_at)}</Text>
+        <View style={[styles.metaDot, { backgroundColor: theme.textDisabled }]} />
+        <Text style={[styles.metaText, { color: doc.indexing_status === "indexed" ? theme.status.ready : theme.status.pickup }]}>
           {doc.indexing_status === "indexed" ? "AI-indexed" : doc.indexing_status}
         </Text>
       </View>
@@ -59,64 +63,61 @@ export default function SopDetailScreen() {
         tone="violet"
         kicker="AI assistant"
         actions={
-          <HeroButton onDark={false} primary icon="sparkles">
-            Ask about this SOP
-          </HeroButton>
+          <Button label="Ask about this SOP" onPress={() => undefined} icon="sparkles" size="sm" />
         }
       >
         <Text>
-          I can answer questions about <Text style={styles.heroStrong}>{doc.title}</Text> or help you apply it step by step.
+          I can answer questions about <Text style={[styles.heroStrong, { color: theme.textPrimary }]}>{doc.title}</Text> or help you apply it step by step.
         </Text>
       </CopilotHero>
 
       {doc.description ? (
         <View>
           <SectionLabel>Overview</SectionLabel>
-          <View style={styles.descCard}>
-            <Text style={styles.descText}>{doc.description}</Text>
-          </View>
+          <Card style={styles.descCard}>
+            <Text style={[styles.descText, { color: theme.textSecondary }]}>{doc.description}</Text>
+          </Card>
         </View>
       ) : null}
 
-      <View style={styles.infoCard}>
+      <Card style={styles.infoCard}>
         <View style={styles.infoRow}>
-          <Ionicons name="folder-outline" size={15} color={C.ink3} />
-          <Text style={styles.infoLabel}>Category</Text>
-          <Text style={styles.infoValue}>{doc.category ?? "General"}</Text>
+          <Ionicons name="folder-outline" size={15} color={theme.textMuted} />
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Category</Text>
+          <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{doc.category ?? "General"}</Text>
         </View>
         {doc.page_count ? (
-          <View style={[styles.infoRow, styles.infoRowBorder]}>
-            <Ionicons name="documents-outline" size={15} color={C.ink3} />
-            <Text style={styles.infoLabel}>Pages</Text>
-            <Text style={styles.infoValue}>{doc.page_count}</Text>
+          <View style={[styles.infoRow, styles.infoRowBorder, { borderTopColor: theme.borderSubtle }]}>
+            <Ionicons name="documents-outline" size={15} color={theme.textMuted} />
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Pages</Text>
+            <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{doc.page_count}</Text>
           </View>
         ) : null}
-        <View style={[styles.infoRow, styles.infoRowBorder]}>
-          <Ionicons name="time-outline" size={15} color={C.ink3} />
-          <Text style={styles.infoLabel}>Added</Text>
-          <Text style={styles.infoValue}>{formatDate(doc.created_at)}</Text>
+        <View style={[styles.infoRow, styles.infoRowBorder, { borderTopColor: theme.borderSubtle }]}>
+          <Ionicons name="time-outline" size={15} color={theme.textMuted} />
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Added</Text>
+          <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{formatDate(doc.created_at)}</Text>
         </View>
-      </View>
+      </Card>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
   content: { padding: 18, gap: 14, paddingBottom: 32 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  errorText: { color: C.ink3, fontSize: 14 },
-  headerMeta: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34, marginTop: 4 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34, marginTop: 4 },
   metaLine: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
-  metaText: { color: C.ink3, fontSize: 12 },
-  metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.ink4 },
-  heroStrong: { fontStyle: "normal", fontWeight: "700", color: C.ink },
-  descCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 14 },
-  descText: { color: C.ink2, fontSize: 13.5, lineHeight: 20 },
-  infoCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, overflow: "hidden" },
+  metaText: { fontSize: 12 },
+  metaDot: { width: 3, height: 3, borderRadius: 1.5 },
+  heroStrong: { fontStyle: "normal", fontWeight: "700" },
+  descCard: { borderRadius: 12, padding: 14 },
+  descText: { fontSize: 13.5, lineHeight: 20 },
+  infoCard: { borderRadius: 12, overflow: "hidden", padding: 0 },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 13 },
-  infoRowBorder: { borderTopWidth: 1, borderTopColor: C.line2 },
-  infoLabel: { flex: 1, color: C.ink3, fontSize: 13 },
-  infoValue: { color: C.ink, fontSize: 13, fontWeight: "600" },
+  infoRowBorder: { borderTopWidth: 1 },
+  infoLabel: { flex: 1, fontSize: 13 },
+  infoValue: { fontSize: 13, fontWeight: "600" },
 });
