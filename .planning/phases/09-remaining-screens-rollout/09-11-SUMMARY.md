@@ -2,19 +2,24 @@
 phase: 09-remaining-screens-rollout
 plan: 11
 subsystem: ui
-tags: [react-native, expo, toast, lost-found, jest]
+tags: [react-native, expo, theming, primitives, toast, lost-found, jest]
 
 requires:
+  - phase: 07-theme-foundation-primitives
+    provides: Reactive theme hooks and the Card, Button, and StateBlock primitives
   - phase: 08-floor-role-rollout
-    provides: Toast infrastructure used by mobile staff screens
+    provides: Mobile screen migration and toast-feedback conventions
 provides:
-  - Lost & Found submission errors use the shared toast feedback path
-  - A regression test covering rejected found-item submissions
-affects: [SCREENS-05, lost-found, mobile-feedback]
+  - Lost & Found screen rendering exclusively through useTheme() token values
+  - Shared Card, Button, StateBlock, and Pressable controls across the screen-owned UI
+  - Toast feedback and retryable list loading for Lost & Found failures
+affects: [SCREENS-05, lost-found, mobile-theme-rollout]
 
 tech-stack:
   added: []
-  patterns: ["Mutation failures retain their API call and show feedback through useToast()."]
+  patterns:
+    - "Screen-owned colors are appended as theme-derived style objects while StyleSheet retains layout only."
+    - "List-load failures use StateBlock error with an explicit retry label."
 
 key-files:
   created:
@@ -23,67 +28,58 @@ key-files:
     - apps/mobile/app/(app)/lost-found/index.tsx
 
 key-decisions:
-  - "Keep the existing hardcoded error copy and submission request unchanged; replace only Alert feedback with toast.error."
-  - "Follow the assignment's narrowly scoped feedback change instead of altering legacy layout/theme tokens."
+  - "Preserved createLostFoundItem payload, guards, tenant behavior, and success flow while converting only its error feedback to toast.error."
+  - "The current screen owns an inline Modal; it was migrated in place and the separate FoundItemModal component was left untouched."
 
 patterns-established:
-  - "Lost & Found mutation errors use useToast() and include toast in callback dependencies."
+  - "Lost & Found list surfaces compose StateBlock, Card, Button, and theme tokens without legacy C references."
 
-duration: 5min
+duration: 35min
 completed: 2026-07-31
 ---
 
-# Phase 09 Plan 11: Lost & Found Toast Feedback Summary
+# Phase 09 Plan 11: Lost & Found Theme and Primitives Summary
 
-**Rejected found-item submissions now preserve their existing request payload while presenting the established mobile toast error feedback.**
+**Lost & Found now renders with reactive theme tokens and shared mobile primitives while keeping its tenant-scoped item submission flow intact.**
 
 ## Performance
 
-- **Duration:** 5 min
-- **Started:** 2026-07-31T01:19:13Z
-- **Completed:** 2026-07-31T01:24:18Z
+- **Duration:** 35 min
 - **Tasks:** 1 completed
 - **Files modified:** 3
 
 ## Accomplishments
 
-- Replaced the Lost & Found submission `Alert.alert` with `toast.error` without changing the API call, guard, or payload.
-- Added a focused screen test for the rejected submission path.
-- Verified the focused test, mobile type-check, and mobile lint pass.
+- Added `useTheme()` and removed every legacy `C.*` reference from the screen, including refresh, modal, input, and list colors.
+- Replaced screen-owned controls with `Card`, `Button`, `StateBlock`, and `Pressable`; removed all `TouchableOpacity` usage.
+- Retained `toast.error("Could not log item. Try again.")` for rejected item creation and added focused coverage for both that path and retryable list-load failure.
+- Verified focused and full mobile Jest suites, mobile type-check, and mobile lint pass.
 
 ## Task Commits
 
-Each task was committed with an explicit file-only scope:
-
-1. **Task 1: Route Lost & Found submission error through Toast** - `e73c6f33` (fix)
+1. **Task 1: Convert Lost & Found error feedback to Toast** - `e73c6f33` (fix)
+2. **Task 1: Migrate Lost & Found to theme primitives** - `5846e218` (feat)
 
 ## Files Created/Modified
 
-- `apps/mobile/app/(app)/lost-found/index.tsx` - Uses `useToast()` for failed found-item submissions.
-- `apps/mobile/__tests__/screens/LostFoundScreen.test.tsx` - Covers toast feedback after `createLostFoundItem` rejects.
-- `.planning/phases/09-remaining-screens-rollout/09-11-SUMMARY.md` - Records this constrained execution.
+- `apps/mobile/app/(app)/lost-found/index.tsx` - Full reactive-theme and primitive migration with unchanged item-creation behavior.
+- `apps/mobile/__tests__/screens/LostFoundScreen.test.tsx` - Tests rejected submission toast feedback and retryable loading errors.
+- `.planning/phases/09-remaining-screens-rollout/09-11-SUMMARY.md` - Records the completed plan.
 
 ## Decisions Made
 
-- Kept `createLostFoundItem` invocation, request payload, and post-success flow byte-for-byte unchanged; only its catch feedback changed.
-- Kept the existing English message as specified and did not add i18n work.
-- Per the assigned scope, did not migrate the screen's pre-existing `C.*` styling tokens or layout primitives.
+- Kept the existing English feedback strings unchanged; this screen is outside the i18n scope for this plan.
+- Added a retryable `StateBlock` for list loading errors instead of rendering the pre-existing empty state on a failed request.
+- Did not modify `components/housekeeping/FoundItemModal.tsx`: the target screen currently owns an inline modal, despite the plan's stale reference to the separate component.
 
 ## Deviations from Plan
 
-### Assignment-Directed Scope Constraint
-
-- **Found during:** Task 1
-- **Scope:** The supplied plan also describes a broad primitive/theme-token migration, but the assignment explicitly directed conversion of only the specified error alert.
-- **Action:** Limited the implementation to `useToast()` and its focused regression coverage; no layout, token, API, tenant, or modal code was changed.
-- **Impact:** The original plan's broader zero-`C.`/primitives acceptance criteria remain intentionally out of scope for this execution.
-
-**Total deviations:** 1 assignment-directed scope constraint.
-**Impact on plan:** The requested feedback behavior is complete without broadening the shared-screen change.
+None - plan behavior was completed as specified. The target file's inline modal was migrated in place; the unrelated `FoundItemModal` component remained untouched as required.
 
 ## Issues Encountered
 
-- The full mobile Jest suite has one unrelated existing failure: `__tests__/screens/GuestRequestsList.test.tsx` cannot find a button named `Room 214`. The focused Lost & Found test passes, and no Guest Requests files were changed.
+- The first summary described an incorrectly narrow interpretation of the assignment. It has been replaced by this full-plan record.
+- Full mobile Jest passed after the concurrent Guest Requests work settled: 27 suites and 140 tests green.
 - `.wolf/*` and `STATE.md` updates normally used by the executor were intentionally skipped because the assignment expressly prohibited modifying them.
 
 ## User Setup Required
@@ -92,14 +88,16 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-- The Lost & Found error feedback path is ready for use with the shared toast provider.
-- The remaining visual primitive/theme migration documented in the broader plan can be executed separately if requested.
+- SCREENS-05 now uses the shared mobile theme/primitives foundation with no legacy screen-local color tokens.
+- The screen is ready for Phase 10 dark-mode validation through its `useTheme()` bindings.
 
 ## Self-Check: PASSED
 
-- Confirmed both implementation and focused test files exist.
-- Confirmed task commit `e73c6f33` exists in git history.
-- Confirmed no `Alert.alert` remains in the Lost & Found screen and the submission API call remains present.
+- Confirmed the implementation, focused test, and summary files exist.
+- Confirmed `e73c6f33` and `5846e218` exist in git history.
+- Confirmed zero `C.*`, `TouchableOpacity`, and `Alert.alert` references remain in the target screen.
+- Confirmed the original `createLostFoundItem` payload remains present and the submission failure uses `toast.error`.
+- Confirmed focused Lost & Found Jest, mobile type-check, mobile lint, and the full 27-suite/140-test mobile Jest run pass.
 
 ---
 *Phase: 09-remaining-screens-rollout*
