@@ -3,10 +3,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   R,
-  darkStatusTokens,
   lightTheme,
   monoFont,
-  statusTokens,
+  type ThemeTokens,
 } from "@/components/shared/tokens";
 import { getStatusMeta } from "@/components/shared/evening";
 import { Button } from "@/components/ui/Button";
@@ -33,36 +32,52 @@ export interface TileVisual {
   border: string;
 }
 
-export function getTileVisual(status: string): TileVisual {
+export function getTileVisual(
+  status: string,
+  theme: ThemeTokens = lightTheme,
+): TileVisual {
   switch (status) {
     case "INSPECTED":
-      return { bg: statusTokens.ready, fg: lightTheme.shell.ink, border: "transparent" };
+      return { bg: theme.status.ready, fg: theme.shell.ink, border: "transparent" };
     case "CLEAN":
-      return { bg: statusTokens.clean, fg: lightTheme.shell.ink, border: "transparent" };
+      return { bg: theme.status.clean, fg: theme.shell.ink, border: "transparent" };
     case "IN_PROGRESS":
-      return { bg: darkStatusTokens.pickupSoft, fg: statusTokens.pickupLine, border: "rgba(228,193,116,0.55)" };
+      return {
+        bg: theme.status.inProgressSoft,
+        fg: theme.status.inProgress,
+        border: theme.status.inProgressLine,
+      };
     case "PICKUP":
-      return { bg: darkStatusTokens.pickupSoft, fg: statusTokens.pickupLine, border: "transparent" };
+      return { bg: theme.status.pickupSoft, fg: theme.status.pickup, border: "transparent" };
     case "DIRTY":
     case "OCCUPIED":
-      return { bg: darkStatusTokens.dirtySoft, fg: statusTokens.dirtyLine, border: "transparent" };
+      return {
+        bg: theme.status.dirtySoft,
+        fg: status === "OCCUPIED" ? theme.status.occupied : theme.status.dirty,
+        border: "transparent",
+      };
     case "OOO":
     case "OUT_OF_ORDER":
     case "OUT_OF_SERVICE":
-      return { bg: darkStatusTokens.outOfOrderSoft, fg: statusTokens.outOfOrderLine, border: "transparent" };
+      return {
+        bg: theme.status.outOfOrderSoft,
+        fg: theme.status.outOfOrder,
+        border: "transparent",
+      };
     default:
-      return { bg: lightTheme.shell.raised, fg: lightTheme.shell.ink2, border: "transparent" };
+      return { bg: theme.shell.raised, fg: theme.shell.ink2, border: "transparent" };
   }
 }
 
 export function ShiftMosaic({ rooms, onPressRoom }: { rooms: Room[]; onPressRoom: (room: Room) => void }) {
+  const theme = useTheme();
   const ordered = [...rooms].sort((a, b) =>
     a.room_number.localeCompare(b.room_number, undefined, { numeric: true, sensitivity: "base" }),
   );
   return (
     <View style={styles.mosaic} testID="shift-mosaic">
       {ordered.map((room) => {
-        const visual = getTileVisual(room.status);
+        const visual = getTileVisual(room.status, theme);
         return (
           <TouchableOpacity
             key={room.id}
@@ -70,7 +85,7 @@ export function ShiftMosaic({ rooms, onPressRoom }: { rooms: Room[]; onPressRoom
             onPress={() => onPressRoom(room)}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel={`${room.room_number} — ${getStatusMeta(room.status).label}`}
+            accessibilityLabel={`${room.room_number} — ${getStatusMeta(room.status, theme).label}`}
             testID={`mosaic-tile-${room.room_number}`}
           >
             <Text style={[styles.tileText, { color: visual.fg }]}>{room.room_number}</Text>
@@ -228,6 +243,7 @@ const styles = StyleSheet.create({
   },
   tile: {
     minWidth: 46,
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 8,

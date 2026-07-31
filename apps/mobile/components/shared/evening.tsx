@@ -3,7 +3,12 @@ import type { ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
+import {
+  R,
+  lightTheme,
+  monoFont,
+  type ThemeTokens,
+} from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Card } from "@/components/ui/Card";
 import type { Room } from "@/stores/appStore";
@@ -21,20 +26,52 @@ export interface StatusMeta {
   border: string;
 }
 
-export const STATUS_META: Record<string, StatusMeta> = {
-  DIRTY: { label: "Vacant Dirty", bg: C.alertSoft, fg: C.alert, border: C.alertLine },
-  OCCUPIED: { label: "Occupied Dirty", bg: C.alertSoft, fg: C.alert, border: C.alertLine },
-  PICKUP: { label: "Pickup", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  IN_PROGRESS: { label: "In Progress", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  CLEAN: { label: "Submitted", bg: C.infoSoft, fg: C.info, border: C.infoLine },
-  INSPECTED: { label: "Ready", bg: C.readySoft, fg: C.ready, border: C.readyLine },
-  OOO: { label: "Out of Order", bg: C.oooSoft, fg: C.ooo, border: C.oooLine },
-  OUT_OF_ORDER: { label: "Out of Order", bg: C.oooSoft, fg: C.ooo, border: C.oooLine },
-  OUT_OF_SERVICE: { label: "Out of Service", bg: C.oooSoft, fg: C.ooo, border: C.oooLine },
+type StatusTokenKey =
+  | "dirty"
+  | "pickup"
+  | "inProgress"
+  | "clean"
+  | "ready"
+  | "outOfOrder";
+
+type StatusDescriptor = {
+  label: string;
+  token: StatusTokenKey;
 };
 
-export function getStatusMeta(status: string): StatusMeta {
-  return STATUS_META[status] ?? { label: status.replace(/_/g, " "), bg: C.surface3, fg: C.ink3, border: C.line };
+export const STATUS_META: Record<string, StatusDescriptor> = {
+  DIRTY: { label: "Vacant Dirty", token: "dirty" },
+  OCCUPIED: { label: "Occupied Dirty", token: "dirty" },
+  PICKUP: { label: "Pickup", token: "pickup" },
+  IN_PROGRESS: { label: "In Progress", token: "inProgress" },
+  CLEAN: { label: "Submitted", token: "clean" },
+  INSPECTED: { label: "Ready", token: "ready" },
+  OOO: { label: "Out of Order", token: "outOfOrder" },
+  OUT_OF_ORDER: { label: "Out of Order", token: "outOfOrder" },
+  OUT_OF_SERVICE: { label: "Out of Service", token: "outOfOrder" },
+};
+
+export function getStatusMeta(
+  status: string,
+  theme: ThemeTokens = lightTheme,
+): StatusMeta {
+  const descriptor = STATUS_META[status];
+  if (!descriptor) {
+    return {
+      label: status.replace(/_/g, " "),
+      bg: theme.surfaceMuted,
+      fg: theme.textMuted,
+      border: theme.border,
+    };
+  }
+
+  const token = descriptor.token;
+  return {
+    label: descriptor.label,
+    bg: theme.status[`${token}Soft`],
+    fg: theme.status[token],
+    border: theme.status[`${token}Line`],
+  };
 }
 
 function getStatusLabelKey(status: string): string {
@@ -43,7 +80,8 @@ function getStatusLabelKey(status: string): string {
 
 export function StatusPill({ status, label }: { status: string; label?: string }) {
   const { t } = useTranslation();
-  const meta = getStatusMeta(status);
+  const theme = useTheme();
+  const meta = getStatusMeta(status, theme);
   return (
     <View style={[styles.statusPill, { backgroundColor: meta.bg, borderColor: meta.border }]}>
       <View style={[styles.statusDot, { backgroundColor: meta.fg }]} />
@@ -56,12 +94,24 @@ export function StatusPill({ status, label }: { status: string; label?: string }
 
 /** Striped rail for OCCUPIED, solid status color otherwise. */
 export function StatusRail({ status }: { status: string }) {
-  const meta = getStatusMeta(status);
+  const theme = useTheme();
+  const meta = getStatusMeta(status, theme);
   if (status === "OCCUPIED") {
     return (
-      <View style={[styles.rail, { backgroundColor: C.alertSoft }]}>
+      <View
+        style={[
+          styles.rail,
+          { backgroundColor: theme.status.dirtySoft },
+        ]}
+      >
         {[0, 1, 2, 3].map((stripe) => (
-          <View key={stripe} style={styles.railStripe} />
+          <View
+            key={stripe}
+            style={[
+              styles.railStripe,
+              { backgroundColor: theme.status.occupied },
+            ]}
+          />
         ))}
       </View>
     );
@@ -72,22 +122,43 @@ export function StatusRail({ status }: { status: string }) {
 /* ─── Generic atoms ───────────────────────────────────────────────────────── */
 
 export function SectionHeader({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+  const theme = useTheme();
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionHeaderLeft}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>
+          {title}
+        </Text>
+        {hint ? (
+          <Text style={[styles.sectionHint, { color: theme.textDisabled }]}>
+            {hint}
+          </Text>
+        ) : null}
       </View>
       {action}
     </View>
   );
 }
 
-export function ProgressBar({ value, total, color = C.ready }: { value: number; total: number; color?: string }) {
+export function ProgressBar({ value, total, color }: { value: number; total: number; color?: string }) {
+  const theme = useTheme();
   const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
   return (
-    <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: color }]} />
+    <View
+      style={[
+        styles.progressTrack,
+        { backgroundColor: theme.surfaceMuted },
+      ]}
+    >
+      <View
+        style={[
+          styles.progressFill,
+          {
+            width: `${pct}%`,
+            backgroundColor: color ?? theme.status.ready,
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -101,12 +172,33 @@ export function Chip({
   icon?: ComponentProps<typeof Ionicons>["name"];
   tone?: "neutral" | "alert" | "caution" | "ai" | "shell";
 }) {
+  const theme = useTheme();
   const palette = {
-    neutral: { bg: C.surface2, fg: C.ink2, border: C.line2 },
-    alert: { bg: C.alertSoft, fg: C.alert, border: C.alertLine },
-    caution: { bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-    ai: { bg: C.aiSoft, fg: C.ai, border: C.aiLine },
-    shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line },
+    neutral: {
+      bg: theme.surfaceSubtle,
+      fg: theme.textSecondary,
+      border: theme.borderSubtle,
+    },
+    alert: {
+      bg: theme.status.dirtySoft,
+      fg: theme.status.dirty,
+      border: theme.status.dirtyLine,
+    },
+    caution: {
+      bg: theme.status.pickupSoft,
+      fg: theme.status.pickup,
+      border: theme.status.pickupLine,
+    },
+    ai: {
+      bg: theme.ai.soft,
+      fg: theme.ai.primary,
+      border: theme.ai.line,
+    },
+    shell: {
+      bg: theme.shell.raised,
+      fg: theme.shell.ink,
+      border: theme.shell.line,
+    },
   }[tone];
   return (
     <View style={[styles.chip, { backgroundColor: palette.bg, borderColor: palette.border }]}>
@@ -145,11 +237,16 @@ function getCleanTypeDisplayKey(room: Room): string | null {
 
 function CleanTypeTag({ room }: { room: Room }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const displayKey = getCleanTypeDisplayKey(room);
   if (!displayKey) return null;
   const display = t(displayKey);
   const done = room.status === "INSPECTED";
-  const color = done ? C.ready : room.clean_type === "DEP" ? C.alert : C.caution;
+  const color = done
+    ? theme.status.ready
+    : room.clean_type === "DEP"
+      ? theme.status.dirty
+      : theme.status.pickup;
   return (
     <View accessible accessibilityLabel={t("rooms.card.cleanTypeAccessibility", { type: display })} style={styles.cleanTypeRow}>
       {room.clean_type === "DEP" ? <Ionicons name="log-out-outline" size={10} color={color} /> : null}
@@ -274,23 +371,60 @@ interface AIBriefingCardProps {
 }
 
 export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, footNote, loading, children }: AIBriefingCardProps) {
+  const theme = useTheme();
   return (
-    <View style={styles.aiCard} testID="ai-briefing-card">
+    <View
+      style={[
+        styles.aiCard,
+        {
+          backgroundColor: theme.shell.bg,
+          borderColor: theme.shell.line,
+        },
+      ]}
+      testID="ai-briefing-card"
+    >
       <View style={styles.aiKickerRow}>
-        <Ionicons name="sparkles" size={13} color="#CBB8F0" />
-        <Text style={styles.aiKicker}>{kicker}</Text>
-        {loading ? <View style={styles.aiPulse} /> : null}
+        <Ionicons name="sparkles" size={13} color={theme.ai.primary} />
+        <Text style={[styles.aiKicker, { color: theme.ai.primary }]}>
+          {kicker}
+        </Text>
+        {loading ? (
+          <View
+            style={[styles.aiPulse, { backgroundColor: theme.ai.primary }]}
+          />
+        ) : null}
       </View>
-      <Text style={styles.aiHeadline}>{headline}</Text>
+      <Text style={[styles.aiHeadline, { color: theme.shell.ink }]}>
+        {headline}
+      </Text>
       {plan && plan.length > 0 ? (
         <View style={styles.aiPlanRow}>
-          {planLabel ? <Text style={styles.aiPlanLabel}>{planLabel}</Text> : null}
+          {planLabel ? (
+            <Text style={[styles.aiPlanLabel, { color: theme.shell.ink3 }]}>
+              {planLabel}
+            </Text>
+          ) : null}
           <View style={styles.aiPlanChips}>
             {plan.map((roomNumber, index) => (
               <View key={`${roomNumber}-${index}`} style={styles.aiPlanChip}>
-                <Text style={styles.aiPlanChipText}>{roomNumber}</Text>
+                <Text
+                  style={[
+                    styles.aiPlanChipText,
+                    {
+                      color: theme.shell.ink,
+                      backgroundColor: theme.shell.raised,
+                    },
+                  ]}
+                >
+                  {roomNumber}
+                </Text>
                 {index < plan.length - 1 ? (
-                  <Ionicons name="arrow-forward" size={9} color={shellTokens.ink3} style={styles.aiPlanArrow} />
+                  <Ionicons
+                    name="arrow-forward"
+                    size={9}
+                    color={theme.shell.ink3}
+                    style={styles.aiPlanArrow}
+                  />
                 ) : null}
               </View>
             ))}
@@ -301,14 +435,29 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
         <View style={styles.aiWatchouts}>
           {watchouts.map((watchout, index) => (
             <View key={index} style={styles.aiWatchoutRow}>
-              <Ionicons name="alert-circle-outline" size={12} color={C.brass} />
-              <Text style={styles.aiWatchoutText}>{watchout}</Text>
+              <Ionicons
+                name="alert-circle-outline"
+                size={12}
+                color={theme.accentBrass}
+              />
+              <Text
+                style={[
+                  styles.aiWatchoutText,
+                  { color: theme.shell.ink2 },
+                ]}
+              >
+                {watchout}
+              </Text>
             </View>
           ))}
         </View>
       ) : null}
       {children}
-      {footNote ? <Text style={styles.aiFootNote}>{footNote}</Text> : null}
+      {footNote ? (
+        <Text style={[styles.aiFootNote, { color: theme.shell.ink3 }]}>
+          {footNote}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -329,14 +478,14 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 10.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 },
 
   rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4, justifyContent: "space-evenly" },
-  railStripe: { height: "16%", backgroundColor: C.occupied },
+  railStripe: { height: "16%" },
 
   sectionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
   sectionHeaderLeft: { flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1, minWidth: 0 },
-  sectionTitle: { color: C.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  sectionHint: { fontFamily: monoFont, color: C.ink4, fontSize: 11, fontWeight: "700" },
+  sectionTitle: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  sectionHint: { fontFamily: monoFont, fontSize: 11, fontWeight: "700" },
 
-  progressTrack: { height: 7, borderRadius: 999, backgroundColor: C.surface3, overflow: "hidden" },
+  progressTrack: { height: 7, borderRadius: 999, overflow: "hidden" },
   progressFill: { height: 7, borderRadius: 999 },
 
   chip: {
@@ -364,8 +513,8 @@ const styles = StyleSheet.create({
   cardTitleRow: { flexDirection: "row", alignItems: "baseline", gap: 8, minWidth: 0 },
   roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800" },
   roomType: { flex: 1, fontSize: 12.5, minWidth: 0 },
-  etaText: { fontFamily: monoFont, color: C.ink3, fontSize: 12, fontWeight: "700" },
-  positionText: { marginLeft: "auto", fontFamily: monoFont, color: C.ink4, fontSize: 11, fontWeight: "800" },
+  etaText: { fontFamily: monoFont, fontSize: 12, fontWeight: "700" },
+  positionText: { marginLeft: "auto", fontFamily: monoFont, fontSize: 11, fontWeight: "800" },
   cardMetaRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
   timingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   timingText: { fontFamily: monoFont, fontSize: 11.5 },
@@ -378,27 +527,23 @@ const styles = StyleSheet.create({
   cleanTypeText: { fontSize: 10, fontWeight: "800" },
 
   aiCard: {
-    backgroundColor: shellTokens.bg,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     borderRadius: R.xl,
     padding: 18,
     gap: 11,
   },
   aiKickerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  aiKicker: { color: "#CBB8F0", fontSize: 10.5, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
-  aiPulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#CBB8F0", marginLeft: 2 },
-  aiHeadline: { color: shellTokens.ink, fontSize: 18, lineHeight: 25, fontWeight: "700" },
+  aiKicker: { fontSize: 10.5, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
+  aiPulse: { width: 6, height: 6, borderRadius: 3, marginLeft: 2 },
+  aiHeadline: { fontSize: 18, lineHeight: 25, fontWeight: "700" },
   aiPlanRow: { gap: 6 },
-  aiPlanLabel: { color: shellTokens.ink3, fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  aiPlanLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
   aiPlanChips: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 },
   aiPlanChip: { flexDirection: "row", alignItems: "center", gap: 4 },
   aiPlanChipText: {
     fontFamily: monoFont,
-    color: shellTokens.ink,
     fontSize: 13,
     fontWeight: "800",
-    backgroundColor: shellTokens.raised,
     borderRadius: 7,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -407,6 +552,6 @@ const styles = StyleSheet.create({
   aiPlanArrow: { marginHorizontal: 1 },
   aiWatchouts: { gap: 5 },
   aiWatchoutRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-  aiWatchoutText: { flex: 1, color: shellTokens.ink2, fontSize: 12.5, lineHeight: 17 },
-  aiFootNote: { color: shellTokens.ink3, fontSize: 10.5, fontFamily: monoFont },
+  aiWatchoutText: { flex: 1, fontSize: 12.5, lineHeight: 17 },
+  aiFootNote: { fontSize: 10.5, fontFamily: monoFont },
 });

@@ -1,9 +1,13 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
 import {
-  render,
-  type ReactTestInstance,
-} from "@testing-library/react-native";
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
+import { render } from "@testing-library/react-native";
 import {
   darkTheme,
   lightTheme,
@@ -38,17 +42,23 @@ import {
 } from "@/components/shared/evening";
 import { getTileVisual } from "@/components/home/CompanionHome";
 
-function flattenStyle(node: ReactTestInstance) {
+type TestNode = {
+  props: {
+    style?: StyleProp<ViewStyle & TextStyle>;
+  };
+};
+
+function flattenStyle(node: TestNode) {
   return StyleSheet.flatten(node.props.style) ?? {};
 }
 
 function findViewByStyle(
-  nodes: ReactTestInstance[],
-  predicate: (style: Record<string, unknown>) => boolean,
+  nodes: TestNode[],
+  predicate: (style: ViewStyle & TextStyle) => boolean,
 ) {
   const match = nodes.find((node) => predicate(flattenStyle(node)));
   expect(match).toBeDefined();
-  return match as ReactTestInstance;
+  return match as TestNode;
 }
 
 function makeRoom(overrides: Partial<Room> = {}): Room {

@@ -44,10 +44,11 @@ export function FloorMosaic({
   rooms: Pick<FloorRoom, "roomId" | "roomNumber" | "status">[];
   getLabel: (status: string) => string;
 }) {
+  const theme = useTheme();
   return (
     <View style={styles.mosaic} testID="floor-mosaic">
       {rooms.map((room) => {
-        const visual = getTileVisual(room.status);
+        const visual = getTileVisual(room.status, theme);
         return (
           <View
             key={room.roomId}
@@ -75,7 +76,7 @@ export function RoomStatusTile({
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const meta = getStatusMeta(room.status);
+  const meta = getStatusMeta(room.status, theme);
   return (
     <Pressable
       style={({ pressed }) => [
@@ -141,7 +142,14 @@ export function TeamLoadRow({
       <View style={styles.loadBody}>
         <View style={styles.loadTitleRow}>
           <Text style={[styles.loadName, { color: theme.textPrimary }]} numberOfLines={1}>{load.name}</Text>
-          {load.inProgress > 0 ? <View style={[styles.loadActiveDot, { backgroundColor: theme.status.pickup }]} /> : null}
+          {load.inProgress > 0 ? (
+            <View
+              style={[
+                styles.loadActiveDot,
+                { backgroundColor: theme.status.inProgress },
+              ]}
+            />
+          ) : null}
           {load.overAssigned ? (
             <View style={[styles.overAssignedChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
               <Text style={[styles.overAssignedText, { color: theme.status.pickup }]}>⚠ Over</Text>
@@ -154,7 +162,15 @@ export function TeamLoadRow({
         <View style={styles.loadMetaRow}>
           <Text style={[styles.loadSummary, { color: theme.textMuted }]}>{summary}</Text>
           {activeRoom ? (
-            <Text style={[styles.loadCurrentRoom, { color: theme.status.pickup }]} numberOfLines={1}>In {activeRoom.roomNumber}</Text>
+            <Text
+              style={[
+                styles.loadCurrentRoom,
+                { color: theme.status.inProgress },
+              ]}
+              numberOfLines={1}
+            >
+              In {activeRoom.roomNumber}
+            </Text>
           ) : null}
         </View>
       </View>
@@ -167,6 +183,7 @@ export function TeamLoadRow({
           ]}
           onPress={onMessage}
           hitSlop={8}
+          accessibilityRole="button"
           accessibilityLabel={`Message ${load.name}`}
           testID={`message-${load.housekeeperId}`}
         >
@@ -240,7 +257,7 @@ const styles = StyleSheet.create({
   },
   overAssignedText: { fontSize: 9.5, fontWeight: "800" },
   messageBtn: {
-    width: 34, height: 34, borderRadius: 17,
+    width: 44, height: 44, borderRadius: 22,
     borderWidth: 1, alignItems: "center", justifyContent: "center",
   },
   pressed: { opacity: 0.8 },

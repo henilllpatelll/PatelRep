@@ -196,7 +196,10 @@ export function SupervisorHome({ name }: { name: string }) {
                   working: snapshot.inProgress,
                 })}
               </Text>
-              <FloorMosaic rooms={mosaicRooms} getLabel={(status) => getStatusMeta(status).label} />
+              <FloorMosaic
+                rooms={mosaicRooms}
+                getLabel={(status) => getStatusMeta(status, theme).label}
+              />
               <HeroSignalRow signals={signals} />
             </>
           ) : (
