@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { C, displayFont } from "@/components/shared/tokens";
 import { IconButton, Segmented } from "@/components/shared/mobileHandoff";
 import { listItems, createLostFoundItem, listRooms, type LostFoundItem, type SimpleRoom } from "@/lib/api/lostFound";
+import { useToast } from "@/lib/theme/useToast";
 
 type Tab = "all" | "unclaimed" | "claimed";
 
@@ -21,6 +22,7 @@ function timeSince(iso: string): string {
 }
 
 export default function LostFoundScreen() {
+  const toast = useToast();
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,11 +98,11 @@ export default function LostFoundScreen() {
       closeModal();
       load();
     } catch {
-      Alert.alert("Error", "Could not log item. Try again.");
+      toast.error("Could not log item. Try again.");
     } finally {
       setSubmitting(false);
     }
-  }, [description, locationFound, selectedRoom, closeModal, load]);
+  }, [description, locationFound, selectedRoom, closeModal, load, toast]);
 
   const filteredRooms = roomQuery.trim()
     ? rooms.filter((r) => r.room_number.toLowerCase().includes(roomQuery.toLowerCase()))
