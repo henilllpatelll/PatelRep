@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { C, displayFont } from "@/components/shared/tokens";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { displayFont } from "@/components/shared/tokens";
 import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 import { mySchedule, type ShiftAssignment } from "@/lib/api/scheduling";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { useTheme } from "@/lib/theme/useTheme";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -27,6 +29,7 @@ function formatTime(t: string): string {
 }
 
 export default function SchedulingScreen() {
+  const theme = useTheme();
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,29 +65,35 @@ export default function SchedulingScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
     >
       <View style={styles.header}>
-        <Text style={styles.headerMeta}>{rangeLabel}</Text>
-        <Text style={styles.title}>My shifts</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{rangeLabel}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>My shifts</Text>
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={C.accent} /></View>
+        <StateBlock status="loading" style={styles.center} />
       ) : (
         <>
-          <View style={[styles.today, !todayAssignment && styles.todayOff]}>
-            <Text style={[styles.todayMeta, !todayAssignment && styles.todayMetaOff]}>
+          <View
+            style={[
+              styles.today,
+              !todayAssignment && styles.todayOff,
+              { backgroundColor: todayAssignment ? theme.primaryAction : theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <Text style={[styles.todayMeta, { color: todayAssignment ? "rgba(255,255,255,0.86)" : theme.textMuted }]}>
               Today — {DAY_LABELS[today.getDay()]} {SHORT_MONTHS[today.getMonth()]} {today.getDate()}
             </Text>
             {todayAssignment?.shifts ? (
               <>
-                <Text style={[styles.todayTime, !todayAssignment && styles.todayTimeOff]}>
+                <Text style={[styles.todayTime, { color: "#fff" }]}>
                   {formatTime(todayAssignment.shifts.start_time)} – {formatTime(todayAssignment.shifts.end_time)}
                 </Text>
-                <Text style={[styles.todaySub, !todayAssignment && styles.todaySubOff]}>{todayAssignment.shifts.name}</Text>
+                <Text style={[styles.todaySub, { color: "rgba(255,255,255,0.86)" }]}>{todayAssignment.shifts.name}</Text>
                 <View style={styles.todayPills}>
                   <Pill tone="neutral">{todayAssignment.is_on_shift ? "On shift" : "Scheduled"}</Pill>
                   {todayAssignment.clocked_in_at ? <Pill tone="ready">Clocked in</Pill> : null}
@@ -92,30 +101,37 @@ export default function SchedulingScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.todayTimeOff}>Day off</Text>
-                <Text style={styles.todaySubOff}>No shift scheduled</Text>
+                <Text style={[styles.todayTimeOff, { color: theme.textPrimary }]}>Day off</Text>
+                <Text style={[styles.todaySubOff, { color: theme.textMuted }]}>No shift scheduled</Text>
               </>
             )}
           </View>
 
           <View>
             <SectionLabel>This week</SectionLabel>
-            <View style={styles.weekList}>
+            <View style={[styles.weekList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               {weekDates.map(({ date, iso }, index) => {
                 const assignment = byDate[iso];
                 const isToday = iso === todayIso;
                 return (
-                  <View key={iso} style={[styles.weekRow, index > 0 && styles.rowBorder, isToday && styles.todayRow]}>
+                  <View
+                    key={iso}
+                    style={[
+                      styles.weekRow,
+                      index > 0 && styles.rowBorder,
+                      { borderTopColor: theme.borderSubtle, backgroundColor: isToday ? theme.primarySoft : undefined },
+                    ]}
+                  >
                     <View style={styles.dateCell}>
-                      <Text style={styles.day}>{DAY_LABELS[date.getDay()]}</Text>
-                      <Text style={[styles.dayNumber, isToday && { color: C.accent }]}>{date.getDate()}</Text>
+                      <Text style={[styles.day, { color: theme.textMuted }]}>{DAY_LABELS[date.getDay()]}</Text>
+                      <Text style={[styles.dayNumber, { color: isToday ? theme.primaryAction : theme.textPrimary }]}>{date.getDate()}</Text>
                     </View>
-                    <Text style={[styles.shift, !assignment && styles.offShift]}>
+                    <Text style={[styles.shift, !assignment && styles.offShift, { color: assignment ? theme.textPrimary : theme.textDisabled }]}>
                       {assignment?.shifts
                         ? `${assignment.shifts.name} ${formatTime(assignment.shifts.start_time)}–${formatTime(assignment.shifts.end_time)}`
                         : "Off"}
                     </Text>
-                    {assignment ? <View style={[styles.shiftDot, { backgroundColor: C.accent }]} /> : null}
+                    {assignment ? <View style={[styles.shiftDot, { backgroundColor: theme.primaryAction }]} /> : null}
                   </View>
                 );
               })}
@@ -128,29 +144,27 @@ export default function SchedulingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
   content: { padding: 18, gap: 13, paddingBottom: 32 },
   header: { marginBottom: 2 },
   center: { paddingTop: 40, alignItems: "center" },
-  headerMeta: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
-  today: { backgroundColor: C.accent, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16 },
-  todayOff: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line },
-  todayMeta: { color: "rgba(255,255,255,0.86)", fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  todayMetaOff: { color: C.ink3 },
-  todayTime: { color: "#fff", fontFamily: displayFont, fontSize: 32, lineHeight: 34, marginTop: 9 },
-  todayTimeOff: { color: C.ink, fontFamily: displayFont, fontSize: 28, lineHeight: 32, marginTop: 9 },
-  todaySub: { color: "rgba(255,255,255,0.86)", fontSize: 13, marginTop: 6 },
-  todaySubOff: { color: C.ink3, fontSize: 13, marginTop: 6 },
+  headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
+  today: { borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16 },
+  todayOff: { borderWidth: 1 },
+  todayMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  todayTime: { fontFamily: displayFont, fontSize: 32, lineHeight: 34, marginTop: 9 },
+  todayTimeOff: { fontFamily: displayFont, fontSize: 28, lineHeight: 32, marginTop: 9 },
+  todaySub: { fontSize: 13, marginTop: 6 },
+  todaySubOff: { fontSize: 13, marginTop: 6 },
   todayPills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
-  weekList: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, overflow: "hidden" },
+  weekList: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
   weekRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 14, paddingVertical: 12 },
-  rowBorder: { borderTopWidth: 1, borderTopColor: C.line2 },
-  todayRow: { backgroundColor: C.accentSoft },
+  rowBorder: { borderTopWidth: 1 },
   dateCell: { width: 40, alignItems: "center" },
-  day: { color: C.ink3, fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5 },
-  dayNumber: { color: C.ink, fontFamily: displayFont, fontSize: 20, lineHeight: 22 },
-  shift: { flex: 1, color: C.ink, fontSize: 13, fontWeight: "600" },
-  offShift: { color: C.ink4, fontWeight: "400" },
+  day: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5 },
+  dayNumber: { fontFamily: displayFont, fontSize: 20, lineHeight: 22 },
+  shift: { flex: 1, fontSize: 13, fontWeight: "600" },
+  offShift: { fontWeight: "400" },
   shiftDot: { width: 8, height: 8, borderRadius: 4 },
 });
