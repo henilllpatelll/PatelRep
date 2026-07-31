@@ -38,16 +38,6 @@ const config = [
     ignores: [
       '**/*.test.*',
       '**/*.spec.*',
-      // Deferred to Phase 9 (per team-lead decision 2026-07-29): these four
-      // floor files predate i18n work and are not yet wired to useTranslation.
-      // Translating them now would breach Phase 7's "zero visible change to any
-      // existing screen" boundary and ship unreviewed Spanish for safety copy
-      // ("Emergency"/"Safety"). Mirrors web's 04-08 narrow-then-widen precedent;
-      // Phase 9 migrates them onto i18n and removes these exemptions.
-      'components/engineering/CreateWorkOrderModal.tsx',
-      'components/housekeeping/ReportIssueModal.tsx',
-      'components/housekeeping/SupplyRequestModal.tsx',
-      'app/(app)/tasks/index.tsx',
     ],
     languageOptions: {
       parser: tsParser,
