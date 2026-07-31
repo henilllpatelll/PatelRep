@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { router } from "expo-router";
@@ -30,7 +29,11 @@ import {
   type FloorRoom,
 } from "@/lib/housekeeping/supervisor";
 import { api } from "@/lib/api/client";
-import { C, R, shellTokens } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { getStatusMeta } from "@/components/shared/evening";
 import { Avatar, IconButton, SectionLabel } from "@/components/shared/mobileHandoff";
 import { FloorMosaic, HeroSignalRow, TeamLoadRow, type HeroSignal } from "@/components/supervisor/atoms";
@@ -46,6 +49,7 @@ function firstName(name?: string | null) {
 
 export function SupervisorHome({ name }: { name: string }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { isOnline, user } = useAppStore();
 
@@ -119,73 +123,73 @@ export function SupervisorHome({ name }: { name: string }) {
         snapshot.unassigned > 0 && {
           key: "unassigned",
           label: t("home.supervisor.signalUnassigned", { count: snapshot.unassigned }),
-          fg: C.alert,
-          bg: C.alertSoft,
-          line: C.alertLine,
+          fg: theme.status.dirty,
+          bg: theme.status.dirtySoft,
+          line: theme.status.dirtyLine,
         },
         snapshot.submitted > 0 && {
           key: "toInspect",
           label: t("home.supervisor.signalToInspect", { count: snapshot.submitted }),
-          fg: C.info,
-          bg: C.infoSoft,
-          line: C.infoLine,
+          fg: theme.status.clean,
+          bg: theme.status.cleanSoft,
+          line: theme.status.cleanLine,
         },
         snapshot.dnd > 0 && {
           key: "dnd",
           label: t("home.supervisor.signalDnd", { count: snapshot.dnd }),
-          fg: C.ink2,
-          bg: C.surface3,
-          line: C.line,
+          fg: theme.textSecondary,
+          bg: theme.surfaceMuted,
+          line: theme.border,
         },
         snapshot.vip > 0 && {
           key: "vip",
           label: t("home.supervisor.signalVip", { count: snapshot.vip }),
-          fg: C.brass,
-          bg: C.brassSoft,
-          line: C.brassLine,
+          fg: theme.accentBrass,
+          bg: theme.accentBrassSoft,
+          line: theme.accentBrassLine,
         },
         snapshot.behindSchedule > 0 && {
           key: "behind",
           label: t("home.supervisor.signalBehind", { count: snapshot.behindSchedule }),
-          fg: C.alert,
-          bg: C.alertSoft,
-          line: C.alertLine,
+          fg: theme.status.dirty,
+          bg: theme.status.dirtySoft,
+          line: theme.status.dirtyLine,
         },
       ].filter(Boolean) as HeroSignal[],
-    [snapshot, t],
+    [snapshot, t, theme],
   );
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.shell.bg }]}>
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={shellTokens.ink2} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
-        <View style={styles.topBleed} />
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
 
-        <View style={[styles.hero, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.hero, { paddingTop: insets.top + 10, backgroundColor: theme.shell.bg }]}>
           <View style={styles.heroTop}>
             <Avatar name={name} size={34} />
-            <TouchableOpacity onPress={() => router.push("/(app)/notifications" as never)} activeOpacity={0.8}>
+            <Pressable onPress={() => router.push("/(app)/notifications" as never)}>
               <IconButton icon="notifications-outline" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
-          <Text style={styles.heroKicker}>
+          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>
             {dynamicShiftMeta(user?.language_pref ?? "en", t("home.supervisor.shiftMeta"))}
           </Text>
-          <Text style={styles.heroTitle}>{t(getGreetingKey(), { name: firstName(name) })}</Text>
+          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t(getGreetingKey(), { name: firstName(name) })}</Text>
           {snapshot.total > 0 ? (
             <>
-              <Text style={styles.heroSummary}>
+              <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
                 {t("home.supervisor.heroSummary", {
                   ready: snapshot.ready,
                   total: snapshot.total,
@@ -196,66 +200,123 @@ export function SupervisorHome({ name }: { name: string }) {
               <HeroSignalRow signals={signals} />
             </>
           ) : (
-            <Text style={styles.heroSummary}>{t("home.supervisor.emptyBoard")}</Text>
+            <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>{t("home.supervisor.emptyBoard")}</Text>
           )}
         </View>
 
         <View style={styles.body}>
           {/* What needs the supervisor right now */}
           <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.actionCard, snapshot.submitted > 0 && styles.actionCardInfo]}
+            <Pressable
+              style={styles.actionPressable}
               onPress={() => router.push("/(app)/inspect" as never)}
-              activeOpacity={0.82}
               testID="action-inspect"
+              accessibilityRole="button"
             >
-              <View style={styles.actionTopRow}>
-                <Ionicons name="shield-checkmark-outline" size={16} color={snapshot.submitted > 0 ? C.info : C.ink3} />
-                <Text style={[styles.actionCount, snapshot.submitted > 0 && { color: C.info }]}>{snapshot.submitted}</Text>
-              </View>
-              <Text style={styles.actionLabel}>{t("home.supervisor.toInspect")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionCard, snapshot.unassigned > 0 && styles.actionCardAlert]}
+              <Card
+                style={[
+                  styles.actionCardLayout,
+                  snapshot.submitted > 0
+                    ? { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }
+                    : undefined,
+                ]}
+              >
+                <View style={styles.actionTopRow}>
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={16}
+                    color={snapshot.submitted > 0 ? theme.status.clean : theme.textMuted}
+                  />
+                  <Text style={[styles.actionCount, { color: snapshot.submitted > 0 ? theme.status.clean : theme.textPrimary }]}>
+                    {snapshot.submitted}
+                  </Text>
+                </View>
+                <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>{t("home.supervisor.toInspect")}</Text>
+              </Card>
+            </Pressable>
+            <Pressable
+              style={styles.actionPressable}
               onPress={() => router.push("/(app)/assignments" as never)}
-              activeOpacity={0.82}
               testID="action-assign"
+              accessibilityRole="button"
             >
-              <View style={styles.actionTopRow}>
-                <Ionicons name="person-add-outline" size={16} color={snapshot.unassigned > 0 ? C.alert : C.ink3} />
-                <Text style={[styles.actionCount, snapshot.unassigned > 0 && { color: C.alert }]}>{snapshot.unassigned}</Text>
-              </View>
-              <Text style={styles.actionLabel}>{t("home.supervisor.unassignedRooms")}</Text>
-            </TouchableOpacity>
+              <Card
+                style={[
+                  styles.actionCardLayout,
+                  snapshot.unassigned > 0
+                    ? { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }
+                    : undefined,
+                ]}
+              >
+                <View style={styles.actionTopRow}>
+                  <Ionicons
+                    name="person-add-outline"
+                    size={16}
+                    color={snapshot.unassigned > 0 ? theme.status.dirty : theme.textMuted}
+                  />
+                  <Text style={[styles.actionCount, { color: snapshot.unassigned > 0 ? theme.status.dirty : theme.textPrimary }]}>
+                    {snapshot.unassigned}
+                  </Text>
+                </View>
+                <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>{t("home.supervisor.unassignedRooms")}</Text>
+              </Card>
+            </Pressable>
             {/* G8 — Passed today */}
-            <TouchableOpacity
-              style={[styles.actionCard, passedToday > 0 && styles.actionCardReady]}
+            <Pressable
+              style={styles.actionPressable}
               onPress={() => router.push("/(app)/inspect" as never)}
-              activeOpacity={0.82}
+              accessibilityRole="button"
             >
-              <View style={styles.actionTopRow}>
-                <Ionicons name="checkmark-done-outline" size={16} color={passedToday > 0 ? C.ready : C.ink3} />
-                <Text style={[styles.actionCount, passedToday > 0 && { color: C.ready }]}>{passedToday}</Text>
-              </View>
-              <Text style={styles.actionLabel}>{t("home.supervisor.passedToday")}</Text>
-            </TouchableOpacity>
+              <Card
+                style={[
+                  styles.actionCardLayout,
+                  passedToday > 0
+                    ? { backgroundColor: theme.status.readySoft, borderColor: theme.status.readyLine }
+                    : undefined,
+                ]}
+              >
+                <View style={styles.actionTopRow}>
+                  <Ionicons
+                    name="checkmark-done-outline"
+                    size={16}
+                    color={passedToday > 0 ? theme.status.ready : theme.textMuted}
+                  />
+                  <Text style={[styles.actionCount, { color: passedToday > 0 ? theme.status.ready : theme.textPrimary }]}>
+                    {passedToday}
+                  </Text>
+                </View>
+                <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>{t("home.supervisor.passedToday")}</Text>
+              </Card>
+            </Pressable>
           </View>
 
           {/* G12 + G13 — Quick supervisor actions */}
           <View style={styles.quickActionsRow}>
-            <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowShiftNote(true)} activeOpacity={0.82}>
-              <Ionicons name="book-outline" size={14} color={C.info} />
-              <Text style={[styles.quickActionText, { color: C.info }]}>{t("home.supervisor.shiftNote")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.quickActionBtn, styles.quickActionBtnCaution]} onPress={() => setShowBroadcast(true)} activeOpacity={0.82}>
-              <Ionicons name="megaphone-outline" size={14} color={C.caution} />
-              <Text style={[styles.quickActionText, { color: C.caution }]}>{t("home.supervisor.messageTeam")}</Text>
-            </TouchableOpacity>
+            <Pressable
+              style={[styles.quickActionBtn, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]}
+              onPress={() => setShowShiftNote(true)}
+              accessibilityRole="button"
+            >
+              <Ionicons name="book-outline" size={14} color={theme.status.clean} />
+              <Text style={[styles.quickActionText, { color: theme.status.clean }]}>{t("home.supervisor.shiftNote")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.quickActionBtn, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
+              onPress={() => setShowBroadcast(true)}
+              accessibilityRole="button"
+            >
+              <Ionicons name="megaphone-outline" size={14} color={theme.status.pickup} />
+              <Text style={[styles.quickActionText, { color: theme.status.pickup }]}>{t("home.supervisor.messageTeam")}</Text>
+            </Pressable>
             {(snapshot.ready >= snapshot.total - 5 || snapshot.toClean + snapshot.inProgress <= 4) && snapshot.total > 0 ? (
-              <TouchableOpacity style={[styles.quickActionBtn, styles.quickActionBtnReady]} onPress={() => setShowEndShift(true)} activeOpacity={0.82}>
-                <Ionicons name="checkmark-done-outline" size={14} color={C.ready} />
-                <Text style={[styles.quickActionText, { color: C.ready }]}>{t("endShift.shortLabel")}</Text>
-              </TouchableOpacity>
+              <Pressable
+                style={[styles.quickActionBtn, { backgroundColor: theme.status.readySoft, borderColor: theme.status.readyLine }]}
+                onPress={() => setShowEndShift(true)}
+                accessibilityRole="button"
+              >
+                <Ionicons name="checkmark-done-outline" size={14} color={theme.status.ready} />
+                <Text style={[styles.quickActionText, { color: theme.status.ready }]}>{t("endShift.shortLabel")}</Text>
+              </Pressable>
             ) : null}
           </View>
 
@@ -282,26 +343,32 @@ export function SupervisorHome({ name }: { name: string }) {
               </View>
             </View>
           ) : snapshot.total > 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>{t("home.supervisor.noTeamYet")}</Text>
-              <Text style={styles.emptyText}>{t("home.supervisor.noTeamYetHint")}</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="people-outline"
+              emptyTitle={t("home.supervisor.noTeamYet")}
+              emptyBody={t("home.supervisor.noTeamYetHint")}
+              style={styles.emptyState}
+            />
           ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>{t("home.supervisor.emptyBoardTitle")}</Text>
-              <Text style={styles.emptyText}>{t("home.supervisor.emptyBoardHint")}</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="grid-outline"
+              emptyTitle={t("home.supervisor.emptyBoardTitle")}
+              emptyBody={t("home.supervisor.emptyBoardHint")}
+              style={styles.emptyState}
+            />
           )}
 
-          <TouchableOpacity
-            style={styles.boardBtn}
+          <Button
+            label={t("home.supervisor.openBoard")}
             onPress={() => router.push("/(app)/room-board" as never)}
-            activeOpacity={0.85}
             testID="open-board"
-          >
-            <Text style={styles.boardBtnText}>{t("home.supervisor.openBoard")}</Text>
-            <Ionicons name="arrow-forward" size={15} color={C.accent} />
-          </TouchableOpacity>
+            icon="arrow-forward"
+            size="md"
+            variant="ghost"
+            style={[styles.boardBtn, { backgroundColor: theme.surface, borderColor: theme.primaryLine }]}
+          />
         </View>
       </ScrollView>
 
@@ -319,16 +386,15 @@ export function SupervisorHome({ name }: { name: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: shellTokens.bg },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  scroll: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
 
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -343,63 +409,42 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: shellTokens.ink3,
     marginBottom: 4,
   },
-  heroTitle: { fontSize: 30, fontWeight: "600", lineHeight: 34, color: shellTokens.ink },
-  heroSummary: { marginTop: 7, fontSize: 14.5, lineHeight: 21, color: shellTokens.ink2 },
+  heroTitle: { fontSize: 30, fontWeight: "600", lineHeight: 34 },
+  heroSummary: { marginTop: 7, fontSize: 14.5, lineHeight: 21 },
 
   body: { flex: 1, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 28, gap: 14 },
 
   actionRow: { flexDirection: "row", gap: 10 },
-  actionCard: {
+  actionPressable: { flex: 1 },
+  actionCardLayout: {
     flex: 1,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
     paddingHorizontal: 14,
     paddingVertical: 13,
     gap: 4,
   },
-  actionCardInfo: { borderColor: C.infoLine, backgroundColor: C.infoSoft },
-  actionCardAlert: { borderColor: C.alertLine, backgroundColor: C.alertSoft },
-  actionCardReady: { borderColor: C.readyLine, backgroundColor: C.readySoft },
   actionTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  actionCount: { fontSize: 26, lineHeight: 30, fontWeight: "700", color: C.ink },
-  actionLabel: { fontSize: 11.5, fontWeight: "600", color: C.ink2 },
+  actionCount: { fontSize: 26, lineHeight: 30, fontWeight: "700" },
+  actionLabel: { fontSize: 11.5, fontWeight: "600" },
 
   rows: { gap: 8 },
   quickActionsRow: { flexDirection: "row", gap: 10 },
   quickActionBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    backgroundColor: C.infoSoft, borderWidth: 1, borderColor: C.infoLine,
+    borderWidth: 1,
     borderRadius: R.md, paddingVertical: 12,
   },
-  quickActionBtnCaution: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
-  quickActionBtnReady: { backgroundColor: C.readySoft, borderColor: C.readyLine },
   quickActionText: { fontSize: 13, fontWeight: "800" },
 
-  emptyCard: {
-    backgroundColor: C.surface,
+  emptyState: {
     borderWidth: 1,
-    borderColor: C.line,
+    borderColor: "transparent",
     borderRadius: R.lg,
     padding: 16,
   },
-  emptyTitle: { fontSize: 14, fontWeight: "700", color: C.ink },
-  emptyText: { fontSize: 12, color: C.ink3, marginTop: 4 },
 
   boardBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    minHeight: 48,
-    borderRadius: R.md,
     borderWidth: 1,
-    borderColor: C.accentLine,
-    backgroundColor: C.surface,
   },
-  boardBtnText: { color: C.accent, fontSize: 13.5, fontWeight: "800" },
 });
