@@ -144,4 +144,4 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 0/17 | Not started | - |
-| 10. Dark Mode & Accessibility QA | v1.1 | 8/11 | In progress | - |
+| 10. Dark Mode & Accessibility QA | v1.1 | 9/11 | In progress | - |
