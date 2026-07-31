@@ -1,4 +1,4 @@
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -29,7 +29,11 @@ export default function KnockModal({ visible, onConfirm }: Props) {
       // Back-button press does nothing — the housekeeper must explicitly confirm
       onRequestClose={() => undefined}
     >
-      <View style={[styles.root, { backgroundColor: theme.shell.bg }]}>
+      <ScrollView
+        style={{ backgroundColor: theme.shell.bg }}
+        contentContainerStyle={styles.root}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.iconRow}>
           <View
             style={[
@@ -50,7 +54,7 @@ export default function KnockModal({ visible, onConfirm }: Props) {
               style={[styles.stepRow, { backgroundColor: theme.shell.raised, borderColor: theme.shell.line }]}
             >
               <View style={[styles.stepNum, { backgroundColor: theme.status.pickup }]}>
-                <Text style={styles.stepNumText}>{index + 1}</Text>
+                <Text style={[styles.stepNumText, { color: theme.onPrimary }]}>{index + 1}</Text>
               </View>
               <Text style={[styles.stepText, { color: theme.shell.ink }]}>{t(key)}</Text>
             </View>
@@ -64,14 +68,14 @@ export default function KnockModal({ visible, onConfirm }: Props) {
           size="lg"
           style={styles.ctaBtn}
         />
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 32,
@@ -110,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 1,
   },
-  stepNumText: { color: "#fff", fontSize: 12, fontWeight: "900" },
+  stepNumText: { fontSize: 12, fontWeight: "900" },
   stepText: { flex: 1, fontSize: 14, fontWeight: "600", lineHeight: 20 },
   ctaBtn: {
     width: "100%",

@@ -192,6 +192,8 @@ export default function InspectScreen() {
     { key: "queue", label: t("inspect.toInspect"), count: queue.length },
     { key: "done", label: t("inspect.doneTab"), count: records.length },
   ];
+  const confirmForeground =
+    confirm?.result === "failed" ? theme.onDestructive : theme.onPrimary;
 
   if (loading) {
     return (
@@ -233,7 +235,8 @@ export default function InspectScreen() {
                 ]}
                 onPress={() => setTab(item.key)}
                 activeOpacity={0.8}
-                accessibilityRole="button"
+                accessibilityRole="tab"
+                accessibilityLabel={`${item.label}${item.count > 0 ? ` ${item.count}` : ""}`}
                 accessibilityState={{ selected: isActive }}
               >
                 <Text style={[styles.segmentLabel, { color: isActive ? theme.textPrimary : theme.textMuted }]}>
@@ -280,9 +283,10 @@ export default function InspectScreen() {
                       style={[styles.actionBtn, { backgroundColor: theme.status.ready, borderColor: theme.status.ready }]}
                       onPress={() => openConfirm(room, "passed")}
                       activeOpacity={0.78}
+                      accessibilityRole="button"
                       accessibilityLabel={t("inspect.confirmPass")}
                     >
-                      <Ionicons name="checkmark" size={20} color="#fff" />
+                      <Ionicons name="checkmark" size={20} color={theme.onPrimary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -291,6 +295,7 @@ export default function InspectScreen() {
                       ]}
                       onPress={() => openConfirm(room, "conditional")}
                       activeOpacity={0.78}
+                      accessibilityRole="button"
                       accessibilityLabel={t("inspect.confirmTouchup")}
                     >
                       <Ionicons name="flash" size={17} color={theme.status.pickup} />
@@ -302,6 +307,7 @@ export default function InspectScreen() {
                       ]}
                       onPress={() => openConfirm(room, "failed")}
                       activeOpacity={0.78}
+                      accessibilityRole="button"
                       accessibilityLabel={t("inspect.confirmFail")}
                     >
                       <Ionicons name="close" size={20} color={theme.status.dirty} />
@@ -326,6 +332,8 @@ export default function InspectScreen() {
                   style={[styles.doneRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
                   onPress={() => setDetailRecord(record)}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${record.room_number}, ${t(`inspect.result.${record.overall_result}`)}, ${record.inspector_name}`}
                 >
                   <Text style={[styles.doneRoomNumber, { color: theme.textPrimary }]}>{record.room_number}</Text>
                   <View style={styles.doneBody}>
@@ -355,7 +363,12 @@ export default function InspectScreen() {
               <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                 {t("inspect.reclean.title", { room: reclean?.room.room_number })}
               </Text>
-              <TouchableOpacity onPress={() => setReclean(null)} hitSlop={10}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setReclean(null)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.cancel")}
+              >
                 <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
@@ -405,7 +418,12 @@ export default function InspectScreen() {
               <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                 {t("inspect.detail.title", { room: detailRecord?.room_number })}
               </Text>
-              <TouchableOpacity onPress={() => setDetailRecord(null)} hitSlop={10}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setDetailRecord(null)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.cancel")}
+              >
                 <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
@@ -432,7 +450,12 @@ export default function InspectScreen() {
 
       <Modal visible={!!confirm} animationType="slide" transparent onRequestClose={() => setConfirm(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+          <ScrollView
+            style={[styles.confirmModalSheet, { backgroundColor: theme.background }]}
+            contentContainerStyle={styles.modalSheetContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={[styles.grabber, { backgroundColor: theme.border }]} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
@@ -442,7 +465,12 @@ export default function InspectScreen() {
                     ? t("inspect.modalTitleTouchup", { room: confirm?.room.room_number })
                     : t("inspect.modalTitleFail", { room: confirm?.room.room_number })}
               </Text>
-              <TouchableOpacity onPress={() => setConfirm(null)} hitSlop={10}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setConfirm(null)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.cancel")}
+              >
                 <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
@@ -459,6 +487,9 @@ export default function InspectScreen() {
                         style={styles.checklistRow}
                         onPress={() => setFailedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                         activeOpacity={0.8}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={item.description}
+                        accessibilityState={{ checked: failed }}
                       >
                         <View
                           style={[
@@ -467,7 +498,7 @@ export default function InspectScreen() {
                             failed && { backgroundColor: theme.status.dirty, borderColor: theme.status.dirty },
                           ]}
                         >
-                          {failed ? <Ionicons name="close" size={12} color="#fff" /> : null}
+                          {failed ? <Ionicons name="close" size={12} color={theme.onDestructive} /> : null}
                         </View>
                         <Text
                           style={[
@@ -528,8 +559,17 @@ export default function InspectScreen() {
                 ]}
                 onPress={handleConfirm}
                 disabled={submitting}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  confirm?.result === "passed"
+                    ? t("inspect.confirmPass")
+                    : confirm?.result === "conditional"
+                      ? t("inspect.confirmTouchup")
+                      : t("inspect.confirmFail")
+                }
+                accessibilityState={{ disabled: submitting, busy: submitting }}
               >
-                <Text style={styles.confirmText}>
+                <Text style={[styles.confirmText, { color: confirmForeground }]}>
                   {submitting
                     ? t("inspect.submitting")
                     : confirm?.result === "passed"
@@ -540,7 +580,7 @@ export default function InspectScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -580,7 +620,7 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    minHeight: 38,
+    minHeight: 44,
     borderRadius: R.md - 3,
     alignItems: "center",
     justifyContent: "center",
@@ -628,6 +668,7 @@ const styles = StyleSheet.create({
   },
 
   doneRow: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -645,8 +686,19 @@ const styles = StyleSheet.create({
 
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
   modalSheet: {
+    maxHeight: "90%",
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 10,
+  },
+  confirmModalSheet: {
+    maxHeight: "90%",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+  },
+  modalSheetContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 10,
@@ -660,6 +712,12 @@ const styles = StyleSheet.create({
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   modalTitle: { fontSize: 20, fontWeight: "700", flex: 1, marginRight: 12 },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
@@ -676,15 +734,22 @@ const styles = StyleSheet.create({
     minHeight: 84,
     textAlignVertical: "top",
   },
-  confirmRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+  confirmRow: { flexDirection: "row", alignItems: "stretch", gap: 10, marginTop: 18 },
   cancelBtnFlex: { flex: 1 },
   confirmBtnFlex: { flex: 2 },
-  confirmBtn: { flex: 2, minHeight: 46, borderRadius: R.md, alignItems: "center", justifyContent: "center" },
-  confirmText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  confirmBtn: {
+    flex: 2,
+    minHeight: 48,
+    borderRadius: R.md,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmText: { fontSize: 15, fontWeight: "700", textAlign: "center" },
   dimmed: { opacity: 0.5 },
 
   checklistWrap: { gap: 6, marginBottom: 12 },
-  checklistRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  checklistRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10 },
   checkBox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 1.5,
     alignItems: "center", justifyContent: "center",

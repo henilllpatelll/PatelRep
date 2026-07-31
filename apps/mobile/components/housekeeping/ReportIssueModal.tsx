@@ -122,6 +122,9 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
               style={[styles.selectRow, { borderColor: theme.border, backgroundColor: theme.background }]}
               onPress={() => setCategoryOpen((v) => !v)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t("reportIssue.category")}
+              accessibilityState={{ expanded: categoryOpen }}
             >
               <Text style={[styles.selectValue, { color: category ? theme.textPrimary : theme.textMuted }]}>
                 {CATEGORIES.find((c) => c.value === category)?.label ?? "Select a category"}
@@ -145,6 +148,9 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
                     ]}
                     onPress={() => { setCategory(c.value); setCategoryOpen(false); }}
                     activeOpacity={0.75}
+                    accessibilityRole="radio"
+                    accessibilityLabel={c.label}
+                    accessibilityState={{ selected: c.value === category }}
                   >
                     <Text style={[
                       styles.dropdownItemText,
@@ -167,10 +173,18 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
               {PRIORITIES.map((p) => {
                 const isActive = priority === p.value;
                 let activeBg: string | undefined;
+                let activeFg: string | undefined;
                 if (isActive) {
-                  if (p.value === "urgent") activeBg = theme.status.dirty;
-                  else if (p.value === "low") activeBg = theme.status.clean;
-                  else activeBg = theme.primaryAction;
+                  if (p.value === "urgent") {
+                    activeBg = theme.status.dirty;
+                    activeFg = theme.onDestructive;
+                  } else if (p.value === "low") {
+                    activeBg = theme.status.clean;
+                    activeFg = theme.onPrimary;
+                  } else {
+                    activeBg = theme.primaryAction;
+                    activeFg = theme.onPrimary;
+                  }
                 }
                 return (
                   <TouchableOpacity
@@ -181,10 +195,13 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
                     ]}
                     onPress={() => setPriority(p.value)}
                     activeOpacity={0.75}
+                    accessibilityRole="radio"
+                    accessibilityLabel={p.label}
+                    accessibilityState={{ selected: isActive }}
                   >
                     <Text style={[
                       styles.priorityText,
-                      { color: isActive ? "#fff" : theme.textSecondary },
+                      { color: isActive ? activeFg : theme.textSecondary },
                     ]}>
                       {p.label}
                     </Text>
@@ -276,6 +293,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    minHeight: 44,
   },
   selectValue: { fontSize: 14 },
   dropdownList: {
@@ -290,6 +308,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 11,
+    minHeight: 44,
   },
   dropdownItemText: { fontSize: 14 },
   dropdownItemTextActive: { fontWeight: "600" },
@@ -309,6 +328,7 @@ const styles = StyleSheet.create({
 
   footer: {
     flexDirection: "row",
+    alignItems: "stretch",
     gap: 10,
     paddingHorizontal: 18,
     paddingTop: 14,

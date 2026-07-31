@@ -43,6 +43,9 @@ function LinenStepper({
           onPress={() => onChange(Math.max(0, value - 1))}
           activeOpacity={0.8}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} −`}
+          accessibilityValue={{ now: value }}
         >
           <Text style={[styles.stepBtnText, { color: theme.textPrimary }]}>−</Text>
         </TouchableOpacity>
@@ -52,6 +55,9 @@ function LinenStepper({
           onPress={() => onChange(value + 1)}
           activeOpacity={0.8}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} +`}
+          accessibilityValue={{ now: value }}
         >
           <Text style={[styles.stepBtnText, { color: theme.textPrimary }]}>+</Text>
         </TouchableOpacity>
@@ -119,18 +125,29 @@ export default function ChecklistSection({
           <Text style={[styles.damageBannerText, { color: theme.accentBrass }]}>{t("rooms.detail.damageBanner.text")}</Text>
           <View style={styles.damageBannerBtns}>
             <TouchableOpacity
-              style={[styles.damagePhotoBtn, { backgroundColor: theme.accentBrass }, damageUploading && styles.damagePhotoBtnDisabled]}
+              style={[styles.damagePhotoBtn, { backgroundColor: theme.primaryAction }, damageUploading && styles.damagePhotoBtnDisabled]}
               onPress={() => void handleDamagePhoto()}
               disabled={damageUploading}
               activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={t("rooms.detail.damageBanner.addPhoto")}
+              accessibilityState={{ disabled: damageUploading, busy: damageUploading }}
             >
               {damageUploading ? (
-                <ActivityIndicator size="small" color={theme.accentBrass} />
+                <ActivityIndicator size="small" color={theme.onPrimary} />
               ) : (
-                <Text style={styles.damagePhotoBtnText}>{t("rooms.detail.damageBanner.addPhoto")}</Text>
+                <Text style={[styles.damagePhotoBtnText, { color: theme.onPrimary }]}>
+                  {t("rooms.detail.damageBanner.addPhoto")}
+                </Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setDamageBannerDismissed(true)} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.damageSkipBtn}
+              onPress={() => setDamageBannerDismissed(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t("rooms.detail.damageBanner.skip")}
+            >
               <Text style={[styles.damageSkipText, { color: theme.textMuted }]}>{t("rooms.detail.damageBanner.skip")}</Text>
             </TouchableOpacity>
           </View>
@@ -159,6 +176,9 @@ export default function ChecklistSection({
                     onCheck(item, !checked);
                   }}
                   activeOpacity={isLocked ? 1 : 0.78}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={t(item)}
+                  accessibilityState={{ checked, disabled: isLocked }}
                 >
                   <View
                     style={[
@@ -167,7 +187,7 @@ export default function ChecklistSection({
                       checked && { backgroundColor: theme.status.ready, borderColor: theme.status.ready },
                     ]}
                   >
-                    {checked ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+                    {checked ? <Ionicons name="checkmark" size={14} color={theme.onPrimary} /> : null}
                   </View>
                   <Text style={[styles.checkText, { color: theme.textPrimary }, checked && { color: theme.textMuted, textDecorationLine: "line-through" }]}>{t(item)}</Text>
                 </TouchableOpacity>
@@ -177,6 +197,8 @@ export default function ChecklistSection({
                     style={styles.lostFoundLink}
                     onPress={onReportFoundItem}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("rooms.detail.lostFoundLink")}
                   >
                     <Ionicons name="bag-outline" size={13} color={theme.status.pickup} />
                     <Text style={[styles.lostFoundLinkText, { color: theme.status.pickup }]}>{t("rooms.detail.lostFoundLink")}</Text>
@@ -250,6 +272,7 @@ const styles = StyleSheet.create({
   checkText: { flex: 1, fontSize: 14, fontWeight: "600", lineHeight: 20 },
 
   lostFoundLink: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -280,6 +303,7 @@ const styles = StyleSheet.create({
   },
   damageBannerBtns: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 14,
     width: "100%",
@@ -291,10 +315,11 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    minHeight: 38,
+    minHeight: 44,
   },
   damagePhotoBtnDisabled: { opacity: 0.55 },
-  damagePhotoBtnText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  damagePhotoBtnText: { fontSize: 13, fontWeight: "800", textAlign: "center" },
+  damageSkipBtn: { minHeight: 44, justifyContent: "center" },
   damageSkipText: { fontSize: 13, fontWeight: "700" },
 
   stepperRow: {
@@ -306,8 +331,8 @@ const styles = StyleSheet.create({
   stepperLabel: { fontSize: 14, fontWeight: "600", flex: 1 },
   stepperControls: { flexDirection: "row", alignItems: "center", gap: 16 },
   stepBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: "center",
