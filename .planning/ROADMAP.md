@@ -114,7 +114,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
   3. The Expo Router navigator chrome (tab bar, headers, status bar) matches the active theme in both light and dark mode, with no unthemed flash.
   4. A full EAS Android build succeeds after the theme/primitive work lands, confirming no new dependency broke the production build pipeline.
   5. A full app walkthrough confirms existing EN/ES bilingual coverage, offline-sync behavior, and RBAC-gated navigation are unchanged after the full rollout.
-**Plans**: TBD
+**Plans**: 11 plans
 **UI hint**: yes
 
 ## Backlog
@@ -144,4 +144,4 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 0/17 | Not started | - |
-| 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
+| 10. Dark Mode & Accessibility QA | v1.1 | 8/11 | In progress | - |
