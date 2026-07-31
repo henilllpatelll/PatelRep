@@ -2,21 +2,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, darkTheme } from "@/components/shared/tokens";
+import { darkTheme } from "@/components/shared/tokens";
+import { IconButton } from "@/components/shared/mobileHandoff";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/lib/theme/useToast";
 
 const HISTORY_KEY = "@patelrep/copilot_history";
 const MAX_HISTORY = 20;
@@ -65,6 +67,7 @@ const QUICK_ACTIONS = [
 export default function CopilotScreen() {
   const { t } = useTranslation();
   const { user } = useAppStore();
+  const toast = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -155,9 +158,9 @@ export default function CopilotScreen() {
     try {
       await api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
       setPendingTaskMsgId(null);
-      Alert.alert("", t("copilot.taskCreated"));
+      toast.success(t("copilot.taskCreated"));
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message);
+      toast.error((err as Error).message);
     }
   }
 
@@ -165,9 +168,9 @@ export default function CopilotScreen() {
     try {
       await api.post("/work-orders", { ...preview });
       setPendingWOMsgId(null);
-      Alert.alert("", t("copilot.workOrderCreated"));
+      toast.success(t("copilot.workOrderCreated"));
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message);
+      toast.error((err as Error).message);
     }
   }
 
@@ -175,9 +178,9 @@ export default function CopilotScreen() {
     try {
       await api.post("/ai/guest-requests/confirm", { ...preview });
       setPendingGRMsgId(null);
-      Alert.alert("", t("copilot.guestRequestCreated"));
+      toast.success(t("copilot.guestRequestCreated"));
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message);
+      toast.error((err as Error).message);
     }
   }
 
@@ -203,12 +206,18 @@ export default function CopilotScreen() {
                 <Text style={styles.confirmCardLabel}>{t("copilot.createTask")}</Text>
                 <Text style={styles.confirmCardTitle}>{item.task_preview.title}</Text>
                 <View style={styles.confirmCardActions}>
-                  <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmTask(item.task_preview!)}>
-                    <Text style={styles.confirmText}>{t("copilot.create")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingTaskMsgId(null)}>
-                    <Text style={styles.dismissText}>{t("copilot.dismiss")}</Text>
-                  </TouchableOpacity>
+                  <Button
+                    label={t("copilot.create")}
+                    onPress={() => confirmTask(item.task_preview!)}
+                    size="sm"
+                    style={styles.confirmBtn}
+                  />
+                  <Button
+                    label={t("copilot.dismiss")}
+                    onPress={() => setPendingTaskMsgId(null)}
+                    size="sm"
+                    style={styles.dismissBtn}
+                  />
                 </View>
               </View>
             ) : null}
@@ -217,12 +226,18 @@ export default function CopilotScreen() {
                 <Text style={styles.confirmCardLabel}>{t("copilot.createWorkOrder")}</Text>
                 <Text style={styles.confirmCardTitle}>{item.work_order_preview.title}</Text>
                 <View style={styles.confirmCardActions}>
-                  <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmWorkOrder(item.work_order_preview!)}>
-                    <Text style={styles.confirmText}>{t("copilot.create")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingWOMsgId(null)}>
-                    <Text style={styles.dismissText}>{t("copilot.dismiss")}</Text>
-                  </TouchableOpacity>
+                  <Button
+                    label={t("copilot.create")}
+                    onPress={() => confirmWorkOrder(item.work_order_preview!)}
+                    size="sm"
+                    style={styles.confirmBtn}
+                  />
+                  <Button
+                    label={t("copilot.dismiss")}
+                    onPress={() => setPendingWOMsgId(null)}
+                    size="sm"
+                    style={styles.dismissBtn}
+                  />
                 </View>
               </View>
             ) : null}
@@ -231,12 +246,18 @@ export default function CopilotScreen() {
                 <Text style={styles.confirmCardLabel}>{t("copilot.createGuestRequest")}</Text>
                 <Text style={styles.confirmCardTitle}>{item.guest_request_preview.description}</Text>
                 <View style={styles.confirmCardActions}>
-                  <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmGuestRequest(item.guest_request_preview!)}>
-                    <Text style={styles.confirmText}>{t("copilot.create")}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingGRMsgId(null)}>
-                    <Text style={styles.dismissText}>{t("copilot.dismiss")}</Text>
-                  </TouchableOpacity>
+                  <Button
+                    label={t("copilot.create")}
+                    onPress={() => confirmGuestRequest(item.guest_request_preview!)}
+                    size="sm"
+                    style={styles.confirmBtn}
+                  />
+                  <Button
+                    label={t("copilot.dismiss")}
+                    onPress={() => setPendingGRMsgId(null)}
+                    size="sm"
+                    style={styles.dismissBtn}
+                  />
                 </View>
               </View>
             ) : null}
@@ -250,16 +271,13 @@ export default function CopilotScreen() {
             <Text style={styles.emptyTitle}>{t("copilot.title")}</Text>
             <View style={styles.quickActions}>
               {QUICK_ACTIONS.map((action) => (
-                <TouchableOpacity
+                <Button
                   key={action.key}
-                  style={styles.quickAction}
+                  label={t(`copilot.quickActions.${action.key}`)}
+                  icon={action.icon}
                   onPress={() => sendMessage(t(`copilot.quickActions.${action.key}`))}
-                >
-                  <Ionicons name={action.icon} size={20} color={darkTheme.ai.primary} />
-                  <Text style={styles.quickActionText}>
-                    {t(`copilot.quickActions.${action.key}`)}
-                  </Text>
-                </TouchableOpacity>
+                  style={styles.quickAction}
+                />
               ))}
             </View>
           </View>
@@ -277,13 +295,14 @@ export default function CopilotScreen() {
 
       <View style={styles.inputRow}>
         {_speechModule ? (
-          <TouchableOpacity
+          <Pressable
             onPressIn={handleMicPressIn}
             onPressOut={handleMicPressOut}
-            style={[styles.micBtn, isRecording && styles.micBtnActive]}
+            accessibilityRole="button"
+            style={[styles.iconControl, isRecording && styles.micBtnActive]}
           >
-            <Ionicons name="mic" size={20} color={isRecording ? C.alert : darkTheme.textMuted} />
-          </TouchableOpacity>
+            <IconButton icon="mic" tone={isRecording ? "alert" : "ai"} size={40} />
+          </Pressable>
         ) : null}
         <TextInput
           style={styles.input}
@@ -294,13 +313,14 @@ export default function CopilotScreen() {
           multiline
           maxLength={500}
         />
-        <TouchableOpacity
-          style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
+        <Pressable
+          accessibilityRole="button"
+          style={[styles.iconControl, (!input.trim() || loading) && styles.sendBtnDisabled]}
           onPress={() => sendMessage(input)}
           disabled={loading || !input.trim()}
         >
-          <Ionicons name="send" size={18} color="#fff" />
-        </TouchableOpacity>
+          <IconButton icon="send" tone="ai" size={40} />
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -327,6 +347,7 @@ const styles = StyleSheet.create({
   quickAction: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
     gap: 10,
     backgroundColor: darkTheme.surfaceElevated,
     borderRadius: 10,
@@ -334,7 +355,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: darkTheme.glassBorder,
   },
-  quickActionText: { color: darkTheme.ai.primary, fontSize: 14, fontWeight: "500" },
   bubble: { maxWidth: "80%", borderRadius: 14, padding: 12, marginVertical: 4 },
   userBubble: { alignSelf: "flex-end", backgroundColor: darkTheme.surface, borderWidth: 1, borderColor: darkTheme.border },
   aiBubble: { alignSelf: "flex-start", backgroundColor: darkTheme.surfaceElevated, borderWidth: 1, borderColor: darkTheme.ai.line },
@@ -361,18 +381,15 @@ const styles = StyleSheet.create({
     backgroundColor: darkTheme.primaryAction,
     borderRadius: 8,
     paddingVertical: 9,
-    alignItems: "center",
   },
-  confirmText: { color: "#fff", fontWeight: "600", fontSize: 13 },
   dismissBtn: {
     flex: 1,
+    backgroundColor: darkTheme.surfaceElevated,
     borderWidth: 1,
     borderColor: darkTheme.border,
     borderRadius: 8,
     paddingVertical: 9,
-    alignItems: "center",
   },
-  dismissText: { color: darkTheme.textSecondary, fontSize: 13 },
   typingRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -402,24 +419,14 @@ const styles = StyleSheet.create({
     color: darkTheme.textPrimary,
     backgroundColor: darkTheme.surfaceElevated,
   },
-  sendBtn: {
+  iconControl: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: darkTheme.ai.primary,
-    justifyContent: "center",
-    alignItems: "center",
   },
   sendBtnDisabled: { opacity: 0.4 },
-  micBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: darkTheme.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: darkTheme.border,
+  micBtnActive: {
+    borderWidth: 2,
+    borderRadius: 12,
+    borderColor: darkTheme.status.dirty,
   },
-  micBtnActive: { backgroundColor: darkTheme.ai.soft },
 });
