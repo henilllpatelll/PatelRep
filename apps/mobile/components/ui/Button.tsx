@@ -53,7 +53,7 @@ export function Button({
 
   let idleBg: string = theme.primaryAction;
   let pressedBg: string = theme.primary;
-  let fg = "#FFFFFF";
+  let fg: string = theme.onPrimary;
   let borderColor: string | undefined;
   let borderWidth = 0;
 
@@ -68,9 +68,17 @@ export function Button({
     pressedBg = theme.primarySoft;
     fg = theme.primaryAction;
   } else if (variant === "destructive") {
-    idleBg = theme.status.dirty;
+    idleBg = theme.destructiveAction;
     pressedBg = theme.status.dirty;
-    fg = "#FFFFFF";
+    fg = theme.onDestructive;
+  }
+
+  if (isDisabled) {
+    idleBg = theme.primarySoft;
+    pressedBg = theme.primarySoft;
+    fg = theme.onDisabled;
+    borderColor = theme.primaryLine;
+    borderWidth = 1;
   }
 
   return (
@@ -79,6 +87,7 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
@@ -91,7 +100,6 @@ export function Button({
           borderColor,
         },
         variant === "destructive" && pressed && !isDisabled ? styles.destructivePressed : null,
-        isDisabled ? styles.disabled : null,
         style,
       ]}
     >
@@ -134,8 +142,5 @@ const styles = StyleSheet.create({
   },
   destructivePressed: {
     opacity: 0.85,
-  },
-  disabled: {
-    opacity: 0.4,
   },
 });

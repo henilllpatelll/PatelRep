@@ -20,11 +20,10 @@ export function Card({ children, dimmed = false, style }: CardProps) {
         styles.base,
         {
           backgroundColor: dimmed ? theme.surfaceMuted : theme.surface,
-          borderColor: dimmed ? theme.borderSubtle : theme.border,
+          borderColor: theme.border,
           shadowColor: theme.textPrimary,
           shadowOpacity: dimmed ? 0 : 0.06,
           elevation: dimmed ? 0 : 2,
-          opacity: dimmed ? 0.7 : 1,
         },
         style,
       ]}
