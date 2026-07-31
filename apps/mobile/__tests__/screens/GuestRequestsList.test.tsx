@@ -35,9 +35,18 @@ jest.mock("@/stores/appStore", () => ({
 
 import { api } from "@/lib/api/client";
 import { router } from "expo-router";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import GuestRequestsScreen from "@/app/(app)/guest-requests";
 
 const mockApiGet = api.get as jest.Mock;
+
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <GuestRequestsScreen />
+    </ThemeProvider>,
+  );
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -60,18 +69,18 @@ beforeEach(() => {
 
 describe("GuestRequestsScreen", () => {
   it("shows AI triage context without changing request data", async () => {
-    render(<GuestRequestsScreen />);
+    renderScreen();
 
     await waitFor(() => expect(screen.getByText("Room 214")).toBeTruthy());
 
     expect(screen.getByText("AI triage")).toBeTruthy();
     expect(screen.getByText(/Escalated requests stay surfaced/)).toBeTruthy();
     expect(screen.getByText("Towels")).toBeTruthy();
-    expect(screen.getByText("urgent")).toBeTruthy();
+    expect(screen.getByText("workOrders.chipUrgent")).toBeTruthy();
   });
 
   it("opens the selected request detail", async () => {
-    render(<GuestRequestsScreen />);
+    renderScreen();
 
     await waitFor(() => expect(screen.getByText("Room 214")).toBeTruthy());
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,8 +15,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
+import { R, monoFont } from "@/components/shared/tokens";
 import { AIInsightCard, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 
 export type GuestRequest = {
   id: string;
@@ -46,6 +50,17 @@ const PRIORITY_TONES: Record<string, ToneType> = {
   low: "neutral",
 };
 
+const REQUEST_STATUS_BADGE_KEYS: Partial<Record<GuestRequest["status"], StatusKey>> = {
+  in_progress: "inProgress",
+  resolved: "completed",
+};
+
+const REQUEST_PRIORITY_BADGE_KEYS: Partial<Record<GuestRequest["priority"], StatusKey>> = {
+  emergency: "emergency",
+  urgent: "urgent",
+  low: "low",
+};
+
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -59,6 +74,7 @@ function timeAgo(iso: string) {
 export default function GuestRequestsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { isOnline, user, setUnreadCount } = useAppStore();
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,24 +122,25 @@ export default function GuestRequestsScreen() {
   const escalatedCount = requests.filter((r) => r.status === "escalated").length;
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
-      </View>
-    );
+    return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, backgroundColor: theme.shell.bg, borderBottomColor: theme.shell.line },
+        ]}
+      >
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t("tabs.guestRequests")}</Text>
+          <Text style={[styles.title, { color: theme.shell.ink }]}>{t("tabs.guestRequests")}</Text>
           <TouchableOpacity
-            style={styles.addBtn}
+            style={[styles.addBtn, { backgroundColor: theme.primaryAction }]}
             onPress={() => router.push("/(app)/copilot")}
             activeOpacity={0.75}
           >
-            <Ionicons name="add" size={18} color={C.surface} />
+            <Ionicons name="add" size={18} color={theme.shell.ink} />
           </TouchableOpacity>
         </View>
         {(newCount > 0 || escalatedCount > 0) ? (
@@ -140,11 +157,17 @@ export default function GuestRequestsScreen() {
           {(["all", "new", "in_progress", "escalated"] as const).map((f) => (
             <TouchableOpacity
               key={f}
-              style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
+              style={[
+                styles.filterBtn,
+                {
+                  backgroundColor: filter === f ? theme.primary : theme.shell.surface,
+                  borderColor: filter === f ? theme.primary : theme.shell.line,
+                },
+              ]}
               onPress={() => setFilter(f)}
               activeOpacity={0.75}
             >
-              <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
+              <Text style={[styles.filterLabel, { color: filter === f ? theme.shell.ink : theme.shell.ink2 }]}>
                 {f === "all" ? "All" : f === "new" ? "New" : f === "in_progress" ? "In Progress" : "Escalated"}
               </Text>
             </TouchableOpacity>
@@ -162,52 +185,84 @@ export default function GuestRequestsScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
         <SectionLabel hint={`${filtered.length} requests`}>
           {filter === "all" ? "All Requests" : filter === "new" ? "New" : filter === "in_progress" ? "In Progress" : "Escalated"}
         </SectionLabel>
 
         {filtered.map((req) => (
-          <TouchableOpacity
+          <Pressable
             key={req.id}
-            style={[styles.card, req.status === "escalated" && styles.cardEscalated]}
             onPress={() => router.push(`/(app)/guest-requests/${req.id}` as never)}
-            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={`Room ${req.room_number}`}
           >
+            <Card
+              style={[
+                styles.cardLayoutOverrides,
+                req.status === "escalated" && {
+                  backgroundColor: theme.status.dirtySoft,
+                  borderColor: theme.status.dirtyLine,
+                },
+              ]}
+            >
             <View style={styles.cardTop}>
               <View style={styles.cardLeft}>
-                <Text style={styles.roomLabel}>Room {req.room_number}</Text>
-                {req.guest_name ? <Text style={styles.guestName}>{req.guest_name}</Text> : null}
+                <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>Room {req.room_number}</Text>
+                {req.guest_name ? <Text style={[styles.guestName, { color: theme.textMuted }]}>{req.guest_name}</Text> : null}
               </View>
               <View style={styles.cardBadges}>
-                <Pill tone={STATUS_TONES[req.status] ?? "neutral"}>{req.status.replace(/_/g, " ")}</Pill>
-                {req.priority !== "normal" ? (
+                {REQUEST_STATUS_BADGE_KEYS[req.status] ? (
+                  <StatusBadge
+                    statusKey={REQUEST_STATUS_BADGE_KEYS[req.status]!}
+                    label={
+                      req.status === "in_progress"
+                        ? t("workOrders.status.in_progress")
+                        : t("workOrders.status.completed")
+                    }
+                  />
+                ) : (
+                  <Pill tone={STATUS_TONES[req.status] ?? "neutral"}>{req.status.replace(/_/g, " ")}</Pill>
+                )}
+                {REQUEST_PRIORITY_BADGE_KEYS[req.priority] ? (
+                  <StatusBadge
+                    statusKey={REQUEST_PRIORITY_BADGE_KEYS[req.priority]!}
+                    label={
+                      req.priority === "emergency"
+                        ? t("workOrders.chipEmergency")
+                        : req.priority === "urgent"
+                          ? t("workOrders.chipUrgent")
+                          : "LOW"
+                    }
+                  />
+                ) : req.priority !== "normal" ? (
                   <Pill tone={PRIORITY_TONES[req.priority] ?? "neutral"}>{req.priority}</Pill>
                 ) : null}
               </View>
             </View>
-            <Text style={styles.requestType}>{req.request_type}</Text>
-            <Text style={styles.description} numberOfLines={2}>{req.description}</Text>
+            <Text style={[styles.requestType, { color: theme.textPrimary }]}>{req.request_type}</Text>
+            <Text style={[styles.description, { color: theme.textMuted }]} numberOfLines={2}>{req.description}</Text>
             <View style={styles.cardFooter}>
-              <Text style={styles.metaText}>{timeAgo(req.created_at)}</Text>
+              <Text style={[styles.metaText, { color: theme.textDisabled }]}>{timeAgo(req.created_at)}</Text>
               {req.assigned_to_name ? (
-                <Text style={styles.assignedTo}>→ {req.assigned_to_name}</Text>
+                <Text style={[styles.assignedTo, { color: theme.textMuted }]}>→ {req.assigned_to_name}</Text>
               ) : (
-                <Text style={[styles.assignedTo, { color: C.caution }]}>Unassigned</Text>
+                <Text style={[styles.assignedTo, { color: theme.status.pickup }]}>Unassigned</Text>
               )}
             </View>
-          </TouchableOpacity>
+            </Card>
+          </Pressable>
         ))}
 
         {filtered.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="chatbubble-ellipses-outline" size={32} color={C.ink4} />
-            <Text style={styles.emptyTitle}>No requests</Text>
-            <Text style={styles.emptyText}>
-              {filter === "all" ? "No guest requests at the moment." : `No ${filter.replace(/_/g, " ")} requests.`}
-            </Text>
-          </View>
+          <StateBlock
+            status="empty"
+            emptyIcon="chatbubble-ellipses-outline"
+            emptyTitle="No requests"
+            emptyBody={filter === "all" ? "No guest requests at the moment." : `No ${filter.replace(/_/g, " ")} requests.`}
+            style={styles.emptyCard}
+          />
         ) : null}
       </ScrollView>
     </View>
@@ -215,24 +270,21 @@ export default function GuestRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
-    backgroundColor: C.paper,
     gap: 10,
   },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { fontSize: 22, fontWeight: "700", color: C.ink },
+  title: { fontSize: 22, fontWeight: "700" },
   addBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: C.accent,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -243,35 +295,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: R.md,
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
   },
-  filterBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
-  filterLabel: { fontSize: 11, fontWeight: "600", color: C.ink3 },
-  filterLabelActive: { color: C.paper },
+  filterLabel: { fontSize: 11, fontWeight: "600" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32, gap: 12 },
-  card: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: 16,
-    padding: 16,
+  cardLayoutOverrides: {
     gap: 7,
   },
-  cardEscalated: { borderColor: C.alertLine, backgroundColor: C.alertSoft },
   cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   cardLeft: { flex: 1 },
-  roomLabel: { fontFamily: monoFont, fontSize: 20, lineHeight: 24, fontWeight: "700", color: C.ink },
-  guestName: { fontSize: 11, color: C.ink3 },
+  roomLabel: { fontFamily: monoFont, fontSize: 20, lineHeight: 24, fontWeight: "700" },
+  guestName: { fontSize: 11 },
   cardBadges: { flexDirection: "row", gap: 4, flexWrap: "wrap" },
-  requestType: { fontSize: 15, fontWeight: "600", color: C.ink },
-  description: { fontSize: 13, color: C.ink3, lineHeight: 18 },
+  requestType: { fontSize: 15, fontWeight: "600" },
+  description: { fontSize: 13, lineHeight: 18 },
   cardFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  metaText: { fontSize: 11, color: C.ink4, fontFamily: monoFont },
-  assignedTo: { fontSize: 11, color: C.ink3, fontWeight: "500" },
+  metaText: { fontSize: 11, fontFamily: monoFont },
+  assignedTo: { fontSize: 11, fontWeight: "500" },
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
-  emptyText: { fontSize: 13, color: C.ink3, textAlign: "center" },
 });
