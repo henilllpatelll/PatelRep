@@ -7,15 +7,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
-import { C } from "@/components/shared/tokens";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { setupPushNotifications } from "@/lib/notifications";
 import { listNotifications } from "@/lib/api/notifications";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
+import { useTheme } from "@/lib/theme/useTheme";
 
 export default function AppLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);
@@ -88,25 +89,25 @@ export default function AppLayout() {
         <ToastViewport topOffset={insets.top + bannerHeight} />
         <Tabs
           screenOptions={{
-            tabBarActiveTintColor: C.shellInk,
-            tabBarInactiveTintColor: C.shellInk3,
+            tabBarActiveTintColor: theme.shell.ink,
+            tabBarInactiveTintColor: theme.shell.ink3,
             tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
             tabBarStyle: {
-              backgroundColor: C.shell,
-              borderTopColor: C.shellLine,
+              backgroundColor: theme.shell.bg,
+              borderTopColor: theme.shell.line,
               borderTopWidth: 1,
               height: 76,
               paddingTop: 8,
               paddingBottom: 12,
-              shadowColor: "#000",
+              shadowColor: theme.shell.bg,
               shadowOpacity: 0.25,
               shadowRadius: 12,
               shadowOffset: { width: 0, height: -4 },
               elevation: 10,
             },
-            headerStyle: { backgroundColor: C.paper },
-            headerTintColor: C.ink,
-            headerTitleStyle: { fontWeight: "600", color: C.ink },
+            headerStyle: { backgroundColor: theme.shell.surface },
+            headerTintColor: theme.shell.ink,
+            headerTitleStyle: { fontWeight: "600", color: theme.shell.ink },
             headerShadowVisible: false,
           }}
         >
@@ -117,6 +118,7 @@ export default function AppLayout() {
               options={{
                 title: t(tab.titleKey),
                 headerShown: false,
+                tabBarAccessibilityLabel: t(tab.titleKey),
                 tabBarIcon: ({ color, size }) => (
                   <Ionicons name={tab.icon} size={size} color={color} />
                 ),
@@ -141,12 +143,20 @@ export default function AppLayout() {
         </Tabs>
         {!hideFab ? (
           <TouchableOpacity
-            accessibilityLabel="AI Copilot"
-            style={[styles.fab, { bottom: insets.bottom + 92 }]}
+            accessibilityLabel={t("tabs.copilot")}
+            accessibilityRole="button"
+            style={[
+              styles.fab,
+              {
+                bottom: insets.bottom + 92,
+                backgroundColor: theme.ai.primary,
+                shadowColor: theme.ai.primary,
+              },
+            ]}
             onPress={() => router.push("/(app)/copilot" as never)}
             activeOpacity={0.85}
           >
-            <Ionicons name="sparkles" size={22} color="#fff" />
+            <Ionicons name="sparkles" size={22} color={theme.onAi} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -162,10 +172,8 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: C.ai,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: C.ai,
     shadowOpacity: 0.5,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
