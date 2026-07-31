@@ -463,7 +463,14 @@
     "title": "Órdenes de trabajo",
     "kicker": "Mantenimiento",
     "allRooms": "Cuartos",
-    "newWorkOrder": "Nueva OT",
+    "newWorkOrder": "Nueva orden de trabajo",
+    "location": "Ubicación",
+    "categoryLabel": "Categoría",
+    "priority": "Prioridad",
+    "reportedBy": "Reportado por",
+    "whatNeedsFixing": "¿Qué necesita reparación?",
+    "detailsOptionalPlaceholder": "Detalles (opcional)",
+    "locationPlaceholder": "Número de habitación o área (p. ej., 204, climatización del lobby)",
     "detailKicker": "Orden de trabajo",
     "summary": "{{open}} abiertas · {{active}} en progreso",
     "sectionBench": "En tu banco",
@@ -646,6 +653,7 @@
     "addPlaceholder": "Agrega una tarea con tus palabras…",
     "addWithAI": "Crear tarea con IA",
     "aiPreviewLabel": "La IA redactó esta tarea",
+    "roomLabel": "Habitación {{room}}",
     "aiNoTask": "No pude convertir eso en una tarea. Agrega el cuarto o lo que se necesita.",
     "aiUnavailable": "La IA no está disponible ahora — intenta de nuevo en un momento.",
     "aiCreated": "Tarea creada ✨",
@@ -665,6 +673,22 @@
     "detailSla": "SLA",
     "statusInProgress": "EN PROGRESO",
     "statusEscalated": "ESCALADA"
+  },
+  "reportIssue": {
+    "submit": "Enviar orden de trabajo",
+    "roomLabel": "Habitación {{room}}",
+    "issueTitle": "Título del problema",
+    "category": "Categoría",
+    "priority": "Prioridad",
+    "details": "Detalles",
+    "optional": "(opcional)",
+    "titlePlaceholder": "p. ej., inodoro no descarga, A/C no enfría",
+    "detailsPlaceholder": "Describe lo que encontraste…"
+  },
+  "supplies": {
+    "request": "Solicitar suministros",
+    "roomTapHint": "Habitación {{room}} — toca lo que necesitas",
+    "otherPlaceholder": "Otro (p. ej., almohada extra, cuna plegable...)"
   },
   "profile": {
     "me": "Yo",

@@ -463,7 +463,14 @@
     "title": "Work orders",
     "kicker": "Engineering",
     "allRooms": "Rooms",
-    "newWorkOrder": "New WO",
+    "newWorkOrder": "New Work Order",
+    "location": "Location",
+    "categoryLabel": "Category",
+    "priority": "Priority",
+    "reportedBy": "Reported By",
+    "whatNeedsFixing": "What needs to be fixed?",
+    "detailsOptionalPlaceholder": "Details (optional)",
+    "locationPlaceholder": "Room number or area (e.g. 204, Lobby HVAC)",
     "detailKicker": "Work order",
     "summary": "{{open}} open · {{active}} in progress",
     "sectionBench": "On your bench",
@@ -646,6 +653,7 @@
     "addPlaceholder": "Add a task in plain words…",
     "addWithAI": "Create task with AI",
     "aiPreviewLabel": "AI drafted this task",
+    "roomLabel": "Room {{room}}",
     "aiNoTask": "I couldn't turn that into a task. Try adding a room or what's needed.",
     "aiUnavailable": "AI is unavailable right now — try again in a moment.",
     "aiCreated": "Task created ✨",
@@ -665,6 +673,22 @@
     "detailSla": "SLA",
     "statusInProgress": "IN PROGRESS",
     "statusEscalated": "ESCALATED"
+  },
+  "reportIssue": {
+    "submit": "Submit Work Order",
+    "roomLabel": "Room {{room}}",
+    "issueTitle": "Issue title",
+    "category": "Category",
+    "priority": "Priority",
+    "details": "Details",
+    "optional": "(optional)",
+    "titlePlaceholder": "e.g. Toilet not flushing, A/C not cooling",
+    "detailsPlaceholder": "Describe what you found…"
+  },
+  "supplies": {
+    "request": "Request Supplies",
+    "roomTapHint": "Room {{room}} — tap what you need",
+    "otherPlaceholder": "Other (e.g. extra pillow, folding cot...)"
   },
   "profile": {
     "me": "Me",
