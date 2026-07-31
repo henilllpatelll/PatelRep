@@ -119,5 +119,7 @@ export function compositedContrastRatio(
   translucentBackground: string,
   opaqueBase: string,
 ): number {
-  return contrastRatio(foreground, composite(translucentBackground, opaqueBase));
+  const visibleBackground = composite(translucentBackground, opaqueBase);
+  const visibleForeground = composite(foreground, { ...visibleBackground, alpha: 1 });
+  return contrastRatio(visibleForeground, visibleBackground);
 }

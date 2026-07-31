@@ -8,30 +8,47 @@ import { Platform } from "react-native";
 
 export const statusTokens = {
   ready: "#0E7468",
-  clean: "#2F6F95",
+  clean: "#285F80",
+  inProgress: "#684095",
   dirty: "#A9363F",
   occupied: "#A9363F",
-  pickup: "#B7791F",
-  outOfOrder: "#746D63",
+  pickup: "#82540F",
+  outOfOrder: "#625B52",
   readySoft: "#D7EDE7",
-  readyLine: "#A7D2C9",
+  readyLine: "#0E7468",
   cleanSoft: "#DDEAF1",
-  cleanLine: "#ACC9DB",
+  cleanLine: "#285F80",
+  inProgressSoft: "#ECE2F6",
+  inProgressLine: "#684095",
   dirtySoft: "#F6DDE0",
-  dirtyLine: "#E7A9B0",
+  dirtyLine: "#A9363F",
   pickupSoft: "#F7E8C8",
-  pickupLine: "#E4C174",
+  pickupLine: "#82540F",
   outOfOrderSoft: "#EDE7DD",
-  outOfOrderLine: "#D5CAB8",
+  outOfOrderLine: "#625B52",
 } as const;
 
 export const darkStatusTokens = {
   ...statusTokens,
+  ready: "#76CBBB",
+  clean: "#79B9E0",
+  inProgress: "#C1A3F5",
+  dirty: "#F18A93",
+  occupied: "#F18A93",
+  pickup: "#E5B65D",
+  outOfOrder: "#BDB5AA",
   readySoft: "rgba(14, 116, 104, 0.20)",
+  readyLine: "#76CBBB",
   cleanSoft: "rgba(47, 111, 149, 0.22)",
+  cleanLine: "#79B9E0",
+  inProgressSoft: "rgba(104, 64, 149, 0.24)",
+  inProgressLine: "#C1A3F5",
   dirtySoft: "rgba(169, 54, 63, 0.22)",
+  dirtyLine: "#F18A93",
   pickupSoft: "rgba(183, 121, 31, 0.24)",
+  pickupLine: "#E5B65D",
   outOfOrderSoft: "rgba(116, 109, 99, 0.24)",
+  outOfOrderLine: "#BDB5AA",
 } as const;
 
 export const aiTokens = {
@@ -48,44 +65,89 @@ export const darkAiTokens = {
   secondary: "#2DD4BF",
   electric: "#7DD3FC",
   soft: "rgba(167, 139, 250, 0.16)",
-  line: "rgba(167, 139, 250, 0.36)",
+  line: "#826BC1",
   glow: "rgba(167, 139, 250, 0.42)",
 } as const;
 
-/** The dark "Evening Lobby" chrome — a designed constant across themes.
- *  Used for the tab bar, screen heroes, and AI surfaces. */
-export const shellTokens = {
+/** The light-mode "Evening Lobby" frame around the warm paper canvas. */
+export const lightShellTokens = {
   bg: "#20251F",
   surface: "#2A2F28",
   raised: "#333931",
-  line: "#3A4038",
+  line: "#706F61",
   ink: "#F1EDE2",
   ink2: "#B9B5A7",
-  ink3: "#84816F",
+  ink3: "#9A9688",
 } as const;
+
+/** A visibly deeper warm-charcoal frame around the dark content layers. */
+export const darkShellTokens = {
+  bg: "#090806",
+  surface: "#13110F",
+  raised: "#1B1814",
+  line: "#625C50",
+  ink: "#F1EDE2",
+  ink2: "#B9B5A7",
+  ink3: "#918A7E",
+} as const;
+
+// Temporary source-compatibility alias for legacy C consumers.
+export const shellTokens = lightShellTokens;
 
 export const lightTheme = {
   background: "#F8F1E7",
   surface: "#FFFDFC",
   surfaceSubtle: "#FBF9F3",
+  surfaceElevated: "#FFFFFF",
   surfaceMuted: "#F0EBE1",
   textPrimary: "#2C2621",
-  textSecondary: "#766D63",
-  textMuted: "#807A70",
-  border: "#E4D6C4",
+  textSecondary: "#6E655B",
+  textMuted: "#696259",
+  border: "#8E8274",
   borderSubtle: "#EEE8DB",
   primary: "#2F5D50",
   primaryAction: "#4F7A5A",
   primarySoft: "#E0EBE1",
-  primaryLine: "#B9CFBC",
+  primaryLine: "#6D8872",
+  destructiveAction: "#A9363F",
+  onPrimary: "#FFFFFF",
+  onDestructive: "#FFFFFF",
+  onDisabled: "#59665B",
+  onAi: "#FFFFFF",
   accentBrass: "#C29A4A",
   accentClay: "#E8B89A",
-  textDisabled: "#B7AA99",
+  textDisabled: "#696259",
   accentBrassSoft: "#F4E7C6",
   accentBrassLine: "#E2C679",
-  shell: shellTokens,
+  glass: "rgba(44, 38, 33, 0.03)",
+  glassBorder: "rgba(44, 38, 33, 0.12)",
+  shell: lightShellTokens,
   ai: aiTokens,
   status: statusTokens,
+  banner: {
+    offline: {
+      background: "#8E2D35",
+      foreground: "#FFFFFF",
+      border: "#F3B1B7",
+    },
+  },
+  toast: {
+    success: {
+      background: "#176B5B",
+      foreground: "#FFFFFF",
+      border: "#BFE4D6",
+    },
+    error: {
+      background: "#92303A",
+      foreground: "#FFFFFF",
+      border: "#F3B1B7",
+    },
+    info: {
+      background: "#245F82",
+      foreground: "#FFFFFF",
+      border: "#B5D9ED",
+    },
+  },
 } as const;
 
 export const darkTheme = {
@@ -99,23 +161,52 @@ export const darkTheme = {
   surfaceMuted: "#2B2720",
   textPrimary: "#F1EDE4",
   textSecondary: "#C5BEAF",
-  textMuted: "#918A7E",
-  border: "#353026",
+  textMuted: "#9B9488",
+  border: "#71685B",
   borderSubtle: "#2B2720",
   primary: "#6FA086",
   primaryAction: "#7EA889",
   primarySoft: "rgba(126, 168, 137, 0.18)",
-  primaryLine: "rgba(126, 168, 137, 0.36)",
+  primaryLine: "#587C66",
+  destructiveAction: "#E27B84",
+  onPrimary: "#0F1A14",
+  onDestructive: "#1C0D0F",
+  onDisabled: "#B5C8B7",
+  onAi: "#1A102A",
   accentBrass: "#D0A85A",
   accentClay: "#C98262",
-  textDisabled: "#6E685E",
+  textDisabled: "#9B9488",
   accentBrassSoft: "rgba(208, 168, 90, 0.20)",
   accentBrassLine: "rgba(208, 168, 90, 0.40)",
   glass: "rgba(255, 255, 255, 0.06)",
   glassBorder: "rgba(255, 255, 255, 0.10)",
-  shell: shellTokens,
+  shell: darkShellTokens,
   ai: darkAiTokens,
   status: darkStatusTokens,
+  banner: {
+    offline: {
+      background: "#D96D76",
+      foreground: "#1C0D0F",
+      border: "#5E1D25",
+    },
+  },
+  toast: {
+    success: {
+      background: "#5FAF9E",
+      foreground: "#101714",
+      border: "#184C42",
+    },
+    error: {
+      background: "#E27B84",
+      foreground: "#1C0D0F",
+      border: "#6B202A",
+    },
+    info: {
+      background: "#6EADD2",
+      foreground: "#0D161C",
+      border: "#214F69",
+    },
+  },
 } as const;
 
 export type ThemeMode = "light" | "dark";
@@ -123,6 +214,8 @@ export type ThemeMode = "light" | "dark";
 export function getThemeTokens(mode: ThemeMode = "light") {
   return mode === "dark" ? darkTheme : lightTheme;
 }
+
+export type ThemeTokens = ReturnType<typeof getThemeTokens>;
 
 export const C = {
   paper: lightTheme.background,

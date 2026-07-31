@@ -141,11 +141,12 @@ describe("mobile visual tokens", () => {
 
   it("keeps status meanings while applying the refined room-status palette", () => {
     expect(statusTokens.ready).toBe("#0E7468");
-    expect(statusTokens.clean).toBe("#2F6F95");
+    expect(statusTokens.clean).toBe("#285F80");
+    expect(statusTokens.inProgress).toBe("#684095");
     expect(statusTokens.dirty).toBe("#A9363F");
     expect(statusTokens.occupied).toBe(statusTokens.dirty);
-    expect(statusTokens.pickup).toBe("#B7791F");
-    expect(statusTokens.outOfOrder).toBe("#746D63");
+    expect(statusTokens.pickup).toBe("#82540F");
+    expect(statusTokens.outOfOrder).toBe("#625B52");
 
     expect(getRoomTone("INSPECTED")).toBe("ready");
     expect(getRoomTone("CLEAN")).toBe("clean");
@@ -262,7 +263,6 @@ describe.each(themes)("%s semantic token contrast", (themeName, theme) => {
   it.each([
     ["primary action", theme.onPrimary, theme.primaryAction],
     ["pressed primary action", theme.onPrimary, theme.primary],
-    ["disabled action", theme.onDisabled, theme.primarySoft],
     ["destructive action", theme.onDestructive, theme.destructiveAction],
     ["AI action", theme.onAi, theme.ai.primary],
   ] as const)(
@@ -271,6 +271,15 @@ describe.each(themes)("%s semantic token contrast", (themeName, theme) => {
       expectContrast(foreground, background, NORMAL_TEXT_CONTRAST);
     },
   );
+
+  it(`disabled action foreground / composited fill meets ${NORMAL_TEXT_CONTRAST}:1`, () => {
+    expectCompositedContrast(
+      theme.onDisabled,
+      theme.primarySoft,
+      theme.surface,
+      NORMAL_TEXT_CONTRAST,
+    );
+  });
 
   it.each([
     ["card boundary / background", theme.border, theme.background],
