@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { router } from "expo-router";
@@ -33,9 +32,14 @@ import {
 } from "@/lib/engineering/workOrders";
 import { getGreetingKey } from "@/lib/ai/companion";
 import { dynamicShiftMeta } from "@/lib/utils/date";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
+import { R, monoFont } from "@/components/shared/tokens";
 import { Avatar, CopilotHero, HeroButton } from "@/components/shared/mobileHandoff";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 /* ─── Engineer Home — the duty board ────────────────────────────────────────
    Everything here is live: the workload mosaic and signal chips come from the
@@ -78,6 +82,7 @@ function WorkloadMosaic({
   viewerId: string | null | undefined;
   onPress: (wo: WorkOrder) => void;
 }) {
+  const theme = useTheme();
   const now = Date.now();
   if (orders.length === 0) return null;
   return (
@@ -90,15 +95,14 @@ function WorkloadMosaic({
           ? { bg: "rgba(169, 54, 63, 0.22)", line: "rgba(231, 169, 176, 0.45)", fg: "#E7A9B0" }
           : mine
             ? { bg: "rgba(183, 121, 31, 0.24)", line: "rgba(228, 193, 116, 0.45)", fg: "#E4C174" }
-            : { bg: shellTokens.raised, line: shellTokens.line, fg: shellTokens.ink2 };
+            : { bg: theme.shell.raised, line: theme.shell.line, fg: theme.shell.ink2 };
         const room = wo.rooms?.room_number ?? null;
         const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
         return (
-          <TouchableOpacity
+          <Pressable
             key={wo.id}
             style={[mosaicStyles.tile, { backgroundColor: tone.bg, borderColor: tone.line }]}
             onPress={() => onPress(wo)}
-            activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={wo.title}
           >
@@ -107,7 +111,7 @@ function WorkloadMosaic({
             ) : (
               <Ionicons name={CATEGORY_META[categoryKey].icon} size={14} color={tone.fg} />
             )}
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>
@@ -131,6 +135,7 @@ const mosaicStyles = StyleSheet.create({
 export function EngineerHome({ name }: { name: string }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { user, isOnline } = useAppStore();
 
   const [open, setOpen] = useState<WorkOrder[]>([]);
@@ -274,11 +279,23 @@ export function EngineerHome({ name }: { name: string }) {
   }, [prediction, busy]);
 
   const signalChips = [
-    signals.urgent > 0 && { key: "urgent", label: t("workOrders.signalUrgent", { count: signals.urgent }), fg: "#E7A9B0" },
-    signals.pastSla > 0 && { key: "sla", label: t("workOrders.signalPastSla", { count: signals.pastSla }), fg: "#E7A9B0" },
-    signals.guest > 0 && { key: "guest", label: t("workOrders.signalGuest", { count: signals.guest }), fg: "#ACC9DB" },
-    signals.onHold > 0 && { key: "hold", label: t("workOrders.signalOnHold", { count: signals.onHold }), fg: "#E4C174" },
-  ].filter(Boolean) as { key: string; label: string; fg: string }[];
+    signals.urgent > 0 && {
+      key: "urgent",
+      statusKey: "urgent" as const,
+      label: t("workOrders.signalUrgent", { count: signals.urgent }),
+    },
+    signals.pastSla > 0 && {
+      key: "sla",
+      statusKey: "overdue" as const,
+      label: t("workOrders.signalPastSla", { count: signals.pastSla }),
+    },
+    signals.guest > 0 && { key: "guest", label: t("workOrders.signalGuest", { count: signals.guest }) },
+    signals.onHold > 0 && {
+      key: "hold",
+      statusKey: "onHold" as const,
+      label: t("workOrders.signalOnHold", { count: signals.onHold }),
+    },
+  ].filter(Boolean) as { key: string; label: string; statusKey?: "urgent" | "overdue" | "onHold" }[];
 
   const focusReason = (wo: WorkOrder): string => {
     if (wo.priority === "urgent") return t("home.engineer.reasonUrgent");
@@ -289,38 +306,38 @@ export function EngineerHome({ name }: { name: string }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock status="loading" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.shell.bg }]}>
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={shellTokens.ink2} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
-        <View style={styles.topBleed} />
+        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
 
-        <View style={[styles.hero, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.hero, { paddingTop: insets.top + 10, backgroundColor: theme.shell.bg }]}>
           <View style={styles.heroTop}>
             <Avatar name={name} size={34} />
-            <TouchableOpacity
-              style={styles.bellBtn}
+            <Pressable
+              style={[styles.bellBtn, { backgroundColor: theme.shell.raised, borderColor: theme.shell.line }]}
               onPress={() => router.push("/(app)/notifications" as never)}
               accessibilityRole="button"
               accessibilityLabel={t("tabs.notifications", { defaultValue: "Notifications" })}
             >
-              <Ionicons name="notifications-outline" size={17} color={shellTokens.ink2} />
-            </TouchableOpacity>
+              <Ionicons name="notifications-outline" size={17} color={theme.shell.ink2} />
+            </Pressable>
           </View>
-          <Text style={styles.heroMeta}>
+          <Text style={[styles.heroMeta, { color: theme.shell.ink3 }]}>
             {dynamicShiftMeta(user?.language_pref ?? "en", t("home.engineer.shiftMeta"))}
           </Text>
-          <Text style={styles.heroTitle}>{t(getGreetingKey(), { name: firstName(name) })}</Text>
-          <Text style={styles.heroSummary}>
+          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t(getGreetingKey(), { name: firstName(name) })}</Text>
+          <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
             {t("home.engineer.summary", { open: queue.length, bench: bench.length })}
             {doneToday > 0 ? ` · ${t("home.engineer.closedToday", { count: doneToday })}` : ""}
           </Text>
@@ -330,9 +347,16 @@ export function EngineerHome({ name }: { name: string }) {
           {signalChips.length > 0 ? (
             <View style={styles.signalRow}>
               {signalChips.map((chip) => (
-                <View key={chip.key} style={styles.signalChip}>
-                  <Text style={[styles.signalText, { color: chip.fg }]}>{chip.label}</Text>
-                </View>
+                chip.statusKey ? (
+                  <StatusBadge key={chip.key} statusKey={chip.statusKey} label={chip.label} />
+                ) : (
+                  <View
+                    key={chip.key}
+                    style={[styles.signalChip, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}
+                  >
+                    <Text style={[styles.signalText, { color: theme.status.clean }]}>{chip.label}</Text>
+                  </View>
+                )
               ))}
             </View>
           ) : null}
@@ -340,85 +364,83 @@ export function EngineerHome({ name }: { name: string }) {
 
         <View style={styles.body}>
           {focusOrder ? (
-            <View style={styles.focusCard} testID="engineer-focus">
-              <View style={styles.focusHead}>
-                <Text style={styles.focusKicker}>
-                  {focusIsBench ? t("home.engineer.benchKicker") : t("home.engineer.startKicker")}
+            <View testID="engineer-focus">
+              <Card style={styles.focusCard}>
+                <View style={styles.focusHead}>
+                  <Text style={[styles.focusKicker, { color: theme.primary }]}>
+                    {focusIsBench ? t("home.engineer.benchKicker") : t("home.engineer.startKicker")}
+                  </Text>
+                  {elapsed != null ? (
+                    <View style={styles.clockChip}>
+                      <Ionicons name="stopwatch-outline" size={11} color={theme.status.pickup} />
+                      <Text style={[styles.clockText, { color: theme.status.pickup }]}>{formatDuration(elapsed)}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={[styles.focusTitle, { color: theme.textPrimary }]} numberOfLines={2}>
+                  {focusOrder.title}
                 </Text>
-                {elapsed != null ? (
-                  <View style={styles.clockChip}>
-                    <Ionicons name="stopwatch-outline" size={11} color={C.caution} />
-                    <Text style={styles.clockText}>{formatDuration(elapsed)}</Text>
-                  </View>
+                <View style={styles.focusMeta}>
+                  {(() => {
+                    const categoryKey =
+                      focusOrder.category && CATEGORY_META[focusOrder.category] ? focusOrder.category : "general";
+                    const category = CATEGORY_META[categoryKey];
+                    const { room, text } = workOrderLocation(focusOrder);
+                    return (
+                      <>
+                        <View style={[styles.focusCategoryTile, { backgroundColor: category.bg }]}>
+                          <Ionicons name={category.icon} size={12} color={category.fg} />
+                        </View>
+                        <Text style={[styles.focusMetaText, { color: theme.textSecondary }]}>
+                          {t(`workOrders.category.${categoryKey}`)}
+                        </Text>
+                        {room ? (
+                          <>
+                            <View style={[styles.metaDot, { backgroundColor: theme.textDisabled }]} />
+                            <Text style={[styles.focusRoom, { color: theme.textSecondary }]}>{room}</Text>
+                          </>
+                        ) : text ? (
+                          <>
+                            <View style={[styles.metaDot, { backgroundColor: theme.textDisabled }]} />
+                            <Text style={[styles.focusMetaText, { color: theme.textSecondary }]} numberOfLines={1}>
+                              {text}
+                            </Text>
+                          </>
+                        ) : null}
+                      </>
+                    );
+                  })()}
+                </View>
+                {!focusIsBench ? (
+                  <Text style={[styles.focusReason, { color: theme.textMuted }]}>{focusReason(focusOrder)}</Text>
                 ) : null}
-              </View>
-              <Text style={styles.focusTitle} numberOfLines={2}>
-                {focusOrder.title}
-              </Text>
-              <View style={styles.focusMeta}>
-                {(() => {
-                  const categoryKey =
-                    focusOrder.category && CATEGORY_META[focusOrder.category] ? focusOrder.category : "general";
-                  const category = CATEGORY_META[categoryKey];
-                  const { room, text } = workOrderLocation(focusOrder);
-                  return (
-                    <>
-                      <View style={[styles.focusCategoryTile, { backgroundColor: category.bg }]}>
-                        <Ionicons name={category.icon} size={12} color={category.fg} />
-                      </View>
-                      <Text style={styles.focusMetaText}>{t(`workOrders.category.${categoryKey}`)}</Text>
-                      {room ? (
-                        <>
-                          <View style={styles.metaDot} />
-                          <Text style={styles.focusRoom}>{room}</Text>
-                        </>
-                      ) : text ? (
-                        <>
-                          <View style={styles.metaDot} />
-                          <Text style={styles.focusMetaText} numberOfLines={1}>
-                            {text}
-                          </Text>
-                        </>
-                      ) : null}
-                    </>
-                  );
-                })()}
-              </View>
-              {!focusIsBench ? <Text style={styles.focusReason}>{focusReason(focusOrder)}</Text> : null}
-              {focusIsBench ? (
-                <TouchableOpacity
-                  style={styles.focusBtn}
-                  onPress={() => openOrder(focusOrder)}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="construct-outline" size={15} color="#fff" />
-                  <Text style={styles.focusBtnText}>{t("home.engineer.openOrder")}</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.focusBtn}
-                  onPress={claimFocus}
-                  disabled={busy === "claim"}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                >
-                  {busy === "claim" ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="hand-right-outline" size={15} color="#fff" />
-                      <Text style={styles.focusBtnText}>{t("workOrders.claimStart")}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
+                {focusIsBench ? (
+                  <Button
+                    label={t("home.engineer.openOrder")}
+                    icon="construct-outline"
+                    onPress={() => openOrder(focusOrder)}
+                    style={styles.focusBtn}
+                  />
+                ) : (
+                  <Button
+                    label={t("workOrders.claimStart")}
+                    icon="hand-right-outline"
+                    onPress={claimFocus}
+                    loading={busy === "claim"}
+                    style={styles.focusBtn}
+                  />
+                )}
+              </Card>
             </View>
           ) : (
-            <View style={styles.clearCard} testID="engineer-clear">
-              <Ionicons name="checkmark-done-outline" size={26} color={C.ready} />
-              <Text style={styles.clearTitle}>{t("home.engineer.benchClear")}</Text>
-              <Text style={styles.clearHint}>{t("home.engineer.benchClearHint")}</Text>
+            <View testID="engineer-clear">
+              <StateBlock
+                status="empty"
+                emptyIcon="checkmark-done-outline"
+                emptyTitle={t("home.engineer.benchClear")}
+                emptyBody={t("home.engineer.benchClearHint")}
+                style={styles.clearCard}
+              />
             </View>
           )}
 
@@ -437,8 +459,8 @@ export function EngineerHome({ name }: { name: string }) {
                 </>
               }
             >
-              <Text style={styles.predictionText}>
-                <Text style={styles.predictionStrong}>
+              <Text style={[styles.predictionText, { color: theme.shell.ink2 }]}>
+                <Text style={[styles.predictionStrong, { color: theme.shell.ink }]}>
                   {prediction.assets?.name ?? t("assets.fallbackAsset")}
                 </Text>
                 : {prediction.recommendation}
@@ -447,38 +469,47 @@ export function EngineerHome({ name }: { name: string }) {
           ) : null}
 
           {pm.overdue > 0 || pm.due > 0 ? (
-            <TouchableOpacity
-              style={styles.pmStrip}
+            <Pressable
               onPress={() => router.push("/(app)/pm-schedules" as never)}
-              activeOpacity={0.85}
               accessibilityRole="button"
               testID="engineer-pm-strip"
             >
-              <View style={styles.pmTile}>
-                <Ionicons name="calendar-outline" size={16} color={C.caution} />
-              </View>
-              <View style={styles.pmBody}>
-                <Text style={styles.pmTitle}>{t("home.engineer.pmTitle")}</Text>
-                <Text style={styles.pmText}>
-                  {t("home.engineer.pmAttention", { overdue: pm.overdue, due: pm.due })}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={15} color={C.caution} />
-            </TouchableOpacity>
+              <Card
+                style={[
+                  styles.pmStrip,
+                  {
+                    backgroundColor: theme.status.pickupSoft,
+                    borderColor: theme.status.pickupLine,
+                    borderRadius: R.md,
+                  },
+                ]}
+              >
+                <View style={[styles.pmTile, { backgroundColor: theme.surface }]}>
+                  <Ionicons name="calendar-outline" size={16} color={theme.status.pickup} />
+                </View>
+                <View style={styles.pmBody}>
+                  <Text style={[styles.pmTitle, { color: theme.textPrimary }]}>{t("home.engineer.pmTitle")}</Text>
+                  <Text style={[styles.pmText, { color: theme.status.pickup }]}>
+                    {t("home.engineer.pmAttention", { overdue: pm.overdue, due: pm.due })}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={15} color={theme.status.pickup} />
+              </Card>
+            </Pressable>
           ) : null}
 
           <View style={styles.quickGrid}>
             {QUICK_LINKS.map((link) => (
-              <TouchableOpacity
+              <Pressable
                 key={link.key}
-                style={styles.quickLink}
                 onPress={() => router.push(link.href as never)}
-                activeOpacity={0.85}
                 accessibilityRole="button"
               >
-                <Ionicons name={link.icon} size={16} color={C.accent} />
-                <Text style={styles.quickLinkText}>{t(link.labelKey)}</Text>
-              </TouchableOpacity>
+                <Card style={[styles.quickLink, { borderColor: theme.primaryLine }]}>
+                  <Ionicons name={link.icon} size={16} color={theme.primaryAction} />
+                  <Text style={[styles.quickLinkText, { color: theme.primaryAction }]}>{t(link.labelKey)}</Text>
+                </Card>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -488,16 +519,15 @@ export function EngineerHome({ name }: { name: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: shellTokens.bg },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  scroll: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
 
   hero: {
     paddingHorizontal: 18,
     paddingBottom: 20,
-    backgroundColor: shellTokens.bg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -506,9 +536,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: R.md,
-    backgroundColor: shellTokens.raised,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -517,16 +545,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: shellTokens.ink3,
     marginBottom: 4,
   },
-  heroTitle: { fontSize: 30, fontWeight: "600", lineHeight: 34, color: shellTokens.ink },
-  heroSummary: { marginTop: 7, fontSize: 13.5, lineHeight: 19, color: shellTokens.ink2 },
+  heroTitle: { fontSize: 30, fontWeight: "600", lineHeight: 34 },
+  heroSummary: { marginTop: 7, fontSize: 13.5, lineHeight: 19 },
   signalRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
   signalChip: {
-    backgroundColor: shellTokens.surface,
     borderWidth: 1,
-    borderColor: shellTokens.line,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 3.5,
@@ -536,17 +561,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 28, gap: 13 },
 
   focusCard: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
-    padding: 16,
     gap: 9,
-    shadowColor: C.ink,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
   },
   focusHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   focusKicker: {
@@ -554,53 +569,34 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: C.primary,
   },
   clockChip: { flexDirection: "row", alignItems: "center", gap: 4 },
-  clockText: { color: C.caution, fontSize: 12.5, fontWeight: "800", fontFamily: monoFont },
-  focusTitle: { color: C.ink, fontSize: 18, fontWeight: "700", lineHeight: 24 },
+  clockText: { fontSize: 12.5, fontWeight: "800", fontFamily: monoFont },
+  focusTitle: { fontSize: 18, fontWeight: "700", lineHeight: 24 },
   focusMeta: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
   focusCategoryTile: { width: 22, height: 22, borderRadius: 7, alignItems: "center", justifyContent: "center" },
-  focusMetaText: { color: C.ink2, fontSize: 12.5, fontWeight: "700", maxWidth: 170 },
-  metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.ink4, marginHorizontal: 2 },
-  focusRoom: { color: C.ink2, fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
-  focusReason: { color: C.ink3, fontSize: 12.5, lineHeight: 17 },
+  focusMetaText: { fontSize: 12.5, fontWeight: "700", maxWidth: 170 },
+  metaDot: { width: 3, height: 3, borderRadius: 1.5, marginHorizontal: 2 },
+  focusRoom: { fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
+  focusReason: { fontSize: 12.5, lineHeight: 17 },
   focusBtn: {
-    minHeight: 48,
-    borderRadius: 12,
-    backgroundColor: C.accent,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
     marginTop: 3,
   },
-  focusBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 
   clearCard: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
     paddingVertical: 26,
     paddingHorizontal: 16,
     alignItems: "center",
     gap: 6,
   },
-  clearTitle: { color: C.ink, fontSize: 15.5, fontWeight: "700" },
-  clearHint: { color: C.ink3, fontSize: 12.5, textAlign: "center", lineHeight: 18 },
 
-  predictionText: { color: "rgba(241,237,228,0.9)", fontSize: 14, lineHeight: 20 },
-  predictionStrong: { fontWeight: "700", color: C.paper },
+  predictionText: { fontSize: 14, lineHeight: 20 },
+  predictionStrong: { fontWeight: "700" },
 
   pmStrip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: C.cautionSoft,
-    borderWidth: 1,
-    borderColor: C.cautionLine,
-    borderRadius: R.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -608,13 +604,12 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 11,
-    backgroundColor: C.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   pmBody: { flex: 1 },
-  pmTitle: { color: C.ink, fontSize: 13.5, fontWeight: "700" },
-  pmText: { color: C.caution, fontSize: 11.5, marginTop: 2, fontWeight: "600" },
+  pmTitle: { fontSize: 13.5, fontWeight: "700" },
+  pmText: { fontSize: 11.5, marginTop: 2, fontWeight: "600" },
 
   quickGrid: {
     flexDirection: "row",
@@ -628,10 +623,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
     minHeight: 48,
-    borderRadius: R.md,
-    borderWidth: 1,
-    borderColor: C.accentLine,
-    backgroundColor: C.surface,
   },
-  quickLinkText: { color: C.accent, fontSize: 13.5, fontWeight: "800" },
+  quickLinkText: { fontSize: 13.5, fontWeight: "800" },
 });

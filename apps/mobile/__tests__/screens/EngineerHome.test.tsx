@@ -50,11 +50,20 @@ import { listWorkOrders, claimWorkOrder } from "@/lib/api/workOrders";
 import { getFailurePredictions } from "@/lib/api/assets";
 import { api } from "@/lib/api/client";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 const mockList = listWorkOrders as jest.Mock;
 const mockClaim = claimWorkOrder as jest.Mock;
 const mockPredictions = getFailurePredictions as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
+
+function renderEngineerHome() {
+  return render(
+    <ThemeProvider>
+      <EngineerHome name="Dev Patel" />
+    </ThemeProvider>
+  );
+}
 
 const openWO = {
   id: "wo-open",
@@ -92,7 +101,7 @@ describe("EngineerHome", () => {
       return [];
     });
 
-    const { getByText, getByTestId } = render(<EngineerHome name="Dev Patel" />);
+    const { getByText, getByTestId } = renderEngineerHome();
     await waitFor(() => expect(getByTestId("engineer-focus")).toBeTruthy());
     expect(getByText("home.engineer.benchKicker")).toBeTruthy();
     expect(getByText("Replace fan-coil belt")).toBeTruthy();
@@ -102,7 +111,7 @@ describe("EngineerHome", () => {
   it("offers Claim & start on the top queue order when the bench is empty", async () => {
     mockList.mockImplementation(async (status: string) => (status === "open" ? [openWO] : []));
 
-    const { getByText, getByTestId } = render(<EngineerHome name="Dev Patel" />);
+    const { getByText, getByTestId } = renderEngineerHome();
     await waitFor(() => expect(getByTestId("engineer-focus")).toBeTruthy());
     expect(getByText("home.engineer.startKicker")).toBeTruthy();
 
@@ -114,7 +123,7 @@ describe("EngineerHome", () => {
   });
 
   it("shows the bench-clear state when there is no live work", async () => {
-    const { getByTestId } = render(<EngineerHome name="Dev Patel" />);
+    const { getByTestId } = renderEngineerHome();
     await waitFor(() => expect(getByTestId("engineer-clear")).toBeTruthy());
   });
 
@@ -133,13 +142,13 @@ describe("EngineerHome", () => {
       ],
     });
 
-    const { getByText } = render(<EngineerHome name="Dev Patel" />);
+    const { getByText } = renderEngineerHome();
     await waitFor(() => expect(getByText(/Swap the belt before Friday/)).toBeTruthy());
     expect(getByText(/Fan-coil 209/)).toBeTruthy();
   });
 
   it("gives every engineer quick links to Orders, Rooms, Assets, and PM", async () => {
-    const { getByText, getByTestId } = render(<EngineerHome name="Dev Patel" />);
+    const { getByText, getByTestId } = renderEngineerHome();
     await waitFor(() => expect(getByTestId("engineer-clear")).toBeTruthy());
 
     const links = [
