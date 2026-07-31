@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function SupplyRequestModal({ visible, roomId, roomNumber, onClose }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
@@ -79,9 +81,9 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
         >
           <View style={styles.titleRow}>
             <Ionicons name="cube-outline" size={16} color={theme.primaryAction} />
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Request Supplies</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{t("supplies.request")}</Text>
           </View>
-          <Text style={[styles.sub, { color: theme.textMuted }]}>Room {roomNumber} — tap what you need</Text>
+          <Text style={[styles.sub, { color: theme.textMuted }]}>{t("supplies.roomTapHint", { room: roomNumber })}</Text>
           <View style={styles.items}>
             {SUPPLY_ITEMS.map((item) => {
               const active = selected.has(item.key);
@@ -125,7 +127,7 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
             style={[styles.customInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
             value={customNote}
             onChangeText={setCustomNote}
-            placeholder="Other (e.g. extra pillow, folding cot...)"
+            placeholder={t("supplies.otherPlaceholder")}
             placeholderTextColor={theme.textMuted}
           />
           <View style={styles.actions}>

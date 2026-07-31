@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { createWorkOrder, type CreateWorkOrderPayload } from "@/lib/api/workOrders";
@@ -41,6 +42,7 @@ interface ReportIssueModalProps {
 }
 
 export default function ReportIssueModal({ visible, roomId, roomNumber, onClose }: ReportIssueModalProps) {
+  const { t } = useTranslation();
   const isOnline = useAppStore((s) => s.isOnline);
   const theme = useTheme();
   const [title, setTitle] = useState("");
@@ -92,17 +94,19 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: theme.surface }]}>
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Submit Work Order</Text>
-            <Text style={[styles.subtitle, { color: theme.textMuted }]}>Room {roomNumber}</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{t("reportIssue.submit")}</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted }]}>{t("reportIssue.roomLabel", { room: roomNumber })}</Text>
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
             {/* Issue title */}
-            <Text style={[styles.label, { color: theme.textMuted }]}>Issue title <Text style={{ color: theme.status.dirty }}>*</Text></Text>
+            <Text style={[styles.label, { color: theme.textMuted }]}>
+              {t("reportIssue.issueTitle")} <Text style={{ color: theme.status.dirty }}>*</Text>
+            </Text>
             <TextInput
               testID="title-input"
               style={[styles.input, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
-              placeholder="e.g. Toilet not flushing, A/C not cooling"
+              placeholder={t("reportIssue.titlePlaceholder")}
               placeholderTextColor={theme.textMuted}
               value={title}
               onChangeText={setTitle}
@@ -110,7 +114,9 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             />
 
             {/* Category */}
-            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>Category <Text style={{ color: theme.status.dirty }}>*</Text></Text>
+            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>
+              {t("reportIssue.category")} <Text style={{ color: theme.status.dirty }}>*</Text>
+            </Text>
             <TouchableOpacity
               testID="category-select"
               style={[styles.selectRow, { borderColor: theme.border, backgroundColor: theme.background }]}
@@ -156,7 +162,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             )}
 
             {/* Priority */}
-            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>Priority</Text>
+            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>{t("reportIssue.priority")}</Text>
             <View style={styles.priorityRow}>
               {PRIORITIES.map((p) => {
                 const isActive = priority === p.value;
@@ -188,11 +194,13 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             </View>
 
             {/* Details */}
-            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>Details <Text style={{ color: theme.textMuted, fontWeight: "400" }}>(optional)</Text></Text>
+            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>
+              {t("reportIssue.details")} <Text style={{ color: theme.textMuted, fontWeight: "400" }}>{t("reportIssue.optional")}</Text>
+            </Text>
             <TextInput
               testID="description-input"
               style={[styles.input, styles.textarea, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
-              placeholder="Describe what you found…"
+              placeholder={t("reportIssue.detailsPlaceholder")}
               placeholderTextColor={theme.textMuted}
               value={description}
               onChangeText={setDescription}

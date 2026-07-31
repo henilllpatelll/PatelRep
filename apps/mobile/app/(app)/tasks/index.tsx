@@ -250,7 +250,9 @@ export default function TasksScreen() {
             <Text style={[styles.previewTitle, { color: theme.shell.ink }]}>{aiPreview.title}</Text>
             <View style={styles.previewMetaRow}>
               {aiPreview.room_number ? (
-                <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>Room {aiPreview.room_number}</Text>
+                <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>
+                  {t("tasks.roomLabel", { room: aiPreview.room_number })}
+                </Text>
               ) : null}
               <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{aiPreview.priority?.toUpperCase()}</Text>
               <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{aiPreview.task_type}</Text>

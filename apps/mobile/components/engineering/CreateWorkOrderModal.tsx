@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { createWorkOrder } from "@/lib/api/workOrders";
 import { monoFont, R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -54,6 +55,7 @@ interface Props {
 }
 
 export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onClose, onCreated }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
@@ -118,7 +120,7 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
         >
           <View style={styles.titleRow}>
             <Ionicons name="construct-outline" size={16} color={theme.primaryAction} />
-            <Text style={[styles.title, { color: theme.textPrimary }]}>New Work Order</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{t("workOrders.newWorkOrder")}</Text>
             {roomNumber ? (
               <View style={[styles.roomBadge, { backgroundColor: theme.primarySoft, borderColor: theme.primaryLine }]}>
                 <Text style={[styles.roomBadgeText, { color: theme.primaryAction }]}>{roomNumber}</Text>
@@ -130,7 +132,7 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
             style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
             value={title}
             onChangeText={setTitle}
-            placeholder="What needs to be fixed?"
+            placeholder={t("workOrders.whatNeedsFixing")}
             placeholderTextColor={theme.textMuted}
             autoFocus
           />
@@ -143,7 +145,7 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
             ]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Details (optional)"
+            placeholder={t("workOrders.detailsOptionalPlaceholder")}
             placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={2}
@@ -152,18 +154,18 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
 
           {!roomId ? (
             <>
-              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Location</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("workOrders.location")}</Text>
               <TextInput
                 style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
                 value={location}
                 onChangeText={setLocation}
-                placeholder="Room number or area (e.g. 204, Lobby HVAC)"
+                placeholder={t("workOrders.locationPlaceholder")}
                 placeholderTextColor={theme.textMuted}
               />
             </>
           ) : null}
 
-          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Category</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("workOrders.categoryLabel")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {CATEGORIES.map((cat) => {
               const active = category === cat.key;
@@ -188,7 +190,7 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
             })}
           </ScrollView>
 
-          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Priority</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("workOrders.priority")}</Text>
           <View style={styles.priorityRow}>
             {PRIORITIES.map((p) => {
               const active = priority === p.key;
@@ -218,7 +220,7 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
             })}
           </View>
 
-          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>Reported By</Text>
+          <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("workOrders.reportedBy")}</Text>
           <View style={styles.sourceRow}>
             {SOURCES.map((s) => {
               const active = source === s.key;
