@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
+import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
@@ -11,14 +12,29 @@ import { supabase, toAppRole } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
 import { deferAuthHydration } from "@/lib/auth/deferAuthHydration";
-import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import {
+  ThemeProvider,
+  useAppearancePreference,
+} from "@/lib/theme/ThemeProvider";
+import { useTheme } from "@/lib/theme/useTheme";
+import { getNavigationTheme } from "@/lib/theme/navigationTheme";
 
 // Must be at module scope — calling inside a component or useEffect is too late.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootChrome />
+    </ThemeProvider>
+  );
+}
+
+function RootChrome() {
   const router = useRouter();
   const { setUser, setIsOnline, setIsLoading, isLoading } = useAppStore();
+  const { mode, isHydrated } = useAppearancePreference();
+  const theme = useTheme();
 
   useEffect(() => {
     const {
@@ -80,12 +96,12 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Hide splash screen once auth state has resolved.
+  // Hide splash only after auth and the saved appearance have both resolved.
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && isHydrated) {
       SplashScreen.hideAsync();
     }
-  }, [isLoading]);
+  }, [isLoading, isHydrated]);
 
   // Safety timeout: prevent permanent splash lock on slow devices or network errors.
   useEffect(() => {
@@ -132,13 +148,19 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, []);
 
+  if (!isHydrated) return null;
+
   return (
-    <ThemeProvider>
-      <StatusBar style="auto" />
+    <NavigationThemeProvider value={getNavigationTheme(mode)}>
+      <StatusBar
+        style={mode === "dark" ? "light" : "dark"}
+        backgroundColor={theme.shell.bg}
+        animated={false}
+      />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
       </Stack>
-    </ThemeProvider>
+    </NavigationThemeProvider>
   );
 }
