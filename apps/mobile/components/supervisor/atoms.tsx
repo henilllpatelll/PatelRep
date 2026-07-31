@@ -1,10 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { R, monoFont } from "@/components/shared/tokens";
 import { getTileVisual } from "@/components/home/CompanionHome";
 import { getStatusMeta, ProgressBar, StatusRail } from "@/components/shared/evening";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import type { FloorRoom, TeamLoad } from "@/lib/housekeeping/supervisor";
+import { useTheme } from "@/lib/theme/useTheme";
 
 /* ─── Supervisor atoms — Evening Lobby language for the floor-command view ── */
 
@@ -73,12 +74,16 @@ export function RoomStatusTile({
   assigneeName: string | null;
   onPress: () => void;
 }) {
+  const theme = useTheme();
   const meta = getStatusMeta(room.status);
   return (
-    <TouchableOpacity
-      style={[styles.tile, { backgroundColor: meta.bg, borderColor: meta.border }]}
+    <Pressable
+      style={({ pressed }) => [
+        styles.tile,
+        { backgroundColor: meta.bg, borderColor: meta.border },
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
-      activeOpacity={0.8}
       accessibilityRole="button"
       accessibilityLabel={`${room.roomNumber} — ${meta.label}`}
       testID={`board-tile-${room.roomNumber}`}
@@ -88,16 +93,16 @@ export function RoomStatusTile({
         <View style={styles.tileTopRow}>
           <Text style={[styles.tileNumber, { color: meta.fg }]}>{room.roomNumber}</Text>
           <View style={styles.tileIcons}>
-            {room.dnd ? <Ionicons name="moon" size={10} color={C.ink3} /> : null}
-            {room.openWorkOrder ? <Ionicons name="construct" size={10} color={C.caution} /> : null}
-            {room.latestNote ? <Ionicons name="chatbox" size={10} color={C.info} /> : null}
+            {room.dnd ? <Ionicons name="moon" size={10} color={theme.textMuted} /> : null}
+            {room.openWorkOrder ? <Ionicons name="construct" size={10} color={theme.status.pickup} /> : null}
+            {room.latestNote ? <Ionicons name="chatbox" size={10} color={theme.status.clean} /> : null}
           </View>
         </View>
-        <Text style={styles.tileAssignee} numberOfLines={1}>
+        <Text style={[styles.tileAssignee, { color: theme.textMuted }]} numberOfLines={1}>
           {assigneeName ? assigneeName.split(/\s+/)[0] : "—"}
         </Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -115,54 +120,62 @@ export function TeamLoadRow({
   onPress?: () => void;
   onMessage?: () => void;
 }) {
+  const theme = useTheme();
   const activeRoom = load.rooms.find((r) => r.status === "IN_PROGRESS") ?? null;
   const avgMin = load.done > 0
     ? Math.round(load.rooms.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").reduce((acc, r) => acc + r.baseCleanMinutes, 0) / load.done)
     : null;
 
   return (
-    <TouchableOpacity
-      style={styles.loadRow}
+    <Pressable
+      style={({ pressed }) => [
+        styles.loadRow,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        pressed && (onPress || onMessage) ? styles.pressed : null,
+      ]}
       onPress={onPress}
       disabled={!onPress && !onMessage}
-      activeOpacity={0.8}
       testID={`team-load-${load.housekeeperId}`}
     >
       <Avatar name={load.name} size={38} />
       <View style={styles.loadBody}>
         <View style={styles.loadTitleRow}>
-          <Text style={styles.loadName} numberOfLines={1}>{load.name}</Text>
-          {load.inProgress > 0 ? <View style={styles.loadActiveDot} /> : null}
+          <Text style={[styles.loadName, { color: theme.textPrimary }]} numberOfLines={1}>{load.name}</Text>
+          {load.inProgress > 0 ? <View style={[styles.loadActiveDot, { backgroundColor: theme.status.pickup }]} /> : null}
           {load.overAssigned ? (
-            <View style={styles.overAssignedChip}>
-              <Text style={styles.overAssignedText}>⚠ Over</Text>
+            <View style={[styles.overAssignedChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
+              <Text style={[styles.overAssignedText, { color: theme.status.pickup }]}>⚠ Over</Text>
             </View>
           ) : null}
-          <Text style={styles.loadCount}>{load.done}/{load.total}</Text>
-          {avgMin !== null ? <Text style={styles.loadAvg}>~{avgMin}m</Text> : null}
+          <Text style={[styles.loadCount, { color: theme.textMuted }]}>{load.done}/{load.total}</Text>
+          {avgMin !== null ? <Text style={[styles.loadAvg, { color: theme.textMuted }]}>~{avgMin}m</Text> : null}
         </View>
-        <ProgressBar value={load.done} total={load.total} color={load.overAssigned ? C.caution : C.ready} />
+        <ProgressBar value={load.done} total={load.total} color={load.overAssigned ? theme.status.pickup : theme.status.ready} />
         <View style={styles.loadMetaRow}>
-          <Text style={styles.loadSummary}>{summary}</Text>
+          <Text style={[styles.loadSummary, { color: theme.textMuted }]}>{summary}</Text>
           {activeRoom ? (
-            <Text style={styles.loadCurrentRoom} numberOfLines={1}>In {activeRoom.roomNumber}</Text>
+            <Text style={[styles.loadCurrentRoom, { color: theme.status.pickup }]} numberOfLines={1}>In {activeRoom.roomNumber}</Text>
           ) : null}
         </View>
       </View>
       {onMessage ? (
-        <TouchableOpacity
-          style={styles.messageBtn}
+        <Pressable
+          style={({ pressed }) => [
+            styles.messageBtn,
+            { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine },
+            pressed && styles.pressed,
+          ]}
           onPress={onMessage}
           hitSlop={8}
           accessibilityLabel={`Message ${load.name}`}
           testID={`message-${load.housekeeperId}`}
         >
-          <Ionicons name="chatbubble-outline" size={16} color={C.info} />
-        </TouchableOpacity>
+          <Ionicons name="chatbubble-outline" size={16} color={theme.status.clean} />
+        </Pressable>
       ) : onPress ? (
-        <Ionicons name="chevron-forward" size={14} color={C.ink4} />
+        <Ionicons name="chevron-forward" size={14} color={theme.textDisabled} />
       ) : null}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -201,35 +214,34 @@ const styles = StyleSheet.create({
   tileTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 },
   tileNumber: { fontFamily: monoFont, fontSize: 16, fontWeight: "800" },
   tileIcons: { flexDirection: "row", alignItems: "center", gap: 3 },
-  tileAssignee: { fontSize: 10.5, fontWeight: "600", color: C.ink3 },
+  tileAssignee: { fontSize: 10.5, fontWeight: "600" },
 
   loadRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.lg,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   loadBody: { flex: 1, minWidth: 0, gap: 6 },
   loadTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  loadName: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: "700", color: C.ink },
-  loadActiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.caution },
-  loadCount: { fontFamily: monoFont, fontSize: 12, fontWeight: "800", color: C.ink3 },
+  loadName: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: "700" },
+  loadActiveDot: { width: 7, height: 7, borderRadius: 4 },
+  loadCount: { fontFamily: monoFont, fontSize: 12, fontWeight: "800" },
   loadMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
-  loadSummary: { fontSize: 11.5, color: C.ink3, flex: 1 },
-  loadCurrentRoom: { fontSize: 11.5, fontWeight: "700", color: C.caution },
-  loadAvg: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: C.ink3 },
+  loadSummary: { fontSize: 11.5, flex: 1 },
+  loadCurrentRoom: { fontSize: 11.5, fontWeight: "700" },
+  loadAvg: { fontFamily: monoFont, fontSize: 11, fontWeight: "700" },
   overAssignedChip: {
-    backgroundColor: C.cautionSoft, borderWidth: 1, borderColor: C.cautionLine,
+    borderWidth: 1,
     borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2,
   },
-  overAssignedText: { fontSize: 9.5, fontWeight: "800", color: C.caution },
+  overAssignedText: { fontSize: 9.5, fontWeight: "800" },
   messageBtn: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: C.infoSoft,
-    borderWidth: 1, borderColor: C.infoLine, alignItems: "center", justifyContent: "center",
+    width: 34, height: 34, borderRadius: 17,
+    borderWidth: 1, alignItems: "center", justifyContent: "center",
   },
+  pressed: { opacity: 0.8 },
 });
