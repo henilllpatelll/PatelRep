@@ -1,5 +1,5 @@
 import React from "react";
-import { render, waitFor, screen } from "@testing-library/react-native";
+import { fireEvent, render, waitFor, screen } from "@testing-library/react-native";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
@@ -34,6 +34,7 @@ jest.mock("@/stores/appStore", () => ({
 }));
 
 import { api } from "@/lib/api/client";
+import { router } from "expo-router";
 import GuestRequestsScreen from "@/app/(app)/guest-requests";
 
 const mockApiGet = api.get as jest.Mock;
@@ -67,5 +68,15 @@ describe("GuestRequestsScreen", () => {
     expect(screen.getByText(/Escalated requests stay surfaced/)).toBeTruthy();
     expect(screen.getByText("Towels")).toBeTruthy();
     expect(screen.getByText("urgent")).toBeTruthy();
+  });
+
+  it("opens the selected request detail", async () => {
+    render(<GuestRequestsScreen />);
+
+    await waitFor(() => expect(screen.getByText("Room 214")).toBeTruthy());
+
+    fireEvent.press(screen.getByRole("button", { name: "Room 214" }));
+
+    expect(router.push).toHaveBeenCalledWith("/(app)/guest-requests/gr-1");
   });
 });
