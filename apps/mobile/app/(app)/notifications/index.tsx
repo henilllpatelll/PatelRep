@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { C, displayFont } from "@/components/shared/tokens";
+import { displayFont } from "@/components/shared/tokens";
 import { IconButton, Mono } from "@/components/shared/mobileHandoff";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StateBlock } from "@/components/ui/StateBlock";
 import { listNotifications, markAllRead, type AppNotification } from "@/lib/api/notifications";
+import { useTheme } from "@/lib/theme/useTheme";
 
 function timeLabel(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -43,6 +47,7 @@ function groupByTime(notifications: AppNotification[]): Array<{ when: string; it
 }
 
 export default function NotificationsScreen() {
+  const theme = useTheme();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,44 +85,62 @@ export default function NotificationsScreen() {
   const groups = groupByTime(notifications);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerMeta}>{notifications.length} unread</Text>
-        <Text style={styles.title}>Alerts</Text>
-        <TouchableOpacity onPress={handleMarkAll} disabled={markingAll || notifications.length === 0} style={styles.markReadBtn}>
-          <Text style={[styles.markRead, notifications.length === 0 && styles.markReadDim]}>
-            {markingAll ? "Clearing…" : "Mark all read"}
-          </Text>
-        </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>
+          {notifications.length} unread
+        </Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Alerts</Text>
+        <Button
+          label={markingAll ? "Clearing\u2026" : "Mark all read"}
+          onPress={handleMarkAll}
+          disabled={markingAll || notifications.length === 0}
+          variant="ghost"
+          size="sm"
+          style={styles.markReadBtn}
+        />
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={C.accent} /></View>
+        <View style={styles.center}>
+          <StateBlock status="loading" />
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primaryAction}
+            />
+          }
         >
           {notifications.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>You're all caught up</Text>
-              <Text style={styles.emptySub}>No unread alerts right now.</Text>
-            </View>
+            <StateBlock
+              status="empty"
+              emptyIcon="notifications-off-outline"
+              emptyTitle="You're all caught up"
+              emptyBody="No unread alerts right now."
+              style={styles.empty}
+            />
           ) : groups.map((group) => (
             <View key={group.when}>
-              <Text style={styles.groupTitle}>{group.when}</Text>
+              <Text style={[styles.groupTitle, { color: theme.textMuted }]}>{group.when}</Text>
               <View style={styles.stack}>
                 {group.items.map((item) => (
-                  <View key={item.id} style={styles.row}>
+                  <Card key={item.id} style={styles.row}>
                     <IconButton icon={iconForType(item.type)} tone={toneForType(item.type)} size={38} />
                     <View style={styles.rowBody}>
                       <View style={styles.rowLine}>
-                        <Text style={styles.rowTitle}>{item.title}</Text>
-                        <Mono style={styles.rowTime}>{timeLabel(item.created_at)}</Mono>
+                        <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{item.title}</Text>
+                        <Mono style={[styles.rowTime, { color: theme.textDisabled }]}>
+                          {timeLabel(item.created_at)}
+                        </Mono>
                       </View>
-                      <Text style={styles.rowSub}>{item.body}</Text>
+                      <Text style={[styles.rowSub, { color: theme.textMuted }]}>{item.body}</Text>
                     </View>
-                  </View>
+                  </Card>
                 ))}
               </View>
             </View>
@@ -129,24 +152,20 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.paper },
+  container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: C.line2 },
-  headerMeta: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34, marginTop: 4 },
-  markReadBtn: { position: "absolute", right: 18, bottom: 22 },
-  markRead: { color: C.accent, fontSize: 12, fontWeight: "700" },
-  markReadDim: { opacity: 0.4 },
+  header: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18, borderBottomWidth: 1 },
+  headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34, marginTop: 4 },
+  markReadBtn: { position: "absolute", right: 6, bottom: 5 },
   content: { padding: 18, gap: 16, paddingBottom: 32 },
-  groupTitle: { color: C.ink3, fontSize: 10.5, fontWeight: "700", letterSpacing: 1.1, textTransform: "uppercase", marginBottom: 10 },
+  groupTitle: { fontSize: 10.5, fontWeight: "700", letterSpacing: 1.1, textTransform: "uppercase", marginBottom: 10 },
   stack: { gap: 8 },
-  row: { flexDirection: "row", gap: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 13 },
+  row: { flexDirection: "row", gap: 12, borderRadius: 12, padding: 13 },
   rowBody: { flex: 1, minWidth: 0 },
   rowLine: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-  rowTitle: { flex: 1, color: C.ink, fontSize: 13.5, fontWeight: "600" },
-  rowTime: { color: C.ink4, fontSize: 10.5 },
-  rowSub: { color: C.ink3, fontSize: 11.5, lineHeight: 16, marginTop: 3 },
-  empty: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 24, alignItems: "center" },
-  emptyTitle: { fontSize: 14, fontWeight: "700", color: C.ink },
-  emptySub: { fontSize: 12, color: C.ink3, marginTop: 4 },
+  rowTitle: { flex: 1, fontSize: 13.5, fontWeight: "600" },
+  rowTime: { fontSize: 10.5 },
+  rowSub: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
+  empty: { padding: 24, alignItems: "center" },
 });
