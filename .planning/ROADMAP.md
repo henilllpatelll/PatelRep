@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Hotel Standards Execution Plan** — Phases 0-6 (shipped 2026-07-28). Full details: `.planning/milestones/v1.0-ROADMAP.md`
-- ✅ **v1.1 Mobile UI Parity** — Phases 7-10 (completed 2026-07-31)
+- 🚧 **v1.1 Mobile UI Parity** — Phases 7-11 (Phase 11 cleanup in progress)
 
 ## Phases
 
@@ -22,7 +22,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 
 </details>
 
-### ✅ v1.1 Mobile UI Parity (Completed 2026-07-31)
+### 🚧 v1.1 Mobile UI Parity (In Progress — Phase 11 cleanup)
 
 **Milestone Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens, without changing any behavior, data, routing, or RBAC.
 
@@ -30,6 +30,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives (completed 2026-07-30)
 - [x] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives (completed 2026-07-31; human-verify device pass pending, see 09-VERIFICATION.md)
 - [x] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified (completed 2026-07-31)
+- [ ] **Phase 11: Mobile UI parity cleanup** - Widen i18n lint gate to remaining directories, fix hardcoded dark-mode color, address tooling audit debt (from v1.1-MILESTONE-AUDIT.md)
 
 ## Phase Details
 
@@ -117,6 +118,19 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 **Plans**: 11 plans
 **UI hint**: yes
 
+### Phase 11: Mobile UI parity cleanup
+**Goal**: Close the non-blocking tech debt found by the v1.1 milestone audit — i18n lint-gate coverage, one hardcoded dark-mode color, and accumulated warnings — without reopening any already-verified phase's scope.
+**Depends on**: Phase 10
+**Requirements**: none new (hardening pass against `.planning/v1.1-MILESTONE-AUDIT.md` findings)
+**Success Criteria** (what must be TRUE):
+  1. `eslint.config.mjs`'s `i18next/no-literal-string` gate covers all Phase 9-migrated directories (profile, home, assignments, scheduling, staff, assets, pm-schedules, guest-requests, lost-found, logbook, sop, copilot, alerts, notifications, supervisor/home components), not just the original 10.
+  2. `app/(app)/home/index.tsx`'s hardcoded `#CBB8F0` AI-sparkles color is replaced with a semantic `theme.ai.*` token and adapts correctly in light and dark mode.
+  3. `FoundItemModal.tsx`'s empty catch block surfaces a Toast error instead of silently swallowing submission failures.
+  4. The missing `workOrders.searchPlaceholder` i18n key is added to EN/ES locale files so Spanish users no longer see an English fallback.
+  5. `npm audit --audit-level=high` advisory count in `apps/mobile` is reviewed and reduced where a safe non-breaking upgrade path exists; any advisories deliberately left open are documented with reasoning.
+**Plans**: TBD (run `/gsd:plan-phase 11`)
+**UI hint**: no
+
 ## Backlog
 
 - **Parked (v1.0 era, now current for v1.1):** Mobile work resumes in v1.1 after being parked for v1.0 (web + API only).
@@ -127,10 +141,11 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - **Pre-existing lint smell:** `roleTabs.ts` has a duplicate `case "engineer"` — worth a one-line cleanup if a v1.1 wave touches neighboring code, not itself a requirement.
 - **Deferred from Phase 7 to Phase 9 (i18n gate scope):** The mobile `i18next/no-literal-string` gate (07-06) was narrowed to exclude four floor files that predate i18n work and have no `useTranslation` — `components/engineering/CreateWorkOrderModal.tsx`, `components/housekeeping/ReportIssueModal.tsx`, `components/housekeeping/SupplyRequestModal.tsx`, `app/(app)/tasks/index.tsx` (22 raw literals total, incl. safety-critical copy). Translating them now would breach Phase 7's zero-visual-change boundary and ship unreviewed Spanish; deferred to Phase 9's screen migration (mirrors web's 04-08 narrow-then-widen). **Phase 9 must migrate these onto `t()` with EN+ES keys and remove the corresponding `ignores` entries in `apps/mobile/eslint.config.mjs`.** Note: Phase 8 migrates these four files' buttons/cards/colors onto the primitives while passing their existing hardcoded English strings through as-is (D-06) — it does NOT widen the gate.
 
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 7 → 8 → 9 → 10
+Phases execute in numeric order: 7 → 8 → 9 → 10 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
@@ -145,3 +160,4 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 17/17 | Complete | 2026-07-31 |
 | 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
+| 11. Mobile UI parity cleanup | v1.1 | 0/TBD | Not started | - |

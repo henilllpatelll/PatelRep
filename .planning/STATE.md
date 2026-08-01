@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile UI Parity
-status: completed
-last_updated: "2026-07-31T10:44:00Z"
-last_activity: 2026-07-31
+status: in_progress
+last_updated: "2026-08-01T00:00:00Z"
+last_activity: 2026-08-01
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 43
   completed_plans: 43
@@ -170,6 +170,10 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 - Phase 9: Remaining Screens Rollout — SCREENS-01..10 (profile, dashboards, supervisor, engineering-adjacent, guest-service, logbook, SOP, AI copilot, alerts, room status)
 - Phase 10: Dark Mode & Accessibility QA — DARK-01..05 (toggle, contrast, nav chrome theming, EAS build, full regression check)
 
+### Roadmap Evolution
+
+- Phase 11 added (2026-08-01): Mobile UI parity cleanup — closes non-blocking tech debt found by `.planning/v1.1-MILESTONE-AUDIT.md` (i18n lint-gate coverage gap, one hardcoded dark-mode color, FoundItemModal silent catch, missing i18n key, npm audit debt review). Milestone status reverted from `completed` to `in_progress` pending this phase.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
@@ -200,12 +204,12 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 
 ## Current Position
 
-Phase: 10
-Plan: 11 of 11 complete
-Status: Phase 10 independently verified complete — 5/5 truths, no gaps
-Last activity: 2026-07-31
+Phase: 11
+Plan: Not planned yet
+Status: Phase 11 (cleanup) added to close tech debt from v1.1-MILESTONE-AUDIT.md; awaiting /gsd:discuss-phase 11
+Last activity: 2026-08-01
 
-Progress: [██████████] 100%
+Progress: [█████████░] 80%
 
 ## Performance Metrics
 
