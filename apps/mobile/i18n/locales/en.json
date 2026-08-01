@@ -479,6 +479,7 @@
     "whatNeedsFixing": "What needs to be fixed?",
     "detailsOptionalPlaceholder": "Details (optional)",
     "locationPlaceholder": "Room number or area (e.g. 204, Lobby HVAC)",
+    "searchPlaceholder": "Search work orders…",
     "detailKicker": "Work order",
     "summary": "{{open}} open · {{active}} in progress",
     "sectionBench": "On your bench",
@@ -767,6 +768,7 @@
     "descriptionPlaceholder": "Describe the item (e.g. wallet, phone charger, jacket)...",
     "submit": "Report Found Item",
     "offlineError": "Connect to the internet to report a found item.",
+    "submitError": "Could not submit found item. Try again.",
     "cameraPermissionTitle": "Camera Access",
     "cameraPermissionMessage": "Allow camera access to photograph the item."
   },

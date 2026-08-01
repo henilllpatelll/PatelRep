@@ -209,7 +209,7 @@ export default function HousekeeperHomeScreen() {
                   disabled={briefingLoading}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="sparkles" size={12} color="#CBB8F0" />
+                  <Ionicons name="sparkles" size={12} color={theme.ai.primary} />
                   <Text style={[styles.briefingGhostText, { color: theme.shell.ink2 }]}>
                     {t("ai.briefing.refresh")}
                   </Text>

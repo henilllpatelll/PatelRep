@@ -479,6 +479,7 @@
     "whatNeedsFixing": "¿Qué necesita reparación?",
     "detailsOptionalPlaceholder": "Detalles (opcional)",
     "locationPlaceholder": "Número de habitación o área (p. ej., 204, climatización del lobby)",
+    "searchPlaceholder": "Buscar órdenes de trabajo…",
     "detailKicker": "Orden de trabajo",
     "summary": "{{open}} abiertas · {{active}} en progreso",
     "sectionBench": "En tu banco",
@@ -767,6 +768,7 @@
     "descriptionPlaceholder": "Describe el objeto (ej. cartera, cargador, chaqueta)...",
     "submit": "Reportar Objeto Encontrado",
     "offlineError": "Conéctate a internet para reportar un objeto encontrado.",
+    "submitError": "No se pudo reportar el objeto. Intenta de nuevo.",
     "cameraPermissionTitle": "Acceso a la Cámara",
     "cameraPermissionMessage": "Permite el acceso a la cámara para fotografiar el objeto."
   },
