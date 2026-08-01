@@ -121,7 +121,7 @@ export default function FoundItemModal({
       resetForm();
       onClose();
     } catch {
-      // keep modal open on error
+      toast.error(t("foundItem.submitError"));
     } finally {
       setSubmitting(false);
     }
