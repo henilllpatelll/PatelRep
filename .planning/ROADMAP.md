@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Hotel Standards Execution Plan** — Phases 0-6 (shipped 2026-07-28). Full details: `.planning/milestones/v1.0-ROADMAP.md`
-- 🚧 **v1.1 Mobile UI Parity** — Phases 7-10 (in progress)
+- ✅ **v1.1 Mobile UI Parity** — Phases 7-10 (completed 2026-07-31)
 
 ## Phases
 
@@ -22,13 +22,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 
 </details>
 
-### 🚧 v1.1 Mobile UI Parity (In Progress)
+### ✅ v1.1 Mobile UI Parity (Completed 2026-07-31)
 
 **Milestone Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens, without changing any behavior, data, routing, or RBAC.
 
 - [x] **Phase 7: Theme Foundation & Primitives** - Reactive theme shell, missing UI primitives, and mobile i18n lint gate — zero visual change
 - [x] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives (completed 2026-07-30)
-- [ ] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives
+- [x] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives (completed 2026-07-31; human-verify device pass pending, see 09-VERIFICATION.md)
 - [x] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified (completed 2026-07-31)
 
 ## Phase Details
@@ -143,5 +143,5 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
-| 9. Remaining Screens Rollout | v1.1 | 0/17 | Not started | - |
+| 9. Remaining Screens Rollout | v1.1 | 17/17 | Complete | 2026-07-31 |
 | 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
