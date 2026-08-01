@@ -128,7 +128,14 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
   3. `FoundItemModal.tsx`'s empty catch block surfaces a Toast error instead of silently swallowing submission failures.
   4. The missing `workOrders.searchPlaceholder` i18n key is added to EN/ES locale files so Spanish users no longer see an English fallback.
   5. `npm audit --audit-level=high` advisory count in `apps/mobile` is reviewed and reduced where a safe non-breaking upgrade path exists; any advisories deliberately left open are documented with reasoning.
-**Plans**: TBD (run `/gsd:plan-phase 11`)
+**Plans**: 6 plans (5 waves)
+Plans:
+- [ ] 11-01-PLAN.md — AI-sparkles color token fix + FoundItemModal toast fix/test + workOrders.searchPlaceholder key (wave 1)
+- [ ] 11-02-PLAN.md — npm audit safe remediation + EAS build gate + documented deferrals (wave 1)
+- [ ] 11-03-PLAN.md — i18n gate literals: guest-requests + lost-found (22 violations) (wave 2)
+- [ ] 11-04-PLAN.md — i18n gate literals: notifications + scheduling + sop (21 violations) (wave 3)
+- [ ] 11-05-PLAN.md — i18n gate literals: supervisor components + profile + assignments (9 violations) (wave 4)
+- [ ] 11-06-PLAN.md — widen eslint.config.mjs to all 16 directories + confirm npm run lint green (wave 5)
 **UI hint**: no
 
 ## Backlog
