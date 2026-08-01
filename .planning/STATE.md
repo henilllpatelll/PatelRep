@@ -174,6 +174,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 
 - Phase 11 added (2026-08-01): Mobile UI parity cleanup — closes non-blocking tech debt found by `.planning/v1.1-MILESTONE-AUDIT.md` (i18n lint-gate coverage gap, one hardcoded dark-mode color, FoundItemModal silent catch, missing i18n key, npm audit debt review). Milestone status reverted from `completed` to `in_progress` pending this phase.
 
+**11-01 CLOSED (2026-08-01, commits `e593ee5c`/`df2e07a9`):** AI-sparkles color fixed to `theme.ai.primary` (was hardcoded `#CBB8F0`), `FoundItemModal.tsx`'s empty catch block now surfaces `toast.error(t("foundItem.submitError"))`, `workOrders.searchPlaceholder` + `foundItem.submitError` added to EN+ES locale files at parity, new `FoundItemModal.test.tsx` proves the failure path fires the toast and keeps the modal open. Mobile type-check clean; new test passes. Full `npx jest` run shows 14-16 pre-existing timeout failures under parallel-worker load, confirmed via `git stash` to predate this plan and unrelated to these changes. See `11-01-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
@@ -205,8 +207,8 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 ## Current Position
 
 Phase: 11
-Plan: Not planned yet
-Status: Phase 11 (cleanup) added to close tech debt from v1.1-MILESTONE-AUDIT.md; awaiting /gsd:discuss-phase 11
+Plan: 01 complete
+Status: 11-01 executed and closed (AI color token + FoundItemModal toast fix + i18n keys); other Phase 11 plans continue in parallel
 Last activity: 2026-08-01
 
 Progress: [█████████░] 80%
@@ -226,8 +228,9 @@ Progress: [█████████░] 80%
 | 10 | 09 | 13 min | 2 | 2 | 2026-07-31 |
 | 10 | 10 | 2h | 2 | 1 | 2026-07-31 |
 | 10 | 11 | 17 min | 2 | 2 | 2026-07-31 |
+| 11 | 01 | 25 min | 2 | 5 | 2026-08-01 |
 
 ## Session
 
-Last session: 2026-07-31T10:44:00Z
-Stopped At: Phase 10 independently verified and closed
+Last session: 2026-08-01T17:35:00Z
+Stopped At: Completed 11-01-PLAN.md
