@@ -101,3 +101,50 @@ def test_pre_midnight_entry_resolves_via_real_tz_conversion(monkeypatch):
     assert response.status_code == 200
     entry = response.json()["data"]
     assert entry["entry_date"] == "2026-08-02"
+
+
+# ---------------------------------------------------------------------------
+# Task 2: list filter queries the local-day entry_date column
+# ---------------------------------------------------------------------------
+
+
+def test_list_filter_by_local_day_returns_evening_entry_not_utc_day(monkeypatch):
+    """An entry created at a next-UTC-day instant but correctly stamped entry_date
+    for the earlier hotel-local day: filtering by the local day returns it, filtering
+    by the UTC day (old-bug behavior) does not."""
+    db = _chicago_hotel_db({
+        "logbook_entries": [
+            {
+                "id": "entry-1",
+                "tenant_id": "hotel-a",
+                "department_id": DEPT_ID,
+                "shift_id": None,
+                "author_id": "user-a-1",
+                "content": "Evening shift note",
+                "entry_date": "2026-08-02",
+                "created_at": "2026-08-03T02:00:00+00:00",
+                "expires_at": None,
+            },
+        ],
+    })
+    monkeypatch.setattr(logbook_router, "supabase", db)
+    client = TestClient(app)
+
+    local_day_response = client.get(
+        "/v1/logbook/entries",
+        headers=_auth_header("gm"),
+        params={"entry_date": "2026-08-02"},
+    )
+    utc_day_response = client.get(
+        "/v1/logbook/entries",
+        headers=_auth_header("gm"),
+        params={"entry_date": "2026-08-03"},
+    )
+
+    assert local_day_response.status_code == 200
+    local_ids = [row["id"] for row in local_day_response.json()["data"]]
+    assert local_ids == ["entry-1"]
+
+    assert utc_day_response.status_code == 200
+    utc_ids = [row["id"] for row in utc_day_response.json()["data"]]
+    assert utc_ids == []

@@ -44,8 +44,7 @@ def _build_entries_query(hotel_id: str, department_id, shift_id, entry_date, pag
     if shift_id:
         q = q.eq("shift_id", shift_id)
     if entry_date:
-        q = q.gte("created_at", f"{entry_date.isoformat()}T00:00:00")\
-             .lte("created_at", f"{entry_date.isoformat()}T23:59:59")
+        q = q.eq("entry_date", entry_date.isoformat())
     return q
 
 
