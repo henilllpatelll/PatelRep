@@ -40,7 +40,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
 
 **Milestone Goal:** Fix a set of genuine bugs found by a fresh post-v1.1 audit (live web QA + static mobile code re-check) — including one high-severity data-loss bug — before building any new capability. No new user-facing features in this milestone.
 
-- [ ] **Phase 12: Logbook & Lost & Found Data Integrity** - Entries never silently vanish or get permanently stuck due to timezone/FK bugs
+- [x] **Phase 12: Logbook & Lost & Found Data Integrity** - Entries never silently vanish or get permanently stuck due to timezone/FK bugs (completed 2026-08-02)
 - [ ] **Phase 13: AI Copilot Reliability** - Auto-Assign and AI triage return a result or a clear error, never a silent failure, consistently across all 3 entry points
 - [ ] **Phase 14: Room Status Display Accuracy** - Assigned housekeeper always displays correctly regardless of `room_assignments` row presence
 
@@ -106,6 +106,6 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
 | 9. Remaining Screens Rollout | v1.1 | 17/17 | Complete | 2026-07-31 |
 | 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
 | 11. Mobile UI Parity Cleanup | v1.1 | 6/6 | Complete | 2026-08-02 |
-| 12. Logbook & Lost & Found Data Integrity | v1.2 | 0/2 | Not started | - |
+| 12. Logbook & Lost & Found Data Integrity | v1.2 | Complete    | 2026-08-02 | - |
 | 13. AI Copilot Reliability | v1.2 | 0/TBD | Not started | - |
 | 14. Room Status Display Accuracy | v1.2 | 0/TBD | Not started | - |
