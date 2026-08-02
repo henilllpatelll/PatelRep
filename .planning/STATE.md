@@ -1,21 +1,21 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Mobile UI Parity
-status: completed
+milestone: v1.2
+milestone_name: Stabilization Pass
+status: in_progress
 last_updated: "2026-08-02T00:00:00Z"
 last_activity: 2026-08-02
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 49
-  completed_plans: 49
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # GSD State
 
-**Active milestone:** None — v1.1 shipped 2026-08-02. Next milestone not yet started; run `/gsd-new-milestone`.
+**Active milestone:** v1.2 Stabilization Pass (started 2026-08-02) — defining requirements.
 
 ## Previous milestones
 
@@ -217,12 +217,12 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 
 ## Current Position
 
-Phase: None (between milestones)
+Phase: Not started (defining requirements)
 Plan: —
-Status: v1.1 Mobile UI Parity shipped and archived 2026-08-02 (5 phases, 49/49 plans, milestone audit passed with 0 open items). Awaiting `/gsd-new-milestone` to define v1.2.
+Status: v1.2 Stabilization Pass started 2026-08-02, scoped from a fresh post-v1.1 audit (live web QA + static mobile bug re-check). Defining requirements before roadmap creation.
 Last activity: 2026-08-02
 
-Progress: v1.1 [██████████] 100% (archived)
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 

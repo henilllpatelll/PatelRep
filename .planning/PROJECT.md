@@ -21,17 +21,30 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-*Defining requirements for the next milestone — none yet, run `/gsd-new-milestone`.*
+*Defining requirements for milestone v1.2 (see below).*
 
-## Current Milestone
+## Current Milestone: v1.2 Stabilization Pass
 
-None active. v1.1 shipped 2026-08-02; next milestone not yet started.
+**Goal:** Fix a set of genuine bugs found by a fresh post-v1.1 audit (live web QA + static mobile code re-check) before building new capabilities — including one high-severity data-loss bug (Logbook entries silently vanishing due to a UTC/timezone mismatch).
+
+**Target fixes:**
+- Logbook `entry_date` computed off UTC instead of hotel-local timezone — entries written after ~6-7 PM Central vanish from the day staff wrote them, with no UI path to recover them
+- Housekeeping "Auto-Assign with AI" 422s on a bad Supabase embed query (rule-based, not LLM-related) with zero user feedback
+- Engineering "AI triage" 400s on a DB CHECK constraint violation, plus inconsistent AI Copilot error-handling reuse across its 3 entry points (chat page, housekeeping button, engineering button)
+- Lost & Found hard-delete fails with an FK violation on any item with custody history — no way to correct a mistaken entry
+- Housekeeping room-status display discards `room_status.assigned_to` whenever no `room_assignments` row exists for today (housekeeping.py:532), showing "Unassigned" for rooms that are actually assigned
+
+**Explicitly deferred to a later milestone (found by the audit, not in v1.2 scope):**
+- Whether supervisors should appear in the housekeeper assignment picker (unresolved product-intent conflict between two prior audits, not a code bug)
+- UX rough edges: blank staff display names, duplicate/leftover shift templates in dropdowns, generic Opera error message, leaked internal formula string on Management ROI, Guest Request drawer missing status-advance actions, Room History not populating
+- Capability gaps: self-serve billing management ("Coming soon"), stale/non-rolling billing period-usage display, bulk-archive for Engineering work orders, general test-data hygiene cleanup on the shared QA account
 
 ### Out of Scope
 
-- Live-credential-dependent flows — no local AI provider, Stripe, Twilio, or OHIP credentials exist; both v1.0 and v1.1 shipped with these paths verified via mocked/fixture-based tests and accepted as deferred for live validation (Twilio SMS since Phase 5, LLM/OHIP round-trips since Phase 6). Still valid — no credentials added since.
+- Live-credential-dependent flows — no local AI provider, Stripe, Twilio, or OHIP credentials exist; v1.0/v1.1/v1.2 all ship with these paths verified via mocked/fixture-based tests and accepted as deferred for live validation. Still valid — no credentials added since.
 - Vercel deployment repair — Railway is the sole production target; Vercel kept only as a secondary PR-preview surface, decision made 2026-07-26. Still valid.
 - iOS EAS build pipeline (IOS-01) — Android-only mobile builds remain the shipped target; iOS is a separate future initiative, not blocking anything shipped so far.
+- New user-facing features — v1.2 is a stabilization pass by explicit decision; a feature milestone follows once these bugs are closed.
 
 ## Context
 
@@ -81,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-02 — v1.1 Mobile UI Parity milestone shipped and archived.*
+*Last updated: 2026-08-02 — milestone v1.2 (Stabilization Pass) started.*
