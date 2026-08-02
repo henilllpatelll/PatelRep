@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import date, datetime, timedelta, timezone
+
+from dateutil import tz as dateutil_tz
+
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateLogbookEntryRequest, UpdateLogbookEntryRequest
 from core.database import supabase
@@ -12,6 +15,22 @@ def _expires_at(hours: Optional[int]) -> Optional[str]:
     if hours and hours > 0:
         return (datetime.now(timezone.utc) + timedelta(hours=hours)).isoformat()
     return None
+
+
+def _get_hotel_tz(hotel_id: str):
+    result = (
+        supabase.table("hotels")
+        .select("timezone")
+        .eq("id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    tz_name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
+    return dateutil_tz.gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
+
+
+def _hotel_today(hotel_id: str) -> str:
+    return datetime.now(_get_hotel_tz(hotel_id)).date().isoformat()
 
 
 def _build_entries_query(hotel_id: str, department_id, shift_id, entry_date, page, per_page):
@@ -41,6 +60,7 @@ async def create_logbook_entry(
         "shift_id": str(request.shift_id) if request.shift_id else None,
         "author_id": current_user.user_id,
         "content": request.content,
+        "entry_date": _hotel_today(current_user.hotel_id),
     }
     expires = _expires_at(request.expires_hours)
     if expires:
