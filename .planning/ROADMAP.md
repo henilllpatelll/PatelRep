@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Hotel Standards Execution Plan** — Phases 0-6 (shipped 2026-07-28). Full details: `.planning/milestones/v1.0-ROADMAP.md`
-- 🚧 **v1.1 Mobile UI Parity** — Phases 7-11 (Phase 11 cleanup in progress)
+- ✅ **v1.1 Mobile UI Parity** — Phases 7-11 (completed 2026-08-02)
 
 ## Phases
 
@@ -22,7 +22,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 
 </details>
 
-### 🚧 v1.1 Mobile UI Parity (In Progress — Phase 11 cleanup)
+### ✅ v1.1 Mobile UI Parity (Completed 2026-08-02)
 
 **Milestone Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens, without changing any behavior, data, routing, or RBAC.
 
@@ -30,7 +30,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - [x] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives (completed 2026-07-30)
 - [x] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives (completed 2026-07-31; human-verify device pass pending, see 09-VERIFICATION.md)
 - [x] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified (completed 2026-07-31)
-- [ ] **Phase 11: Mobile UI parity cleanup** - Widen i18n lint gate to remaining directories, fix hardcoded dark-mode color, address tooling audit debt (from v1.1-MILESTONE-AUDIT.md)
+- [x] **Phase 11: Mobile UI parity cleanup** - Widen i18n lint gate to remaining directories, fix hardcoded dark-mode color, address tooling audit debt (from v1.1-MILESTONE-AUDIT.md) (completed 2026-08-02)
 
 ## Phase Details
 
@@ -167,4 +167,4 @@ Phases execute in numeric order: 7 → 8 → 9 → 10 → 11
 | 8. Floor-Role Rollout | v1.1 | 9/9 | Complete    | 2026-07-30 |
 | 9. Remaining Screens Rollout | v1.1 | 17/17 | Complete | 2026-07-31 |
 | 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
-| 11. Mobile UI parity cleanup | v1.1 | 0/TBD | Not started | - |
+| 11. Mobile UI parity cleanup | v1.1 | Complete    | 2026-08-02 | - |
