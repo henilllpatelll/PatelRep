@@ -1090,5 +1090,30 @@
     "noStaff": "No housekeeping staff found",
     "saving": "Saving…",
     "saved": "Assigned ✓"
+  },
+  "guestRequests": {
+    "escalatedSuffix": "escalated",
+    "newSuffix": "new",
+    "roomLabel": "Room {{room}}",
+    "unassigned": "Unassigned",
+    "detailTitle": "Request Detail",
+    "assignedTo": "Assigned to {{name}}",
+    "updateStatus": "Update Status",
+    "assignTo": "Assign To",
+    "resolutionNotes": "Resolution Notes",
+    "resolved": "Resolved"
+  },
+  "lostFound": {
+    "itemsHeld_one": "{{count}} item held",
+    "itemsHeld_other": "{{count}} items held",
+    "title": "Lost & found",
+    "claimedBy": "Claimed by {{name}}",
+    "logItemTitle": "Log found item",
+    "descriptionLabel": "Description *",
+    "roomOptionalLabel": "Room (optional)",
+    "roomChip": "Room {{room}}",
+    "roomOption": "Room {{room}}",
+    "floorOption": "Floor {{floor}}",
+    "locationFoundLabel": "Location found"
   }
 }

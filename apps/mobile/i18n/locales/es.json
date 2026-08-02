@@ -1090,5 +1090,30 @@
     "noStaff": "No se encontró personal de housekeeping",
     "saving": "Guardando…",
     "saved": "Asignado ✓"
+  },
+  "guestRequests": {
+    "escalatedSuffix": "escalado",
+    "newSuffix": "nuevo",
+    "roomLabel": "Habitación {{room}}",
+    "unassigned": "Sin asignar",
+    "detailTitle": "Detalle de la solicitud",
+    "assignedTo": "Asignado a {{name}}",
+    "updateStatus": "Actualizar estado",
+    "assignTo": "Asignar a",
+    "resolutionNotes": "Notas de resolución",
+    "resolved": "Resuelto"
+  },
+  "lostFound": {
+    "itemsHeld_one": "{{count}} artículo guardado",
+    "itemsHeld_other": "{{count}} artículos guardados",
+    "title": "Objetos perdidos",
+    "claimedBy": "Reclamado por {{name}}",
+    "logItemTitle": "Registrar objeto encontrado",
+    "descriptionLabel": "Descripción *",
+    "roomOptionalLabel": "Habitación (opcional)",
+    "roomChip": "Habitación {{room}}",
+    "roomOption": "Habitación {{room}}",
+    "floorOption": "Piso {{floor}}",
+    "locationFoundLabel": "Lugar donde se encontró"
   }
 }
