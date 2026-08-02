@@ -7,7 +7,7 @@ last_updated: "2026-08-01T00:00:00Z"
 last_activity: 2026-08-01
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 43
   completed_plans: 43
   percent: 100
@@ -184,6 +184,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 
 **11-05 CLOSED (2026-08-01, commits `caf482c3`/`8c16b873`):** Wired the final 9 of 52 total gate-widening raw-literal violations across `components/supervisor/BroadcastModal.tsx`, `components/supervisor/ShiftNoteModal.tsx`, `components/supervisor/atoms.tsx`, `app/(app)/profile/index.tsx`, and `app/(app)/assignments/index.tsx` through `t()`, backed by a new top-level `supervisorTools` namespace (6 keys) plus one new key each added to the existing `profile` (`appVersion`) and `assignments` (`vipBadge`) namespaces, at EN/ES parity. `supervisorTools` was deliberately created as its own top-level namespace rather than nested inside the pre-existing `home.supervisor` dashboard-label object, to keep modal-internal copy separate from the dashboard-card labels that open those modals. The 3 supervisor files gained a new `useTranslation` import + hook; `profile/index.tsx` and `assignments/index.tsx` already had `t` in scope. `assignments/index.tsx`'s VIP chip was split into a bare `"★ "` glyph text child (symbol-only, not gate-flagged) plus `t("assignments.vipBadge")`. `npm run type-check` clean; zero `send`/`submit`/`signOut`/AI-balance-suggestion logic changed in any of the 5 files. This closes literal-fixing for all 52 of 52 gate-widening violations across all 12 files found by Phase 11 research (22 in 11-03, 21 in 11-04, 9 here) — 11-06 is now unblocked to widen the ESLint gate config itself. See `11-05-SUMMARY.md`.
 
+**11-06 CLOSED (2026-08-01, commit `63246430`):** Widened `apps/mobile/eslint.config.mjs`'s `i18next/no-literal-string` gate from 10 to 26 directory globs — the final step in Phase 11's i18n-gate-widening work, closing ROADMAP success criterion 1. Added all 16 confirmed-real globs (profile, home, assignments, scheduling, staff, assets, pm-schedules, guest-requests, lost-found, logbook, sop, copilot, alerts, notifications, components/supervisor, components/home) to the existing rule block's `files` array only — `markupOnly: true` and the `jsx-attributes.include` list untouched, verified via grep count. First `npm run lint` run surfaced one violation not enumerated in Phase 11 research: `components/supervisor/atoms.tsx:161`'s average-clean-time text (`~{avgMin}m`) — a literal outside 11-05's original scope despite that plan touching the same file. Fixed the same way as sibling plans (no `ignores` workaround): new `supervisorTools.avgMinutes: "~{{min}}m"` EN/ES key, `t()` call swapped in, unit suffix `"m"` kept literal per the file's own established convention. `npm run lint` now exits 0 with zero violations across the fully-widened gate; `npm run type-check` clean. This closes all of Phase 11's i18n-coverage scope (52/52 original violations + 1 newly-surfaced fix). See `11-06-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
@@ -215,11 +217,11 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 ## Current Position
 
 Phase: 11
-Plan: 05 complete
-Status: 11-01, 11-02, 11-03, 11-04, and 11-05 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate; guest-requests/lost-found i18n gate-widening; notifications/scheduling/sop i18n gate-widening; supervisor/profile/assignments i18n gate-widening — all 52/52 literal violations now wired); other Phase 11 plans continue in parallel
+Plan: 06 complete
+Status: 11-01 through 11-06 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate; guest-requests/lost-found i18n gate-widening; notifications/scheduling/sop i18n gate-widening; supervisor/profile/assignments i18n gate-widening; ESLint gate widened to all 26 directories with zero violations) — Phase 11 fully complete, all 6 plans closed
 Last activity: 2026-08-01
 
-Progress: [█████████░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -241,8 +243,9 @@ Progress: [█████████░] 80%
 | 11 | 03 | 20 min | 2 | 5 | 2026-08-01 |
 | 11 | 04 | 15 min | 2 | 6 | 2026-08-01 |
 | 11 | 05 | 12 min | 2 | 7 | 2026-08-01 |
+| 11 | 06 | 10 min | 1 | 4 | 2026-08-01 |
 
 ## Session
 
-Last session: 2026-08-01T19:05:00Z
-Stopped At: Completed 11-05-PLAN.md
+Last session: 2026-08-01T19:20:00Z
+Stopped At: Completed 11-06-PLAN.md
