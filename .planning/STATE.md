@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Stabilization Pass
 status: in_progress
-last_updated: "2026-08-02T00:00:00Z"
-last_activity: 2026-08-02
+last_updated: "2026-08-02T00:15:00Z"
+last_activity: 2026-08-02 -- Phase 12 execution in progress (12-02 closed)
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 50
 ---
 
 # GSD State
@@ -195,6 +195,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 - Phase 13: AI Copilot Reliability — AI-01, AI-02 (bucketed together since AI-02 explicitly requires consistent error handling across AI-01's own surface)
 - Phase 14: Room Status Display Accuracy — ROOMSTATUS-01 (kept standalone rather than merged into Phase 13 despite sharing `housekeeping.py` with AI-01, for independently verifiable success criteria; sequenced last so a full-suite regression check separates the two `housekeeping.py` touches)
 
+**12-02 CLOSED (2026-08-02, commits `a75a38e7`/`4f5bce10`):** Fixed LOSTFOUND-01 (Lost & Found items with custody history could never be permanently deleted). Root cause was two stacked layers on `lost_found_custody_events`: an `ON DELETE RESTRICT` FK on `lost_found_item_id` (every item gets an `intake` custody event at creation, so no item with history could ever be deleted) plus a `BEFORE UPDATE OR DELETE` immutability trigger that would also have blocked an explicit child-row-cleanup workaround in the router. New `supabase/migrations/087_lost_found_custody_cascade.sql` changes the FK to `ON DELETE CASCADE` and narrows the trigger to `BEFORE UPDATE` only — custody event content stays immutable (append-only), but deleting the whole item now cascades and clears its custody trail. No router code changes were required; `delete_lost_found_item` already only touched `lost_found_items`. New `apps/api/tests/test_lost_found_delete.py` (3 tests) locks in the endpoint contract (204 with custody history, 404 for missing item, no manual custody-events deletion in the router) — its docstring explicitly notes FakeDB cannot enforce FK constraints/triggers, so it verifies the contract, not the DB-level cascade itself. Full 251-test smoke suite + sibling `test_lost_found_retention.py` (11 tests) both green, no regressions. **Migration 087 was deliberately not applied to the remote Supabase project** (per plan instruction) — applying it to the shared production DB is a follow-up action requiring explicit confirmation. See `12-02-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.2 scope; fix opportunistically.
@@ -235,12 +237,12 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 12 (Logbook & Lost & Found Data Integrity) — not yet started
-Plan: — (roadmap created; run `/gsd:plan-phase 12` to generate plans)
-Status: v1.2 Stabilization Pass roadmap created 2026-08-02 — 3 phases (12-14), 100% requirement coverage (5/5), no orphans.
+Phase: 12 (Logbook & Lost & Found Data Integrity) — EXECUTING
+Plan: 12-02 closed (LOSTFOUND-01 delete-cascade fix); 12-01 (LOGBOOK-01 timezone/entry-date fix) in progress
+Status: 12-02 closed 2026-08-02 (migration 087 + regression tests, no regressions). Phase 12 has 2 plans total, both wave 1 (independent, no depends_on).
 Last activity: 2026-08-02
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -263,9 +265,10 @@ Progress: [░░░░░░░░░░] 0%
 | 11 | 04 | 15 min | 2 | 6 | 2026-08-01 |
 | 11 | 05 | 12 min | 2 | 7 | 2026-08-01 |
 | 11 | 06 | 10 min | 1 | 4 | 2026-08-01 |
+| 12 | 02 | 15 min | 2 | 2 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-01T19:20:00Z
-Stopped At: Completed 11-06-PLAN.md; roadmap created for v1.2 (Phases 12-14) 2026-08-02.
+Last session: 2026-08-02T00:15:00Z
+Stopped At: Completed 12-02-PLAN.md (LOSTFOUND-01 cascade-delete fix).
 </content>
