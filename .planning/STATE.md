@@ -182,6 +182,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 
 **11-04 CLOSED (2026-08-01, commits `8562a255`/`e6b8e70a`):** Wired 21 raw JSX-text literals in `notifications/index.tsx`, `scheduling/index.tsx`, `sop/index.tsx`, and `sop/[sopId].tsx` through `t()`, backed by new top-level `alertsScreen` (3 keys), `scheduling` (6 keys), and `sop` (13 keys, incl. `procedureCount_one`/`procedureCount_other` CLDR plural pair) i18n namespaces added to both `en.json`/`es.json` at EN/ES parity — confirmed collision-free against the pre-existing `notifications` push-copy object and `engineerMore.scheduling`/`schedulingSub` nested keys. All 4 files gained a new `useTranslation` import + hook (mirroring `tasks/index.tsx`'s established placement). `npm run type-check` clean. `sop/[sopId].tsx`'s explicitly out-of-scope "Ask about this SOP" button (label + inert `onPress={() => undefined}`) verified byte-for-byte untouched via grep (both strings appear exactly once, unchanged). Closes 21 of the 52 total gate-widening violations for this milestone (43/52 cumulative with 11-03). See `11-04-SUMMARY.md`.
 
+**11-05 CLOSED (2026-08-01, commits `caf482c3`/`8c16b873`):** Wired the final 9 of 52 total gate-widening raw-literal violations across `components/supervisor/BroadcastModal.tsx`, `components/supervisor/ShiftNoteModal.tsx`, `components/supervisor/atoms.tsx`, `app/(app)/profile/index.tsx`, and `app/(app)/assignments/index.tsx` through `t()`, backed by a new top-level `supervisorTools` namespace (6 keys) plus one new key each added to the existing `profile` (`appVersion`) and `assignments` (`vipBadge`) namespaces, at EN/ES parity. `supervisorTools` was deliberately created as its own top-level namespace rather than nested inside the pre-existing `home.supervisor` dashboard-label object, to keep modal-internal copy separate from the dashboard-card labels that open those modals. The 3 supervisor files gained a new `useTranslation` import + hook; `profile/index.tsx` and `assignments/index.tsx` already had `t` in scope. `assignments/index.tsx`'s VIP chip was split into a bare `"★ "` glyph text child (symbol-only, not gate-flagged) plus `t("assignments.vipBadge")`. `npm run type-check` clean; zero `send`/`submit`/`signOut`/AI-balance-suggestion logic changed in any of the 5 files. This closes literal-fixing for all 52 of 52 gate-widening violations across all 12 files found by Phase 11 research (22 in 11-03, 21 in 11-04, 9 here) — 11-06 is now unblocked to widen the ESLint gate config itself. See `11-05-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
@@ -213,8 +215,8 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 ## Current Position
 
 Phase: 11
-Plan: 04 complete
-Status: 11-01, 11-02, 11-03, and 11-04 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate; guest-requests/lost-found i18n gate-widening; notifications/scheduling/sop i18n gate-widening); other Phase 11 plans continue in parallel
+Plan: 05 complete
+Status: 11-01, 11-02, 11-03, 11-04, and 11-05 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate; guest-requests/lost-found i18n gate-widening; notifications/scheduling/sop i18n gate-widening; supervisor/profile/assignments i18n gate-widening — all 52/52 literal violations now wired); other Phase 11 plans continue in parallel
 Last activity: 2026-08-01
 
 Progress: [█████████░] 80%
@@ -238,8 +240,9 @@ Progress: [█████████░] 80%
 | 11 | 02 | 30 min | 2 | 1 | 2026-08-01 |
 | 11 | 03 | 20 min | 2 | 5 | 2026-08-01 |
 | 11 | 04 | 15 min | 2 | 6 | 2026-08-01 |
+| 11 | 05 | 12 min | 2 | 7 | 2026-08-01 |
 
 ## Session
 
-Last session: 2026-08-01T18:49:00Z
-Stopped At: Completed 11-04-PLAN.md
+Last session: 2026-08-01T19:05:00Z
+Stopped At: Completed 11-05-PLAN.md
