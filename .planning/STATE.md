@@ -195,6 +195,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 - Phase 13: AI Copilot Reliability — AI-01, AI-02 (bucketed together since AI-02 explicitly requires consistent error handling across AI-01's own surface)
 - Phase 14: Room Status Display Accuracy — ROOMSTATUS-01 (kept standalone rather than merged into Phase 13 despite sharing `housekeeping.py` with AI-01, for independently verifiable success criteria; sequenced last so a full-suite regression check separates the two `housekeeping.py` touches)
 
+**12-01 CLOSED (2026-08-02, commits `0932a097`/`d69dc677`/`522cc5e8`):** LOGBOOK-01 fixed, TDD (RED→GREEN per task). New `_get_hotel_tz`/`_hotel_today` helpers in `routers/logbook.py` mirror `clean_sessions.py`'s established `dateutil.tz.gettz` + `hotels.timezone` convention (duplicated, not extracted — only 2 call sites, doesn't meet the services-layer-depth 2+-domains-shared threshold). `create_logbook_entry` now stamps `entry_date` from the hotel-local calendar day instead of the DB's UTC `CURRENT_DATE` default; `_build_entries_query`'s `entry_date` filter now does a direct equality match on the corrected column instead of comparing `created_at` against naive UTC day boundaries. New `test_logbook_timezone.py` (3 tests) proves both the evening (8pm Central → next-UTC-day) and just-before-local-midnight boundary cases resolve to the correct local day via real tz-database conversion (no hardcoded offset), and that list filtering returns the entry under its local day, not the UTC day. Migration 086 backfills `entry_date` for existing rows from `created_at AT TIME ZONE` each tenant's timezone — written but not applied to the remote Supabase project per plan instruction (deployment handled separately). Full smoke suite (251 tests) + new test file green, zero regressions; 2 pre-existing unrelated failures in `test_management_roi.py` confirmed via `git stash` to predate this plan. See `12-01-SUMMARY.md`.
+
 **12-02 CLOSED (2026-08-02, commits `a75a38e7`/`4f5bce10`):** Fixed LOSTFOUND-01 (Lost & Found items with custody history could never be permanently deleted). Root cause was two stacked layers on `lost_found_custody_events`: an `ON DELETE RESTRICT` FK on `lost_found_item_id` (every item gets an `intake` custody event at creation, so no item with history could ever be deleted) plus a `BEFORE UPDATE OR DELETE` immutability trigger that would also have blocked an explicit child-row-cleanup workaround in the router. New `supabase/migrations/087_lost_found_custody_cascade.sql` changes the FK to `ON DELETE CASCADE` and narrows the trigger to `BEFORE UPDATE` only — custody event content stays immutable (append-only), but deleting the whole item now cascades and clears its custody trail. No router code changes were required; `delete_lost_found_item` already only touched `lost_found_items`. New `apps/api/tests/test_lost_found_delete.py` (3 tests) locks in the endpoint contract (204 with custody history, 404 for missing item, no manual custody-events deletion in the router) — its docstring explicitly notes FakeDB cannot enforce FK constraints/triggers, so it verifies the contract, not the DB-level cascade itself. Full 251-test smoke suite + sibling `test_lost_found_retention.py` (11 tests) both green, no regressions. **Migration 087 was deliberately not applied to the remote Supabase project** (per plan instruction) — applying it to the shared production DB is a follow-up action requiring explicit confirmation. See `12-02-SUMMARY.md`.
 
 ## Current blockers (carried forward)
@@ -237,12 +239,12 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 12 (Logbook & Lost & Found Data Integrity) — EXECUTING
-Plan: 12-02 closed (LOSTFOUND-01 delete-cascade fix); 12-01 (LOGBOOK-01 timezone/entry-date fix) in progress
-Status: 12-02 closed 2026-08-02 (migration 087 + regression tests, no regressions). Phase 12 has 2 plans total, both wave 1 (independent, no depends_on).
+Phase: 12 (Logbook & Lost & Found Data Integrity) — CLOSED (both plans complete)
+Plan: 12-01 closed (LOGBOOK-01 hotel-local timezone fix); 12-02 closed (LOSTFOUND-01 delete-cascade fix)
+Status: Both Phase 12 plans closed 2026-08-02 (wave 1, independent, no depends_on). Migrations 086 and 087 written but not applied to the remote Supabase project (deployment handled separately). Ready for `/gsd:plan-phase 13`.
 Last activity: 2026-08-02
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -266,9 +268,10 @@ Progress: [█████░░░░░] 50%
 | 11 | 05 | 12 min | 2 | 7 | 2026-08-01 |
 | 11 | 06 | 10 min | 1 | 4 | 2026-08-01 |
 | 12 | 02 | 15 min | 2 | 2 | 2026-08-02 |
+| 12 | 01 | 15 min | 3 | 3 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-02T00:15:00Z
-Stopped At: Completed 12-02-PLAN.md (LOSTFOUND-01 cascade-delete fix).
+Last session: 2026-08-02T00:30:00Z
+Stopped At: Completed 12-01-PLAN.md (LOGBOOK-01 hotel-local timezone fix). Phase 12 fully closed (both plans done). Ready for `/gsd:plan-phase 13`.
 </content>
