@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { displayFont } from "@/components/shared/tokens";
 import { IconButton, Segmented } from "@/components/shared/mobileHandoff";
@@ -26,6 +27,7 @@ function timeSince(iso: string): string {
 }
 
 export default function LostFoundScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
   const [items, setItems] = useState<LostFoundItem[]>([]);
@@ -128,8 +130,8 @@ export default function LostFoundScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
-        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{items.length} item{items.length !== 1 ? "s" : ""} held</Text>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Lost & found</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("lostFound.itemsHeld", { count: items.length })}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("lostFound.title")}</Text>
       </View>
 
       {loading ? (
@@ -179,7 +181,7 @@ export default function LostFoundScreen() {
                       {item.location_found ?? item.rooms?.room_number ?? "Location unknown"} — {timeSince(item.created_at)}
                     </Text>
                     {item.claimed_by_name ? (
-                      <Text style={[styles.claimedBy, { color: theme.status.ready }]}>Claimed by {item.claimed_by_name}</Text>
+                      <Text style={[styles.claimedBy, { color: theme.status.ready }]}>{t("lostFound.claimedBy", { name: item.claimed_by_name })}</Text>
                     ) : null}
                   </View>
                   <Ionicons name="chevron-forward" size={15} color={theme.textDisabled} />
@@ -198,13 +200,13 @@ export default function LostFoundScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Log found item</Text>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t("lostFound.logItemTitle")}</Text>
               <Pressable onPress={closeModal} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={22} color={theme.textPrimary} />
               </Pressable>
             </View>
 
-            <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>Description *</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("lostFound.descriptionLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder="e.g. iPhone charger, reading glasses..."
@@ -214,11 +216,11 @@ export default function LostFoundScreen() {
               maxLength={200}
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>Room (optional)</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>{t("lostFound.roomOptionalLabel")}</Text>
             {selectedRoom ? (
               <View style={[styles.roomChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Ionicons name="bed-outline" size={14} color={theme.textMuted} />
-                <Text style={[styles.roomChipText, { color: theme.textPrimary }]}>Room {selectedRoom.room_number}</Text>
+                <Text style={[styles.roomChipText, { color: theme.textPrimary }]}>{t("lostFound.roomChip", { room: selectedRoom.room_number })}</Text>
                 <Pressable onPress={() => { setSelectedRoom(null); setRoomQuery(""); }} accessibilityRole="button" accessibilityLabel="Clear room">
                   <Ionicons name="close-circle" size={16} color={theme.textMuted} />
                 </Pressable>
@@ -244,9 +246,9 @@ export default function LostFoundScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Room ${r.room_number}`}
                       >
-                        <Text style={[styles.roomOptionNum, { color: theme.textPrimary }]}>Room {r.room_number}</Text>
+                        <Text style={[styles.roomOptionNum, { color: theme.textPrimary }]}>{t("lostFound.roomOption", { room: r.room_number })}</Text>
                         {r.floor != null && (
-                          <Text style={[styles.roomOptionFloor, { color: theme.textMuted }]}>Floor {r.floor}</Text>
+                          <Text style={[styles.roomOptionFloor, { color: theme.textMuted }]}>{t("lostFound.floorOption", { floor: r.floor })}</Text>
                         )}
                       </Pressable>
                     ))}
@@ -255,7 +257,7 @@ export default function LostFoundScreen() {
               </View>
             )}
 
-            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>Location found</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>{t("lostFound.locationFoundLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder="e.g. lobby, pool area, hallway..."

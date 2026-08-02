@@ -146,10 +146,10 @@ export default function GuestRequestsScreen() {
         {(newCount > 0 || escalatedCount > 0) ? (
           <View style={styles.alertBanner}>
             {escalatedCount > 0 ? (
-              <Pill tone="alert">{escalatedCount} escalated</Pill>
+              <Pill tone="alert">{escalatedCount} {t("guestRequests.escalatedSuffix")}</Pill>
             ) : null}
             {newCount > 0 ? (
-              <Pill tone="info">{newCount} new</Pill>
+              <Pill tone="info">{newCount} {t("guestRequests.newSuffix")}</Pill>
             ) : null}
           </View>
         ) : null}
@@ -209,7 +209,7 @@ export default function GuestRequestsScreen() {
             >
             <View style={styles.cardTop}>
               <View style={styles.cardLeft}>
-                <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>Room {req.room_number}</Text>
+                <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>{t("guestRequests.roomLabel", { room: req.room_number })}</Text>
                 {req.guest_name ? <Text style={[styles.guestName, { color: theme.textMuted }]}>{req.guest_name}</Text> : null}
               </View>
               <View style={styles.cardBadges}>
@@ -248,7 +248,7 @@ export default function GuestRequestsScreen() {
               {req.assigned_to_name ? (
                 <Text style={[styles.assignedTo, { color: theme.textMuted }]}>→ {req.assigned_to_name}</Text>
               ) : (
-                <Text style={[styles.assignedTo, { color: theme.status.pickup }]}>Unassigned</Text>
+                <Text style={[styles.assignedTo, { color: theme.status.pickup }]}>{t("guestRequests.unassigned")}</Text>
               )}
             </View>
             </Card>

@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
@@ -57,6 +58,7 @@ function timeAgo(iso: string) {
 }
 
 export default function GuestRequestDetailScreen() {
+  const { t } = useTranslation();
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const theme = useTheme();
   const { isOnline } = useAppStore();
@@ -132,7 +134,7 @@ export default function GuestRequestDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
           <Ionicons name="chevron-back" size={22} color={theme.primaryAction} />
         </TouchableOpacity>
-        <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>Request Detail</Text>
+        <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>{t("guestRequests.detailTitle")}</Text>
         {REQUEST_STATUS_BADGE_KEYS[request.status] ? (
           <StatusBadge
             statusKey={REQUEST_STATUS_BADGE_KEYS[request.status]!}
@@ -148,7 +150,7 @@ export default function GuestRequestDetailScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Card style={styles.cardLayoutOverrides}>
           <View style={styles.cardHeader}>
-            <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>Room {request.room_number}</Text>
+            <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>{t("guestRequests.roomLabel", { room: request.room_number })}</Text>
             {request.guest_name ? (
               <Text style={[styles.guestName, { color: theme.textMuted }]}>
                 {request.guest_name}
@@ -161,7 +163,7 @@ export default function GuestRequestDetailScreen() {
             <Text style={[styles.metaText, { color: theme.textDisabled }]}>{timeAgo(request.created_at)}</Text>
             {request.assigned_to_name ? (
               <Text style={[styles.metaText, { color: theme.textDisabled }]}>
-                Assigned to {request.assigned_to_name}
+                {t("guestRequests.assignedTo", { name: request.assigned_to_name })}
               </Text>
             ) : null}
           </View>
@@ -183,7 +185,7 @@ export default function GuestRequestDetailScreen() {
 
         {request.status !== "resolved" ? (
           <>
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Update Status</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("guestRequests.updateStatus")}</Text>
             <View style={styles.statusRow}>
               {STATUS_OPTIONS.map((s) => (
                 <Button
@@ -197,7 +199,7 @@ export default function GuestRequestDetailScreen() {
               ))}
             </View>
 
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Assign To</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("guestRequests.assignTo")}</Text>
             <Button
               label={request.assigned_to_name ?? "Select staff member"}
               style={styles.assignButton}
@@ -224,7 +226,7 @@ export default function GuestRequestDetailScreen() {
               </View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Resolution Notes</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("guestRequests.resolutionNotes")}</Text>
             <TextInput
               style={[
                 styles.notesInput,
@@ -255,7 +257,7 @@ export default function GuestRequestDetailScreen() {
             ]}
           >
             <Ionicons name="checkmark-circle" size={20} color={theme.status.ready} />
-            <Text style={[styles.requestType, { color: theme.status.ready }]}>Resolved</Text>
+            <Text style={[styles.requestType, { color: theme.status.ready }]}>{t("guestRequests.resolved")}</Text>
           </Card>
         )}
       </ScrollView>
