@@ -1002,7 +1002,8 @@
     "shiftNoteTitle": "Nota de turno",
     "shiftNoteSub": "Registrado en el libro de turno — visible para todos los supervisores",
     "overBadge": "⚠ Exceso",
-    "inRoomPrefix": "En {{room}}"
+    "inRoomPrefix": "En {{room}}",
+    "avgMinutes": "~{{min}}m"
   },
   "directMessage": {
     "title": "Mensaje a {{name}}",

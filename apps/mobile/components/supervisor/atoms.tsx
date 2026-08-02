@@ -158,7 +158,7 @@ export function TeamLoadRow({
             </View>
           ) : null}
           <Text style={[styles.loadCount, { color: theme.textMuted }]}>{load.done}/{load.total}</Text>
-          {avgMin !== null ? <Text style={[styles.loadAvg, { color: theme.textMuted }]}>~{avgMin}m</Text> : null}
+          {avgMin !== null ? <Text style={[styles.loadAvg, { color: theme.textMuted }]}>{t("supervisorTools.avgMinutes", { min: avgMin })}</Text> : null}
         </View>
         <ProgressBar value={load.done} total={load.total} color={load.overAssigned ? theme.status.pickup : theme.status.ready} />
         <View style={styles.loadMetaRow}>

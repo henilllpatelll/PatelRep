@@ -1002,7 +1002,8 @@
     "shiftNoteTitle": "Shift Note",
     "shiftNoteSub": "Logged to the shift logbook — visible to all supervisors",
     "overBadge": "⚠ Over",
-    "inRoomPrefix": "In {{room}}"
+    "inRoomPrefix": "In {{room}}",
+    "avgMinutes": "~{{min}}m"
   },
   "logbook": {
     "title": "Shift Logbook",
