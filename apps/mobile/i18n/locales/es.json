@@ -727,7 +727,8 @@
     "account": "Cuenta",
     "signOut": "Cerrar sesión",
     "signOutTitle": "Cerrar sesión",
-    "signOutConfirm": "¿Estás seguro?"
+    "signOutConfirm": "¿Estás seguro?",
+    "appVersion": "PatelRep v{{version}}"
   },
   "copilot": {
     "title": "Copiloto IA",
@@ -992,7 +993,16 @@
     "lateCo": "Salida Tard.",
     "lateCoTitle": "Salida tardía",
     "lateCoTime": "El huésped solicitó salir a las {{time}}",
-    "lateCoNoTime": "Salida tardía solicitada — hora no especificada"
+    "lateCoNoTime": "Salida tardía solicitada — hora no especificada",
+    "vipBadge": "VIP"
+  },
+  "supervisorTools": {
+    "messageTeamTitle": "Mensaje al equipo",
+    "messageTeamSub": "Se envía a todo el personal de limpieza en turno",
+    "shiftNoteTitle": "Nota de turno",
+    "shiftNoteSub": "Registrado en el libro de turno — visible para todos los supervisores",
+    "overBadge": "⚠ Exceso",
+    "inRoomPrefix": "En {{room}}"
   },
   "directMessage": {
     "title": "Mensaje a {{name}}",

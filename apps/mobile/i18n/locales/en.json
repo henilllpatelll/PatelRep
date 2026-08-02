@@ -727,7 +727,8 @@
     "account": "Account",
     "signOut": "Sign out",
     "signOutTitle": "Sign out",
-    "signOutConfirm": "Are you sure?"
+    "signOutConfirm": "Are you sure?",
+    "appVersion": "PatelRep v{{version}}"
   },
   "copilot": {
     "title": "AI Copilot",
@@ -992,7 +993,16 @@
     "lateCo": "Late CO",
     "lateCoTitle": "Late Checkout",
     "lateCoTime": "Guest requested checkout by {{time}}",
-    "lateCoNoTime": "Late checkout requested — time not specified"
+    "lateCoNoTime": "Late checkout requested — time not specified",
+    "vipBadge": "VIP"
+  },
+  "supervisorTools": {
+    "messageTeamTitle": "Message Team",
+    "messageTeamSub": "Sends to all housekeeping staff on shift",
+    "shiftNoteTitle": "Shift Note",
+    "shiftNoteSub": "Logged to the shift logbook — visible to all supervisors",
+    "overBadge": "⚠ Over",
+    "inRoomPrefix": "In {{room}}"
   },
   "logbook": {
     "title": "Shift Logbook",
