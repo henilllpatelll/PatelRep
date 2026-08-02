@@ -6,7 +6,7 @@ status: in_progress
 last_updated: "2026-08-02T00:00:00Z"
 last_activity: 2026-08-02
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -15,7 +15,7 @@ progress:
 
 # GSD State
 
-**Active milestone:** v1.2 Stabilization Pass (started 2026-08-02) — defining requirements.
+**Active milestone:** v1.2 Stabilization Pass (started 2026-08-02) — roadmap created, 3 phases (12-14), 100% requirement coverage. Ready for `/gsd:plan-phase 12`.
 
 ## Previous milestones
 
@@ -187,13 +187,20 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 
 **11-06 CLOSED (2026-08-01, commit `63246430`):** Widened `apps/mobile/eslint.config.mjs`'s `i18next/no-literal-string` gate from 10 to 26 directory globs — the final step in Phase 11's i18n-gate-widening work, closing ROADMAP success criterion 1. Added all 16 confirmed-real globs (profile, home, assignments, scheduling, staff, assets, pm-schedules, guest-requests, lost-found, logbook, sop, copilot, alerts, notifications, components/supervisor, components/home) to the existing rule block's `files` array only — `markupOnly: true` and the `jsx-attributes.include` list untouched, verified via grep count. First `npm run lint` run surfaced one violation not enumerated in Phase 11 research: `components/supervisor/atoms.tsx:161`'s average-clean-time text (`~{avgMin}m`) — a literal outside 11-05's original scope despite that plan touching the same file. Fixed the same way as sibling plans (no `ignores` workaround): new `supervisorTools.avgMinutes: "~{{min}}m"` EN/ES key, `t()` call swapped in, unit suffix `"m"` kept literal per the file's own established convention. `npm run lint` now exits 0 with zero violations across the fully-widened gate; `npm run type-check` clean. This closes all of Phase 11's i18n-coverage scope (52/52 original violations + 1 newly-surfaced fix). See `11-06-SUMMARY.md`.
 
+## v1.2 Stabilization Pass — roadmap created (2026-08-02)
+
+Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes found by a fresh post-v1.1 audit — live web QA as GM + static mobile-code re-check). Not a feature build: phases are scoped around root-cause fixes with regression safety, grouped by natural fault domain rather than forced into more phases than the work warrants. Continues phase numbering from v1.1's last phase (11) — v1.2 starts at Phase 12. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
+
+- Phase 12: Logbook & Lost & Found Data Integrity — LOGBOOK-01, LOSTFOUND-01 (highest-severity item — data-loss bug — sequenced first; independent backend fixes bucketed together as data-integrity-class bugs)
+- Phase 13: AI Copilot Reliability — AI-01, AI-02 (bucketed together since AI-02 explicitly requires consistent error handling across AI-01's own surface)
+- Phase 14: Room Status Display Accuracy — ROOMSTATUS-01 (kept standalone rather than merged into Phase 13 despite sharing `housekeeping.py` with AI-01, for independently verifiable success criteria; sequenced last so a full-suite regression check separates the two `housekeeping.py` touches)
+
 ## Current blockers (carried forward)
 
-- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
+- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.2 scope; fix opportunistically.
 - Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path (v1.0 Phase 3) remains unavailable locally; that RBAC is covered by passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
-- See `## Deferred Items` below for v1.0's accepted credential-blocked deferrals (Twilio SMS, LLM/Opera round-trips) — still unresolved, not specific to v1.1.
-- **v1.1-specific risk (from research):** making `StyleSheet.create`-frozen colors reactive to theme changes touches 46+ mobile files — the single highest-risk item in the milestone. Phase 7 must land the reactive shell light-only-active before any screen migrates.
-- **v1.1-specific risk:** the app's EAS build pipeline is fragile (`dynamic-import-node` babel plugin, New Architecture, `--legacy-peer-deps` for React 19); zero new npm dependencies planned by design — any exception requires a green EAS build before merging.
+- See `## Deferred Items` below for v1.0's accepted credential-blocked deferrals (Twilio SMS, LLM/Opera round-trips) — still unresolved, not specific to v1.2.
+- **v1.2-specific note:** no local AI provider, Stripe, Twilio, or OHIP credentials exist — none of v1.2's 5 bugs require live credentials to fix or verify (all reproducible with mocked/fixture-based tests plus manual dev-server interaction), so this does not block the milestone.
 
 ## Verification commands
 
@@ -215,11 +222,22 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 | Verification | Phase 05: 05-VERIFICATION.md | human_needed (same root cause — live SMS) |
 | Future | IOS-01: EAS iOS build pipeline | deferred_to_future_milestone (not blocking v1.1 mobile UI parity) |
 
+Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this milestone's scope — see `.planning/REQUIREMENTS.md` Future Requirements):
+
+| Category | Item | Status |
+|----------|------|--------|
+| Product decision | Whether supervisors should appear in the housekeeper assignment picker | needs_product_decision (unresolved conflict between two prior audits, not a code bug) |
+| Feature gap | Self-serve billing plan/payment management | deferred_to_future_milestone ("Coming soon" placeholder) |
+| Bug (non-blocking) | Billing period/usage display doesn't roll forward | deferred_to_future_milestone |
+| Feature gap | Bulk-archive for Engineering work orders | deferred_to_future_milestone |
+| UX polish | Blank staff display-name fallback, duplicate/leftover shift templates, generic Opera error message, leaked ROI formula string, Guest Request drawer missing status-advance actions, Room History not populating | deferred_to_future_milestone |
+| Future | IOS-01: EAS iOS build pipeline | deferred_to_future_milestone (unchanged) |
+
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: v1.2 Stabilization Pass started 2026-08-02, scoped from a fresh post-v1.1 audit (live web QA + static mobile bug re-check). Defining requirements before roadmap creation.
+Phase: 12 (Logbook & Lost & Found Data Integrity) — not yet started
+Plan: — (roadmap created; run `/gsd:plan-phase 12` to generate plans)
+Status: v1.2 Stabilization Pass roadmap created 2026-08-02 — 3 phases (12-14), 100% requirement coverage (5/5), no orphans.
 Last activity: 2026-08-02
 
 Progress: [░░░░░░░░░░] 0%
@@ -249,4 +267,5 @@ Progress: [░░░░░░░░░░] 0%
 ## Session
 
 Last session: 2026-08-01T19:20:00Z
-Stopped At: Completed 11-06-PLAN.md
+Stopped At: Completed 11-06-PLAN.md; roadmap created for v1.2 (Phases 12-14) 2026-08-02.
+</content>

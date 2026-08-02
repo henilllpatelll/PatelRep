@@ -53,8 +53,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOGBOOK-01 | TBD | Pending |
-| AI-01 | TBD | Pending |
-| AI-02 | TBD | Pending |
-| LOSTFOUND-01 | TBD | Pending |
-| ROOMSTATUS-01 | TBD | Pending |
+| LOGBOOK-01 | Phase 12 | Pending |
+| LOSTFOUND-01 | Phase 12 | Pending |
+| AI-01 | Phase 13 | Pending |
+| AI-02 | Phase 13 | Pending |
+| ROOMSTATUS-01 | Phase 14 | Pending |
+</content>
