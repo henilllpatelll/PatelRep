@@ -68,7 +68,10 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
   2. An engineer clicking "AI triage" on a Work Order receives either a triage result or a clear on-screen error message — never a raw, unexplained 400.
   3. The error-handling pattern (how failures are caught, logged, and surfaced to the user) is consistent across all 3 AI Copilot entry points: the main chat page, the housekeeping auto-assign button, and the engineering triage button.
   4. Existing AI Copilot chat-page behavior (intent parsing, SOP Q&A, credit fast-path) is unchanged and regression-verified after the fix.
-**Plans**: TBD
+**Plans**: 3 plans (Wave 1 → 2 → 3, sequential — each fix builds/extends the shared error-handling pattern before the next surface adopts it)
+- [ ] 13-01-PLAN.md — Housekeeping "Suggest Assignments with AI" honesty fix (AI-01): fixes the fake-success bug (frontend read nonexistent `assignments_created`/`count` response keys), honest suggestion-only UX, backend response-contract regression test
+- [ ] 13-02-PLAN.md — Engineering "AI triage" success/failure honesty fix (AI-02): distinct success vs. error notice styling/wording instead of both reading as "applied", deterministic fallback ordering always applied
+- [ ] 13-03-PLAN.md — Chat page confirm-flow error surfacing + full cross-surface consistency and regression verification (AI-02 consistency clause + success criteria 3/4): all 4 confirm handlers + sendMessage now surface real `ApiClientError` detail instead of silently resetting; fast-path/intent-parsing/SOP-Q&A regression-verified unchanged
 
 ### Phase 14: Room Status Display Accuracy
 **Goal**: Housekeeping's room-status view always reflects who is actually assigned to a room, regardless of whether a `room_assignments` row exists for today.
@@ -107,5 +110,5 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
 | 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
 | 11. Mobile UI Parity Cleanup | v1.1 | 6/6 | Complete | 2026-08-02 |
 | 12. Logbook & Lost & Found Data Integrity | v1.2 | Complete    | 2026-08-02 | - |
-| 13. AI Copilot Reliability | v1.2 | 0/TBD | Not started | - |
+| 13. AI Copilot Reliability | v1.2 | 0/3 | Not started | - |
 | 14. Room Status Display Accuracy | v1.2 | 0/TBD | Not started | - |
