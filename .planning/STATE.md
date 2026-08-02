@@ -178,6 +178,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 
 **11-02 CLOSED (2026-08-01, commit `4f041f80`):** Safe (non-`--force`) `npm audit fix` applied to `apps/mobile`, reducing live advisories from 27 (1 critical/10 high/15 moderate/1 low) to 19 (1 critical/2 high/16 moderate/0 low) — `package.json` version ranges untouched, only `package-lock.json` resolved within existing semver ranges (`expo` 54.0.35→54.0.36, `babel-preset-expo` 54.0.11→54.0.12, `expo-updates` 29.0.18→29.0.19, plus transitive patch bumps). `npm run type-check` clean. A real EAS cloud build (android/preview, ID `d8065dc6-aeeb-4bc3-8f5b-f8c8e9e4d42c`) reached `FINISHED` with a produced APK artifact, satisfying the CLAUDE.md fragile-pipeline "green EAS build before merging" gate for the touched trio. The 19 remaining advisories (1 critical `tar` + 2 high + 16 moderate, the entire `@expo/*`/`expo-*` family) all require the out-of-scope `expo@57.0.9` major bump and are documented as a deliberately-open, non-runtime-exposed risk (exploitable only via `@expo/cli`/`@expo/metro-config` at build/dev time, never in the shipped RN bundle) — deferred to a future dedicated, EAS-gated upgrade plan. **Environment note:** EAS's local `file://` shallow-clone upload step was blocked by this repo's `core.hooksPath` git security guard; worked around with a command-scoped `GIT_CLONE_PROTECTION_ACTIVE=false` env var (no repo config changed). See `11-02-SUMMARY.md`.
 
+**11-03 CLOSED (2026-08-01, commits `5d2f5730`/`c9c8bb9d`):** Wired 22 raw JSX-text literals in `guest-requests/index.tsx`, `guest-requests/[requestId].tsx`, and `lost-found/index.tsx` through `t()`, backed by new top-level `guestRequests` (10 keys) and `lostFound` (11 keys, incl. `itemsHeld_one`/`itemsHeld_other` CLDR plural pair) i18n namespaces added to both `en.json`/`es.json` at EN/ES parity — confirmed collision-free against pre-existing same-named-but-different-parent keys (`tabs.guestRequests`, `home.gm.guestRequests`, `tabs.lostFound`). `[requestId].tsx` and `lost-found/index.tsx` gained a new `useTranslation` import + hook (mirroring the sibling `index.tsx`, which already had it). `npm run type-check` clean; zero logic/navigation/handler changes — diffs are proportional (25 insertions/21 deletions) to literal→`t()` swaps plus the 2 hook additions. `eslint.config.mjs` intentionally untouched (gate widening deferred to 11-06 per wave design, to avoid multiple plans racing on the same shared config file). Closes 22 of the 52 total gate-widening violations for this milestone. See `11-03-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
@@ -209,8 +211,8 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 ## Current Position
 
 Phase: 11
-Plan: 02 complete
-Status: 11-01 and 11-02 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate); other Phase 11 plans continue in parallel
+Plan: 03 complete
+Status: 11-01, 11-02, and 11-03 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate; guest-requests/lost-found i18n gate-widening prep); other Phase 11 plans continue in parallel
 Last activity: 2026-08-01
 
 Progress: [█████████░] 80%
@@ -232,8 +234,9 @@ Progress: [█████████░] 80%
 | 10 | 11 | 17 min | 2 | 2 | 2026-07-31 |
 | 11 | 01 | 25 min | 2 | 5 | 2026-08-01 |
 | 11 | 02 | 30 min | 2 | 1 | 2026-08-01 |
+| 11 | 03 | 20 min | 2 | 5 | 2026-08-01 |
 
 ## Session
 
 Last session: 2026-08-01T18:49:00Z
-Stopped At: Completed 11-02-PLAN.md
+Stopped At: Completed 11-03-PLAN.md
