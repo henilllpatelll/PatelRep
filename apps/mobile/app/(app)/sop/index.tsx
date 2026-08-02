@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
 import { AILabel, IconButton, SectionLabel } from "@/components/shared/mobileHandoff";
 import { Card } from "@/components/ui/Card";
@@ -26,6 +27,7 @@ function categoryIcon(cat: string | null): React.ComponentProps<typeof Ionicons>
 
 export default function SopLibraryScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [docs, setDocs] = useState<SOPDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,8 +61,8 @@ export default function SopLibraryScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
     >
       <View style={styles.header}>
-        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{docs.length} procedures</Text>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>How-to</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("sop.procedureCount", { count: docs.length })}</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("sop.title")}</Text>
       </View>
 
       <Pressable
@@ -70,7 +72,7 @@ export default function SopLibraryScreen() {
       >
         <Card style={styles.search}>
           <Ionicons name="search-outline" size={15} color={theme.textMuted} />
-          <Text style={[styles.searchText, { color: theme.textDisabled }]}>Ask "how do I..."</Text>
+          <Text style={[styles.searchText, { color: theme.textDisabled }]}>{t("sop.searchPrompt")}</Text>
           <AILabel>AI</AILabel>
         </Card>
       </Pressable>
@@ -80,7 +82,7 @@ export default function SopLibraryScreen() {
       ) : (
         <>
           <View>
-            <SectionLabel>Categories</SectionLabel>
+            <SectionLabel>{t("sop.categories")}</SectionLabel>
             <View style={styles.categories}>
               {categories.map((cat) => {
                 const count = docs.filter((d) => (d.category ?? "General") === cat).length;
@@ -88,7 +90,7 @@ export default function SopLibraryScreen() {
                   <Card key={cat} style={styles.categoryCard}>
                     <IconButton icon={categoryIcon(cat)} tone="accent" size={38} />
                     <Text style={[styles.categoryTitle, { color: theme.textPrimary }]}>{cat}</Text>
-                    <Text style={[styles.categorySub, { color: theme.textMuted }]}>{count} procedure{count !== 1 ? "s" : ""}</Text>
+                    <Text style={[styles.categorySub, { color: theme.textMuted }]}>{t("sop.procedureCount", { count })}</Text>
                   </Card>
                 );
               })}
@@ -96,7 +98,7 @@ export default function SopLibraryScreen() {
           </View>
 
           <View>
-            <SectionLabel>Recently added</SectionLabel>
+            <SectionLabel>{t("sop.recentlyAdded")}</SectionLabel>
             <View style={styles.rows}>
               {recent.map((doc) => (
                 <Pressable

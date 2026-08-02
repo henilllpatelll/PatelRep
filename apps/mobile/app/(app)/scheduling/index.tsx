@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
 import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 import { mySchedule, type ShiftAssignment } from "@/lib/api/scheduling";
@@ -30,6 +31,7 @@ function formatTime(t: string): string {
 
 export default function SchedulingScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,7 +73,7 @@ export default function SchedulingScreen() {
     >
       <View style={styles.header}>
         <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{rangeLabel}</Text>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>My shifts</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("scheduling.title")}</Text>
       </View>
 
       {loading ? (
@@ -86,7 +88,7 @@ export default function SchedulingScreen() {
             ]}
           >
             <Text style={[styles.todayMeta, { color: todayAssignment ? theme.onPrimary : theme.textMuted }]}>
-              Today — {DAY_LABELS[today.getDay()]} {SHORT_MONTHS[today.getMonth()]} {today.getDate()}
+              {t("scheduling.todayPrefix", { day: DAY_LABELS[today.getDay()], month: SHORT_MONTHS[today.getMonth()], date: today.getDate() })}
             </Text>
             {todayAssignment?.shifts ? (
               <>
@@ -96,19 +98,19 @@ export default function SchedulingScreen() {
                 <Text style={[styles.todaySub, { color: theme.onPrimary }]}>{todayAssignment.shifts.name}</Text>
                 <View style={styles.todayPills}>
                   <Pill tone="neutral">{todayAssignment.is_on_shift ? "On shift" : "Scheduled"}</Pill>
-                  {todayAssignment.clocked_in_at ? <Pill tone="ready">Clocked in</Pill> : null}
+                  {todayAssignment.clocked_in_at ? <Pill tone="ready">{t("scheduling.clockedIn")}</Pill> : null}
                 </View>
               </>
             ) : (
               <>
-                <Text style={[styles.todayTimeOff, { color: theme.textPrimary }]}>Day off</Text>
-                <Text style={[styles.todaySubOff, { color: theme.textMuted }]}>No shift scheduled</Text>
+                <Text style={[styles.todayTimeOff, { color: theme.textPrimary }]}>{t("scheduling.dayOff")}</Text>
+                <Text style={[styles.todaySubOff, { color: theme.textMuted }]}>{t("scheduling.noShiftScheduled")}</Text>
               </>
             )}
           </View>
 
           <View>
-            <SectionLabel>This week</SectionLabel>
+            <SectionLabel>{t("scheduling.thisWeek")}</SectionLabel>
             <View style={[styles.weekList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               {weekDates.map(({ date, iso }, index) => {
                 const assignment = byDate[iso];

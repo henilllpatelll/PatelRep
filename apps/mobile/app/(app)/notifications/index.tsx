@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
 import { IconButton, Mono } from "@/components/shared/mobileHandoff";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +49,7 @@ function groupByTime(notifications: AppNotification[]): Array<{ when: string; it
 
 export default function NotificationsScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -88,9 +90,9 @@ export default function NotificationsScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
         <Text style={[styles.headerMeta, { color: theme.textMuted }]}>
-          {notifications.length} unread
+          {t("alertsScreen.unreadSuffix", { count: notifications.length })}
         </Text>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Alerts</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("alertsScreen.title")}</Text>
         <Button
           label={markingAll ? "Clearing\u2026" : "Mark all read"}
           onPress={handleMarkAll}

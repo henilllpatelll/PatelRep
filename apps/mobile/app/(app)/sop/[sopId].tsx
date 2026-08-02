@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
 import { CopilotHero, SectionLabel } from "@/components/shared/mobileHandoff";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +18,7 @@ function formatDate(iso: string): string {
 export default function SopDetailScreen() {
   const { sopId } = useLocalSearchParams<{ sopId: string }>();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [doc, setDoc] = useState<SOPDocument | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +54,7 @@ export default function SopDetailScreen() {
 
       <View style={styles.metaLine}>
         <Ionicons name="document-text-outline" size={13} color={theme.textMuted} />
-        <Text style={[styles.metaText, { color: theme.textMuted }]}>Updated {formatDate(doc.created_at)}</Text>
+        <Text style={[styles.metaText, { color: theme.textMuted }]}>{t("sop.updatedPrefix", { date: formatDate(doc.created_at) })}</Text>
         <View style={[styles.metaDot, { backgroundColor: theme.textDisabled }]} />
         <Text style={[styles.metaText, { color: doc.indexing_status === "indexed" ? theme.status.ready : theme.status.pickup }]}>
           {doc.indexing_status === "indexed" ? "AI-indexed" : doc.indexing_status}
@@ -67,13 +69,13 @@ export default function SopDetailScreen() {
         }
       >
         <Text>
-          I can answer questions about <Text style={[styles.heroStrong, { color: theme.textPrimary }]}>{doc.title}</Text> or help you apply it step by step.
+          {t("sop.assistantIntroPrefix")} <Text style={[styles.heroStrong, { color: theme.textPrimary }]}>{doc.title}</Text> {t("sop.assistantIntroSuffix")}
         </Text>
       </CopilotHero>
 
       {doc.description ? (
         <View>
-          <SectionLabel>Overview</SectionLabel>
+          <SectionLabel>{t("sop.overview")}</SectionLabel>
           <Card style={styles.descCard}>
             <Text style={[styles.descText, { color: theme.textSecondary }]}>{doc.description}</Text>
           </Card>
@@ -83,19 +85,19 @@ export default function SopDetailScreen() {
       <Card style={styles.infoCard}>
         <View style={styles.infoRow}>
           <Ionicons name="folder-outline" size={15} color={theme.textMuted} />
-          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Category</Text>
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>{t("sop.category")}</Text>
           <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{doc.category ?? "General"}</Text>
         </View>
         {doc.page_count ? (
           <View style={[styles.infoRow, styles.infoRowBorder, { borderTopColor: theme.borderSubtle }]}>
             <Ionicons name="documents-outline" size={15} color={theme.textMuted} />
-            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Pages</Text>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>{t("sop.pages")}</Text>
             <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{doc.page_count}</Text>
           </View>
         ) : null}
         <View style={[styles.infoRow, styles.infoRowBorder, { borderTopColor: theme.borderSubtle }]}>
           <Ionicons name="time-outline" size={15} color={theme.textMuted} />
-          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Added</Text>
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>{t("sop.added")}</Text>
           <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{formatDate(doc.created_at)}</Text>
         </View>
       </Card>
