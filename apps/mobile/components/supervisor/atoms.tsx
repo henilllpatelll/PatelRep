@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { R, monoFont } from "@/components/shared/tokens";
 import { getTileVisual } from "@/components/home/CompanionHome";
 import { getStatusMeta, ProgressBar, StatusRail } from "@/components/shared/evening";
@@ -122,6 +123,7 @@ export function TeamLoadRow({
   onMessage?: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const activeRoom = load.rooms.find((r) => r.status === "IN_PROGRESS") ?? null;
   const avgMin = load.done > 0
     ? Math.round(load.rooms.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").reduce((acc, r) => acc + r.baseCleanMinutes, 0) / load.done)
@@ -152,7 +154,7 @@ export function TeamLoadRow({
           ) : null}
           {load.overAssigned ? (
             <View style={[styles.overAssignedChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
-              <Text style={[styles.overAssignedText, { color: theme.status.pickup }]}>⚠ Over</Text>
+              <Text style={[styles.overAssignedText, { color: theme.status.pickup }]}>{t("supervisorTools.overBadge")}</Text>
             </View>
           ) : null}
           <Text style={[styles.loadCount, { color: theme.textMuted }]}>{load.done}/{load.total}</Text>
@@ -169,7 +171,7 @@ export function TeamLoadRow({
               ]}
               numberOfLines={1}
             >
-              In {activeRoom.roomNumber}
+              {t("supervisorTools.inRoomPrefix", { room: activeRoom.roomNumber })}
             </Text>
           ) : null}
         </View>

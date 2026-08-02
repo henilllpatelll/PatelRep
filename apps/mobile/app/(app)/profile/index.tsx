@@ -405,7 +405,7 @@ export default function ProfileScreen() {
             </Card>
           </View>
 
-          <Text style={[styles.version, { color: theme.textDisabled }]}>PatelRep v{appVersion}</Text>
+          <Text style={[styles.version, { color: theme.textDisabled }]}>{t("profile.appVersion", { version: appVersion })}</Text>
         </View>
       </ScrollView>
     </View>

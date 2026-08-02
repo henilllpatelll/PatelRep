@@ -376,7 +376,7 @@ export default function AssignmentsScreen() {
                                 ) : null}
                                 {room.vip ? (
                                   <View style={[styles.vipChip, { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }]}>
-                                    <Text style={[styles.vipChipText, { color: theme.accentBrass }]}>★ VIP</Text>
+                                    <Text style={[styles.vipChipText, { color: theme.accentBrass }]}>{"★ "}{t("assignments.vipBadge")}</Text>
                                   </View>
                                 ) : null}
                                 {lateCoByRoom.has(room.roomId) ? (

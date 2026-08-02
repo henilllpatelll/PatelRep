@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -23,6 +24,7 @@ export default function BroadcastModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -54,9 +56,9 @@ export default function BroadcastModal({ visible, onClose }: Props) {
         <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16, backgroundColor: theme.surface }]} activeOpacity={1}>
           <View style={styles.titleRow}>
             <Ionicons name="megaphone-outline" size={16} color={theme.status.pickup} />
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Message Team</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{t("supervisorTools.messageTeamTitle")}</Text>
           </View>
-          <Text style={[styles.sub, { color: theme.textMuted }]}>Sends to all housekeeping staff on shift</Text>
+          <Text style={[styles.sub, { color: theme.textMuted }]}>{t("supervisorTools.messageTeamSub")}</Text>
           <View style={styles.quickRow}>
             {QUICK_MESSAGES.map((msg) => (
               <TouchableOpacity
