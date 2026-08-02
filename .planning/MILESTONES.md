@@ -27,3 +27,29 @@
 **What's next:** TBD via `/gsd-new-milestone`
 
 ---
+
+## v1.1 Mobile UI Parity (Shipped: 2026-08-02)
+
+**Delivered:** App-wide visual and interaction parity between the mobile app and the web app's refreshed UI system — a reactive theme foundation, a zero-dependency shared primitive library, full-app migration onto it, dark mode, and full EN/ES i18n coverage — all without changing any behavior, data, routing, or RBAC.
+
+**Phases completed:** 7-11 (5 phases, 49 plans)
+
+**Key accomplishments:**
+- Built a reactive theme foundation (`ThemeProvider`/`useTheme()`, light/dark/system preference, persisted across restarts) as the single foundation every later phase built on
+- Created a zero-dependency shared primitive library (Button, Card, StatusBadge, EmptyState/StateBlock, Toast) — no new npm packages, matching the fragile-EAS-pipeline constraint
+- Migrated all 20+ mobile screens and 15+ shared modals from hardcoded colors onto the shared primitives, including 40+ `Alert.alert` outcome calls converted to non-blocking Toast
+- Shipped full app-wide dark mode with WCAG AA contrast independently re-verified (110 passing assertions) and a real human Android device walkthrough (10 rows approved) plus a green EAS production build
+- Closed the i18n gap completely — full EN/ES parity across every screen, ESLint `i18next/no-literal-string` gate widened from 10 to 26 directories covering the entire app, zero raw literals remaining
+- Milestone audit (post-Phase-10) found 2 real cross-phase integration gaps plus accumulated tech debt (i18n gate coverage hole, one hardcoded dark-mode color, npm audit advisories, a silently-swallowed error); rather than defer, Phase 11 was added in the same milestone to close all of it — 0 open items at ship
+
+**Stats:**
+- 211 commits, 103 mobile files changed, +12,574/-4,799 lines
+- 5 phases, 49 plans
+- 5 days from phase start to ship (2026-07-29 → 2026-08-02)
+
+**Git range:** `d467fdfc` → `fbca2397` (tag `v1.1`)
+
+**What's next:** TBD via `/gsd-new-milestone`
+
+---
+

@@ -15,11 +15,12 @@ progress:
 
 # GSD State
 
-**Active milestone:** Mobile UI Parity (v1.1)
+**Active milestone:** None — v1.1 shipped 2026-08-02. Next milestone not yet started; run `/gsd-new-milestone`.
 
-## Previous milestone
+## Previous milestones
 
-v1.0 "Hotel Standards Execution Plan" shipped and archived 2026-07-28 (7 phases, 0-6, all closed). Full history: `.planning/MILESTONES.md`, `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1.0-*`.
+- v1.1 "Mobile UI Parity" shipped and archived 2026-08-02 (5 phases, 7-11, all closed — 49/49 plans). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.1-*`.
+- v1.0 "Hotel Standards Execution Plan" shipped and archived 2026-07-28 (7 phases, 0-6, all closed). Full history: `.planning/MILESTONES.md`, `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1.0-*`.
 
 <details>
 <summary>v1.0 phase-by-phase execution log (archived, click to expand)</summary>
@@ -216,12 +217,12 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 
 ## Current Position
 
-Phase: 11
-Plan: 06 complete
-Status: 11-01 through 11-06 executed and closed (AI color token + FoundItemModal toast fix + i18n keys; npm audit safe fix + EAS build gate; guest-requests/lost-found i18n gate-widening; notifications/scheduling/sop i18n gate-widening; supervisor/profile/assignments i18n gate-widening; ESLint gate widened to all 26 directories with zero violations) — Phase 11 fully complete, all 6 plans closed
-Last activity: 2026-08-01
+Phase: None (between milestones)
+Plan: —
+Status: v1.1 Mobile UI Parity shipped and archived 2026-08-02 (5 phases, 49/49 plans, milestone audit passed with 0 open items). Awaiting `/gsd-new-milestone` to define v1.2.
+Last activity: 2026-08-02
 
-Progress: [██████████] 100%
+Progress: v1.1 [██████████] 100% (archived)
 
 ## Performance Metrics
 
