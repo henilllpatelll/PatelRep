@@ -1115,5 +1115,33 @@
     "roomOption": "Habitación {{room}}",
     "floorOption": "Piso {{floor}}",
     "locationFoundLabel": "Lugar donde se encontró"
+  },
+  "alertsScreen": {
+    "unreadSuffix_one": "{{count}} sin leer",
+    "unreadSuffix_other": "{{count}} sin leer",
+    "title": "Alertas"
+  },
+  "scheduling": {
+    "title": "Mis turnos",
+    "todayPrefix": "Hoy — {{day}} {{month}} {{date}}",
+    "clockedIn": "Marcado",
+    "dayOff": "Día libre",
+    "noShiftScheduled": "Sin turno programado",
+    "thisWeek": "Esta semana"
+  },
+  "sop": {
+    "title": "Cómo hacerlo",
+    "searchPrompt": "Preguntar \"cómo hago...\"",
+    "categories": "Categorías",
+    "procedureCount_one": "{{count}} procedimiento",
+    "procedureCount_other": "{{count}} procedimientos",
+    "recentlyAdded": "Agregado recientemente",
+    "updatedPrefix": "Actualizado {{date}}",
+    "assistantIntroPrefix": "Puedo responder preguntas sobre",
+    "assistantIntroSuffix": "o ayudarte a aplicarlo paso a paso.",
+    "overview": "Resumen",
+    "category": "Categoría",
+    "pages": "Páginas",
+    "added": "Agregado"
   }
 }

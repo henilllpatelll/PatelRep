@@ -1115,5 +1115,33 @@
     "roomOption": "Room {{room}}",
     "floorOption": "Floor {{floor}}",
     "locationFoundLabel": "Location found"
+  },
+  "alertsScreen": {
+    "unreadSuffix_one": "{{count}} unread",
+    "unreadSuffix_other": "{{count}} unread",
+    "title": "Alerts"
+  },
+  "scheduling": {
+    "title": "My shifts",
+    "todayPrefix": "Today — {{day}} {{month}} {{date}}",
+    "clockedIn": "Clocked in",
+    "dayOff": "Day off",
+    "noShiftScheduled": "No shift scheduled",
+    "thisWeek": "This week"
+  },
+  "sop": {
+    "title": "How-to",
+    "searchPrompt": "Ask \"how do I...\"",
+    "categories": "Categories",
+    "procedureCount_one": "{{count}} procedure",
+    "procedureCount_other": "{{count}} procedures",
+    "recentlyAdded": "Recently added",
+    "updatedPrefix": "Updated {{date}}",
+    "assistantIntroPrefix": "I can answer questions about",
+    "assistantIntroSuffix": "or help you apply it step by step.",
+    "overview": "Overview",
+    "category": "Category",
+    "pages": "Pages",
+    "added": "Added"
   }
 }
