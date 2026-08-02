@@ -55,7 +55,9 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
   2. A logbook entry written just before hotel-local midnight still resolves to the correct hotel-local day, proving the fix uses hotel-local timezone conversion rather than a shifted-but-still-wrong constant offset.
   3. A staff member can permanently delete a Lost & Found entry that has at least one prior custody-transfer event, and the delete succeeds without a foreign-key database error.
   4. After deleting a Lost & Found entry with custody history, no orphaned `custody_events` rows remain and no other Lost & Found view (list, reports) errors as a result.
-**Plans**: TBD
+**Plans**: 2 plans (Wave 1, parallel)
+- [ ] 12-01-PLAN.md — Logbook entries filed & listed by hotel-local day (LOGBOOK-01): local-date on create, entry_date list filter, backfill migration 086
+- [ ] 12-02-PLAN.md — Permanent delete of Lost & Found items with custody history (LOSTFOUND-01): FK → ON DELETE CASCADE + update-only immutability trigger, migration 087
 
 ### Phase 13: AI Copilot Reliability
 **Goal**: Every AI Copilot entry point (chat, housekeeping auto-assign, engineering triage) returns a correct result or a clear, user-visible error — never a silent failure — with consistent error-handling behavior across all three.
@@ -104,8 +106,6 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
 | 9. Remaining Screens Rollout | v1.1 | 17/17 | Complete | 2026-07-31 |
 | 10. Dark Mode & Accessibility QA | v1.1 | 11/11 | Complete | 2026-07-31 |
 | 11. Mobile UI Parity Cleanup | v1.1 | 6/6 | Complete | 2026-08-02 |
-| 12. Logbook & Lost & Found Data Integrity | v1.2 | 0/TBD | Not started | - |
+| 12. Logbook & Lost & Found Data Integrity | v1.2 | 0/2 | Not started | - |
 | 13. AI Copilot Reliability | v1.2 | 0/TBD | Not started | - |
 | 14. Room Status Display Accuracy | v1.2 | 0/TBD | Not started | - |
-</content>
-</invoke>
