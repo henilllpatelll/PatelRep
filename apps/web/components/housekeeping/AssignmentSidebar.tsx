@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { ApiClientError } from '@/lib/api/client'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
@@ -13,7 +13,6 @@ import { useToast } from '@/components/ui/Toast'
 export function AssignmentSidebar() {
   const { t } = useTranslation()
   const toast = useToast()
-  const queryClient = useQueryClient()
   const { selectedDate, selectedShift, rooms, buildingFilter } = useHousekeepingStore()
   const [aiLoading, setAiLoading] = useState(false)
 
@@ -28,21 +27,23 @@ export function AssignmentSidebar() {
     setAiLoading(true)
     try {
       const result = await housekeepingApi.aiSuggestAssignments(selectedDate, selectedShift ?? undefined)
-      const count = (result as any)?.data?.assignments_created ?? (result as any)?.data?.count ?? null
-
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
-      queryClient.invalidateQueries({ queryKey: ['staff-list'] })
-
-      toast.success(
-        count !== null
-          ? (count === 1
-              ? t('housekeeping.assignmentSidebar.successCountOne', { count })
-              : t('housekeeping.assignmentSidebar.successCountOther', { count }))
-          : t('housekeeping.assignmentSidebar.successGeneric'),
+      const suggestions = (result as any)?.data?.suggestions ?? []
+      const roomCount = suggestions.reduce(
+        (sum: number, s: any) => sum + (s.room_count ?? s.rooms?.length ?? 0),
+        0,
       )
-    } catch (err: any) {
-      toast.error(err?.message || t('housekeeping.assignmentSidebar.failure'))
+
+      if (roomCount === 0) {
+        toast.info((result as any)?.data?.message || t('housekeeping.assignmentSidebar.noRoomsNeedWork'))
+      } else {
+        toast.success(
+          roomCount === 1
+            ? t('housekeeping.assignmentSidebar.successCountOne', { count: roomCount })
+            : t('housekeeping.assignmentSidebar.successCountOther', { count: roomCount }),
+        )
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiClientError ? err.message : t('housekeeping.assignmentSidebar.failure'))
     } finally {
       setAiLoading(false)
     }
