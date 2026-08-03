@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Stabilization Pass
-status: in_progress
-last_updated: "2026-08-02T22:10:00Z"
-last_activity: 2026-08-02 -- Phase 13 CLOSED (13-01, 13-02, 13-03, 13-04 all closed)
+status: completed
+last_updated: "2026-08-02T22:32:00Z"
+last_activity: 2026-08-02 -- Phase 14 CLOSED (14-01 closed); milestone v1.2 Stabilization Pass complete (Phases 12, 13, 14 all closed)
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
   percent: 100
 ---
 
@@ -247,14 +247,18 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 | UX polish | Blank staff display-name fallback, duplicate/leftover shift templates, generic Opera error message, leaked ROI formula string, Guest Request drawer missing status-advance actions, Room History not populating | deferred_to_future_milestone |
 | Future | IOS-01: EAS iOS build pipeline | deferred_to_future_milestone (unchanged) |
 
+**14-01 CLOSED (2026-08-02, commits `f9d7ccf9`/`08e413f2`/`97256e2a`):** ROOMSTATUS-01 fixed. `get_housekeeping_board`'s `assigned_to` field now falls back to `room.get("assigned_to")` (the live `room_status.assigned_to` mirror) when `assignment_map` has no `room_assignments` row for the requested date — a room whose real assignee is only tracked via `room_status` no longer falsely renders "Unassigned" on the board. `assignment_id`/`assignment_date`/`assignment_shift_id` stay `None` in the fallback case, so no assignment row is fabricated — only the assignee name is surfaced. **Deliberate behavior reversal, explicitly approved by the user at the Task 3 checkpoint:** `room_status` has no per-assignment timestamp, so a leftover assignee from a prior day is now indistinguishable from — and displayed the same as — a current one; the user confirmed this is the intended ROOMSTATUS-01 behavior ("Approve as-is") rather than requesting stale-assignee suppression. Updated the one previously-conflicting test assertion in `test_board_uses_selected_date_assignments_not_stale_room_status` (renamed to `test_board_falls_back_to_room_status_assignee_when_no_today_assignment_row`) and added a new `test_board_uses_room_status_assignee_when_no_today_assignment_row` covering all 3 success criteria (SC1 fallback surfaces assignee, SC2 no assignee stays Unassigned, SC3 today's row still wins over the mirror) in one deterministic board call. Full `apps/api` suite: **511/513 passed** (2 pre-existing unrelated `test_management_roi.py` failures, confirmed via `git stash` to predate this plan); `test_housekeeping_assignments.py`: 29/29 passed. Live browser walkthrough (localhost:3000/localhost:8003): board loads with zero console errors, Assign mode correctly assigns/displays/removes a housekeeper name end-to-end, zero residue left in the dev DB. See `14-01-SUMMARY.md`.
+
+**Phase 14 (Room Status Display Accuracy) status: CLOSED.** ROOMSTATUS-01 satisfied — the last phase in milestone v1.2 Stabilization Pass.
+
 ## Current Position
 
-Phase: 14 (Room Status Display Accuracy) — IN PROGRESS (1 of 1 plan, paused at blocking checkpoint)
-Plan: 14-01 Tasks 1–2 complete (commits `f9d7ccf9`/`08e413f2`): board endpoint now falls back to `room_status.assigned_to` when no today `room_assignments` row exists (ROOMSTATUS-01); updated the previously-conflicting test assertion + added a new regression test covering all 3 success criteria. Full apps/api suite: 511/513 passed (2 pre-existing unrelated `test_management_roi.py` failures, confirmed via `git stash` to predate this plan). Self-verified live: `npm run dev:web` had been inadvertently stopped mid-session while diagnosing an unrelated port-8000 process (an unrelated third-party service, not this project) and was restarted; housekeeping board loads with zero console/network errors; created and removed a real test assignment (room 103 → Claudia) live to confirm the fallback renders the housekeeper's name on the board card and the Assignments page — zero residue left in the dev DB afterward.
-Status: Paused at Task 3 (`checkpoint:human-verify`, blocking) — awaiting user confirmation of the deliberate ROOMSTATUS-01 behavior reversal (a room whose only assignment was on a prior day now shows that housekeeper as assigned instead of "Unassigned"). Not resolved by the executor per plan instruction.
+Phase: 14 (Room Status Display Accuracy) — CLOSED (1 of 1 plan complete)
+Plan: 14-01 CLOSED (commits `f9d7ccf9`/`08e413f2`/`97256e2a`/pending-summary-commit). Milestone v1.2 Stabilization Pass is now 100% complete (Phases 12, 13, 14 all closed).
+Status: Complete.
 Last activity: 2026-08-02
 
-Progress: [██████████] 100% (Phase 13: 4/4 plans)
+Progress: [██████████] 100% (Phase 14: 1/1 plans; milestone v1.2: 3/3 phases)
 
 ## Performance Metrics
 
@@ -283,9 +287,10 @@ Progress: [██████████] 100% (Phase 13: 4/4 plans)
 | 13 | 02 | 45 min | 3 | 7 | 2026-08-02 |
 | 13 | 03 | 35 min | 2 | 2 | 2026-08-02 |
 | 13 | 04 | 25 min | 3 | 4 | 2026-08-02 |
+| 14 | 01 | 22 min | 3 | 2 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-02T22:10:00Z
-Stopped At: 14-01 Tasks 1-2 complete, paused at Task 3 blocking checkpoint (human-verify) — awaiting confirmation that room_status.assigned_to should be authoritative when no today room_assignments row exists, even if that means surfacing a prior-day leftover assignee.
+Last session: 2026-08-02T22:32:00Z
+Stopped At: 14-01 complete, Phase 14 CLOSED. Milestone v1.2 Stabilization Pass fully complete (Phases 12, 13, 14 all closed).
 </content>
