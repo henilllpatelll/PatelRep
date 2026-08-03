@@ -81,7 +81,8 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
   1. A room with `room_status.assigned_to` set but no matching `room_assignments` row for today displays the actual assigned housekeeper's name, not "Unassigned."
   2. A room with no assignment at all (both `room_status.assigned_to` and `room_assignments` empty) still correctly displays "Unassigned" — the fix does not invent an assignment where none exists.
   3. A room with both `room_status.assigned_to` and a matching `room_assignments` row for today continues to display consistently (no regression to the already-working case).
-**Plans**: TBD
+**Plans:** 1 plan
+- [ ] 14-01-PLAN.md — board falls back to room_status.assigned_to when no today room_assignments row; updates the conflicting "not stale" test + adds SC1/SC2/SC3 regression coverage (human-verify checkpoint confirms the deliberate behavior reversal)
 
 ## Backlog
 
