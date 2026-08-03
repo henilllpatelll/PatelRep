@@ -7,9 +7,8 @@ corrected entry_date column instead of naive UTC created_at boundaries.
 Mirrors the FakeDB + TestClient + real-JWT harness in test_lost_found_retention.py.
 """
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
-import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
 
