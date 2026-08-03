@@ -209,7 +209,7 @@ class FakeQuery:
 
 
 @pytest.mark.asyncio
-async def test_board_uses_selected_date_assignments_not_stale_room_status(monkeypatch):
+async def test_board_falls_back_to_room_status_assignee_when_no_today_assignment_row(monkeypatch):
     room_today = "22222222-2222-4222-8222-222222222222"
     room_unassigned_today = "33333333-3333-4333-8333-333333333333"
     hk_today = "44444444-4444-4444-8444-444444444444"
@@ -266,10 +266,81 @@ async def test_board_uses_selected_date_assignments_not_stale_room_status(monkey
     assert by_room[room_today]["assignment_id"] == "assign-today"
     assert by_room[room_today]["clean_type"] == "LIGHT"
     assert by_room[room_today]["status"] == "PICKUP"
-    assert by_room[room_unassigned_today]["assigned_to"] is None
+    # Phase 14 / ROOMSTATUS-01: with no today room_assignments row, room_status.assigned_to
+    # is now authoritative (previously asserted None here — deliberate behavior reversal).
+    assert by_room[room_unassigned_today]["assigned_to"] == hk_yesterday
     assert by_room[room_unassigned_today]["assignment_id"] is None
     assert by_room[room_unassigned_today]["clean_type"] is None
     assert by_room[room_unassigned_today]["status"] == "DIRTY"
+
+
+@pytest.mark.asyncio
+async def test_board_uses_room_status_assignee_when_no_today_assignment_row(monkeypatch):
+    """Covers all 3 ROOMSTATUS-01 success criteria in one deterministic board call."""
+    room_no_assignment_row = "aaaaaaaa-1111-4111-8111-111111111111"  # SC1
+    room_never_assigned = "aaaaaaaa-2222-4222-8222-222222222222"  # SC2
+    room_today_wins = "aaaaaaaa-3333-4333-8333-333333333333"  # SC3
+    hk_sc1 = "44444444-1111-4111-8111-111111111111"
+    hk_old = "44444444-2222-4222-8222-222222222222"
+    hk_today = "44444444-3333-4333-8333-333333333333"
+    db = FakeDB({
+        "room_status": [
+            {
+                "room_id": room_no_assignment_row,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "assigned_to": hk_sc1,
+                "status": "DIRTY",
+                "rooms": {"floor": 1, "room_number": "201"},
+            },
+            {
+                "room_id": room_never_assigned,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "assigned_to": None,
+                "status": "DIRTY",
+                "rooms": {"floor": 1, "room_number": "202"},
+            },
+            {
+                "room_id": room_today_wins,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "assigned_to": hk_old,
+                "status": "DIRTY",
+                "rooms": {"floor": 1, "room_number": "203"},
+            },
+        ],
+        "room_assignments": [
+            {
+                "id": "assign-today-wins",
+                "tenant_id": SUPERVISOR.hotel_id,
+                "room_id": room_today_wins,
+                "assigned_to": hk_today,
+                "shift_id": None,
+                "assignment_date": "2026-05-24",
+            },
+        ],
+        "room_readiness_predictions": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.get_housekeeping_board(
+        board_date=date(2026, 5, 24),
+        shift_id=None,
+        include_predictions=False,
+        current_user=SUPERVISOR,
+    )
+
+    by_room = {row["room_id"]: row for row in response["data"]}
+
+    # SC1: room_status.assigned_to set, no room_assignments row at all.
+    assert by_room[room_no_assignment_row]["assigned_to"] == hk_sc1
+    assert by_room[room_no_assignment_row]["assignment_id"] is None
+
+    # SC2: neither room_status.assigned_to nor a today row — still Unassigned.
+    assert by_room[room_never_assigned]["assigned_to"] is None
+    assert by_room[room_never_assigned]["assignment_id"] is None
+
+    # SC3: today's room_assignments row wins over the stale room_status mirror.
+    assert by_room[room_today_wins]["assigned_to"] == hk_today
+    assert by_room[room_today_wins]["assignment_id"] == "assign-today-wins"
 
 
 @pytest.mark.asyncio
