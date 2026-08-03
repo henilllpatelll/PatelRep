@@ -1044,19 +1044,33 @@ async def suggest_assignments(
     if not housekeepers:
         # No shift records — fall back to all active housekeeper/supervisor roles.
         # Matches the same source as extractAssignableStaff on the mobile client.
+        # user_roles and user_profiles have no direct FK Postgrest can embed
+        # (see routers/staff.py::list_staff for the same two-step fetch pattern),
+        # so profiles are batch-fetched separately by id rather than embedded.
         fallback_result = (
             supabase.table("user_roles")
-            .select("user_id, user_profiles(full_name, preferred_name)")
+            .select("user_id")
             .eq("tenant_id", current_user.hotel_id)
             .in_("role", ["housekeeper", "housekeeping_supervisor"])
             .eq("is_active", True)
             .execute()
         )
-        for row in (fallback_result.data or []):
+        fallback_rows = fallback_result.data or []
+        fallback_user_ids = list({row["user_id"] for row in fallback_rows if row.get("user_id")})
+
+        profiles_map: dict = {}
+        if fallback_user_ids:
+            profiles_result = (
+                supabase.table("user_profiles")
+                .select("id, full_name, preferred_name")
+                .in_("id", fallback_user_ids)
+                .execute()
+            )
+            profiles_map = {p["id"]: p for p in (profiles_result.data or [])}
+
+        for row in fallback_rows:
             uid = row.get("user_id")
-            profile = (row.get("user_profiles") or {})
-            if isinstance(profile, list):
-                profile = profile[0] if profile else {}
+            profile = profiles_map.get(uid, {})
             if uid and uid not in seen_user_ids:
                 seen_user_ids.add(uid)
                 housekeepers.append({
