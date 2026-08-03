@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Billing, Work Order Archival, and Backlog Cleanup
-status: defining_requirements
-last_updated: "2026-08-03T15:00:00Z"
-last_activity: 2026-08-03 -- Milestone v1.3 started via /gsd-new-milestone. Scope: self-serve billing management, bulk-archive for Engineering work orders, UX rough-edges cleanup, ai_interactions CHECK-constraint drift fix, supervisor-picker product decision.
+status: roadmap_created
+last_updated: "2026-08-03T16:00:00Z"
+last_activity: 2026-08-03 -- ROADMAP.md created for v1.3 (3 phases: 15 Work-Order Bulk-Archive, 16 Self-Serve Billing Management, 17 Backlog Cleanup). 23/23 requirements mapped, no orphans. Ready to plan Phase 15.
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-03 — Milestone v1.3 started
+Phase: 15 of 17 (Work-Order Bulk-Archive)
+Plan: — (not yet planned)
+Status: Roadmap created, ready to plan
+Last activity: 2026-08-03 — ROADMAP.md created for v1.3
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.3 — defining requirements.
+**Current focus:** Milestone v1.3 — Phase 15: Work-Order Bulk-Archive, ready to plan.
 
 ## Previous milestones
 
@@ -269,11 +269,22 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 </details>
 
+## v1.3 Billing, Work Order Archival, and Backlog Cleanup — roadmap created (2026-08-03)
+
+Roadmap derived from `.planning/REQUIREMENTS.md` (23 requirements: BILLING-01..09, ARCHIVE-01..06, UX-01..06, DATA-01, STAFF-01) and `.planning/research/SUMMARY.md`, which found billing and bulk-archive share no router, table, or migration and recommended sequencing bulk-archive first since it's fully verifiable on localhost, with billing second since local dev has no Stripe credentials. Continues phase numbering from v1.2's last phase (14) — v1.3 starts at Phase 15. 100% requirement coverage (23/23), no orphans. Full detail: `.planning/ROADMAP.md`.
+
+- Phase 15: Work-Order Bulk-Archive — ARCHIVE-01..06 (fully self-contained, no shared router/table/migration with Phase 16; sequenced first per research since it's 100% localhost-verifiable, maximizing non-regression test time on the Realtime-subscribed Engineering board)
+- Phase 16: Self-Serve Billing Management — BILLING-01..09 (bundles the user-facing portal/usage/cap UI with the revenue-integrity hardening — true-up idempotency, cancel-time reconciliation, webhook `event.id` dedupe — since research explicitly flags these as preconditions before exposing invoices/portal to self-serve users; sequenced second because local dev has no Stripe credentials, the weaker "prove it on localhost" candidate)
+- Phase 17: Backlog Cleanup — UX-01..06, DATA-01, STAFF-01 (small, independent, low-risk items across distinct files/domains carried forward from the v1.2 milestone audit; grouped into one phase rather than forced into artificial per-item phases since none share code paths with each other or with Phases 15/16; sequenced last)
+
 ## Current Position
 
-No active phase — between milestones. Milestone v1.2 Stabilization Pass shipped and archived 2026-08-03 (Phases 12, 13, 14 all closed, 7/7 plans; migration deployment gap found and closed during the milestone-completion audit — see `.planning/v1.2-MILESTONE-AUDIT.md`). Run `/gsd-new-milestone` to scope the next milestone.
+Phase: 15 of 17 (Work-Order Bulk-Archive) — not started
+Plan: TBD — run `/gsd:plan-phase 15` to plan
+Status: Roadmap created, ready to plan
+Last activity: 2026-08-03 — ROADMAP.md created for v1.3 (Phases 15-17)
 
-Progress: [██████████] v1.2: 100% (3/3 phases) — shipped and archived
+Progress: [░░░░░░░░░░] v1.3: 0% (0/3 phases)
 
 ## Performance Metrics
 
@@ -306,6 +317,5 @@ Progress: [██████████] v1.2: 100% (3/3 phases) — shipped a
 
 ## Session
 
-Last session: 2026-08-03T14:35:00Z
-Stopped At: Milestone v1.2 Stabilization Pass archived and tagged. Migration deployment gap (086/087 not applied to production) found by the milestone audit and resolved same-session. Between milestones — next step is `/gsd-new-milestone`.
-</content>
+Last session: 2026-08-03T16:00:00Z
+Stopped At: ROADMAP.md created for milestone v1.3 (Phases 15-17, 23/23 requirements mapped, no orphans). Next step is `/gsd:plan-phase 15`.

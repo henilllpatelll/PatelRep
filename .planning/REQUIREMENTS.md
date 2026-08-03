@@ -62,4 +62,30 @@
 
 ## Traceability
 
-*(Filled by roadmap during phase creation)*
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| ARCHIVE-01 | Phase 15 | Pending |
+| ARCHIVE-02 | Phase 15 | Pending |
+| ARCHIVE-03 | Phase 15 | Pending |
+| ARCHIVE-04 | Phase 15 | Pending |
+| ARCHIVE-05 | Phase 15 | Pending |
+| ARCHIVE-06 | Phase 15 | Pending |
+| BILLING-01 | Phase 16 | Pending |
+| BILLING-02 | Phase 16 | Pending |
+| BILLING-03 | Phase 16 | Pending |
+| BILLING-04 | Phase 16 | Pending |
+| BILLING-05 | Phase 16 | Pending |
+| BILLING-06 | Phase 16 | Pending |
+| BILLING-07 | Phase 16 | Pending |
+| BILLING-08 | Phase 16 | Pending |
+| BILLING-09 | Phase 16 | Pending |
+| UX-01 | Phase 17 | Pending |
+| UX-02 | Phase 17 | Pending |
+| UX-03 | Phase 17 | Pending |
+| UX-04 | Phase 17 | Pending |
+| UX-05 | Phase 17 | Pending |
+| UX-06 | Phase 17 | Pending |
+| DATA-01 | Phase 17 | Pending |
+| STAFF-01 | Phase 17 | Pending |
+
+**Coverage:** 23/23 v1.3 requirements mapped. No orphans.
