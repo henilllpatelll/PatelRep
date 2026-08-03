@@ -30,3 +30,17 @@ scope-boundary rule (only fix issues directly caused by the current task's chang
    widen the CHECK constraint to cover all `intent_to_log` values actually used in code
    (`work_order_creation`, `guest_request_creation`, `task_assignment`,
    `housekeeping_briefing`, `general`).
+
+## From 13-03 live verification (2026-08-02)
+
+3. **Same `general`-intent CHECK-constraint drift (item 2 above) reproduced via a third
+   entry point** — clicking the "At-risk rooms today" quick-action chip in the main
+   `AICopilotBubble` (dashboard) also scores 0 against every `detect_intent` keyword list,
+   falls to `general`, and 400s with `{"error":{"code":"23514", ...}}` at the final
+   `log_ai_interaction` call. Not a new bug and not caused by 13-03's changes (13-03 only
+   modifies `AICopilotBubble.tsx`'s catch blocks, not intent detection or the backend) —
+   confirms the same pre-existing, already-deferred drift from item 2 is reachable from a
+   third UI surface. Notably, 13-03's `sendMessage` fix (real `ApiClientError.message`
+   instead of a hardcoded generic string) is what surfaced the specific `"Database request
+   failed. Please check the request and try again."` detail inline in the chat thread —
+   proving the fix's value, even though the underlying 400 itself is out of scope here.
