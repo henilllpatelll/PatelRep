@@ -1,323 +1,228 @@
 # Architecture Research
 
-**Domain:** Shared design-token + primitive-component layer for an existing Expo Router (SDK 54) React Native app
-**Researched:** 2026-07-28
-**Confidence:** HIGH (grounded in direct reading of `apps/mobile/` source, not training data)
+**Domain:** Integration architecture — self-serve billing management + bulk-archive for Engineering work orders (subsequent milestone on existing PatelRep production app)
+**Researched:** 2026-08-03
+**Confidence:** HIGH (all findings verified against current source: `routers/billing.py`, `routers/webhooks.py`, `routers/work_orders.py`, `services/work_orders/transitions.py`, `app/(dashboard)/engineering/work-orders/page.tsx`, `app/(dashboard)/settings/billing/page.tsx`, migrations 007/030/065)
 
-> **READ THIS FIRST — the milestone premise is partly inaccurate and it changes the plan.**
-> The task brief states mobile has "no theme file, no design tokens" and "zero shared UI layer."
-> **That is not true of the current codebase.** Mobile already ships:
-> - A mature token module at `apps/mobile/components/shared/tokens.ts` (the "Evening Lobby"
->   system) — light + dark palettes, the protected status color contract shared with web,
->   spacing (`S`), radius (`R`), AI/shell tokens. **46 of 52** component/screen files already
->   import it.
-> - A real primitive layer in `apps/mobile/components/shared/mobileHandoff.tsx`
->   (`IconButton`, `Pill`, `SectionLabel`, `HeroButton`, `Segmented`, `ProgressRing`,
->   `AILabel`, `AIChip`, `Avatar`, `Mono`, …) plus `evening.tsx` (`StatusPill`, `StatusRail`,
->   `ProgressBar`, `Chip`, `RoomQueueCard`, `AIBriefingCard`, `SectionHeader`).
->
-> So this milestone is **NOT** "introduce a shared layer into a bare app." It is **"consolidate
-> and complete a shared layer that is ~70% built, fill the four genuinely-missing primitives,
-> and — the real work — make the already-defined dark theme actually reactive."**
-> The roadmap must be written against the *real* gaps below, not the assumed greenfield.
+## Executive Summary
 
----
+Both capabilities are **additive integrations onto code that already exists** — neither is greenfield.
 
-## What actually exists vs. what's missing (grounded gap analysis)
+- **Self-serve billing** already has a working spine: `routers/billing.py` (subscription, credits, Stripe **Customer Portal**, checkout, invoices), the `stripe_webhook` handler in `routers/webhooks.py`, the `settings/billing/page.tsx` UI, and the `/v1/internal/billing/monthly-trueup` cron. The Stripe Customer Portal already covers payment-method updates, plan cancellation, and plan changes. The incremental work is a small set of **additive endpoints** for controls the portal does not expose (self-serve spending-cap adjustment; optional pause/resume) plus UI. **Likely no new migration** (`subscriptions.cap_cents` already exists) unless a cap-change audit trail is wanted.
+- **Bulk-archive** is the more architecturally interesting one because it touches the **Realtime-subscribed** Engineering Work Orders board. It needs **one new migration (089)** adding an `archived_at` flag + partial index + a new audited RPC, one new bulk endpoint on `work_orders.py`, and — critically — **one line added to the board's list query** so archived rows drop off. The Realtime subscription itself must **not** be changed (see the gotcha below).
 
-| Web primitive (from UI-REFRESH-PLAN §4) | Mobile equivalent today | Status |
-|---|---|---|
-| Design tokens (`globals.css`) | `components/shared/tokens.ts` (light+dark, status, R/S) | **EXISTS** — keep, don't rebuild |
-| `Button` (variants/sizes/loading) | `HeroButton` only (single hero style) | **PARTIAL** — need general `Button` |
-| `IconButton` | `mobileHandoff.tsx` `IconButton` | **EXISTS** |
-| `Pill` / `StatusDot` / `SectionLabel` / `Mono` / `AILabel` | all in `mobileHandoff.tsx` + `evening.tsx` | **EXISTS** |
-| `Card` | ad-hoc `styles.card` in `evening.tsx` `RoomQueueCard`; no standalone `Card` | **PARTIAL** — extract a `Card` |
-| `EmptyState` | none — hardcoded "No rooms…" strings per screen | **MISSING** |
-| `StateBlock` (loading/empty/error) | none — 38 files hand-roll `ActivityIndicator` | **MISSING** |
-| `Toaster` + `useToast` | none — no provider anywhere | **MISSING** |
-| Dark mode | **defined** in `tokens.ts` (`darkTheme`, `getThemeTokens`) but **not wired**: only **1** file uses `useColorScheme`; every screen reads the static light-only `C` snapshot | **DEFINED, UNWIRED** ← highest-risk work |
-
-**The single most important architectural fact:** `tokens.ts` exports a flattened constant `C`
-that is a **light-theme-only snapshot** (`C.paper = lightTheme.background`, etc.). All 46 consuming
-files reference `C.*` inside `StyleSheet.create()`, which runs **once at module load**. There is no
-theme context, no `useTheme()` hook, and no theme state in `stores/appStore.ts`. So "add dark mode"
-is not a token task — the tokens are done. It is a **reactivity-plumbing task** touching how 46 files
-resolve colors. This is the crux of the milestone and the roadmap must sequence it carefully.
-
----
+The two features share **no router, table, or migration** and are safe to build as **independent parallel phases**.
 
 ## Standard Architecture
 
-### Target layer structure (after milestone)
+### System Overview — where the new pieces attach
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                         SCREENS (app/**)                          │
-│   Consume primitives + useTheme(); never hardcode hex             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐  │
-│  │ my-rooms │ │room-board│ │work-order│ │  tasks   │ │inspect │  │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └───┬────┘  │
-├───────┴────────────┴────────────┴────────────┴──────────┴────────┤
-│                    PRIMITIVES (components/ui/  ← NEW)              │
-│   Button · Card · EmptyState · StateBlock            (+ existing   │
-│   components/shared/: IconButton, Pill, SectionLabel, Chip, …)     │
-├───────────────────────────────────────────────────────────────────┤
-│              THEME LAYER (lib/theme/  ← NEW reactive shell)        │
-│   ThemeProvider · useTheme() · Toast provider/useToast            │
-│        ▼ resolves to ▼                                             │
-│   TOKEN DATA (components/shared/tokens.ts  ← EXISTS, keep)         │
-│   lightTheme · darkTheme · statusTokens · R · S · C(compat)       │
-├───────────────────────────────────────────────────────────────────┤
-│         PRESERVE UNTOUCHED (behavior — do not modify)             │
-│  stores/appStore.ts (offline queue) · lib/offline/{db,sync}       │
-│  i18n/ (EN/ES) · lib/navigation/roleTabs.ts (RBAC) · lib/api/**   │
-└───────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                         WEB (Next.js 14/16)                            │
+│  settings/billing/page.tsx          engineering/work-orders/page.tsx   │
+│  (+ cap editor UI)                  (+ multiselect + Archive action)   │
+│        │                                    │        ▲                 │
+│  lib/api/billing.ts                   lib/api/engineering.ts           │
+│  (+ updateCap / pause)                (+ bulkArchiveWorkOrders)        │
+│        │                                    │        │                 │
+│        │                     Realtime sub (wo_realtime) — UNCHANGED    │
+│        │                     event:* filter:tenant_id → invalidate RQ  │
+└────────┼────────────────────────────────────┼────────┼────────────────┘
+         │ HTTPS /v1                           │ HTTPS  │ WebSocket (SB Realtime)
+┌────────┼────────────────────────────────────┼────────┼────────────────┐
+│                              API (FastAPI)   │        │                 │
+│  routers/billing.py                    routers/work_orders.py          │
+│  (+ PATCH /billing/cap,                (+ POST /work-orders/bulk-       │
+│   + POST /billing/pause?)               archive; list query gains       │
+│        │                                .is_("archived_at","null"))     │
+│  routers/webhooks.py (stripe_webhook)  services/work_orders/            │
+│  (maybe + paused/resumed events)        transitions.py — UNCHANGED      │
+└────────┼────────────────────────────────────┼─────────────────────────┘
+         │                                     │
+┌────────┼─────────────────────────────────────┼────────────────────────┐
+│                            Supabase (Postgres + RLS + Realtime)         │
+│  subscriptions, credit_ledger          work_orders (+ archived_at,      │
+│  (cap_cents already exists)             archived_by) ← MIGRATION 089     │
+│                                         operational_audit_events        │
+│                                         RPC bulk_archive_work_orders()   │
+│                                         work_orders already in           │
+│                                         supabase_realtime publication    │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+### Component Responsibilities (new vs modified)
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| `lib/theme/tokens.ts` (moved) or `components/shared/tokens.ts` (kept) | Raw palette/spacing/radius data, light + dark | Plain `const` objects (already built) |
-| `lib/theme/ThemeProvider` + `useTheme()` (NEW) | Resolve active theme (light/dark/system) reactively, expose it to screens | React Context + `useColorScheme()` + persisted override in `appStore` |
-| `components/ui/*` (NEW) | The four missing primitives (Button, Card, EmptyState, StateBlock) | RN `Pressable`/`View`, themed via `useTheme()` |
-| `components/shared/*` (EXISTS) | Already-built atoms (IconButton, Pill, Chip, status cards) | Keep in place; theme-migrate in later waves |
-| `lib/theme/Toast` + `useToast()` (NEW) | One app-wide toast queue; success/error/info | Context + a viewport mounted in `(app)/_layout.tsx` |
-
----
-
-## Recommended Project Structure
-
-```
-apps/mobile/
-├── lib/
-│   └── theme/                    # NEW — the reactive shell around existing token DATA
-│       ├── ThemeProvider.tsx     # Context provider; reads system scheme + appStore override
-│       ├── useTheme.ts           # Hook → returns active theme object (same keys as `C`)
-│       ├── ToastProvider.tsx     # App-wide toast queue + viewport component
-│       └── useToast.ts           # Hook → { success, error, info }(alreadyTranslatedMsg)
-├── components/
-│   ├── ui/                       # NEW — the four missing primitives (mirror web components/ui/)
-│   │   ├── Button.tsx            # variants(primary/secondary/ghost/destructive) · size(sm/md/lg) · loading
-│   │   ├── Card.tsx              # extract the RoomQueueCard shell into a reusable surface
-│   │   ├── EmptyState.tsx        # icon + title + body + optional action
-│   │   └── StateBlock.tsx        # status: loading|empty|error → renders children when data present
-│   └── shared/                   # EXISTS — leave structure intact
-│       ├── tokens.ts             # KEEP as the token source (or re-export from lib/theme; see below)
-│       ├── mobileHandoff.tsx     # IconButton, Pill, SectionLabel, HeroButton, … (already good)
-│       └── evening.tsx           # StatusPill, StatusRail, Chip, RoomQueueCard, …
-└── app/
-    ├── _layout.tsx               # mount <ThemeProvider> here (wraps everything, incl. auth)
-    └── (app)/_layout.tsx         # mount <ToastProvider>/<ToastViewport> here (authed surfaces)
-```
-
-### Structure Rationale — where the token file should live (the brief's explicit question)
-
-**Recommendation: do NOT relocate the token file to `constants/theme.ts` or `lib/theme/tokens.ts`
-in a way that breaks the 46 existing imports.** The brief asks whether tokens should live in
-`lib/theme/` or `constants/theme.ts`; the honest answer given the real codebase is: **the token
-DATA already has a home that works — keep `components/shared/tokens.ts` as the canonical import
-path.** Two acceptable variants, in preference order:
-
-1. **Keep-in-place (lowest risk, recommended):** Leave `tokens.ts` where it is. Add the *reactive*
-   layer (`ThemeProvider`, `useTheme`) in `lib/theme/`, importing the raw data from
-   `components/shared/tokens.ts`. Zero import churn; the new folder holds only the new reactive code.
-2. **Move-with-shim (cleaner long-term, moderate risk):** Move the raw data to `lib/theme/tokens.ts`
-   and make `components/shared/tokens.ts` a one-line re-export (`export * from "@/lib/theme/tokens"`).
-   No consumer breaks, but it's a churny rename for aesthetics — only do it if the roadmap wants
-   `lib/theme/` to be the obvious single home. **Not worth doing mid-milestone; defer.**
-
-Why not `constants/theme.ts`: this repo has no `constants/` convention (no such folder exists),
-and the web app keeps tokens in CSS, not a constants file — so there is no cross-app symmetry to
-gain. Follow the mobile app's own established convention: shared visual code lives under
-`components/shared/` and app-wide logic/providers under `lib/`. **Tokens (data) → `components/shared/`
-(already there). Theme provider/hook (reactive logic) → `lib/theme/` (new).**
-
-- **`lib/theme/`:** reactive/stateful concerns (context, hooks, persistence). Mirrors how `lib/`
-  already holds `offline/`, `navigation/`, `api/` — non-visual app plumbing.
-- **`components/ui/`:** new pure primitives, mirroring the web app's `components/ui/` so a developer
-  crossing web↔mobile finds Button/Card/EmptyState/StateBlock in the same-named folder.
-- **`components/shared/`:** the existing atom grab-bag stays; don't reshuffle it (churn = regression risk).
-
----
+| Component | New / Modified | Responsibility |
+|-----------|----------------|----------------|
+| `supabase/migrations/089_work_order_archive.sql` | **NEW** | Add `archived_at TIMESTAMPTZ`, `archived_by UUID`, partial index, and audited `bulk_archive_work_orders()` RPC |
+| `apps/api/routers/work_orders.py` | **MODIFIED** | Add `POST /work-orders/bulk-archive` (+ optional `/bulk-unarchive`); add `.is_("archived_at","null")` default filter + `?archived=true` opt-in to `list_work_orders` |
+| `apps/web/app/(dashboard)/engineering/work-orders/page.tsx` | **MODIFIED** | Multiselect + bulk "Archive" action; Realtime subscription block stays **as-is** |
+| `apps/web/lib/api/engineering.ts` | **MODIFIED** | Add `bulkArchiveWorkOrders(ids)` client method |
+| `apps/api/routers/billing.py` | **MODIFIED** | Add `PATCH /billing/cap` (self-serve `cap_cents`); optional `POST /billing/pause` + `/resume` |
+| `apps/api/routers/webhooks.py` | **MODIFIED (maybe)** | Only if pause/resume needs a distinct handler — existing `subscription.updated` already maps `sub.status` (incl. `paused`) into `plan_status` |
+| `apps/web/lib/api/billing.ts` | **MODIFIED** | Add `updateCap` / `pauseSubscription` client methods |
+| `apps/web/app/(dashboard)/settings/billing/page.tsx` | **MODIFIED** | Cap editor + (optional) pause control; keep React Query pull model (no Realtime) |
+| `supabase/migrations/090_billing_cap_audit.sql` | **NEW (optional)** | Only if a cap-change history/audit trail is required |
 
 ## Architectural Patterns
 
-### Pattern 1: `useTheme()` hook + `makeStyles(theme)` factory (the dark-mode enabler)
+### Pattern 1: Archive as an orthogonal flag, NOT a new status
 
-**What:** Replace direct static reads of the `C` constant inside `StyleSheet.create()` with a hook
-that returns the *active* theme, and a `makeStyles` factory so stylesheets can be theme-parameterized.
-**When to use:** Every screen/component that must respond to light↔dark. Adopt progressively.
-**Trade-offs:** `StyleSheet.create()` is evaluated once, so themed styles must either move color props
-inline (`style={[styles.card, { backgroundColor: theme.surface }]}`) or be built per-render via a
-memoized factory. The inline approach is smallest-diff and matches the code's existing habit
-(`evening.tsx`/`atoms.tsx` already pass `{ backgroundColor: meta.bg }` inline). **Prefer inline color
-props over a full makeStyles rewrite** — it lets a screen go theme-reactive by touching only its color
-lines, not its whole StyleSheet.
+**What:** Add `archived_at TIMESTAMPTZ` (nullable) rather than adding `'archived'` to the `work_orders.status` CHECK constraint / state machine.
 
-**Example:**
-```typescript
-// lib/theme/useTheme.ts
-export function useTheme() {
-  const mode = useThemeMode();               // 'light' | 'dark', from ThemeProvider
-  return useMemo(() => getThemeTokens(mode), [mode]);  // getThemeTokens already exists in tokens.ts
-}
+**Why:** `status` is governed by a CHECK constraint (migration 065: `open|escalated|in_progress|on_hold|completed|cancelled`), the `_ALLOWED_TRANSITIONS` graph in `services/work_orders/transitions.py`, the `Literal[...]` in `list_work_orders`, and the 5 Kanban columns. Archive is **orthogonal** to workflow state — you archive a WO that is *still* `completed` or `cancelled` to declutter the board. A flag keeps the entire state machine untouched (zero regression surface), whereas a new status value would ripple into transitions, columns, the drawer, and the escalation cron.
 
-// in a screen — smallest-diff migration: keep the static layout StyleSheet,
-// pull only *colors* from the reactive theme.
-const theme = useTheme();
-<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} />
+**Trade-off:** Every board query must remember to filter `archived_at IS NULL`. Mitigate with a partial index and by making the filter the default in one place (`list_work_orders`).
+
+```sql
+-- migration 089 (next free number; 088 is current max, no collision)
+ALTER TABLE public.work_orders
+  ADD COLUMN archived_at TIMESTAMPTZ,
+  ADD COLUMN archived_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- keep the board's 5 status queries fast once archived rows accumulate
+CREATE INDEX idx_work_orders_active_board
+  ON public.work_orders (tenant_id, status)
+  WHERE archived_at IS NULL;
 ```
 
-### Pattern 2: Back-compat `C` bridge during migration
+### Pattern 2: Bulk-archive through an audited SECURITY DEFINER RPC
 
-**What:** Keep the existing static `C` export (light-only) alive so unmigrated screens keep working,
-while new/migrated screens use `useTheme()`. Retire `C` only after the last screen migrates.
-**When to use:** Throughout the floor-first rollout — you cannot flip 46 files atomically.
-**Trade-offs:** Two color-access styles coexist temporarily (a known, bounded inconsistency). This is
-the price of not shipping one giant risky commit. Track remaining `C.` references as the burn-down metric.
+**What:** Mirror `transition_work_order_with_audit` — do the bulk UPDATE and the append-only `operational_audit_events` insert atomically inside one Postgres function, rather than issuing a bulk UPDATE + separate insert from Python.
 
-### Pattern 3: Provider-mounted overlays (Toast) at the authed-layout root
+**When:** Any controlled state change that must leave an audit trail. Archive qualifies (it hides operational records).
 
-**What:** Mount `<ToastProvider>` (and its viewport) in `app/(app)/_layout.tsx`, and `<ThemeProvider>`
-in `app/_layout.tsx` (so login is themed too). `useToast()` returns `{success,error,info}` taking an
-**already-translated** string (same contract the web `useToast` uses — translation stays in the caller
-so the i18n floor gate is satisfied).
-**When to use:** Any create/update/delete feedback; replaces per-screen `Alert.alert`/local banners.
-**Trade-offs:** One more provider in the tree; negligible. Big win: consistent feedback, no per-screen state.
+**Trade-off:** One more RPC to maintain, but it guarantees atomicity and consistency with the existing audit convention (append-only, `resource_type='work_order'`, `action='work_order.archived'`). Enforce in the RPC (or the router) that only **terminal** WOs (`completed`/`cancelled`) can be archived, so archiving can't hide live work.
 
----
+```python
+# work_orders.py — new endpoint, gated like the existing mutations
+@router.post("/bulk-archive")
+async def bulk_archive_work_orders(
+    request: BulkArchiveRequest,  # { work_order_ids: list[str] }
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    return {"data": supabase.rpc("bulk_archive_work_orders", {
+        "p_tenant_id": current_user.hotel_id,
+        "p_ids": request.work_order_ids,
+        "p_actor_id": current_user.user_id,
+        "p_actor_role": current_user.role,
+    }).execute().data}
+```
+
+### Pattern 3: Self-serve billing = additive endpoints over the Stripe Customer Portal
+
+**What:** The Customer Portal (`POST /billing/portal`, already live) is the escape hatch for payment method, cancellation, and Stripe-native plan changes. Only build first-party endpoints for controls the portal cannot express — chiefly the PatelRep **spending cap** (`subscriptions.cap_cents`, already a column, surfaced by `GET /billing/credits`).
+
+**When:** Prefer portal for anything Stripe owns; build an endpoint only for PatelRep-domain billing state.
+
+**Trade-off:** Keeps Stripe as source of truth and minimizes webhook surface. A `PATCH /billing/cap` writing `subscriptions.cap_cents` needs **no new migration** and no Stripe call.
+
+```python
+# billing.py — additive, same require_role("gm") gate as the rest of the router
+@router.patch("/cap")
+async def update_spend_cap(
+    request: UpdateCapRequest,  # { cap_cents: int | null }
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    supabase.table("subscriptions").update({"cap_cents": request.cap_cents})\
+        .eq("tenant_id", current_user.hotel_id).execute()
+    return {"data": {"cap_cents": request.cap_cents}}
+```
 
 ## Data Flow
 
-### Theme resolution flow
+### Bulk-archive flow (and why the Realtime board keeps working)
 
 ```
-system appearance (useColorScheme)  ─┐
-appStore.themeOverride ('system'|…) ─┼─► ThemeProvider ─► useTheme() ─► screen color props
-persisted via AsyncStorage          ─┘        (Context)      (hook)      (inline on StyleSheet)
+GM/engineer selects N completed/cancelled cards → "Archive"
+   ↓
+POST /v1/work-orders/bulk-archive { ids }  (require_role gate)
+   ↓
+RPC bulk_archive_work_orders: UPDATE work_orders SET archived_at=now()
+   + INSERT operational_audit_events (action='work_order.archived')   [atomic]
+   ↓
+Postgres emits UPDATE events on work_orders (row now has archived_at != null)
+   ↓
+Board's wo_realtime channel (event:'*', filter:tenant_id=eq.<id>) fires
+   → queryClient.invalidateQueries(['work-orders'])
+   ↓
+Board refetches all 5 columns via GET /work-orders?status=...
+   → list_work_orders now returns .is_("archived_at","null") rows only
+   ↓
+Archived cards disappear from the board. Subscription never breaks.
 ```
 
-### Toast flow
+### State management
 
-```
-mutation success/error ─► useToast().success(t('key')) ─► ToastProvider queue ─► ToastViewport (top of (app))
-```
-
-### Do-not-disturb boundaries (these flows must remain byte-for-byte unchanged)
-
-1. **Offline sync:** `stores/appStore.ts` queue (`enqueueAction`/`flushQueue`) ↔ `lib/offline/{db,sync}.ts`
-   ↔ `syncOnConnect` in `app/_layout.tsx`. Presentation work must not touch this.
-2. **i18n floor contract:** every floor string renders via `useTranslation()/t()`; new primitive copy
-   (empty-state titles, retry labels, toast text) needs keys in **both** `i18n` EN + ES with parity.
-3. **RBAC navigation:** `lib/navigation/roleTabs.ts` decides which tabs each role sees. Do not widen or
-   reorder role access as a side effect of restyling the tab bar. *(Note: `getTabsForRole` has a
-   duplicate `case "engineer":` at lines 106–107 — a pre-existing lint smell, not this milestone's job,
-   but worth a one-line cleanup if a wave touches that file.)*
-
----
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Current (single hotel, ~6 roles, ~26 screens) | Context-based theme + a flat `components/ui/` is exactly right. No over-engineering needed. |
-| More screens / more primitives | Keep primitives flat in `components/ui/`; only add subfolders (`ui/forms/`, `ui/feedback/`) past ~15 primitives. |
-| Perf on low-end devices | `useTheme()` returns a memoized object; inline color props are cheap. Avoid rebuilding whole StyleSheets per render (that's the `makeStyles` anti-risk). |
-
-### Scaling Priorities
-
-1. **First bottleneck:** dark-mode re-render correctness, not throughput — a missed screen shows a
-   light card in dark mode. Mitigation: the `C.` burn-down metric + a dark-mode QA wave.
-2. **Second bottleneck:** i18n key parity as primitives add copy — enforce EN/ES parity every wave.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Relocating/rewriting the token file "to do it properly"
-
-**What people do:** Delete `components/shared/tokens.ts`, author a fresh `constants/theme.ts`, rewire 46 imports.
-**Why it's wrong:** Pure churn with high regression surface on a working, web-aligned token set; the
-tokens are already correct and already match the protected status contract.
-**Do this instead:** Keep the token data where it is; add only the missing *reactive* layer around it.
-
-### Anti-Pattern 2: Flipping all 46 screens to `useTheme()` in one wave
-
-**What people do:** One giant "make it themeable" commit.
-**Why it's wrong:** Un-reviewable, breaks the wave-by-wave verify gate, and any one missed inline color
-silently ships a broken dark surface. High chance of regressing offline/i18n-adjacent screens.
-**Do this instead:** Ship the provider + `useTheme()` with **light as the only active mode first**
-(zero visual change), migrate screens floor-first, then enable the dark toggle in the final QA wave —
-mirroring the web plan's Wave 0 (build tools, no screen change) → floor-first → Wave 6 (dark/a11y).
-
-### Anti-Pattern 3: Re-implementing primitives that already exist
-
-**What people do:** Build a new `IconButton`/`Pill`/`SectionLabel` in `components/ui/` unaware they
-already live in `mobileHandoff.tsx`.
-**Why it's wrong:** Duplicate, drifting implementations — the exact "20 screens reinvent buttons" problem
-this milestone exists to prevent.
-**Do this instead:** Build **only** the four confirmed-missing primitives (Button, Card, EmptyState,
-StateBlock) + the Toast/theme providers. Reuse existing atoms; theme-migrate them, don't clone them.
-
----
+- **Work Orders board:** React Query columns (`per_page:50`, `refetchInterval:60_000`) + a single Supabase Realtime channel (`wo_realtime`) that only **invalidates** — it does not render from the payload. This indirection is why archive "just works" once the API list query excludes archived rows.
+- **Billing:** pure React Query pull (`staleTime: 5 * 60_000`, `refetchInterval: false`). No Realtime — correct; billing must stay off the 3 named Realtime surfaces.
 
 ## Integration Points
 
-### Files a token/primitive rollout touches FIRST (floor-role, highest priority)
+### Internal boundaries
 
-| Surface | Screen file(s) | Feature-component file(s) |
-|---|---|---|
-| My Rooms (housekeeper) | `app/(app)/my-rooms/index.tsx`, `[roomId].tsx` | `evening.tsx` (`RoomQueueCard`), `housekeeping/*Modal.tsx` |
-| Room Board (supervisor) | `app/(app)/room-board/index.tsx`, `room-status/index.tsx` | `supervisor/atoms.tsx`, `supervisor/RoomDetailSheet.tsx` |
-| Work Orders (engineer) | `app/(app)/work-orders/index.tsx`, `[woId].tsx` | `engineering/{WorkOrderCard,CreateWorkOrderModal,EngineerHome}.tsx` |
-| Tasks | `app/(app)/tasks/index.tsx` | `tasks/TaskCard.tsx` |
-| Inspect | `app/(app)/inspect/index.tsx` | `housekeeping/ChecklistSection.tsx` |
+| Boundary | Change | Notes |
+|----------|--------|-------|
+| `list_work_orders` (engineer path `_base()` **and** default query) | add `.is_("archived_at","null")` | **Both** code paths (engineer merge path ~lines 193–212 and default query ~228–247) must get the filter, plus an `?archived=true` opt-in for an "Archived" view/tab |
+| `wo_realtime` subscription (page.tsx ~254–266) | **NO CHANGE** | Leave `event:'*'`, `filter:tenant_id=eq.<id>`. See anti-pattern below |
+| `operational_audit_events` | new `action='work_order.archived'` rows | Append-only trigger already enforced (migration 065); write via the new RPC |
+| `work_orders` publication | **NO CHANGE** | Already added to `supabase_realtime` (migration 030); adding a column does not require re-publishing |
+| RLS on `work_orders` | **NO CHANGE** | Row-level tenant policy already covers the new columns |
+| `subscriptions.cap_cents` | write path via new `PATCH /billing/cap` | Column already exists; read path already in `GET /billing/credits` |
+| `stripe_webhook` | optional | `subscription.updated` already writes `sub.status` → `plan_status` (type already includes `paused`); only add a branch if pause/resume needs bespoke handling |
 
-### Internal boundaries (must stay decoupled)
+### External services
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| primitives ↔ theme | `useTheme()` hook only | Primitives never import raw `darkTheme`/`lightTheme` directly |
-| screens ↔ offline queue | `appStore` actions | Restyle must not read/write queue shape |
-| tab bar ↔ RBAC | `roleTabs.ts` | Restyle the bar's chrome; never change which tabs a role gets |
-| new copy ↔ i18n | `t()` + EN/ES keys | Every primitive string is a translated key with parity |
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| Stripe | Customer Portal + webhooks (existing) | Prefer portal for payment/cancel/plan; new first-party endpoints only for `cap_cents`. **Cannot be E2E-tested locally** — no Stripe keys in the local env (per CLAUDE.md). Flag billing paths as verification-limited |
+| Supabase Realtime | existing `supabase_realtime` publication | No new surface added; reuses the one Engineering board channel |
 
----
+## Anti-Patterns
 
-## Recommended rollout order (phase-sized, mirroring web Wave 0→6)
+### Anti-Pattern 1: Adding `archived_at` to the Realtime subscription filter
 
-> Maps the web plan's proven "primitives-first, floor-role-first, dark/a11y-last" sequence onto
-> phase-sized chunks. Each phase is independently shippable and self-verified on device before the next.
+**What people do:** "Archived rows shouldn't be on the board, so filter them out of the subscription too" → change the `postgres_changes` filter to `tenant_id=eq.<id>&archived_at=is.null`.
 
-| Phase | Web-wave analog | Scope | Screen changes? | Risk |
-|---|---|---|---|---|
-| **P0 — Foundation** | Wave 0 | Add `lib/theme/` ThemeProvider + `useTheme()` (light-active only, zero visual change); build `Button`, `Card`, `EmptyState`, `StateBlock` in `components/ui/`; add `ToastProvider`+`useToast`; add generic i18n keys (EN/ES). Mount providers in `_layout.tsx`. | **No** existing screen changed | Low |
-| **P1 — Floor buttons & states** | Waves 1–3 | Roll `Button`/`StateBlock`/`EmptyState`/`useToast` through the **floor-role screens** (My Rooms, Room Board, Work Orders, Tasks, Inspect) + their feature components. Replace hand-rolled TouchableOpacity buttons, `ActivityIndicator` loaders, hardcoded "No X" strings, and `Alert.alert` feedback. | Floor screens only | Medium |
-| **P2 — Remaining screens** | Waves 1–3 (cont.) | Same rollout across profile, supervisor home, companion home, guest-requests, lost-found, logbook, alerts, staff, sop. | Non-floor screens | Medium |
-| **P3 — Theme reactivity** | (mobile-specific) | Migrate screens' **color reads** from static `C` to `useTheme()` inline props, floor-first then rest; burn `C.` references down. Still light-only visually. | All themed screens | **High** ← gated, incremental |
-| **P4 — Dark mode + a11y QA** | Wave 6 | Enable the dark toggle (persist override in `appStore`); dark-parity sweep on every migrated screen; contrast/touch-target/reduced-motion audit; verify offline-sync, i18n parity, and RBAC nav all still pass. | QA/fixes only | Medium |
+**Why it's wrong:** The archive UPDATE sets `archived_at` to a **non-null** value. A Realtime filter of `archived_at=is.null` matches on the row's *new* values, so the very UPDATE that should tell the board to drop the card gets **suppressed**. The card would linger until the 60s `refetchInterval` backstop fires. The subscription is a dumb invalidator; keep it broad (`tenant_id` only) and do the filtering in the REST list query.
 
-**Why this order is safe for the three fragile subsystems:**
-- **Offline-sync:** P0–P2 are presentation-only and never import `lib/offline` or mutate `appStore`'s
-  queue; P4's only `appStore` addition is a `themeMode` field, orthogonal to the queue.
-- **i18n:** every phase adds keys in EN+ES with a parity check; primitives take pre-translated strings
-  so the no-literal-string floor gate keeps passing.
-- **RBAC nav:** the tab bar's *chrome* may be restyled, but `roleTabs.ts` role→tab mapping is never
-  edited; verify a housekeeper still sees exactly the housekeeper tab set after any nav restyle.
+**Do this instead:** Leave the subscription untouched; add `.is_("archived_at","null")` to `list_work_orders`.
 
----
+### Anti-Pattern 2: Making `archived` a work-order status
+
+**What people do:** Add `'archived'` to the status CHECK / state machine.
+
+**Why it's wrong:** Couples an orthogonal display concern to the workflow engine — forces edits to `transitions.py`, the Kanban columns, the drawer, and the escalation cron, and loses the "it's still completed/cancelled" semantics. Large regression surface on a Realtime-critical screen.
+
+**Do this instead:** Orthogonal `archived_at` flag (Pattern 1).
+
+### Anti-Pattern 3: Re-implementing payment/cancel flows first-party
+
+**What people do:** Build custom endpoints for card updates or cancellation.
+
+**Why it's wrong:** Duplicates the Stripe Customer Portal that already ships, and pulls PCI-adjacent surface into the app. Build first-party endpoints only for PatelRep-owned state (the spend cap).
+
+## Build Order
+
+**Billing and bulk-archive are independent** — different routers (`billing.py` vs `work_orders.py`), different tables (`subscriptions`/`credit_ledger` vs `work_orders`), no shared migration, no shared component. They can be **two parallel phases** with no ordering dependency.
+
+If serialized, recommended order and reasoning:
+
+1. **Bulk-archive first.** Self-contained (one migration + one RPC + one endpoint + one list-filter line + board UI), no external-service dependency, and **fully verifiable on localhost** against the dev servers + Supabase. It also touches the Realtime-subscribed board, so front-loading it gives the most time for non-regression testing of the Engineering board's golden path.
+2. **Self-serve billing second.** Mostly additive over the existing Stripe spine; the cap endpoint needs no migration. **Caveat:** the local env has **no Stripe keys**, so checkout/portal/webhook paths **cannot be exercised end-to-end locally** — verification is limited to the `cap_cents` DB path and UI rendering. This makes billing the weaker candidate to "prove working on localhost," which is another reason to sequence it after the fully-testable archive work.
+
+Either phase can also proceed in parallel with the other since they never touch the same files.
 
 ## Sources
 
-- Direct source read (HIGH confidence): `apps/mobile/components/shared/tokens.ts`,
-  `components/shared/{evening.tsx,mobileHandoff.tsx}`, `components/supervisor/atoms.tsx`,
-  `lib/navigation/roleTabs.ts`, `stores/appStore.ts`, `app/_layout.tsx`, and file/grep census
-  (46/52 files import tokens; 414 raw `TouchableOpacity`; 1 file uses `useColorScheme`; no Toast/EmptyState/StateBlock).
-- `.planning/UI-REFRESH-PLAN.md` — the web app's executed Wave 0→6 plan (the pattern being mirrored).
-- `.planning/PROJECT.md` — milestone v1.1 goal and locked decisions (shared-primitives-first, floor-role-first).
-- Expo SDK 54 / React Native `StyleSheet.create` + `useColorScheme` behavior (HIGH — stable, long-standing API).
+- `apps/api/routers/billing.py`, `apps/api/routers/webhooks.py`, `apps/api/routers/work_orders.py`, `apps/api/routers/internal.py` (verified 2026-08-03)
+- `apps/api/services/work_orders/transitions.py`
+- `apps/web/app/(dashboard)/engineering/work-orders/page.tsx` (Realtime subscription lines ~254–266)
+- `apps/web/app/(dashboard)/settings/billing/page.tsx`, `apps/web/lib/api/billing.ts`
+- `supabase/migrations/007_work_orders.sql`, `030_enable_realtime_work_orders.sql`, `065_work_order_transition_audit.sql`; migration ceiling confirmed at 088
+- Project conventions: root `CLAUDE.md` (Realtime restricted to 3 surfaces; no ORM; flat routers; append-only audit; sequential migrations; no local Stripe/AI credentials)
 
 ---
-*Architecture research for: mobile design-token + primitive layer (v1.1 Mobile UI Parity)*
-*Researched: 2026-07-28*
+*Architecture research for: PatelRep billing-management + work-order bulk-archive integration*
+*Researched: 2026-08-03*

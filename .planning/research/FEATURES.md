@@ -1,148 +1,228 @@
 # Feature Research
 
-**Domain:** Hotel-staff-facing native mobile app (housekeeping/engineering floor operations) — v1.1 Mobile UI Parity
-**Researched:** 2026-07-28
-**Confidence:** HIGH (grounded in the actual `apps/mobile` + `apps/web` codebase; native-UX conventions from RN/HIG/Material)
+**Domain:** B2B hotel-ops SaaS — self-serve billing management + bulk-archive for Engineering work orders
+**Researched:** 2026-08-03
+**Confidence:** HIGH (both capabilities grounded in existing PatelRep code; Stripe portal behavior verified against current Stripe docs)
 
-## Context Grounding (what already exists on mobile)
+> Scope note: This file covers only the two NEW capabilities. It is deliberately opinionated and tied to PatelRep's actual constraints (Stripe Customer Portal already partially wired, work-order state machine + append-only `operational_audit_events`, tenant isolation via `hotel_id`, `$2.50/room/month` cap, and NO live Stripe credentials for local testing).
 
-Findings below are grounded in the current `apps/mobile` source, not assumptions:
+---
 
-- **Design tokens** (`components/shared/tokens.ts`): a full token system already exists — `statusTokens` (protected status-color contract shared with web: teal ready, blue clean, rose dirty/occupied, amber pickup, stone OOO), plus **`darkTheme`, `darkStatusTokens`, `darkAiTokens` are already defined but NOT wired to runtime**. `C` (the constant every screen imports) is hardcoded to `lightTheme`. No `useColorScheme` / `Appearance` call exists anywhere in the app.
-- **Status color+icon pairing** (`components/engineering/WorkOrderCard.tsx`): already done well — `CATEGORY_META` pairs an Ionicon with each color, urgency is shown via icon+text chip (`warning`/`flash`) not color alone, and a left urgency rail reinforces state. This table-stakes pattern is largely *met*, not missing — parity work is about spreading the same discipline to every screen.
-- **Loading/empty states**: ad hoc per screen. `my-rooms/index.tsx` rolls its own `ActivityIndicator` centered block and its own `emptyCard`/`emptyTitle`/`emptyText` styles, repeated (with drift) across ~20 screens. No shared `EmptyState`/`StateBlock` primitive.
-- **Feedback**: no toast/snackbar exists. Success/failure is signalled today via blocking native **`Alert.alert`** (+ `expo-haptics`) — 65 occurrences across 20 files. Alert is a modal that interrupts one-handed flow and requires a tap to dismiss.
-- **Navigation**: native already uses `expo-router` `<Tabs>` with role-filtered tabs (`getTabsForRole`) + a floating AI-copilot FAB (`app/(app)/_layout.tsx`). The web `MobileFloorNav` is a browser-viewport concern and does **not** map to a real native tab bar.
-- **Density**: web `uiPreferencesStore` exposes `density: comfortable|balanced|dense` applied as a global CSS data-attribute on `DashboardShell` for information-dense desktop dashboards. Nothing analogous exists on mobile.
+## Capability A — Self-Serve Billing Management
 
-## Feature Landscape
+### What already exists (do not rebuild)
+
+- `POST /billing/portal` already creates a **Stripe Customer Portal** session (`billing.py:64`). The portal is Stripe-hosted and — per current Stripe docs (2026) — handles **plan switch, payment-method update/replace, and invoice history** with zero custom UI when configured. The web page shows "Coming soon"; the backend is effectively done.
+- `POST /billing/checkout` handles trial → paid upgrade.
+- `GET /billing/invoices` lists last 10 Stripe invoices (with `hosted_invoice_url`).
+- `GET /billing/credits` returns current-period AI-credit usage — but reads a single `credit_ledger` row matched by `period_start <= today <= period_end`. When the period rolls over and no new ledger row is inserted, this returns stale/empty data. **This is the real work in this capability, not the plan/payment UI.**
+- Stripe webhook (`webhooks.py:129`) already syncs `plan_status`, `current_period_start/end`, and stamps `stripe_invoice_id` on `invoice.paid`.
+
+### Key architectural decision (drives everything below)
+
+**Lean on the Stripe Customer Portal for plan change + payment method. Build custom UI ONLY for the AI-credit usage/cost display** (metered `$0.02/credit`, `$2.50/room/month` cap) — Stripe's portal has no concept of PatelRep's per-room cap or credit ledger. Building a custom plan-picker or card-entry form is an anti-feature here (PCI scope, duplicated proration logic, untestable without live keys).
 
 ### Table Stakes (Users Expect These)
 
-Features a floor-ops native app is expected to have. Missing = the parity milestone fails its own goal.
-
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Shared **StateBlock** primitive (loading / empty / error in one component) | Every list screen loads over a flaky hallway connection; today each screen reinvents "Loading…" + empty card with visual drift | **MEDIUM** | Replaces ad hoc `ActivityIndicator`+`emptyCard` in ~20 screens. One component, three states (spinner, empty w/ icon+title+hint, error w/ retry). **Depends on Stack primitive/token work.** Migrate floor screens first (My Rooms, Room Board, Work Orders, Tasks, Inspect). |
-| Shared **EmptyState** (icon + title + hint, optional action) | "All rooms done" / "No work orders" are frequent, positive states for floor staff — must feel intentional, not blank | **LOW–MEDIUM** | Effectively the empty branch of StateBlock; can ship as one component. Reuse existing copy keys already in `en.json`/`es.json` (`rooms.allRoomsDone`, etc.). |
-| **Button / IconButton** primitive with size variants + loading state | Primary floor actions (Start, Done, Claim, Submit) must show in-flight state so a housekeeper doesn't double-tap on lag; today `WorkOrderCard` hand-rolls a claim button with inline `ActivityIndicator` | **MEDIUM** | Native equivalent of web's unified Button. Must guarantee ≥44pt (iOS) / 48dp (Android) touch targets and thumb-reach placement. Loading state = spinner replacing label, disabled press. **Depends on Stack primitive work.** |
-| **Card** as the single container primitive | Web collapsed to one Card pattern; mobile has near-duplicate card styles (`WorkOrderCard`, `TaskCard`, `RoomQueueCard`, `emptyCard`) with subtly different border/shadow/radius | **LOW–MEDIUM** | Extract shared surface/border/shadow/radius; keep card *content* bespoke per domain. Low risk, high consistency payoff. |
-| **Toast / inline feedback** system (non-blocking) | Success ("Room submitted") and recoverable failure ("Saved offline, will sync") must not block the next action with a modal; current `Alert.alert` interrupts one-handed shift work | **MEDIUM** | Single app-level toast host (top or bottom, respecting safe-area + tab bar). Pair with `expo-haptics` (already a dependency) for success/error taps. Reserve `Alert.alert` for destructive confirms only. |
-| **Status color + icon pairing everywhere** (never color alone) | Bright lobby glare and dim hallways defeat color-only encoding; accessibility (color-blind staff) demands redundant icon/text | **LOW** | Already correct in `WorkOrderCard`; parity = auditing every status surface (room chips, task priority, WO status) to guarantee an icon or text label always accompanies the hue. Formalize as a `StatusBadge` primitive so it can't regress. |
-| **Dark mode** (wire the tokens that already exist) | Night-shift and dim-hallway use; tokens are *already authored* (`darkTheme`) so not shipping it wastes done work and diverges from web (which has light/dark) | **MEDIUM** | Bulk of cost is mechanical: replace the hardcoded `C = lightTheme` constant with a theme-context/hook (`useTheme`) and migrate ~20 screens off the static `C` import. Respect OS `useColorScheme` + a manual override in Profile. **Depends on Stack token/theme-context work — this is the single largest parity dependency.** |
+| Working "Manage subscription" button → Stripe portal | Every B2B SaaS lets the billing owner change plan / card without emailing support | **LOW** | Backend `/billing/portal` exists; wire the web button, replace "Coming soon", set return_url. Configure the portal in Stripe Dashboard (enable plan switching + payment-method update). |
+| Update / replace payment method | GM's corporate card expires; must self-serve or churn | **LOW** | Delivered entirely by the Stripe portal. No custom card form. |
+| Accurate **current-period** AI-credit usage + cost | The whole meter is `$0.02/credit`; a stale number erodes trust in every invoice | **MEDIUM** | Root cause is ledger rollforward: guarantee a `credit_ledger` row exists for today's period. Drive off `customer.subscription.updated`/`invoice.paid` webhook (already firing) or the existing APScheduler cron. `UNIQUE(tenant_id, period_start)` makes an idempotent upsert safe. |
+| Show the `$2.50/room/month` cap and remaining headroom | Cap is the core pricing promise; GM needs to see they won't be surprise-billed | **LOW** | `cap_cents` already on `subscriptions`; already returned by `/billing/credits`. Surface it as a progress/gauge against `overage_cost_cents`. |
+| Invoice history with hosted PDF links | Accounting / expense reconciliation is non-negotiable in B2B | **LOW** | `/billing/invoices` already returns `hosted_invoice_url`. Render as a list. |
+| Current plan + status badge (trialing / active / past_due) | GM must know if they're in trial, paid, or delinquent | **LOW** | `plan_status` already synced by webhook. |
+| Past-due / payment-failed banner | Silent dunning = involuntary churn; user must be told to fix their card | **MEDIUM** | `invoice.payment_failed` already sets `plan_status='past_due'`. Add a dashboard banner deep-linking to the portal. |
 
 ### Differentiators (Competitive Advantage)
 
-Not required for parity, but align with the Core Value ("save a housekeeper/engineer time on the floor").
-
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Haptic feedback on state transitions** | A confirming buzz on "Done"/"Claim" lets staff confirm an action succeeded without looking — genuinely faster one-handed | **LOW** | `expo-haptics` already imported in several screens; standardize (success = `notificationAsync(Success)`, error = `Error`) and bundle into the Button/Toast primitives so it's automatic. |
-| **Optimistic UI + offline toast** ("Saved offline, syncing") | The app already has NetInfo offline sync; surfacing it via toast turns a silent behavior into visible trust | **MEDIUM** | Builds on existing `OfflineBanner` + `loadPendingActions`. The toast system (table stakes) is the prerequisite. |
-| **Large-target "glove/bright-light" affordances** | Floor staff wear gloves and work in glare; oversized primary buttons + high-contrast status chips reduce mis-taps | **LOW** | Falls out of the Button primitive if min target sizes and contrast are enforced as defaults rather than per-screen. |
-| **Skeleton loaders on list screens** | Skeletons feel faster than spinners for predictable list layouts (My Rooms, Work Orders) | **MEDIUM** | Nice polish, not parity-critical. Can be a variant of StateBlock's loading state added after the floor rollout. |
+| Live "credits used / included / projected month-end cost" gauge | Most SMB SaaS shows usage only on the invoice after the fact; showing it live against the room-cap is a trust signal unique to metered AI pricing | **MEDIUM** | Reuse `/billing/credits` data; add linear projection `used/day_of_period * days_in_period`. Pure client math, no new backend. |
+| Cap-approaching alert (e.g. 80% of `$2.50/room` cap) | Turns a billing surprise into a proactive heads-up; reinforces the "we cap your spend" promise | **MEDIUM** | Threshold check in the existing daily cron; in-app notification (notifications domain already exists). |
+| Per-period usage breakdown (credits by AI feature) | Lets GM see WHERE credits go (triage vs SOP RAG vs onboarding) | **HIGH** | Requires attributing `credits_used` by feature at write time in the credits middleware; defer past this milestone. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Web patterns that should **NOT** be ported to native, with reasons.
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Custom in-app plan picker + card-entry form | "Looks more integrated / on-brand" | Pulls PCI scope into PatelRep, duplicates Stripe proration/tax/dunning, must be re-tested on every Stripe change — and CANNOT be tested locally (no Stripe keys) | Stripe Customer Portal (already wired). One button. |
+| In-app proration preview / "what will I be charged" calculator | GM wants certainty before switching plans | Reimplements Stripe's proration engine; drifts from actual billing; high bug surface | Stripe portal shows proration at switch time natively. |
+| Self-serve cancellation with retention offers | "Standard SaaS" | Retention discounts touch pricing integrity; a hotel-ops tool churns via an account manager, not a coupon wizard | Enable/disable cancellation in the portal config; handle saves human-to-human. |
+| Storing card/PAN or full billing address in Supabase | "So we can display it" | Massive compliance liability; Stripe already holds it | Display only Stripe's `card.last4`/brand via the portal; never persist PAN. |
+| Usage display that reads live Stripe metered-usage records | Seems "most accurate" | PatelRep's credit meter is internal (`credit_ledger`), not Stripe metered billing; adds a round-trip and a second source of truth | Keep `credit_ledger` as the single source; Stripe only invoices the finalized overage. |
+
+### Dependency on existing systems (called out explicitly)
+
+- **Stripe integration:** `/billing/portal`, `/billing/checkout`, `/billing/invoices` exist; requires the Stripe **Dashboard portal configuration** to actually expose plan-switch + payment-method (a config step, not code). Cannot be exercised end-to-end locally — **no live Stripe keys in the local env** (flag for QA: test with a Stripe test-mode key or in staging).
+- **Credit ledger rollforward:** the usage-accuracy fix depends on `credit_ledger` (migration 014) + the Stripe webhook (`webhooks.py`) and/or the APScheduler cron. The `overage_*` columns are GENERATED — never write them; only write `credits_used` / period boundaries.
+- **Webhook idempotency:** rollforward upsert must be idempotent against `UNIQUE(tenant_id, period_start)` because Stripe retries webhooks.
+- **Role gate:** all billing routes already `require_role("gm")` — keep GM as the sole billing owner.
+
+---
+
+## Capability B — Bulk-Archive for Engineering Work Orders
+
+### What already exists (do not rebuild)
+
+- Work-order **state machine** (`transitions.py`): `open → escalated → in_progress → on_hold → completed → cancelled`, with `completed`/`cancelled` as terminal states (each only reopens to `open`).
+- **Append-only audit** via `operational_audit_events` (migration 065) + `transition_work_order_with_audit()` RPC. A DB trigger *hard-blocks* UPDATE/DELETE on audit rows.
+- `GET /work_orders` list with `status`/`category`/`priority`/`assigned_to`/`room_id` filters + pagination; `PATCH /{wo_id}` explicitly **rejects** status changes (forces the transition endpoint).
+- Management roles: `gm` + `engineer` (migration 064 merged `chief_engineer` into `engineer`; `_MANAGEMENT_ROLES` in `transitions.py`).
+
+### Key architectural decision (drives everything below)
+
+**Archive is an ORTHOGONAL flag, not a new status value.** Add `archived_at TIMESTAMPTZ` (nullable) to `work_orders` — do NOT add `'archived'` to the `status` CHECK constraint. Status answers "what operational state is this work?"; archive answers "should this still show in the active list?". A completed WO stays `completed` forever; archiving only hides it. This mirrors the codebase's soft-delete / evidence-preservation philosophy (Lost & Found "permanently deletable only via explicit cascade", audit-first everywhere).
+
+### What users assume "archive" vs "delete" means (verified pattern)
+
+- **Archive** = "get it out of my active view, but I can still find it and its history is intact." Reversible. The default in audit-sensitive B2B tools.
+- **Delete** = "gone." In this codebase, delete of an operational record is essentially never offered because it would sever the `operational_audit_events` trail. Bulk-archive must NEVER cascade-delete audit rows.
+
+### Table Stakes (Users Expect These)
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Multi-select of work orders (checkboxes + "select all on page") | Bulk anything requires selection; managers won't archive 200 closed WOs one at a time | **LOW** | Web-only UI state; a selected set of `wo_id`s. |
+| Archive only **terminal** WOs (completed / cancelled) | Archiving an open/in-progress WO would hide live work — a footgun | **LOW** | Server-side guard: reject archive if `status NOT IN ('completed','cancelled')`. Grey out non-terminal rows in the UI. |
+| Default active view **excludes** archived | The entire point is decluttering the active board | **MEDIUM** | Add default `.is_("archived_at","null")` to the list query in BOTH the engineer two-query branch AND the manager branch (`work_orders.py:164`). Non-regression risk — must patch both paths. |
+| "Archived" filter / tab to view archived WOs | Archive must be findable or it feels like deletion | **LOW** | New `include_archived` / `archived=true` query param on `GET /work_orders`. |
+| Audit trail entry per archive (who / when / how many) | Every controlled operational change is audited in this app | **MEDIUM** | Insert `operational_audit_events` rows with `action='work_order.archived'`, `actor_id/role`, `source='web'` — inside a SECURITY DEFINER RPC like the transition RPC, one row per WO in the bulk call. |
+| Unarchive (restore) | Archiving is reversible by definition; managers WILL mis-select | **LOW** | Set `archived_at = NULL`; audit `action='work_order.unarchived'`. |
+| Management-only gate | Floor roles shouldn't reshape the board | **LOW** | Gate on `gm`/`engineer`, consistent with `_MANAGEMENT_ROLES` in `transitions.py`. |
+
+### Differentiators (Competitive Advantage)
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| One bulk-archive call = one atomic, fully-audited operation | Managers trust "archive 150 closed WOs" won't half-apply | **MEDIUM** | Single RPC looping the id set in a transaction; partial failure rolls back. Return a per-WO result summary. |
+| Bulk-select by filter ("archive all completed older than 30 days") | Turns monthly board cleanup into one click | **MEDIUM** | Server-side selector by `status + completed_at < cutoff` instead of a client id list; still audited per WO. |
+| Archived WOs still feed Reports / audit exports | Archive ≠ invisible to compliance / ROI reporting | **LOW** | Because it's a flag not a delete, reports simply query without the `archived_at IS NULL` filter. Free by design. |
+
+### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Density modes (comfortable / balanced / dense)** | Web has 3 levels via `uiPreferencesStore`; "parity" tempts copying it | **Web-specific.** Density is a *desktop information-density* control for cramming more rows onto a large dashboard viewport. A phone screen shows one task list for one role; there is no information-density tradeoff to tune. It would add a settings toggle no floor user needs, multiply layout test surface across ~20 screens, and fight the "big thumb-reachable targets" requirement (dense = smaller targets = more mis-taps with gloves in glare). **Do not port.** | Ship one, correct, generously-spaced density tuned for gloved one-handed use. If space is ever tight, fix that screen's layout, not a global knob. |
-| **Web `MobileFloorNav` component** | It has "Mobile" in the name and handles floor-role navigation | **Web-browser artifact.** It's a responsive-web nav for floor roles viewing the site in a phone *browser*. Native already has a real `expo-router` tab bar with role filtering + FAB. Porting it would duplicate/native-conflict with the platform tab bar. **Do not port the component**; port the *intent* (clear thumb-reachable primary nav), which native already satisfies. | Polish the existing native `<Tabs>` (active/inactive states, badge, safe-area) to match the refreshed visual language — not a new nav component. |
-| **Accent-color picker (terracotta/teal/blue/rose)** | Web `uiPreferencesStore` exposes `accent`; parity tempts copying | **Low-value on native, high-risk.** The status-color contract is *protected* (tokens.ts explicitly says don't change meanings/hues); a user-swappable accent risks colliding with semantic status hues and confusing readability in the field. Floor staff want speed, not theming. | Ship the fixed terracotta/forest brand accent. Offer *only* light/dark, not accent choice. |
-| **Full modal `Alert.alert` for success feedback** | It's the path of least resistance and already used 65× | **Blocks one-handed flow.** A modal that must be dismissed after every successful action is friction on a task-repetition device. | Non-blocking toast (table stakes) for success + recoverable errors; reserve `Alert.alert` strictly for destructive confirmations. |
+| Bulk **delete** work orders | "Just clear the clutter permanently" | Severs `operational_audit_events` (append-only, trigger-protected); destroys the evidence trail the whole app is built on; likely illegal for safety/maintenance records | Bulk-archive (reversible flag). Never expose hard delete. |
+| Adding `'archived'` to the `status` enum | "Simpler, one column" | Collapses two independent axes; breaks the state machine (archived AND completed?); every status filter/report must special-case it; corrupts audit `old_state/new_state` semantics | Orthogonal `archived_at` column. |
+| Archiving non-terminal (open / in_progress) WOs | "I want to hide this too" | Hides live/assigned work from the floor; the SLA/escalation cron would act on invisible WOs | Restrict to `completed`/`cancelled`; to hide an active WO, `cancel` it first (audited state change). |
+| Auto-archive on completion | "Keep the board clean automatically" | Managers lose the post-completion review window; QA/inspection often happens after "completed" | Manual bulk-archive; opt-in age-based auto-archive later. |
+| Cascading the archive to child records (photos, audit events) | "Keep it tidy" | Would delete/hide evidence; audit rows are trigger-protected anyway | Archive is a single flag on the parent WO only. |
+
+### Dependency on existing systems (called out explicitly)
+
+- **Work-order state machine (`transitions.py`):** archive is independent of `_ALLOWED_TRANSITIONS`; do NOT route it through `validate_work_order_transition`. It needs its own guard (terminal-status check).
+- **Append-only audit (`operational_audit_events`, migration 065):** archive/unarchive MUST write audit rows; the trigger blocks any mutate/delete of them, so no cascade risk — but the RPC must INSERT, never UPDATE audit rows.
+- **List endpoint (`work_orders.py:164`):** the default-exclude filter must be added to BOTH the engineer dual-query branch and the manager branch — **primary non-regression hotspot.** Existing status/category filters must keep working alongside the new archived filter.
+- **`PATCH /{wo_id}` guard:** it rejects `status` changes; archive should be dedicated endpoints (`POST /work_orders/bulk-archive` + `/bulk-unarchive`), not smuggled through PATCH.
+- **Migration:** new `archived_at` column + partial index `WHERE archived_at IS NULL` to keep the active-list query fast (mirrors the `032_work_orders_unclaimed_index` pattern). Tenant isolation (`.eq("hotel_id"...)`) applies to every archive query.
+- **Realtime:** Engineering Work Orders is one of the three Realtime surfaces (A2). Archiving flips `archived_at`, firing a Realtime UPDATE — clients must drop archived rows from the live board. Verify subscribers filter on `archived_at IS NULL`.
+
+---
 
 ## Feature Dependencies
 
 ```
-[Stack: design-token file + theme context (useTheme)]
-    └──required by──> [Dark mode]  (replace hardcoded C = lightTheme)
-    └──required by──> [Button/IconButton primitive]
-    └──required by──> [Card primitive]
-    └──required by──> [StateBlock / EmptyState primitive]
-    └──required by──> [StatusBadge (color+icon) primitive]
+Self-serve billing management
+    ├── Wire "Manage subscription" button ──requires──> existing /billing/portal (DONE)
+    │                                         └──requires──> Stripe Dashboard portal config (plan switch + card)
+    ├── Accurate usage display ──requires──> credit_ledger rollforward fix (webhook/cron upsert)
+    │                             └──requires──> existing /billing/credits + cap_cents
+    └── Cap-approaching alert ──enhances──> Accurate usage display
+                                └──requires──> existing notifications domain + daily cron
 
-[StateBlock] ──contains──> [EmptyState] (empty is one StateBlock branch)
-[Toast system] ──required by──> [Optimistic offline toast]
-[Button primitive] ──absorbs──> [Haptic feedback] (bake in, don't scatter)
-[Button primitive] ──absorbs──> [Large-target affordances] (enforce min sizes as default)
+Bulk-archive for work orders
+    ├── archived_at column + partial index (migration) ──prerequisite-for──> everything below
+    ├── Default active view excludes archived ──requires──> list-endpoint patch (BOTH branches)
+    ├── Bulk-archive RPC (atomic + audited) ──requires──> operational_audit_events (DONE)
+    │                                         └──requires──> terminal-status guard
+    ├── Archived filter/tab ──requires──> include_archived query param
+    ├── Unarchive ──requires──> Bulk-archive RPC
+    └── Realtime board drop ──requires──> archived_at + subscriber filter update
 
-[Density modes] ──conflicts──> [Large thumb-reachable targets]  (dense shrinks targets)
+Archive ──conflicts──> adding 'archived' to status enum (mutually exclusive designs)
+Bulk-archive ──conflicts──> bulk-delete (never coexist; delete breaks audit)
 ```
 
 ### Dependency Notes
 
-- **Everything depends on the Stack token/theme work.** The single highest-leverage prerequisite is replacing the static `C = lightTheme` constant with a theme context/hook. Until that lands, dark mode is impossible and every primitive would bake in the light palette. This is the gating item for the whole milestone — flag it to the roadmap as Wave 0.
-- **StateBlock and EmptyState should ship as one component**, not two — empty is just one branch alongside loading and error. Splitting them re-creates the drift the milestone is trying to remove.
-- **Haptics and touch-target sizing should be absorbed into the Button/Toast primitives**, not left as per-screen concerns — otherwise they regress the moment a new screen is added (the exact failure mode the "shared primitives first" decision in PROJECT.md is meant to prevent).
-- **Density conflicts with the core constraint.** It cannot coexist with the "big thumb-reachable targets for gloved/glare use" requirement, which is why it's an anti-feature rather than a deferred feature.
+- **Usage-display accuracy requires the rollforward fix, not new UI.** The visible symptom (stale number) is a data-lifecycle bug; the plan/payment "management" pieces are already handled by Stripe's portal.
+- **The `archived_at` migration gates the whole archive capability** — column + partial index land first, then endpoint, then UI.
+- **The list-endpoint patch is the highest non-regression risk** because it touches the shared work-order query used by every engineering surface (web + mobile) across two code paths.
+
+---
 
 ## MVP Definition
 
-### Launch With (v1.1 core — floor-role parity)
+### Launch With (v1)
 
-Minimum to call floor-role screens "at parity."
+- [ ] Wire web "Manage subscription" button to existing `/billing/portal`; remove "Coming soon" — unblocks plan change + payment method with ~zero backend work
+- [ ] Configure the Stripe Customer Portal (Dashboard) to expose plan switch + payment-method update
+- [ ] Fix `credit_ledger` rollforward so `/billing/credits` always reflects the current period (idempotent upsert on period boundary)
+- [ ] Surface current-period usage + `$2.50/room` cap + remaining headroom in the billing page
+- [ ] `archived_at` column + partial index migration for `work_orders`
+- [ ] `POST /work_orders/bulk-archive` (terminal-status guarded, audited, atomic) + `bulk-unarchive`
+- [ ] Default active list excludes archived (patch BOTH list branches) + "Archived" filter/tab
+- [ ] Multi-select UI on the work-orders board (management-gated)
+- [ ] Past-due banner deep-linking to the portal
 
-- [ ] **Theme context / `useTheme`** replacing hardcoded `C` — unblocks everything (Stack dependency)
-- [ ] **Button / IconButton** primitive (size variants + loading + baked-in min touch target + haptic)
-- [ ] **Card** primitive (single shared surface)
-- [ ] **StateBlock** (loading / empty / error, with retry) + **EmptyState**
-- [ ] **StatusBadge** (color+icon, never color alone) covering room + work-order + task states
-- [ ] **Toast** system (non-blocking, safe-area aware) replacing `Alert.alert` for success/recoverable feedback
-- [ ] **Dark mode** wired to OS `useColorScheme` + manual override, applied to the 5 floor screens (My Rooms, Room Board, Work Orders, Tasks, Inspect)
+### Add After Validation (v1.x)
 
-### Add After Validation (v1.x — remaining screens)
-
-- [ ] Migrate remaining screens (Profile, supervisor, home dashboards) onto the primitives — *trigger:* floor-role rollout verified in production
-- [ ] Optimistic offline toast ("Saved offline, syncing") — *trigger:* Toast system proven on floor screens
-- [ ] Skeleton-loader variant of StateBlock — *trigger:* spinner-vs-skeleton feels worth the polish
+- [ ] Live projected month-end cost gauge — once base usage display is trusted
+- [ ] Cap-approaching (80%) proactive alert via existing cron + notifications
+- [ ] Server-side bulk-select ("archive all completed older than N days")
 
 ### Future Consideration (v2+)
 
-- [ ] Per-screen layout tuning if any screen proves cramped — *defer:* only if a real screen needs it; never a global density knob
+- [ ] Per-feature AI-credit breakdown (requires attribution at credit-write time)
+- [ ] Opt-in auto-archive after configurable age
+- [ ] Add-on credit-pack self-purchase (`credits_purchased` column already exists)
+
+---
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Theme context (`useTheme`) replacing static `C` | HIGH (gates all else) | MEDIUM | P1 |
-| Button/IconButton primitive (+loading, +haptic, +target size) | HIGH | MEDIUM | P1 |
-| StateBlock / EmptyState primitive | HIGH | MEDIUM | P1 |
-| Toast (non-blocking feedback) | HIGH | MEDIUM | P1 |
-| StatusBadge (color+icon everywhere) | HIGH | LOW | P1 |
-| Card primitive | MEDIUM | LOW | P1 |
-| Dark mode (wire existing tokens) on floor screens | MEDIUM–HIGH | MEDIUM | P1 |
-| Haptic feedback standardized | MEDIUM | LOW | P2 |
-| Optimistic offline toast | MEDIUM | MEDIUM | P2 |
-| Skeleton loaders | LOW–MEDIUM | MEDIUM | P3 |
-| Density modes | NEGATIVE | MEDIUM | **Do not build** |
-| Accent-color picker | LOW | LOW | **Do not build** |
-| Port web `MobileFloorNav` | NONE (native has tabs) | — | **Do not build** |
+| Wire portal button (plan + payment) | HIGH | LOW | P1 |
+| credit_ledger rollforward + accurate usage display | HIGH | MEDIUM | P1 |
+| Show cap + headroom | HIGH | LOW | P1 |
+| `archived_at` migration + bulk-archive RPC (audited) | HIGH | MEDIUM | P1 |
+| Default view excludes archived + Archived tab | HIGH | MEDIUM | P1 |
+| Multi-select UI (management-gated) | HIGH | LOW | P1 |
+| Unarchive / restore | MEDIUM | LOW | P1 |
+| Past-due banner | MEDIUM | MEDIUM | P2 |
+| Projected month-end cost gauge | MEDIUM | MEDIUM | P2 |
+| Cap-approaching alert | MEDIUM | MEDIUM | P2 |
+| Server-side bulk-select by age | MEDIUM | MEDIUM | P2 |
+| Per-feature credit breakdown | LOW | HIGH | P3 |
+| Custom plan picker / card form | NEGATIVE | HIGH | **Do not build** |
+| Bulk delete work orders | NEGATIVE | LOW | **Do not build** |
 
-**Priority key:** P1 = must have for floor-role parity · P2 = add during remaining-screen rollout · P3 = polish
+**Priority key:** P1 = must have for this milestone · P2 = add after validation · P3 = future
 
-## Competitor / Platform Convention Analysis
+---
 
-| Concern | iOS (HIG) | Android (Material 3) | Our Approach |
-|---------|-----------|----------------------|--------------|
-| Transient feedback | Toast-style overlays / no native toast | Snackbar (non-blocking, bottom, optional action) | One cross-platform toast host, bottom-anchored above tab bar, safe-area aware; haptic pairing |
-| Blocking confirms | `UIAlertController` | `AlertDialog` | RN `Alert.alert` — reserved for destructive actions only |
-| Loading | Activity indicator / skeletons | Circular progress / skeletons | Shared StateBlock: spinner now, skeleton variant later |
-| Theming | System light/dark via `useColorScheme` | System day/night | Follow OS by default + manual override in Profile; **no** accent/density choice |
-| Touch targets | ≥44pt | ≥48dp | Enforced as Button primitive default, not per-screen |
+## Competitor Feature Analysis
+
+| Feature | Typical SMB SaaS (Stripe-portal-based) | Ops/ticketing tools (Jira/ServiceNow-style) | Our Approach |
+|---------|----------------------------------------|---------------------------------------------|--------------|
+| Plan change / payment method | Redirect to Stripe/Chargebee hosted portal | N/A | Stripe Customer Portal (already wired) — no custom UI |
+| Metered usage display | Shown on invoice; some show a live meter | N/A | Custom live meter vs internal `credit_ledger` + per-room cap (unique to our pricing) |
+| Archive vs delete | — | Bulk close/archive, soft-hide, audit retained; hard delete admin-gated or absent | Bulk-archive via orthogonal `archived_at` flag; NO hard delete; audit always preserved |
+| Bulk operations | — | Multi-select + bulk transition/archive on closed items | Multi-select terminal WOs, atomic audited RPC, management-gated |
+
+---
 
 ## Sources
 
-- `apps/mobile/components/shared/tokens.ts` — existing token system incl. unused `darkTheme` (HIGH)
-- `apps/mobile/app/(app)/_layout.tsx` — existing native tab nav + FAB (HIGH)
-- `apps/mobile/app/(app)/my-rooms/index.tsx` — ad hoc loading/empty pattern (HIGH)
-- `apps/mobile/components/engineering/WorkOrderCard.tsx` — existing color+icon status pairing (HIGH)
-- `apps/mobile` grep: 65 `Alert.alert`/`Haptics` uses across 20 files; zero toast/`useColorScheme` (HIGH)
-- `apps/web/stores/uiPreferencesStore.ts` — web density/accent/theme prefs, establishing density as a web-desktop concept (HIGH)
-- `.planning/PROJECT.md` — v1.1 milestone scope, "shared primitives first" decision, floor-role priority (HIGH)
-- Apple HIG / Material 3 native interaction conventions (MEDIUM — established platform guidance)
+- PatelRep codebase: `apps/api/routers/billing.py`, `apps/api/routers/webhooks.py`, `apps/api/routers/work_orders.py`, `apps/api/services/work_orders/transitions.py`, `supabase/migrations/014_billing.sql`, `supabase/migrations/065_work_order_transition_audit.sql`, `CLAUDE.md` (conventions A1–A4, pricing, roles) — HIGH confidence
+- [Stripe — Introducing the Billing customer portal](https://stripe.com/blog/billing-customer-portal) — HIGH
+- [Stripe Customer Portal: plan changes, pauses, cancellations without custom UI (OperatorIQ)](https://operatoriq.io/blog/stripe-customer-portal-plan-changes/) — MEDIUM
+- [Stripe — Update a portal configuration (API reference)](https://stripe.com/docs/api/customer_portal/configurations/update) — HIGH
+- [Stripe — Set payment methods per-subscription](https://docs.stripe.com/billing/subscriptions/payment-methods-setting) — HIGH
 
 ---
-*Feature research for: hotel-staff native mobile UI parity (v1.1)*
-*Researched: 2026-07-28*
+*Feature research for: self-serve billing management + bulk-archive work orders (PatelRep subsequent milestone)*
+*Researched: 2026-08-03*
+</content>

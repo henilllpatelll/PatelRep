@@ -1,138 +1,168 @@
 # Stack Research
 
-**Domain:** Design-token + UI-primitive retrofit for an existing Expo SDK 54 / React Native 0.81 mobile app
-**Researched:** 2026-07-28
-**Confidence:** HIGH
+**Domain:** Self-serve subscription billing (Stripe) + bulk-archive UI for an existing FastAPI + Next.js 16 multi-tenant SaaS
+**Researched:** 2026-08-03
+**Confidence:** HIGH (existing code inspected directly; Stripe API-version behavior verified against official changelog)
 
-## TL;DR (opinionated)
+> Scope: this milestone **extends** an already-integrated Stripe billing stack and an already-built
+> work-order state machine. The headline finding is that **almost no new libraries are needed** — the
+> real work is (a) a webhook data-shape fix forced by Stripe's API version, (b) credit-ledger period
+> rollover, (c) finishing the already-wired Customer Portal UI, and (d) an additive `archived_at`
+> column + bulk endpoint + selection UI built from primitives already in the tree. Adding new payment
+> UI libraries here would be a mistake — see [What NOT to Use](#what-not-to-use).
 
-Do **NOT** adopt NativeWind for this retrofit. Introduce a **plain TypeScript design-token module + a React `ThemeProvider`/`useTheme` context**, keeping the existing per-screen `StyleSheet.create` code intact. Build the four primitives (Button/IconButton, Card, EmptyState/StateBlock, Toast) as small in-repo components that read from the theme. Do **NOT** add `react-native-toast-message` — it is broken on Expo SDK 54 — build a lightweight custom Toast on React Native's built-in `Animated` API instead.
+---
 
-**Why this shape:** the app has a fragile, hand-tuned EAS build (babel `dynamic-import-node`, `--legacy-peer-deps` for React 19) and zero existing Tailwind/NativeWind/Reanimated. Every new *native* dependency forces a new EAS dev build and risks that pipeline. A theme object + JS-only primitives adds **zero native modules, zero Metro/Babel/PostCSS config changes, and zero rebuild risk**, while still delivering full visual parity with the web palette. This mirrors the web refresh's "Wave-0 primitives first" approach without importing Tailwind's mental model into 20+ working StyleSheet screens.
+## TL;DR Recommendations
+
+| Question | Answer |
+|----------|--------|
+| Customer Portal vs custom Elements/Checkout UI? | **Stripe Customer Portal** (hosted). Already used in `billing.py::create_portal_session`. Do not add Stripe Elements. |
+| New Stripe product/price model needed? | **No new catalog required.** One persistent recurring Price is a nice-to-have over the current inline `price_data`, but the single-plan + usage-overage model already works. |
+| New frontend billing libs (`@stripe/stripe-js`, `@stripe/react-stripe-js`)? | **No.** Portal + Checkout are redirect flows; the browser never touches card data. |
+| New frontend libs for bulk-select? | **No.** React `Set` state + checkboxes + React Query mutation. No data-grid dependency. |
+| Root cause of "period display goes stale after period end"? | **Stripe API version.** `stripe==15.4.0` pins a 2026 Dahlia API version; `current_period_start/end` no longer exist on the Subscription object — they moved to subscription **items**. `webhooks.py` reads them via `getattr(sub, ..., None)` → writes `NULL`. |
+
+---
 
 ## Recommended Stack
 
-### Core Technologies
+### Core Technologies (already installed — keep, do not change)
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Typed theme module (in-repo, no dependency) | n/a | Design tokens: colors / spacing / typography / radii / status families, light + dark | Zero new deps, zero build risk. Mirrors web's CSS-variable tokens as a parallel TS file (conceptually shared, not literally). Fits the existing `StyleSheet` code with no migration of layout logic. |
-| React Context `ThemeProvider` + `useTheme()` hook (in-repo) | React 19.1.0 (already present) | Runtime theme access + light/dark switching | Idiomatic RN, no native module. Screens call `const t = useTheme()` and reference `t.colors.*` inside existing `StyleSheet.create` factories. Dark mode via `useColorScheme()` (built into RN) or a Zustand-backed override. |
-| In-repo primitive components (Button, IconButton, Card, EmptyState/StateBlock, Toast) | n/a | The four parity primitives | Matches the milestone's "shared primitives first" goal. Full control over paper/terracotta styling; no UI-kit conflicts with the bespoke housekeeping/engineering layouts. |
-| React Native `Animated` API (built-in) | RN 0.81.5 (already present) | Toast slide/fade animation | Ships with RN, works on the New Architecture, needs no Reanimated. Enough for a slide-in toast that matches web's toast behavior. |
+| `stripe` (Python SDK) | **15.4.0** (installed) | Server-side Stripe API: Customer Portal sessions, Checkout, invoices, InvoiceItem overage, webhook signature verification | Current stable line (15.x is latest as of 2026). Already the app's billing engine. Pins API version `2026-xx.dahlia` — **this version pin is load-bearing** (see [Version Compatibility](#version-compatibility)). |
+| Stripe **Customer Portal** (`billing_portal.Session`) | API feature (no separate package) | Hosted self-serve: update payment method, view/download invoices, cancel/renew, (optional) switch plans | Zero card data in your UI → **no PCI-DSS SAQ-A scope, no `@stripe/stripe-js` needed**. Only call is `Session.create` → trivially mockable with no local Stripe creds. Already implemented backend + already wired on `settings/billing`. |
+| Stripe **Checkout** (`checkout.Session`) | API feature | Hosted trial→paid upgrade flow | Same hosted/redirect benefit as Portal. Already implemented in `billing.py::create_checkout_session`. |
+| FastAPI + Supabase Python SDK | existing | `billing.py`, `webhooks.py`, `internal.py` monthly true-up, new bulk-archive endpoint | No ORM; tenant-scoped `.eq("tenant_id", …)` / `.eq("hotel_id", …)` per repo convention. |
+| Next.js App Router | **16.3.0-preview.10** (installed) | Billing page + Engineering work-order list/bulk-archive UI | Note: this repo is on the **Next 16 preview** — read `node_modules/next/dist/docs/` before writing app code (per `apps/web/AGENTS.md`); training-data Next patterns may be stale. |
+| React | 18.3.1 | Client components | Bulk-select state lives in a client component (`'use client'`). |
+| `@tanstack/react-query` | 5.101.4 | Server-state + mutations for portal/checkout/bulk-archive | Already the data layer on both billing pages. Bulk-archive = one `useMutation` + `invalidateQueries`. |
+| Zustand | 5.0.14 | Auth/hotel/engineering stores | No billing store needed; billing is React Query only. |
+| `date-fns` | installed | Period/invoice date formatting | Already used on both billing pages. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `react-native-safe-area-context` | ~5.6.0 (already installed) | Safe-area insets for Card headers / Toast placement | Already a dependency — reuse for Toast top/bottom offset. SDK 54 enables edge-to-edge automatically, so respect insets in the Toast and any new headers. |
-| `@expo/vector-icons` | ^15.0.3 (already installed) | Icons inside IconButton / EmptyState illustrations | Already present — no need to add an icon lib. |
-| `zustand` | ^4.5.4 (already installed) | Optional: persist the user's dark/light/system theme choice + host the Toast queue store | Already used for `appStore`. A tiny `toastStore` (enqueue/dismiss) pairs well with a single mounted `<ToastHost/>`. |
-| `react-native-unistyles` | 3.2.5 | **Alternative** styling engine (see Alternatives) — only if you later want variants/breakpoints/C++-fast theme switching | Consider only if the theme-object approach starts to feel limiting. Adds a native module + requires New Arch + native rebuild. Not needed for v1.1. |
-| `sonner-native` | ^0.x (current) | **Alternative** off-the-shelf toast, if you decide to add Reanimated anyway | Only if you adopt Reanimated for other reasons. Built on Reanimated 3; gives polished, fully styleable toasts matching the web's Sonner-style look. Otherwise not worth the native dep for one component. |
+| `stripe-mock` (Stripe's official mock HTTP server) | Docker image `stripe/stripe-mock` (latest) | Local/CI integration tests against a realistic Stripe API without live keys | Optional. Useful if you want end-to-end request coverage of Portal/Checkout session creation. For most cases, monkeypatching (below) is lighter. |
+| `pytest` monkeypatch / fixtures | existing (`pytest`) | Mock `stripe.billing_portal.Session.create`, `stripe.checkout.Session.create`, `stripe.Webhook.construct_event`, `stripe.InvoiceItem.create` | **Primary testing strategy** — no local Stripe creds exist, so all billing paths must be fixture-driven. Follow the existing pattern in `apps/api/tests/smoke/test_webhooks_and_transitions.py`. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| TypeScript | ~5.9.2 (already present) | Type the token module (`as const` + derived types) so screens get autocomplete on `t.colors.ready`, `t.space[4]`, etc. | Export a `Theme` type; `ThemeProvider` value is typed to it. |
-| `tsc --noEmit` (`npm run type-check`) | Catch token/prop typos across migrated screens | Already wired in `package.json`. Run after each screen migration. |
-| Style Dictionary | **Optional** token-generation tooling | Only if you want a single machine source of truth that emits both web CSS vars and RN TS. Overkill for one web+mobile pair — hand-maintaining the parallel TS file is simpler for now. |
+| Stripe Dashboard (Test mode) | Configure Customer Portal features (payment-method update, invoice history, cancellation); optionally create the persistent $99 recurring Price | **Config, not code.** Portal behavior (what the customer can do) is set in the Dashboard, versioned per-environment. Plan-switching in the portal requires listed Prices — not needed for the current single-plan model. |
+| Stripe CLI (`stripe listen` / `stripe trigger`) | Replay webhook events with valid signatures | Requires a Stripe account/login; **not usable in the credential-less local env**. Reserve for a Dashboard-connected environment; locally rely on `construct_event` monkeypatch. |
 
 ## Installation
 
 ```bash
-# Recommended path: NOTHING to install.
-# The theme module, ThemeProvider, and primitives are in-repo TS/TSX files
-# using only already-installed packages (react, react-native, safe-area-context,
-# vector-icons, zustand). No native modules -> no new EAS build required.
+# NOTHING new is required for the core milestone.
+# Python billing SDK is already present:
+#   apps/api/requirements.txt  ->  stripe==15.4.0
 
-# ---- Only if you deliberately choose an alternative below ----
+# Optional test tooling (only if you want realistic API mocking beyond monkeypatch):
+docker run --rm -it -p 12111:12111 stripe/stripe-mock   # stripe-mock server
 
-# Alternative A: Unistyles styling engine (adds a native module, requires new EAS build)
-npm install react-native-unistyles react-native-nitro-modules --legacy-peer-deps
-
-# Alternative B: off-the-shelf toast (only if you also adopt Reanimated)
-npm install sonner-native react-native-reanimated react-native-gesture-handler --legacy-peer-deps
+# Frontend: DO NOT install these — see "What NOT to Use":
+#   npm install @stripe/stripe-js @stripe/react-stripe-js   # ← NOT needed
 ```
+
+## Integration Points With Existing Code
+
+### Billing — what already exists (do not rebuild)
+
+| Concern | Existing implementation | Milestone action |
+|---------|------------------------|------------------|
+| Self-serve manage (payment method, cancel, invoices) | `billing.py::create_portal_session` → `stripe.billing_portal.Session.create` | **Already done.** Surface it in the UI (below). |
+| Trial → paid | `billing.py::create_checkout_session` | Already done; consider named Price (nice-to-have). |
+| Invoices list | `billing.py::list_invoices` | Already done; shown on `settings/billing`. |
+| Usage/credits display | `billing.py::get_credits` (reads `credit_ledger` where `period_start <= today <= period_end`) | **Fix rollover** (below). |
+| Webhook sync | `webhooks.py::stripe_webhook` (subscription created/updated/deleted, checkout.completed, invoice.paid/payment_failed) | **Fix period extraction** (below). |
+| Monthly overage true-up | `internal.py::monthly_trueup` → `stripe.InvoiceItem.create` | Depends on the ledger row existing for the current period — see rollover. |
+
+### Billing — the two real bugs this milestone must fix
+
+**1. Period fields are `NULL` because of the pinned Stripe API version (root cause of "stale after period end").**
+`webhooks.py` (lines ~152–154) does:
+```python
+"current_period_start": _ts(getattr(sub, "current_period_start", None)),
+"current_period_end":   _ts(getattr(sub, "current_period_end", None)),
+```
+Under the Dahlia API version pinned by `stripe==15.4.0` (post-Basil, 2025-03-31), **`current_period_start`/`current_period_end` no longer exist on the Subscription object** — they moved to each subscription **item**. `getattr(..., None)` therefore silently writes `NULL`, so `subscriptions.current_period_start/end` never advance and the UI period label goes blank/stale. Fix: read from the item, e.g. `sub["items"]["data"][0]["current_period_start"]` (and `..._end`). This is a **data-shape fix, not a library change** — it is the highest-value change in the milestone.
+
+**2. `credit_ledger` has no current-period row after rollover.**
+`get_credits` returns `{"message": "No billing period found"}` when no ledger row spans `today`. Nothing currently **creates** the new-period ledger row when the billing period advances. Add ledger-row creation keyed off the (now-correctly-populated) period boundary — either in the `customer.subscription.updated` webhook branch (when `current_period_start` changes) or as an idempotent upsert at the start of `monthly_trueup` / `get_credits`. This closes the loop with fix #1: once period dates are correct, the rollover logic has something reliable to key on.
+
+### Billing — the UI gap (the "Coming soon" placeholder)
+
+There are **two** billing pages:
+- `app/(dashboard)/settings/billing/page.tsx` — **already fully wired**: "Manage Billing" → `billingApi.createPortalSession()`, "Upgrade Plan" → `createCheckoutSession()`, invoices table.
+- `app/(dashboard)/billing/page.tsx` — the **stale** page with the disabled `Manage Subscription (Coming soon)` button and no invoices.
+
+Recommendation: **consolidate to the `settings/billing` page** (redirect or delete the older `(dashboard)/billing` page) rather than re-implementing the portal button twice. Self-serve is achieved purely by the existing portal redirect — **no new frontend billing library**.
+
+### Work-order bulk-archive — additive, no schema rewrite
+
+| Layer | Recommendation |
+|-------|----------------|
+| Schema | New migration adding `archived_at TIMESTAMPTZ NULL` to `work_orders` (soft-archive, reversible). Partial index `WHERE archived_at IS NULL` to keep the default list fast. **Distinct from the existing hard `DELETE`** in `delete_work_order` — archive is reversible and audit-friendly. |
+| List filter | Extend `list_work_orders` to exclude `archived_at IS NOT NULL` by default; add an `archived: bool` / `include_archived` query param for an "Archived" view. Preserve the existing engineer two-query merge path. |
+| Bulk endpoint | New `POST /work-orders/bulk-archive` (and `/bulk-unarchive`) taking `{ ids: UUID[] }`, `require_role("gm", "chief_engineer")`, tenant-scoped `.in_("id", ids).eq("tenant_id", …)`. Write one audit event per WO through the **existing append-only audit path** (`operational_audit_events` / the `transition_work_order_with_audit` RPC pattern) so archive is traceable like every other WO change. |
+| Frontend | Client component holding `Set<string>` of selected IDs; header/row checkboxes; a contextual bulk-action bar; one React Query `useMutation` → `invalidateQueries(['work-orders'])`. **No table/grid library.** |
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Typed theme object + Context | **NativeWind v5** | Only for a greenfield RN app, or one already using Tailwind, where the team wants Tailwind's `className` DX. Not worth it here: pulls in `react-native-reanimated`, `tailwindcss`, `react-native-css`, and `lightningcss` (must pin to `1.30.1` to avoid deserialization errors), plus new `metro.config.js`, `global.css`, `postcss.config.mjs`, babel, and `nativewind-env.d.ts` config — and forces rewriting 20+ working StyleSheet screens to `className`. High churn, high build-pipeline risk, low upside for a retrofit. |
-| Typed theme object + Context | **react-native-unistyles v3.2.5** | If you want per-component variants, breakpoints, and C++-fast theme switching *without* re-renders. It's a genuine "StyleSheet with superpowers" and the closest thing to a drop-in upgrade (swap `StyleSheet` import). But v3 is tightly coupled to Fabric/New Architecture, ships a native module (`react-native-nitro-modules`), and needs a native rebuild — extra risk against this app's fragile EAS pipeline. Good future upgrade; unnecessary for v1.1 parity. |
-| Custom Toast on `Animated` | **sonner-native** | If you adopt Reanimated for other animation work anyway. Polished, gesture-dismissible, fully styleable to the paper/terracotta palette, and conceptually mirrors the web toast. The only cost is the Reanimated 3 native dep. |
-| Custom Toast on `Animated` | **burnt** | If you specifically want *native OS* toasts/alerts (SwiftUI on iOS, `ToastAndroid` on Android) and do **not** need visual parity. Works on old + new arch via JSI/Expo modules. Rejected here because native OS toasts **cannot** be styled to match the web's custom paper/terracotta Toast — it defeats the parity goal. |
+| Stripe **Customer Portal** (hosted) | Custom UI with **Stripe Elements** + `@stripe/react-stripe-js` (build your own payment-method form, plan picker) | Only if you needed deeply branded in-app card capture or flows the portal can't express (e.g., complex multi-tier upgrade UX embedded mid-app). This app has **one plan + usage overage** and **no local card-handling requirement** → Elements is pure cost (PCI scope, more code, more to mock). Not justified. |
+| Reuse existing **inline `price_data`** Checkout, add persistent Price only if convenient | Create a full **Product/Price catalog** with multiple tiers | Only when you introduce real plan tiers the customer can switch between in the portal (portal plan-switching requires *listed* Prices; inline ad-hoc prices can't be switch targets). Today there is one plan, so a catalog is premature. |
+| `archived_at` **soft-archive column** | Separate `work_orders_archive` table / status value `archived` | A dedicated status collides with the state-machine `CHECK` constraint and the `transition_*` RPC semantics; a separate table complicates the tenant-scoped list joins. A nullable timestamp is the least-invasive, reversible option. |
+| React `Set` state for selection | `@tanstack/react-table` (row selection model) | Only if the WO list grows into a full data-grid (column sorting/resizing/virtualized selection). For a bulk-archive checkbox flow it is over-engineering. |
+| `pytest` monkeypatch of `stripe.*` | `stripe-mock` server | Use `stripe-mock` when you want realistic request/response validation in CI; monkeypatch when you just need to assert your code calls Stripe correctly and handles the returned shape. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `react-native-toast-message` | **Broken on Expo SDK 54.** Issue [#583](https://github.com/calintamas/react-native-toast-message/issues/583) (opened 2025-09-18, still unresolved as of this research): the `Animated.spring()` slide-in stops rendering under SDK 54's New Architecture / Reanimated v4 world — the toast is computed but never visible. No maintainer fix. | Custom `Animated`-based Toast primitive (recommended) or `sonner-native`. |
-| NativeWind v5 (for this app) | Retrofit cost + native deps (Reanimated, lightningcss pin) + full `className` rewrite of bespoke screens. See Alternatives. | Typed theme object + Context. |
-| A full UI kit (react-native-paper, Tamagui, gluestack, RN Elements) | Imposes its own component look/theming system that would fight the bespoke housekeeping/engineering screen layouts and the web's exact paper/terracotta tokens. The milestone wants *matching web primitives*, not a third-party design language. | In-repo primitives reading from the theme module. |
-| `burnt` (for parity) | Renders unstyleable native OS toasts — cannot match the web Toast visually. | Custom `Animated`-based Toast. |
-| Style Dictionary (right now) | Single-source token generation is real infra for one web+mobile pair — premature. | Hand-maintained parallel `tokens.ts` mirroring the web CSS-variable values. |
+| `@stripe/stripe-js` / `@stripe/react-stripe-js` (Elements) | Pulls card handling into your SPA → PCI-DSS SAQ-A-EP scope, more code, and (critically) **can't be exercised locally with no Stripe creds**. The hosted Portal/Checkout redirect flows need none of it. | Existing hosted **Customer Portal + Checkout** redirects. |
+| A new multi-tier **Product/Price catalog** | Single-plan pricing ($99 + $0.02/credit overage capped at $2.50/room/mo) doesn't need switchable Prices; a catalog adds config and webhook surface for zero user value now. | Keep single plan; overage stays as `InvoiceItem` on true-up. Add one named recurring Price only if you want cleaner portal/subscription objects. |
+| Reading `subscription.current_period_start/end` (top-level) | **Removed** in Stripe Basil (2025-03-31) and the pinned Dahlia API version — silently returns `None` → the exact stale-period bug. | Read `subscription.items.data[i].current_period_start/end`. |
+| Hard `DELETE` for the new "archive" action | Existing `delete_work_order` cascades and destroys audit history; archive must be reversible and traceable. | `archived_at` soft-archive + append-only audit event. |
+| A client-side `useState` **array** for bulk selection with `.includes()`/`.filter()` | O(n) membership checks and awkward toggle logic on large WO lists | `Set<string>` with `.has()/.add()/.delete()` (immutable copy on update). |
+| Downgrading/unpinning `stripe` to "fix" the None period fields | The version pin isn't the bug; **the code reads the wrong path**. Downgrading to a pre-Basil API version reintroduces other deprecations. | Fix the read path; keep `stripe==15.4.0`. |
 
 ## Stack Patterns by Variant
 
-**If the priority is lowest risk + fastest parity (recommended for v1.1):**
-- Use the typed theme module + `ThemeProvider`/`useTheme` + in-repo primitives + custom `Animated` Toast.
-- Because it adds zero native modules, needs no new EAS build, and leaves the existing per-screen `StyleSheet` layouts untouched — you only swap hard-coded color/spacing literals for `t.colors.*` / `t.space[*]`, screen by screen (floor-role first).
+**If the portal must let GMs change plans (future multi-tier):**
+- Create persistent Products/Prices in the Dashboard and enable "switch plans" in the Portal configuration.
+- Because portal plan-switching cannot target inline `price_data` prices.
 
-**If the team later wants variants/breakpoints/perf theme switching:**
-- Migrate the theme layer to `react-native-unistyles` v3 (swap the `StyleSheet` import; register light/dark themes via `StyleSheet.configure`).
-- Because Unistyles keeps the StyleSheet API, so the earlier token module carries over as its theme definition — this is an additive upgrade, not a rewrite. Budget a native rebuild.
+**If you only need payment-method update + cancel + invoices (current reality):**
+- Ship the existing `create_portal_session` redirect as-is; configure the Portal in the Dashboard to expose only those actions.
+- Because it's the minimum surface, fully testable via a single mocked `Session.create`.
 
-**If the team adopts Reanimated for richer motion anyway:**
-- Replace the custom Toast with `sonner-native`.
-- Because once Reanimated is already a dependency, `sonner-native` gives a more polished, gesture-dismissible toast for free.
-
-## Design-Token File Layout (for the downstream consumer)
-
-Recommended in-repo structure under `apps/mobile/`:
-
-```
-apps/mobile/
-  theme/
-    tokens.ts        # raw primitives: palette scales, spacing steps, radii, font sizes/weights (as const)
-    theme.ts         # semantic light + dark maps built from tokens:
-                     #   surfaces (paper/ink), status families
-                     #   (accent/ready/caution/alert/info/progress/ai/blocked)
-    ThemeProvider.tsx# Context provider; resolves light/dark via useColorScheme() or a persisted store
-    useTheme.ts      # typed hook returning the active theme
-    index.ts         # re-exports
-  components/
-    ui/              # NEW: Button, IconButton, Card, EmptyState/StateBlock, Toast + ToastHost
-```
-
-Integration with existing screens: keep `StyleSheet.create`, but wrap it in a factory that takes the theme, e.g. `const makeStyles = (t: Theme) => StyleSheet.create({ card: { backgroundColor: t.colors.paper, padding: t.space[4] } })`, then `const styles = makeStyles(useTheme())` inside the component. This is a mechanical, low-risk find-and-replace of hard-coded literals — no layout restructuring. The status-family names (`ready`, `caution`, `alert`, `info`, `progress`, `ai`, `blocked`, `accent`) must be copied verbatim from the web tokens so both platforms speak the same semantic vocabulary.
+**If CI needs realistic Stripe behavior:**
+- Add `stripe-mock` as a service container.
+- Otherwise monkeypatch — because no live keys exist locally and unit-level mocking is faster.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| Expo SDK ~54.0.0 | React Native 0.81.5, React 19.1.0 | New Architecture (Fabric) is **default-on** in SDK 54. Any UI/animation lib must be New-Arch compatible. |
-| RN `Animated` (built-in) | New Architecture | Works fine on Fabric — safe basis for the custom Toast. No native dep. |
-| `react-native-safe-area-context` ~5.6.0 | SDK 54 edge-to-edge | SDK 54 enables edge-to-edge automatically — respect safe-area insets in the Toast and any new headers/Cards. |
-| `react-native-toast-message` | ❌ SDK 54 | Broken (issue #583). Do not use. |
-| `react-native-unistyles` 3.2.5 | RN ≥ 0.78, **New Arch required** | Skips old architecture entirely; needs `react-native-nitro-modules` + native rebuild. |
-| `sonner-native` | Reanimated 3, Expo | Built on Reanimated 3. Note Reanimated **v4** is New-Arch-only — confirm the Reanimated major it pulls in matches SDK 54's shipped version if you go this route. |
-| `burnt` | old + new arch | JSI/Expo-module based; native toasts only. |
-| NativeWind v5 | SDK 54 (supported) | Requires `lightningcss` pinned to `1.30.1` in `overrides` to avoid deserialization errors; also `react-native-reanimated` + `react-native-css`. |
+| `stripe==15.4.0` | Pinned API version `2026-xx.dahlia` (post-Basil) | **Load-bearing pin.** Subscription billing periods live on `items.data[].current_period_*`, not the top-level object. Any code (webhooks, period display, rollover) reading the old fields must be updated. |
+| Next.js `16.3.0-preview.10` | React `18.3.1`, React Query `5.101.4` | Preview build — consult `node_modules/next/dist/docs/` before writing App Router code; do not assume training-data Next 14/15 conventions. Bulk-select UI is plain client-component React, unaffected. |
+| Supabase Python SDK | Postgres migrations (`archived_at` column, partial index) | Soft-archive is a plain nullable column; no RLS policy change required if existing WO policies already scope by `tenant_id` (verify the new column isn't filtered out by a column-level policy). |
 
 ## Sources
 
-- [react-native-toast-message issue #583](https://github.com/calintamas/react-native-toast-message/issues/583) — SDK 54 animation/visibility breakage, unresolved since 2025-09-18 — HIGH
-- [NativeWind v5 installation docs](https://www.nativewind.dev/v5/getting-started/installation) — required peer deps (Reanimated, react-native-css, tailwindcss), lightningcss 1.30.1 pin, metro/postcss/global.css config — HIGH
-- [react-native-unistyles npm / GitHub](https://github.com/jpudysz/react-native-unistyles) + [Unistyles v3 getting started](https://www.unistyl.es/v3/start/getting-started/) — v3.2.5, requires New Arch + RN ≥ 0.78, StyleSheet drop-in — HIGH
-- [Unistyles 3.0 on Expo blog](https://expo.dev/blog/unistyles-3-0-beyond-react-native-stylesheet) — Fabric integration rationale — MEDIUM
-- [sonner-native GitHub](https://github.com/gunnartorfis/sonner-native-toasts) + [npm](https://www.npmjs.com/package/sonner-native) — Reanimated 3 based, Expo compatible — MEDIUM
-- [burnt GitHub](https://github.com/nandorojo/burnt) — native OS toasts, old+new arch, JSI — MEDIUM
-- [Expo SDK 54 changelog](https://expo.dev/changelog/sdk-54) + [New Architecture guide](https://docs.expo.dev/guides/new-architecture/) — New Arch default-on, edge-to-edge, RN 0.81 — HIGH
-- Local `apps/mobile/package.json` — confirmed no NativeWind/Tamagui/Paper/Reanimated present; RN 0.81.5, React 19.1.0, expo-dev-client, safe-area-context, vector-icons, zustand already installed — HIGH
+- `apps/api/routers/billing.py`, `webhooks.py`, `internal.py`, `work_orders.py`; `apps/web/app/(dashboard)/(settings/)billing/page.tsx`; `supabase/migrations/007_work_orders.sql`; `apps/api/requirements.txt`; `apps/web/package.json` — direct code inspection (HIGH).
+- [Stripe changelog: deprecate subscription current_period_start/end (Basil 2025-03-31)](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end) — confirms fields moved to subscription items (HIGH).
+- ["Stripe Basil Quietly Moved current_period_end Off Subscription" (dev.to)](https://dev.to/flarecanary/stripe-basil-quietly-moved-currentperiodend-off-subscription-and-a-lot-of-code-broke-3eo7) — corroborates real-world breakage pattern (MEDIUM).
+- [stripe-python releases / CHANGELOG (GitHub)](https://github.com/stripe/stripe-python/releases) — confirms 15.x is current line and pins a 2026 Dahlia API version (MEDIUM).
+- [Stripe customer management / portal docs](https://docs.stripe.com/customer-management) — hosted portal capabilities: payment method, invoices, cancellation, plan switching config (MEDIUM).
 
 ---
-*Stack research for: mobile design-token + UI-primitive retrofit (v1.1 Mobile UI Parity)*
-*Researched: 2026-07-28*
+*Stack research for: self-serve Stripe billing management + work-order bulk-archive (PatelRep)*
+*Researched: 2026-08-03*
