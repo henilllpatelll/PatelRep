@@ -1,24 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Stabilization Pass
-status: completed
-last_updated: "2026-08-02T22:32:00Z"
-last_activity: 2026-08-02 -- Phase 14 CLOSED (14-01 closed); milestone v1.2 Stabilization Pass complete (Phases 12, 13, 14 all closed)
+milestone: null
+milestone_name: null
+status: between_milestones
+last_updated: "2026-08-03T14:35:00Z"
+last_activity: 2026-08-03 -- Milestone v1.2 Stabilization Pass archived and tagged. Milestone audit caught migrations 086/087 (LOGBOOK-01/LOSTFOUND-01 DB fixes) written+tested but never applied to production; both applied to the live Supabase project and independently verified against schema state before shipping. ROADMAP.md and REQUIREMENTS.md deleted per archival convention (fresh ones created by /gsd-new-milestone).
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # GSD State
 
-**Active milestone:** v1.2 Stabilization Pass (started 2026-08-02) — roadmap created, 3 phases (12-14), 100% requirement coverage. Ready for `/gsd:plan-phase 12`.
+**Between milestones.** v1.2 Stabilization Pass shipped and archived 2026-08-03. No active milestone — run `/gsd-new-milestone` to scope the next one.
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-08-03)
+
+**Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
+**Current focus:** Planning next milestone.
 
 ## Previous milestones
 
+- v1.2 "Stabilization Pass" shipped and archived 2026-08-03 (3 phases, 12-14, all closed — 7/7 plans; migration deployment gap found and closed during milestone audit). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.2-*`.
 - v1.1 "Mobile UI Parity" shipped and archived 2026-08-02 (5 phases, 7-11, all closed — 49/49 plans). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.1-*`.
 - v1.0 "Hotel Standards Execution Plan" shipped and archived 2026-07-28 (7 phases, 0-6, all closed). Full history: `.planning/MILESTONES.md`, `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1.0-*`.
 
@@ -187,9 +195,12 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories)
 
 **11-06 CLOSED (2026-08-01, commit `63246430`):** Widened `apps/mobile/eslint.config.mjs`'s `i18next/no-literal-string` gate from 10 to 26 directory globs — the final step in Phase 11's i18n-gate-widening work, closing ROADMAP success criterion 1. Added all 16 confirmed-real globs (profile, home, assignments, scheduling, staff, assets, pm-schedules, guest-requests, lost-found, logbook, sop, copilot, alerts, notifications, components/supervisor, components/home) to the existing rule block's `files` array only — `markupOnly: true` and the `jsx-attributes.include` list untouched, verified via grep count. First `npm run lint` run surfaced one violation not enumerated in Phase 11 research: `components/supervisor/atoms.tsx:161`'s average-clean-time text (`~{avgMin}m`) — a literal outside 11-05's original scope despite that plan touching the same file. Fixed the same way as sibling plans (no `ignores` workaround): new `supervisorTools.avgMinutes: "~{{min}}m"` EN/ES key, `t()` call swapped in, unit suffix `"m"` kept literal per the file's own established convention. `npm run lint` now exits 0 with zero violations across the fully-widened gate; `npm run type-check` clean. This closes all of Phase 11's i18n-coverage scope (52/52 original violations + 1 newly-surfaced fix). See `11-06-SUMMARY.md`.
 
+<details>
+<summary>v1.2 Stabilization Pass phase-by-phase execution log (archived, click to expand)</summary>
+
 ## v1.2 Stabilization Pass — roadmap created (2026-08-02)
 
-Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes found by a fresh post-v1.1 audit — live web QA as GM + static mobile-code re-check). Not a feature build: phases are scoped around root-cause fixes with regression safety, grouped by natural fault domain rather than forced into more phases than the work warrants. Continues phase numbering from v1.1's last phase (11) — v1.2 starts at Phase 12. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
+Roadmap derived from milestone v1.2's requirements (5 requirements, all bug fixes found by a fresh post-v1.1 audit — live web QA as GM + static mobile-code re-check). Not a feature build: phases are scoped around root-cause fixes with regression safety, grouped by natural fault domain rather than forced into more phases than the work warrants. Continues phase numbering from v1.1's last phase (11) — v1.2 starts at Phase 12. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
 
 - Phase 12: Logbook & Lost & Found Data Integrity — LOGBOOK-01, LOSTFOUND-01 (highest-severity item — data-loss bug — sequenced first; independent backend fixes bucketed together as data-integrity-class bugs)
 - Phase 13: AI Copilot Reliability — AI-01, AI-02 (bucketed together since AI-02 explicitly requires consistent error handling across AI-01's own surface)
@@ -211,10 +222,10 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 
 ## Current blockers (carried forward)
 
-- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.2 scope; fix opportunistically.
+- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Fix opportunistically.
 - Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path (v1.0 Phase 3) remains unavailable locally; that RBAC is covered by passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
-- See `## Deferred Items` below for v1.0's accepted credential-blocked deferrals (Twilio SMS, LLM/Opera round-trips) — still unresolved, not specific to v1.2.
-- **v1.2-specific note:** no local AI provider, Stripe, Twilio, or OHIP credentials exist — none of v1.2's 5 bugs require live credentials to fix or verify (all reproducible with mocked/fixture-based tests plus manual dev-server interaction), so this does not block the milestone.
+- See `## Deferred Items` below for v1.0's accepted credential-blocked deferrals (Twilio SMS, LLM/Opera round-trips) — still unresolved.
+- ~~v1.2-specific migration deployment gap~~ — **RESOLVED 2026-08-03:** migrations 086/087 were applied to production during the v1.2 milestone-completion audit and independently verified against live schema state. See `.planning/v1.2-MILESTONE-AUDIT.md`.
 
 ## Verification commands
 
@@ -236,7 +247,7 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 | Verification | Phase 05: 05-VERIFICATION.md | human_needed (same root cause — live SMS) |
 | Future | IOS-01: EAS iOS build pipeline | deferred_to_future_milestone (not blocking v1.1 mobile UI parity) |
 
-Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this milestone's scope — see `.planning/REQUIREMENTS.md` Future Requirements):
+Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this milestone's scope — see `.planning/PROJECT.md` "Next Milestone Goals" for the carried-forward list):
 
 | Category | Item | Status |
 |----------|------|--------|
@@ -251,14 +262,13 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 **Phase 14 (Room Status Display Accuracy) status: CLOSED.** ROOMSTATUS-01 satisfied — the last phase in milestone v1.2 Stabilization Pass.
 
+</details>
+
 ## Current Position
 
-Phase: 14 (Room Status Display Accuracy) — CLOSED (1 of 1 plan complete)
-Plan: 14-01 CLOSED (commits `f9d7ccf9`/`08e413f2`/`97256e2a`/pending-summary-commit). Milestone v1.2 Stabilization Pass is now 100% complete (Phases 12, 13, 14 all closed).
-Status: Complete.
-Last activity: 2026-08-02
+No active phase — between milestones. Milestone v1.2 Stabilization Pass shipped and archived 2026-08-03 (Phases 12, 13, 14 all closed, 7/7 plans; migration deployment gap found and closed during the milestone-completion audit — see `.planning/v1.2-MILESTONE-AUDIT.md`). Run `/gsd-new-milestone` to scope the next milestone.
 
-Progress: [██████████] 100% (Phase 14: 1/1 plans; milestone v1.2: 3/3 phases)
+Progress: [██████████] v1.2: 100% (3/3 phases) — shipped and archived
 
 ## Performance Metrics
 
@@ -291,6 +301,6 @@ Progress: [██████████] 100% (Phase 14: 1/1 plans; milestone 
 
 ## Session
 
-Last session: 2026-08-02T22:32:00Z
-Stopped At: 14-01 complete, Phase 14 CLOSED. Milestone v1.2 Stabilization Pass fully complete (Phases 12, 13, 14 all closed).
+Last session: 2026-08-03T14:35:00Z
+Stopped At: Milestone v1.2 Stabilization Pass archived and tagged. Migration deployment gap (086/087 not applied to production) found by the milestone audit and resolved same-session. Between milestones — next step is `/gsd-new-milestone`.
 </content>

@@ -57,14 +57,11 @@ None. No TODO/FIXME/placeholder patterns, no empty implementations, no console-l
 
 ### Human Verification Required
 
-1. **Apply migrations 086 and 087 to the remote Supabase project**
-   **Test:** Run the two migrations against production Supabase, then create a real evening logbook entry and delete a real Lost & Found item with custody history via the UI.
-   **Expected:** Entry appears under the correct local day; delete succeeds with no 500.
-   **Why human:** Both plans deliberately deferred applying the migrations to the remote project (explicitly out of scope, requires a human decision since it alters live FK/trigger behavior on a shared table). The DDL is correct by inspection and by matching Postgres's default constraint-naming convention, but has not been executed against a real Postgres instance — the project's FakeDB test harness cannot enforce FK constraints or triggers, so this is the one gap no automated check in this repo can close.
+None remaining. **RESOLVED 2026-08-03** during the v1.2 milestone-completion audit: migrations 086 and 087 were applied to the production Supabase project (`oacnwalhcpqdabivweki`) via Supabase MCP `apply_migration`, with explicit user authorization. Verified directly against live schema state (not just the migration-history log): `pg_constraint.confdeltype = 'c'` (CASCADE) on the custody-events FK, `pg_trigger.tgtype = 19` (BEFORE UPDATE only, no DELETE bit) on the immutability trigger, and 0 `logbook_entries` rows mismatched against hotel-local recomputation post-backfill. Full detail in `.planning/v1.2-MILESTONE-AUDIT.md`.
 
 ### Gaps Summary
 
-No code-level gaps. Both fixes are complete, correctly reasoned, and covered by passing tests (6/6 new tests pass; full smoke suite 251/251 passes with no regressions). The only open item is operational, not a defect: migrations 086 and 087 are written and correct but not yet applied to the remote Supabase project, which both plans deliberately deferred as a follow-up requiring explicit user confirmation before touching live DDL on a shared table.
+No code-level gaps. Both fixes are complete, correctly reasoned, and covered by passing tests (6/6 new tests pass; full smoke suite 251/251 passes with no regressions). Migrations 086 and 087 are now applied to production and independently verified against live schema state — see Human Verification Required above.
 
 ---
 

@@ -53,3 +53,28 @@
 
 ---
 
+
+## v1.2 Stabilization Pass (Shipped: 2026-08-03)
+
+**Delivered:** A fresh post-v1.1 audit (live web QA + static mobile code re-check) found 5 genuine bugs, including one high-severity data-loss bug; this milestone fixed all of them — no new user-facing features by explicit scope decision.
+
+**Phases completed:** 12-14 (3 phases, 7 plans)
+
+**Key accomplishments:**
+- Logbook entries now file under the correct hotel-local calendar day regardless of UTC submission time (real IANA timezone conversion, not a fixed offset), fixing a high-severity data-loss bug where evening entries silently vanished from the shift log
+- Lost & Found items with prior custody-transfer history can now be permanently deleted (FK cascade + trigger narrowing) instead of hitting a database error that stuck them forever
+- AI Copilot Auto-Assign and AI triage return a real result or a clear error — never a silent/fabricated success — made consistent across all 4 UI entry points (Room Board sidebar, Assignments tab, floating chat bubble, dedicated /ai chat page); found and closed via a re-verification cycle after the initial pass caught 2 remaining inconsistent surfaces
+- Housekeeping board now shows a room's actual assignee (from `room_status.assigned_to`) even when there's no `room_assignments` row for the requested date, instead of falsely showing "Unassigned" — a deliberate, user-confirmed reversal of prior "suppress stale assignee" behavior
+- Milestone audit found migrations 086/087 (the DB-level fixes for the logbook and Lost & Found bugs above) were code-complete and tested but never applied to the production Supabase project; applied both live and independently verified against actual schema state (not just the migration-history log) before shipping
+
+**Stats:**
+- 16 files changed, 746 insertions(+), 84 deletions(-) (phase work only, excludes milestone-completion docs)
+- 3 phases, 7 plans
+- <1 day from phase start to ship (2026-08-02 → 2026-08-03)
+
+**Git range:** `0932a097` → `473f5397` (phase work), migrations applied and audit closed 2026-08-03
+
+**What's next:** TBD via `/gsd-new-milestone`
+
+---
+
