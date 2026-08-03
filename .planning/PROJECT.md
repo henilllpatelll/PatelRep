@@ -25,23 +25,29 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-*(None yet — next milestone requirements not yet defined. Run `/gsd-new-milestone`.)*
+*(Defined via `/gsd-new-milestone` 2026-08-03 — see Current Milestone below and `.planning/REQUIREMENTS.md`.)*
+
+## Current Milestone: v1.3 Billing, Work Order Archival, and Backlog Cleanup
+
+**Goal:** Ship self-serve billing management and bulk-archive for work orders while clearing the carried-forward backlog from v1.2's audit (UX rough edges, the CHECK-constraint bug, and the supervisor-picker product decision).
+
+**Target features:**
+- Self-serve billing management (plan changes, payment method management, rolling usage/period-usage display)
+- Bulk-archive for Engineering work orders
+- UX rough-edges cleanup (blank staff display names, duplicate/leftover shift templates, generic Opera error message, leaked internal ROI formula string, Guest Request drawer status-advance actions, Room History not populating)
+- Fix `ai_interactions.interaction_type` CHECK-constraint drift (deferred 4x prior)
+- Resolve the supervisor-in-assignment-picker product decision
 
 ## Next Milestone Goals
 
-TBD — v1.2 shipped as a stabilization pass with zero new user-facing features by design. The next milestone has not been scoped yet; run `/gsd-new-milestone` to begin requirements gathering.
+TBD — scoped after v1.3 ships.
 
 ### Out of Scope
 
-- Live-credential-dependent flows — no local AI provider, Stripe, Twilio, or OHIP credentials exist; v1.0/v1.1/v1.2 all ship with these paths verified via mocked/fixture-based tests and accepted as deferred for live validation. Still valid — no credentials added since.
+- Live-credential-dependent flows — no local AI provider, Stripe, Twilio, or OHIP credentials exist; v1.0/v1.1/v1.2 all ship with these paths verified via mocked/fixture-based tests and accepted as deferred for live validation. Still valid — no credentials added since. Self-serve billing management (v1.3) will therefore ship with Stripe calls verified via mocked/fixture-based tests only, same as prior billing work.
 - Vercel deployment repair — Railway is the sole production target; Vercel kept only as a secondary PR-preview surface, decision made 2026-07-26. Still valid.
 - iOS EAS build pipeline (IOS-01) — Android-only mobile builds remain the shipped target; iOS is a separate future initiative, not blocking anything shipped so far.
-
-**Carried forward from v1.2's audit (found, not in v1.2 scope, still unresolved):**
-- Whether supervisors should appear in the housekeeper assignment picker (unresolved product-intent conflict between two prior audits, not a code bug)
-- UX rough edges: blank staff display names, duplicate/leftover shift templates in dropdowns, generic Opera error message, leaked internal formula string on Management ROI, Guest Request drawer missing status-advance actions, Room History not populating
-- Capability gaps: self-serve billing management ("Coming soon"), stale/non-rolling billing period-usage display, bulk-archive for Engineering work orders, general test-data hygiene cleanup on the shared QA account
-- Pre-existing `ai_interactions.interaction_type` CHECK-constraint drift on `general`/other untyped intents (reconfirmed a 4th time during Phase 13 verification, deliberately out of scope each time)
+- General test-data hygiene cleanup on the shared QA account — carried forward from v1.2's audit but not selected for v1.3 scope; remains a future-milestone candidate.
 
 ## Context
 
@@ -100,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-03 — milestone v1.2 (Stabilization Pass) shipped.*
+*Last updated: 2026-08-03 — milestone v1.3 (Billing, Work Order Archival, and Backlog Cleanup) started.*

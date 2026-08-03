@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
-status: between_milestones
-last_updated: "2026-08-03T14:35:00Z"
-last_activity: 2026-08-03 -- Milestone v1.2 Stabilization Pass archived and tagged. Milestone audit caught migrations 086/087 (LOGBOOK-01/LOSTFOUND-01 DB fixes) written+tested but never applied to production; both applied to the live Supabase project and independently verified against schema state before shipping. ROADMAP.md and REQUIREMENTS.md deleted per archival convention (fresh ones created by /gsd-new-milestone).
+milestone: v1.3
+milestone_name: Billing, Work Order Archival, and Backlog Cleanup
+status: defining_requirements
+last_updated: "2026-08-03T15:00:00Z"
+last_activity: 2026-08-03 -- Milestone v1.3 started via /gsd-new-milestone. Scope: self-serve billing management, bulk-archive for Engineering work orders, UX rough-edges cleanup, ai_interactions CHECK-constraint drift fix, supervisor-picker product decision.
 progress:
   total_phases: 0
   completed_phases: 0
@@ -15,14 +15,19 @@ progress:
 
 # GSD State
 
-**Between milestones.** v1.2 Stabilization Pass shipped and archived 2026-08-03. No active milestone — run `/gsd-new-milestone` to scope the next one.
+## Current Position
+
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-08-03 — Milestone v1.3 started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Planning next milestone.
+**Current focus:** Milestone v1.3 — defining requirements.
 
 ## Previous milestones
 
