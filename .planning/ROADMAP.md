@@ -42,7 +42,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
 
 - [x] **Phase 12: Logbook & Lost & Found Data Integrity** - Entries never silently vanish or get permanently stuck due to timezone/FK bugs (completed 2026-08-02)
 - [x] **Phase 13: AI Copilot Reliability** - Auto-Assign and AI triage return a result or a clear error, never a silent failure, consistently across all 3 entry points (completed 2026-08-03)
-- [ ] **Phase 14: Room Status Display Accuracy** - Assigned housekeeper always displays correctly regardless of `room_assignments` row presence
+- [x] **Phase 14: Room Status Display Accuracy** - Assigned housekeeper always displays correctly regardless of `room_assignments` row presence (completed 2026-08-03)
 
 ## Phase Details
 
@@ -81,7 +81,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
   1. A room with `room_status.assigned_to` set but no matching `room_assignments` row for today displays the actual assigned housekeeper's name, not "Unassigned."
   2. A room with no assignment at all (both `room_status.assigned_to` and `room_assignments` empty) still correctly displays "Unassigned" — the fix does not invent an assignment where none exists.
   3. A room with both `room_status.assigned_to` and a matching `room_assignments` row for today continues to display consistently (no regression to the already-working case).
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 - [ ] 14-01-PLAN.md — board falls back to room_status.assigned_to when no today room_assignments row; updates the conflicting "not stale" test + adds SC1/SC2/SC3 regression coverage (human-verify checkpoint confirms the deliberate behavior reversal)
 
 ## Backlog
@@ -112,4 +112,4 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.1-ROADMAP.md
 | 11. Mobile UI Parity Cleanup | v1.1 | 6/6 | Complete | 2026-08-02 |
 | 12. Logbook & Lost & Found Data Integrity | v1.2 | Complete    | 2026-08-02 | - |
 | 13. AI Copilot Reliability | v1.2 | Complete    | 2026-08-03 | - |
-| 14. Room Status Display Accuracy | v1.2 | 0/TBD | Not started | - |
+| 14. Room Status Display Accuracy | v1.2 | Complete    | 2026-08-03 | - |
