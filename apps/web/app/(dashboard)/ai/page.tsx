@@ -15,6 +15,7 @@ import {
   type AssignmentPreview, type AssignmentPreviewResponse,
   type AmbiguousResponse,
 } from '@/lib/api/ai'
+import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
@@ -284,28 +285,48 @@ export default function AICopilotPage() {
       const res = await aiApi.chat(userMsg, context)
       const d = res.data
       addAiMsg(d.message || "I've processed your request.", d)
-    } catch {
-      addAiMsg('Something went wrong. Please try again.')
+    } catch (err) {
+      addAiMsg(err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   const handleConfirmTasks = async (tasks: ParsedTask[]) => {
-    await aiApi.confirmTasks(tasks)
-    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    try {
+      await aiApi.confirmTasks(tasks)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    } catch (err) {
+      addAiMsg(err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.')
+      throw err
+    }
   }
   const handleConfirmWorkOrders = async (wos: WorkOrderPreview[]) => {
-    await aiApi.confirmWorkOrders(wos)
-    queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+    try {
+      await aiApi.confirmWorkOrders(wos)
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+    } catch (err) {
+      addAiMsg(err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.')
+      throw err
+    }
   }
   const handleConfirmGuestRequests = async (reqs: GuestRequestPreview[]) => {
-    await aiApi.confirmGuestRequests(reqs)
-    queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
+    try {
+      await aiApi.confirmGuestRequests(reqs)
+      queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
+    } catch (err) {
+      addAiMsg(err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.')
+      throw err
+    }
   }
   const handleConfirmAssignments = async (assignments: AssignmentPreview[]) => {
-    await aiApi.confirmAssignments(assignments)
-    queryClient.invalidateQueries({ queryKey: ['assignments'] })
+    try {
+      await aiApi.confirmAssignments(assignments)
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
+    } catch (err) {
+      addAiMsg(err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.')
+      throw err
+    }
   }
   const handleCancel = (messageId: string) => {
     setMessages((prev) => [
