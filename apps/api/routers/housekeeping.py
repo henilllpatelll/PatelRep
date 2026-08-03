@@ -529,7 +529,8 @@ async def get_housekeeping_board(
         rooms_with_predictions.append({
             **room,
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
-            "assigned_to": assignment.get("assigned_to") if assignment else None,
+            # No room_assignments row for this date — fall back to the live room_status.assigned_to mirror (ROOMSTATUS-01)
+            "assigned_to": assignment.get("assigned_to") if assignment else room.get("assigned_to"),
             "assignment_id": assignment.get("id") if assignment else None,
             "assignment_date": assignment.get("assignment_date") if assignment else None,
             "assignment_shift_id": assignment.get("shift_id") if assignment else None,
