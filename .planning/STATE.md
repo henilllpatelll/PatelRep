@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Stabilization Pass
 status: in_progress
-last_updated: "2026-08-02T20:24:00Z"
-last_activity: 2026-08-02 -- Phase 13 execution in progress (13-01, 13-02 closed)
+last_updated: "2026-08-02T21:05:00Z"
+last_activity: 2026-08-02 -- Phase 13 CLOSED (13-01, 13-02, 13-03 all closed)
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # GSD State
@@ -203,6 +203,10 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 
 **13-02 CLOSED (2026-08-02, commits `6040f939`/`accc0d9b`/`ca0d0fd3`):** Fixed AI-02's fake-success bug in `handleAITriage` (`apps/web/app/(dashboard)/engineering/work-orders/page.tsx`). The click handler called `aiApi.chat(...)` with no `intent_hint`, so the literal message scored 0 against every `detect_intent` keyword list and fell through to the hardcoded `"general"` canned response — the "AI triage applied" notice was identical on every click regardless of the real work orders sent, and a genuine failure was worded exactly the same as success. New rule-based `work_order_triage` backend intent (`_build_work_order_triage_summary` in `apps/api/routers/ai_copilot.py`, zero-LLM, zero-credit, mirrors 13-01's `suggest_assignments` precedent) computes overdue count, unassigned count, and a priority-ranked suggested floor order from `request.context.work_orders`; the frontend now sends `intent_hint: 'work_order_triage'` and renders the real `res.data.message`. `aiTriageNotice` state changed from a bare string to `{ message, isError }`; the failure path (`err instanceof ApiClientError ? err.message : fallback`, replicating 13-01's canonical pattern) now renders visually distinct alert-toned styling (`AlertCircle` icon, `bg-[var(--alert-soft)]`) instead of the same ai-toned "success" box used for every outcome. New `test_ai_work_order_triage.py` (3 tests) locks the helper's logic (empty-list message, overdue/unassigned prioritization, malformed-date safety). **Real bug found and fixed during live verification (Rule 1):** `ai_interactions.interaction_type`'s CHECK constraint had drifted from migration 013's original 8-value list (untracked by any subsequent migration) and did not include the new `work_order_triage` value, so the plan's own success path would 500/400 on every real hit. Migration `088_ai_interactions_work_order_triage_type.sql` adds just that one value (deliberately not fixing the broader pre-existing drift affecting `general`/`work_order_creation`/`guest_request_creation`/`task_assignment`/`housekeeping_briefing`, tracked instead in `.planning/phases/13-ai-copilot-reliability/deferred-items.md` for a future plan) — applied live to the Supabase project by the orchestrator and verified via `pg_get_constraintdef`. **Environment gotcha (not a code deviation):** the first live-verification attempt hit a stale `uvicorn --reload` worker trio (matches the same pattern documented in 13-01/06-05) that hadn't picked up the session's file changes reliably; killing and restarting the dev API server on :8003 resolved it, confirmed via a repeatable curl reproduction before/after. Full API smoke suite: **257/257 passed** (254 baseline + 3 new), `apps/web` type-check clean. Live browser walkthrough (GM, Sonesta ES Suites Fossil Creek) confirmed both the success path (real 20-work-order summary, matching the network response body exactly) and a mocked-503 failure path (distinct alert-toned notice, confirmed via DOM class inspection, correct recovery after unmocking) end-to-end, plus adjacent surfaces (Room Board tab, Work Order detail drawer, create-work-order modal, emergency/urgent alert banner, main AI Copilot chat's unrelated `task_creation` intent) all confirmed unaffected. Two out-of-scope items found live and logged (not fixed) to `deferred-items.md`: a pre-existing `GET /v1/tasks?per_page=200` 422 in `EngineeringRoomBoard.tsx` (unrelated to this plan's file list), and live confirmation that the broader `interaction_type` CHECK-constraint drift already flagged in migration 088's own header comment is real and reproducible via the `"general"` fallback intent. See `13-02-SUMMARY.md`.
 
+**13-03 CLOSED (2026-08-02, commits `01995635`/`0229ae4f`):** Finalized AI-02's cross-surface consistency requirement on the last surface, `AICopilotBubble.tsx`. All 4 confirm handlers (`handleConfirmTasks`/`WorkOrders`/`GuestRequests`/`Assignments`) previously had no catch at all — a failed `aiApi.confirmX(...)` call propagated silently up through `ConfirmView`/`TaskConfirmView`'s uncaught `try { await onConfirm(); setConfirmed(true) } finally { setConfirming(false) }`, resetting the spinner with zero explanation. Now each handler catches the failure, appends a real inline chat bubble sourced from `err instanceof ApiClientError ? err.message : generic fallback`, and **rethrows** — preserving the reject contract so `setConfirmed(true)` is correctly skipped and the button reverts to a retryable, non-confirmed state instead of a false "✓ ... created" checkmark. `sendMessage`'s previously-bare `catch { ... }` (always the same hardcoded string) now also surfaces the real `ApiClientError.message`. `ConfirmView`/`TaskConfirmView` themselves were left untouched, as required. Live browser verification (GM, Sonesta ES Suites Fossil Creek, real dev Supabase project) proved: client fast-path task preview + real confirm-success round trip unaffected; a mocked 503 on `/ai/copilot/chat` and a genuine 500 (task-creation intent hit the LLM-dependent `extract_task_details` path, which 500s locally due to no `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` per CLAUDE.md's documented environment constraint) both correctly surfaced their real backend detail message inline instead of a fixed string; a mocked 500 on `/ai/tasks/confirm` produced an inline error bubble with the button remaining clickable (no false checkmark), and unmocking + re-clicking succeeded and correctly flipped to "1 task created."; off-topic short-circuit and SOP Q&A regression-passed with zero behavior change. Full API smoke suite: **257/257 passed** (unchanged baseline — this plan touched no backend code). `apps/web` type-check clean. **Confirmed (not fixed) a third live reproduction** of 13-02's already-deferred `ai_interactions.interaction_type` "general"-intent CHECK-constraint drift, this time via the "At-risk rooms today" quick-action chip — logged to `deferred-items.md`, same pre-existing bug, out of this plan's file-list scope. This closes Phase 13: all 3 AI Copilot entry points (chat bubble, assignment sidebar, engineering triage) now share the identical `catch -> ApiClientError.message -> visible-surface -> finally-reset` error-handling pattern. See `13-03-SUMMARY.md`.
+
+**Phase 13 (AI Copilot Reliability) status: CLOSED.** All 3 plans executed (13-01, 13-02, 13-03), AI-01 and AI-02 requirements satisfied, full cross-surface error-handling consistency confirmed.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.2 scope; fix opportunistically.
@@ -243,12 +247,12 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 13 (AI Copilot Reliability) — IN PROGRESS (2 of 3 plans complete)
-Plan: 13-01, 13-02 closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix; AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix). 13-03 remaining.
-Status: 13-02 closed 2026-08-02. Ready to execute 13-03.
+Phase: 13 (AI Copilot Reliability) — CLOSED (3 of 3 plans complete)
+Plan: 13-01, 13-02, 13-03 all closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix; AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix; chat bubble error-handling finalization + cross-surface consistency confirmed).
+Status: 13-03 closed 2026-08-02. Phase 13 complete. Ready to execute Phase 14 (Room Status Display Accuracy).
 Last activity: 2026-08-02
 
-Progress: [██████░░░░] 67% (Phase 13: 2/3 plans)
+Progress: [██████████] 100% (Phase 13: 3/3 plans)
 
 ## Performance Metrics
 
@@ -275,9 +279,10 @@ Progress: [██████░░░░] 67% (Phase 13: 2/3 plans)
 | 12 | 01 | 15 min | 3 | 3 | 2026-08-02 |
 | 13 | 01 | 30 min | 2 | 5 | 2026-08-02 |
 | 13 | 02 | 45 min | 3 | 7 | 2026-08-02 |
+| 13 | 03 | 35 min | 2 | 2 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-02T20:24:00Z
-Stopped At: Completed 13-02-PLAN.md (AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix). Ready to execute 13-03-PLAN.md.
+Last session: 2026-08-02T21:05:00Z
+Stopped At: Completed 13-03-PLAN.md (chat bubble error-handling finalization + cross-surface consistency). Phase 13 CLOSED. Ready to execute Phase 14 (Room Status Display Accuracy).
 </content>
