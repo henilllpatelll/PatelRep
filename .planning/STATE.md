@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Stabilization Pass
 status: in_progress
-last_updated: "2026-08-02T21:05:00Z"
-last_activity: 2026-08-02 -- Phase 13 CLOSED (13-01, 13-02, 13-03 all closed)
+last_updated: "2026-08-02T22:10:00Z"
+last_activity: 2026-08-02 -- Phase 13 CLOSED (13-01, 13-02, 13-03, 13-04 all closed)
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
@@ -205,7 +205,9 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 
 **13-03 CLOSED (2026-08-02, commits `01995635`/`0229ae4f`):** Finalized AI-02's cross-surface consistency requirement on the last surface, `AICopilotBubble.tsx`. All 4 confirm handlers (`handleConfirmTasks`/`WorkOrders`/`GuestRequests`/`Assignments`) previously had no catch at all — a failed `aiApi.confirmX(...)` call propagated silently up through `ConfirmView`/`TaskConfirmView`'s uncaught `try { await onConfirm(); setConfirmed(true) } finally { setConfirming(false) }`, resetting the spinner with zero explanation. Now each handler catches the failure, appends a real inline chat bubble sourced from `err instanceof ApiClientError ? err.message : generic fallback`, and **rethrows** — preserving the reject contract so `setConfirmed(true)` is correctly skipped and the button reverts to a retryable, non-confirmed state instead of a false "✓ ... created" checkmark. `sendMessage`'s previously-bare `catch { ... }` (always the same hardcoded string) now also surfaces the real `ApiClientError.message`. `ConfirmView`/`TaskConfirmView` themselves were left untouched, as required. Live browser verification (GM, Sonesta ES Suites Fossil Creek, real dev Supabase project) proved: client fast-path task preview + real confirm-success round trip unaffected; a mocked 503 on `/ai/copilot/chat` and a genuine 500 (task-creation intent hit the LLM-dependent `extract_task_details` path, which 500s locally due to no `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` per CLAUDE.md's documented environment constraint) both correctly surfaced their real backend detail message inline instead of a fixed string; a mocked 500 on `/ai/tasks/confirm` produced an inline error bubble with the button remaining clickable (no false checkmark), and unmocking + re-clicking succeeded and correctly flipped to "1 task created."; off-topic short-circuit and SOP Q&A regression-passed with zero behavior change. Full API smoke suite: **257/257 passed** (unchanged baseline — this plan touched no backend code). `apps/web` type-check clean. **Confirmed (not fixed) a third live reproduction** of 13-02's already-deferred `ai_interactions.interaction_type` "general"-intent CHECK-constraint drift, this time via the "At-risk rooms today" quick-action chip — logged to `deferred-items.md`, same pre-existing bug, out of this plan's file-list scope. This closes Phase 13: all 3 AI Copilot entry points (chat bubble, assignment sidebar, engineering triage) now share the identical `catch -> ApiClientError.message -> visible-surface -> finally-reset` error-handling pattern. See `13-03-SUMMARY.md`.
 
-**Phase 13 (AI Copilot Reliability) status: CLOSED.** All 3 plans executed (13-01, 13-02, 13-03), AI-01 and AI-02 requirements satisfied, full cross-surface error-handling consistency confirmed.
+**13-04 CLOSED (2026-08-02, commits `307d2e54`/`57d6c658`):** Gap-closure plan (per `13-VERIFICATION.md`) applying the already-proven 13-01/13-03 fix patterns to the two duplicate UI surfaces those plans missed. `AssignmentsPage`'s `handleAiAutoAssign` (Assignments tab) now reads the real `data.suggestions`/`data.message` shape instead of nonexistent `assignments_created`/`count` keys, drops the false cache invalidation on the read-only `/housekeeping/ai-suggest-assignments` endpoint, and standardizes its catch on `ApiClientError` — matching `AssignmentSidebar.tsx`'s 13-01 fix exactly (button/locale copy renamed "Auto-Assign with AI" → "Suggest Assignments with AI" EN/ES, unused `aiSuccessGeneric` key removed). The dedicated full-page chat at `app/(dashboard)/ai/page.tsx` (reached via the primary sidebar "AI Copilot" nav item, distinct from the floating `AICopilotBubble.tsx` widget 13-03 fixed) now has its `sendMessage` catch surface real `ApiClientError` detail instead of a hardcoded generic string, and all 4 confirm handlers (`handleConfirmTasks`/`WorkOrders`/`GuestRequests`/`Assignments`) catch failures, append an inline error bubble, and rethrow — so `ConfirmView`/`TaskConfirmView`'s `try { await onConfirm(); setDone(true) } finally { setSaving(false) }` correctly skips the false-success checkmark and resets to a retryable state. Live Playwright verification (GM login, real dev Supabase project) proved both success and mocked-failure paths on both surfaces, plus zero regression on 6 adjacent behaviors (date picker/Opera import, fast-path, off-topic short-circuit, quick-action chip, SOP Q&A, Room Board tab's untouched `AssignmentSidebar.tsx`). Full API smoke suite: 257/257 passed (unchanged baseline, no backend code touched). One pre-existing `try`/`finally`-without-`catch` shape in `ConfirmView`/`TaskConfirmView` (left untouched per plan + 13-03 precedent) produces a browser "pageerror" console entry on a rethrown confirm failure — accepted, not a regression. Reconfirmed (4th occurrence, not fixed) the already-deferred `ai_interactions.interaction_type` CHECK-constraint drift via the "At-risk rooms today" quick action — this plan's fix correctly surfaced the real backend detail instead of a generic string. See `13-04-SUMMARY.md`.
+
+**Phase 13 (AI Copilot Reliability) status: CLOSED.** All 4 plans executed (13-01, 13-02, 13-03, 13-04), AI-01 and AI-02 requirements satisfied, both verification gaps closed, full cross-surface error-handling consistency confirmed across all 4 AI Copilot UI surfaces.
 
 ## Current blockers (carried forward)
 
@@ -247,12 +249,12 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 13 (AI Copilot Reliability) — CLOSED (3 of 3 plans complete)
-Plan: 13-01, 13-02, 13-03 all closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix; AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix; chat bubble error-handling finalization + cross-surface consistency confirmed).
-Status: 13-03 closed 2026-08-02. Phase 13 complete. Ready to execute Phase 14 (Room Status Display Accuracy).
+Phase: 13 (AI Copilot Reliability) — CLOSED (4 of 4 plans complete)
+Plan: 13-01, 13-02, 13-03, 13-04 all closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix; AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix; chat bubble error-handling finalization + cross-surface consistency confirmed; 13-04 gap-closure applying both patterns to the Assignments-tab AI button and the dedicated /ai chat page).
+Status: 13-04 closed 2026-08-02. Phase 13 complete, both verification gaps closed. Ready to execute Phase 14 (Room Status Display Accuracy).
 Last activity: 2026-08-02
 
-Progress: [██████████] 100% (Phase 13: 3/3 plans)
+Progress: [██████████] 100% (Phase 13: 4/4 plans)
 
 ## Performance Metrics
 
@@ -280,9 +282,10 @@ Progress: [██████████] 100% (Phase 13: 3/3 plans)
 | 13 | 01 | 30 min | 2 | 5 | 2026-08-02 |
 | 13 | 02 | 45 min | 3 | 7 | 2026-08-02 |
 | 13 | 03 | 35 min | 2 | 2 | 2026-08-02 |
+| 13 | 04 | 25 min | 3 | 4 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-02T21:05:00Z
-Stopped At: Completed 13-03-PLAN.md (chat bubble error-handling finalization + cross-surface consistency). Phase 13 CLOSED. Ready to execute Phase 14 (Room Status Display Accuracy).
+Last session: 2026-08-02T22:10:00Z
+Stopped At: Completed 13-04-PLAN.md (gap-closure: Assignments-tab AI button + dedicated /ai chat page error-handling). Phase 13 CLOSED, both verification gaps closed. Ready to execute Phase 14 (Room Status Display Accuracy).
 </content>
