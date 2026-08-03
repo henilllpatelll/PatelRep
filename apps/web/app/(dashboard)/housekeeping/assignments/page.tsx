@@ -2,9 +2,10 @@
 
 import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { ApiClientError } from '@/lib/api/client'
 import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportModal'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -58,7 +59,6 @@ export default function AssignmentsPage() {
   useEffect(() => {
     setDate(todayISO())
   }, [])
-  const queryClient = useQueryClient()
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [showImport, setShowImport] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
@@ -83,17 +83,23 @@ export default function AssignmentsPage() {
     setAiLoading(true)
     try {
       const result = await housekeepingApi.aiSuggestAssignments(date)
-      const count = (result as any)?.data?.assignments_created ?? (result as any)?.data?.count ?? null
-      toast.success(
-        count !== null
-          ? (count === 1
-            ? t('housekeeping.assignmentsPage.aiSuccessOne', { count })
-            : t('housekeeping.assignmentsPage.aiSuccessOther', { count }))
-          : t('housekeeping.assignmentsPage.aiSuccessGeneric'),
+      const suggestions = (result as any)?.data?.suggestions ?? []
+      const roomCount = suggestions.reduce(
+        (sum: number, s: any) => sum + (s.room_count ?? s.rooms?.length ?? 0),
+        0,
       )
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments-page', date] })
-    } catch (err: any) {
-      toast.error(err?.message || t('housekeeping.assignmentsPage.aiFailure'))
+
+      if (roomCount === 0) {
+        toast.info((result as any)?.data?.message || t('housekeeping.assignmentsPage.noRoomsNeedWork'))
+      } else {
+        toast.success(
+          roomCount === 1
+            ? t('housekeeping.assignmentsPage.aiSuccessOne', { count: roomCount })
+            : t('housekeeping.assignmentsPage.aiSuccessOther', { count: roomCount }),
+        )
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiClientError ? err.message : t('housekeeping.assignmentsPage.aiFailure'))
     } finally {
       setAiLoading(false)
     }
