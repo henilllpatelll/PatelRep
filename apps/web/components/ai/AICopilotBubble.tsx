@@ -20,6 +20,7 @@ import {
   type AmbiguousResponse,
 } from '@/lib/api/ai'
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
+import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { usePathname } from 'next/navigation'
@@ -271,32 +272,52 @@ export function AICopilotBubble() {
       const res = await aiApi.chat(userMsg, context)
       const data = res.data
       setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: data.message || "I've processed your request.", responseData: data }])
-    } catch {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: 'Something went wrong. Please try again.' }])
+    } catch (err) {
+      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
     } finally {
       setLoading(false)
     }
   }
 
   const handleConfirmTasks = async (tasks: ParsedTask[]) => {
-    await aiApi.confirmTasks(tasks)
-    queryClient.invalidateQueries({ queryKey: ['tasks'] })
-    setTimeout(() => setOpen(false), 1200)
+    try {
+      await aiApi.confirmTasks(tasks)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      setTimeout(() => setOpen(false), 1200)
+    } catch (err) {
+      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      throw err
+    }
   }
   const handleConfirmWorkOrders = async (wos: WorkOrderPreview[]) => {
-    await aiApi.confirmWorkOrders(wos)
-    queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-    setTimeout(() => setOpen(false), 1200)
+    try {
+      await aiApi.confirmWorkOrders(wos)
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      setTimeout(() => setOpen(false), 1200)
+    } catch (err) {
+      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      throw err
+    }
   }
   const handleConfirmGuestRequests = async (reqs: GuestRequestPreview[]) => {
-    await aiApi.confirmGuestRequests(reqs)
-    queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
-    setTimeout(() => setOpen(false), 1200)
+    try {
+      await aiApi.confirmGuestRequests(reqs)
+      queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
+      setTimeout(() => setOpen(false), 1200)
+    } catch (err) {
+      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      throw err
+    }
   }
   const handleConfirmAssignments = async (assignments: AssignmentPreview[]) => {
-    await aiApi.confirmAssignments(assignments)
-    queryClient.invalidateQueries({ queryKey: ['assignments'] })
-    setTimeout(() => setOpen(false), 1200)
+    try {
+      await aiApi.confirmAssignments(assignments)
+      queryClient.invalidateQueries({ queryKey: ['assignments'] })
+      setTimeout(() => setOpen(false), 1200)
+    } catch (err) {
+      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      throw err
+    }
   }
 
   const handleCancel = (messageId: string) =>
