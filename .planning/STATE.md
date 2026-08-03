@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Stabilization Pass
 status: in_progress
-last_updated: "2026-08-02T00:15:00Z"
-last_activity: 2026-08-02 -- Phase 12 execution in progress (12-02 closed)
+last_updated: "2026-08-02T19:10:00Z"
+last_activity: 2026-08-02 -- Phase 13 execution in progress (13-01 closed)
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 2
+  total_plans: 3
   completed_plans: 1
-  percent: 50
+  percent: 33
 ---
 
 # GSD State
@@ -199,6 +199,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 
 **12-02 CLOSED (2026-08-02, commits `a75a38e7`/`4f5bce10`):** Fixed LOSTFOUND-01 (Lost & Found items with custody history could never be permanently deleted). Root cause was two stacked layers on `lost_found_custody_events`: an `ON DELETE RESTRICT` FK on `lost_found_item_id` (every item gets an `intake` custody event at creation, so no item with history could ever be deleted) plus a `BEFORE UPDATE OR DELETE` immutability trigger that would also have blocked an explicit child-row-cleanup workaround in the router. New `supabase/migrations/087_lost_found_custody_cascade.sql` changes the FK to `ON DELETE CASCADE` and narrows the trigger to `BEFORE UPDATE` only — custody event content stays immutable (append-only), but deleting the whole item now cascades and clears its custody trail. No router code changes were required; `delete_lost_found_item` already only touched `lost_found_items`. New `apps/api/tests/test_lost_found_delete.py` (3 tests) locks in the endpoint contract (204 with custody history, 404 for missing item, no manual custody-events deletion in the router) — its docstring explicitly notes FakeDB cannot enforce FK constraints/triggers, so it verifies the contract, not the DB-level cascade itself. Full 251-test smoke suite + sibling `test_lost_found_retention.py` (11 tests) both green, no regressions. **Migration 087 was deliberately not applied to the remote Supabase project** (per plan instruction) — applying it to the shared production DB is a follow-up action requiring explicit confirmation. See `12-02-SUMMARY.md`.
 
+**13-01 CLOSED (2026-08-02, commits `e6c43489`/`5e15741b`/`e2ee47e9`):** Fixed AI-01's fake-success bug in `AssignmentSidebar.tsx::handleAiAutoAssign` — it read nonexistent `data.assignments_created`/`data.count` keys (always `null`), so a generic success toast fired and 3 query caches were invalidated on every 200 response even though `/housekeeping/ai-suggest-assignments` is a pure read-only suggestion endpoint that never persists. Now reads the real `data.suggestions`/`data.message` shape, sums `room_count` for an accurate toast (`"AI suggested {{count}} room(s)."`), routes zero-suggestion responses through `toast.info(data.message)` so "no rooms need assignment" and "no active housekeepers found" stay distinct (never collapsed to one generic string), and drops all 3 cache invalidations from the success path since nothing was ever written. Catch block standardized on `err instanceof ApiClientError ? err.message : t('...failure')` — the pattern 13-02/13-03 will replicate for AI-02's cross-surface consistency requirement. Button/locale copy (EN/ES) renamed "Auto-Assign with AI" → "Suggest Assignments with AI"; unused `successGeneric` key removed. New `test_ai_suggest_assignments.py` (3 tests) locks the backend response contract (has-rooms shape, exact "no rooms" message, exact "no staff" message). **Real bug found and fixed during live verification (Rule 1):** the endpoint's no-shift-records fallback embedded `user_profiles` directly off `user_roles` — Postgrest had no FK it could resolve for that embed, so every real hit 422'd with `PGRST200` instead of ever returning housekeepers or the "no staff" message. Fixed with the two-step fetch pattern already established in `routers/staff.py::list_staff` (fetch `user_roles`, then batch-fetch `user_profiles` by `.in_("id", ids)`). Verified live end-to-end against the real dev Supabase project (GM login, Sonesta ES Suites Fossil Creek): toast read "AI suggested 47 rooms." matching the backend's exact returned count, board's "Needs work" stat unchanged after the click (confirms nothing persisted), zero console errors. Full API smoke suite: 254/254 passed (251 baseline + 3 new), `apps/web` type-check clean. Both true empty-state toasts (no rooms / no staff) were not independently re-verified live — the current dev hotel has 47 real dirty rooms and 3 active housekeepers, and reproducing either empty state live would require mutating real dev data — locked instead by the new backend test's exact-response assertions. See `13-01-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.2 scope; fix opportunistically.
@@ -239,12 +241,12 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 12 (Logbook & Lost & Found Data Integrity) — CLOSED (both plans complete)
-Plan: 12-01 closed (LOGBOOK-01 hotel-local timezone fix); 12-02 closed (LOSTFOUND-01 delete-cascade fix)
-Status: Both Phase 12 plans closed 2026-08-02 (wave 1, independent, no depends_on). Migrations 086 and 087 written but not applied to the remote Supabase project (deployment handled separately). Ready for `/gsd:plan-phase 13`.
+Phase: 13 (AI Copilot Reliability) — IN PROGRESS (1 of 3 plans complete)
+Plan: 13-01 closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix). 13-02, 13-03 remaining.
+Status: 13-01 closed 2026-08-02. Ready to execute 13-02.
 Last activity: 2026-08-02
 
-Progress: [██████████] 100%
+Progress: [███░░░░░░░] 33% (Phase 13: 1/3 plans)
 
 ## Performance Metrics
 
@@ -269,9 +271,10 @@ Progress: [██████████] 100%
 | 11 | 06 | 10 min | 1 | 4 | 2026-08-01 |
 | 12 | 02 | 15 min | 2 | 2 | 2026-08-02 |
 | 12 | 01 | 15 min | 3 | 3 | 2026-08-02 |
+| 13 | 01 | 30 min | 2 | 5 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-02T00:30:00Z
-Stopped At: Completed 12-01-PLAN.md (LOGBOOK-01 hotel-local timezone fix). Phase 12 fully closed (both plans done). Ready for `/gsd:plan-phase 13`.
+Last session: 2026-08-02T19:10:00Z
+Stopped At: Completed 13-01-PLAN.md (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix). Ready to execute 13-02-PLAN.md.
 </content>
