@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Stabilization Pass
 status: in_progress
-last_updated: "2026-08-02T19:10:00Z"
-last_activity: 2026-08-02 -- Phase 13 execution in progress (13-01 closed)
+last_updated: "2026-08-02T20:24:00Z"
+last_activity: 2026-08-02 -- Phase 13 execution in progress (13-01, 13-02 closed)
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # GSD State
@@ -201,6 +201,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (5 requirements, all bug fixes 
 
 **13-01 CLOSED (2026-08-02, commits `e6c43489`/`5e15741b`/`e2ee47e9`):** Fixed AI-01's fake-success bug in `AssignmentSidebar.tsx::handleAiAutoAssign` — it read nonexistent `data.assignments_created`/`data.count` keys (always `null`), so a generic success toast fired and 3 query caches were invalidated on every 200 response even though `/housekeeping/ai-suggest-assignments` is a pure read-only suggestion endpoint that never persists. Now reads the real `data.suggestions`/`data.message` shape, sums `room_count` for an accurate toast (`"AI suggested {{count}} room(s)."`), routes zero-suggestion responses through `toast.info(data.message)` so "no rooms need assignment" and "no active housekeepers found" stay distinct (never collapsed to one generic string), and drops all 3 cache invalidations from the success path since nothing was ever written. Catch block standardized on `err instanceof ApiClientError ? err.message : t('...failure')` — the pattern 13-02/13-03 will replicate for AI-02's cross-surface consistency requirement. Button/locale copy (EN/ES) renamed "Auto-Assign with AI" → "Suggest Assignments with AI"; unused `successGeneric` key removed. New `test_ai_suggest_assignments.py` (3 tests) locks the backend response contract (has-rooms shape, exact "no rooms" message, exact "no staff" message). **Real bug found and fixed during live verification (Rule 1):** the endpoint's no-shift-records fallback embedded `user_profiles` directly off `user_roles` — Postgrest had no FK it could resolve for that embed, so every real hit 422'd with `PGRST200` instead of ever returning housekeepers or the "no staff" message. Fixed with the two-step fetch pattern already established in `routers/staff.py::list_staff` (fetch `user_roles`, then batch-fetch `user_profiles` by `.in_("id", ids)`). Verified live end-to-end against the real dev Supabase project (GM login, Sonesta ES Suites Fossil Creek): toast read "AI suggested 47 rooms." matching the backend's exact returned count, board's "Needs work" stat unchanged after the click (confirms nothing persisted), zero console errors. Full API smoke suite: 254/254 passed (251 baseline + 3 new), `apps/web` type-check clean. Both true empty-state toasts (no rooms / no staff) were not independently re-verified live — the current dev hotel has 47 real dirty rooms and 3 active housekeepers, and reproducing either empty state live would require mutating real dev data — locked instead by the new backend test's exact-response assertions. See `13-01-SUMMARY.md`.
 
+**13-02 CLOSED (2026-08-02, commits `6040f939`/`accc0d9b`/`ca0d0fd3`):** Fixed AI-02's fake-success bug in `handleAITriage` (`apps/web/app/(dashboard)/engineering/work-orders/page.tsx`). The click handler called `aiApi.chat(...)` with no `intent_hint`, so the literal message scored 0 against every `detect_intent` keyword list and fell through to the hardcoded `"general"` canned response — the "AI triage applied" notice was identical on every click regardless of the real work orders sent, and a genuine failure was worded exactly the same as success. New rule-based `work_order_triage` backend intent (`_build_work_order_triage_summary` in `apps/api/routers/ai_copilot.py`, zero-LLM, zero-credit, mirrors 13-01's `suggest_assignments` precedent) computes overdue count, unassigned count, and a priority-ranked suggested floor order from `request.context.work_orders`; the frontend now sends `intent_hint: 'work_order_triage'` and renders the real `res.data.message`. `aiTriageNotice` state changed from a bare string to `{ message, isError }`; the failure path (`err instanceof ApiClientError ? err.message : fallback`, replicating 13-01's canonical pattern) now renders visually distinct alert-toned styling (`AlertCircle` icon, `bg-[var(--alert-soft)]`) instead of the same ai-toned "success" box used for every outcome. New `test_ai_work_order_triage.py` (3 tests) locks the helper's logic (empty-list message, overdue/unassigned prioritization, malformed-date safety). **Real bug found and fixed during live verification (Rule 1):** `ai_interactions.interaction_type`'s CHECK constraint had drifted from migration 013's original 8-value list (untracked by any subsequent migration) and did not include the new `work_order_triage` value, so the plan's own success path would 500/400 on every real hit. Migration `088_ai_interactions_work_order_triage_type.sql` adds just that one value (deliberately not fixing the broader pre-existing drift affecting `general`/`work_order_creation`/`guest_request_creation`/`task_assignment`/`housekeeping_briefing`, tracked instead in `.planning/phases/13-ai-copilot-reliability/deferred-items.md` for a future plan) — applied live to the Supabase project by the orchestrator and verified via `pg_get_constraintdef`. **Environment gotcha (not a code deviation):** the first live-verification attempt hit a stale `uvicorn --reload` worker trio (matches the same pattern documented in 13-01/06-05) that hadn't picked up the session's file changes reliably; killing and restarting the dev API server on :8003 resolved it, confirmed via a repeatable curl reproduction before/after. Full API smoke suite: **257/257 passed** (254 baseline + 3 new), `apps/web` type-check clean. Live browser walkthrough (GM, Sonesta ES Suites Fossil Creek) confirmed both the success path (real 20-work-order summary, matching the network response body exactly) and a mocked-503 failure path (distinct alert-toned notice, confirmed via DOM class inspection, correct recovery after unmocking) end-to-end, plus adjacent surfaces (Room Board tab, Work Order detail drawer, create-work-order modal, emergency/urgent alert banner, main AI Copilot chat's unrelated `task_creation` intent) all confirmed unaffected. Two out-of-scope items found live and logged (not fixed) to `deferred-items.md`: a pre-existing `GET /v1/tasks?per_page=200` 422 in `EngineeringRoomBoard.tsx` (unrelated to this plan's file list), and live confirmation that the broader `interaction_type` CHECK-constraint drift already flagged in migration 088's own header comment is real and reproducible via the `"general"` fallback intent. See `13-02-SUMMARY.md`.
+
 ## Current blockers (carried forward)
 
 - **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.2 scope; fix opportunistically.
@@ -241,12 +243,12 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 13 (AI Copilot Reliability) — IN PROGRESS (1 of 3 plans complete)
-Plan: 13-01 closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix). 13-02, 13-03 remaining.
-Status: 13-01 closed 2026-08-02. Ready to execute 13-02.
+Phase: 13 (AI Copilot Reliability) — IN PROGRESS (2 of 3 plans complete)
+Plan: 13-01, 13-02 closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix; AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix). 13-03 remaining.
+Status: 13-02 closed 2026-08-02. Ready to execute 13-03.
 Last activity: 2026-08-02
 
-Progress: [███░░░░░░░] 33% (Phase 13: 1/3 plans)
+Progress: [██████░░░░] 67% (Phase 13: 2/3 plans)
 
 ## Performance Metrics
 
@@ -272,9 +274,10 @@ Progress: [███░░░░░░░] 33% (Phase 13: 1/3 plans)
 | 12 | 02 | 15 min | 2 | 2 | 2026-08-02 |
 | 12 | 01 | 15 min | 3 | 3 | 2026-08-02 |
 | 13 | 01 | 30 min | 2 | 5 | 2026-08-02 |
+| 13 | 02 | 45 min | 3 | 7 | 2026-08-02 |
 
 ## Session
 
-Last session: 2026-08-02T19:10:00Z
-Stopped At: Completed 13-01-PLAN.md (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix). Ready to execute 13-02-PLAN.md.
+Last session: 2026-08-02T20:24:00Z
+Stopped At: Completed 13-02-PLAN.md (AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix). Ready to execute 13-03-PLAN.md.
 </content>
