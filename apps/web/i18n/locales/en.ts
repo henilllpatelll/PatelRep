@@ -1216,8 +1216,8 @@ const en = {
       emergencyAlertOther: '{{count}} emergency work orders require immediate attention',
       urgentAlertOne: '{{count}} urgent work order requires attention',
       urgentAlertOther: '{{count}} urgent work orders require attention',
-      aiTriageApplied: 'AI triage applied: overdue, unassigned, and urgent work is floated first.',
       aiTriageFallback: 'AI triage fallback applied while the service is unavailable.',
+      aiTriageErrorDetail: 'AI triage unavailable: {{error}}',
     },
   },
   tasks: {

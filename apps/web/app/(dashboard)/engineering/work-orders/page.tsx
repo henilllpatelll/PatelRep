@@ -9,6 +9,7 @@ import type { TFunction } from 'i18next'
 import { AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
 import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
+import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { createClient } from '@/lib/supabase/client'
@@ -244,7 +245,7 @@ export default function WorkOrdersPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [aiTriageActive, setAiTriageActive] = useState(false)
   const [aiTriageLoading, setAiTriageLoading] = useState(false)
-  const [aiTriageNotice, setAiTriageNotice] = useState<string | null>(null)
+  const [aiTriageNotice, setAiTriageNotice] = useState<{ message: string; isError: boolean } | null>(null)
   const isEngineer = role === 'engineer'
   const canManage = role === 'engineer' || role === 'gm'
   const COLUMNS = getColumns(t)
@@ -308,7 +309,8 @@ export default function WorkOrdersPage() {
     setAiTriageLoading(true)
     setAiTriageNotice(null)
     try {
-      await aiApi.chat('Triage open work orders and suggest the safest floor order for engineers.', {
+      const res = await aiApi.chat('Triage open work orders and suggest the safest floor order for engineers.', {
+        intent_hint: 'work_order_triage',
         source: 'work_orders_kanban',
         work_orders: openOrders.slice(0, 20).map((wo) => ({
           id: wo.id,
@@ -320,9 +322,15 @@ export default function WorkOrdersPage() {
           room_number: wo.rooms?.room_number,
         })),
       })
-      setAiTriageNotice(t('engineering.workOrdersPage.aiTriageApplied'))
-    } catch {
-      setAiTriageNotice(t('engineering.workOrdersPage.aiTriageFallback'))
+      setAiTriageNotice({ message: res.data.message, isError: false })
+    } catch (err) {
+      const detail = err instanceof ApiClientError ? err.message : null
+      setAiTriageNotice({
+        message: detail
+          ? t('engineering.workOrdersPage.aiTriageErrorDetail', { error: detail })
+          : t('engineering.workOrdersPage.aiTriageFallback'),
+        isError: true,
+      })
     } finally {
       setAiTriageActive(true)
       setAiTriageLoading(false)
@@ -399,9 +407,19 @@ export default function WorkOrdersPage() {
             )}
 
             {aiTriageNotice && (
-              <div className="flex items-start gap-2.5 px-4 py-3 bg-ai-soft border border-ai-line rounded-xl text-sm text-ai">
-                <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
-                <span className="font-medium">{aiTriageNotice}</span>
+              <div
+                className={
+                  aiTriageNotice.isError
+                    ? 'flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]'
+                    : 'flex items-start gap-2.5 px-4 py-3 bg-ai-soft border border-ai-line rounded-xl text-sm text-ai'
+                }
+              >
+                {aiTriageNotice.isError ? (
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                ) : (
+                  <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
+                )}
+                <span className="font-medium">{aiTriageNotice.message}</span>
               </div>
             )}
 

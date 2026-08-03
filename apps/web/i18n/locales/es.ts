@@ -1216,8 +1216,8 @@ const es = {
       emergencyAlertOther: '{{count}} órdenes de trabajo de emergencia requieren atención inmediata',
       urgentAlertOne: '{{count}} orden de trabajo urgente requiere atención',
       urgentAlertOther: '{{count}} órdenes de trabajo urgentes requieren atención',
-      aiTriageApplied: 'Triaje de IA aplicado: el trabajo vencido, no asignado y urgente se prioriza primero.',
       aiTriageFallback: 'Triaje de IA de respaldo aplicado mientras el servicio no está disponible.',
+      aiTriageErrorDetail: 'Triaje de IA no disponible: {{error}}',
     },
   },
   tasks: {
