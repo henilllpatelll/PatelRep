@@ -22,7 +22,7 @@ Requirements for milestone v1.2. Each maps to roadmap phases. All 5 items were f
 
 ### Room Status Display Accuracy
 
-- [ ] **ROOMSTATUS-01**: A room's assignment status displays the housekeeper actually assigned to it (from `room_status.assigned_to`) even on a day with no matching `room_assignments` row, instead of incorrectly showing "Unassigned."
+- [x] **ROOMSTATUS-01**: A room's assignment status displays the housekeeper actually assigned to it (from `room_status.assigned_to`) even on a day with no matching `room_assignments` row, instead of incorrectly showing "Unassigned."
 
 ## Future Requirements
 
@@ -57,5 +57,5 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LOSTFOUND-01 | Phase 12 | Pending |
 | AI-01 | Phase 13 | Pending |
 | AI-02 | Phase 13 | Pending |
-| ROOMSTATUS-01 | Phase 14 | Pending |
+| ROOMSTATUS-01 | Phase 14 | Complete |
 </content>
