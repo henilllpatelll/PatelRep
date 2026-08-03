@@ -120,6 +120,51 @@ def _layout_to_context_text(layout: Optional[dict]) -> str:
     return "\n".join(lines)
 
 
+def _build_work_order_triage_summary(work_orders: list[dict]) -> str:
+    """Pure, zero-LLM rule-based triage summary — no DB/network access.
+
+    Mirrors 13-01's suggest_assignments precedent: a real, context-derived
+    analysis computed entirely server-side from the work orders the client
+    already has, so this branch is unit-testable without mocking Supabase.
+    """
+    if not work_orders:
+        return "No open work orders to triage."
+
+    priority_rank = {"emergency": 0, "urgent": 1, "normal": 2, "low": 3}
+    now = datetime.now(timezone.utc)
+
+    def _is_overdue(wo: dict) -> bool:
+        due_at = wo.get("due_at")
+        if not due_at:
+            return False
+        try:
+            due = datetime.fromisoformat(str(due_at).replace("Z", "+00:00"))
+            if due.tzinfo is None:
+                due = due.replace(tzinfo=timezone.utc)
+            return due < now
+        except (ValueError, TypeError):
+            return False
+
+    overdue_count = sum(1 for wo in work_orders if _is_overdue(wo))
+    unassigned_count = sum(1 for wo in work_orders if not wo.get("assigned_to"))
+
+    def _sort_key(wo: dict):
+        overdue = _is_overdue(wo)
+        unassigned = not wo.get("assigned_to")
+        rank = priority_rank.get(wo.get("priority"), 2)
+        return (0 if overdue else 1, 0 if unassigned else 1, rank)
+
+    ordered = sorted(work_orders, key=_sort_key)
+    floor_order = ", ".join(
+        wo.get("room_number") or wo.get("title") or "—" for wo in ordered[:5]
+    )
+
+    return (
+        f"Reviewed {len(work_orders)} open work order(s): {overdue_count} overdue, "
+        f"{unassigned_count} unassigned. Suggested floor order: {floor_order}."
+    )
+
+
 def _get_hotel_context(hotel_id: str) -> dict:
     hotel = supabase.table("tenants")\
         .select("name, layout")\
@@ -212,6 +257,7 @@ async def copilot_chat(
         "task_assignment": "task_assignment",
         "sop_query": "sop_query",
         "insight_query": "gm_insight",
+        "work_order_triage": "work_order_triage",
     }.get(intent, "general")
 
     credits = 0
@@ -326,6 +372,15 @@ async def copilot_chat(
                 "requires_confirmation": True,
                 "credits_used": credits,
                 "model_used": "gpt-4o-mini",
+            }
+
+        elif intent == "work_order_triage":
+            wos = (request.context or {}).get("work_orders") or []
+            response_payload = {
+                "response_type": "answer",
+                "message": _build_work_order_triage_summary(wos),
+                "credits_used": 0,
+                "model_used": None,
             }
 
         elif intent == "ambiguous":
