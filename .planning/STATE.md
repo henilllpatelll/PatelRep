@@ -249,9 +249,9 @@ Items deferred at v1.2 roadmap creation (found by the v1.2 audit, not in this mi
 
 ## Current Position
 
-Phase: 13 (AI Copilot Reliability) — CLOSED (4 of 4 plans complete)
-Plan: 13-01, 13-02, 13-03, 13-04 all closed (AI-01 AssignmentSidebar honesty fix + PGRST200 no-staff-fallback bug fix; AI-02 work-order-triage honesty fix + ai_interactions CHECK-constraint bug fix; chat bubble error-handling finalization + cross-surface consistency confirmed; 13-04 gap-closure applying both patterns to the Assignments-tab AI button and the dedicated /ai chat page).
-Status: 13-04 closed 2026-08-02. Phase 13 complete, both verification gaps closed. Ready to execute Phase 14 (Room Status Display Accuracy).
+Phase: 14 (Room Status Display Accuracy) — IN PROGRESS (1 of 1 plan, paused at blocking checkpoint)
+Plan: 14-01 Tasks 1–2 complete (commits `f9d7ccf9`/`08e413f2`): board endpoint now falls back to `room_status.assigned_to` when no today `room_assignments` row exists (ROOMSTATUS-01); updated the previously-conflicting test assertion + added a new regression test covering all 3 success criteria. Full apps/api suite: 511/513 passed (2 pre-existing unrelated `test_management_roi.py` failures, confirmed via `git stash` to predate this plan). Self-verified live: `npm run dev:web` had been inadvertently stopped mid-session while diagnosing an unrelated port-8000 process (an unrelated third-party service, not this project) and was restarted; housekeeping board loads with zero console/network errors; created and removed a real test assignment (room 103 → Claudia) live to confirm the fallback renders the housekeeper's name on the board card and the Assignments page — zero residue left in the dev DB afterward.
+Status: Paused at Task 3 (`checkpoint:human-verify`, blocking) — awaiting user confirmation of the deliberate ROOMSTATUS-01 behavior reversal (a room whose only assignment was on a prior day now shows that housekeeper as assigned instead of "Unassigned"). Not resolved by the executor per plan instruction.
 Last activity: 2026-08-02
 
 Progress: [██████████] 100% (Phase 13: 4/4 plans)
@@ -287,5 +287,5 @@ Progress: [██████████] 100% (Phase 13: 4/4 plans)
 ## Session
 
 Last session: 2026-08-02T22:10:00Z
-Stopped At: Completed 13-04-PLAN.md (gap-closure: Assignments-tab AI button + dedicated /ai chat page error-handling). Phase 13 CLOSED, both verification gaps closed. Ready to execute Phase 14 (Room Status Display Accuracy).
+Stopped At: 14-01 Tasks 1-2 complete, paused at Task 3 blocking checkpoint (human-verify) — awaiting confirmation that room_status.assigned_to should be authoritative when no today room_assignments row exists, even if that means surfacing a prior-day leftover assignee.
 </content>
