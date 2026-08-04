@@ -24,25 +24,17 @@ async def get_subscription(current_user: CurrentUser = Depends(require_role("gm"
 
 @router.get("/credits")
 async def get_credits(current_user: CurrentUser = Depends(require_role("gm"))):
-    today = date.today()
-    result = supabase.table("credit_ledger")\
-        .select("*")\
-        .eq("tenant_id", current_user.hotel_id)\
-        .lte("period_start", today.isoformat())\
-        .gte("period_end", today.isoformat())\
-        .maybe_single()\
-        .execute()
+    from middleware.credits import get_or_create_current_period_ledger
 
-    if not result or not result.data:
+    ledger = get_or_create_current_period_ledger(current_user.hotel_id)
+    if not ledger:
         return {"data": {"message": "No billing period found"}}
 
-    ledger = result.data
     used = ledger.get("credits_used", 0)
     included = ledger.get("credits_included", 5000)
 
-    # Fetch cap_cents from subscription
     sub_result = supabase.table("subscriptions")\
-        .select("cap_cents")\
+        .select("cap_cents, base_fee_cents")\
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
         .execute()

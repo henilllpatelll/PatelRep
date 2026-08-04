@@ -39,6 +39,61 @@ INTERACTION_MODEL = {
 DOLLARS_PER_CREDIT = 0.02  # $0.02 per AI credit per CLAUDE.md pricing
 
 
+def get_or_create_current_period_ledger(hotel_id: str) -> dict:
+    """
+    Returns the current-period credit_ledger row for hotel_id, creating it if the
+    period just rolled over and no AI call has happened yet.
+
+    Extracted from check_and_deduct_credits's inline lazy-create so GET
+    /billing/credits (billing.py) gets the same "never stale/missing" guarantee
+    as the AI-call path (BILLING-02) -- previously only the AI-call path created
+    this row, so the billing page showed a placeholder message until the first
+    AI call of the new month.
+    """
+    today = date.today()
+    ledger_result = supabase.table("credit_ledger")\
+        .select("*")\
+        .eq("tenant_id", hotel_id)\
+        .lte("period_start", today.isoformat())\
+        .gte("period_end", today.isoformat())\
+        .maybe_single()\
+        .execute()
+
+    if ledger_result and ledger_result.data:
+        return ledger_result.data
+
+    period_start = date(today.year, today.month, 1)
+    period_end = period_start + relativedelta(months=1) - timedelta(days=1)
+
+    sub_result = supabase.table("subscriptions")\
+        .select("credits_included, cap_cents, plan_status")\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+    credits_included = (sub_result.data or {}).get("credits_included", 5000) if sub_result else 5000
+
+    try:
+        supabase.table("credit_ledger").insert({
+            "tenant_id": hotel_id,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "credits_included": credits_included,
+        }).execute()
+    except Exception:
+        # UNIQUE (tenant_id, period_start) -- an AI call and a billing-page view
+        # can race at rollover. Fall through to re-select rather than erroring.
+        pass
+
+    ledger_result = supabase.table("credit_ledger")\
+        .select("*")\
+        .eq("tenant_id", hotel_id)\
+        .lte("period_start", today.isoformat())\
+        .gte("period_end", today.isoformat())\
+        .maybe_single()\
+        .execute()
+    return (ledger_result.data if ledger_result else None) or {}
+
+
 def compute_credits(interaction_type: str, prompt_tokens: int, completion_tokens: int) -> float:
     """
     Derive the billable credit amount from real token usage.
@@ -68,45 +123,7 @@ async def check_and_deduct_credits(
     """
     credits = compute_credits(interaction_type, prompt_tokens, completion_tokens)
 
-    # Get current period ledger
-    today = date.today()
-    ledger_result = supabase.table("credit_ledger")\
-        .select("*")\
-        .eq("tenant_id", hotel_id)\
-        .lte("period_start", today.isoformat())\
-        .gte("period_end", today.isoformat())\
-        .maybe_single()\
-        .execute()
-
-    if not (ledger_result and ledger_result.data):
-        # Create ledger for current period
-        period_start = date(today.year, today.month, 1)
-        period_end = period_start + relativedelta(months=1) - timedelta(days=1)
-
-        sub_result = supabase.table("subscriptions")\
-            .select("credits_included, cap_cents, plan_status")\
-            .eq("tenant_id", hotel_id)\
-            .maybe_single()\
-            .execute()
-
-        credits_included = (sub_result.data or {}).get("credits_included", 5000) if sub_result else 5000
-
-        supabase.table("credit_ledger").insert({
-            "tenant_id": hotel_id,
-            "period_start": period_start.isoformat(),
-            "period_end": period_end.isoformat(),
-            "credits_included": credits_included,
-        }).execute()
-
-        ledger_result = supabase.table("credit_ledger")\
-            .select("*")\
-            .eq("tenant_id", hotel_id)\
-            .lte("period_start", today.isoformat())\
-            .gte("period_end", today.isoformat())\
-            .maybe_single()\
-            .execute()
-
-    ledger = (ledger_result.data if ledger_result else None) or {}
+    ledger = get_or_create_current_period_ledger(hotel_id)
 
     # Check cap
     sub_result = supabase.table("subscriptions")\

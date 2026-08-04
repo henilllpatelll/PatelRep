@@ -44,6 +44,7 @@ from routers import guest_requests as gr_router
 from routers import lost_found as lf_router
 from routers import logbook as logbook_router
 from routers import billing as billing_router
+from middleware import credits as credits_middleware
 from routers import sop as sop_router
 from routers import housekeeping as housekeeping_router
 from routers import scheduling as scheduling_router
@@ -1040,14 +1041,23 @@ async def test_billing_subscription_hotel_a_raises_404(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_billing_credits_hotel_a_returns_no_data_message(monkeypatch):
-    """credit_ledger has no Hotel A row — endpoint returns the safe empty-period message."""
+async def test_billing_credits_hotel_a_gets_isolated_zero_usage_ledger(monkeypatch):
+    """credit_ledger has no Hotel A row — endpoint lazily creates Hotel A's own
+    zero-usage ledger (16-01 BILLING-02 fix) instead of returning a placeholder
+    message, and must not leak Hotel B's subscription/cap data in the process."""
     db = FakeMultiTenantDB()
     monkeypatch.setattr(billing_router, "supabase", db)
+    monkeypatch.setattr(credits_middleware, "supabase", db)
 
     result = await billing_router.get_credits(current_user=USER_A)
 
-    assert result["data"].get("message") == "No billing period found"
+    data = result["data"]
+    assert "message" not in data
+    assert data["credits_used"] == 0
+    assert data["cap_cents"] is None  # no Hotel A subscription — must not see Hotel B's cap_cents (25000)
+    ledger_inserts = [row for (table, row) in db.inserts if table == "credit_ledger"]
+    assert len(ledger_inserts) == 1
+    assert ledger_inserts[0]["tenant_id"] == "hotel-a"
 
 
 # ===========================================================================

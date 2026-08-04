@@ -86,6 +86,7 @@ async def create_hotel(
         "trial_end": trial_ends_at,
         "base_fee_cents": 9900,
         "credits_included": 5000,
+        "cap_cents": body.room_count * 250,
     }).execute()
 
     # 5. Create Stripe customer (non-blocking — don't fail hotel creation if Stripe fails)
