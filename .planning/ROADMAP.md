@@ -82,7 +82,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.2-ROADMAP.md
   3. GM sees a past-due/payment-failed banner that deep-links to the portal, a live projected month-end cost gauge based on current usage pace, and a proactive alert when usage approaches 80% of the spend cap.
   4. The monthly true-up cron cannot double-charge a hotel even if it fires on multiple consecutive nights.
   5. Overage accrued before a mid-cycle self-serve cancellation is still invoiced, and Stripe webhook events are deduplicated by `event.id` so retried webhooks can't double-act.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Backend billing usage accuracy: lazy ledger creation, cap_cents at hotel creation, month-end projection, 80%-cap notification (BILLING-02/03/05/06)
+- [ ] 16-02-PLAN.md — Stripe webhook event.id deduplication table + guard (BILLING-09)
+- [ ] 16-03-PLAN.md — Idempotent true-up cron + final true-up on subscription cancellation (BILLING-07/08)
+- [ ] 16-04-PLAN.md — Frontend: redirect dead billing page, extend live billing page with cap/projection/past-due UI (BILLING-01/04/05/06 display)
 
 ### Phase 17: Backlog Cleanup
 **Goal**: Clear the small, independent items carried forward from the v1.2 milestone audit — UX rough edges across Staff, Scheduling, Opera, Management ROI, Guest Requests, and Room History; the `ai_interactions` CHECK-constraint bug (deferred 4x prior); and the supervisor-in-assignment-picker product decision.
