@@ -144,6 +144,7 @@ export const engineeringApi = {
     priority?: string
     assigned_to?: string
     room_id?: string
+    archived?: boolean
     page?: number
     per_page?: number
   }) =>
@@ -185,6 +186,21 @@ export const engineeringApi = {
 
   deleteWorkOrder: (id: string) =>
     apiClient.delete(`/work-orders/${id}`),
+
+  bulkArchiveWorkOrders: (payload: { work_order_ids: string[] }) =>
+    apiClient.post('/work-orders/bulk-archive', payload) as Promise<{
+      data: { archived_count: number }
+    }>,
+
+  bulkArchiveWorkOrdersByAge: (payload: { older_than_days: number }) =>
+    apiClient.post('/work-orders/bulk-archive-by-age', payload) as Promise<{
+      data: { archived_count: number }
+    }>,
+
+  bulkUnarchiveWorkOrders: (payload: { work_order_ids: string[] }) =>
+    apiClient.post('/work-orders/bulk-unarchive', payload) as Promise<{
+      data: { unarchived_count: number }
+    }>,
 
   claimWorkOrder: (id: string) =>
     apiClient.post(`/work-orders/${id}/claim`) as Promise<{ data: WorkOrder }>,
