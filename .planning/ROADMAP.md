@@ -53,7 +53,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.2-ROADMAP.md
 **Milestone Goal:** Ship self-serve billing management and bulk-archive for work orders while clearing the carried-forward backlog from v1.2's audit (UX rough edges, the CHECK-constraint bug, and the supervisor-picker product decision).
 
 - [x] **Phase 15: Work-Order Bulk-Archive** - Managers can bulk-archive and restore completed work orders without losing audit trail or breaking the active board (completed 2026-08-04)
-- [ ] **Phase 16: Self-Serve Billing Management** - GMs self-manage plan/payment via the Stripe portal with accurate usage data, protected by hardened revenue-integrity guarantees
+- [x] **Phase 16: Self-Serve Billing Management** - GMs self-manage plan/payment via the Stripe portal with accurate usage data, protected by hardened revenue-integrity guarantees (completed 2026-08-04)
 - [ ] **Phase 17: Backlog Cleanup** - UX rough edges, the AI-interaction CHECK-constraint bug, and the supervisor-picker product decision are all resolved
 
 ## Phase Details
@@ -122,5 +122,5 @@ Plans:
 | 13. AI Copilot Reliability | v1.2 | 3/3 | Complete | 2026-08-03 |
 | 14. Room Status Display Accuracy | v1.2 | 1/1 | Complete | 2026-08-03 |
 | 15. Work-Order Bulk-Archive | v1.3 | Complete    | 2026-08-04 | - |
-| 16. Self-Serve Billing Management | v1.3 | 0/TBD | Not started | - |
+| 16. Self-Serve Billing Management | v1.3 | Complete    | 2026-08-04 | - |
 | 17. Backlog Cleanup | v1.3 | 0/TBD | Not started | - |
