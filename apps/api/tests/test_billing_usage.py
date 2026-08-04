@@ -169,3 +169,138 @@ async def test_create_hotel_sets_cap_cents_from_room_count(monkeypatch):
     sub_inserts = [row for (table, row) in db.inserts if table == "subscriptions"]
     assert len(sub_inserts) == 1
     assert sub_inserts[0]["cap_cents"] == 80 * 250 == 20000
+
+
+# ---------------------------------------------------------------------------
+# Task 2 tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_get_credits_computes_projected_month_end_cost(monkeypatch):
+    period_start = date.today() - timedelta(days=9)
+    period_end = date.today() + timedelta(days=20)  # 30-day period, 10 elapsed days
+    db = BillingFakeDB({
+        "credit_ledger": [{
+            "id": "ledger-1",
+            "tenant_id": GM.hotel_id,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "credits_included": 5000,
+            "credits_used": 100,
+            "overage_cost_cents": 3000,
+        }],
+        "subscriptions": [{
+            "id": "sub-1",
+            "tenant_id": GM.hotel_id,
+            "cap_cents": None,
+            "base_fee_cents": 9900,
+        }],
+    })
+    monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(billing_router, "supabase", db)
+
+    response = await billing_router.get_credits(current_user=GM)
+
+    data = response["data"]
+    expected = 9900 + round(3000 / 10 * 30)
+    assert data["projected_month_end_cost_cents"] == expected
+
+
+@pytest.mark.asyncio
+async def test_get_credits_cap_remaining_cents_reflects_headroom(monkeypatch):
+    period_start = date.today() - timedelta(days=9)
+    period_end = date.today() + timedelta(days=20)
+    db = BillingFakeDB({
+        "credit_ledger": [{
+            "id": "ledger-1",
+            "tenant_id": GM.hotel_id,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "credits_included": 5000,
+            "credits_used": 100,
+            "overage_cost_cents": 3000,
+        }],
+        "subscriptions": [{
+            "id": "sub-1",
+            "tenant_id": GM.hotel_id,
+            "cap_cents": 20000,
+            "base_fee_cents": 9900,
+        }],
+    })
+    monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(billing_router, "supabase", db)
+
+    response = await billing_router.get_credits(current_user=GM)
+
+    data = response["data"]
+    assert data["cap_remaining_cents"] == max(0, 20000 - (9900 + 3000))
+
+
+@pytest.mark.asyncio
+async def test_get_credits_flags_approaching_cap_and_queues_notification_once(monkeypatch):
+    period_start = date.today() - timedelta(days=9)
+    period_end = date.today() + timedelta(days=20)
+    # base_fee_cents + overage_cost_cents = 9900 + 8000 = 17900 >= 0.8 * cap_cents(20000) = 16000
+    db = BillingFakeDB({
+        "credit_ledger": [{
+            "id": "ledger-1",
+            "tenant_id": GM.hotel_id,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "credits_included": 5000,
+            "credits_used": 100,
+            "overage_cost_cents": 8000,
+        }],
+        "subscriptions": [{
+            "id": "sub-1",
+            "tenant_id": GM.hotel_id,
+            "cap_cents": 20000,
+            "base_fee_cents": 9900,
+        }],
+        "notifications": [],
+    })
+    monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(billing_router, "supabase", db)
+
+    response1 = await billing_router.get_credits(current_user=GM)
+    response2 = await billing_router.get_credits(current_user=GM)
+
+    assert response1["data"]["approaching_cap"] is True
+    assert response2["data"]["approaching_cap"] is True
+    notification_rows = db.rows["notifications"]
+    assert len(notification_rows) == 1
+    assert notification_rows[0]["type"] == "billing_cap_warning"
+    assert notification_rows[0]["data"]["period"] == period_start.isoformat()[:7]
+
+
+@pytest.mark.asyncio
+async def test_get_credits_does_not_flag_approaching_cap_when_no_cap_set(monkeypatch):
+    period_start = date.today() - timedelta(days=9)
+    period_end = date.today() + timedelta(days=20)
+    db = BillingFakeDB({
+        "credit_ledger": [{
+            "id": "ledger-1",
+            "tenant_id": GM.hotel_id,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "credits_included": 5000,
+            "credits_used": 100,
+            "overage_cost_cents": 8000,
+        }],
+        "subscriptions": [{
+            "id": "sub-1",
+            "tenant_id": GM.hotel_id,
+            "cap_cents": None,
+            "base_fee_cents": 9900,
+        }],
+        "notifications": [],
+    })
+    monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(billing_router, "supabase", db)
+
+    response = await billing_router.get_credits(current_user=GM)
+
+    data = response["data"]
+    assert data["approaching_cap"] is False
+    assert data["cap_remaining_cents"] is None
+    assert db.rows["notifications"] == []
