@@ -587,6 +587,9 @@ async def delete_guest_request(
     request_id: str,
     current_user: CurrentUser = Depends(get_current_user)
 ):
+    if current_user.role not in SLA_POLICY_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to delete guest requests")
+
     gr = supabase.table("guest_requests") \
         .select("task_id") \
         .eq("id", request_id) \
