@@ -30,15 +30,22 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-*(None — next milestone not yet defined. Run `/gsd-new-milestone` to scope one.)*
+*(Defined via `/gsd-new-milestone` 2026-08-04 — see Current Milestone below and `.planning/REQUIREMENTS.md`.)*
 
-## Current Milestone
+## Current Milestone: v1.4 Platform and Ops Hardening
 
-*(None active — v1.3 shipped 2026-08-04. Run `/gsd-new-milestone` to start the next one.)*
+**Goal:** Pay down accumulated platform debt — dependency health, RBAC consistency, environment/documentation accuracy, and QA-account hygiene — without shipping new user-facing features.
+
+**Target features:**
+- Mobile dependency health: resolve the 19 remaining `npm audit` advisories in `apps/mobile` via the `expo@57.0.9` major bump, gated on a green EAS build
+- RBAC normalization: every mutation currently gated with either `require_role()` or an equivalent inline role check — normalize to one pattern
+- Documentation accuracy: fix CLAUDE.md's cron-mechanism doc-drift (says GitHub Actions; production runs APScheduler in-process) and its stale "no local Stripe/Supabase credentials" note
+- QA-account hygiene: general test-data cleanup on the shared dev/QA Supabase account (carried forward from v1.2 and v1.3)
+- Close the ~10 low-risk deferred human-verification click-throughs from v1.3's Phases 15/16/17
 
 ## Next Milestone Goals
 
-TBD — scoped via `/gsd-new-milestone`.
+TBD — scoped after v1.4 ships.
 
 ### Out of Scope
 
@@ -117,4 +124,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-04 — milestone v1.3 (Billing, Work Order Archival, and Backlog Cleanup) shipped and archived.*
+*Last updated: 2026-08-04 — milestone v1.4 (Platform and Ops Hardening) started.*

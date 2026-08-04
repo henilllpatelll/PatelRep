@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-status: milestone_complete
-last_updated: "2026-08-04T13:15:00Z"
-last_activity: 2026-08-04 -- Milestone v1.3 (Billing, Work Order Archival, and Backlog Cleanup) audited (23/23 requirements, migration 091 gap found and closed live), completed, and archived. Tag v1.3 pending. Awaiting /gsd-new-milestone.
+milestone: v1.4
+milestone_name: Platform and Ops Hardening
+status: defining_requirements
+last_updated: "2026-08-04T13:30:00Z"
+last_activity: 2026-08-04 -- Milestone v1.4 (Platform and Ops Hardening) started via /gsd-new-milestone. Direction: Platform + ops. PROJECT.md updated with draft scope; requirements/roadmap definition next.
 progress:
   total_phases: 0
   completed_phases: 0
@@ -17,17 +17,17 @@ progress:
 
 ## Current Position
 
-Phase: — (no active milestone)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v1.3 shipped and archived 2026-08-04. Awaiting `/gsd-new-milestone`.
-Last activity: 2026-08-04 — v1.3 milestone audit passed (23/23 requirements), migration 091 applied to production and verified live, cross-phase integration confirmed clean (0 gaps), milestone archived to `.planning/milestones/v1.3-*`.
+Status: Defining requirements for v1.4
+Last activity: 2026-08-04 — Milestone v1.4 (Platform and Ops Hardening) started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** None — v1.3 shipped. Next milestone not yet defined; run `/gsd-new-milestone`.
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening (dependency health, RBAC normalization, doc-accuracy, QA-account hygiene, v1.3 deferred-verification closure). Requirements not yet defined.
 
 ## Previous milestones
 
