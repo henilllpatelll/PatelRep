@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.database import supabase
+from core.roles import PROGRAM_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.requests import (
     CompleteDeepCleanRequest,
@@ -40,7 +41,6 @@ EXPERIENCE_TRUSTED_MIN_DAYS = 365
 
 
 router = APIRouter(prefix="/programs", tags=["programs"])
-MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer", "chief_engineer")
 
 
 def _get_pm_schedule(schedule_id: str, current_user: CurrentUser) -> dict:
@@ -118,7 +118,7 @@ def _record_audit_event(
 
 
 @router.get("/overview")
-async def get_program_overview(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def get_program_overview(current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     tenant_id = current_user.hotel_id
     templates = supabase.table("pm_checklist_templates").select("*").eq("tenant_id", tenant_id).eq("is_active", True).order("program_area").execute().data or []
     deep_cleans = supabase.table("deep_clean_schedules").select("*, rooms(room_number), public_areas(name)").eq("tenant_id", tenant_id).eq("is_active", True).order("next_due_on").execute().data or []
@@ -185,7 +185,7 @@ def _template_items_json(items: list, default_frequency_days: int | None) -> dic
 async def update_program_template(
     template_id: str,
     request: UpdateProgramTemplateRequest,
-    current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES)),
+    current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES)),
 ):
     """PM-08 template editor: a manager may update a tenant-scoped template's
     name/name_es, checklist items, and suggested default frequency. Updated in
@@ -217,7 +217,7 @@ async def update_program_template(
 @router.post("/templates")
 async def create_program_template(
     request: CreateProgramTemplateRequest,
-    current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES)),
+    current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES)),
 ):
     """PM-08 generic builder: lets a manager configure an obligation outside the 9
     named templates (e.g. an ice-machine sanitation program). `code` must be unique
@@ -280,13 +280,13 @@ async def defer_pm_schedule(
 
 
 @router.post("/public-areas")
-async def create_public_area(request: CreatePublicAreaRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def create_public_area(request: CreatePublicAreaRequest, current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     record = supabase.table("public_areas").insert({"tenant_id": current_user.hotel_id, **request.model_dump()}).execute().data[0]
     return {"data": record}
 
 
 @router.post("/deep-clean-schedules")
-async def create_deep_clean_schedule(request: CreateDeepCleanScheduleRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def create_deep_clean_schedule(request: CreateDeepCleanScheduleRequest, current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     if (request.target_type == "room") != bool(request.room_id) or (request.target_type == "public_area") != bool(request.public_area_id):
         raise HTTPException(status_code=422, detail="Provide exactly the target required for this deep-clean schedule")
     record = supabase.table("deep_clean_schedules").insert({
@@ -318,7 +318,7 @@ async def complete_deep_clean(schedule_id: str, request: CompleteDeepCleanReques
 
 
 @router.post("/supply-pars")
-async def upsert_supply_par(request: UpsertSupplyParRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def upsert_supply_par(request: UpsertSupplyParRequest, current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     payload = {"tenant_id": current_user.hotel_id, **request.model_dump(), "updated_by": current_user.user_id, "updated_at": datetime.now(timezone.utc).isoformat()}
     record = supabase.table("housekeeping_supply_pars").upsert(payload, on_conflict="tenant_id,supply_type,name").execute().data[0]
     return {"data": record}
@@ -430,7 +430,7 @@ def _resolve_quality_trend_names(
 
 
 @router.get("/inspection-quality")
-async def get_inspection_quality(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def get_inspection_quality(current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     """HK-03: quality trends broken down by overall result, checklist item, room
     type, and employee -- not only overall_result."""
     inspections = (
@@ -444,7 +444,7 @@ async def get_inspection_quality(current_user: CurrentUser = Depends(require_rol
 
 
 @router.get("/deep-clean-schedules")
-async def list_deep_clean_schedules(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def list_deep_clean_schedules(current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     """HK-01/G12: the depth UI (04-07) reads active deep-clean schedules (room and
     public-area targets) with their next-due date, tenant-scoped."""
     schedules = (
@@ -456,7 +456,7 @@ async def list_deep_clean_schedules(current_user: CurrentUser = Depends(require_
 
 
 @router.get("/public-areas")
-async def list_public_areas(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+async def list_public_areas(current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))):
     """HK-01/G12: the depth UI (04-07) reads active public areas, tenant-scoped."""
     areas = (
         supabase.table("public_areas").select("*")

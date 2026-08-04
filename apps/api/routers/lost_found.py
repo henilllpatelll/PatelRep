@@ -215,6 +215,8 @@ async def update_lost_found_item(
     item_id: str, body: dict, current_user: CurrentUser = Depends(get_current_user)
 ):
     """Update lost & found item status (unclaimed → claimed/donated/discarded)."""
+    if current_user.role not in {"front_desk", "housekeeping_supervisor", "gm"}:
+        raise HTTPException(status_code=403, detail="Not authorized to update this item")
     allowed_fields = {
         "description",
         "location_found",
@@ -251,6 +253,8 @@ async def update_lost_found_item(
 async def delete_lost_found_item(
     item_id: str, current_user: CurrentUser = Depends(get_current_user)
 ):
+    if current_user.role not in {"front_desk", "housekeeping_supervisor", "gm"}:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this item")
     result = (
         supabase.table("lost_found_items")
         .delete()

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from core.database import supabase
+from core.roles import MANAGER_ROLES
 from middleware.auth import CurrentUser, get_current_user, require_role
 from models.requests import (
     AssignSafetyTrainingRequest,
@@ -31,7 +32,6 @@ from services.safety.contracts import (
 
 
 router = APIRouter(prefix="/safety", tags=["safety"])
-MANAGER_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")
 
 
 def _record_audit_event(current_user: CurrentUser, resource_type: str, resource_id: str, action: str, new_state: dict) -> None:

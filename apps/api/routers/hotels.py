@@ -5,10 +5,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from middleware.auth import get_current_user, get_current_user_no_hotel, require_role, CurrentUser
 from models.requests import CreateHotelRequest, UpdateHotelRequest
 from core.database import supabase
+from core.roles import ALL_STAFF_ROLES
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
-
-ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "engineer")
 
 DEFAULT_DEPARTMENTS = [
     {"name": "Housekeeping", "code": "HK",   "color": "#059669"},
