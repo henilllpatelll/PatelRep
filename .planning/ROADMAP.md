@@ -92,7 +92,11 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
   2. `DELETE /guest-requests/{id}` returns 403 live for a non-management role (e.g. housekeeper) and succeeds for a management role.
   3. `lost_found.py` and `auth.py`'s inline-only role checks have each been reviewed against the audit, with every confirmed gap closed and the review outcome documented per router.
   4. A single source-of-truth module defines the consolidated role-group constants; `MANAGER_ROLES` (previously drifted between `programs.py`/`safety.py`) and `ALL_STAFF_ROLES` (previously duplicating `"engineer"` while omitting `"chief_engineer"`) each resolve to one explicitly confirmed membership, with every collision documented as a product decision rather than auto-merged.
-**Plans**: TBD
+**Plans**: 4 plans (all Wave 1, parallel, file-disjoint)
+- [ ] 19-01-PLAN.md — RBAC-01 audit artifact (RBAC-AUDIT.md: 30-router inventory + RBAC-03/04 review outcomes)
+- [ ] 19-02-PLAN.md — RBAC-02 gate DELETE /guest-requests/{id} to SLA_POLICY_ROLES + live 403/204 test
+- [ ] 19-03-PLAN.md — RBAC-03 gate lost_found.py PATCH/DELETE to custody-state roles + housekeeper-403 tests
+- [ ] 19-04-PLAN.md — RBAC-04 create core/roles.py + repoint programs.py/safety.py/hotels.py (no access change)
 
 ### Phase 20: Close Deferred v1.3 Verification Items
 **Goal**: The 4 human-verification items deferred from v1.3 (Phases 15 and 17) are confirmed live in-browser against current, post-RBAC-fix code, closing them with zero open items.
