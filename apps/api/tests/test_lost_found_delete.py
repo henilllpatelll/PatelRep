@@ -87,3 +87,45 @@ def test_delete_nonexistent_item_returns_404(monkeypatch):
     assert db.rows["lost_found_items"] == [
         {"id": "item-1", "tenant_id": "hotel-a", "status": "unclaimed"}
     ]
+
+
+def test_delete_item_forbidden_for_housekeeper(monkeypatch):
+    db = _db_with_item_and_custody_history()
+    monkeypatch.setattr(lost_found_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.delete("/v1/lost-found/item-1", headers=_auth_header("housekeeper"))
+
+    assert response.status_code == 403
+    assert db.rows["lost_found_items"] == [
+        {"id": "item-1", "tenant_id": "hotel-a", "status": "unclaimed"}
+    ]
+
+
+def test_patch_item_forbidden_for_housekeeper(monkeypatch):
+    db = _db_with_item_and_custody_history()
+    monkeypatch.setattr(lost_found_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.patch(
+        "/v1/lost-found/item-1",
+        json={"status": "claimed"},
+        headers=_auth_header("housekeeper"),
+    )
+
+    assert response.status_code == 403
+
+
+def test_patch_item_allowed_for_gm(monkeypatch):
+    db = _db_with_item_and_custody_history()
+    monkeypatch.setattr(lost_found_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.patch(
+        "/v1/lost-found/item-1",
+        json={"status": "claimed"},
+        headers=_auth_header("gm"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "claimed"
