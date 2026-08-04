@@ -283,14 +283,16 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (23 requirements: BILLING-01..0
 
 **16-02 CLOSED (2026-08-04, commits `760891a1`/`fb5de5ed`):** BILLING-09 fixed — Stripe webhook event deduplication. New `stripe_webhook_events(event_id PK, event_type, processed_at)` table (migration 090, PK-only, no RLS, mirrors the `cron_health` service-role-only convention). `stripe_webhook()` now does an insert-or-skip select-then-insert on `event.id` immediately after signature verification and before the `event.type` dispatch chain — a retried Stripe delivery returns `{"status": "duplicate_ignored"}` as a no-op, while a new `event.id` is recorded and its handler runs normally. Placed before the entire dispatch chain, so it uniformly covers every existing handler plus Plan 16-03's `subscription.deleted` true-up logic (which had already landed in commit `c44bf49a` before this plan closed — the guard protects it retroactively regardless of commit order). New tests: duplicate `event.id` ignored without reprocessing, new `event.id` recorded and processed; 3 pre-existing stripe tests kept passing unmodified via a default `event_id` param on the `stripe_event()` helper. Full `test_webhooks_and_transitions.py`: 17/17 passed. **Resumed session** — Task 1 (migration) was completed and committed in a prior session interrupted by a usage limit; Task 2's working-tree edits were found already complete and correct on resume, verified line-by-line against the plan before committing (no rework needed). Full API suite showed 3 pre-existing failures unrelated to this plan (confirmed via `git stash` isolation): `test_billing_credits_hotel_a_returns_no_data_message` (caused by Plan 16-01's separate in-flight uncommitted `billing.py` changes, left untouched) and 2 already-documented `test_management_roi.py` baseline flakes. Migration 090 not yet applied to the remote Supabase project (deployment handled separately, per convention). See `16-02-SUMMARY.md`.
 
+**16-01 CLOSED (2026-08-04, commits `c4fc69c4`/`2b004d60`):** BILLING-02/03/05/06 fixed — billing usage accuracy. New `get_or_create_current_period_ledger()` shared helper in `middleware/credits.py`, used by both the AI-call deduction path (`check_and_deduct_credits`) and the billing-page read path (`GET /billing/credits`) — a GM opening the billing page before any AI call has run that period now sees a real zero-usage ledger instead of a "No billing period found" placeholder (BILLING-02). `create_hotel()`'s subscriptions insert now sets `cap_cents = room_count * 250`, so the pre-existing cap-enforcement check in `credits.py` (previously gated on a NULL `cap_cents` that always no-op'd) actually fires for new hotels (BILLING-03). `GET /billing/credits` gained `cap_remaining_cents` (headroom before the cap) and `projected_month_end_cost_cents` (linear extrapolation of overage cost from elapsed days to the full period) (BILLING-05). Crossing 80% of `cap_cents` now queues exactly one `billing_cap_warning` in-app notification per billing period via `_queue_cap_warning`, deduped on `.contains("data", {period})` mirroring `internal.py::_queue_safety_notification`'s once-per-day shape but scoped to "this period" (BILLING-06) — lazily triggered on the next billing-page load rather than a new dedicated cron, per 16-RESEARCH.md Open Question 5. New `tests/test_billing_usage.py` (8 tests, TDD RED→GREEN). **Resumed session** — Task 1's code (credits.py/billing.py/hotels.py edits + first 4 tests) was found already complete and correct, uncommitted, from a prior session interrupted by a usage limit; verified against the plan and full suite before committing rather than redone. **Regression found and fixed (Rule 1):** `test_tenant_isolation.py::test_billing_credits_hotel_a_returns_no_data_message` asserted the exact placeholder-message behavior this plan was written to remove — renamed to `test_billing_credits_hotel_a_gets_isolated_zero_usage_ledger` and rewritten to assert the new lazily-created, tenant-isolated zero-usage ledger (no leakage of Hotel B's `cap_cents`). Full API suite: 533/535 passed (2 pre-existing unrelated `test_management_roi.py` failures, predating this plan). A concurrent executor (Plan 16-02) was active in the same working tree during this session — `webhooks.py`/`test_webhooks_and_transitions.py` changes outside this plan's scope were left untouched. See `16-01-SUMMARY.md`.
+
 ## Current Position
 
-Phase: 15 of 17 (Work-Order Bulk-Archive) — not started
-Plan: TBD — run `/gsd:plan-phase 15` to plan
-Status: Roadmap created, ready to plan
-Last activity: 2026-08-03 — ROADMAP.md created for v1.3 (Phases 15-17)
+Phase: 16 of 17 (Self-Serve Billing Management) — in progress
+Plan: 01 and 02 of 4 closed (16-01, 16-02); 16-03 observed committed by a concurrent agent (commit `c44bf49a`, not yet confirmed closed with a SUMMARY.md); 16-04 (frontend) not yet started
+Status: Multiple Phase 16 plans executed concurrently this session — consolidated status needs re-confirmation once all 4 plans are verified closed
+Last activity: 2026-08-04 — Plan 16-01 (billing usage accuracy: lazy ledger creation, cap_cents, projection, 80%-cap notification) executed and closed. Commits `c4fc69c4`/`2b004d60`.
 
-Progress: [░░░░░░░░░░] v1.3: 0% (0/3 phases)
+Progress: [██░░░░░░░░] v1.3: Phase 15 closed (2/2 plans), Phase 16 in progress (2+/4 plans closed)
 
 ## Performance Metrics
 
@@ -321,8 +323,9 @@ Progress: [░░░░░░░░░░] v1.3: 0% (0/3 phases)
 | 13 | 04 | 25 min | 3 | 4 | 2026-08-02 |
 | 14 | 01 | 22 min | 3 | 2 | 2026-08-02 |
 | 16 | 02 | resumed session | 2 | 3 | 2026-08-04 |
+| 16 | 01 | resumed session | 2 | 5 | 2026-08-04 |
 
 ## Session
 
 Last session: 2026-08-04T00:00:00Z
-Stopped At: Completed 16-02-PLAN.md (Stripe webhook event dedup, BILLING-09). Note: Plans 16-01 and 16-03 were observed in-flight/committed by concurrent agents during this session — Current Position above (Phase 15) is stale and needs a consolidated update once all Phase 16 plans are confirmed complete.
+Stopped At: Completed 16-01-PLAN.md (billing usage accuracy: shared lazy ledger helper, cap_cents, cap headroom/projection, 80%-cap notification). Note: Plans 16-02 and 16-03 were also observed in-flight/committed by concurrent agents during this session; 16-03's commit (`c44bf49a`) has not yet been confirmed closed with its own SUMMARY.md, and 16-04 (frontend) has not started — a consolidated Phase 16 status update is still needed once all 4 plans are confirmed complete.
