@@ -229,6 +229,33 @@ export default function SettingsBillingPage() {
         </Card>
       )}
 
+      {/* ── Past-Due Payment Banner ── */}
+      {subData?.plan_status === 'past_due' && (
+        <Card className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-[var(--alert)]/40">
+          <div className="flex items-start gap-3">
+            <Zap className="h-5 w-5 text-[var(--alert)] flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-800">Your last payment failed</p>
+              <p className="text-sm text-[var(--alert)] mt-0.5">
+                Update your payment method to avoid a service interruption.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {portalError && <p className="text-xs text-[var(--alert)]">{portalError}</p>}
+            <Button
+              variant="primary"
+              onClick={() => { setPortalError(null); portalMutation.mutate() }}
+              disabled={portalMutation.isPending}
+              className="whitespace-nowrap"
+            >
+              {portalMutation.isPending ? 'Opening portal…' : 'Update Payment Method'}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* ── Section 1: Subscription Status ── */}
       {subLoading ? (
         <SkeletonCard rows={5} />
@@ -382,6 +409,32 @@ export default function SettingsBillingPage() {
               </div>
             )}
           </div>
+
+          {creditData?.approaching_cap && (
+            <div className="mt-3 flex items-start gap-2 rounded-[var(--r-md)] bg-orange-50 border border-orange-200 px-3 py-2">
+              <Zap className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-orange-700">
+                You're approaching your monthly AI spend cap.
+                {creditData.cap_remaining_cents != null && (
+                  <> Only <strong>{formatCents(creditData.cap_remaining_cents)}</strong> remains before the cap.</>
+                )}
+              </p>
+            </div>
+          )}
+
+          {creditData?.cap_remaining_cents != null && (
+            <div className="mt-3 flex justify-between text-sm">
+              <span className="text-gray-500">Remaining before cap</span>
+              <span className="font-medium text-gray-900">{formatCents(creditData.cap_remaining_cents)}</span>
+            </div>
+          )}
+
+          {creditData?.projected_month_end_cost_cents != null && (
+            <div className="mt-1 flex justify-between text-sm">
+              <span className="text-gray-500">Projected month-end cost</span>
+              <span className="font-medium text-gray-900">{formatCents(creditData.projected_month_end_cost_cents)}</span>
+            </div>
+          )}
 
           {/* Pricing footnote */}
           <p className="mt-4 text-xs text-gray-400">

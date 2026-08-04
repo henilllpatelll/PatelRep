@@ -18,6 +18,9 @@ export interface CreditUsage {
   overage_credits?: number
   overage_cost_cents?: number
   cap_cents?: number | null
+  cap_remaining_cents?: number | null
+  projected_month_end_cost_cents?: number | null
+  approaching_cap?: boolean
   message?: string
 }
 
