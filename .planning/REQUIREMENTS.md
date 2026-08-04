@@ -4,9 +4,9 @@
 
 ### Documentation Accuracy
 
-- [ ] **DOC-01**: CLAUDE.md's Cron Jobs section accurately describes the actual in-process APScheduler mechanism (`apps/api/core/scheduler.py`) instead of GitHub Actions
-- [ ] **DOC-02**: CLAUDE.md's Current Scope note narrows the "no local credentials" claim to only the AI provider keys (`OPENAI_API_KEY`/`ANTHROPIC_API_KEY`) plus Twilio/OHIP — Stripe (test-mode) and Supabase service-role credentials are confirmed present locally
-- [ ] **DOC-03**: CLAUDE.md's Domain Map reflects the actual 30 routers in `apps/api/routers/` (currently missing 9: clean_sessions, cleaning_checklists, evidence, feedback, late_checkout, management_roi, programs, safety, shifts)
+- [x] **DOC-01**: CLAUDE.md's Cron Jobs section accurately describes the actual in-process APScheduler mechanism (`apps/api/core/scheduler.py`) instead of GitHub Actions
+- [x] **DOC-02**: CLAUDE.md's Current Scope note narrows the "no local credentials" claim to only the AI provider keys (`OPENAI_API_KEY`/`ANTHROPIC_API_KEY`) plus Twilio/OHIP — Stripe (test-mode) and Supabase service-role credentials are confirmed present locally
+- [x] **DOC-03**: CLAUDE.md's Domain Map reflects the actual 30 routers in `apps/api/routers/` (currently missing 9: clean_sessions, cleaning_checklists, evidence, feedback, late_checkout, management_roi, programs, safety, shifts)
 
 ### RBAC Audit and Normalization
 
@@ -56,9 +56,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOC-01 | Phase 18 | Pending |
-| DOC-02 | Phase 18 | Pending |
-| DOC-03 | Phase 18 | Pending |
+| DOC-01 | Phase 18 | Done |
+| DOC-02 | Phase 18 | Done |
+| DOC-03 | Phase 18 | Done |
 | RBAC-01 | Phase 19 | Pending |
 | RBAC-02 | Phase 19 | Pending |
 | RBAC-03 | Phase 19 | Pending |
