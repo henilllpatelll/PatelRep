@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
-status: defining_requirements
-last_updated: "2026-08-04T13:30:00Z"
-last_activity: 2026-08-04 -- Milestone v1.4 (Platform and Ops Hardening) started via /gsd-new-milestone. Direction: Platform + ops. PROJECT.md updated with draft scope; requirements/roadmap definition next.
+status: ready_to_plan
+last_updated: "2026-08-04T14:15:00Z"
+last_activity: 2026-08-04 -- ROADMAP.md created for milestone v1.4 (5 phases: 18 Documentation Drift Fixes, 19 RBAC Audit and Normalization, 20 Close Deferred v1.3 Verification Items, 21 Dev/QA Test-Data Hygiene, 22 Expo SDK 54-57 Bump). 100% requirement coverage (18/18), no orphans. Next: /gsd:plan-phase 18.
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,19 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements for v1.4
-Last activity: 2026-08-04 — Milestone v1.4 (Platform and Ops Hardening) started
+Phase: 18 of 22 (Documentation Drift Fixes) — first phase of milestone v1.4
+Plan: — (not yet planned)
+Status: Roadmap created — ready to plan Phase 18
+Last activity: 2026-08-04 — ROADMAP.md + STATE.md written for milestone v1.4 (Phases 18-22, 100% requirement coverage)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening (dependency health, RBAC normalization, doc-accuracy, QA-account hygiene, v1.3 deferred-verification closure). Requirements not yet defined.
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 18 (Documentation Drift Fixes) ready to plan.
 
 ## Previous milestones
 
@@ -368,3 +370,18 @@ Stopped At: Completed 17-06-PLAN.md (Room History visibility + actor attribution
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
 </details>
+
+
+## v1.4 Platform and Ops Hardening — roadmap created (2026-08-04)
+
+Roadmap derived from `.planning/REQUIREMENTS.md` (18 requirements: DOC-01..03, RBAC-01..04, VERIFY-01..04, QA-01..03, MOBILE-01..04) and `.planning/research/SUMMARY.md`'s recommended 5-phase structure, sequenced by file-overlap and risk-isolation. A pure hardening/ops milestone — no new user-facing features; success criteria are ops-observable outcomes (audit artifacts, live 403 checks, green CI/EAS gates), not feature descriptions. Continues phase numbering from v1.3's last phase (17) — v1.4 starts at Phase 18. 100% requirement coverage (18/18), no orphans. Full detail: `.planning/ROADMAP.md`.
+
+- Phase 18: Documentation Drift Fixes — DOC-01..03 (fully isolated, zero dependencies, sequenced first since it costs nothing)
+- Phase 19: RBAC Audit and Normalization — RBAC-01..04 (must precede Phase 20 — shares `staff.py`/`scheduling.py`/`work_orders.py`/`guest_requests.py` with the deferred-verification items; audit-and-diff before any constant consolidation, per the research's constant-collision pitfalls)
+- Phase 20: Close Deferred v1.3 Verification Items — VERIFY-01..04 (re-verifies against post-RBAC-fix code, not pre-fix code, since 3 of 4 items share files with Phase 19)
+- Phase 21: Dev/QA Test-Data Hygiene — QA-01..03 (independent of Phases 19/20 — no shared router/table/migration)
+- Phase 22: Expo SDK 54→57 Bump — MOBILE-01..04 (fully isolated from apps/api and apps/web; sequenced last since it's the single highest-risk item and a rollback shouldn't block the other four)
+
+**Coverage validation:** all 18 v1.4 requirements mapped to exactly one phase, no orphans, no duplicates. `.planning/REQUIREMENTS.md` traceability table updated to match (phase numbers finalized, no longer provisional).
+
+**Next:** `/gsd:plan-phase 18`

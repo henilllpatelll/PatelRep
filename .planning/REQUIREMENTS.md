@@ -76,5 +76,3 @@
 | MOBILE-04 | Phase 22 | Pending |
 
 **Coverage:** 18/18 v1.4 requirements mapped. No orphans.
-
-*(Phase numbers above are provisional — finalized by the roadmapper.)*
