@@ -287,14 +287,18 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (23 requirements: BILLING-01..0
 
 **16-01 CLOSED (2026-08-04, commits `c4fc69c4`/`2b004d60`):** BILLING-02/03/05/06 fixed — billing usage accuracy. New `get_or_create_current_period_ledger()` shared helper in `middleware/credits.py`, used by both the AI-call deduction path (`check_and_deduct_credits`) and the billing-page read path (`GET /billing/credits`) — a GM opening the billing page before any AI call has run that period now sees a real zero-usage ledger instead of a "No billing period found" placeholder (BILLING-02). `create_hotel()`'s subscriptions insert now sets `cap_cents = room_count * 250`, so the pre-existing cap-enforcement check in `credits.py` (previously gated on a NULL `cap_cents` that always no-op'd) actually fires for new hotels (BILLING-03). `GET /billing/credits` gained `cap_remaining_cents` (headroom before the cap) and `projected_month_end_cost_cents` (linear extrapolation of overage cost from elapsed days to the full period) (BILLING-05). Crossing 80% of `cap_cents` now queues exactly one `billing_cap_warning` in-app notification per billing period via `_queue_cap_warning`, deduped on `.contains("data", {period})` mirroring `internal.py::_queue_safety_notification`'s once-per-day shape but scoped to "this period" (BILLING-06) — lazily triggered on the next billing-page load rather than a new dedicated cron, per 16-RESEARCH.md Open Question 5. New `tests/test_billing_usage.py` (8 tests, TDD RED→GREEN). **Resumed session** — Task 1's code (credits.py/billing.py/hotels.py edits + first 4 tests) was found already complete and correct, uncommitted, from a prior session interrupted by a usage limit; verified against the plan and full suite before committing rather than redone. **Regression found and fixed (Rule 1):** `test_tenant_isolation.py::test_billing_credits_hotel_a_returns_no_data_message` asserted the exact placeholder-message behavior this plan was written to remove — renamed to `test_billing_credits_hotel_a_gets_isolated_zero_usage_ledger` and rewritten to assert the new lazily-created, tenant-isolated zero-usage ledger (no leakage of Hotel B's `cap_cents`). Full API suite: 533/535 passed (2 pre-existing unrelated `test_management_roi.py` failures, predating this plan). A concurrent executor (Plan 16-02) was active in the same working tree during this session — `webhooks.py`/`test_webhooks_and_transitions.py` changes outside this plan's scope were left untouched. See `16-01-SUMMARY.md`.
 
+**16-04 CLOSED (2026-08-04, commits `95873a4b`/`717bf1cc`):** BILLING-01/04/05/06 frontend surface fixed — the user-visible payoff of Plan 16-01's backend work. `apps/web/app/(dashboard)/billing/page.tsx` (previously a 324-line duplicate of `/settings/billing` with a disabled "Manage Subscription (Coming soon)" button) replaced with a one-line `redirect('/settings/billing')`, matching `settings/page.tsx`'s existing pattern; `CLAUDE.md`'s Domain Map "Billing" row corrected to point at the live route (BILLING-01). `apps/web/lib/api/billing.ts`'s `CreditUsage` interface extended with `cap_remaining_cents`/`projected_month_end_cost_cents`/`approaching_cap`, matching Plan 16-01's `GET /billing/credits` additions. `settings/billing/page.tsx` gained a past-due payment banner (shown on `plan_status === 'past_due'`, reuses the existing `portalMutation` rather than a new one) plus an approaching-cap inline warning, a "Remaining before cap" row, and a "Projected month-end cost" row inside the AI Credit Usage card — all conditionally rendered on the new nullable fields (BILLING-04/05/06 display halves). Live Playwright walkthrough against localhost (GM login, real dev Supabase project) confirmed: `/billing` redirects to `/settings/billing`; "Manage Billing" button enabled with zero "Coming soon" text; the credit usage card renders without crashing even though this trial-status test hotel's `GET /billing/credits` currently returns only `{"message":"No billing period found"}` (all three new fields undefined, all three new conditional blocks correctly skip rendering); zero console errors; clicking "Manage Billing" fired `POST /billing/portal` (200) and — better than the plan's anticipated "likely 400, no live Stripe key" — this dev environment does have a working Stripe test key, so the browser was actually redirected to a real `billing.stripe.com` portal session, proving the full round trip; adjacent settings tabs (`/settings/general`, `/settings/roles` — substituted for the plan's nonexistent `/settings/team` example) rendered correctly with no regression. `npm run type-check` and `npm run lint` both pass with zero errors on all changed files. See `16-04-SUMMARY.md`.
+
+**Phase 16 (Self-Serve Billing Management) status: CLOSED.** All 4 plans executed (16-01, 16-02, 16-03, 16-04) — BILLING-02/03/05/06/07/08/09 backend hardening plus BILLING-01/04/05/06 frontend surface all satisfied.
+
 ## Current Position
 
-Phase: 16 of 17 (Self-Serve Billing Management) — in progress
-Plan: 01, 02, and 03 of 4 closed (16-01, 16-02, 16-03); 16-04 (frontend billing page) not yet started
-Status: 3 of 4 Phase 16 plans closed this session; 16-04 (frontend) remains before the phase can close
-Last activity: 2026-08-04 — Plan 16-03 (monthly true-up idempotency: true_up_tenant() with is_finalized stamping, period-not-yet-ended gate, final true-up on cancellation) executed and closed. Commits `9d8489a4`/`7a906d8a`.
+Phase: 16 of 17 (Self-Serve Billing Management) — CLOSED
+Plan: 4 of 4 closed (16-01, 16-02, 16-03, 16-04) — Phase 16 complete
+Status: Phase 16 fully closed this session; Phase 17 (Backlog Cleanup) next
+Last activity: 2026-08-04 — Plan 16-04 (billing frontend redirect + cap/projection UI + past-due banner) executed and closed. Commits `95873a4b`/`717bf1cc`.
 
-Progress: [███░░░░░░░] v1.3: Phase 15 closed (2/2 plans), Phase 16 in progress (3/4 plans closed)
+Progress: [████░░░░░░] v1.3: Phase 15 closed (2/2 plans), Phase 16 closed (4/4 plans)
 
 ## Performance Metrics
 
@@ -327,8 +331,9 @@ Progress: [███░░░░░░░] v1.3: Phase 15 closed (2/2 plans), Ph
 | 16 | 02 | resumed session | 2 | 3 | 2026-08-04 |
 | 16 | 01 | resumed session | 2 | 5 | 2026-08-04 |
 | 16 | 03 | ~40 min | 2 | 4 | 2026-08-04 |
+| 16 | 04 | ~45 min | 3 | 4 | 2026-08-04 |
 
 ## Session
 
 Last session: 2026-08-04T00:00:00Z
-Stopped At: Completed 16-03-PLAN.md (monthly true-up idempotency: true_up_tenant() with is_finalized stamping, period-not-yet-ended gate, final true-up on customer.subscription.deleted). 16-04 (frontend billing page) remains before Phase 16 can close.
+Stopped At: Completed 16-04-PLAN.md (billing frontend redirect, cap/projection UI, past-due banner). Phase 16 fully closed. Phase 17 (Backlog Cleanup) next.
