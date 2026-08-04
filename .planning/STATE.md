@@ -315,13 +315,22 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (23 requirements: BILLING-01..0
 
 **Phase 17 (Backlog Cleanup) status: CLOSED.** All 8 plans executed and verified (17-01 through 17-08) — UX-01..06, DATA-01 (migration not yet applied to remote, per established deploy-separately convention), STAFF-01 all satisfied per-plan; UX-06 was the last to close, direct diagnostic + fix + live verification performed fresh in this session.
 
-## Current Position
+## Current Position (v1.3, archived)
 
 Phase: 17 of 17 (Backlog Cleanup) — CLOSED. All 8 plans verified: 17-01 through 17-05, 17-07, 17-08 verified closed in a prior session (see their CLOSED notes above for two confirmed cross-agent git-race incidents from the original 8-way parallel Wave 1 run); 17-06 (UX-06 room history) closed this session — diagnostic redone fresh, fix implemented (stay_reset_at narrowing + actor attribution), live-verified, full suite green apart from pre-existing baseline failures.
 Status: Milestone v1.3 (Billing, Work Order Archival, and Backlog Cleanup) — Phase 15 closed (2/2), Phase 16 closed (4/4), Phase 17 closed (8/8). All phases complete.
 Last activity: 2026-08-04 — 17-06 (UX-06 room history) closed: live diagnostic against dev Supabase DB confirmed the stay_reset_at bulk-import over-trigger hypothesis, fix implemented + tested + committed (`ca98ec88`), live-verified against the real dev API after restarting a stale dev server, SUMMARY.md written, STATE.md reconciled (this entry). This closes Phase 17 and milestone v1.3's plan-level execution.
 
 Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Phase 16 closed (4/4 plans), Phase 17 closed (8/8 plans)
+
+## Current Position
+
+Phase: 19 of 22 (RBAC Audit and Normalization) — second phase of milestone v1.4, in progress.
+Plan: 4 plans total (19-01, 19-02, 19-03, 19-04). 19-01 CLOSED this session (RBAC-AUDIT.md artifact, commit `2e829e21`). 19-02 also has a SUMMARY on disk (closed by a concurrent executor). 19-03/19-04 status not confirmed by this executor — other agents were observed with uncommitted changes to `guest_requests.py`/`hotels.py`/`programs.py`/`safety.py`/`test_lost_found_delete.py` at commit time, consistent with parallel execution of the remaining plans.
+Status: Phase 18 (Documentation Drift Fixes) closed. Phase 19 in progress.
+Last activity: 2026-08-04 — 19-01 executed: created `.planning/phases/19-rbac-audit-and-normalization/RBAC-AUDIT.md`, the durable RBAC audit artifact (30-router inventory, RBAC-03 per-router review outcomes, RBAC-04 constant decisions), transcribed from `19-RESEARCH.md`. Documentation-only, no application code touched.
+
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 in progress (19-01 closed this session; 19-02 summary present; 19-03/19-04 unconfirmed).
 
 ## Performance Metrics
 
@@ -361,6 +370,7 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 | 17 | 04 | recovered session | 2 | 2 | 2026-08-04 |
 | 17 | 02 | 35 min | 1 | 0 | 2026-08-04 |
 | 17 | 06 | ~35 min | 2 | 4 | 2026-08-04 |
+| 19 | 02 | 12 min | 2 | 2 | 2026-08-04 |
 
 ## Session
 
