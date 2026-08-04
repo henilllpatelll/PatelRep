@@ -9,6 +9,9 @@ from models.requests import (
     TransitionWorkOrderRequest,
     UpdateWorkOrderRequest,
     AddCommentRequest,
+    BulkArchiveWorkOrdersRequest,
+    BulkArchiveByAgeRequest,
+    BulkUnarchiveWorkOrdersRequest,
 )
 from core.database import supabase
 from core.config import settings
@@ -26,6 +29,7 @@ MAX_PHOTO_BYTES = 5 * 1024 * 1024
 router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
 SLA_MINUTES = {"urgent": 60, "emergency": 30, "normal": 240, "low": 480}
+_ARCHIVABLE_STATUSES = {"completed", "cancelled"}
 
 
 def _ensure_engineer_can_update_work_order(
@@ -183,6 +187,7 @@ async def list_work_orders(
     room_id: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
+    archived: bool = Query(False),
     current_user: CurrentUser = Depends(get_current_user),
 ):
     if current_user.role == "engineer":
@@ -198,6 +203,10 @@ async def list_work_orders(
                 .order("created_at", desc=True)
                 .range(0, fetch_up_to - 1)
             )
+            if archived:
+                q = q.not_.is_("archived_at", "null")
+            else:
+                q = q.is_("archived_at", "null")
             if status:
                 q = q.eq("status", status)
             if category:
@@ -232,6 +241,10 @@ async def list_work_orders(
         .order("created_at", desc=True)
         .range((page - 1) * per_page, page * per_page - 1)
     )
+    if archived:
+        query = query.not_.is_("archived_at", "null")
+    else:
+        query = query.is_("archived_at", "null")
 
     if status:
         query = query.eq("status", status)
@@ -500,6 +513,136 @@ async def delete_work_order(
     supabase.table("work_orders").delete().eq("id", wo_id).eq(
         "tenant_id", current_user.hotel_id
     ).execute()
+
+
+@router.post("/bulk-archive")
+async def bulk_archive_work_orders(
+    body: BulkArchiveWorkOrdersRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    return _bulk_archive(
+        [str(i) for i in body.work_order_ids],
+        current_user,
+        reason_code="bulk_manual_selection",
+    )
+
+
+@router.post("/bulk-archive-by-age")
+async def bulk_archive_work_orders_by_age(
+    body: BulkArchiveByAgeRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=body.older_than_days)).isoformat()
+    rows = (
+        supabase.table("work_orders")
+        .select("id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("status", "completed")
+        .is_("archived_at", "null")
+        .lt("completed_at", cutoff)
+        .execute()
+    ).data or []
+    return _bulk_archive(
+        [r["id"] for r in rows], current_user, reason_code="bulk_by_age", allow_empty=True,
+    )
+
+
+def _bulk_archive(
+    ids: list[str], current_user: CurrentUser, *, reason_code: str, allow_empty: bool = False,
+):
+    if not ids:
+        if allow_empty:
+            return {"data": {"archived_count": 0}}
+        raise HTTPException(status_code=422, detail="No work order ids provided")
+
+    rows = (
+        supabase.table("work_orders")
+        .select("id, status, archived_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .in_("id", ids)
+        .execute()
+    ).data or []
+
+    found_ids = {r["id"] for r in rows}
+    missing = set(ids) - found_ids
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Work orders not found: {sorted(missing)}")
+
+    not_archivable = [r["id"] for r in rows if r["status"] not in _ARCHIVABLE_STATUSES]
+    if not_archivable:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Only completed/cancelled work orders can be archived: {not_archivable}",
+        )
+
+    now = datetime.now(timezone.utc).isoformat()
+    supabase.table("work_orders").update(
+        {"archived_at": now, "archived_by": current_user.user_id}
+    ).eq("tenant_id", current_user.hotel_id).in_("id", ids).execute()
+
+    supabase.table("operational_audit_events").insert(
+        [
+            {
+                "tenant_id": current_user.hotel_id,
+                "resource_type": "work_order",
+                "resource_id": wo_id,
+                "action": "work_order.archived",
+                "actor_id": current_user.user_id,
+                "actor_role": current_user.role,
+                "old_state": {"archived_at": None},
+                "new_state": {"archived_at": now},
+                "reason_code": reason_code,
+                "source": "api",
+            }
+            for wo_id in ids
+        ]
+    ).execute()
+
+    return {"data": {"archived_count": len(ids)}}
+
+
+@router.post("/bulk-unarchive")
+async def bulk_unarchive_work_orders(
+    body: BulkUnarchiveWorkOrdersRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    ids = [str(i) for i in body.work_order_ids]
+    rows = (
+        supabase.table("work_orders")
+        .select("id")
+        .eq("tenant_id", current_user.hotel_id)
+        .in_("id", ids)
+        .execute()
+    ).data or []
+
+    found_ids = {r["id"] for r in rows}
+    missing = set(ids) - found_ids
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Work orders not found: {sorted(missing)}")
+
+    supabase.table("work_orders").update(
+        {"archived_at": None, "archived_by": None}
+    ).eq("tenant_id", current_user.hotel_id).in_("id", ids).execute()
+
+    supabase.table("operational_audit_events").insert(
+        [
+            {
+                "tenant_id": current_user.hotel_id,
+                "resource_type": "work_order",
+                "resource_id": wo_id,
+                "action": "work_order.unarchived",
+                "actor_id": current_user.user_id,
+                "actor_role": current_user.role,
+                "old_state": {"archived_at": "set"},
+                "new_state": {"archived_at": None},
+                "reason_code": None,
+                "source": "api",
+            }
+            for wo_id in ids
+        ]
+    ).execute()
+
+    return {"data": {"unarchived_count": len(ids)}}
 
 
 @router.post("/{wo_id}/photos")

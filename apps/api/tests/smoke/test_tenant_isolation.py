@@ -533,7 +533,7 @@ async def test_work_orders_list_returns_empty_for_hotel_a(monkeypatch):
 
     result = await wo_router.list_work_orders(
         status=None, category=None, priority=None, assigned_to=None,
-        page=1, per_page=20, current_user=USER_A,
+        page=1, per_page=20, archived=False, current_user=USER_A,
     )
 
     assert result["data"] == []
