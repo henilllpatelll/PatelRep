@@ -281,6 +281,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (23 requirements: BILLING-01..0
 - Phase 16: Self-Serve Billing Management — BILLING-01..09 (bundles the user-facing portal/usage/cap UI with the revenue-integrity hardening — true-up idempotency, cancel-time reconciliation, webhook `event.id` dedupe — since research explicitly flags these as preconditions before exposing invoices/portal to self-serve users; sequenced second because local dev has no Stripe credentials, the weaker "prove it on localhost" candidate)
 - Phase 17: Backlog Cleanup — UX-01..06, DATA-01, STAFF-01 (small, independent, low-risk items across distinct files/domains carried forward from the v1.2 milestone audit; grouped into one phase rather than forced into artificial per-item phases since none share code paths with each other or with Phases 15/16; sequenced last)
 
+**16-02 CLOSED (2026-08-04, commits `760891a1`/`fb5de5ed`):** BILLING-09 fixed — Stripe webhook event deduplication. New `stripe_webhook_events(event_id PK, event_type, processed_at)` table (migration 090, PK-only, no RLS, mirrors the `cron_health` service-role-only convention). `stripe_webhook()` now does an insert-or-skip select-then-insert on `event.id` immediately after signature verification and before the `event.type` dispatch chain — a retried Stripe delivery returns `{"status": "duplicate_ignored"}` as a no-op, while a new `event.id` is recorded and its handler runs normally. Placed before the entire dispatch chain, so it uniformly covers every existing handler plus Plan 16-03's `subscription.deleted` true-up logic (which had already landed in commit `c44bf49a` before this plan closed — the guard protects it retroactively regardless of commit order). New tests: duplicate `event.id` ignored without reprocessing, new `event.id` recorded and processed; 3 pre-existing stripe tests kept passing unmodified via a default `event_id` param on the `stripe_event()` helper. Full `test_webhooks_and_transitions.py`: 17/17 passed. **Resumed session** — Task 1 (migration) was completed and committed in a prior session interrupted by a usage limit; Task 2's working-tree edits were found already complete and correct on resume, verified line-by-line against the plan before committing (no rework needed). Full API suite showed 3 pre-existing failures unrelated to this plan (confirmed via `git stash` isolation): `test_billing_credits_hotel_a_returns_no_data_message` (caused by Plan 16-01's separate in-flight uncommitted `billing.py` changes, left untouched) and 2 already-documented `test_management_roi.py` baseline flakes. Migration 090 not yet applied to the remote Supabase project (deployment handled separately, per convention). See `16-02-SUMMARY.md`.
+
 ## Current Position
 
 Phase: 15 of 17 (Work-Order Bulk-Archive) — not started
@@ -318,8 +320,9 @@ Progress: [░░░░░░░░░░] v1.3: 0% (0/3 phases)
 | 13 | 03 | 35 min | 2 | 2 | 2026-08-02 |
 | 13 | 04 | 25 min | 3 | 4 | 2026-08-02 |
 | 14 | 01 | 22 min | 3 | 2 | 2026-08-02 |
+| 16 | 02 | resumed session | 2 | 3 | 2026-08-04 |
 
 ## Session
 
-Last session: 2026-08-03T16:00:00Z
-Stopped At: ROADMAP.md created for milestone v1.3 (Phases 15-17, 23/23 requirements mapped, no orphans). Next step is `/gsd:plan-phase 15`.
+Last session: 2026-08-04T00:00:00Z
+Stopped At: Completed 16-02-PLAN.md (Stripe webhook event dedup, BILLING-09). Note: Plans 16-01 and 16-03 were observed in-flight/committed by concurrent agents during this session — Current Position above (Phase 15) is stale and needs a consolidated update once all Phase 16 plans are confirmed complete.
