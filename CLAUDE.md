@@ -213,7 +213,13 @@ Domain skills inject automatically by file path:
 ## Current Scope (MANDATORY — read before every session)
 
 - **Active surface: web app only.** All feature work targets `apps/web/` and `apps/api/`. Do not touch `apps/mobile/` unless explicitly asked.
-- **No live API credentials in the local environment.** There is no `.env` with `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or Stripe keys locally. All AI-credit and billing paths cannot be exercised end-to-end. Testing relies entirely on manual interaction against the running dev servers (`npm run dev:api` + `npm run dev:web`) and the Supabase backend. Do not assume automated credential-gated flows can be verified — flag when a feature requires credentials that aren't present.
+- **Partial local credentials.** `apps/api/.env` exists and has Supabase (`SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`), Stripe test-mode (`STRIPE_SECRET_KEY` starts
+  with `sk_test_`, `STRIPE_WEBHOOK_SECRET`), and cron/app config (`CRON_SECRET`, `APP_ENV`,
+  `APP_URL`, `API_URL`) populated — billing and Supabase-backed paths CAN be exercised locally.
+  `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` (AI credit paths) are absent, as are Twilio (SMS) and
+  Opera/OHIP OAuth credentials — those paths cannot be exercised end-to-end locally. Flag when a
+  feature requires one of these specific absent credentials.
 
 ---
 
