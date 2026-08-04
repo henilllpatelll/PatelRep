@@ -77,20 +77,30 @@ PatelRep/
 | Hotels / Onboarding | hotels.py, onboarding.py | (dashboard)/onboarding |
 | Rooms | rooms.py | — (internal API, no dedicated web route) |
 | Housekeeping | housekeeping.py | (dashboard)/housekeeping |
-| Engineering | work_orders.py, assets.py | (dashboard)/engineering |
+| Cleaning Checklists | cleaning_checklists.py | (dashboard)/settings/housekeeping |
+| Clean Sessions | clean_sessions.py | (dashboard)/housekeeping (RoomStatusBoard / RoomDetailDrawer) |
+| Shifts | shifts.py | (dashboard)/scheduling |
 | Tasks | tasks.py | (dashboard)/tasks |
-| Scheduling | scheduling.py | (dashboard)/scheduling |
-| Staff | staff.py | (dashboard)/staff |
+| Engineering | work_orders.py, assets.py | (dashboard)/engineering |
 | AI Copilot | ai_copilot.py | (dashboard)/ai |
 | SOP Library | sop.py | (dashboard)/sop |
+| Billing | billing.py | (dashboard)/settings/billing |
+| Webhooks | webhooks.py | — (Stripe webhook handler only) |
+| Opera Integration | integrations.py | (dashboard)/settings/integrations |
+| Internal (cron) | internal.py | — (internal only; see Cron Jobs section) |
+| Notifications | notifications.py | — (push/in-app, no dedicated web route) |
+| Scheduling | scheduling.py | (dashboard)/scheduling |
 | Guest Requests | guest_requests.py | (dashboard)/guest-requests |
 | Logbook | logbook.py | (dashboard)/logbook |
-| Lost & Found | lost_found.py | (dashboard)/lost-found |
+| Management ROI | management_roi.py | (dashboard)/management-roi |
 | Reports | reports.py | (dashboard)/reports |
-| Billing | billing.py | (dashboard)/settings/billing |
-| Opera Integration | integrations.py | (dashboard)/settings |
-| Notifications | notifications.py | — (push/in-app, no dedicated web route) |
-| Webhooks | webhooks.py | — (Stripe webhook handler only) |
+| Staff | staff.py | (dashboard)/staff |
+| Lost & Found | lost_found.py | (dashboard)/lost-found |
+| Guest Feedback | feedback.py | (dashboard)/settings/feedback |
+| Late Checkout | late_checkout.py | (dashboard)/housekeeping (FrontDeskDashboard, lib/utils/lateCheckoutRequests.ts) |
+| Evidence | evidence.py | (dashboard)/evidence |
+| Safety | safety.py | (dashboard)/safety |
+| Programs | programs.py | (dashboard)/programs |
 
 ---
 
