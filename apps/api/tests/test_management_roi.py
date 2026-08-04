@@ -220,6 +220,8 @@ def test_housekeeping_efficiency_minutes_per_occupied_room():
         }
     ]
     assert "definition" in result
+    assert "minutes_per_occupied_room =" not in result["definition"]
+    assert "Average minutes" in result["definition"]
 
 
 def test_housekeeping_efficiency_missing_baseline_reports_none():
