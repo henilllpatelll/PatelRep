@@ -8921,3 +8921,43 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 16:03 | Edited .planning/REQUIREMENTS.md | 13→13 lines | ~329 |
 | 16:03 | Edited .planning/REQUIREMENTS.md | 7→7 lines | ~62 |
 | 16:03 | Session end: 10 writes across 4 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md) | 7 reads | ~14914 tok |
+| 02:21 | Edited .planning/phases/17-backlog-cleanup/17-03-SUMMARY.md | 3→8 lines | ~62 |
+| 02:22 | Session end: 11 writes across 5 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 7 reads | ~14980 tok |
+| 02:22 | Created .planning/phases/17-backlog-cleanup/17-05-SUMMARY.md | — | ~1829 |
+| 02:22 | Session end: 12 writes across 6 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 7 reads | ~16940 tok |
+| 02:22 | Edited .planning/phases/17-backlog-cleanup/17-05-SUMMARY.md | expanded (+7 lines) | ~87 |
+| 02:23 | Edited .planning/STATE.md | added optional chaining | ~938 |
+| 06:21 | Edited .planning/STATE.md | modified CLOSED() | ~1620 |
+| 06:21 | Session end: 15 writes across 6 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 12 reads | ~33599 tok |
+| 06:34 | Session end: 15 writes across 6 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 13 reads | ~33599 tok |
+| 06:36 | Created .planning/phases/17-backlog-cleanup/17-01-SUMMARY.md | — | ~1638 |
+| 06:36 | Edited .planning/STATE.md | modified CLOSED() | ~1497 |
+| 06:36 | Edited .planning/STATE.md | 7→8 lines | ~105 |
+| 06:37 | Session end: 18 writes across 7 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 14 reads | ~38035 tok |
+| 06:37 | Session end: 18 writes across 7 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 15 reads | ~38035 tok |
+| 06:40 | Created .planning/phases/17-backlog-cleanup/deferred-items.md | — | ~215 |
+| 06:41 | Created .planning/phases/17-backlog-cleanup/17-04-SUMMARY.md | — | ~1632 |
+| 06:42 | Edited .planning/STATE.md | added optional chaining | ~1515 |
+| 06:42 | Edited .planning/STATE.md | 6→7 lines | ~95 |
+| 06:43 | Session end: 22 writes across 9 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 16 reads | ~20520 tok |
+| 06:43 | Session end: 22 writes across 9 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 17 reads | ~42453 tok |
+| 06:51 | Created .planning/phases/17-backlog-cleanup/17-02-SUMMARY.md | — | ~2774 |
+| 06:51 | Edited .planning/phases/17-backlog-cleanup/deferred-items.md | modified test() | ~225 |
+| 06:51 | Edited .planning/STATE.md | modified CLOSED() | ~607 |
+| 06:51 | Edited .planning/STATE.md | 8→7 lines | ~546 |
+| 06:52 | Edited .planning/STATE.md | 7→8 lines | ~136 |
+| 06:52 | Session end: 27 writes across 10 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 19 reads | ~45466 tok |
+| 06:53 | Session end: 27 writes across 10 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 20 reads | ~45957 tok |
+| 06:56 | Edited apps/api/routers/rooms.py | expanded (+18 lines) | ~288 |
+| 06:56 | Edited apps/api/routers/housekeeping.py | expanded (+10 lines) | ~260 |
+| 06:56 | Edited apps/api/routers/housekeeping.py | 2→2 lines | ~41 |
+| 07:02 | Edited apps/api/tests/smoke/test_webhooks_and_transitions.py | modified test_room_history_includes_actor_attribution() | ~480 |
+| 07:02 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified test_hk_details_import_does_not_restamp_stay_reset_at_when_already_inspected() | ~801 |
+| 07:04 | Created .planning/phases/17-backlog-cleanup/17-06-SUMMARY.md | — | ~2457 |
+| 07:04 | Edited .planning/phases/17-backlog-cleanup/17-06-SUMMARY.md | expanded (+7 lines) | ~67 |
+| 07:05 | Edited .planning/STATE.md | modified CLOSED() | ~1000 |
+| 07:05 | Edited .planning/STATE.md | 6→7 lines | ~137 |
+| 07:11 | Created .planning/phases/17-backlog-cleanup/17-VERIFICATION.md | — | ~3783 |
+| 07:12 | Session end: 37 writes across 16 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~58375 tok |
+| 07:12 | Session end: 37 writes across 16 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~58375 tok |
+| 07:34 | Session end: 37 writes across 16 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~58375 tok |

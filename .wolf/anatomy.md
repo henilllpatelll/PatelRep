@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-29T21:03:19.125Z
-> Files: 99 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T12:11:27.810Z
+> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -29,9 +29,6 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `MEMORY.md` — PatelRep Project Memory (~567 tok)
-- `project_cron_scheduler.md` (~600 tok)
-- `project_ui_refresh_status.md` (~464 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -44,9 +41,6 @@
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/e373cdce-72dc-4ffe-9dca-781914a9320e/scratchpad/
 
-- `playwright.walkthrough.config.ts` (~66 tok)
-- `revise.py` — patch (~4082 tok)
-- `walkthrough.spec.ts` — Declares EMAIL (~1522 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/e4f27a09-115f-4703-975c-d0a5876785a1/scratchpad/
 
@@ -281,12 +275,9 @@
 
 ## .claude/worktrees/agent-a68a054653f5001b9/.planning/phases/07-theme-foundation-primitives/
 
-- `07-04-SUMMARY.md` — Dependency graph (~1507 tok)
 
 ## .claude/worktrees/agent-a68a054653f5001b9/apps/mobile/components/ui/
 
-- `Card.tsx` — Card — reusable themed surface (bg/border/radius/shadow), extracted from (~344 tok)
-- `StatusBadge.tsx` — Caller-provided, already-translated label. No default and no internal translation call. (~959 tok)
 
 ## .claude/worktrees/agent-a69e9e7d5fb511518/.github/workflows/
 
@@ -383,28 +374,21 @@
 
 ## .claude/worktrees/agent-aabc954161b6dcb94/.planning/phases/07-theme-foundation-primitives/
 
-- `07-02-SUMMARY.md` — Dependency graph (~1615 tok)
 
 ## .claude/worktrees/agent-aabc954161b6dcb94/apps/mobile/app/(app)/
 
-- `_layout.tsx` — AppLayout (~1780 tok)
 
 ## .claude/worktrees/agent-aabc954161b6dcb94/apps/mobile/lib/theme/
 
-- `ToastProvider.tsx` — ToastActionsContext (~1492 tok)
-- `useToast.ts` — Exports useToast (~111 tok)
 
 ## .claude/worktrees/agent-aae22d38509b7f1d1/.planning/phases/07-theme-foundation-primitives/
 
-- `07-03-SUMMARY.md` — Dependency graph (~2608 tok)
 
 ## .claude/worktrees/agent-aae22d38509b7f1d1/apps/mobile/components/shared/
 
-- `mobileHandoff.tsx` — toneColors (~5583 tok)
 
 ## .claude/worktrees/agent-aae22d38509b7f1d1/apps/mobile/components/ui/
 
-- `Button.tsx` — SIZE_STYLES (~1006 tok)
 
 ## .claude/worktrees/agent-aaf45efee8be146c4/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -930,21 +914,13 @@
 
 ## .planning/
 
-- `MILESTONES.md` — Project Milestones: PatelRep (~500 tok)
-- `PROJECT.md` — PatelRep (~2120 tok)
-- `REQUIREMENTS.md` — Requirements: PatelRep v1.1 Mobile UI Parity (~1579 tok)
-- `RETROSPECTIVE.md` — PatelRep Retrospective (~1358 tok)
-- `ROADMAP.md` — Roadmap: PatelRep (~2502 tok)
-- `STATE.md` — GSD State (~8283 tok)
-- `v1.0-MILESTONE-AUDIT.md` — Milestone v1.0 "Hotel Standards Execution Plan" — Audit Report (~3620 tok)
+- `STATE.md` — GSD State (~22872 tok)
 
 ## .planning/UI-REFRESH-PLAN.md
 
 
 ## .planning/milestones/
 
-- `v1.0-REQUIREMENTS.md` — Requirements Archive — Milestone v1.0 "Hotel Standards Execution Plan" (~1067 tok)
-- `v1.0-ROADMAP.md` — Milestone v1.0: Hotel Standards Execution Plan (~3116 tok)
 
 ## .planning/phases/03-texas-compliance-and-staff-safety/
 
@@ -957,51 +933,17 @@
 
 ## .planning/phases/06-pms-and-ai-expansion/
 
-- `06-01-PLAN.md` — log_ai_interaction(...) already accepts real prompt_tokens/completion_tokens/credits_charged as sepa (~5405 tok)
-- `06-01-SUMMARY.md` — Phase 6 Plan 1: AI Credit Accounting + SOP Double-Log Fix Summary (~2726 tok)
-- `06-02-PLAN.md` — apps/api/routers/integrations.py::opera_status lines 77-78 (~4854 tok)
-- `06-02-SUMMARY.md` — Dependency graph (~4044 tok)
-- `06-03-PLAN.md` — confirm_tasks currently: async def confirm_tasks(tasks: list[dict], current_user=Depends(get_current (~3796 tok)
-- `06-03-SUMMARY.md` — Dependency graph (~2157 tok)
-- `06-04-PLAN.md` — unknown event_type → returns {"status": "ok", "event_type": event_type}, no handler, no writes (~4434 tok)
-- `06-04-SUMMARY.md` — Dependency graph (~1934 tok)
-- `06-05-PLAN.md` — Trust Boundaries (~2483 tok)
-- `06-05-SUMMARY.md` — Dependency graph (~3937 tok)
-- `06-CONTEXT.md` — Phase 6: PMS and AI expansion - Context (~2601 tok)
-- `06-DISCUSSION-LOG.md` — Phase 6: PMS and AI expansion - Discussion Log (~1268 tok)
-- `06-PATTERNS.md` — Phase 6: PMS and AI expansion - Pattern Map (~5495 tok)
-- `06-RESEARCH.md` — Phase 6: PMS and AI expansion - Research (~14125 tok)
-- `06-SECURITY.md` — Phase 6 — Security (~2982 tok)
-- `06-UAT.md` — Current Test (~1347 tok)
-- `06-VALIDATION.md` — Phase 6 — Validation Strategy (~1490 tok)
-- `06-VERIFICATION.md` — Phase 6: PMS and AI expansion Verification Report (~3924 tok)
-- `SECURITY.md` — Phase 6 — PMS and AI Expansion — Security Audit (~3022 tok)
 
 ## .planning/phases/07-theme-foundation-primitives/
 
-- `07-01-PLAN.md` — Trust Boundaries (~2776 tok)
-- `07-01-SUMMARY.md` — Phase 7 Plan 01: Theme Shell Summary (~1043 tok)
-- `07-02-PLAN.md` — ToastVariant: useToast (~3496 tok)
-- `07-03-PLAN.md` — Declares IconButton (~6124 tok)
-- `07-04-PLAN.md` — Trust Boundaries (~3273 tok)
-- `07-05-PLAN.md` — Declares EmptyStateProps (~3683 tok)
-- `07-05-SUMMARY.md` — Phase 7 Plan 05: EmptyState + StateBlock Summary (~1054 tok)
-- `07-06-PLAN.md` — Trust Boundaries (~2927 tok)
-- `07-06-SUMMARY.md` — Phase 7 Plan 6: Mobile i18n Lint Gate Summary (~1968 tok)
-- `07-CONTEXT.md` — Phase 7: Theme Foundation & Primitives - Context (~2919 tok)
-- `07-DISCUSSION-LOG.md` — Phase 7: Theme Foundation & Primitives - Discussion Log (~1895 tok)
-- `07-PATTERNS.md` — Phase 7: Theme Foundation & Primitives - Pattern Map (~5095 tok)
-- `07-REVIEW.md` — Phase 7: Code Review Report (~2312 tok)
-- `07-UI-SPEC.md` — Phase 7 — UI Design Contract (~5980 tok)
-- `07-VERIFICATION.md` — Phase 7: Theme Foundation & Primitives Verification Report (~2903 tok)
+
+## .planning/phases/17-backlog-cleanup/
+
+- `17-06-SUMMARY.md` — Phase 17 Plan 06: Room History Visibility + Actor Attribution Summary (~2353 tok)
+- `17-VERIFICATION.md` — Phase 17: Backlog Cleanup Verification Report (~3546 tok)
 
 ## .planning/research/
 
-- `ARCHITECTURE.md` — Architecture Research (~5130 tok)
-- `FEATURES.md` — Feature Research (~3936 tok)
-- `PITFALLS.md` — Pitfalls Research (~6410 tok)
-- `STACK.md` — Stack Research (~3540 tok)
-- `SUMMARY.md` — Project Research Summary (~2145 tok)
 
 ## .wolf/
 
@@ -1044,18 +986,12 @@
 
 ## apps/api/middleware/
 
-- `credits.py` — compute_credits, check_and_deduct_credits, log_ai_interaction (~1597 tok)
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~13410 tok)
 
 ## apps/api/routers/
 
-- `ai_copilot.py` — API: 1 endpoints (~11735 tok)
-- `integrations.py` — API: 7 endpoints (~2498 tok)
-- `sop.py` — API: 5 endpoints (~2621 tok)
-- `webhooks.py` — API: 4 endpoints (~3739 tok)
 
 ## apps/api/scripts/
 
@@ -1065,15 +1001,12 @@
 
 ## apps/api/services/ai/
 
-- `guest_request_parser.py` — parse_guest_requests (~740 tok)
-- `sop_rag.py` — index_sop_document, query_sop (~3738 tok)
 
 ## apps/api/services/guest_recovery/
 
 
 ## apps/api/services/opera/
 
-- `sync.py` — ohip_request, map_opera_reservation, has_reservation_conflict, upsert_opera_reservation (~3282 tok)
 
 ## apps/api/services/programs/
 
@@ -1086,19 +1019,14 @@
 
 ## apps/api/tests/
 
-- `test_ai_copilot_credits.py` — RED regression tests for the AI credit-accounting + SOP double-log bugs. (~2322 tok)
-- `test_ai_copilot_guest_request_escalation.py` — RED->GREEN regression tests for a milestone-audit blocker (v1.0-MILESTONE-AUDIT.md, (~2083 tok)
-- `test_ai_copilot_rbac.py` — RBAC matrix + tenant-isolation + confirm_tasks validation tests for ai_copilot.py. (~2492 tok)
-- `test_opera_pilot_gate.py` — test_opera_connect_403_when_pilot_not_enabled, test_opera_status_403_when_pilot_not_enabled, test_op (~2319 tok)
 
 ## apps/api/tests/load/
 
 
 ## apps/api/tests/smoke/
 
-- `test_integrations_security.py` — FakeOperaDB: table, select, eq, maybe_single + 10 more (~1765 tok)
-- `test_opera_routes.py` — test_opera_connect_rbac_gm_only, test_opera_status_rbac_any_authenticated_role, test_opera_sync_rbac (~2439 tok)
-- `test_opera_webhooks.py` — FakeRequest: body, test_signature_accepts_webhook_secret, test_signature_rejects_cron_secret_key, te (~2033 tok)
+- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~16810 tok)
+- `test_webhooks_and_transitions.py` — FakeDB: table, select, delete, update + 21 more (~7040 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -1123,8 +1051,6 @@
 
 ## apps/mobile/
 
-- `eslint.config.mjs` — Declares require (~660 tok)
-- `package.json` — Node.js package manifest (~616 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -1140,7 +1066,6 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2539 tok)
 
 ## apps/mobile/android/
 
@@ -1153,7 +1078,6 @@
 
 ## apps/mobile/app/
 
-- `_layout.tsx` — RootLayout (~1465 tok)
 
 ## apps/mobile/app/(app)/
 
@@ -1253,7 +1177,6 @@
 
 ## apps/mobile/components/shared/
 
-- `mobileHandoff.tsx` — toneColors (~5585 tok)
 
 ## apps/mobile/components/supervisor/
 
@@ -1272,17 +1195,12 @@
 
 ## apps/mobile/components/ui/
 
-- `Button.tsx` — SIZE_STYLES (~1060 tok)
-- `EmptyState.tsx` — EmptyState (~391 tok)
-- `StateBlock.tsx` — StateBlock (~706 tok)
 
 ## apps/mobile/i18n/
 
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~11394 tok)
-- `es.json` (~12138 tok)
 
 ## apps/mobile/lib/
 
@@ -1325,9 +1243,6 @@
 
 ## apps/mobile/lib/theme/
 
-- `ThemeProvider.tsx` — ThemeModeContext (~283 tok)
-- `ToastProvider.tsx` — ToastActionsContext (~1626 tok)
-- `useTheme.ts` — Exports useTheme (~74 tok)
 
 ## apps/mobile/lib/utils/
 
@@ -1448,7 +1363,6 @@
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
-- `page.tsx` — relativeTime (~6611 tok)
 
 ## apps/web/app/(dashboard)/settings/roles/
 
@@ -1503,10 +1417,6 @@
 
 ## apps/web/e2e/
 
-- `zz-cleanup.spec.ts` — Declares EMAIL (~509 tok)
-- `zz-cleanup2.spec.ts` — Declares EMAIL (~428 tok)
-- `zz-gate-walkthrough.spec.ts` — Declares EMAIL (~1703 tok)
-- `zz-gate-walkthrough2.spec.ts` — Declares EMAIL (~1219 tok)
 
 ## apps/web/i18n/
 
@@ -1570,7 +1480,6 @@
 
 ## supabase/migrations/
 
-- `085_opera_pilot_flag.sql` (~95 tok)
 
 ## youtubeMobileResearch.md
 

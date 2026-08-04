@@ -12289,6 +12289,134 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-29T20:48:12.177Z"
+    },
+    {
+      "id": "bug-745",
+      "timestamp": "2026-08-04T07:23:10.209Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".planning/STATE.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T07:23:10.209Z"
+    },
+    {
+      "id": "bug-746",
+      "timestamp": "2026-08-04T11:21:17.702Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→14 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T11:21:17.702Z"
+    },
+    {
+      "id": "bug-747",
+      "timestamp": "2026-08-04T11:42:14.355Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".planning/STATE.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T11:42:14.355Z"
+    },
+    {
+      "id": "bug-748",
+      "timestamp": "2026-08-04T11:51:35.247Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `0074a17c`",
+      "fix": "Changed to `ee6dedbe`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T11:51:35.247Z"
+    },
+    {
+      "id": "bug-749",
+      "timestamp": "2026-08-04T11:56:39.405Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Had \"stay_reset_at\"",
+      "fix": "Changed to \"INSPECTED\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T11:56:39.405Z"
+    },
+    {
+      "id": "bug-750",
+      "timestamp": "2026-08-04T12:02:26.700Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_webhooks_and_transitions.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T12:02:26.700Z"
+    },
+    {
+      "id": "bug-751",
+      "timestamp": "2026-08-04T12:02:43.199Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T12:02:43.199Z"
+    },
+    {
+      "id": "bug-752",
+      "timestamp": "2026-08-04T12:05:34.310Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→11 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T12:05:34.310Z"
     }
   ]
 }
