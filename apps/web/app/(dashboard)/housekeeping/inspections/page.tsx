@@ -167,7 +167,7 @@ export default function InspectionsPage() {
     queryFn: () => staffApi.list(),
     staleTime: 300_000,
   })
-  const housekeepers = (staffData?.data?.staff ?? []).filter((s) => s.role === 'housekeeper')
+  const housekeepers = (staffData?.data?.staff ?? []).filter((s) => s.role === 'housekeeper' || s.role === 'housekeeping_supervisor')
 
   async function handleMarkStripped(room: ReadyToStripRoom) {
     setStrippingId(room.room_id)
