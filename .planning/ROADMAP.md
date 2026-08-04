@@ -68,7 +68,9 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.2-ROADMAP.md
   3. Manager can view all archived work orders via a dedicated "Archived" filter/tab, and restore any of them back to the active view.
   4. Manager can bulk-archive all completed work orders older than a specified age in one action.
   5. Every archive/unarchive action is recorded in the audit trail, showing who performed it, when, and which work orders were affected.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 15-01-PLAN.md — Backend: archived_at/archived_by columns (migration 089), bulk-archive/bulk-archive-by-age/bulk-unarchive endpoints, audit logging, archived filter on list_work_orders
+- [ ] 15-02-PLAN.md — Frontend: API client extension, BulkArchiveModal + ArchivedWorkOrdersPanel components, third "Archived" tab wired into work-orders/page.tsx
 
 ### Phase 16: Self-Serve Billing Management
 **Goal**: GMs can self-manage their subscription (plan changes, payment method) through the Stripe Customer Portal with accurate real-time usage/cap/cost visibility, while the hotel's revenue collection is hardened against double-charge, lost overage, and duplicate webhook effects before any of this is exposed to self-serve users.
