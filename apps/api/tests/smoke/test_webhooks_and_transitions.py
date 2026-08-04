@@ -289,8 +289,8 @@ async def test_checkout_clears_stayover_note(monkeypatch):
     assert "stayover" not in remaining_notes
 
 
-def stripe_event(event_type, obj):
-    return SimpleNamespace(type=event_type, data=SimpleNamespace(object=obj))
+def stripe_event(event_type, obj, event_id="evt_test_default"):
+    return SimpleNamespace(id=event_id, type=event_type, data=SimpleNamespace(object=obj))
 
 
 @pytest.mark.asyncio
@@ -576,6 +576,7 @@ async def test_stripe_subscription_updated_scopes_update_to_tenant(monkeypatch):
             "plan_status": "trialing",
             "stripe_subscription_id": None,
         }],
+        "stripe_webhook_events": [],
     })
     monkeypatch.setattr(webhooks_router, "supabase", db)
     sub = SimpleNamespace(
@@ -614,6 +615,7 @@ async def test_stripe_invoice_paid_updates_current_credit_ledger_period(monkeypa
             "period_start": "2026-05-01",
             "period_end": "2026-05-31",
         }],
+        "stripe_webhook_events": [],
     })
     monkeypatch.setattr(webhooks_router, "supabase", db)
     invoice = SimpleNamespace(id="in_123", subscription="sub_123")
@@ -629,6 +631,73 @@ async def test_stripe_invoice_paid_updates_current_credit_ledger_period(monkeypa
     assert db.rows["credit_ledger"][0]["stripe_invoice_id"] == "in_123"
     assert db.updates[-1][0] == "credit_ledger"
     assert db.updates[-1][2] == {"tenant_id": "hotel-a"}
+
+
+@pytest.mark.asyncio
+async def test_stripe_webhook_duplicate_event_id_is_ignored_without_reprocessing(monkeypatch):
+    db = FakeDB({
+        "subscriptions": [{
+            "tenant_id": "hotel-a",
+            "plan_status": "trialing",
+            "stripe_subscription_id": None,
+        }],
+        "stripe_webhook_events": [{
+            "event_id": "evt_dup_1",
+            "event_type": "customer.subscription.updated",
+        }],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    sub = SimpleNamespace(
+        id="sub_123",
+        status="active",
+        metadata={"hotel_id": "hotel-a"},
+        trial_end=None,
+        current_period_start=1_700_000_000,
+        current_period_end=1_702_592_000,
+    )
+    monkeypatch.setattr(
+        webhooks_router.stripe.Webhook,
+        "construct_event",
+        lambda *_args, **_kwargs: stripe_event("customer.subscription.updated", sub, event_id="evt_dup_1"),
+    )
+
+    response = await webhooks_router.stripe_webhook(FakeRequest(headers={"stripe-signature": "sig"}))
+
+    assert response == {"status": "duplicate_ignored"}
+    assert db.rows["subscriptions"][0]["plan_status"] == "trialing"
+
+
+@pytest.mark.asyncio
+async def test_stripe_webhook_new_event_id_is_recorded_and_processed(monkeypatch):
+    db = FakeDB({
+        "subscriptions": [{
+            "tenant_id": "hotel-a",
+            "plan_status": "trialing",
+            "stripe_subscription_id": None,
+        }],
+        "stripe_webhook_events": [],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    sub = SimpleNamespace(
+        id="sub_123",
+        status="active",
+        metadata={"hotel_id": "hotel-a"},
+        trial_end=None,
+        current_period_start=1_700_000_000,
+        current_period_end=1_702_592_000,
+    )
+    monkeypatch.setattr(
+        webhooks_router.stripe.Webhook,
+        "construct_event",
+        lambda *_args, **_kwargs: stripe_event("customer.subscription.updated", sub, event_id="evt_new_1"),
+    )
+
+    response = await webhooks_router.stripe_webhook(FakeRequest(headers={"stripe-signature": "sig"}))
+
+    assert response == {"status": "ok"}
+    assert db.rows["subscriptions"][0]["plan_status"] == "active"
+    assert len(db.rows["stripe_webhook_events"]) == 1
+    assert db.rows["stripe_webhook_events"][0]["event_id"] == "evt_new_1"
 
 
 @pytest.mark.asyncio

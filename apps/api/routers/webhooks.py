@@ -137,6 +137,24 @@ async def stripe_webhook(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
 
+    # BILLING-09: Stripe explicitly documents that webhook endpoints "might
+    # occasionally receive the same event more than once" — dedupe by event.id
+    # before any handler runs any side effect. Insert-or-skip, not a DB
+    # UNIQUE-constraint race guard — a duplicate delivery landing inside the
+    # race window is an accepted, extremely low-probability residual risk
+    # (see 16-RESEARCH.md).
+    existing_event = supabase.table("stripe_webhook_events")\
+        .select("event_id")\
+        .eq("event_id", event.id)\
+        .maybe_single()\
+        .execute()
+    if existing_event and existing_event.data:
+        return {"status": "duplicate_ignored"}
+    supabase.table("stripe_webhook_events").insert({
+        "event_id": event.id,
+        "event_type": event.type,
+    }).execute()
+
     if event.type in ("customer.subscription.created", "customer.subscription.updated"):
         sub = event.data.object
         hotel_id = sub.metadata.get("hotel_id")
