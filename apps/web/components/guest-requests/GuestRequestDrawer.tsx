@@ -21,6 +21,8 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onNoteAdded: () => void
+  onAdvance: (id: string, status: Exclude<GuestRequest['status'], 'open'>) => void
+  isUpdating: boolean
 }
 
 const MESSAGE_ROLES = ['front_desk', 'housekeeping_supervisor', 'engineer', 'gm'] as const
@@ -47,7 +49,7 @@ const FEATURE_STATUS_ORDER: Record<AccessibleRoomFeature['operational_status'], 
   out_of_service: 2,
 }
 
-export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Props) {
+export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAdvance, isUpdating }: Props) {
   const { t } = useTranslation()
   const { role } = useRole()
   const queryClient = useQueryClient()

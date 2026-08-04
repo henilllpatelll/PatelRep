@@ -275,6 +275,8 @@ export function GuestRequestsPage() {
         isOpen={!!drawerRequest}
         onClose={() => setDrawerRequest(null)}
         onNoteAdded={() => queryClient.invalidateQueries({ queryKey: ['guest-requests-kanban'] })}
+        onAdvance={handleAdvance}
+        isUpdating={updateMutation.isPending}
       />
 
       <NewRequestModal
