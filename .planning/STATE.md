@@ -291,14 +291,18 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (23 requirements: BILLING-01..0
 
 **Phase 16 (Self-Serve Billing Management) status: CLOSED.** All 4 plans executed (16-01, 16-02, 16-03, 16-04) — BILLING-02/03/05/06/07/08/09 backend hardening plus BILLING-01/04/05/06 frontend surface all satisfied.
 
+**17-07 CLOSED (2026-08-04, commit `7bd278e4`):** DATA-01 half fixed — `ai_interactions.interaction_type` CHECK constraint widened. New migration `091_ai_interactions_widen_interaction_type.sql` adds the 5 real-in-use-but-previously-rejected values (`work_order_creation`, `guest_request_creation`, `task_assignment`, `general` — `ai_copilot.py`'s default for any unmapped intent — and `housekeeping_briefing`) to the 9-value constraint left by migration 088, which had already documented this exact gap. Additive only: all 9 previously-allowed values kept, nothing removed. **Migration 091 not yet applied to the remote Supabase project** — matches the established convention this milestone (086, 087, 089, 090 all deployed separately); DATA-01 is not functionally closed until an orchestrator/human step applies it and verifies via `pg_get_constraintdef` that all 14 values are present. See `17-07-SUMMARY.md`.
+
+**17-08 CLOSED (2026-08-04, commit `0d31badd`):** STAFF-01 half fixed — inspection re-assign picker's staff dropdown widened to include supervisors. `inspections/page.tsx:170`'s `housekeepers` filter changed from `s.role === 'housekeeper'` to `s.role === 'housekeeper' || s.role === 'housekeeping_supervisor'`, mirroring `housekeeping/page.tsx:97`'s already-correct main assignment-picker pattern exactly. No backend change needed — `GET /staff` already returns supervisor rows, and `housekeeping.py::_ensure_housekeeper()` already accepts both roles. `tasks/page.tsx:240`'s separate housekeeper-only filter (task assignment, a different feature) confirmed untouched, per 17-RESEARCH.md Open Question 3's explicit scope decision. `npm run type-check` passes clean. **Environment note:** the target file was observed reverted between edit and verification twice during execution, consistent with concurrent agent activity in the same shared working directory this session — re-applied and committed immediately, verified via direct file read + `git show HEAD --stat`. Live browser verification of the re-assign drawer was not performed (no browser/Playwright tool available to this executor) — flagged as a follow-up before closing ROADMAP Phase 17 success criterion 5 end-to-end. See `17-08-SUMMARY.md`.
+
 ## Current Position
 
-Phase: 16 of 17 (Self-Serve Billing Management) — CLOSED
-Plan: 4 of 4 closed (16-01, 16-02, 16-03, 16-04) — Phase 16 complete
-Status: Phase 16 fully closed this session; Phase 17 (Backlog Cleanup) next
-Last activity: 2026-08-04 — Plan 16-04 (billing frontend redirect + cap/projection UI + past-due banner) executed and closed. Commits `95873a4b`/`717bf1cc`.
+Phase: 17 of 17 (Backlog Cleanup) — in progress, multiple plans executing in parallel
+Plan: 07 and 08 of 08 closed (17-07 — ai_interactions CHECK constraint widen; 17-08 — inspection re-assign picker supervisor filter); other Phase 17 plans (01-06) executing concurrently this session, see their own SUMMARYs for status
+Status: Phase 16 fully closed; Phase 17 (Backlog Cleanup) in progress
+Last activity: 2026-08-04 — Plan 17-08 (inspection re-assign picker widened to include housekeeping_supervisor, STAFF-01 half) executed and closed. Commit `0d31badd`.
 
-Progress: [████░░░░░░] v1.3: Phase 15 closed (2/2 plans), Phase 16 closed (4/4 plans)
+Progress: [████░░░░░░] v1.3: Phase 15 closed (2/2 plans), Phase 16 closed (4/4 plans), Phase 17 in progress
 
 ## Performance Metrics
 
@@ -332,8 +336,10 @@ Progress: [████░░░░░░] v1.3: Phase 15 closed (2/2 plans), Ph
 | 16 | 01 | resumed session | 2 | 5 | 2026-08-04 |
 | 16 | 03 | ~40 min | 2 | 4 | 2026-08-04 |
 | 16 | 04 | ~45 min | 3 | 4 | 2026-08-04 |
+| 17 | 07 | 5 min | 1 | 1 | 2026-08-04 |
+| 17 | 08 | 10 min | 1 | 1 | 2026-08-04 |
 
 ## Session
 
 Last session: 2026-08-04T00:00:00Z
-Stopped At: Completed 16-04-PLAN.md (billing frontend redirect, cap/projection UI, past-due banner). Phase 16 fully closed. Phase 17 (Backlog Cleanup) next.
+Stopped At: Completed 17-08-PLAN.md (inspection re-assign picker widened to include housekeeping_supervisor, STAFF-01 half). Phase 17 (Backlog Cleanup) in progress — other plans executing concurrently.
