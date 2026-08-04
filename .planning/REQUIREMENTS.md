@@ -10,10 +10,10 @@
 
 ### RBAC Audit and Normalization
 
-- [ ] **RBAC-01**: An audit artifact exists inventorying every role check across `apps/api/routers/`, classified as route-level gate vs. object-level/business-rule check
-- [ ] **RBAC-02**: `guest_requests.py`'s `DELETE /guest-requests/{id}` endpoint is gated to management roles (currently ungated — any authenticated tenant user, including a housekeeper, can permanently delete a guest request)
-- [ ] **RBAC-03**: `lost_found.py` and `auth.py`'s inline-only role checks are reviewed against the audit and any confirmed gaps are closed
-- [ ] **RBAC-04**: Duplicated/drifted role-group constants (`MANAGER_ROLES` differing between `programs.py`/`safety.py`; `hotels.py`'s `ALL_STAFF_ROLES` with `"engineer"` duplicated and `"chief_engineer"` missing) are consolidated into a single source of truth, with each collision resolved as an explicit, confirmed product decision — not auto-merged
+- [x] **RBAC-01**: An audit artifact exists inventorying every role check across `apps/api/routers/`, classified as route-level gate vs. object-level/business-rule check
+- [x] **RBAC-02**: `guest_requests.py`'s `DELETE /guest-requests/{id}` endpoint is gated to management roles (currently ungated — any authenticated tenant user, including a housekeeper, can permanently delete a guest request)
+- [x] **RBAC-03**: `lost_found.py` and `auth.py`'s inline-only role checks are reviewed against the audit and any confirmed gaps are closed
+- [x] **RBAC-04**: Duplicated/drifted role-group constants (`MANAGER_ROLES` differing between `programs.py`/`safety.py`; `hotels.py`'s `ALL_STAFF_ROLES` with `"engineer"` duplicated and `"chief_engineer"` missing) are consolidated into a single source of truth, with each collision resolved as an explicit, confirmed product decision — not auto-merged
 
 ### Deferred v1.3 Verification Closure
 
@@ -59,10 +59,10 @@
 | DOC-01 | Phase 18 | Done |
 | DOC-02 | Phase 18 | Done |
 | DOC-03 | Phase 18 | Done |
-| RBAC-01 | Phase 19 | Pending |
-| RBAC-02 | Phase 19 | Pending |
-| RBAC-03 | Phase 19 | Pending |
-| RBAC-04 | Phase 19 | Pending |
+| RBAC-01 | Phase 19 | Done |
+| RBAC-02 | Phase 19 | Done |
+| RBAC-03 | Phase 19 | Done |
+| RBAC-04 | Phase 19 | Done |
 | VERIFY-01 | Phase 20 | Pending |
 | VERIFY-02 | Phase 20 | Pending |
 | VERIFY-03 | Phase 20 | Pending |

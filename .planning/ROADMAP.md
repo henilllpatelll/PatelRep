@@ -65,7 +65,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 **Milestone Goal:** Pay down accumulated platform debt — dependency health, RBAC consistency, environment/documentation accuracy, and QA-account hygiene — without shipping new user-facing features.
 
 - [x] **Phase 18: Documentation Drift Fixes** (1 plan) - CLAUDE.md's cron mechanism, credentials note, and router domain map are corrected to match production reality (completed 2026-08-04)
-- [ ] **Phase 19: RBAC Audit and Normalization** - Every router mutation is consistently role-gated, with drifted role-group constants consolidated into one verified source of truth
+- [x] **Phase 19: RBAC Audit and Normalization** - Every router mutation is consistently role-gated, with drifted role-group constants consolidated into one verified source of truth (completed 2026-08-04)
 - [ ] **Phase 20: Close Deferred v1.3 Verification Items** - The 4 human-verification items deferred from v1.3 are confirmed live in-browser against post-RBAC-fix code
 - [ ] **Phase 21: Dev/QA Test-Data Hygiene** - Dev/QA Supabase test data can be safely identified and cleaned via an `is_test` flag plus an allowlist- and dry-run-gated cleanup script
 - [ ] **Phase 22: Expo SDK 54→57 Bump** - apps/mobile runs on Expo SDK 57.0.9 via sequential single-major hops, each gated by a green EAS Android build
@@ -154,7 +154,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 | 16. Self-Serve Billing Management | v1.3 | 4/4 | Complete | 2026-08-04 |
 | 17. Backlog Cleanup | v1.3 | 8/8 | Complete | 2026-08-04 |
 | 18. Documentation Drift Fixes | v1.4 | Complete    | 2026-08-04 | - |
-| 19. RBAC Audit and Normalization | v1.4 | 0/TBD | Not started | - |
+| 19. RBAC Audit and Normalization | v1.4 | Complete    | 2026-08-04 | - |
 | 20. Close Deferred v1.3 Verification Items | v1.4 | 0/TBD | Not started | - |
 | 21. Dev/QA Test-Data Hygiene | v1.4 | 0/TBD | Not started | - |
 | 22. Expo SDK 54→57 Bump | v1.4 | 0/TBD | Not started | - |
