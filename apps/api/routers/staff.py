@@ -133,7 +133,7 @@ async def list_staff(
             "id": r["id"],
             "user_id": r["user_id"],
             "hotel_id": r["tenant_id"],
-            "full_name": profile.get("full_name", ""),
+            "full_name": profile.get("full_name") or "",
             "email": emails_map.get(str(r["user_id"]), ""),
             "role": r["role"],
             "department_id": r.get("department_id"),
