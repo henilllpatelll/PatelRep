@@ -64,7 +64,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 
 **Milestone Goal:** Pay down accumulated platform debt — dependency health, RBAC consistency, environment/documentation accuracy, and QA-account hygiene — without shipping new user-facing features.
 
-- [ ] **Phase 18: Documentation Drift Fixes** - CLAUDE.md's cron mechanism, credentials note, and router domain map are corrected to match production reality
+- [ ] **Phase 18: Documentation Drift Fixes** (1 plan) - CLAUDE.md's cron mechanism, credentials note, and router domain map are corrected to match production reality
 - [ ] **Phase 19: RBAC Audit and Normalization** - Every router mutation is consistently role-gated, with drifted role-group constants consolidated into one verified source of truth
 - [ ] **Phase 20: Close Deferred v1.3 Verification Items** - The 4 human-verification items deferred from v1.3 are confirmed live in-browser against post-RBAC-fix code
 - [ ] **Phase 21: Dev/QA Test-Data Hygiene** - Dev/QA Supabase test data can be safely identified and cleaned via an `is_test` flag plus an allowlist- and dry-run-gated cleanup script
@@ -80,7 +80,8 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
   1. CLAUDE.md's Cron Jobs section describes the actual in-process APScheduler mechanism (`apps/api/core/scheduler.py`), not GitHub Actions.
   2. CLAUDE.md's Current Scope note states that only `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` plus Twilio/OHIP credentials are absent locally, with Stripe (test-mode) and Supabase service-role credentials confirmed present.
   3. CLAUDE.md's Domain Map table lists all 30 routers present in `apps/api/routers/`, including the 9 currently missing (`clean_sessions`, `cleaning_checklists`, `evidence`, `feedback`, `late_checkout`, `management_roi`, `programs`, `safety`, `shifts`).
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 18-01-PLAN.md — Correct CLAUDE.md's Cron Jobs, Current Scope credential note, and Domain Map sections
 
 ### Phase 19: RBAC Audit and Normalization
 **Goal**: Every mutation-capable endpoint across `apps/api/routers/` is protected by a consistent, correctly-scoped role check, with role-group constants consolidated into one verified, collision-free source of truth.
