@@ -176,6 +176,20 @@ async def stripe_webhook(request: Request):
         sub = event.data.object
         hotel_id = sub.metadata.get("hotel_id")
         if hotel_id:
+            from routers.billing import true_up_tenant
+            today = date.today()
+            period_start = date(today.year, today.month, 1)
+            try:
+                true_up_tenant(
+                    hotel_id, period_start,
+                    require_active=False, require_period_ended=False,
+                )
+            except Exception as exc:
+                logger.error(
+                    "Final true-up failed for tenant=%s on subscription.deleted "
+                    "(proceeding to cancel anyway): %s",
+                    hotel_id, exc, exc_info=True,
+                )
             supabase.table("subscriptions")\
                 .update({"plan_status": "cancelled"})\
                 .eq("tenant_id", hotel_id)\
