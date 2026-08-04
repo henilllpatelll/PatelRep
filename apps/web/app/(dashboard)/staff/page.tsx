@@ -21,6 +21,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule, type CustomRole } from '@/lib/api/staff'
+import { getInitials, getDisplayName } from '@/lib/utils/avatar'
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
@@ -89,15 +90,6 @@ type DirectFormValues = z.infer<typeof directSchema>
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
-}
-
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const minutes = Math.floor(diff / 60_000)
@@ -162,7 +154,7 @@ function ConfirmDeactivateDialog({
 
         <p className="text-sm text-gray-700">
           Are you sure you want to deactivate{' '}
-          <span className="font-medium">{staff.full_name}</span>? They will lose access to PatelRep.
+          <span className="font-medium">{getDisplayName(staff.full_name)}</span>? They will lose access to PatelRep.
         </p>
 
         <div className="flex gap-3 pt-1">
@@ -538,9 +530,9 @@ function EditStaffModal({
         <div className="px-6 py-5 space-y-5">
           {/* Identity */}
           <div className="flex items-center gap-3">
-            <Avatar name={staff.full_name} role={staff.role} />
+            <Avatar name={getDisplayName(staff.full_name)} role={staff.role} />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{staff.full_name}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">{getDisplayName(staff.full_name)}</p>
               <p className="text-xs text-gray-500 truncate">{staff.email}</p>
             </div>
           </div>
@@ -592,7 +584,7 @@ function EditStaffModal({
               </div>
               <p className="text-xs text-gray-500">
                 On scheduled days,{' '}
-                <span className="font-medium">{staff.full_name.split(' ')[0]}</span> acts as{' '}
+                <span className="font-medium">{getDisplayName(staff.full_name).split(' ')[0]}</span> acts as{' '}
                 <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> — full dashboard
                 and feature access for that role.
               </p>
@@ -751,7 +743,7 @@ export default function StaffPage() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         return (
-          member.full_name.toLowerCase().includes(q) ||
+          getDisplayName(member.full_name).toLowerCase().includes(q) ||
           member.email.toLowerCase().includes(q)
         )
       }
@@ -926,9 +918,9 @@ export default function StaffPage() {
                 <tr key={member.id} className="hover:bg-surface-2 transition-colors">
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
-                      <Avatar name={member.full_name} role={member.role} />
+                      <Avatar name={getDisplayName(member.full_name)} role={member.role} />
                       <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-ink truncate">{member.full_name}</p>
+                        <p className="text-[13px] font-medium text-ink truncate">{getDisplayName(member.full_name)}</p>
                         <p className="text-[11px] text-ink-3 truncate">{member.email}</p>
                       </div>
                     </div>
