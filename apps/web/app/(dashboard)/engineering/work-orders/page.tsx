@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
+import { AlertCircle, Plus, Sparkles, Loader2, Archive } from 'lucide-react'
 import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { ApiClientError } from '@/lib/api/client'
@@ -20,6 +20,8 @@ import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderMo
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
 import { EngineeringRoomBoard } from '@/components/engineering/EngineeringRoomBoard'
+import { BulkArchiveModal } from '@/components/engineering/BulkArchiveModal'
+import { ArchivedWorkOrdersPanel } from '@/components/engineering/ArchivedWorkOrdersPanel'
 import { formatDistanceToNowStrict } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -239,8 +241,9 @@ export default function WorkOrdersPage() {
   const hotelId = getHotelIdFromToken(session?.access_token)
   const queryClient = useQueryClient()
 
-  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board'>('work-orders')
+  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board' | 'archived'>('work-orders')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [aiTriageActive, setAiTriageActive] = useState(false)
@@ -360,6 +363,7 @@ export default function WorkOrdersPage() {
           tabs={[
             { label: t('engineering.workOrdersPage.tabWorkOrders'), active: activeTab === 'work-orders', onClick: () => setActiveTab('work-orders') },
             { label: t('engineering.workOrdersPage.tabRoomBoard'), active: activeTab === 'room-board', onClick: () => setActiveTab('room-board') },
+            { label: t('engineering.workOrdersPage.tabArchived'), active: activeTab === 'archived', onClick: () => setActiveTab('archived') },
           ]}
           actions={activeTab === 'work-orders' && (
             <>
@@ -372,6 +376,12 @@ export default function WorkOrdersPage() {
                 {aiTriageLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {t('engineering.workOrdersPage.aiTriage')}
               </Button>
+              {canManage && (
+                <Button variant="outline" onClick={() => setShowArchiveModal(true)} className="shrink-0">
+                  <Archive className="w-4 h-4" />
+                  {t('engineering.workOrdersPage.archiveAction')}
+                </Button>
+              )}
               {canManage && (
                 <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
                   <Plus className="w-4 h-4" />
@@ -440,8 +450,10 @@ export default function WorkOrdersPage() {
                 ))}
               </div>
           </>
-        ) : (
+        ) : activeTab === 'room-board' ? (
           <EngineeringRoomBoard />
+        ) : (
+          <ArchivedWorkOrdersPanel />
         )}
 
         {/* Modals */}
@@ -455,6 +467,11 @@ export default function WorkOrdersPage() {
             }}
           />
         )}
+        <BulkArchiveModal
+          isOpen={showArchiveModal}
+          onClose={() => setShowArchiveModal(false)}
+          onArchived={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })}
+        />
       </div>
 
       {activeTab === 'work-orders' && <FailurePredictionSidebar />}
