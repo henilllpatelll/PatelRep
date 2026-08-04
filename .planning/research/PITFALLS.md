@@ -1,330 +1,299 @@
 # Pitfalls Research
 
-**Domain:** Self-serve billing/subscription management on a LIVE Stripe integration (base + metered AI-credit overage) and bulk-archive for Engineering work orders on an append-only audit + per-tenant RLS system
-**Researched:** 2026-08-03
-**Confidence:** HIGH (billing pitfalls verified against current Stripe docs + read of live `billing.py`, `webhooks.py`, `credits.py`, `internal.py::monthly_trueup`; archive pitfalls derived from read of `065_work_order_transition_audit.sql` + `transitions.py` + documented Realtime/cron constraints)
+**Domain:** Platform/ops hardening on a live production system — multi-major Expo SDK bump (54→57) on a documented-fragile EAS pipeline, RBAC-check normalization across 21 FastAPI routers, and test-data hygiene on a Supabase project shared by local dev/QA/production
+**Researched:** 2026-08-04
+**Confidence:** HIGH for RBAC and test-data findings (all derived from direct reads of live `apps/api/routers/*.py`, `supabase/migrations/070_texas_safety_compliance.sql`, `.wolf/buglog.json` incident history, and project memory); HIGH for Expo SDK 55 New-Architecture-mandatory fact and repo-config divergence (verified against `app.json`/`android/gradle.properties`); MEDIUM for general SDK 56/57 native-module-risk framing (WebSearch-verified against Expo's own changelog, not Context7)
 
-> This app has a documented three-bug history that this milestone must NOT repeat:
-> 1. **Flat-cost billing** (v1.0) — charged fixed cost instead of deriving from real usage (CLAUDE.md A3).
-> 2. **Fake success** (v1.2) — UI claimed success without doing the underlying work.
-> 3. **Undeployed migration** (v1.2) — migrations written, tested, merged, but never applied to the live Supabase project.
+> This research found **three live, currently-existing inconsistencies in the running codebase** that are exactly the failure mode this milestone must avoid re-creating at scale — they are not hypothetical:
+> 1. `apps/api/routers/hotels.py:11` — `ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "engineer")` — `"engineer"` listed **twice**, `"chief_engineer"` **missing entirely**.
+> 2. `MANAGER_ROLES` is defined as **two different role sets** under the same name: `apps/api/routers/programs.py:43` = `("gm","housekeeping_supervisor","engineer","chief_engineer")` vs. `apps/api/routers/safety.py:34` = `("gm","housekeeping_supervisor","chief_engineer")` — `"engineer"` is present in one, absent in the other.
+> 3. `apps/mobile/app.json` sets `newArchEnabled: true` for both platforms, while the checked-in `apps/mobile/android/gradle.properties` sets `newArchEnabled=false` and pins `reactNativeArchitectures=x86_64` (emulator-only) — a config the project's own memory (`.wolf/buglog.json` bug 2026-06-05, project memory `project_eas_build_status.md`) once used as a deliberate build-fix.
 >
-> Every pitfall below is tagged with which of these classes it risks re-triggering.
+> These are cited throughout the pitfalls below as concrete evidence, not analogies.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Portal cancellation silently drops already-accrued overage (revenue leak)
+### Pitfall 1: SDK 55 makes New Architecture mandatory — the repo's own escape hatch stops working mid-bump
 
 **What goes wrong:**
-The `monthly-trueup` cron (`internal.py:239`) only invoices tenants whose `plan_status == "active"`. If a GM uses the (now self-serve) Customer Portal to cancel mid-cycle, the Stripe `customer.subscription.deleted` webhook sets `plan_status = "cancelled"` (`webhooks.py:157-164`). The `credit_ledger.credits_used` overage accrued for that partial month is then **never** pushed to Stripe — the cron skips the tenant. The hotel used AI credits over the cap and is billed $0 for them.
+Expo SDK 54 is the last release that supports Legacy Architecture; SDK 55 and later **cannot run with New Architecture disabled** (verified via Expo's own SDK 55 changelog: "SDK 54 is the final release to include Legacy Architecture support, and you will not be able to use the Legacy Architecture in SDK 55 projects and later"). This project's own build history shows New Architecture was previously the *cause* of a build failure, and the documented fix path included setting `newArchEnabled=false` in `android/gradle.properties`. That escape hatch is currently still present in the checked-in `apps/mobile/android/gradle.properties` (`newArchEnabled=false`, `reactNativeArchitectures=x86_64`) even though `app.json` already declares `newArchEnabled: true`. The moment the bump crosses SDK 54→55, this local/legacy config becomes not just stale but **invalid** — a future contributor who reaches for the old fix (because it's still sitting in the repo) will find it silently ignored or, worse, will hit a build failure with no documented recovery path, because the "just disable New Arch" playbook this team used before no longer exists.
 
 **Why it happens:**
-Overage is billed *retroactively* by a month-end cron, but self-serve cancellation can happen *any* day. The two systems were never reconciled because, pre-self-serve, cancellations were rare/manual. Stripe confirms: on cancellation it "stops automatic collection of all finalized invoices," and pending invoice items only bill "at the end of the next billing period" — but the trueup never *creates* the invoice item for a cancelled sub in the first place.
+The gradle.properties file is a native build artifact that is *not* regenerated by `app.json` unless the checked-in `android/` directory is deleted and Expo prebuild regenerates it — but this project's `.easignore` **excludes** `android/` from EAS uploads (by explicit prior design, per the "Mobile EAS Android CNG archive rule" fix), meaning EAS builds always prebuild fresh from `app.json`, while a contributor running `expo run:android` locally uses the stale checked-in file. The two build paths (local vs. EAS) can silently diverge on exactly the flag whose meaning is about to change.
 
 **How to avoid:**
-On `customer.subscription.deleted`, before flipping to `cancelled`, run an immediate final overage true-up for the current period against `credit_ledger` (or set `invoice_now`/create the InvoiceItem then). Alternatively, have the trueup process `plan_status IN ('active','cancelled')` for any ledger period that overlaps the cancellation date and hasn't been trued-up yet.
+Before touching `expo` version numbers: (1) delete the stale New-Architecture override from `android/gradle.properties` (or delete `android/` locally and let prebuild regenerate it, matching what EAS already does), (2) grep the whole mobile tree for `newArchEnabled` and `reactNativeArchitectures` and make `app.json` the single source of truth, (3) do the SDK bump in the documented Expo sequence — one SDK at a time (54→55→56→57), running `npx expo-doctor@latest` and a full local + EAS build after each hop, not one jump to 57.
 
 **Warning signs:**
-A cancelled tenant with `credit_ledger.credits_used > credits_included` and no corresponding Stripe InvoiceItem. Monthly overage revenue lower than dashboard-reported credit consumption.
+`expo-doctor` warns about New Architecture config mismatch between `app.json` and native project files. A local `expo run:android` build succeeds while EAS fails (or vice versa) on the same commit. Native module crash logs referencing Fabric/TurboModules only on one build path.
 
-**Phase to address:** Self-serve billing phase — this is the #1 flat-cost-class regression risk of the milestone.
-**Risks re-triggering:** Flat-cost / revenue-integrity (A3).
+**Phase to address:** Expo SDK bump phase — must be the *first* step, before any version bump lands.
 
 ---
 
-### Pitfall 2: `monthly-trueup` is not idempotent and runs 3–4 nights in a row
+### Pitfall 2: Multi-hop SDK jump skips the intermediate safety net the "zero new dependency" convention relies on
 
 **What goes wrong:**
-The cron is scheduled `0 0 28-31 * *` — it fires on the 28th, 29th, 30th, **and** 31st. Each run calls `stripe.InvoiceItem.create(...)` (`internal.py:256`) with **no idempotency key** and no "already invoiced this period" guard. As `credits_used` keeps climbing across those nights, a hotel over its cap can receive **2–4 separate overage InvoiceItems** in one month. Adding self-serve billing UI (where GMs now *see* their invoices via `/billing/invoices`) means customers will finally notice these duplicates.
+CLAUDE.md and multiple phase plans document a hard project convention: "zero new npm dependencies planned by design; any exception requires a green EAS build before merging." That convention was designed and tested against **single-step, patch-level** changes (e.g., `npm audit fix` bumping `expo`/`babel-preset-expo`/`expo-updates` by a patch). A 54→57 jump is not that — Expo's own guidance for this exact case is `npx expo install expo@57.0.0 --fix` run **sequentially per major**, each followed by `expo-doctor` and a fresh native build, because SDK 56 alone removed the Objective-C++ interop middle layer in favor of direct Swift/C++ JSI calls and changed the default Hermes bytecode diffing behavior — changes big enough that skipping straight to 57 risks masking which specific SDK hop broke a given native module. The project has direct precedent for this exact failure class: a prior `tar` override to v7 broke `expo prebuild` outright (buglog: "Do NOT override tar to v7 — it breaks expo prebuild"), and pinning `react-test-renderer` to the wrong React minor caused an ERESOLVE failure under `legacy-peer-deps`.
+Additionally, `@expo/vector-icons` (^15), `expo-speech-recognition` (^0.3.2, a non-Expo-core native module used for voice input), and `expo-sqlite` are all native-module dependencies whose Expo-SDK-major compatibility is not guaranteed across a 3-major jump — none of them are in Expo's own "no changes needed" surface.
 
 **Why it happens:**
-The `28-31` schedule is a "catch month-end regardless of length" hack; the handler was written assuming a single run. There is no `overage_invoiced_at` / `trueup_invoice_item_id` column on `credit_ledger` to detect a prior run.
+"Zero new dependencies" was written to prevent *unplanned* npm churn, not to guarantee that *existing* dependencies remain compatible across a multi-major native runtime change. Teams conflate "we didn't add anything" with "nothing needs updating," but Expo SDK majors force transitive native-module version bumps (React Native itself, Hermes, autolinking) regardless of what's in `package.json`.
 
 **How to avoid:**
-(a) Pass a deterministic `idempotency_key` to `InvoiceItem.create`, e.g. `f"trueup:{tenant_id}:{period_start.isoformat()}"` — Stripe dedupes identical keys for 24h, which does NOT cover a 4-day window, so *also* (b) add an `overage_invoiced_at` (or `trueup_invoice_item_id`) column to `credit_ledger`, set it on success, and skip ledgers already stamped. Belt-and-suspenders because the idempotency window is shorter than the cron window.
+Treat this as N single-major upgrades, not one bump: `expo install expo@55 --fix` → doctor → full EAS build → repeat for 56, then 57. After each hop, specifically re-verify `expo-speech-recognition` (voice input is a documented AI-copilot fast-path feature) and `expo-sqlite` (offline queue) against a real Android build, since these are the two dependencies most likely to have native-module ABI breaks that `expo-doctor` won't catch pre-build.
 
 **Warning signs:**
-Multiple InvoiceItems with identical `AI Credits Overage` descriptions for the same customer in one billing period. `invoices_created` count from the cron > number of distinct over-cap tenants.
+`expo-doctor` passes but the EAS build fails with a native linking error naming one of the non-core Expo packages. Voice input or offline sync silently stops working post-upgrade despite a green build (these are exactly the surfaces without existing e2e coverage per the mobile test suite gaps noted in project memory).
 
-**Phase to address:** Self-serve billing phase (fix before exposing invoices in the UI).
-**Risks re-triggering:** Flat-cost / revenue-integrity (A3).
+**Phase to address:** Expo SDK bump phase — sequence the migration as explicit per-major steps in the phase plan, each with its own EAS-build gate.
 
 ---
 
-### Pitfall 3: Bulk-archive writes zero audit rows (append-only trail broken by a set-based UPDATE)
+### Pitfall 3: Existing Hermes/build workarounds are re-applied blindly instead of re-validated
 
 **What goes wrong:**
-The existing single-item path (`transition_work_order_with_audit`, migration 065) inserts exactly one `operational_audit_events` row per state change inside a `SECURITY DEFINER` RPC. A bulk-archive built for "performance" as a single `UPDATE work_orders SET is_archived = true WHERE id IN (...)` produces **zero** audit rows — the append-only history the whole table exists to guarantee is silently bypassed. Auditors later see work orders that transitioned to archived with no actor, no timestamp, no reason.
+`apps/mobile/babel.config.js` carries `plugins: ['dynamic-import-node']` specifically because `@supabase/supabase-js` uses a variable `import()` that older Hermes rejected — a fix discovered and documented in project memory. SDK 56 changed Hermes bytecode diffing defaults and reworked the native module call path; it is not verified whether this specific Hermes limitation still exists on the post-bump Hermes version. A team doing the SDK bump commonly just re-applies every old workaround "for safety" without testing whether it's still needed, still correct, or now actively harmful (e.g., a babel transform interacting badly with a newer bundler default).
 
 **Why it happens:**
-The append-only trigger only blocks `UPDATE`/`DELETE` *on `operational_audit_events` itself* — it does **not** force a write when `work_orders` changes. Nothing at the DB level compels an audit insert, so a bulk path that skips the RPC looks correct and passes tests that only check `is_archived`.
+Workarounds accumulate in config files with no expiry marker and no test asserting *why* they're needed, so nobody removes them — they're only ever added to.
 
 **How to avoid:**
-Implement bulk-archive as a `SECURITY DEFINER` RPC that writes one `operational_audit_events` row per work order (`action = 'work_order.archived'`, `old_state`/`new_state`, `actor_id`, `actor_role`, `reason_code`, `source`) via `INSERT ... SELECT`, mirroring migration 065. Add a test asserting `count(audit_events) == count(archived_work_orders)` for the batch.
+When bumping past SDK 55, explicitly re-test the specific failure each workaround was added for (temporarily remove `dynamic-import-node` from babel config, run a build, see if the Supabase dynamic-import Hermes error reproduces) before assuming it's still required. Same treatment for the `.npmrc` `legacy-peer-deps=true` — verify whether the React 19 peer-dep conflict it was added for (React 18.2.0-era per an earlier bug log entry, now React 19.1.0) still exists at the new dependency graph.
 
 **Warning signs:**
-`SELECT count(*) FROM operational_audit_events WHERE action='work_order.archived'` lags behind the number of archived work orders. Archive UI shows a success toast but the WO's history tab has no "archived" entry.
+A workaround that predates the current React/RN version is carried forward with no re-test note in the phase's verification steps.
 
-**Phase to address:** Bulk-archive phase.
-**Risks re-triggering:** Fake-success (audit says it happened; audit trail says it didn't).
+**Phase to address:** Expo SDK bump phase, as an explicit "re-validate legacy workarounds" checklist step before closing the phase.
 
 ---
 
-### Pitfall 4: `archived` modeled as a work-order *status* — collides with the state machine, crons, and CHECK constraint
+### Pitfall 4: A shared constant name silently means two different role sets in two files — text-based "normalization" will pick the wrong one
 
 **What goes wrong:**
-A tempting shortcut is adding `'archived'` to the `work_orders.status` enum. But `status` is governed by a CHECK constraint (`065`: `status IN ('open','escalated','in_progress','on_hold','completed','cancelled')`) and a strict transition state machine (`transitions.py::_ALLOWED_TRANSITIONS`). Adding a 7th status breaks the `Literal` type, the transition table, and every cron that filters on status (escalation check, predictions). Archived work orders would also need transitions *out* of archived, ballooning the matrix.
+`MANAGER_ROLES` already exists as a named role-tuple in **two separate routers** with **different membership**:
+- `apps/api/routers/programs.py:43` → `("gm", "housekeeping_supervisor", "engineer", "chief_engineer")`
+- `apps/api/routers/safety.py:34` → `("gm", "housekeeping_supervisor", "chief_engineer")` (no `"engineer"`)
+
+If a normalization pass consolidates these into one shared `MANAGER_ROLES` constant in `middleware/auth.py` (or a new `roles.py`) without first asking *why* they differ, it will either **loosen** safety.py routes (giving line-level `engineer`s access to safety-compliance actions that were deliberately restricted to management + chief engineer) or **tighten** programs.py routes (removing `engineer` access that operational-programs routes currently rely on). Both directions are silent, ship clean, pass generic RBAC tests (which usually assert "gm can" / "housekeeper can't," not the full boundary), and only surface when a specific role hits a specific route in production.
 
 **Why it happens:**
-"Archived" feels like a lifecycle state, so it's modeled alongside the others instead of as an orthogonal flag.
+Convenience constants were invented independently per-router as each domain was built, with nobody checking whether the same English name was already taken elsewhere with different intent. There is currently no canonical role-matrix file — `require_role()` itself (`apps/api/middleware/auth.py:127`) is a generic `*roles: str` dependency with no enum, no central registry, and no compile-time or test-time check that two same-named tuples match.
 
 **How to avoid:**
-Archive is **orthogonal** to status. Add a separate `is_archived BOOLEAN NOT NULL DEFAULT false` + `archived_at TIMESTAMPTZ` (+ optionally `archived_by`) column. Leave the status enum and transition state machine untouched. Only allow archiving work orders already in a terminal status (`completed`/`cancelled`) — enforce this in the RPC, not just the UI.
+Before any consolidation, build a route-by-route inventory (endpoint → current effective role set → git blame/PR context for *why* that set was chosen) and treat every discrepancy as a **product decision to confirm with the domain, not a bug to auto-fix**. Do not rename-and-merge same-named constants — diff their contents first. Any genuinely-intended single source of truth should live in `middleware/auth.py` as typed frozensets per logical permission tier (e.g., `SAFETY_MANAGERS`, `OPERATIONS_MANAGERS`), not a single overloaded `MANAGER_ROLES`.
 
 **Warning signs:**
-PR diff touches the `work_orders_status_check` constraint or `_ALLOWED_TRANSITIONS`. Escalation cron starts throwing on an unknown status.
+`grep -rn "ROLES = (" apps/api/routers/` returns the same identifier name in more than one file. A normalization PR diff shows a route's role list changing membership (not just becoming a named constant) without an explicit "this route's set changed because X" note.
 
-**Phase to address:** Bulk-archive phase (schema design step).
-**Risks re-triggering:** Non-regression (breaks escalation/prediction crons and the transition validator).
+**Phase to address:** RBAC normalization phase — must be step 1 (inventory + diff), before any consolidation code is written.
 
 ---
 
-### Pitfall 5: Bulk-archive trusts a client-supplied ID list → cross-tenant archive (IDOR)
+### Pitfall 5: A role is duplicated and another is silently dropped inside a single constant — copy-paste, not malice
 
 **What goes wrong:**
-Bulk endpoints take a list of work-order IDs. If the archive query is `...update().in_("id", ids)` without a tenant filter, a GM can pass another hotel's work-order IDs and archive them. The service-role Supabase client used by the API **bypasses RLS**, so the DB won't stop it — RLS is only the "second layer" (CLAUDE.md), and the SELECT-only RLS policy on `operational_audit_events` doesn't guard `work_orders` writes at all.
+`apps/api/routers/hotels.py:11`: `ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "engineer")`. `"engineer"` appears twice; `"chief_engineer"` — a real, distinct role in this system (`middleware/auth.py` `CurrentUser.role`, and used elsewhere as its own entry in `require_role()` calls) — is **absent**, despite the constant's name claiming to cover "all staff." Any route currently gated by `ALL_STAFF_ROLES` silently 403s chief engineers today. A normalization pass that treats this constant as already-correct and just "extracts" it to a shared module will **propagate the bug** to every router that then imports the shared version, widening the blast radius of an existing defect instead of fixing it.
 
 **Why it happens:**
-Single-item endpoints get away with a bare `.eq("id", id)` because the ID came from that tenant's own list. Bulk endpoints accept arbitrary arrays, and the tenant scope is easy to forget when iterating.
+Role tuples are hand-typed tuples of string literals with no type safety, no `Enum`, and no test asserting set membership against the canonical 6-role list (`housekeeper`, `engineer`, `housekeeping_supervisor`, `chief_engineer`, `front_desk`, `gm` per CLAUDE.md). A typo/duplicate is indistinguishable from an intentional restriction at review time.
 
 **How to avoid:**
-Every bulk query MUST include `.eq("hotel_id", current_user.hotel_id)` (or pass `p_tenant_id` into the RPC and `WHERE tenant_id = p_tenant_id` on the UPDATE, exactly as `transition_work_order_with_audit` does). Return per-ID results so callers can't assume all requested IDs were in-scope. Gate the route with `require_role("housekeeping_supervisor","engineer","gm")` — never a floor role.
+As part of the RBAC-normalization phase, first write one test that asserts every `require_role(...)` argument list and every named role-constant only contains values from the canonical role enum, contains no duplicates, and — for constants named "ALL_*" or "ANY_*" — actually contains all 6 roles. Run it *before* refactoring to catch pre-existing bugs like this one as a documented finding, not something the refactor accidentally "launders" into looking intentional.
 
 **Warning signs:**
-The archive query has no `hotel_id`/`tenant_id` predicate. `archived` counts that exceed the number of IDs the requesting tenant actually owns.
+Any role-tuple with a repeated string literal. Any `ALL_*`/`ANY_STAFF`-named constant with fewer than the full canonical role count.
 
-**Phase to address:** Bulk-archive phase (endpoint + RPC).
-**Risks re-triggering:** Non-regression / security (multi-tenancy invariant).
+**Phase to address:** RBAC normalization phase — covered by the same audit-test as Pitfall 4, run first.
 
 ---
 
-### Pitfall 6: Neither Portal nor bulk-archive flows are exercisable locally → "looks done but isn't"
+### Pitfall 6: Normalizing to role-only checks strips out co-located business-rule authorization that isn't expressible as a role
 
 **What goes wrong:**
-There are **no local Stripe credentials** (CLAUDE.md Current Scope): the Portal session, checkout, webhook signature verification, and trueup InvoiceItem creation cannot run end-to-end on localhost. A "Manage subscription" button that opens `stripe.billing_portal.Session.create` will pass mocked tests and *look* finished, then 500 in production (bad `return_url`, unconfigured Portal, wrong price, missing customer). This is precisely how the v1.2 fake-success class arises.
+`apps/api/routers/evidence.py` had a real, already-fixed incident (bug-444, 2026-07-21): an acknowledgement mutation checked only authentication/role and not whether the target document's property applicability was still current, letting an "unsupported role" acknowledge a document and letting staff acknowledge a procedure whose applicability had already been removed. The fix added both an explicit role gate *and* an applicability re-check in the same code path. If a later normalization effort mechanically replaces ad hoc inline checks with a single `Depends(require_role(...))` pattern, it is easy to lift out the role check into the dependency and **leave the business-rule check behind unmoved, or drop it entirely** if the refactor conflates "authorization" with "role membership" — RBAC is necessary but not sufficient for routes like this one.
 
 **Why it happens:**
-Local mocks/fixtures return happy-path objects, so the UI shows success. The failure only manifests against the live Stripe account and the real webhook endpoint.
+"Normalize the RBAC pattern" is naturally scoped to what `require_role()` can express (role membership), so anything bundled with the role check that *isn't* a role check (state validity, applicability windows, ownership) is easy to treat as out-of-scope for the refactor and get lost in the diff, especially across 21 routers where reviewers can't hold every route's full authorization logic in their head.
 
 **How to avoid:**
-Use the **Stripe CLI in test mode** as an explicit phase step: `stripe listen --forward-to localhost:8000/webhooks/stripe` to replay real signed events, and `stripe trigger customer.subscription.deleted` / `invoice.paid` to validate the handlers. Verify the **Customer Portal is configured in the Stripe Dashboard** (test *and* live mode are separate configurations). Do not accept "button opens something" as done — assert the resulting DB state changes (`plan_status`, ledger stamp) after a replayed webhook.
+Before refactoring any given route, explicitly classify its current authorization logic into "role membership" (goes in `require_role`) vs. "business-state validity" (must remain as an explicit in-handler check, independently tested). Never assume a route's only authorization concern is role — grep each router for post-`require_role` checks (`.eq(`, `if current_user`, state comparisons) before touching it, and keep them.
 
 **Warning signs:**
-Tests only assert the mock was called, not the resulting `subscriptions`/`credit_ledger` row. No `stripe listen` in the phase's verification steps. Portal button works in demo but returns a Stripe "configuration not found" error in prod.
+A route's line count drops significantly after "just" adding `require_role` because inline validation logic was removed along with the informal role check it used to sit next to. Regression tests for `evidence.py`'s applicability re-check (added for bug-444) start failing during the normalization phase — treat that as a hard stop, not a test to update.
 
-**Phase to address:** Self-serve billing phase — bake Stripe-CLI replay into the phase's Definition of Done.
-**Risks re-triggering:** Fake-success.
+**Phase to address:** RBAC normalization phase — per-route classification step, with `evidence.py` as the canonical "don't regress this" reference case.
 
 ---
 
-### Pitfall 7: New billing/archive migrations merged but never applied to the live Supabase project
+### Pitfall 7: A role missing from a shared multi-role endpoint breaks a specific UI surface, not "RBAC in general"
 
 **What goes wrong:**
-This milestone needs new schema: an idempotency/`overage_invoiced_at` column on `credit_ledger` (Pitfall 2), and `is_archived`/`archived_at` + an index + the bulk-archive RPC on `work_orders` (Pitfalls 3–5). If these are written and merged but not `apply_migration`'d to the live project (exactly what happened twice in v1.2), the API code will reference columns/RPCs that don't exist → 500s in prod that green local tests never caught.
+bug-277 (2026-06-30): `GET /staff` required `gm`/`housekeeping_supervisor`/`engineer`, but `front_desk` was missing even though the Housekeeping `RoomStatusBoard` component calls `staffApi.list()` for **all** roles that view the board, to resolve housekeeper names. The result was a 403 with console errors specifically for front-desk users on a specific screen — not a broad, easily-noticed failure. A single generic role-gate on an endpoint is often serving multiple call sites (web dashboard section, mobile equivalent, an internal cron, an AI Copilot tool call) each with a different set of roles that legitimately need it, and centralizing the check can make it easy to gate by "what role owns this domain" (e.g., staff → HR-ish domain → managers only) instead of "what roles actually call this in practice."
 
 **Why it happens:**
-Migrations live in `supabase/migrations/` as SQL files; nothing in CI guarantees they were pushed to the remote Supabase project. Local tests run against a schema that may already have the columns.
+The role gate is usually written when the endpoint is created, reflecting the *original* caller's role. New callers (a different dashboard section, a new mobile screen) get added later and nobody revisits the original gate.
 
 **How to avoid:**
-Make **"verify migration applied to the live Supabase project"** an explicit phase-gate step (mirroring the v1.2 precedent). Concretely: after merge, run `list_tables` / query `information_schema.columns` against the remote project to confirm `credit_ledger.overage_invoiced_at`, `work_orders.is_archived`, and the archive RPC exist before closing the phase. Next sequential migration numbers start at **085** (latest applied is 084) — and watch the documented numbering-collision gotcha (e.g. `0201`, dual `039`s).
+Before normalizing any endpoint's role gate, grep both `apps/web` and `apps/mobile` for every call site of that endpoint's typed API client function and cross-reference which roles' screens actually invoke it, not just which role "owns" the domain conceptually. Add this cross-reference as a required artifact (a short table: endpoint → calling surfaces → roles) for each router touched in the normalization phase.
 
 **Warning signs:**
-`column ... does not exist` / `function ... does not exist` errors in Railway API logs post-deploy. A migration file present in git with no corresponding remote schema object.
+A role gate is tighter than the set of roles whose UI screens call that endpoint (found via the web/mobile lib/api grep, not by reading the router in isolation).
 
-**Phase to address:** Both phases — as a closing gate, not a mid-phase assumption.
-**Risks re-triggering:** Undeployed migration (the exact v1.2 failure).
+**Phase to address:** RBAC normalization phase — cross-surface call-site audit, same step as Pitfall 4's inventory.
 
 ---
 
-### Pitfall 8: Self-serve upgrade/downgrade drifts `credits_included`/`cap_cents` from the live plan
+### Pitfall 8: No `is_test`/`is_demo` flag exists anywhere in the schema — cleanup has nothing to filter on except heuristics
 
 **What goes wrong:**
-The local `subscriptions` mirror stores `credits_included`, `cap_cents`, `plan_status`. Both the credit gate (`credits.py:118-127`) and the trueup (`internal.py:250-253`) read these local values, not Stripe. If self-serve lets a GM change plan (or Stripe changes it via proration), and the webhook doesn't sync `credits_included`/`cap_cents`, the app enforces the *old* allowance/cap while Stripe bills the *new* plan — over- or under-charging. Note `credit_ledger` for the month is created **once** with the `credits_included` value that was current on first AI use (`credits.py:92-99`); a mid-month plan change won't retroactively update the open ledger.
+There is no `is_test`, `test_tenant`, `demo`, or `sandbox` column on `tenants`, `hotels`, or any other table in `supabase/migrations/` (confirmed by search — zero matches). Documented manual/Playwright testing runs directly against a real, named, production hotel tenant ("Sonesta ES Suites Fort Worth Fossil Creek," per project reference credentials) using its real GM login on the live Railway-deployed API and the shared Supabase project. Any test-data-cleanup script for this milestone must therefore invent a way to identify "test data" with **zero existing schema support** — which almost always means someone reaches for a name-pattern heuristic (`WHERE hotel_name ILIKE '%test%'` or `WHERE created_at > X AND email LIKE '%@test%'`), and a heuristic like that can match legitimate tenant or guest data that happens to contain the word "test" (a hotel's actual guest named "Test Testerman," a real "Test Kitchen" conference room note, a hotel that ran an internal system called "TestFest").
 
 **Why it happens:**
-The `customer.subscription.updated` handler (`webhooks.py:140-155`) syncs `plan_status`/period fields but **not** `credits_included` or `cap_cents`. Plan entitlements were assumed static.
+Test data hygiene was never a first-class schema concern because the project didn't have a separate staging database — "test data" and "real data" are, by construction, indistinguishable at the schema level today.
 
 **How to avoid:**
-On `customer.subscription.updated`, map the Stripe price/product to entitlements and update `credits_included` + `cap_cents`. Decide and document mid-cycle policy: whether an in-progress `credit_ledger` row's `credits_included` is re-based on upgrade (and prorate the cap the same way Stripe prorates). Keep the cap as `$2.50/room/month × room_count` — recompute if room count changes.
+Do not write a blanket query. Design the cleanup phase around an **explicit, human-curated allowlist of `hotel_id`/`tenant_id` values known to be test/QA fixtures**, produced by manually cross-referencing `tenants` against the team's own memory of which hotels were created for testing (starting from the one documented production test account, plus a manual read of the full `tenants` table row-by-row with a human sign-off per row before any delete). Add the schema-level `is_test BOOLEAN NOT NULL DEFAULT false` column as part of this milestone specifically so future cleanup never again needs a heuristic — this is a one-time debt-payoff opportunity, not optional polish.
 
 **Warning signs:**
-`subscriptions.credits_included` never changes despite plan switches. Cap enforcement (402 "cap reached") triggers at a threshold that doesn't match the customer's current plan.
+Any cleanup script whose `WHERE` clause is a string match on name/email rather than an explicit `IN (...)` list of pre-approved UUIDs. A cleanup PR with no accompanying human-reviewed list of exactly which `hotel_id`s are affected.
 
-**Phase to address:** Self-serve billing phase (webhook entitlement sync).
-**Risks re-triggering:** Flat-cost / revenue-integrity (A3) — wrong allowance is a cousin of fixed-cost billing.
+**Phase to address:** Test-data-cleanup phase — the allowlist-and-flag design must be decided before any DELETE/UPDATE statement is written, and should be the phase's first deliverable.
 
 ---
 
-### Pitfall 9: Bulk-archive floods the Realtime Engineering board / leaves archived WOs visible
+### Pitfall 9: The append-only tables are the *safe* ones — the real danger is the ordinary mutable tables a cleanup script touches without a trigger to stop it
 
 **What goes wrong:**
-Engineering Work Orders is one of only three Realtime surfaces (CLAUDE.md A2, migration 030). A bulk UPDATE of N work orders fires **N** Realtime change events at once → board flicker, thundering-herd re-renders, and possible dropped events. Worse: if the board's query doesn't filter `is_archived = false`, archived work orders keep showing (or reappear when a later event lands), making the archive look like it "didn't work."
+`controlled_incidents` and `controlled_incident_events` (migration `070_texas_safety_compliance.sql:99-101`) have a `BEFORE UPDATE OR DELETE` trigger (`reject_controlled_incident_mutation()`) that raises `'Controlled incidents are append-only; add a controlled_incident_event instead.'` on any attempted mutation — a cleanup script hitting these tables gets a **hard, loud failure**, which is actually the best-case outcome. The real risk is everywhere else: `room_status`, `work_orders`, `guest_requests`, `logbook_entries`, `lost_found_items`, and dozens of other tables have **no such protection** and will accept a DELETE or UPDATE silently and irreversibly (standard `ON DELETE CASCADE`/`RESTRICT` FKs govern referential integrity, not data-safety intent). A cleanup script written and tested against the append-only tables (where mistakes are caught immediately) can build false confidence that the *pattern* is safe, then get run against the much larger set of ordinary tables where the same mistake is unrecoverable.
 
 **Why it happens:**
-Archive was scoped as a data operation; the Realtime board's existing query and subscription filters weren't updated to exclude archived rows. Bulk = many simultaneous replica-identity change events.
+The append-only trigger was added for a specific Texas safety-compliance/legal-hold requirement (evidentiary integrity for incident records), not as a general test-data-safety mechanism — but its presence can be mistaken for "the dangerous tables are protected" when it's actually the opposite: everything *without* that trigger is the higher-risk surface for this cleanup task.
 
 **How to avoid:**
-Add `is_archived = false` to the board's list query AND to any Realtime subscription filter. Consider a single "archived: N" summary event or a short client-side debounce over the batch rather than N individual re-renders. Verify Realtime replica identity carries the `is_archived` column so the client can filter on the incoming payload.
+Treat the append-only tables as **out of scope** for this cleanup (correctly — legal-hold data should never be deleted for test-hygiene reasons regardless of allowlist). Focus all safety-rail effort on the ordinary mutable tables: require every delete/update in the cleanup script to run inside a transaction with an explicit row-count assertion (`assert deleted_count == expected_count`) before commit, and dry-run every statement as a `SELECT` first, printing the exact rows that would be affected, gated behind a human "yes" per hotel before the destructive version runs.
 
 **Warning signs:**
-Board visibly flickers/reorders when a batch is archived. Archived work orders still appear on the board until a manual refresh. Console shows a burst of N subscription callbacks.
+A cleanup script's only safety check is "does this table have a delete-blocking trigger" rather than an explicit allowlist scoped by `hotel_id`. No dry-run/preview step before the actual delete.
 
-**Phase to address:** Bulk-archive phase (must touch the board query + subscription, tested against the live board per the Self-Verification policy).
-**Risks re-triggering:** Fake-success (UI shows archived count but rows remain) + non-regression (Realtime board).
+**Phase to address:** Test-data-cleanup phase — scope explicitly excludes `controlled_incidents`/`controlled_incident_events` and any other legal-hold table; safety rails concentrate on the unprotected majority.
 
 ---
 
-### Pitfall 10: Partial bulk failure reported as full success
+### Pitfall 10: The shared prod-adjacent database means "test data" and "the team's only working QA environment" are the same rows
 
 **What goes wrong:**
-In a batch of 42, some rows fail the "must be terminal status" or tenant-scope check while others succeed. A non-transactional handler that returns `{"archived": 42}` regardless (or swallows per-row errors like the Opera/Twilio handlers deliberately do) tells the GM all 42 archived when only 30 did — the v1.2 fake-success pattern applied to bulk ops.
+Because there is no separate staging database, the real, named, production hotel tenant used for manual GM-login verification (documented in project reference credentials, and referenced throughout `.wolf/buglog.json` incident history as the basis for live click-through verification) is simultaneously "real customer-adjacent data" and "the team's active QA fixture." A cleanup effort aimed at removing stale/junk test data that isn't careful to special-case this tenant risks deleting the rooms, staff accounts, room-status history, or work orders that the *next* milestone's Self-Verification Policy (mandatory per CLAUDE.md: browser-test every feature against a running instance before declaring done) depends on. Losing that fixture doesn't just lose "some test rows" — it breaks the team's only mechanism for satisfying the project's own verification policy until it's manually rebuilt.
 
 **Why it happens:**
-Bulk handlers often loop-and-continue, and the response is a static count or the requested-list length rather than the actually-succeeded set.
+"Clean up test data" framed generically suggests removing anything that looks like a test artifact, without distinguishing between throwaway one-off test rows (safe to remove) and the team's standing, reused QA fixture tenant (must be preserved and is explicitly *not* stale junk).
 
 **How to avoid:**
-Either make the whole batch atomic in one RPC transaction (all-or-nothing), or return an explicit per-ID result `{archived: [...], skipped: [{id, reason}]}` and surface skips in the UI. Never return the input length as the success count.
+Explicitly hardcode-exclude the known QA fixture tenant's `hotel_id` from any cleanup allowlist as a "preserve" entry, not just leave it un-flagged — make its exclusion a visible, reviewed line in the cleanup PR, not an accidental byproduct of it not matching a name heuristic. Document which tenant(s) are the intentional standing fixtures vs. one-off throwaway test data as part of this phase's output, since that distinction doesn't currently exist anywhere in writing.
 
 **Warning signs:**
-Success count always equals the requested count. No "skipped" branch in the response model. UI has no way to show partial results.
+The cleanup phase's plan doesn't name the specific fixture tenant it's preserving. Post-cleanup, the documented test-account login stops working or shows unexpectedly empty data.
 
-**Phase to address:** Bulk-archive phase.
-**Risks re-triggering:** Fake-success.
-
----
-
-### Pitfall 11: Stripe webhooks are not deduplicated by `event.id`
-
-**What goes wrong:**
-The `/webhooks/stripe` handler (`webhooks.py:129`) verifies the signature but does **not** record processed `event.id`s. Stripe retries deliveries; self-serve billing will generate far more events (portal edits, plan changes, payment retries). Re-delivered events re-run handlers. Most current handlers are idempotent UPDATEs, but any handler that *creates* or *increments* (future final-true-up on cancel, per Pitfall 1) will double-act on a retry.
-
-**Why it happens:**
-Low event volume today made retries harmless; self-serve raises volume and adds create/increment side effects.
-
-**How to avoid:**
-Persist processed `event.id`s (a `stripe_webhook_events` table or an upsert with unique constraint) and short-circuit already-seen events before any side effect. Keep all new webhook side effects idempotent.
-
-**Warning signs:**
-Duplicate rows/charges traceable to two deliveries of the same Stripe `event.id`. Stripe Dashboard shows webhook retries with 200s but doubled downstream effects.
-
-**Phase to address:** Self-serve billing phase (harden before adding cancel-time invoicing from Pitfall 1).
-**Risks re-triggering:** Flat-cost / revenue-integrity (A3).
+**Phase to address:** Test-data-cleanup phase — must ship a written "preserve list" alongside the "delete list," reviewed by a human before execution.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Bulk-archive as one set `UPDATE`, skipping per-row audit inserts | Fast, few lines | Silently breaks the append-only audit trail; unrecoverable history gap | **Never** |
-| Add `'archived'` to the `status` enum instead of a flag | No new column | Breaks CHECK constraint, transition matrix, and status-filtering crons | **Never** |
-| Trust the client-supplied ID list without a `hotel_id` filter | Simpler query | Cross-tenant archive (IDOR) | **Never** |
-| Sync only `plan_status` on `subscription.updated`, not entitlements | Less webhook code | `credits_included`/`cap_cents` drift → wrong billing | Only if plans are truly single-tier and immutable (document it) |
-| `InvoiceItem.create` with no idempotency guard | Works on a single run | Duplicate overage charges across the 28–31 cron window | **Never** once invoices are user-visible |
-| Mock Stripe in tests and call it "done" | Green CI without live creds | Portal/webhook 500s in prod (fake-success) | Only if paired with a Stripe-CLI replay gate before phase close |
+|----------|-------------------|-----------------|-----------------|
+| Consolidating same-named role constants (`MANAGER_ROLES`) without diffing contents first | Refactor looks done fast | Silently loosens or tightens live permissions (Pitfall 4) | **Never** |
+| Reusing an existing `ALL_STAFF_ROLES`-style constant as "already correct" during extraction | Less to verify | Propagates a pre-existing duplicate/missing-role bug to every new importer (Pitfall 5) | **Never** — audit every constant's contents against the canonical role list first |
+| Jumping `expo@54` → `expo@57` in one `expo install` command | Fewer PRs, less build-gate friction | Can't isolate which SDK hop broke a native module; violates Expo's own upgrade guidance | **Never** for a 3-major jump on a documented-fragile pipeline |
+| Re-applying every old Hermes/babel workaround without re-testing | Feels "safe," avoids re-litigating old fixes | Carries forward now-unnecessary (or now-harmful) config indefinitely | Only if paired with a documented re-test; otherwise never |
+| Name-pattern (`ILIKE '%test%'`) test-data cleanup query | Fast to write, no manual review needed | Risk of deleting real customer/guest data containing the word "test" (Pitfall 8) | **Never** |
+| Treating the append-only-trigger tables as the benchmark for "what's dangerous" | Simple mental model | Misdirects safety-rail effort away from the actually-unprotected majority of tables (Pitfall 9) | Never as the *sole* safety model — fine as one documented exclusion among many |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Stripe Customer Portal | Assuming the Portal can change a usage-based plan | Stripe: usage-based subs can be **cancelled but not updated** in the Portal. Design self-serve "plan change" via Checkout/API, not Portal, or gate it |
-| Stripe Customer Portal | Portal configured in test mode only | Test-mode and live-mode Portal configs are **separate**; configure both or live returns "configuration not found" |
-| Stripe InvoiceItem / metered usage | Reaching for the legacy Usage Records API | Removed since API `2025-03-31.basil`; metered *prices* now require a backing Meter. PatelRep's manual `InvoiceItem.create` still works — just add idempotency keys |
-| Stripe webhooks | No local signature testing (no creds) | `stripe listen --forward-to localhost:8000/webhooks/stripe` + `stripe trigger` to replay real signed events |
-| Stripe cancellation | Expecting pending invoice items to auto-bill after cancel | On cancel, Stripe stops auto-collection of finalized invoices; pending items bill at end of *next* period unless you `invoice_now`. The trueup never creates them for cancelled subs → reconcile explicitly (Pitfall 1) |
-| Supabase service-role client | Assuming RLS protects bulk writes | Service-role **bypasses RLS**; enforce `hotel_id`/`tenant_id` in the query. RLS on `operational_audit_events` is SELECT-only |
-| Supabase Realtime | Bulk UPDATE without updating board filters | Add `is_archived=false` to query + subscription; expect N events per batch |
+|-------------|-----------------|-------------------|
+| Expo SDK / EAS build | Assuming `app.json`'s `newArchEnabled` is authoritative when a checked-in `android/gradle.properties` overrides it locally | Delete or align the checked-in native override before the bump; verify EAS (prebuild-from-`app.json`) and local (`expo run:android`, uses checked-in `android/`) builds agree |
+| Expo SDK / native modules | Treating "no new npm dependency" as equivalent to "no native compatibility risk" during a major bump | Explicitly re-verify each existing native-module dependency (`expo-speech-recognition`, `expo-sqlite`, `@expo/vector-icons`) against the new SDK major, one hop at a time |
+| Hermes / `@supabase/supabase-js` | Assuming the `dynamic-import-node` babel workaround is still required post-bump without testing | Temporarily remove the workaround and attempt a build to confirm the original Hermes limitation still applies before keeping it |
+| Supabase (shared dev/QA/prod project) | Running an RBAC-normalization regression suite or a cleanup script directly against the shared project without a schema/data snapshot first | Use `list_tables`/read-only `get_advisors` review before any destructive change, and keep a restorable snapshot/backup checkpoint before executing cleanup DELETEs |
+| Supabase RLS vs. service-role API | Assuming RLS will catch an over-broad DELETE/UPDATE from the FastAPI service-role client during cleanup | Service-role bypasses RLS entirely (documented project convention); the query's own `WHERE`/allowlist is the only real backstop |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| N-per-row Realtime events on bulk archive | Board flicker, dropped events, re-render storm | Batch/debounce; filter archived rows out of the board | Archiving tens of WOs at once on an active board |
-| Row-by-row audit insert loop over a large batch | Slow archive request, possible timeout | Use `INSERT ... SELECT` for audit rows inside the RPC transaction | Hundreds of WOs in one archive action |
-| `credit_ledger` scan in trueup without period index | Slow cron as tenants grow | Ensure index on `(period_start)` / `(tenant_id, period_start)` | Hundreds+ of tenants |
-| Listing `/billing/invoices` hits Stripe live every load | Latency + Stripe rate limits | Cache invoice list briefly; paginate | Frequent billing-page visits |
+|------|----------|------------|-----------------|
+| Cleanup script deletes rows in a loop, one hotel/table at a time, without batching | Long-running script holds locks, risks partial completion on timeout/interrupt | Wrap each hotel's full cleanup in a single transaction with an explicit commit per hotel, not per row | Dozens+ of test tenants with thousands of child rows each |
+| RBAC-normalization introduces a shared role-constant module imported by all 21 routers | Non-issue at current scale, but a typo in the shared module now breaks 21 routers' authorization at once instead of 1 | Add the audit test from Pitfall 5 as a CI gate on the shared module specifically, since blast radius has grown | Any time after the constants are centralized |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Bulk-archive endpoint not role-gated | A housekeeper archives Engineering work orders | `require_role("housekeeping_supervisor","engineer","gm")` |
-| Client ID list archived without tenant filter | Cross-tenant data tampering (IDOR) | `.eq("hotel_id", user.hotel_id)` / `WHERE tenant_id = p_tenant_id` on every bulk write |
-| Billing routes exposed beyond GM | Non-owner cancels the subscription or reads invoices | Keep all `/billing/*` on `require_role("gm")` (as today); apply same to any new self-serve route |
-| Portal session created for a stored `stripe_customer_id` without re-checking tenant | Wrong customer's billing exposed | Always resolve `stripe_customer_id` via `.eq("tenant_id", user.hotel_id)` (current code does — preserve it) |
-| Logging full Stripe payloads / customer IDs | PII/secret leakage in logs | Log truncated identifiers only (as Twilio handler does with `***%s[-4:]`) |
+| Silently widening a role set during "normalization" (e.g., merging `MANAGER_ROLES` variants) | Privilege escalation — a role gains access to actions it was deliberately excluded from (Pitfall 4) | Diff every constant's membership before merging; require a named product-decision comment for any set that changes |
+| Silently narrowing a role set during "normalization" | Legitimate users 403 on routes they need (Pitfall 7), often reported as "broken feature" not "security," delaying detection | Cross-reference web/mobile call sites per Pitfall 7 before changing any gate |
+| Stripping business-rule checks (applicability, state validity) when lifting role checks into `require_role()` | Authorization bypass on the exact class of bug already fixed once in `evidence.py` (bug-444) | Classify and preserve non-role checks explicitly, per Pitfall 6 |
+| Test-data cleanup query with no `hotel_id`/tenant scope check, run via the service-role client | Cross-tenant data loss — deletes another hotel's real data because the query wasn't tenant-scoped at all, not just imprecise | Every cleanup statement must include an explicit tenant/hotel allowlist `IN (...)`, never a global predicate |
+| Logging full row contents or PII during a cleanup dry-run for review | Sensitive guest/staff data (names, contact info) ends up in a review artifact/PR/chat log | Log only `hotel_id`, table name, and row count in dry-run previews, not row contents |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Billing UI shows local `subscriptions` mirror immediately after a Portal change | Stale plan shown until webhook lands → user re-clicks/double-acts | Show "update pending" state; refresh on webhook or poll Stripe once on return |
-| Offering "change plan" in Portal for a usage-based sub | Button does nothing / confuses (Stripe blocks update) | Route plan changes through Checkout/API, not the Portal |
-| No confirm + count on bulk archive | Accidental mass-archive of active work orders | Confirm dialog with exact count + terminal-status-only preview; support undo |
-| Archive with no un-archive path | Work orders "lost"; users panic | Provide filterable archived view + audited un-archive (`action='work_order.unarchived'`) |
-| Cap-reached 402 with no self-serve remedy | GM hits "cap reached" and can't act | Link the 402 to the billing page to raise cap / upgrade |
+|---------|-------------|-------------------|
+| RBAC normalization ships with no visible error-message change, but a role that used to succeed now 403s | Staff member hits a wall mid-shift with a generic "not authorized" message and no path forward | Treat any role-set change as requiring the same Self-Verification browser click-through (per CLAUDE.md policy) for every affected role, not just `gm` |
+| Expo bump changes a native permission-prompt or notification behavior (SDK56 touched Android edge-to-edge correctness) without re-testing on-device | Housekeeper-facing screens (photo capture, voice input, notifications) look subtly broken on real hardware despite passing CI | Manual on-device (or emulator) walkthrough of camera/voice/notification flows after each SDK hop, not just `expo-doctor` |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Self-serve cancel:** Often missing the final overage true-up — verify a cancelled tenant with overage still gets an InvoiceItem before `plan_status` flips.
-- [ ] **Monthly true-up:** Often missing idempotency across the 28–31 window — verify a second same-day run creates **zero** new InvoiceItems.
-- [ ] **Portal button:** Often missing live-mode Portal config — verify it opens against the **live** Stripe account, not just a mock.
-- [ ] **Webhook handlers:** Often missing `event.id` dedupe — verify replaying the same event twice doesn't double-act.
-- [ ] **Bulk archive:** Often missing per-row audit rows — verify `count(archived) == count(operational_audit_events action='work_order.archived')`.
-- [ ] **Bulk archive:** Often missing tenant scope — verify passing another hotel's WO IDs archives nothing.
-- [ ] **Realtime board:** Often missing `is_archived=false` filter — verify archived WOs disappear live and don't flicker back.
-- [ ] **Escalation/prediction crons:** Often missing archived exclusion — verify they skip archived WOs.
-- [ ] **Migrations:** Often merged but not applied — verify each new column/RPC exists in the **live** Supabase project before phase close.
-- [ ] **Plan entitlements:** Often only `plan_status` synced — verify `credits_included`/`cap_cents` update on `subscription.updated`.
+- [ ] **Expo SDK bump:** Often missing a re-test of `newArchEnabled` consistency across `app.json` and the checked-in `android/gradle.properties` — verify they agree and that EAS's prebuild-from-`app.json` path was exercised, not just the local build.
+- [ ] **Expo SDK bump:** Often missing per-hop verification — verify each of 55→56→57 individually built and ran on-device, not just the final combined diff.
+- [ ] **Expo SDK bump:** Often missing re-validation of the `dynamic-import-node` babel workaround and `legacy-peer-deps` — verify whether they're still necessary post-bump.
+- [ ] **RBAC normalization:** Often missing a pre-refactor audit of existing constants — verify no same-named role constant means two different things before merging (Pitfall 4/5 class).
+- [ ] **RBAC normalization:** Often missing a cross-surface call-site check — verify every role currently calling an endpoint (via web/mobile API client grep) still can after the gate changes.
+- [ ] **RBAC normalization:** Often missing preservation of co-located business-rule checks — verify `evidence.py`'s applicability re-check and any similar in-handler validation still runs after refactor.
+- [ ] **Test-data cleanup:** Often missing an explicit written allowlist — verify the cleanup PR includes a human-reviewed list of exact `hotel_id`s to delete AND a separate list of `hotel_id`s explicitly preserved (including the documented QA fixture tenant).
+- [ ] **Test-data cleanup:** Often missing a dry-run/preview step — verify every destructive statement was first run as a read-only preview showing exact affected rows before executing.
+- [ ] **Doc-drift fixes:** Often "fixed" in one direction only (doc updated to match code, or vice versa) without confirming which one is actually still true in production — verify against the live system, not just internal consistency.
+- [ ] **Deferred v1.3 human-verification follow-ups:** Often re-marked "verified" based on code review alone — verify each of the ~10 items via an actual browser click-through per CLAUDE.md's Self-Verification Policy, since the original reason they were deferred was lack of browser tooling in a sandboxed executor, not lack of importance.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Duplicate overage InvoiceItems already created | LOW–MEDIUM | Delete duplicate pending InvoiceItems in Stripe before the invoice finalizes; add idempotency + ledger stamp to prevent recurrence |
-| Overage lost on cancellation | MEDIUM | Reconcile `credit_ledger` vs Stripe for cancelled tenants; issue one-off invoice items for the gap; add cancel-time true-up |
-| Bulk archive wrote no audit rows | HIGH | Audit history is unrecoverable for the affected batch; back-fill best-effort `operational_audit_events` from `work_orders.archived_at/archived_by` if captured, else document the gap |
-| Cross-tenant archive occurred | HIGH | Un-archive affected WOs (audited), notify affected tenant, add tenant filter + regression test |
-| Migration not applied in prod | LOW | `apply_migration` to the live project; add a schema-existence check to the phase gate |
-| Realtime board flooded | LOW | Add archived filter + batch debounce; no data loss |
+|---------|----------------|------------------|
+| RBAC normalization silently loosened a permission | MEDIUM | Revert the specific constant/route to its prior scoped tuple; add the audit test (Pitfall 4/5) before re-attempting; check audit logs for any actions taken under the widened window |
+| RBAC normalization silently tightened a permission | LOW–MEDIUM | Restore the missing role to the specific route (not the whole constant, until diffed); verify via the affected role's actual UI surface |
+| Expo bump broke a native module (voice input, offline sync) | MEDIUM–HIGH | Bisect by reverting to the last-known-good intermediate SDK hop (55 or 56) rather than reverting all the way to 54; re-apply the bump one hop at a time with on-device testing |
+| `newArchEnabled` mismatch caused a build failure post-SDK-55 | LOW | Delete checked-in `android/` and let Expo prebuild regenerate from `app.json` (matches what EAS already does); there is no "disable New Arch" fallback available past SDK 54 |
+| Test-data cleanup deleted rows outside the intended allowlist | HIGH (no soft-delete on most tables) | Restore from the most recent Supabase backup/point-in-time-recovery snapshot for the affected tables; this is why a pre-cleanup backup checkpoint and a dry-run preview are non-negotiable, not optional |
+| Cleanup script hit `controlled_incidents`/`controlled_incident_events` and was rejected by the trigger | NONE | No recovery needed — the trigger did its job; exclude these tables from the cleanup script's scope going forward |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1. Overage lost on cancel | Self-serve billing | Replay `customer.subscription.deleted` for an over-cap tenant; confirm an InvoiceItem is created before status flips |
-| 2. True-up not idempotent | Self-serve billing | Run trueup twice same period; assert 0 new InvoiceItems on 2nd run; ledger stamp present |
-| 3. Bulk archive skips audit | Bulk-archive | Assert `count(audit rows) == count(archived)` for a batch |
-| 4. `archived` as status | Bulk-archive | Confirm status enum + transition matrix untouched; crons still pass |
-| 5. Cross-tenant archive (IDOR) | Bulk-archive | Pass foreign WO IDs; assert nothing archived |
-| 6. Not exercisable locally | Self-serve billing | `stripe listen`/`stripe trigger` replay in phase DoD; assert DB state change |
-| 7. Undeployed migration | Both (closing gate) | Query live Supabase `information_schema` for new columns/RPCs |
-| 8. Entitlement drift | Self-serve billing | Trigger `subscription.updated`; assert `credits_included`/`cap_cents` update |
-| 9. Realtime flood/stale | Bulk-archive | Watch the live board during a batch archive; no flicker, rows leave immediately |
-| 10. Partial failure as success | Bulk-archive | Mixed valid/invalid batch returns explicit skipped list |
-| 11. No webhook dedupe | Self-serve billing | Replay same `event.id` twice; assert single side effect |
+|---------|--------------------|----------------|
+| 1. SDK 55 New-Arch-mandatory collides with stale local override | Expo bump | `app.json` and `android/gradle.properties` agree on New Architecture before any version bump; both local and EAS builds succeed |
+| 2. Multi-hop jump skips intermediate safety net | Expo bump | Each of 55/56/57 has its own commit, `expo-doctor` run, and full EAS build in the phase's history — not a single squashed 54→57 diff |
+| 3. Stale workarounds carried forward unverified | Expo bump | A documented re-test (workaround removed, build attempted, result recorded) exists for `dynamic-import-node` and `legacy-peer-deps` |
+| 4. Same-named constant, different role sets | RBAC normalization | Pre-refactor audit artifact lists every existing role-constant and flags name collisions with differing contents, reviewed before merge |
+| 5. Duplicate/missing role inside one constant | RBAC normalization | Audit test asserts no duplicate role strings and full coverage for any `ALL_*`-named constant, run before and after refactor |
+| 6. Business-rule checks stripped during role-check lift | RBAC normalization | `evidence.py` applicability regression test (bug-444 coverage) still passes; per-route classification table exists in the phase's plan |
+| 7. Role missing from a shared multi-surface endpoint | RBAC normalization | Cross-reference table (endpoint → web/mobile call sites → roles) produced and reconciled against the new gate for every touched router |
+| 8. No schema flag for test data forces heuristic cleanup | Test-data cleanup | Cleanup PR contains an explicit `hotel_id` allowlist, not a name/pattern `WHERE` clause; `is_test` column added to schema |
+| 9. Append-only tables mistaken for the safety benchmark | Test-data cleanup | Cleanup script's scope explicitly excludes `controlled_incidents`/`controlled_incident_events`; safety rails (transaction + row-count assert + dry-run) applied to the ordinary mutable tables instead |
+| 10. Shared prod-adjacent DB includes the team's live QA fixture | Test-data cleanup | Written "preserve list" naming the documented QA fixture tenant exists and is reviewed alongside the delete list |
 
 ## Sources
 
-- Stripe Docs — Customer Portal / customer management (usage-based subs can cancel but not update; separate test/live config): https://docs.stripe.com/customer-management — HIGH
-- Stripe Docs — Subscription invoices & cancellation (pending invoice items bill at end of next period; cancel stops auto-collection): https://docs.stripe.com/billing/invoices/subscription , https://docs.stripe.com/api/subscriptions/cancel — HIGH
-- Stripe metered billing 2026 (legacy Usage Records removed since API `2025-03-31.basil`; metered prices require a Meter; idempotency keys prevent double-charge): https://hamsterstack.com/how-to/stripe/implement-usage-based-billing/ , https://www.buildmvpfast.com/blog/stripe-metered-billing-implementation-guide-saas-2026 — MEDIUM (secondary sources, corroborated)
-- Stripe idempotency keys (dedupe within 24h; deterministic keys from internal IDs): https://www.rapidevelopers.com/stripe-guide/how-to-prevent-duplicate-charges-with-stripe-api , https://singhajit.com/how-stripe-prevents-double-payment/ — MEDIUM
-- Codebase reads (HIGH, authoritative for this app): `apps/api/routers/billing.py`, `apps/api/routers/webhooks.py`, `apps/api/middleware/credits.py`, `apps/api/routers/internal.py::monthly_trueup`, `apps/api/services/work_orders/transitions.py`, `supabase/migrations/065_work_order_transition_audit.sql`, `CLAUDE.md` (A2/A3 constraints, cron schedule, Current Scope, migration numbering gotchas)
-- v1.2 milestone history (flat-cost, fake-success, undeployed-migration bug classes): `CLAUDE.md`, `.planning/v1.2-MILESTONE-AUDIT.md`
+- Codebase reads (HIGH, authoritative for this app): `apps/api/middleware/auth.py` (`require_role` implementation), `apps/api/routers/hotels.py:11`, `apps/api/routers/programs.py:43`, `apps/api/routers/safety.py:34`, `apps/api/routers/evidence.py:36-41`, `apps/api/routers/work_orders.py`, `apps/api/routers/assets.py` (role-tuple comparison), `apps/mobile/app.json`, `apps/mobile/eas.json`, `apps/mobile/android/gradle.properties`, `apps/mobile/.easignore`, `apps/mobile/babel.config.js`, `apps/mobile/package.json`, `supabase/migrations/070_texas_safety_compliance.sql` (append-only trigger, lines 99-101)
+- `.wolf/buglog.json` incident history (HIGH — first-party, dated, this repo): bug-277 (front_desk 403 on shared staff endpoint), bug-403 (housekeeping 500 pattern), bug-444 (evidence acknowledgement RBAC + business-rule gap), Mobile EAS Android CNG archive rule entry (2026-06-05), `tar` v7 / `react-test-renderer` pinning entries, dynamic-import-node Hermes fix entry
+- Project memory (HIGH, first-party): `project_eas_build_status.md` (EAS build resolution history, `newArchEnabled=false` fix), `reference_test_account.md` (documented production GM test account/hotel)
+- `.planning/milestones/v1.3-MILESTONE-AUDIT.md` (HIGH — source of the "~10 deferred human-verification follow-ups" referenced in this milestone's scope)
+- `CLAUDE.md` project root (HIGH — "zero new npm dependencies," fragile EAS pipeline, Self-Verification Policy, canonical 6-role list)
+- Expo SDK 55/56/57 official changelogs (MEDIUM — WebSearch-verified, not Context7): New Architecture becomes mandatory in SDK 55, Hermes/native-module interop changes in SDK 56, React Native 0.86 non-breaking-by-design in SDK 57 — https://expo.dev/changelog/sdk-55 , https://expo.dev/changelog/sdk-56 , https://expo.dev/changelog/sdk-57
+- Secondary Expo SDK 57 analysis (LOW-MEDIUM, corroborating but not authoritative): https://paddyb.com/tutorials/expo-sdk-57-upgrade-guide.html , https://medium.com/@onix_react/whats-new-in-expo-sdk-57-c3133d32ba37
 
 ---
-*Pitfalls research for: self-serve Stripe billing management + bulk-archive on append-only/RLS work orders*
-*Researched: 2026-08-03*
+*Pitfalls research for: Expo SDK 54→57 bump, RBAC-check normalization across 21 FastAPI routers, and test-data hygiene on a shared dev/QA/production Supabase project*
+*Researched: 2026-08-04*

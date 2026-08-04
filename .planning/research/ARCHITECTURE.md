@@ -1,228 +1,146 @@
 # Architecture Research
 
-**Domain:** Integration architecture — self-serve billing management + bulk-archive for Engineering work orders (subsequent milestone on existing PatelRep production app)
-**Researched:** 2026-08-03
-**Confidence:** HIGH (all findings verified against current source: `routers/billing.py`, `routers/webhooks.py`, `routers/work_orders.py`, `services/work_orders/transitions.py`, `app/(dashboard)/engineering/work-orders/page.tsx`, `app/(dashboard)/settings/billing/page.tsx`, migrations 007/030/065)
+**Domain:** Platform/ops hardening on an existing production app (v1.4) — Expo major bump, RBAC normalization, doc-drift fixes, dev-DB cleanup, closing deferred human-verification items from v1.3
+**Researched:** 2026-08-04
+**Confidence:** HIGH (all findings verified directly against current source: `apps/api/routers/*.py` (30 files), `apps/api/middleware/auth.py`, `apps/mobile/package.json`, `apps/mobile/app.json`, `apps/mobile/eas.json`, `.planning/phases/{15,16,17}-*/*-VERIFICATION.md`, `apps/api/core/scheduler.py` existence, `CLAUDE.md`)
 
 ## Executive Summary
 
-Both capabilities are **additive integrations onto code that already exists** — neither is greenfield.
+All five v1.4 work items are maintenance/hardening passes on code that already exists — there is no new feature architecture to design. The interesting finding is **not** "how do these integrate" in the greenfield sense, but **where their file-level blast radii overlap**, because three of the five items touch overlapping router files:
 
-- **Self-serve billing** already has a working spine: `routers/billing.py` (subscription, credits, Stripe **Customer Portal**, checkout, invoices), the `stripe_webhook` handler in `routers/webhooks.py`, the `settings/billing/page.tsx` UI, and the `/v1/internal/billing/monthly-trueup` cron. The Stripe Customer Portal already covers payment-method updates, plan cancellation, and plan changes. The incremental work is a small set of **additive endpoints** for controls the portal does not expose (self-serve spending-cap adjustment; optional pause/resume) plus UI. **Likely no new migration** (`subscriptions.cap_cents` already exists) unless a cap-change audit trail is wanted.
-- **Bulk-archive** is the more architecturally interesting one because it touches the **Realtime-subscribed** Engineering Work Orders board. It needs **one new migration (089)** adding an `archived_at` flag + partial index + a new audited RPC, one new bulk endpoint on `work_orders.py`, and — critically — **one line added to the board's list query** so archived rows drop off. The Realtime subscription itself must **not** be changed (see the gotcha below).
+- **RBAC normalization** and **closing v1.3's deferred human-verification items** collide directly on `apps/api/routers/staff.py`, `scheduling.py`, `housekeeping.py`, `work_orders.py`, and — most importantly — `guest_requests.py`, which has a **real, unguarded RBAC gap** (`DELETE /guest-requests/{id}` has no role check at all — any authenticated hotel user, including a housekeeper, can permanently delete a guest request). This isn't a style inconsistency; it's the actual bug RBAC normalization should be scoped to catch.
+- **Doc-drift fixes** are two narrow, already-diagnosed one-paragraph edits to `CLAUDE.md` with zero code/router overlap with anything else.
+- **Expo 54→57** and **dev-DB cleanup** are both isolated from the other three (different app, different concern) but Expo 54→57 is the highest-**risk** item because `newArchEnabled: true` is already set for iOS and Android — a major SDK bump on New Architecture is far more likely to break native module compatibility (`expo-speech-recognition`, `expo-sqlite`, `expo-camera`) than a bump with New Arch off.
 
-The two features share **no router, table, or migration** and are safe to build as **independent parallel phases**.
+**Recommended execution order:** doc-drift (trivial, unblocks nothing but costs nothing) → RBAC normalization (fixes real bugs, must land *before* re-verifying the deferred items it shares files with) → deferred-verification closure (re-check against the *post-RBAC-fix* code, not the current code, or it verifies a moving target) → dev-DB cleanup (independent, do whenever) → Expo 54→57 (isolated, highest single-item risk, budget the most time, do last so a rollback doesn't block the other four).
 
-## Standard Architecture
+## Current State — What Exists Today
 
-### System Overview — where the new pieces attach
+### RBAC: `require_role()` vs. inline role checks
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                         WEB (Next.js 14/16)                            │
-│  settings/billing/page.tsx          engineering/work-orders/page.tsx   │
-│  (+ cap editor UI)                  (+ multiselect + Archive action)   │
-│        │                                    │        ▲                 │
-│  lib/api/billing.ts                   lib/api/engineering.ts           │
-│  (+ updateCap / pause)                (+ bulkArchiveWorkOrders)        │
-│        │                                    │        │                 │
-│        │                     Realtime sub (wo_realtime) — UNCHANGED    │
-│        │                     event:* filter:tenant_id → invalidate RQ  │
-└────────┼────────────────────────────────────┼────────┼────────────────┘
-         │ HTTPS /v1                           │ HTTPS  │ WebSocket (SB Realtime)
-┌────────┼────────────────────────────────────┼────────┼────────────────┐
-│                              API (FastAPI)   │        │                 │
-│  routers/billing.py                    routers/work_orders.py          │
-│  (+ PATCH /billing/cap,                (+ POST /work-orders/bulk-       │
-│   + POST /billing/pause?)               archive; list query gains       │
-│        │                                .is_("archived_at","null"))     │
-│  routers/webhooks.py (stripe_webhook)  services/work_orders/            │
-│  (maybe + paused/resumed events)        transitions.py — UNCHANGED      │
-└────────┼────────────────────────────────────┼─────────────────────────┘
-         │                                     │
-┌────────┼─────────────────────────────────────┼────────────────────────┐
-│                            Supabase (Postgres + RLS + Realtime)         │
-│  subscriptions, credit_ledger          work_orders (+ archived_at,      │
-│  (cap_cents already exists)             archived_by) ← MIGRATION 089     │
-│                                         operational_audit_events        │
-│                                         RPC bulk_archive_work_orders()   │
-│                                         work_orders already in           │
-│                                         supabase_realtime publication    │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Component Responsibilities (new vs modified)
-
-| Component | New / Modified | Responsibility |
-|-----------|----------------|----------------|
-| `supabase/migrations/089_work_order_archive.sql` | **NEW** | Add `archived_at TIMESTAMPTZ`, `archived_by UUID`, partial index, and audited `bulk_archive_work_orders()` RPC |
-| `apps/api/routers/work_orders.py` | **MODIFIED** | Add `POST /work-orders/bulk-archive` (+ optional `/bulk-unarchive`); add `.is_("archived_at","null")` default filter + `?archived=true` opt-in to `list_work_orders` |
-| `apps/web/app/(dashboard)/engineering/work-orders/page.tsx` | **MODIFIED** | Multiselect + bulk "Archive" action; Realtime subscription block stays **as-is** |
-| `apps/web/lib/api/engineering.ts` | **MODIFIED** | Add `bulkArchiveWorkOrders(ids)` client method |
-| `apps/api/routers/billing.py` | **MODIFIED** | Add `PATCH /billing/cap` (self-serve `cap_cents`); optional `POST /billing/pause` + `/resume` |
-| `apps/api/routers/webhooks.py` | **MODIFIED (maybe)** | Only if pause/resume needs a distinct handler — existing `subscription.updated` already maps `sub.status` (incl. `paused`) into `plan_status` |
-| `apps/web/lib/api/billing.ts` | **MODIFIED** | Add `updateCap` / `pauseSubscription` client methods |
-| `apps/web/app/(dashboard)/settings/billing/page.tsx` | **MODIFIED** | Cap editor + (optional) pause control; keep React Query pull model (no Realtime) |
-| `supabase/migrations/090_billing_cap_audit.sql` | **NEW (optional)** | Only if a cap-change history/audit trail is required |
-
-## Architectural Patterns
-
-### Pattern 1: Archive as an orthogonal flag, NOT a new status
-
-**What:** Add `archived_at TIMESTAMPTZ` (nullable) rather than adding `'archived'` to the `work_orders.status` CHECK constraint / state machine.
-
-**Why:** `status` is governed by a CHECK constraint (migration 065: `open|escalated|in_progress|on_hold|completed|cancelled`), the `_ALLOWED_TRANSITIONS` graph in `services/work_orders/transitions.py`, the `Literal[...]` in `list_work_orders`, and the 5 Kanban columns. Archive is **orthogonal** to workflow state — you archive a WO that is *still* `completed` or `cancelled` to declutter the board. A flag keeps the entire state machine untouched (zero regression surface), whereas a new status value would ripple into transitions, columns, the drawer, and the escalation cron.
-
-**Trade-off:** Every board query must remember to filter `archived_at IS NULL`. Mitigate with a partial index and by making the filter the default in one place (`list_work_orders`).
-
-```sql
--- migration 089 (next free number; 088 is current max, no collision)
-ALTER TABLE public.work_orders
-  ADD COLUMN archived_at TIMESTAMPTZ,
-  ADD COLUMN archived_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
-
--- keep the board's 5 status queries fast once archived rows accumulate
-CREATE INDEX idx_work_orders_active_board
-  ON public.work_orders (tenant_id, status)
-  WHERE archived_at IS NULL;
-```
-
-### Pattern 2: Bulk-archive through an audited SECURITY DEFINER RPC
-
-**What:** Mirror `transition_work_order_with_audit` — do the bulk UPDATE and the append-only `operational_audit_events` insert atomically inside one Postgres function, rather than issuing a bulk UPDATE + separate insert from Python.
-
-**When:** Any controlled state change that must leave an audit trail. Archive qualifies (it hides operational records).
-
-**Trade-off:** One more RPC to maintain, but it guarantees atomicity and consistency with the existing audit convention (append-only, `resource_type='work_order'`, `action='work_order.archived'`). Enforce in the RPC (or the router) that only **terminal** WOs (`completed`/`cancelled`) can be archived, so archiving can't hide live work.
+`apps/api/middleware/auth.py` defines the canonical pattern:
 
 ```python
-# work_orders.py — new endpoint, gated like the existing mutations
-@router.post("/bulk-archive")
-async def bulk_archive_work_orders(
-    request: BulkArchiveRequest,  # { work_order_ids: list[str] }
-    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
-):
-    return {"data": supabase.rpc("bulk_archive_work_orders", {
-        "p_tenant_id": current_user.hotel_id,
-        "p_ids": request.work_order_ids,
-        "p_actor_id": current_user.user_id,
-        "p_actor_role": current_user.role,
-    }).execute().data}
+def require_role(*roles: str):
+    async def check_role(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+        if current_user.role not in roles:
+            raise HTTPException(status_code=403, detail=f"Role '{current_user.role}' is not authorized for this action")
+        return current_user
+    return check_role
 ```
 
-### Pattern 3: Self-serve billing = additive endpoints over the Stripe Customer Portal
+Used as `Depends(require_role("gm", "engineer"))` at the route-decorator level — gates the *entire* endpoint before the handler body runs.
 
-**What:** The Customer Portal (`POST /billing/portal`, already live) is the escape hatch for payment method, cancellation, and Stripe-native plan changes. Only build first-party endpoints for controls the portal cannot express — chiefly the PatelRep **spending cap** (`subscriptions.cap_cents`, already a column, surfaced by `GET /billing/credits`).
+**Actual router inventory:** `apps/api/routers/` has **30 `.py` files**, not the 21 listed in `CLAUDE.md`'s Domain Map table. Nine routers exist but aren't documented there: `clean_sessions.py`, `cleaning_checklists.py`, `evidence.py`, `feedback.py`, `late_checkout.py`, `management_roi.py`, `programs.py`, `safety.py`, `shifts.py`. This is a separate, smaller doc-drift item from the two named below — worth a one-line fix alongside them but not conflated with them.
 
-**When:** Prefer portal for anything Stripe owns; build an endpoint only for PatelRep-domain billing state.
+Classified by RBAC pattern (grepped `require_role` and `current_user.role` / `.role ==` / `.role in` / `.role not in` across all 30 files):
 
-**Trade-off:** Keeps Stripe as source of truth and minimizes webhook surface. A `PATCH /billing/cap` writing `subscriptions.cap_cents` needs **no new migration** and no Stripe call.
+| Pattern | Routers | Count |
+|---|---|---|
+| **`require_role()` only** — clean, route-level gate | `housekeeping.py`, `sop.py`, `management_roi.py`, `integrations.py`, `hotels.py`, `billing.py`, `reports.py`, `notifications.py`, `onboarding.py`, `cleaning_checklists.py`, `shifts.py` | 11 |
+| **Mixed** — `require_role()` at the route level for some endpoints, plus inline `current_user.role` checks *inside* handler bodies for finer-grained/conditional logic (e.g. "only a `gm` sees `approved_by`", multi-branch approval rules) | `rooms.py`, `work_orders.py`, `staff.py`, `scheduling.py`, `logbook.py`, `ai_copilot.py`, `programs.py`, `assets.py`, `evidence.py`, `safety.py`, `tasks.py`, `clean_sessions.py`, `late_checkout.py`, `feedback.py` | 14 |
+| **Inline-only** — zero `require_role()` dependency anywhere in the file; every access-control decision (where one exists at all) is an ad hoc `current_user.role not in {...}` inside a handler body | `guest_requests.py`, `lost_found.py`, `auth.py` | 3 |
+| **No role-based gating** (auth-only, correctly — cron/webhook secret-header pattern instead) | `webhooks.py`, `internal.py` | 2 |
 
-```python
-# billing.py — additive, same require_role("gm") gate as the rest of the router
-@router.patch("/cap")
-async def update_spend_cap(
-    request: UpdateCapRequest,  # { cap_cents: int | null }
-    current_user: CurrentUser = Depends(require_role("gm")),
-):
-    supabase.table("subscriptions").update({"cap_cents": request.cap_cents})\
-        .eq("tenant_id", current_user.hotel_id).execute()
-    return {"data": {"cap_cents": request.cap_cents}}
-```
+The 14 "mixed" routers are **not** automatically a normalization target — most of their inline checks are genuine mid-handler conditional logic (e.g. `work_orders.py` deciding which fields to include in a response based on role), not a missed opportunity to use `require_role()`. The real normalization targets are the **3 inline-only routers**, because in those files entire endpoints have *no* role gate at all where one is clearly needed:
 
-## Data Flow
+- **`guest_requests.py`** — 17 endpoints, only 5 have any inline role check (`send_guest_message`, `list_guest_messages` ×2 via `MESSAGE_ROLES`, `create_guest_request_sla_policy`, `delete_guest_request_sla_policy` via `SLA_POLICY_ROLES`, plus an approval-role check in `transition_guest_request`). **`DELETE /{request_id}` (`delete_guest_request`, line 586) has no role check whatsoever** — confirmed by reading the full handler body; it deletes the row and its `task_comments` for any authenticated user of the tenant. `create_guest_request`, `transition_guest_request` (partially gated), `list_guest_requests`, `update_guest_request`, the accessibility-features GET/PUT, and the SLA-policies GET are also ungated.
+- **`lost_found.py`** — one inline check (`record_lost_found_custody_event`, line 170: `{"front_desk", "housekeeping_supervisor", "gm"}`). Other mutating endpoints in the same file were not individually audited here but follow the same "opt-in per-endpoint" pattern rather than a file-wide gate.
+- **`auth.py`** — its single "inline role" match (line 33) is `user_data["role"] = current_user.role`, i.e. serializing the role into a response payload, not an authorization decision. This is a false positive for RBAC-gap purposes — `auth.py` has no privileged mutation endpoints and doesn't need `require_role()`.
 
-### Bulk-archive flow (and why the Realtime board keeps working)
+**Concrete normalization scope, backed by evidence:** the RBAC work is really "audit and fix `guest_requests.py` and `lost_found.py` endpoint-by-endpoint against `require_role()`," not a sweep across all 30 files. The 14 mixed routers may warrant a lighter pass (e.g. extracting repeated role-set literals like `{"gm", "housekeeping_supervisor", "engineer"}` into named constants for consistency), but that's a style cleanup, not a security fix.
 
-```
-GM/engineer selects N completed/cancelled cards → "Archive"
-   ↓
-POST /v1/work-orders/bulk-archive { ids }  (require_role gate)
-   ↓
-RPC bulk_archive_work_orders: UPDATE work_orders SET archived_at=now()
-   + INSERT operational_audit_events (action='work_order.archived')   [atomic]
-   ↓
-Postgres emits UPDATE events on work_orders (row now has archived_at != null)
-   ↓
-Board's wo_realtime channel (event:'*', filter:tenant_id=eq.<id>) fires
-   → queryClient.invalidateQueries(['work-orders'])
-   ↓
-Board refetches all 5 columns via GET /work-orders?status=...
-   → list_work_orders now returns .is_("archived_at","null") rows only
-   ↓
-Archived cards disappear from the board. Subscription never breaks.
-```
+### Expo mobile — actual current state
 
-### State management
+`apps/mobile/package.json` / `app.json` (read directly, not from memory):
 
-- **Work Orders board:** React Query columns (`per_page:50`, `refetchInterval:60_000`) + a single Supabase Realtime channel (`wo_realtime`) that only **invalidates** — it does not render from the payload. This indirection is why archive "just works" once the API list query excludes archived rows.
-- **Billing:** pure React Query pull (`staleTime: 5 * 60_000`, `refetchInterval: false`). No Realtime — correct; billing must stay off the 3 named Realtime surfaces.
+| Field | Current value |
+|---|---|
+| `expo` | `~54.0.0` |
+| `react-native` | `0.81.5` |
+| `react` | `19.1.0` |
+| `expo-router` | `~6.0.24` |
+| iOS `newArchEnabled` | `true` (app.json:19) |
+| Android `newArchEnabled` | `true` (app.json:30) |
+| `expo-dev-client` | `~6.0.21` |
+| Native modules in use | `expo-camera`, `expo-sqlite`, `expo-speech-recognition` (^0.3.2, not `~`-pinned — third-party, not first-party Expo), `expo-image-manipulator`, `expo-image-picker`, `expo-document-picker`, `expo-notifications`, `expo-secure-store` |
+
+`apps/mobile/eas.json`: `development`/`preview`/`production` build profiles configure only `android` (`buildType: apk`); there is no `ios` key under any build profile. An `ios` block *does* exist under `submit.production` but with placeholder values (`FILL_IN_FROM_APP_STORE_CONNECT`, `FILL_IN_FROM_APPLE_DEVELOPER`) — confirms "EAS builds Android only" is accurate today; iOS is scaffolded in `app.json` (bundle ID, Face ID/mic permission strings) but never actually built.
+
+Because New Architecture is already on for both platforms, the 54→57 bump's risk is concentrated in **native module compatibility**, not in an Old→New Architecture migration (that transition already happened). `expo-speech-recognition` is the one dependency most likely to lag an SDK bump since it's third-party and not co-versioned by Expo — worth checking its release notes for SDK 57 support before starting, and treating it as the item most likely to force a fallback/workaround.
+
+### Doc-drift — both items identified concretely, not generic
+
+1. **Cron mechanism** (`CLAUDE.md` "Cron Jobs" section, ~line 149): documents GitHub Actions (`.github/workflows/cron-jobs.yml` + `X-Cron-Secret`) as the production cron driver. Per `.wolf` memory (`project_cron_scheduler.md`, superseded 2026-07-28) and confirmed by `apps/api/core/scheduler.py` existing on disk, production actually runs crons **in-process via APScheduler**. Fix: rewrite the "Cron Jobs" section to describe `apps/api/core/scheduler.py`'s schedule instead of the GitHub Actions workflow (the workflow file may still exist/work as a manual-trigger fallback — verify before deciding whether to delete or just re-describe it).
+2. **"Current Scope" credentials note** (`CLAUDE.md`, "No live API credentials in the local environment" bullet): per `16-VERIFICATION.md`'s Method Note (2026-08-04), `apps/api/.env` and `apps/web/app/.env.local` **do** contain live, working `SUPABASE_SERVICE_ROLE_KEY` and `STRIPE_SECRET_KEY` (test-mode) pointed at the real shared dev Supabase project. Only `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` are genuinely absent (commented out). Fix: narrow the claim to the two AI keys specifically.
+
+Both are one-paragraph edits to the same file with zero code dependencies — safe to do first, in one commit, independent of everything else.
+
+### Deferred human-verification items from v1.3 (Phases 15-17) — actual count and file overlap
+
+Only the three phase-level `*-VERIFICATION.md` files exist (no per-plan verification files carry additional open items). Actual list:
+
+| # | Phase | Item | File(s) touched | Overlaps RBAC work? |
+|---|---|---|---|---|
+| 1 | 15 | Non-manager role (`housekeeper`/`front_desk`) sees no "Archive..." button on Engineering Work Orders toolbar | `apps/api/routers/work_orders.py` (backend already `require_role`-gated + tested), `apps/web/.../engineering/work-orders/page.tsx` (frontend `canManage` conditional) | Yes — `work_orders.py` is a "mixed" router |
+| 2 | 17 | Staff/Scheduling/Housekeeping pages render "Unnamed Staff" fallback for NULL `full_name`, no console error | `apps/api/routers/staff.py`, `scheduling.py`; `apps/web/.../{staff,scheduling,housekeeping}/page.tsx` | Yes — `staff.py`, `scheduling.py` are "mixed" routers |
+| 3 | 17 | Guest Request drawer status-advance buttons work end-to-end at every status | `apps/web/components/guest-requests/GuestRequestDrawer.tsx`, `GuestRequestsPage.tsx` (web only — routes through the existing, already-verified kanban mutation path) | **Yes, directly** — the underlying API is `guest_requests.py`, one of the 3 inline-only RBAC routers with the confirmed `DELETE` gap |
+| 4 | 17 | Inspections re-assign picker: selecting a `housekeeping_supervisor` and submitting succeeds | `apps/web/.../housekeeping/inspections/page.tsx` (role filter widened), backend `_ensure_housekeeper()` (unspecified router — verify location before re-checking) | Possibly — depends on which router owns `_ensure_housekeeper()` |
+| 5 | 17 | Migration `091_ai_interactions_widen_interaction_type.sql` applied to remote Supabase, live `general`-intent AI Copilot interaction no longer 400/500s | `supabase/migrations/091_*.sql` (file exists, not yet applied to remote); relates to `apps/api/routers/ai_copilot.py` | No — pure DB deploy step, no RBAC surface |
+
+Note: the milestone brief estimated "~10" deferred items; the actual count found in the three `*-VERIFICATION.md` files is **5** (1 from Phase 15, 0 from Phase 16 — its one gap was already closed same-session — 4 from Phase 17). Roadmap planning should size this work item against 5 confirmed items, not 10, though it's worth a quick check with whoever produced the "~10" estimate in case items were tracked outside these three files.
+
+**Why order matters here:** items #1–#3 share files with the RBAC normalization pass (`work_orders.py`, `staff.py`, `scheduling.py`, `guest_requests.py`). If RBAC normalization runs *after* these are marked "closed," a `guest_requests.py` fix (adding a role gate to `delete_guest_request`) could silently change behavior the verification step just signed off on (e.g. if a `front_desk` user was relying on unrestricted delete access as an undocumented workaround). Re-verify #1–#3 **after** RBAC normalization lands, not before, so verification reflects final code.
+
+### Dev-DB cleanup
+
+No file-level overlap with the other four items — this is data hygiene on the shared dev Supabase project (`oacnwalhcpqdabivweki`, referenced throughout `.env` files and `eas.json`), not a code change. Independent; sequence wherever convenient, but doing it *before* the deferred-verification re-checks (item set above) avoids test data contaminating a "confirm X renders correctly" browser check.
 
 ## Integration Points
 
-### Internal boundaries
+### Internal Boundaries (file/router-level overlap across the 5 work items)
 
-| Boundary | Change | Notes |
-|----------|--------|-------|
-| `list_work_orders` (engineer path `_base()` **and** default query) | add `.is_("archived_at","null")` | **Both** code paths (engineer merge path ~lines 193–212 and default query ~228–247) must get the filter, plus an `?archived=true` opt-in for an "Archived" view/tab |
-| `wo_realtime` subscription (page.tsx ~254–266) | **NO CHANGE** | Leave `event:'*'`, `filter:tenant_id=eq.<id>`. See anti-pattern below |
-| `operational_audit_events` | new `action='work_order.archived'` rows | Append-only trigger already enforced (migration 065); write via the new RPC |
-| `work_orders` publication | **NO CHANGE** | Already added to `supabase_realtime` (migration 030); adding a column does not require re-publishing |
-| RLS on `work_orders` | **NO CHANGE** | Row-level tenant policy already covers the new columns |
-| `subscriptions.cap_cents` | write path via new `PATCH /billing/cap` | Column already exists; read path already in `GET /billing/credits` |
-| `stripe_webhook` | optional | `subscription.updated` already writes `sub.status` → `plan_status` (type already includes `paused`); only add a branch if pause/resume needs bespoke handling |
+| Boundary | Shared file(s) | Risk if sequenced wrong |
+|---|---|---|
+| RBAC normalization ↔ deferred-verification closure | `work_orders.py`, `staff.py`, `scheduling.py`, `guest_requests.py` | Verification "passes" against pre-fix code, then RBAC fix changes behavior underneath it — re-verify after, not before |
+| RBAC normalization ↔ `guest_requests.py` DELETE gap | `guest_requests.py` | This *is* the concrete bug the normalization pass should fix — don't scope it as "add require_role everywhere" without specifically closing this endpoint |
+| Doc-drift fixes ↔ everything else | `CLAUDE.md` only | None — fully isolated, safe first |
+| Expo 54→57 ↔ everything else | `apps/mobile/**` only | None — fully isolated from `apps/api`/`apps/web`, but internally highest-risk (New Arch + third-party native module `expo-speech-recognition`) |
+| Dev-DB cleanup ↔ deferred-verification closure | Shared dev Supabase project, no shared files | Sequence cleanup before verification browser-checks to avoid stale/contaminated data confusing a manual check |
 
-### External services
+### External Services
 
 | Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Stripe | Customer Portal + webhooks (existing) | Prefer portal for payment/cancel/plan; new first-party endpoints only for `cap_cents`. **Cannot be E2E-tested locally** — no Stripe keys in the local env (per CLAUDE.md). Flag billing paths as verification-limited |
-| Supabase Realtime | existing `supabase_realtime` publication | No new surface added; reuses the one Engineering board channel |
+|---|---|---|
+| Expo/EAS | `eas.json` build profiles (Android-only today) | SDK 57 bump doesn't require touching `eas.json` build config unless new native modules need config-plugin changes |
+| Supabase (shared dev project) | `apps/api/.env`, `apps/web/app/.env.local`, `eas.json` `EXPO_PUBLIC_SUPABASE_*` | Same project (`oacnwalhcpqdabivweki`) backs local dev, mobile dev builds, and the "shared dev Supabase" cleanup target — confirm which tables/rows are safe to purge don't collide with what other active work (e.g. concurrent phase execution) is using |
 
-## Anti-Patterns
+## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Adding `archived_at` to the Realtime subscription filter
+### Anti-Pattern: Treating "RBAC normalization" as a mechanical `require_role()` sweep
 
-**What people do:** "Archived rows shouldn't be on the board, so filter them out of the subscription too" → change the `postgres_changes` filter to `tenant_id=eq.<id>&archived_at=is.null`.
+**What people do:** Blanket-replace every inline `current_user.role` check with `Depends(require_role(...))` across all 30 routers.
+**Why it's wrong:** 14 of the 30 routers use inline checks correctly for mid-handler conditional logic that isn't expressible as a single route-level gate (e.g. "include this field only for `gm`"). Sweeping those into `require_role()` either breaks legitimate conditional access or requires splitting endpoints unnecessarily.
+**Do this instead:** Scope the pass to the 3 inline-only routers (`guest_requests.py`, `lost_found.py`, `auth.py`), starting with the confirmed `guest_requests.py` DELETE gap. For the 14 mixed routers, consider a lighter follow-up (shared role-set constants) rather than a rewrite.
 
-**Why it's wrong:** The archive UPDATE sets `archived_at` to a **non-null** value. A Realtime filter of `archived_at=is.null` matches on the row's *new* values, so the very UPDATE that should tell the board to drop the card gets **suppressed**. The card would linger until the 60s `refetchInterval` backstop fires. The subscription is a dumb invalidator; keep it broad (`tenant_id` only) and do the filtering in the REST list query.
+### Anti-Pattern: Bumping Expo without checking third-party native module SDK support first
 
-**Do this instead:** Leave the subscription untouched; add `.is_("archived_at","null")` to `list_work_orders`.
-
-### Anti-Pattern 2: Making `archived` a work-order status
-
-**What people do:** Add `'archived'` to the status CHECK / state machine.
-
-**Why it's wrong:** Couples an orthogonal display concern to the workflow engine — forces edits to `transitions.py`, the Kanban columns, the drawer, and the escalation cron, and loses the "it's still completed/cancelled" semantics. Large regression surface on a Realtime-critical screen.
-
-**Do this instead:** Orthogonal `archived_at` flag (Pattern 1).
-
-### Anti-Pattern 3: Re-implementing payment/cancel flows first-party
-
-**What people do:** Build custom endpoints for card updates or cancellation.
-
-**Why it's wrong:** Duplicates the Stripe Customer Portal that already ships, and pulls PCI-adjacent surface into the app. Build first-party endpoints only for PatelRep-owned state (the spend cap).
-
-## Build Order
-
-**Billing and bulk-archive are independent** — different routers (`billing.py` vs `work_orders.py`), different tables (`subscriptions`/`credit_ledger` vs `work_orders`), no shared migration, no shared component. They can be **two parallel phases** with no ordering dependency.
-
-If serialized, recommended order and reasoning:
-
-1. **Bulk-archive first.** Self-contained (one migration + one RPC + one endpoint + one list-filter line + board UI), no external-service dependency, and **fully verifiable on localhost** against the dev servers + Supabase. It also touches the Realtime-subscribed board, so front-loading it gives the most time for non-regression testing of the Engineering board's golden path.
-2. **Self-serve billing second.** Mostly additive over the existing Stripe spine; the cap endpoint needs no migration. **Caveat:** the local env has **no Stripe keys**, so checkout/portal/webhook paths **cannot be exercised end-to-end locally** — verification is limited to the `cap_cents` DB path and UI rendering. This makes billing the weaker candidate to "prove working on localhost," which is another reason to sequence it after the fully-testable archive work.
-
-Either phase can also proceed in parallel with the other since they never touch the same files.
+**What people do:** Run `npx expo install --fix` / bump `expo` in `package.json` and deal with breakage as it appears.
+**Why it's wrong:** With New Architecture already enabled, a broken third-party module (most likely `expo-speech-recognition`, the one non-`expo-*`-namespaced native dependency) can fail in ways that don't surface until a real device test, costing a full rebuild cycle to diagnose.
+**Do this instead:** Check `expo-speech-recognition`'s changelog/repo for SDK 57 + New Arch support before starting the bump; have a fallback plan (pin it back, or find an alternative) ready.
 
 ## Sources
 
-- `apps/api/routers/billing.py`, `apps/api/routers/webhooks.py`, `apps/api/routers/work_orders.py`, `apps/api/routers/internal.py` (verified 2026-08-03)
-- `apps/api/services/work_orders/transitions.py`
-- `apps/web/app/(dashboard)/engineering/work-orders/page.tsx` (Realtime subscription lines ~254–266)
-- `apps/web/app/(dashboard)/settings/billing/page.tsx`, `apps/web/lib/api/billing.ts`
-- `supabase/migrations/007_work_orders.sql`, `030_enable_realtime_work_orders.sql`, `065_work_order_transition_audit.sql`; migration ceiling confirmed at 088
-- Project conventions: root `CLAUDE.md` (Realtime restricted to 3 surfaces; no ORM; flat routers; append-only audit; sequential migrations; no local Stripe/AI credentials)
+- `apps/api/middleware/auth.py` (read in full)
+- `apps/api/routers/*.py` (30 files; grepped for `require_role` and role-check patterns; `guest_requests.py` and `lost_found.py` read in relevant sections)
+- `apps/mobile/package.json`, `apps/mobile/app.json`, `apps/mobile/eas.json` (read in full)
+- `apps/api/core/scheduler.py` (existence confirmed)
+- `.planning/phases/15-work-order-bulk-archive/15-VERIFICATION.md`
+- `.planning/phases/16-self-serve-billing-management/16-VERIFICATION.md`
+- `.planning/phases/17-backlog-cleanup/17-VERIFICATION.md`, `deferred-items.md`
+- `~/.claude/projects/.../memory/project_cron_scheduler.md` (auto-memory, cross-checked against `apps/api/core/scheduler.py` on disk rather than trusted alone)
+- `CLAUDE.md` (root, current content)
 
 ---
-*Architecture research for: PatelRep billing-management + work-order bulk-archive integration*
-*Researched: 2026-08-03*
+*Architecture research for: PatelRep v1.4 (Platform and Ops Hardening)*
+*Researched: 2026-08-04*

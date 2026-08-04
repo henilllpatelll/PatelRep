@@ -1,228 +1,171 @@
 # Feature Research
 
-**Domain:** B2B hotel-ops SaaS — self-serve billing management + bulk-archive for Engineering work orders
-**Researched:** 2026-08-03
-**Confidence:** HIGH (both capabilities grounded in existing PatelRep code; Stripe portal behavior verified against current Stripe docs)
+**Domain:** Operational practices (platform/ops hardening) for a multi-tenant FastAPI + Supabase SaaS, no ORM
+**Researched:** 2026-08-04
+**Confidence:** MEDIUM-HIGH (codebase findings HIGH; external practice recommendations MEDIUM — synthesized from multiple WebSearch sources, no single canonical spec exists for these three practices)
 
-> Scope note: This file covers only the two NEW capabilities. It is deliberately opinionated and tied to PatelRep's actual constraints (Stripe Customer Portal already partially wired, work-order state machine + append-only `operational_audit_events`, tenant isolation via `hotel_id`, `$2.50/room/month` cap, and NO live Stripe credentials for local testing).
+This milestone (v1.4) ships **no new user-facing features**. "Features" below are read as **operational practices/deliverables**: (1) RBAC normalization, (2) shared-DB test-data hygiene, (3) documentation-drift prevention.
 
----
+## Current-State Findings (grounds the recommendations below)
 
-## Capability A — Self-Serve Billing Management
+- `require_role(*roles)` in `apps/api/middleware/auth.py:127-136` is a clean FastAPI `Depends`-based dependency — this is already the industry-standard shape (verify JWT → resolve claims → declarative per-route dependency). It does not need replacing.
+- 214 occurrences of `current_user.role` / `require_role(` across 28 files in `apps/api/routers/`. Many are legitimate **object-level** checks (e.g. `rooms.py:55` — a housekeeper may only undo a room they're assigned to; `safety.py:84` — a user may only view their own training unless they're a manager). These structurally cannot be expressed by `require_role()`, which only sees role, not resource state.
+- Role-set constants are **redefined per-file with no shared source of truth**, and they've already drifted:
+  - `MANAGER_ROLES` = `("gm", "housekeeping_supervisor", "chief_engineer")` in `safety.py:34` vs. `("gm", "housekeeping_supervisor", "engineer", "chief_engineer")` in `programs.py:43` — same name, different membership.
+  - `hotels.py:11` — `ALL_STAFF_ROLES` lists `"engineer"` twice and omits `"chief_engineer"` entirely — a likely bug.
+  - At least 9 other one-off constants (`SESSION_ROLES`, `SHIFT_ROLES`, `SUPERVISOR_ROLES`, `UNDO_ALL_ROLES`, `MESSAGE_ROLES`, `SLA_POLICY_ROLES`, `EVIDENCE_CAPTURE_ROLES`, `COMPETENCY_MANAGER_ROLES`) exist, each hand-maintained.
+  - A separate `custom_role_id` override system exists in `staff.py` (migrations 028/029) layered on top of the fixed 6-role enum — any normalization must account for effective-role resolution, not just the literal `role` claim.
+- Automated tests (`apps/api/tests/`) already run against `fake_supabase.py` / mocked env vars (`tests/smoke/conftest.py`) — they do **not** touch the real Supabase project. The shared-DB risk is specifically **manual/Playwright QA** against the live `oacnwalhcpqdabivweki` project, not CI.
+- `apps/api/.env` **exists locally** with real keys — confirms the CLAUDE.md claim "no live API credentials in the local environment" is stale, consistent with the milestone brief.
+- No existing seed/teardown script scopes to a designated "test tenant" — `supabase/seed.sql` and `apps/api/scripts/seed_hotel_layout.py` seed general schema/layout data, not tagged QA fixtures.
 
-### What already exists (do not rebuild)
+## Feature Landscape
 
-- `POST /billing/portal` already creates a **Stripe Customer Portal** session (`billing.py:64`). The portal is Stripe-hosted and — per current Stripe docs (2026) — handles **plan switch, payment-method update/replace, and invoice history** with zero custom UI when configured. The web page shows "Coming soon"; the backend is effectively done.
-- `POST /billing/checkout` handles trial → paid upgrade.
-- `GET /billing/invoices` lists last 10 Stripe invoices (with `hosted_invoice_url`).
-- `GET /billing/credits` returns current-period AI-credit usage — but reads a single `credit_ledger` row matched by `period_start <= today <= period_end`. When the period rolls over and no new ledger row is inserted, this returns stale/empty data. **This is the real work in this capability, not the plan/payment UI.**
-- Stripe webhook (`webhooks.py:129`) already syncs `plan_status`, `current_period_start/end`, and stamps `stripe_invoice_id` on `invoice.paid`.
+### Table Stakes (Any Competent Team Would Do These)
 
-### Key architectural decision (drives everything below)
-
-**Lean on the Stripe Customer Portal for plan change + payment method. Build custom UI ONLY for the AI-credit usage/cost display** (metered `$0.02/credit`, `$2.50/room/month` cap) — Stripe's portal has no concept of PatelRep's per-room cap or credit ledger. Building a custom plan-picker or card-entry form is an anti-feature here (PCI scope, duplicated proration logic, untestable without live keys).
-
-### Table Stakes (Users Expect These)
-
-| Feature | Why Expected | Complexity | Notes |
+| Practice | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Working "Manage subscription" button → Stripe portal | Every B2B SaaS lets the billing owner change plan / card without emailing support | **LOW** | Backend `/billing/portal` exists; wire the web button, replace "Coming soon", set return_url. Configure the portal in Stripe Dashboard (enable plan switching + payment-method update). |
-| Update / replace payment method | GM's corporate card expires; must self-serve or churn | **LOW** | Delivered entirely by the Stripe portal. No custom card form. |
-| Accurate **current-period** AI-credit usage + cost | The whole meter is `$0.02/credit`; a stale number erodes trust in every invoice | **MEDIUM** | Root cause is ledger rollforward: guarantee a `credit_ledger` row exists for today's period. Drive off `customer.subscription.updated`/`invoice.paid` webhook (already firing) or the existing APScheduler cron. `UNIQUE(tenant_id, period_start)` makes an idempotent upsert safe. |
-| Show the `$2.50/room/month` cap and remaining headroom | Cap is the core pricing promise; GM needs to see they won't be surprise-billed | **LOW** | `cap_cents` already on `subscriptions`; already returned by `/billing/credits`. Surface it as a progress/gauge against `overage_cost_cents`. |
-| Invoice history with hosted PDF links | Accounting / expense reconciliation is non-negotiable in B2B | **LOW** | `/billing/invoices` already returns `hosted_invoice_url`. Render as a list. |
-| Current plan + status badge (trialing / active / past_due) | GM must know if they're in trial, paid, or delinquent | **LOW** | `plan_status` already synced by webhook. |
-| Past-due / payment-failed banner | Silent dunning = involuntary churn; user must be told to fix their card | **MEDIUM** | `invoice.payment_failed` already sets `plan_status='past_due'`. Add a dashboard banner deep-linking to the portal. |
+| Audit script enumerating every route-level auth check (which routes use `require_role`, which rely solely on an inline `if current_user.role ==` with no dependency) | You cannot normalize what you haven't inventoried; scattered checks are otherwise invisible to code review | LOW | Simple grep/AST script over `apps/api/routers/*.py`; output is a worklist, not a fix |
+| Apply `require_role()` consistently to every route that only needs role-level gating (no resource ownership involved) | This is the one enforcement point FastAPI's own DI model is built for; leaving some routes to inline checks is the exact inconsistency this milestone targets | LOW–MEDIUM | Mechanical per-route change; risk is regressions if a role-set literal is copied wrong during migration (see the `MANAGER_ROLES` drift above — do this via one shared constant, not copy-paste) |
+| Single shared module (e.g. `core/roles.py`) defining every role-group constant once, imported everywhere instead of redefined per-router | Directly fixes the `MANAGER_ROLES` mismatch and the `ALL_STAFF_ROLES` bug found above | LOW | Pure refactor; no behavior change if done correctly — write a smoke test asserting old vs. new constant sets are equal before deleting the old ones |
+| Explicit, named helper for object/row-level checks (e.g. `assert_self_or_role(current_user, resource_owner_id, *bypass_roles)`) instead of ad hoc `if current_user.role == "housekeeper" and x.assigned_to == current_user.user_id` scattered inline | Keeps the legitimate second authorization layer (ownership) from being confused with — or accidentally deleted during — route-level RBAC normalization | LOW–MEDIUM | Do not try to force ownership checks into `require_role()`; it has no concept of resource state |
+| Designate specific hotel tenant(s) as "QA test tenants" via an explicit flag/naming convention (leverages the existing `hotel_id` isolation boundary already enforced by every query + RLS) | The app is already multi-tenant-isolated by `hotel_id` — this is the cheapest possible test-data boundary, requiring no new isolation mechanism | LOW | E.g. a `is_test_tenant boolean` column on `tenants`/`hotels`, or a reserved name prefix (`"QA-*"`) checked in a script |
+| Cleanup script that hard-scopes every `DELETE`/reset to `hotel_id IN (<tagged test tenants>)`, never touching un-tagged tenants, with a dry-run mode that prints row counts before deleting | Prevents a cleanup run from ever touching another engineer's in-flight manual QA data or real customer data in the same project | MEDIUM | Must respect FK cascade order (see migration 023 cascade FK deletes) or run inside a transaction; dry-run-first is the safety rail |
+| Fix the two known-stale CLAUDE.md claims directly (cron mechanism: GitHub Actions → APScheduler in-process; credentials: "none locally" → Stripe/Supabase keys ARE present) | These are the two concrete instances of drift this milestone exists to prevent — fixing them is a precondition for any drift-detection tooling (a check can't defend a fact that's currently wrong) | LOW | Direct doc edit, already fully diagnosed by memory/`project_cron_scheduler.md` |
+| One CI or pre-commit check per **known-fragile fact**, not a general-purpose doc linter — e.g. grep that fails if CLAUDE.md says "GitHub Actions" runs cron while `apscheduler` import exists in `main.py`, and a check that env-var docs match `.env.example` keys | Cheap, targeted, catches the exact class of drift already observed twice; a general prose-freshness linter is unreliable and expensive to maintain | LOW | Sources agree: targeted, high-signal checks beat broad "doc linting" for small teams — see anti-features below |
 
-### Differentiators (Competitive Advantage)
+### Differentiators (Worth Doing, Not Required for v1.4 to Be Complete)
 
-| Feature | Value Proposition | Complexity | Notes |
+| Practice | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Live "credits used / included / projected month-end cost" gauge | Most SMB SaaS shows usage only on the invoice after the fact; showing it live against the room-cap is a trust signal unique to metered AI pricing | **MEDIUM** | Reuse `/billing/credits` data; add linear projection `used/day_of_period * days_in_period`. Pure client math, no new backend. |
-| Cap-approaching alert (e.g. 80% of `$2.50/room` cap) | Turns a billing surprise into a proactive heads-up; reinforces the "we cap your spend" promise | **MEDIUM** | Threshold check in the existing daily cron; in-app notification (notifications domain already exists). |
-| Per-period usage breakdown (credits by AI feature) | Lets GM see WHERE credits go (triage vs SOP RAG vs onboarding) | **HIGH** | Requires attributing `credits_used` by feature at write time in the credits middleware; defer past this milestone. |
+| Auto-generated route × role permission matrix (a script that walks FastAPI's route table and each route's `Depends(require_role(...))` args, emits a Markdown table) | Turns "what can a front_desk user do?" from an archaeology exercise into a build artifact; also doubles as a regression check — if the generated table changes unexpectedly, a PR reviewer notices | MEDIUM | Only works well **after** normalization — routes still using inline checks won't show up correctly, so this is naturally sequenced after the table-stakes items |
+| Lint rule (custom AST check, e.g. via `ast`/`libcst` or a simple regex CI step) that flags new PRs introducing a bare `current_user.role ==`/`!=`/`in {...}` comparison for pure route gating, nudging the author toward `require_role()` or the shared object-check helper | Stops the pattern from re-fragmenting after the initial cleanup — normalization efforts that aren't enforced tend to decay within a few months | MEDIUM | Needs a documented exception list for legitimate object-level checks so the linter doesn't cry wolf |
+| Soft-delete + scheduled hard-delete (pg_cron, batched) for tagged test data instead of a synchronous destructive `DELETE` | Gives a recovery window if the cleanup script's tenant-tag scoping has a bug, and batches the delete to avoid locking large tables during another engineer's active QA session | MEDIUM | Supabase's own guidance (see Sources) recommends this pattern specifically for live/shared databases over synchronous bulk delete |
+| "Last-verified" date + owner note on the specific CLAUDE.md sections most prone to drift (cron jobs table, env-var/credentials section, infra URLs) | Cheap signal for a human reviewer ("this hasn't been checked in 3 months") without building tooling that verifies prose semantically | LOW | Convention, not automation — pairs well with the targeted CI checks above rather than replacing them |
 
-### Anti-Features (Commonly Requested, Often Problematic)
+### Anti-Features (Would Look Like Progress, Actually Aren't — for This App's Scale)
 
-| Feature | Why Requested | Why Problematic | Alternative |
+| Practice | Why It's Tempting | Why Problematic Here | Alternative |
 |---------|---------------|-----------------|-------------|
-| Custom in-app plan picker + card-entry form | "Looks more integrated / on-brand" | Pulls PCI scope into PatelRep, duplicates Stripe proration/tax/dunning, must be re-tested on every Stripe change — and CANNOT be tested locally (no Stripe keys) | Stripe Customer Portal (already wired). One button. |
-| In-app proration preview / "what will I be charged" calculator | GM wants certainty before switching plans | Reimplements Stripe's proration engine; drifts from actual billing; high bug surface | Stripe portal shows proration at switch time natively. |
-| Self-serve cancellation with retention offers | "Standard SaaS" | Retention discounts touch pricing integrity; a hotel-ops tool churns via an account manager, not a coupon wizard | Enable/disable cancellation in the portal config; handle saves human-to-human. |
-| Storing card/PAN or full billing address in Supabase | "So we can display it" | Massive compliance liability; Stripe already holds it | Display only Stripe's `card.last4`/brand via the portal; never persist PAN. |
-| Usage display that reads live Stripe metered-usage records | Seems "most accurate" | PatelRep's credit meter is internal (`credit_ledger`), not Stripe metered billing; adds a round-trip and a second source of truth | Keep `credit_ledger` as the single source; Stripe only invoices the finalized overage. |
-
-### Dependency on existing systems (called out explicitly)
-
-- **Stripe integration:** `/billing/portal`, `/billing/checkout`, `/billing/invoices` exist; requires the Stripe **Dashboard portal configuration** to actually expose plan-switch + payment-method (a config step, not code). Cannot be exercised end-to-end locally — **no live Stripe keys in the local env** (flag for QA: test with a Stripe test-mode key or in staging).
-- **Credit ledger rollforward:** the usage-accuracy fix depends on `credit_ledger` (migration 014) + the Stripe webhook (`webhooks.py`) and/or the APScheduler cron. The `overage_*` columns are GENERATED — never write them; only write `credits_used` / period boundaries.
-- **Webhook idempotency:** rollforward upsert must be idempotent against `UNIQUE(tenant_id, period_start)` because Stripe retries webhooks.
-- **Role gate:** all billing routes already `require_role("gm")` — keep GM as the sole billing owner.
-
----
-
-## Capability B — Bulk-Archive for Engineering Work Orders
-
-### What already exists (do not rebuild)
-
-- Work-order **state machine** (`transitions.py`): `open → escalated → in_progress → on_hold → completed → cancelled`, with `completed`/`cancelled` as terminal states (each only reopens to `open`).
-- **Append-only audit** via `operational_audit_events` (migration 065) + `transition_work_order_with_audit()` RPC. A DB trigger *hard-blocks* UPDATE/DELETE on audit rows.
-- `GET /work_orders` list with `status`/`category`/`priority`/`assigned_to`/`room_id` filters + pagination; `PATCH /{wo_id}` explicitly **rejects** status changes (forces the transition endpoint).
-- Management roles: `gm` + `engineer` (migration 064 merged `chief_engineer` into `engineer`; `_MANAGEMENT_ROLES` in `transitions.py`).
-
-### Key architectural decision (drives everything below)
-
-**Archive is an ORTHOGONAL flag, not a new status value.** Add `archived_at TIMESTAMPTZ` (nullable) to `work_orders` — do NOT add `'archived'` to the `status` CHECK constraint. Status answers "what operational state is this work?"; archive answers "should this still show in the active list?". A completed WO stays `completed` forever; archiving only hides it. This mirrors the codebase's soft-delete / evidence-preservation philosophy (Lost & Found "permanently deletable only via explicit cascade", audit-first everywhere).
-
-### What users assume "archive" vs "delete" means (verified pattern)
-
-- **Archive** = "get it out of my active view, but I can still find it and its history is intact." Reversible. The default in audit-sensitive B2B tools.
-- **Delete** = "gone." In this codebase, delete of an operational record is essentially never offered because it would sever the `operational_audit_events` trail. Bulk-archive must NEVER cascade-delete audit rows.
-
-### Table Stakes (Users Expect These)
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Multi-select of work orders (checkboxes + "select all on page") | Bulk anything requires selection; managers won't archive 200 closed WOs one at a time | **LOW** | Web-only UI state; a selected set of `wo_id`s. |
-| Archive only **terminal** WOs (completed / cancelled) | Archiving an open/in-progress WO would hide live work — a footgun | **LOW** | Server-side guard: reject archive if `status NOT IN ('completed','cancelled')`. Grey out non-terminal rows in the UI. |
-| Default active view **excludes** archived | The entire point is decluttering the active board | **MEDIUM** | Add default `.is_("archived_at","null")` to the list query in BOTH the engineer two-query branch AND the manager branch (`work_orders.py:164`). Non-regression risk — must patch both paths. |
-| "Archived" filter / tab to view archived WOs | Archive must be findable or it feels like deletion | **LOW** | New `include_archived` / `archived=true` query param on `GET /work_orders`. |
-| Audit trail entry per archive (who / when / how many) | Every controlled operational change is audited in this app | **MEDIUM** | Insert `operational_audit_events` rows with `action='work_order.archived'`, `actor_id/role`, `source='web'` — inside a SECURITY DEFINER RPC like the transition RPC, one row per WO in the bulk call. |
-| Unarchive (restore) | Archiving is reversible by definition; managers WILL mis-select | **LOW** | Set `archived_at = NULL`; audit `action='work_order.unarchived'`. |
-| Management-only gate | Floor roles shouldn't reshape the board | **LOW** | Gate on `gm`/`engineer`, consistent with `_MANAGEMENT_ROLES` in `transitions.py`. |
-
-### Differentiators (Competitive Advantage)
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| One bulk-archive call = one atomic, fully-audited operation | Managers trust "archive 150 closed WOs" won't half-apply | **MEDIUM** | Single RPC looping the id set in a transaction; partial failure rolls back. Return a per-WO result summary. |
-| Bulk-select by filter ("archive all completed older than 30 days") | Turns monthly board cleanup into one click | **MEDIUM** | Server-side selector by `status + completed_at < cutoff` instead of a client id list; still audited per WO. |
-| Archived WOs still feed Reports / audit exports | Archive ≠ invisible to compliance / ROI reporting | **LOW** | Because it's a flag not a delete, reports simply query without the `archived_at IS NULL` filter. Free by design. |
-
-### Anti-Features (Commonly Requested, Often Problematic)
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Bulk **delete** work orders | "Just clear the clutter permanently" | Severs `operational_audit_events` (append-only, trigger-protected); destroys the evidence trail the whole app is built on; likely illegal for safety/maintenance records | Bulk-archive (reversible flag). Never expose hard delete. |
-| Adding `'archived'` to the `status` enum | "Simpler, one column" | Collapses two independent axes; breaks the state machine (archived AND completed?); every status filter/report must special-case it; corrupts audit `old_state/new_state` semantics | Orthogonal `archived_at` column. |
-| Archiving non-terminal (open / in_progress) WOs | "I want to hide this too" | Hides live/assigned work from the floor; the SLA/escalation cron would act on invisible WOs | Restrict to `completed`/`cancelled`; to hide an active WO, `cancel` it first (audited state change). |
-| Auto-archive on completion | "Keep the board clean automatically" | Managers lose the post-completion review window; QA/inspection often happens after "completed" | Manual bulk-archive; opt-in age-based auto-archive later. |
-| Cascading the archive to child records (photos, audit events) | "Keep it tidy" | Would delete/hide evidence; audit rows are trigger-protected anyway | Archive is a single flag on the parent WO only. |
-
-### Dependency on existing systems (called out explicitly)
-
-- **Work-order state machine (`transitions.py`):** archive is independent of `_ALLOWED_TRANSITIONS`; do NOT route it through `validate_work_order_transition`. It needs its own guard (terminal-status check).
-- **Append-only audit (`operational_audit_events`, migration 065):** archive/unarchive MUST write audit rows; the trigger blocks any mutate/delete of them, so no cascade risk — but the RPC must INSERT, never UPDATE audit rows.
-- **List endpoint (`work_orders.py:164`):** the default-exclude filter must be added to BOTH the engineer dual-query branch and the manager branch — **primary non-regression hotspot.** Existing status/category filters must keep working alongside the new archived filter.
-- **`PATCH /{wo_id}` guard:** it rejects `status` changes; archive should be dedicated endpoints (`POST /work_orders/bulk-archive` + `/bulk-unarchive`), not smuggled through PATCH.
-- **Migration:** new `archived_at` column + partial index `WHERE archived_at IS NULL` to keep the active-list query fast (mirrors the `032_work_orders_unclaimed_index` pattern). Tenant isolation (`.eq("hotel_id"...)`) applies to every archive query.
-- **Realtime:** Engineering Work Orders is one of the three Realtime surfaces (A2). Archiving flips `archived_at`, firing a Realtime UPDATE — clients must drop archived rows from the live board. Verify subscribers filter on `archived_at IS NULL`.
-
----
+| Adopting an external policy engine (Casbin, Oso, Permit.io) to replace `require_role()` | "RBAC normalization" sounds like exactly what these tools are for | Overkill for 6 fixed roles + `hotel_id` tenant scoping + a small `custom_role_id` override table; adds a policy language, a new deployment/config surface, and a learning curve disproportionate to the app's actual authorization complexity. Sources are explicit that these tools earn their cost at higher role/policy complexity than PatelRep currently has | Keep `require_role()` as the canonical route-level gate; formalize the object-level layer with one small internal helper (see table stakes) — re-evaluate only if roles or `custom_role_id` combinations grow substantially |
+| Fully automated CLAUDE.md generation from code/AST (regenerate the whole file every commit) | Sounds like it eliminates drift entirely | Brittle, strips human-curated "why" context (e.g. the rationale notes throughout CLAUDE.md), and is itself a new thing that needs maintenance — trades one drift problem for a fragile-generator problem | Targeted, fact-specific CI checks (table stakes) for the handful of claims that are actually prone to going stale; leave prose sections human-owned |
+| Nightly full wipe/reset of the shared dev Supabase project | Simplest possible "clean test data" mental model | Directly breaks the stated constraint: real engineers use the same project for manual testing side-by-side; a blanket reset destroys another engineer's in-flight QA session and any persistent demo/staging data with no way to distinguish "test junk" from "someone's active work" | Scoped, tag-based cleanup limited to explicitly marked test tenants (table stakes), on demand or on a long TTL — never a blanket reset |
+| Standing up a second, fully separate staging Supabase project as a v1.4 deliverable | Feels like the "proper" fix for shared-DB risk | High cost relative to this milestone's scope — dual migrations, dual env config, dual seed data, ongoing sync burden — and CLAUDE.md already documents "no dedicated staging DB" as a deliberate current-state constraint, not an oversight to silently reverse | Tenant-tagged isolation within the existing project (in scope now); revisit a project split only if tagged isolation proves insufficient |
 
 ## Feature Dependencies
 
 ```
-Self-serve billing management
-    ├── Wire "Manage subscription" button ──requires──> existing /billing/portal (DONE)
-    │                                         └──requires──> Stripe Dashboard portal config (plan switch + card)
-    ├── Accurate usage display ──requires──> credit_ledger rollforward fix (webhook/cron upsert)
-    │                             └──requires──> existing /billing/credits + cap_cents
-    └── Cap-approaching alert ──enhances──> Accurate usage display
-                                └──requires──> existing notifications domain + daily cron
+[Role-set constant consolidation (core/roles.py)]
+    └──requires──> [Audit script inventory of current checks]
 
-Bulk-archive for work orders
-    ├── archived_at column + partial index (migration) ──prerequisite-for──> everything below
-    ├── Default active view excludes archived ──requires──> list-endpoint patch (BOTH branches)
-    ├── Bulk-archive RPC (atomic + audited) ──requires──> operational_audit_events (DONE)
-    │                                         └──requires──> terminal-status guard
-    ├── Archived filter/tab ──requires──> include_archived query param
-    ├── Unarchive ──requires──> Bulk-archive RPC
-    └── Realtime board drop ──requires──> archived_at + subscriber filter update
+[require_role() applied consistently to route-level gates]
+    └──requires──> [Audit script inventory]
+    └──requires──> [Role-set constant consolidation]
 
-Archive ──conflicts──> adding 'archived' to status enum (mutually exclusive designs)
-Bulk-archive ──conflicts──> bulk-delete (never coexist; delete breaks audit)
+[Object-level check helper (assert_self_or_role)]
+    └──requires──> [Audit script inventory]  (to separate "route gate" from "ownership check" cases)
+
+[Auto-generated permission matrix]
+    └──requires──> [require_role() applied consistently]   (inline checks won't show up in the matrix)
+
+[Lint rule blocking new inline role checks]
+    └──requires──> [Object-level check helper exists]        (needs an approved alternative to point authors to)
+
+[Tagged test-tenant convention]
+    (no dependency — can start immediately)
+
+[Scoped cleanup script]
+    └──requires──> [Tagged test-tenant convention]            (can't safely delete without a marker)
+
+[Doc-drift CI checks (cron wording, credentials wording)]
+    └──requires──> [CLAUDE.md stale claims corrected first]   (a check must defend a true fact, not encode the current wrong one)
 ```
 
 ### Dependency Notes
 
-- **Usage-display accuracy requires the rollforward fix, not new UI.** The visible symptom (stale number) is a data-lifecycle bug; the plan/payment "management" pieces are already handled by Stripe's portal.
-- **The `archived_at` migration gates the whole archive capability** — column + partial index land first, then endpoint, then UI.
-- **The list-endpoint patch is the highest non-regression risk** because it touches the shared work-order query used by every engineering surface (web + mobile) across two code paths.
-
----
+- **Auto-generated permission matrix requires consistent `require_role()` usage:** the generator can only read what's declared as a FastAPI dependency; routes still gating via inline `if` blocks are invisible to it, so this is a natural second-wave item, not a first-wave one.
+- **Lint rule requires the object-level helper to exist first:** without an approved alternative pattern, the lint rule has nothing constructive to suggest and will just generate noise/exceptions.
+- **Cleanup script requires the tagging convention:** deleting by `hotel_id` membership in an untagged, ad hoc list is exactly the kind of manual, error-prone process this milestone should eliminate.
+- **Doc-drift CI checks require the underlying facts to be correct first:** encoding a check that asserts "CLAUDE.md says GitHub Actions runs cron" before fixing the text would just make the wrong claim harder to change later.
 
 ## MVP Definition
 
-### Launch With (v1)
+### Launch With (v1.4 must-have)
 
-- [ ] Wire web "Manage subscription" button to existing `/billing/portal`; remove "Coming soon" — unblocks plan change + payment method with ~zero backend work
-- [ ] Configure the Stripe Customer Portal (Dashboard) to expose plan switch + payment-method update
-- [ ] Fix `credit_ledger` rollforward so `/billing/credits` always reflects the current period (idempotent upsert on period boundary)
-- [ ] Surface current-period usage + `$2.50/room` cap + remaining headroom in the billing page
-- [ ] `archived_at` column + partial index migration for `work_orders`
-- [ ] `POST /work_orders/bulk-archive` (terminal-status guarded, audited, atomic) + `bulk-unarchive`
-- [ ] Default active list excludes archived (patch BOTH list branches) + "Archived" filter/tab
-- [ ] Multi-select UI on the work-orders board (management-gated)
-- [ ] Past-due banner deep-linking to the portal
+- [ ] Correct the two known-stale CLAUDE.md claims (cron mechanism, local credentials) — direct edit, no tooling prerequisite
+- [ ] Audit script inventorying every `current_user.role` / `require_role()` usage per router, classified as route-level-gate vs. object-level-check
+- [ ] `core/roles.py` (or equivalent) consolidating all role-group constants into one source of truth, fixing the `MANAGER_ROLES` drift and `ALL_STAFF_ROLES` bug found above
+- [ ] `require_role()` applied to every route classified as a pure route-level gate by the audit
+- [ ] Named helper for object-level/ownership checks, applied to the routes classified as such (not forced into `require_role()`)
+- [ ] Test-tenant tagging convention (flag or naming convention) introduced on `hotels`/`tenants`
+- [ ] Cleanup script scoped strictly to tagged test tenants, with mandatory dry-run output before any delete
 
-### Add After Validation (v1.x)
+### Add After Validation (v1.4.x)
 
-- [ ] Live projected month-end cost gauge — once base usage display is trusted
-- [ ] Cap-approaching (80%) proactive alert via existing cron + notifications
-- [ ] Server-side bulk-select ("archive all completed older than N days")
+- [ ] Auto-generated route × role permission matrix doc — add once `require_role()` coverage is consistent enough to be worth generating from
+- [ ] CI lint rule blocking new bare role comparisons for route gating — add once the object-level helper has been in use long enough to have a stable exception list
+- [ ] Targeted CI/pre-commit checks defending the two corrected doc facts (cron mechanism, credentials) specifically
+- [ ] "Last-verified" convention on the highest-drift-risk CLAUDE.md sections
 
 ### Future Consideration (v2+)
 
-- [ ] Per-feature AI-credit breakdown (requires attribution at credit-write time)
-- [ ] Opt-in auto-archive after configurable age
-- [ ] Add-on credit-pack self-purchase (`credits_purchased` column already exists)
-
----
+- [ ] Soft-delete + pg_cron scheduled hard-delete for tagged test data — defer until the synchronous scoped-delete script has proven the tagging boundary is safe
+- [ ] Re-evaluate a policy engine (Casbin/Oso) only if role count or `custom_role_id` combinations grow enough that a shared-constants file stops being sufficient
+- [ ] Dedicated separate staging Supabase project — explicitly out of scope per current CLAUDE.md constraint; revisit only if tagged in-project isolation proves insufficient at higher engineer/QA concurrency
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value | Implementation Cost | Priority |
+| Practice | Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Wire portal button (plan + payment) | HIGH | LOW | P1 |
-| credit_ledger rollforward + accurate usage display | HIGH | MEDIUM | P1 |
-| Show cap + headroom | HIGH | LOW | P1 |
-| `archived_at` migration + bulk-archive RPC (audited) | HIGH | MEDIUM | P1 |
-| Default view excludes archived + Archived tab | HIGH | MEDIUM | P1 |
-| Multi-select UI (management-gated) | HIGH | LOW | P1 |
-| Unarchive / restore | MEDIUM | LOW | P1 |
-| Past-due banner | MEDIUM | MEDIUM | P2 |
-| Projected month-end cost gauge | MEDIUM | MEDIUM | P2 |
-| Cap-approaching alert | MEDIUM | MEDIUM | P2 |
-| Server-side bulk-select by age | MEDIUM | MEDIUM | P2 |
-| Per-feature credit breakdown | LOW | HIGH | P3 |
-| Custom plan picker / card form | NEGATIVE | HIGH | **Do not build** |
-| Bulk delete work orders | NEGATIVE | LOW | **Do not build** |
+| Fix two stale CLAUDE.md claims | HIGH | LOW | P1 |
+| Audit script (inventory checks) | HIGH | LOW | P1 |
+| Consolidate role constants (`core/roles.py`) | HIGH | LOW | P1 |
+| Apply `require_role()` consistently | HIGH | MEDIUM | P1 |
+| Object-level check helper | HIGH | LOW–MEDIUM | P1 |
+| Test-tenant tagging convention | HIGH | LOW | P1 |
+| Scoped cleanup script + dry-run | HIGH | MEDIUM | P1 |
+| Auto-generated permission matrix | MEDIUM | MEDIUM | P2 |
+| Lint rule for new inline role checks | MEDIUM | MEDIUM | P2 |
+| Targeted doc-drift CI checks | MEDIUM | LOW | P2 |
+| Soft-delete + pg_cron sweep | LOW–MEDIUM | MEDIUM | P3 |
+| External policy engine (Casbin/Oso) | LOW (at current scale) | HIGH | P3 (reject unless triggers hit) |
+| Separate staging Supabase project | LOW (out of scope) | HIGH | P3 (reject per current constraint) |
 
-**Priority key:** P1 = must have for this milestone · P2 = add after validation · P3 = future
+**Priority key:**
+- P1: Must have for v1.4 to be considered done
+- P2: Should have, natural second wave once P1 lands
+- P3: Nice to have / explicitly deferred, only reconsider if stated triggers occur
 
----
+## Explicit Answer: What Happens to `require_role()`
 
-## Competitor Feature Analysis
+**Extend and apply consistently — do not replace.** `require_role()` at `apps/api/middleware/auth.py:127` already matches the industry-standard FastAPI pattern (verified JWT → resolved claims → declarative per-route `Depends`), confirmed across every FastAPI RBAC source reviewed. The actual gap isn't the mechanism, it's:
+1. **Inconsistent application** — many routes gate role purely via inline `if` instead of the dependency that already exists for this.
+2. **No single source of truth for role groups** — same-named constants (`MANAGER_ROLES`) already disagree across files.
+3. **No distinct, named pattern for object-level/ownership checks** — these are legitimate and must stay separate from route-level RBAC (structurally, `require_role()` cannot see resource state), but right now they're indistinguishable in the code from checks that should have been `require_role()` calls.
 
-| Feature | Typical SMB SaaS (Stripe-portal-based) | Ops/ticketing tools (Jira/ServiceNow-style) | Our Approach |
-|---------|----------------------------------------|---------------------------------------------|--------------|
-| Plan change / payment method | Redirect to Stripe/Chargebee hosted portal | N/A | Stripe Customer Portal (already wired) — no custom UI |
-| Metered usage display | Shown on invoice; some show a live meter | N/A | Custom live meter vs internal `credit_ledger` + per-room cap (unique to our pricing) |
-| Archive vs delete | — | Bulk close/archive, soft-hide, audit retained; hard delete admin-gated or absent | Bulk-archive via orthogonal `archived_at` flag; NO hard delete; audit always preserved |
-| Bulk operations | — | Multi-select + bulk transition/archive on closed items | Multi-select terminal WOs, atomic audited RPC, management-gated |
-
----
+Normalization = (a) one shared constants module, (b) `require_role()` on every pure route-gate, (c) one named helper for ownership checks, (d) an audit/lint step to keep it that way. No new framework is warranted at this app's current role/policy complexity.
 
 ## Sources
 
-- PatelRep codebase: `apps/api/routers/billing.py`, `apps/api/routers/webhooks.py`, `apps/api/routers/work_orders.py`, `apps/api/services/work_orders/transitions.py`, `supabase/migrations/014_billing.sql`, `supabase/migrations/065_work_order_transition_audit.sql`, `CLAUDE.md` (conventions A1–A4, pricing, roles) — HIGH confidence
-- [Stripe — Introducing the Billing customer portal](https://stripe.com/blog/billing-customer-portal) — HIGH
-- [Stripe Customer Portal: plan changes, pauses, cancellations without custom UI (OperatorIQ)](https://operatoriq.io/blog/stripe-customer-portal-plan-changes/) — MEDIUM
-- [Stripe — Update a portal configuration (API reference)](https://stripe.com/docs/api/customer_portal/configurations/update) — HIGH
-- [Stripe — Set payment methods per-subscription](https://docs.stripe.com/billing/subscriptions/payment-methods-setting) — HIGH
+- [require_role() FastAPI centralization — DeepWiki RBAC Implementation](https://deepwiki.com/fastapi-practices/fastapi_best_architecture/3.2-rbac-system) — MEDIUM confidence, community reference architecture
+- [RBAC/ABAC Authorization in FastAPI — practical guide](https://blog.greeden.me/en/2026/03/24/introduction-to-rbac-abac-authorization-management-in-fastapi-a-practical-guide-to-designing-secure-authorization-with-roles-attributes-and-policies/) — MEDIUM confidence
+- [FastAPI Auth with Dependency Injection — PropelAuth](https://www.propelauth.com/post/fastapi-auth-with-dependency-injection) — MEDIUM confidence
+- [FastAPI dependency injection masterclass](https://medium.com/the-pythonworld/fastapi-dependency-injection-masterclass-cleaner-code-better-architecture-f29b906bfaf9) — MEDIUM confidence
+- [Deleting data and dropping objects safely — Supabase Docs](https://supabase.com/docs/guides/database/postgres/data-deletion) — HIGH confidence, official docs; source for soft-delete + pg_cron batching guidance
+- [Testing Overview — Supabase Docs](https://supabase.com/docs/guides/local-development/testing/overview) — HIGH confidence, official docs
+- [Testing for Vibe Coders: From Zero to Production Confidence — Supabase Blog](https://supabase.com/blog/testing-for-vibe-coders-from-zero-to-production-confidence) — MEDIUM confidence
+- [Best Practices for Supabase — Security, Scaling & Maintainability](https://leanware.co/insights/supabase-best-practices) — MEDIUM confidence
+- [Multi-Tenant Test Data: Definition, Examples & Best Practices — GoMask](https://gomask.ai/glossary/multi-tenant-test-data) — MEDIUM confidence
+- [Multi-Tenant SaaS Testing for Stable Performance — QATestLab](https://blog.qatestlab.com/2026/04/02/multi-tenant-saas-testing-guide-ensuring-performance-and-scalability/) — LOW-MEDIUM confidence, single vendor blog
+- [Continuous Documentation as an Agent-Driven Practice — AgentPatterns.ai](https://www.agentpatterns.ai/workflows/continuous-documentation/) — MEDIUM confidence; source for "scheduled comparison, PR-based correction, human review" pattern
+- [Doc Drift Detection in CI: Catching Stale Docs on Every Merge](https://understandingdata.com/posts/doc-drift-detection-ci/) — MEDIUM confidence
+- [How to Catch Documentation Drift with Claude Code and GitHub Actions — Dosu](https://dosu.dev/blog/how-to-catch-documentation-drift-claude-code-github-actions) — MEDIUM confidence
+- [Claude Code for documentation drift — Koder.ai](https://koder.ai/blog/claude-code-docs-drift) — MEDIUM confidence; source for "source of truth per doc type, drift checks per PR" recommendation
+- [CLAUDE.md Best Practices, 2026 — AgentLint Blog](https://www.agentlint.app/blog/claude-md-best-practices-2026/) — LOW-MEDIUM confidence, single vendor blog
+- [Best Permit.io Alternatives & Competitors — OsoHQ](https://www.osohq.com/learn/permitio-alternatives) — MEDIUM confidence; source for "overkill for small teams" framing (vendor-authored, cross-checked against Permify's independent comparison)
+- [Top Alternatives to AWS Cedar — OsoHQ](https://www.osohq.com/learn/aws-cedar-alternatives-authorization-tools) — MEDIUM confidence
+- Codebase inspection: `apps/api/middleware/auth.py`, `apps/api/routers/*.py` (grep for `current_user.role`, `require_role(`, `_ROLES\s*=`), `apps/api/tests/smoke/conftest.py`, `apps/api/.env` presence — HIGH confidence, direct read
 
 ---
-*Feature research for: self-serve billing management + bulk-archive work orders (PatelRep subsequent milestone)*
-*Researched: 2026-08-03*
-</content>
+*Feature research for: PatelRep v1.4 — Platform and Ops Hardening (RBAC normalization, test-data hygiene, doc-drift prevention)*
+*Researched: 2026-08-04*

@@ -1,145 +1,149 @@
 # Project Research Summary
 
-**Project:** PatelRep — self-serve billing management + bulk-archive for Engineering work orders
-**Domain:** Additive milestone on an existing FastAPI + Next.js 16 multi-tenant hotel-ops SaaS (live Stripe billing + append-only audited work-order state machine)
-**Researched:** 2026-08-03
+**Project:** PatelRep — v1.4 "Platform and Ops Hardening"
+**Domain:** Maintenance/hardening pass on an existing production multi-tenant FastAPI + Next.js + Expo SaaS (no ORM, Supabase-backed) — NOT a new-feature milestone
+**Researched:** 2026-08-04
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone is **not greenfield** — it extends two systems that already exist in production. Self-serve billing already has a working spine (Stripe Customer Portal, checkout, invoices, credits endpoint, monthly true-up cron, and a webhook sync handler); the bulk-archive capability sits on top of an existing work-order state machine with an append-only `operational_audit_events` audit trail and a Realtime-subscribed Engineering board. Across all four research files the headline is consistent: **almost no new libraries or greenfield architecture are required.** The real work is data-shape fixes, credit-ledger rollover, wiring already-built UI, and one additive `archived_at` column + audited bulk RPC + selection UI built from primitives already in the tree.
+v1.4 has five work items — Expo SDK 54→57, FastAPI RBAC-check normalization, two CLAUDE.md doc-drift fixes, test-data hygiene on the shared dev/QA Supabase project, and closing ~5 deferred human-verification items from v1.3 — and all five are maintenance on code that already exists, not new architecture to design. The most important finding across all four research files is that RBAC "normalization" is not a style pass, it's a bug hunt: `guest_requests.py` has an unguarded `DELETE` endpoint (any authenticated hotel user, including a housekeeper, can permanently delete a guest request), `hotels.py`'s `ALL_STAFF_ROLES` lists `"engineer"` twice while omitting `"chief_engineer"` entirely, and `MANAGER_ROLES` is independently defined with two different memberships in `programs.py` vs. `safety.py`. Scope the RBAC work narrowly to the three inline-only routers (`guest_requests.py`, `lost_found.py`, `auth.py`) plus a pre-refactor audit of existing constants, not a blanket sweep of all 30 routers.
 
-The recommended approach is deliberately minimalist and opinionated. For billing: lean entirely on the **Stripe hosted Customer Portal + Checkout** (redirect flows, zero card data in the SPA, no PCI scope) and build first-party endpoints only for PatelRep-owned state — chiefly the `cap_cents` spend cap and the `credit_ledger` period rollforward. Do **not** add Stripe.js/Elements, a custom plan picker, or a multi-tier price catalog. For archive: model it as an **orthogonal `archived_at` flag**, never a new `status` enum value, and route the bulk operation through a `SECURITY DEFINER` RPC that writes one audit row per work order atomically — mirroring the existing `transition_work_order_with_audit` pattern.
+The recommended approach is: fix the two isolated doc-drift items first (zero dependencies, unblocks nothing but costs nothing); do RBAC normalization second, scoped to the confirmed gaps and preceded by an audit-and-diff step (never merge same-named constants without comparing contents); re-verify the deferred v1.3 items third, against the post-RBAC-fix code since three of the five items share files with the RBAC pass; do dev-DB cleanup fourth (independent, but before final re-verification so stale test data doesn't contaminate a browser check); and do the Expo bump last and hop-by-hop, since it's the highest-risk, most isolated item and a rollback shouldn't block the other four.
 
-The dominant risk theme is **revenue integrity and "looks done but isn't"** — this app has a documented three-bug history (flat-cost billing, fake-success UI, undeployed migrations) that the pitfalls research explicitly maps every risk against. The biggest hazards: overage silently lost when a GM self-cancels mid-cycle; the month-end true-up cron firing 3–4 nights in a row with no idempotency guard (duplicate charges GMs will now see in the new invoice UI); bulk-archive bypassing the audit trail or leaking across tenants (IDOR via service-role RLS bypass); and migrations merged but never applied to the live Supabase project. Critically, **neither billing nor (fully) the live Realtime board can be exercised end-to-end locally** — there are no local Stripe keys — so verification must include Stripe-CLI replay and live-board testing as explicit phase-gate steps, not mocked happy paths.
+Key risks are all "looks-done-but-isn't" traps rather than unknowns: SDK 55 makes New Architecture mandatory while `android/gradle.properties` still has a stale `newArchEnabled=false` override; role-constant consolidation can silently widen or narrow live permissions if same-named constants aren't diffed first; and the shared dev/QA/production Supabase project has zero `is_test` schema support, requiring a human-curated allowlist and an explicit "preserve list" for the team's one standing QA fixture tenant. None require new dependencies — they require sequencing discipline and audit-before-refactor rigor.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Effectively **no new dependencies.** The Python `stripe==15.4.0` SDK, Stripe Customer Portal + Checkout (API features, not packages), FastAPI + Supabase Python SDK, Next.js 16 App Router, React Query, and a plain React `Set` for selection state cover everything. The single load-bearing detail is the pinned Stripe API version: `stripe==15.4.0` pins a post-Basil/Dahlia API version where `current_period_start/end` **no longer exist on the Subscription object** — they moved to subscription items. The current `webhooks.py` reads them via `getattr(sub, ...)` and silently writes `NULL`, which is the root cause of the "period display goes stale" bug. This is a data-shape fix, not a library change.
+No new technology is introduced. `expo` `~54.0.0` → `57.0.9` must be hopped one SDK at a time (54→55→56→57) — SDK 56 breaks this repo specifically because `expo-router` drops its transitive `@react-navigation/native` dependency while `app/_layout.tsx` imports it directly, requiring it as an explicit dependency before the 55→56 hop. `require_role()` in `apps/api/middleware/auth.py` stays the canonical RBAC mechanism — do not adopt Casbin, Oso, or Permit.io; overkill for 6 fixed roles + `hotel_id` tenant scoping. `expo-speech-recognition` (community package) changes its own versioning scheme to align with Expo SDK numbers from SDK 56 — verify its resolved version manually post-bump. No new npm/pip packages needed for RBAC, doc fixes, or test-data cleanup — all zero-new-dependency, in-repo refactors.
 
 **Core technologies:**
-- `stripe==15.4.0` (Python SDK) — Portal/Checkout sessions, InvoiceItem overage, webhook verification — already the billing engine; version pin is load-bearing (read period from `items.data[].current_period_*`)
-- Stripe **Customer Portal + Checkout** (hosted redirects) — self-serve payment method / cancel / invoices — zero card data in the SPA, no PCI scope, no Stripe.js
-- FastAPI + Supabase Python SDK (no ORM) — additive endpoints + audited RPC — tenant-scoped `.eq("hotel_id", …)` on every query
-- React Query + plain React `Set<string>` state — bulk-select + mutations — no data-grid/table library needed
-- `pytest` monkeypatch (primary) / optional `stripe-mock` — billing tests without live creds
+- `expo`/`react-native`/`react`: version bump only (57.0.9 / 0.86.x / 19.2.x) — no API rewrite, hop-by-hop with EAS build gate at each step
+- `require_role()`: extend and apply consistently, do not replace with a policy engine
+- `core/roles.py` (new, small): single source of truth for role-group constants — the actual missing piece, not a new library
 
-**Explicitly do NOT add:** Stripe.js/react-stripe-js (Elements), a multi-tier Product/Price catalog, react-table, or a hard-`DELETE` archive path.
+### Expected Practices (reframed — this milestone has no user-facing features)
 
-### Expected Features
+**Must have:**
+- Audit script inventorying every role check per router, classified route-gate vs. object-level, before any consolidation
+- Consolidated role-group constants fixing the confirmed `MANAGER_ROLES` drift and `ALL_STAFF_ROLES` duplicate/missing-role bug
+- `require_role()` applied to confirmed gaps — starting with `guest_requests.py`'s ungated `DELETE`
+- Named object-level-check helper, kept separate from route-level RBAC
+- Test-tenant tagging (`is_test` flag) + cleanup script scoped to an explicit human-reviewed `hotel_id` allowlist with mandatory dry-run
+- Direct edits to the two stale CLAUDE.md claims (cron mechanism, credentials)
 
-Two capabilities. **Billing:** the "management" pieces (plan change, payment method) are already solved by the hosted portal — the real work is the credit-ledger accuracy fix. **Archive:** archive means "hide from the active board but keep findable + fully audited," never "delete."
+**Should have (second wave, not required for v1.4):**
+- Auto-generated route × role permission matrix
+- CI lint rule blocking new bare role comparisons
+- Targeted CI checks defending the two corrected doc facts
 
-**Must have (table stakes):**
-- Wire the web "Manage subscription" button to the existing `/billing/portal` (remove "Coming soon") + configure the portal in the Stripe Dashboard
-- Fix `credit_ledger` rollforward so `/billing/credits` always reflects the current period (idempotent upsert on `UNIQUE(tenant_id, period_start)`)
-- Surface current-period usage + `$2.50/room` cap + remaining headroom; past-due banner deep-linking to portal
-- `archived_at` column + partial index migration on `work_orders`
-- `POST /work-orders/bulk-archive` + `/bulk-unarchive` — terminal-status-guarded, audited, atomic, management-gated
-- Default active list excludes archived (patch **both** list branches) + "Archived" filter/tab
-- Multi-select UI on the work-orders board
-
-**Should have (competitive):**
-- Live projected month-end cost gauge (client-side linear projection over `/billing/credits` data)
-- Cap-approaching (80%) proactive alert via existing daily cron + notifications domain
-- Server-side bulk-select ("archive all completed older than N days")
-
-**Defer (v2+):**
-- Per-feature AI-credit breakdown (needs attribution at credit-write time)
-- Opt-in age-based auto-archive
-- Add-on credit-pack self-purchase
-
-**Do not build (anti-features):** custom in-app plan picker / card form, in-app proration calculator, storing PAN/card in Supabase, bulk **delete** of work orders, `'archived'` as a status value.
+**Defer:**
+- Soft-delete + pg_cron scheduled hard-delete
+- External policy engine — only if role/policy complexity grows substantially
+- Separate staging Supabase project — deliberate current-state constraint
 
 ### Architecture Approach
 
-Both capabilities are additive integrations that share **no router, table, or migration** — they are safe to build as independent parallel phases. Billing adds first-party endpoints only for controls the Stripe portal cannot express (the `cap_cents` spend cap; optional pause/resume) plus the ledger rollforward; likely no new migration for the cap itself (column exists). Bulk-archive needs one new migration adding `archived_at` (+ `archived_by`) + a partial index + an audited `bulk_archive_work_orders()` RPC, one new bulk endpoint, and one filter line added to the board's list query. The Realtime subscription must **not** be changed — it is a dumb invalidator; filtering happens in the REST list query.
+All five items are hardening passes with no new component design. The critical finding is file-level blast-radius overlap: RBAC normalization and the deferred v1.3 verification closures collide on `staff.py`, `scheduling.py`, `work_orders.py`, and `guest_requests.py`. This dictates sequencing — re-verifying deferred items before RBAC fixes land risks signing off on behavior the RBAC fix then changes underneath it.
 
-**Major components:**
-1. New migration (`archived_at`/`archived_by` + partial index `WHERE archived_at IS NULL` + `bulk_archive_work_orders()` RPC) — orthogonal archive flag, atomic audited bulk update
-2. `work_orders.py` — new `POST /bulk-archive` (+ `/bulk-unarchive`), and `.is_("archived_at","null")` default filter added to **both** the engineer merge branch and the manager branch, plus `?archived=true` opt-in
-3. `billing.py` + `webhooks.py` — `PATCH /billing/cap`, credit-ledger rollforward upsert, period-field extraction fix, entitlement sync on `subscription.updated`, cancel-time final true-up, webhook `event.id` dedupe
-4. Web UI — engineering board multiselect + Archive action (Realtime block untouched); billing page cap editor + usage/cap gauge + past-due banner (React Query pull, no Realtime)
+**Major components (existing, not new):**
+1. `apps/api/middleware/auth.py` — home for `require_role()` and consolidated role-group constants (no new `services/` module)
+2. `apps/api/routers/{guest_requests,lost_found,auth}.py` — the actual RBAC normalization scope (inline-only routers)
+3. `apps/mobile/{app.json, android/gradle.properties, babel.config.js}` — isolated from API/web; internally highest-risk due to a stale New-Architecture override
+4. Shared dev Supabase project (`oacnwalhcpqdabivweki`) — backs local dev, mobile dev, and manual QA simultaneously; no schema-level test flag exists today
 
 ### Critical Pitfalls
 
-1. **Overage lost on self-serve cancel** — the month-end true-up cron skips non-`active` subs, so overage accrued before a mid-cycle portal cancellation is billed $0. Run an immediate final true-up on `customer.subscription.deleted` before flipping `plan_status`.
-2. **True-up cron not idempotent (fires 28th–31st)** — `InvoiceItem.create` has no idempotency key or "already invoiced" guard, producing 2–4 duplicate overage charges GMs will now see in the new invoice UI. Add a deterministic idempotency key **and** an `overage_invoiced_at` ledger stamp (idempotency window < cron window).
-3. **Bulk-archive bypasses the audit trail** — a set-based `UPDATE ... WHERE id IN (...)` writes zero `operational_audit_events` rows (the append-only trigger only blocks mutation of audit rows, it does not compel a write). Use a `SECURITY DEFINER` RPC with `INSERT ... SELECT` one audit row per WO; test `count(audit) == count(archived)`.
-4. **Cross-tenant archive (IDOR)** — the service-role Supabase client bypasses RLS, so a bulk `.in_("id", ids)` without a tenant filter lets a GM archive another hotel's WOs. Enforce `WHERE tenant_id = p_tenant_id` on every bulk write; return per-ID results.
-5. **`archived` modeled as a status** — collides with the CHECK constraint, transition matrix, Kanban columns, and status-filtering crons. Use the orthogonal `archived_at` flag; only allow archiving terminal (`completed`/`cancelled`) WOs, enforced in the RPC.
-6. **"Looks done but isn't" (no local Stripe creds; live Realtime board)** — mocked happy paths pass CI then 500 in prod. Bake `stripe listen`/`stripe trigger` replay + live-board testing into the Definition of Done, asserting resulting DB state.
-7. **Migration merged but never applied to live Supabase** — the exact v1.2 failure. Make "verify each new column/RPC exists in the live project" an explicit closing phase gate.
-8. **Entitlement drift + no webhook dedupe** — `subscription.updated` syncs only `plan_status`, not `credits_included`/`cap_cents`; and no `event.id` dedupe means retried events double-act once cancel-time invoicing is added.
-9. **Realtime board flood / stale archived rows** — a bulk UPDATE fires N events; the board must filter `archived_at IS NULL` in the list query (not the subscription filter — that would suppress the very UPDATE that drops the card).
-10. **Partial bulk failure reported as full success** — return an explicit `{archived:[...], skipped:[{id,reason}]}`, never the input length as the success count.
+1. **SDK 55 makes New Architecture mandatory while a stale local override (`android/gradle.properties: newArchEnabled=false`) still exists** — reconcile with `app.json`'s `newArchEnabled: true` before any version bump lands.
+2. **A shared constant name already means two different role sets** (`MANAGER_ROLES` differs between `programs.py` and `safety.py`) — diff contents before merging; treat every collision as a product decision to confirm, not a bug to auto-fix.
+3. **A role is duplicated and another silently dropped inside one constant** (`hotels.py`'s `ALL_STAFF_ROLES`) — write an audit test asserting no duplicates and full coverage before refactoring.
+4. **Normalizing to role-only checks can strip co-located business-rule authorization** — `evidence.py` already had this incident (bug-444); classify role-membership vs. business-state-validity before touching any route.
+5. **No `is_test`/`is_demo` schema flag exists anywhere** — cleanup must use a human-curated `hotel_id` allowlist (never a name-pattern heuristic), plus an explicit preserve-list naming the standing QA fixture tenant.
 
 ## Implications for Roadmap
 
-Research strongly supports **two independent phases** (different routers, tables, migrations, components — no ordering dependency). If serialized, do archive first because it is fully verifiable on localhost; billing second because it is verification-limited without live Stripe keys.
+Suggested phase structure, five phases, sequenced by file-overlap and risk-isolation:
 
-### Phase 1: Work-Order Bulk-Archive
-**Rationale:** Fully self-contained and **fully verifiable on localhost** (dev servers + Supabase). Touches the Realtime-subscribed Engineering board, so front-loading maximizes non-regression test time on a critical golden path.
-**Delivers:** `archived_at` migration + partial index + audited `bulk_archive_work_orders()` RPC; `POST /bulk-archive` + `/bulk-unarchive`; list-query filter on both branches + Archived tab; multiselect board UI with confirm-and-count.
-**Addresses:** multi-select, terminal-only archive, default-excludes-archived, archived filter, unarchive, per-archive audit (all P1 table stakes).
-**Avoids:** Pitfalls 3 (audit bypass), 4 (`archived` as status), 5 (IDOR), 9 (Realtime flood/stale), 10 (partial-success).
+### Phase 1: Documentation Drift Fixes
+**Rationale:** Fully isolated, already fully diagnosed, costs nothing to do first.
+**Delivers:** Corrected CLAUDE.md cron-mechanism section (APScheduler, not GitHub Actions), corrected credentials claim (narrow to the two AI keys), and the router-count drift fix (30 routers exist vs. fewer documented).
+**Addresses:** Both confirmed stale claims.
+**Avoids:** N/A — no dependencies, blocks nothing.
 
-### Phase 2: Self-Serve Billing Management
-**Rationale:** Mostly additive over the existing Stripe spine; the cap endpoint needs no migration. Sequenced second because local env has **no Stripe keys** — checkout/portal/webhook/true-up paths cannot be exercised end-to-end locally, so it is the weaker "prove it on localhost" candidate.
-**Delivers:** wired portal button + Dashboard portal config; `webhooks.py` period-extraction fix; credit-ledger rollforward upsert; `PATCH /billing/cap`; usage/cap/headroom gauge + past-due banner; entitlement sync + cancel-time true-up + true-up idempotency + webhook `event.id` dedupe.
-**Uses:** existing `stripe==15.4.0`, hosted Portal/Checkout, React Query pull model.
-**Implements:** `billing.py`/`webhooks.py` additive endpoints; new `overage_invoiced_at` ledger column (migration).
-**Avoids:** Pitfalls 1 (cancel overage), 2 (true-up idempotency), 6 (fake-success), 8 (entitlement drift / dedupe), 11 (webhook dedupe).
+### Phase 2: RBAC Audit and Normalization
+**Rationale:** Must land before deferred-verification closures — three of those five items share files with this pass. Must start with audit/diff, per the constant-collision pitfalls, before any consolidation code is written.
+**Delivers:** (a) audit script classifying every role check; (b) diffed, consolidated role-group constants fixing `MANAGER_ROLES` and `ALL_STAFF_ROLES`; (c) `require_role()` applied to confirmed gaps in `guest_requests.py` and `lost_found.py`; (d) a named object-level-check helper.
+**Addresses:** All P1 RBAC items.
+**Avoids:** Constant collisions, duplicate/missing roles, stripped business-rule checks, cross-surface call-site regressions.
+
+### Phase 3: Close Deferred v1.3 Verification Items
+**Rationale:** Re-verify against post-RBAC-fix code, not current code. Confirmed count is 5 items (not the ~10 estimated), concentrated in v1.3 Phases 15 and 17.
+**Delivers:** Browser-verified closure of: Archive-button role visibility; NULL `full_name` fallback rendering; Guest Request drawer status-advance flow; Inspections re-assign picker; migration `091_ai_interactions_widen_interaction_type.sql` applied to remote Supabase.
+**Addresses:** The "closing deferred human-verification items" scope line.
+**Avoids:** Re-marking items verified from code review alone instead of an actual browser click-through.
+
+### Phase 4: Dev/QA Test-Data Hygiene
+**Rationale:** Independent of the other four, but should run before or alongside Phase 3 so stale data doesn't confuse a browser check.
+**Delivers:** (a) schema-level `is_test BOOLEAN NOT NULL DEFAULT false` column; (b) human-reviewed `hotel_id` delete-allowlist plus a preserve-list naming the standing QA fixture tenant; (c) cleanup script with mandatory dry-run, transaction-scoped deletes, explicit exclusion of append-only `controlled_incidents`/`controlled_incident_events` tables.
+**Uses:** Supabase MCP `list_tables`/`get_advisors` for a pre-cleanup snapshot.
+**Implements:** The allowlist-first pattern.
+
+### Phase 5: Expo SDK 54→57 Bump
+**Rationale:** Fully isolated from the other four, but the single highest-risk item — sequenced last so a rollback doesn't block other phases.
+**Delivers:** Three explicit per-hop upgrades (54→55, 55→56, 56→57), each with `expo-doctor`, `npx jest`, type-check, and a full EAS cloud build gate. Includes reconciling the New-Architecture-flag divergence before the first hop, adding `@react-navigation/native` explicitly during the 55→56 hop, re-validating the `dynamic-import-node` Hermes workaround and `legacy-peer-deps` post-bump, and confirming `expo-speech-recognition`'s resolved version.
+**Uses:** Version targets from stack research; `npx expo-codemod sdk-56-expo-router-react-navigation-replace` for the SDK 56 hop.
 
 ### Phase Ordering Rationale
-- **Independence:** the two features never touch the same files, tables, or migrations — they can run in parallel or in either order with no coupling.
-- **Verifiability drives sequence:** archive is 100% localhost-testable; billing is credential-blocked locally, so it goes second (or runs in parallel with a staging Stripe test-mode account).
-- **Migration hygiene:** both phases must end with a live-Supabase schema-existence gate. Next sequential migration numbers are cited inconsistently across research (STACK/ARCH say 089; PITFALLS says 085) — **confirm the actual current max before writing** and heed documented numbering-collision gotchas (`0201`, dual `039`s).
+
+- Doc-drift first because it's free and fully independent.
+- RBAC before deferred-verification closure because of a direct file-overlap dependency — verifying against pre-fix code invalidates the verification once the RBAC fix lands.
+- Test-data cleanup can run in parallel with or slightly before Phase 3, being file-independent but data-adjacent.
+- Expo bump last because it has zero cross-item file overlap and the highest standalone risk — isolating it means a difficult bisection doesn't stall unrelated hardening work.
 
 ### Research Flags
-Phases likely needing deeper research during planning:
-- **Phase 2 (Billing):** MEDIUM-priority research on Stripe usage-based-subscription portal limits (usage-based subs can cancel but **not** update in the portal), test-vs-live portal config, and the Basil/Dahlia period-field migration specifics. Verify against live `webhooks.py`/`internal.py` and Stripe docs during planning.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Bulk-Archive):** Well-grounded in existing code — mirrors the `transition_work_order_with_audit` RPC, established `archived_at`-flag pattern, and known Realtime-invalidator behavior. Straight implementation from this research.
+Needs research: Phase 2 (RBAC — per-route classification is close to a planning deliverable itself, budget explicit audit time), Phase 5 (Expo — `expo-codemod` behavior on this repo's own direct `@react-navigation/native` imports is unverified, worth a dry-run spike).
+
+Standard patterns (skip research-phase): Phase 1 (doc-drift, fully diagnosed), Phase 3 (deferred-verification closure, standard browser click-through against documented repro steps), Phase 4 (test-data cleanup, well-established allowlist+dry-run+transaction pattern).
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Existing code inspected directly; Stripe API-version behavior verified against official changelog |
-| Features | HIGH | Both capabilities grounded in existing PatelRep code; portal behavior verified against current Stripe docs |
-| Architecture | HIGH | All findings verified against current source (routers, transitions, page components, migrations) |
-| Pitfalls | HIGH | Billing pitfalls verified against Stripe docs + live code reads; archive pitfalls from audit/transition/Realtime source; mapped to the documented v1.2 bug classes |
+| Stack | HIGH | Current repo state read directly; Expo SDK 55/56/57 changelogs fetched from official sources; RBAC library landscape MEDIUM (WebSearch synthesis) but corroborated across sources and direct code inspection |
+| Features | MEDIUM-HIGH | Codebase findings (role drift, missing test-data flag) HIGH, direct inspection; external best-practice framing MEDIUM, synthesized from multiple WebSearch sources with no single authoritative spec |
+| Architecture | HIGH | Almost entirely direct repo inspection across 30 router files, `app.json`/`eas.json`, and v1.3 verification files — strongest-sourced of the four |
+| Pitfalls | HIGH (RBAC/test-data), MEDIUM (Expo native-module risk) | RBAC/test-data grounded in live code + `.wolf/buglog.json` first-party incidents; Expo New-Arch-mandatory fact verified directly, general SDK 56/57 native-module risk WebSearch-corroborated only |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
-- **Migration number discrepancy:** research files cite 085 vs 089 for the next migration. Confirm the actual current max in `supabase/migrations/` before writing, and watch documented numbering collisions.
-- **Local verification blind spot (billing):** no local Stripe keys means checkout/portal/webhook/true-up cannot be E2E-tested locally. Plan for Stripe-CLI test-mode replay and/or staging; treat mocked passes as insufficient for Definition of Done.
-- **Mid-cycle plan-change policy:** whether an in-progress `credit_ledger` row's `credits_included` should re-base on upgrade (and cap proration) is a product decision to make explicit during Phase 2 planning.
-- **Usage-based portal limitation:** Stripe blocks *updating* usage-based subs in the portal (cancel only). If self-serve plan-change is desired, route it through Checkout/API, not the portal — decide scope during planning.
+
+- Deferred-item count discrepancy: brief estimated "~10," direct read of verification files found 5 — confirm with whoever produced the original estimate before finalizing Phase 3 scope.
+- `expo-codemod sdk-56-expo-router-react-navigation-replace` coverage on this repo's direct `@react-navigation/native` imports is unverified — dry-run before relying on it.
+- `--legacy-peer-deps` necessity post-bump unverified by upstream docs — re-test at each hop, don't assume.
+- `_ensure_housekeeper()`'s owning router unspecified (deferred item #4) — confirm location before re-verification to know if it overlaps RBAC work.
+- EAS cloud image Node-version floor unconfirmed — `eas.json` has no explicit node pin; confirm before first post-bump cloud build.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- PatelRep codebase — `apps/api/routers/billing.py`, `webhooks.py`, `work_orders.py`, `internal.py`, `middleware/credits.py`, `services/work_orders/transitions.py`; `apps/web/app/(dashboard)/settings/billing/page.tsx`, `engineering/work-orders/page.tsx`, `lib/api/billing.ts`; `supabase/migrations/007`, `014`, `030`, `065`; `requirements.txt`; `package.json`; root `CLAUDE.md` (A1–A4, pricing, roles, Current Scope, migration gotchas)
-- [Stripe changelog — deprecate subscription current_period_start/end (Basil 2025-03-31)](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end)
-- [Stripe — customer management / Customer Portal](https://docs.stripe.com/customer-management) — portal capabilities; usage-based subs cancel-only; separate test/live config
-- [Stripe — subscription invoices & cancellation](https://docs.stripe.com/billing/invoices/subscription) — pending items bill at end of next period; cancel stops auto-collection
-- `.planning/v1.2-MILESTONE-AUDIT.md` / `CLAUDE.md` — the three documented bug classes (flat-cost, fake-success, undeployed-migration)
+- Direct repo inspection: `apps/api/middleware/auth.py`, `apps/api/routers/*.py` (30 files), `apps/mobile/{package.json,app.json,eas.json,babel.config.js,android/gradle.properties,.easignore}`, `supabase/migrations/070_texas_safety_compliance.sql`, `apps/api/core/scheduler.py`, `.planning/phases/{15,16,17}-*/*-VERIFICATION.md`, `CLAUDE.md`
+- Expo SDK 55/56/57 official changelogs (expo.dev/changelog)
+- Expo upgrade walkthrough docs, Expo New Architecture guide (docs.expo.dev)
+- Supabase official docs: data-deletion guide, testing overview
+- `.wolf/buglog.json` first-party incident history (bug-277, bug-403, bug-444, Mobile EAS Android CNG archive rule, tar v7 pinning, dynamic-import-node fix)
 
 ### Secondary (MEDIUM confidence)
-- [stripe-python releases / CHANGELOG](https://github.com/stripe/stripe-python/releases) — 15.x current line, pins 2026 Dahlia API version
-- [dev.to — Stripe Basil moved current_period_end off Subscription](https://dev.to/flarecanary/stripe-basil-quietly-moved-currentperiodend-off-subscription-and-a-lot-of-code-broke-3eo7) — corroborates breakage pattern
-- Stripe metered-billing 2026 guides (hamsterstack, buildmvpfast) — legacy Usage Records removed since `2025-03-31.basil`; idempotency keys prevent double-charge
-- [OperatorIQ — Stripe Customer Portal plan changes](https://operatoriq.io/blog/stripe-customer-portal-plan-changes/)
+- WebSearch synthesis on 2026 FastAPI RBAC best practices (permit.io, app-generator.dev, DeepWiki, PropelAuth, Medium)
+- WebSearch synthesis on multi-tenant test-data hygiene and doc-drift CI patterns (GoMask, QATestLab, AgentPatterns.ai, understandingdata.com, Dosu, Koder.ai)
+- jamsch/expo-speech-recognition release notes (maintainer versioning-scheme note, cross-checked)
 
 ### Tertiary (LOW confidence)
-- None material — findings are anchored in direct code reads and official Stripe docs.
+- OsoHQ Permit.io alternatives comparison, AgentLint CLAUDE.md best-practices blog — corroboration only, not primary basis for any recommendation
 
 ---
-*Research completed: 2026-08-03*
+*Research completed: 2026-08-04*
 *Ready for roadmap: yes*
