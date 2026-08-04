@@ -107,7 +107,9 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
   2. NULL staff `full_name` renders the "Unnamed Staff" fallback live in-browser across Staff, Scheduling, and Housekeeping pages, with zero console errors.
   3. Guest Request drawer status-advance buttons click through end-to-end at each status in the chain, and the kanban board reflects the new status after each click.
   4. The Inspections re-assign picker successfully re-assigns a failed inspection to a `housekeeping_supervisor` end-to-end, confirmed live.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 20-01-PLAN.md — RBAC-gated checks: VERIFY-01 (Archive-button role gate) + VERIFY-04 (inspection re-assign to supervisor); new e2e/20-verify-rbac.spec.ts
+- [ ] 20-02-PLAN.md — GM single-role checks: VERIFY-02 (Unnamed Staff fallback) + VERIFY-03 (guest-request advance chain + kanban); new e2e/20-verify-gm.spec.ts
 
 ### Phase 21: Dev/QA Test-Data Hygiene
 **Goal**: The shared dev/QA Supabase project has a schema-level test-tenant marker and a safe, dry-run-gated cleanup mechanism, so stale test data can be removed without risking the standing QA fixture tenant or production data.
