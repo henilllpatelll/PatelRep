@@ -14,6 +14,7 @@ import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
 import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
+import { getInitials, getDisplayName } from '@/lib/utils/avatar'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
@@ -95,7 +96,7 @@ function HousekeeperBar() {
 
   const housekeepers: any[] = (data?.data?.staff ?? [])
     .filter((s: any) => s.role === 'housekeeper' || s.role === 'housekeeping_supervisor')
-    .map((s: any) => ({ housekeeper_id: s.user_id, name: s.full_name }))
+    .map((s: any) => ({ housekeeper_id: s.user_id, name: getDisplayName(s.full_name) }))
   const pendingCount = Object.keys(pendingAssignments).length
   const hasPending = pendingCount > 0
 
@@ -151,10 +152,6 @@ function HousekeeperBar() {
       setSaveError(err?.message || t('housekeeping.page.assignBar.saveError'))
       setTimeout(() => setSaveError(null), 4000)
     })
-  }
-
-  function getInitials(name: string) {
-    return name.split(' ').slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('')
   }
 
   return (
