@@ -100,7 +100,17 @@ Plans:
   3. Opera integration connection failures show a specific, actionable error message instead of a generic one, and the Management ROI page no longer leaks its internal calculation formula string to the UI.
   4. The Guest Request drawer includes status-advance actions (not just view), and Room History populates with actual room history data.
   5. Logging an AI interaction with `intent_to_log` values like `general` succeeds instead of 400/500ing on the CHECK constraint, and supervisors appear as assignable staff in the housekeeper room-assignment picker.
-**Plans**: TBD
+**Plans**: 8 plans, all Wave 1 (fully parallel — no shared files/dependencies)
+
+Plans:
+- [ ] 17-01-PLAN.md — UX-01: staff display names never render blank (backend NULL-safety fix + consolidate 3 duplicate getInitials + fallback name)
+- [ ] 17-02-PLAN.md — UX-02: shift-template dropdowns show no duplicates (pre-insert duplicate-name guard in create_shift)
+- [ ] 17-03-PLAN.md — UX-03: Opera status-fetch error surfaces real backend detail instead of a hardcoded string
+- [ ] 17-04-PLAN.md — UX-04: Management ROI tooltip no longer leaks the internal formula string
+- [ ] 17-05-PLAN.md — UX-05: Guest Request drawer gains status-advance actions (reuses the kanban card's existing transition mutation)
+- [ ] 17-06-PLAN.md — UX-06: Room History live diagnostic + conditional fix (stay_reset_at over-trigger narrowing + actor attribution)
+- [ ] 17-07-PLAN.md — DATA-01: migration 091 widens ai_interactions.interaction_type CHECK constraint to the real 14-value set
+- [ ] 17-08-PLAN.md — STAFF-01: inspection re-assign picker includes housekeeping_supervisor (tasks/page.tsx explicitly out of scope)
 
 ## Progress
 
@@ -123,4 +133,4 @@ Plans:
 | 14. Room Status Display Accuracy | v1.2 | 1/1 | Complete | 2026-08-03 |
 | 15. Work-Order Bulk-Archive | v1.3 | Complete    | 2026-08-04 | - |
 | 16. Self-Serve Billing Management | v1.3 | Complete    | 2026-08-04 | - |
-| 17. Backlog Cleanup | v1.3 | 0/TBD | Not started | - |
+| 17. Backlog Cleanup | v1.3 | 0/8 | Planned | - |
