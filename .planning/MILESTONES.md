@@ -78,3 +78,29 @@
 
 ---
 
+
+## v1.3 Billing, Work Order Archival, and Backlog Cleanup (Shipped: 2026-08-04)
+
+**Delivered:** Self-serve billing management via the Stripe Customer Portal with hardened revenue-integrity guarantees, bulk-archive for Engineering work orders, and the full backlog of UX rough edges and data-integrity fixes carried forward from v1.2's audit.
+
+**Phases completed:** 15-17 (3 phases, 14 plans)
+
+**Key accomplishments:**
+- Work-order bulk-archive: managers can select-and-archive or age-based bulk-archive completed/cancelled work orders, restore any of them, and every action writes an audit-trail row — archived orders vanish from the Realtime board without a page reload
+- Self-serve billing: GM can open the Stripe Customer Portal to change plan/payment method directly from the billing page (previously a disabled "Coming soon"), with accurate rolling usage, spend-cap headroom, a projected month-end cost gauge, and an 80%-cap proactive alert
+- Billing revenue-integrity hardening: the monthly true-up cron is now idempotent (`is_finalized` ledger stamp survives Stripe's 24h idempotency-key expiry, closing a real double-charge risk), a final true-up runs on `subscription.deleted` before cancellation, and Stripe webhooks are deduplicated by `event.id`
+- Backlog cleanup closed all 8 carried-forward items from v1.2's audit in one phase: staff display names never render blank, shift-template duplicates rejected pre-insert, real Opera error messages surface instead of a generic string, the Management ROI page no longer leaks its internal formula, Guest Request drawer gained status-advance actions, Room History now populates with real data + actor attribution, and supervisors are assignable in the housekeeper picker
+- Closed the `ai_interactions.interaction_type` CHECK-constraint drift (DATA-01) that had been deferred 4 times across prior milestones — migration 091 widens it to the real 14-value set
+- Milestone audit (this session) found and closed one more instance of this milestone's recurring pattern — migration 091 was code-complete but not yet applied to production; applied and verified live via `pg_get_constraintdef` before shipping, continuing the same discipline that caught migrations 086/087 (v1.2) and 090 (Phase 16's own verification)
+
+**Stats:**
+- 39 files changed, +2,590/-478 lines
+- 3 phases, 14 plans
+- <1 day from phase start to ship (2026-08-03 → 2026-08-04)
+
+**Git range:** `d4d4aef5` → `a661afa1`
+
+**What's next:** TBD via `/gsd-new-milestone`
+
+---
+

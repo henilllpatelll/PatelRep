@@ -5,7 +5,7 @@
 - ✅ **v1.0 Hotel Standards Execution Plan** — Phases 0-6 (shipped 2026-07-28). Full details: `.planning/milestones/v1.0-ROADMAP.md`
 - ✅ **v1.1 Mobile UI Parity** — Phases 7-11 (shipped 2026-08-02). Full details: `.planning/milestones/v1.1-ROADMAP.md`
 - ✅ **v1.2 Stabilization Pass** — Phases 12-14 (shipped 2026-08-03). Full details: `.planning/milestones/v1.2-ROADMAP.md`
-- 🚧 **v1.3 Billing, Work Order Archival, and Backlog Cleanup** — Phases 15-17 (in progress, started 2026-08-03)
+- ✅ **v1.3 Billing, Work Order Archival, and Backlog Cleanup** — Phases 15-17 (shipped 2026-08-04). Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 ## Phases
 
@@ -48,69 +48,16 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.2-ROADMAP.md
 
 </details>
 
-### 🚧 v1.3 Billing, Work Order Archival, and Backlog Cleanup (In Progress, started 2026-08-03)
+<details>
+<summary>✅ v1.3 Billing, Work Order Archival, and Backlog Cleanup (Phases 15-17) — SHIPPED 2026-08-04</summary>
 
-**Milestone Goal:** Ship self-serve billing management and bulk-archive for work orders while clearing the carried-forward backlog from v1.2's audit (UX rough edges, the CHECK-constraint bug, and the supervisor-picker product decision).
+- [x] Phase 15: Work-Order Bulk-Archive (2/2 plans) — completed 2026-08-04
+- [x] Phase 16: Self-Serve Billing Management (4/4 plans) — completed 2026-08-04
+- [x] Phase 17: Backlog Cleanup (8/8 plans) — completed 2026-08-04
 
-- [x] **Phase 15: Work-Order Bulk-Archive** - Managers can bulk-archive and restore completed work orders without losing audit trail or breaking the active board (completed 2026-08-04)
-- [x] **Phase 16: Self-Serve Billing Management** - GMs self-manage plan/payment via the Stripe portal with accurate usage data, protected by hardened revenue-integrity guarantees (completed 2026-08-04)
-- [x] **Phase 17: Backlog Cleanup** - UX rough edges, the AI-interaction CHECK-constraint bug, and the supervisor-picker product decision are all resolved (completed 2026-08-04)
+Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md`
 
-## Phase Details
-
-### Phase 15: Work-Order Bulk-Archive
-**Goal**: Managers can select and bulk-archive completed/cancelled work orders to declutter the active Engineering board, with full reversibility (unarchive) and a complete audit trail — no data is ever deleted.
-**Depends on**: Nothing (first phase in milestone; sequenced before Phase 16 because it is fully verifiable on localhost, per research, while billing is credential-blocked locally)
-**Requirements**: ARCHIVE-01, ARCHIVE-02, ARCHIVE-03, ARCHIVE-04, ARCHIVE-05, ARCHIVE-06
-**Success Criteria** (what must be TRUE):
-  1. Manager can select multiple completed/cancelled work orders on the Engineering board and archive them in a single bulk action.
-  2. Archived work orders no longer appear in the default active work-order view or on the Realtime board.
-  3. Manager can view all archived work orders via a dedicated "Archived" filter/tab, and restore any of them back to the active view.
-  4. Manager can bulk-archive all completed work orders older than a specified age in one action.
-  5. Every archive/unarchive action is recorded in the audit trail, showing who performed it, when, and which work orders were affected.
-**Plans**: 2 plans
-- [ ] 15-01-PLAN.md — Backend: archived_at/archived_by columns (migration 089), bulk-archive/bulk-archive-by-age/bulk-unarchive endpoints, audit logging, archived filter on list_work_orders
-- [ ] 15-02-PLAN.md — Frontend: API client extension, BulkArchiveModal + ArchivedWorkOrdersPanel components, third "Archived" tab wired into work-orders/page.tsx
-
-### Phase 16: Self-Serve Billing Management
-**Goal**: GMs can self-manage their subscription (plan changes, payment method) through the Stripe Customer Portal with accurate real-time usage/cap/cost visibility, while the hotel's revenue collection is hardened against double-charge, lost overage, and duplicate webhook effects before any of this is exposed to self-serve users.
-**Depends on**: Nothing (independent of Phase 15 — no shared router, table, or migration per research; sequenced second because local dev has no Stripe credentials, making it the weaker "prove it on localhost" candidate)
-**Requirements**: BILLING-01, BILLING-02, BILLING-03, BILLING-04, BILLING-05, BILLING-06, BILLING-07, BILLING-08, BILLING-09
-**Success Criteria** (what must be TRUE):
-  1. GM can open the Stripe Customer Portal from the billing page to change plan and update payment method.
-  2. GM sees accurate current-period AI-credit usage that never goes stale after a billing-period rollover, plus the $2.50/room/month spend cap and remaining headroom.
-  3. GM sees a past-due/payment-failed banner that deep-links to the portal, a live projected month-end cost gauge based on current usage pace, and a proactive alert when usage approaches 80% of the spend cap.
-  4. The monthly true-up cron cannot double-charge a hotel even if it fires on multiple consecutive nights.
-  5. Overage accrued before a mid-cycle self-serve cancellation is still invoiced, and Stripe webhook events are deduplicated by `event.id` so retried webhooks can't double-act.
-**Plans**: 4 plans
-
-Plans:
-- [ ] 16-01-PLAN.md — Backend billing usage accuracy: lazy ledger creation, cap_cents at hotel creation, month-end projection, 80%-cap notification (BILLING-02/03/05/06)
-- [ ] 16-02-PLAN.md — Stripe webhook event.id deduplication table + guard (BILLING-09)
-- [ ] 16-03-PLAN.md — Idempotent true-up cron + final true-up on subscription cancellation (BILLING-07/08)
-- [ ] 16-04-PLAN.md — Frontend: redirect dead billing page, extend live billing page with cap/projection/past-due UI (BILLING-01/04/05/06 display)
-
-### Phase 17: Backlog Cleanup
-**Goal**: Clear the small, independent items carried forward from the v1.2 milestone audit — UX rough edges across Staff, Scheduling, Opera, Management ROI, Guest Requests, and Room History; the `ai_interactions` CHECK-constraint bug (deferred 4x prior); and the supervisor-in-assignment-picker product decision.
-**Depends on**: Nothing (independent of Phase 15 and Phase 16 — distinct files/domains, no shared code; sequenced last since these are low-risk grab-bag items with no bearing on the two feature phases)
-**Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, DATA-01, STAFF-01
-**Success Criteria** (what must be TRUE):
-  1. Staff display names never render blank anywhere in the app; a fallback displays when name data is missing.
-  2. Shift-template dropdowns in Scheduling show no duplicate or leftover entries.
-  3. Opera integration connection failures show a specific, actionable error message instead of a generic one, and the Management ROI page no longer leaks its internal calculation formula string to the UI.
-  4. The Guest Request drawer includes status-advance actions (not just view), and Room History populates with actual room history data.
-  5. Logging an AI interaction with `intent_to_log` values like `general` succeeds instead of 400/500ing on the CHECK constraint, and supervisors appear as assignable staff in the housekeeper room-assignment picker.
-**Plans**: 8 plans, all Wave 1 (fully parallel — no shared files/dependencies)
-
-Plans:
-- [ ] 17-01-PLAN.md — UX-01: staff display names never render blank (backend NULL-safety fix + consolidate 3 duplicate getInitials + fallback name)
-- [ ] 17-02-PLAN.md — UX-02: shift-template dropdowns show no duplicates (pre-insert duplicate-name guard in create_shift)
-- [ ] 17-03-PLAN.md — UX-03: Opera status-fetch error surfaces real backend detail instead of a hardcoded string
-- [ ] 17-04-PLAN.md — UX-04: Management ROI tooltip no longer leaks the internal formula string
-- [ ] 17-05-PLAN.md — UX-05: Guest Request drawer gains status-advance actions (reuses the kanban card's existing transition mutation)
-- [ ] 17-06-PLAN.md — UX-06: Room History live diagnostic + conditional fix (stay_reset_at over-trigger narrowing + actor attribution)
-- [ ] 17-07-PLAN.md — DATA-01: migration 091 widens ai_interactions.interaction_type CHECK constraint to the real 14-value set
-- [ ] 17-08-PLAN.md — STAFF-01: inspection re-assign picker includes housekeeping_supervisor (tasks/page.tsx explicitly out of scope)
+</details>
 
 ## Progress
 
@@ -131,6 +78,6 @@ Plans:
 | 12. Logbook & Lost & Found Data Integrity | v1.2 | 2/2 | Complete | 2026-08-02 |
 | 13. AI Copilot Reliability | v1.2 | 3/3 | Complete | 2026-08-03 |
 | 14. Room Status Display Accuracy | v1.2 | 1/1 | Complete | 2026-08-03 |
-| 15. Work-Order Bulk-Archive | v1.3 | Complete    | 2026-08-04 | - |
-| 16. Self-Serve Billing Management | v1.3 | Complete    | 2026-08-04 | - |
-| 17. Backlog Cleanup | v1.3 | Complete    | 2026-08-04 | - |
+| 15. Work-Order Bulk-Archive | v1.3 | 2/2 | Complete | 2026-08-04 |
+| 16. Self-Serve Billing Management | v1.3 | 4/4 | Complete | 2026-08-04 |
+| 17. Backlog Cleanup | v1.3 | 8/8 | Complete | 2026-08-04 |

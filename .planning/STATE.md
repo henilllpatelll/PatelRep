@@ -1,43 +1,47 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Billing, Work Order Archival, and Backlog Cleanup
-status: in_progress
-last_updated: "2026-08-03T18:15:00Z"
-last_activity: 2026-08-03 -- Plan 15-02 (work-order bulk-archive frontend) executed and closed. Commits 0544505e/61d3c4a8/ef077e50. Both Phase 15 plans now code-complete; migration 089 apply + live browser walkthrough still pending as follow-up.
+milestone: none
+milestone_name: none
+status: milestone_complete
+last_updated: "2026-08-04T13:15:00Z"
+last_activity: 2026-08-04 -- Milestone v1.3 (Billing, Work Order Archival, and Backlog Cleanup) audited (23/23 requirements, migration 091 gap found and closed live), completed, and archived. Tag v1.3 pending. Awaiting /gsd-new-milestone.
 progress:
-  total_phases: 3
+  total_phases: 0
   completed_phases: 0
-  total_plans: 2
-  completed_plans: 2
-  percent: 100
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 15 of 17 (Work-Order Bulk-Archive)
-Plan: 02 of 02 complete — both plans closed, phase verification next
-Status: Plan 15-02 closed; Phase 15 plans complete, pending migration 089 apply + phase verification
-Last activity: 2026-08-03 — Plan 15-02 executed and closed
+Phase: — (no active milestone)
+Plan: —
+Status: Milestone v1.3 shipped and archived 2026-08-04. Awaiting `/gsd-new-milestone`.
+Last activity: 2026-08-04 — v1.3 milestone audit passed (23/23 requirements), migration 091 applied to production and verified live, cross-phase integration confirmed clean (0 gaps), milestone archived to `.planning/milestones/v1.3-*`.
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-03)
+See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.3 — Phase 15: Work-Order Bulk-Archive, both plans (15-01 backend, 15-02 frontend) closed; migration 089 apply + phase verification next.
+**Current focus:** None — v1.3 shipped. Next milestone not yet defined; run `/gsd-new-milestone`.
+
+## Previous milestones
+
+- v1.3 "Billing, Work Order Archival, and Backlog Cleanup" shipped and archived 2026-08-04 (3 phases, 15-17, all closed — 14/14 plans; migration-deployment gap found and closed during milestone audit, same pattern as v1.2). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.3-*`.
+- v1.2 "Stabilization Pass" shipped and archived 2026-08-03 (3 phases, 12-14, all closed — 7/7 plans; migration deployment gap found and closed during milestone audit). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.2-*`.
+- v1.1 "Mobile UI Parity" shipped and archived 2026-08-02 (5 phases, 7-11, all closed — 49/49 plans). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.1-*`.
+- v1.0 "Hotel Standards Execution Plan" shipped and archived 2026-07-28 (7 phases, 0-6, all closed). Full history: `.planning/MILESTONES.md`, `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1.0-*`.
+
+<details>
+<summary>v1.3 Billing, Work Order Archival, and Backlog Cleanup — full session log (archived, click to expand)</summary>
 
 **15-01 CLOSED (2026-08-03, commits `d4d4aef5`/`b2bed05b`):** Work-order bulk-archive backend. New `archived_at TIMESTAMPTZ`/`archived_by UUID` columns on `work_orders` (migration 089, not yet applied to remote — deployment handled separately per established convention) plus three new endpoints on the existing work-orders router: `POST /work-orders/bulk-archive` (explicit selection, rejects non-completed/cancelled status with 409 and cross-tenant ids with 404, zero mutation on rejection), `POST /work-orders/bulk-archive-by-age` (archives all completed work orders older than N days for the caller's tenant, zero-match is a valid outcome), and `POST /work-orders/bulk-unarchive` (restores any archived work order, no status precondition). `GET /work-orders` gained an `archived` query param and now excludes archived rows by default in both the engineer-merge branch and the standard branch. Every archive/unarchive action writes one `operational_audit_events` row per work order (`work_order.archived`/`work_order.unarchived`). New `test_work_order_archive.py` (12 tests, TDD RED→GREEN) covers RBAC (non-management 403 via existing `require_role` guard), tenant isolation, non-archivable rejection, audit logging, default-list exclusion (both role branches), and a full archive-then-unarchive round trip reconstructable from audit events. **Regression found and fixed (Rule 1):** the new `archived` query param broke `test_tenant_isolation.py::test_work_orders_list_returns_empty_for_hotel_a`, which calls `list_work_orders()` directly and bypasses FastAPI's `Query()` resolution — the raw `Query(False)` sentinel object is truthy, so the omitted kwarg took the `archived=True` code path against a fake query builder that didn't implement `.not_`; fixed by passing `archived=False` explicitly at that one call site. Full API smoke suite: 270/270 passed (258 baseline + 12 new). Tasks 2 and 3 (both plan-specified to touch the same router file and same test file) were implemented and committed together in one RED→GREEN cycle rather than an artificial mid-file split — see `15-01-SUMMARY.md` Deviations. Migration 089 must be applied to the remote Supabase project before 15-02's frontend can be exercised against real data. See `15-01-SUMMARY.md`.
 
 **15-02 CLOSED (2026-08-03, commits `0544505e`/`61d3c4a8`/`ef077e50`):** Work-order bulk-archive frontend, built on Plan 15-01's endpoints. `engineeringApi` gained an `archived` boolean param on `listWorkOrders` plus three typed methods (`bulkArchiveWorkOrders`, `bulkArchiveWorkOrdersByAge`, `bulkUnarchiveWorkOrders`). New `BulkArchiveModal.tsx` (checkbox multi-select of completed/cancelled work orders, filtered client-side from an open-ended page fetch, plus a separate archive-by-age control) and `ArchivedWorkOrdersPanel.tsx` (flat archived-list view with a manager-gated per-row Restore button, keyed `['work-orders', 'archived']` so the page's existing Realtime `invalidateQueries({queryKey:['work-orders']})` prefix-match covers it with zero new subscription code). Work Orders page gained a third "Archived" `PageHeader` tab and a manager-only "Archive..." action button (`Button variant="outline"`, matching an existing real variant rather than inventing one); the 2-way `activeTab` ternary became a 3-way if/else-if/else; `FailurePredictionSidebar`'s existing `activeTab === 'work-orders'` gate was confirmed to already correctly exclude the new tab with no code change. 19 new EN/ES locale keys at parity, including CLDR `_one`/`_other` plural pairs. `npm run type-check` and `npm run lint` both pass with zero errors across every new/changed file. **Environment notes (not code deviations):** found and restarted two stale dev servers predating this session's commits — web `:3000`'s `/login` was 500ing on a crashed Turbopack child-process artifact, and API `:8003`'s uvicorn `--reload` process (started 2026-08-02) hadn't picked up 15-01's new routes, returning 405 for them. After restarting both, authenticated curl calls against the real dev Supabase project confirmed the three new endpoints are correctly registered, RBAC-passed, and reach the DB layer (`bulk-archive-by-age` returns the expected `42703 archived_at does not exist` until migration 089 lands; `bulk-unarchive` returns a correct 422 on malformed UUIDs). Migration 089 apply (flagged to the team-lead — this executor has no Supabase MCP tool access) and a full browser-driven walkthrough (no Playwright/browser tool available to this executor) remain open follow-ups before Phase 15 can be marked fully verified — see `15-02-SUMMARY.md`.
-
-## Previous milestones
-
-- v1.2 "Stabilization Pass" shipped and archived 2026-08-03 (3 phases, 12-14, all closed — 7/7 plans; migration deployment gap found and closed during milestone audit). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.2-*`.
-- v1.1 "Mobile UI Parity" shipped and archived 2026-08-02 (5 phases, 7-11, all closed — 49/49 plans). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.1-*`.
-- v1.0 "Hotel Standards Execution Plan" shipped and archived 2026-07-28 (7 phases, 0-6, all closed). Full history: `.planning/MILESTONES.md`, `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1.0-*`.
 
 <details>
 <summary>v1.0 phase-by-phase execution log (archived, click to expand)</summary>
@@ -360,3 +364,7 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 Last session: 2026-08-04T00:00:00Z
 Stopped At: Completed 17-06-PLAN.md (Room History visibility + actor attribution, UX-06) — live diagnostic redone fresh, stay_reset_at over-trigger narrowed, actor attribution added, live-verified against the real dev API, full suite green apart from pre-existing baseline failures. This closes Phase 17 (Backlog Cleanup) — 8/8 plans — and milestone v1.3's plan-level execution.
+
+**Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
+
+</details>
