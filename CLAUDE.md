@@ -146,26 +146,34 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 
 ---
 
-## Cron Jobs (GitHub Actions → FastAPI `/v1/internal/*`)
+## Cron Jobs (in-process APScheduler → FastAPI internal coroutines)
 
-Triggered by `.github/workflows/cron-jobs.yml` (POST + `X-Cron-Secret` header). The internal
-router mounts under `PREFIX="/v1"`, so paths are `/v1/internal/*` — NOT `/internal/*` (a bare
-`/internal/*` returns 404). Railway's native cron scheduler is not used on the current account.
+Production runs a single in-process `AsyncIOScheduler` (`apps/api/core/scheduler.py`), started in
+`main.py`'s `lifespan()` handler and gated by `should_run_scheduler()` (requires `app_env ==
+"production"` and the `cron_scheduler_enabled` kill-switch). Each scheduled job calls the same
+`routers.internal` coroutine an HTTP cron would have hit, so behavior and `cron_health` recording
+are unchanged — only the trigger source changed. The previous mechanism
+(`.github/workflows/cron-jobs.yml` POSTing to `/v1/internal/*` with `X-Cron-Secret`) is retired: it
+was dropping/delaying `*/30` runs by up to ~2.4h. The `/v1/internal/*` endpoints (prefix `PREFIX="/v1"`,
+so paths are `/v1/internal/*`, not `/internal/*`) still exist and remain reachable with the
+`X-Cron-Secret` header for manual/ops use. Railway's native cron scheduler is not used on the current
+account.
 
-| Endpoint | Schedule | Purpose |
+| Job ID | Schedule (UTC) | Purpose |
 |---|---|---|
-| `POST /v1/internal/predictions/run` | `*/30 * * * *` | Room readiness predictions |
-| `POST /v1/internal/opera/sync-reservations` | `*/30 * * * *` | Opera reservation sync |
-| `POST /v1/internal/escalations/check` | `*/30 * * * *` | WO/task SLA escalation ladder + DND welfare |
-| `POST /v1/internal/pm/check-due` | `0 6 * * *` | PM schedule due check |
-| `POST /v1/internal/evidence/reminders` | `0 6 * * *` | Controlled-doc acknowledgement reminders |
-| `POST /v1/internal/safety/training-assignments` | `0 6 * * *` | Safety training assignment/reminders |
-| `POST /v1/internal/safety/drill-follow-up` | `0 6 * * *` | Drill follow-up evidence escalation |
-| `POST /v1/internal/ai/failure-predictions` | `0 0 * * *` | Asset failure predictions |
-| `POST /v1/internal/logbook/shift-summary` | `0 7,15,23 * * *` | Shift end summaries |
-| `POST /v1/internal/logbook/cleanup-expired` | `0 3 * * *` | Hard-delete expired logbook entries |
-| `POST /v1/internal/billing/monthly-trueup` | `0 0 28-31 * *` | Stripe billing true-up |
-| `POST /v1/internal/reports/daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
+| `predictions.run` | `*/30 * * * *` | Room readiness predictions |
+| `opera.sync-reservations` | `*/30 * * * *` | Opera reservation sync |
+| `escalations.check` | `*/30 * * * *` | WO/task SLA escalation ladder + DND welfare |
+| `pm.check-due` | `0 6 * * *` | PM schedule due check |
+| `reports.daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
+| `evidence.reminders` | `0 6 * * *` | Controlled-doc acknowledgement reminders |
+| `safety.training-assignments` | `0 6 * * *` | Safety training assignment/reminders |
+| `safety.drill-follow-up` | `0 6 * * *` | Drill follow-up evidence escalation |
+| `lost-found.retention-check` | `0 6 * * *` | Lost & found retention check |
+| `logbook.shift-summary` | `0 7,15,23 * * *` | Shift end summaries |
+| `ai.failure-predictions` | `0 0 * * *` | Asset failure predictions |
+| `logbook.cleanup-expired` | `0 3 * * *` | Hard-delete expired logbook entries |
+| `billing.monthly-trueup` | `0 0 28-31 * *` | Stripe billing true-up |
 
 ---
 
