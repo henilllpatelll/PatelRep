@@ -465,7 +465,7 @@ export default function IntegrationsPage() {
         {statusQuery.isError && (
           <div className="flex items-center gap-2 text-sm text-[var(--alert)]">
             <AlertTriangle size={14} className="shrink-0" />
-            Failed to load Opera status.{' '}
+            {(statusQuery.error as any)?.message || 'Failed to load Opera status.'}{' '}
             <button onClick={() => statusQuery.refetch()} className="underline hover:no-underline">
               Retry
             </button>
