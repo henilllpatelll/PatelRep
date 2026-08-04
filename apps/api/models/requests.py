@@ -783,6 +783,18 @@ class BulkShiftAssignmentRequest(SanitizedBaseModel):
     assignments: List[BulkShiftAssignmentItem] = Field(min_length=1, max_length=500)
 
 
+class BulkArchiveWorkOrdersRequest(SanitizedBaseModel):
+    work_order_ids: List[UUID4] = Field(min_length=1, max_length=200)
+
+
+class BulkArchiveByAgeRequest(SanitizedBaseModel):
+    older_than_days: int = Field(ge=1, le=3650)
+
+
+class BulkUnarchiveWorkOrdersRequest(SanitizedBaseModel):
+    work_order_ids: List[UUID4] = Field(min_length=1, max_length=200)
+
+
 class UpdateStaffProfileRequest(SanitizedBaseModel):
     preferred_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     phone: Optional[str] = Field(default=None, max_length=32)
