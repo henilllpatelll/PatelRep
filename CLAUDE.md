@@ -87,7 +87,7 @@ PatelRep/
 | Logbook | logbook.py | (dashboard)/logbook |
 | Lost & Found | lost_found.py | (dashboard)/lost-found |
 | Reports | reports.py | (dashboard)/reports |
-| Billing | billing.py | (dashboard)/billing |
+| Billing | billing.py | (dashboard)/settings/billing |
 | Opera Integration | integrations.py | (dashboard)/settings |
 | Notifications | notifications.py | — (push/in-app, no dedicated web route) |
 | Webhooks | webhooks.py | — (Stripe webhook handler only) |
