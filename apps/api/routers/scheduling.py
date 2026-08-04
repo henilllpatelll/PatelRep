@@ -75,6 +75,22 @@ async def create_shift(
 ):
     """Create a new shift definition."""
     _ensure_tenant_row("departments", str(body.department_id), current_user.hotel_id, "Department")
+
+    existing = (
+        supabase.table("shifts")
+        .select("id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("department_id", str(body.department_id))
+        .eq("is_active", True)
+        .ilike("name", body.name.strip())
+        .execute()
+    )
+    if existing.data:
+        raise HTTPException(
+            status_code=409,
+            detail=f"A shift named '{body.name.strip()}' already exists for this department.",
+        )
+
     shift_data = {
         "tenant_id": current_user.hotel_id,
         "name": body.name,

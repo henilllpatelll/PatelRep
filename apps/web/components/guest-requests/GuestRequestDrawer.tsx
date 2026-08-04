@@ -172,6 +172,41 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
             <span>Logged {createdAt}</span>
           </div>
 
+          {request.status !== 'verified' && request.status !== 'cancelled' && (
+            <div className="flex gap-1.5">
+              {request.status === 'open' && (
+                <Button variant="outline" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'acknowledged')}>
+                  Acknowledge
+                </Button>
+              )}
+              {request.status === 'acknowledged' && (
+                <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'dispatched')}>
+                  Dispatch
+                </Button>
+              )}
+              {request.status === 'dispatched' && (
+                <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'arrived')}>
+                  Arrived
+                </Button>
+              )}
+              {request.status === 'arrived' && (
+                <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'guest_contacted')}>
+                  Contacted
+                </Button>
+              )}
+              {request.status === 'guest_contacted' && (
+                <Button variant="primary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'resolved')}>
+                  Resolve
+                </Button>
+              )}
+              {request.status === 'resolved' && (
+                <Button variant="primary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'verified')}>
+                  Verify
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Accessibility guidance (informational only, no assignment/booking action) */}
           {request?.category === 'accessibility' && (
             <div>
