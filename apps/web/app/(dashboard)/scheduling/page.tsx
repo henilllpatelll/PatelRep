@@ -34,6 +34,7 @@ import {
   type UpdateShiftData,
 } from '@/lib/api/scheduling'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
+import { getInitials, getDisplayName } from '@/lib/utils/avatar'
 import { logbookApi } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -100,15 +101,6 @@ function relativeHoursAgo(isoString: string | null): string | null {
   return 'just now'
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join('')
-}
-
 // â”€â”€â”€ TodayRoster â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function TodayRoster() {
@@ -172,7 +164,7 @@ function TodayRoster() {
               {roster.map((entry) => {
                 const color = getShiftColor(entry.shift.name)
                 const clockedInAgo = relativeHoursAgo(entry.clocked_in_at)
-                const initials = getInitials(entry.full_name)
+                const initials = getInitials(getDisplayName(entry.full_name))
                 return (
                   <div
                     key={entry.user_id}
@@ -197,7 +189,7 @@ function TodayRoster() {
                     {/* Info */}
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium text-ink truncate leading-tight">
-                        {entry.full_name}
+                        {getDisplayName(entry.full_name)}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span
@@ -342,7 +334,7 @@ function AssignShiftModal({
             >
               <option value="">Select staff member&hellip;</option>
               {staff.map((m) => (
-                <option key={m.id} value={m.user_id}>{m.full_name}</option>
+                <option key={m.id} value={m.user_id}>{getDisplayName(m.full_name)}</option>
               ))}
             </select>
           </div>
@@ -941,7 +933,7 @@ function WeekCalendar({
                           className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border border-amber-100 bg-surface px-3 py-2 text-left"
                         >
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-gray-900">{member.full_name}</span>
+                            <span className="block truncate text-sm font-semibold text-gray-900">{getDisplayName(member.full_name)}</span>
                             <span className="block truncate text-xs text-gray-500">{shift ? formatTimeRange(shift.start_time, shift.end_time) : 'Shift details unavailable'}</span>
                           </span>
                           <span className="shrink-0 rounded-full bg-[var(--caution-soft)] px-2 py-1 text-xs font-semibold text-[var(--caution)]">
@@ -1049,11 +1041,11 @@ function WeekCalendar({
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-[var(--caution)] text-xs font-semibold shrink-0">
-                            {getInitials(member.full_name)}
+                            {getInitials(getDisplayName(member.full_name))}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate leading-tight">
-                              {member.full_name.split(' ')[0]}
+                              {getDisplayName(member.full_name).split(' ')[0]}
                             </p>
                             <p className="text-xs text-gray-400 truncate leading-tight capitalize">
                               {member.role.replace(/_/g, ' ')}
