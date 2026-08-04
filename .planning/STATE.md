@@ -3,33 +3,33 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-04T14:30:00Z"
-last_activity: 2026-08-04 -- Phase 18 (Documentation Drift Fixes) plan 18-01 executed and closed: corrected CLAUDE.md Cron Jobs, Current Scope, and Domain Map sections. Next: /gsd:execute-phase 19 (or /gsd:plan-phase 19 if not yet planned).
+last_updated: "2026-08-04T18:31:00Z"
+last_activity: 2026-08-04 -- Phase 19 (RBAC Audit and Normalization) all 4 plans executed and closed: RBAC-AUDIT.md artifact, guest_requests DELETE gate, lost_found PATCH/DELETE gates, core/roles.py consolidation. Next: /gsd:plan-phase 20.
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 20
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
+  percent: 40
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 18 of 22 (Documentation Drift Fixes) — first phase of milestone v1.4
-Plan: 1 of 1 (18-01 CLOSED)
-Status: Phase 18 complete — all plans executed
-Last activity: 2026-08-04 — 18-01 executed: corrected CLAUDE.md Cron Jobs, Current Scope, and Domain Map sections (commits 79d36d67/7d8ba1e8/f9e05b36)
+Phase: 19 of 22 (RBAC Audit and Normalization) — second phase of milestone v1.4, CLOSED
+Plan: 4 of 4 (19-01, 19-02, 19-03, 19-04 all CLOSED)
+Status: Phase 19 complete — all plans executed and verified
+Last activity: 2026-08-04 — 19-04 executed: created apps/api/core/roles.py single source-of-truth role-group module, repointed programs.py/safety.py/hotels.py to import from it (zero effective access change). Phase 19 fully closed (4/4 plans).
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 18 (Documentation Drift Fixes) ready to plan.
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 19 (RBAC Audit and Normalization) closed. Phase 20 (Close Deferred v1.3 Verification Items) next.
 
 ## Previous milestones
 
