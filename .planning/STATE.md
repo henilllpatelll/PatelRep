@@ -326,11 +326,11 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 ## Current Position
 
 Phase: 19 of 22 (RBAC Audit and Normalization) — second phase of milestone v1.4, in progress.
-Plan: 4 plans total (19-01, 19-02, 19-03, 19-04). 19-01 CLOSED this session (RBAC-AUDIT.md artifact, commit `2e829e21`). 19-02 also has a SUMMARY on disk (closed by a concurrent executor). 19-03 CLOSED this session (lost-found PATCH/DELETE RBAC gate, commits `03775fbb`/`710896df`, SUMMARY on disk). 19-04 status not confirmed by this executor — other agents were observed with uncommitted changes to `guest_requests.py`/`hotels.py`/`programs.py`/`safety.py` at commit time, consistent with parallel execution of the remaining plan.
-Status: Phase 18 (Documentation Drift Fixes) closed. Phase 19 in progress.
-Last activity: 2026-08-04 — 19-03 executed: gated PATCH/DELETE `/v1/lost-found/{item_id}` to `{front_desk, housekeeping_supervisor, gm}`, matching the existing custody-events gate (RBAC-03 gap closure). TDD RED→GREEN, 6/6 tests passing in `test_lost_found_delete.py`.
+Plan: 4 plans total (19-01, 19-02, 19-03, 19-04). 19-01 CLOSED this session (RBAC-AUDIT.md artifact, commit `2e829e21`). 19-02 also has a SUMMARY on disk (closed by a concurrent executor). 19-03 CLOSED this session (lost-found PATCH/DELETE RBAC gate, commits `03775fbb`/`710896df`, SUMMARY on disk). 19-04 CLOSED this session (role-group consolidation, `core/roles.py` created commit `d8b6636f`; router repointing commingled into concurrent sibling commit `710896df` due to a shared-working-directory git stash race — verified correct against HEAD, SUMMARY on disk). All 4 plans of Phase 19 now closed.
+Status: Phase 18 (Documentation Drift Fixes) closed. Phase 19 closed (4/4 plans).
+Last activity: 2026-08-04 — 19-04 executed: created `apps/api/core/roles.py` single source-of-truth role-group module (ALL_ROLES/ALL_STAFF_ROLES/MANAGER_ROLES/PROGRAM_MANAGER_ROLES), repointed `programs.py`/`safety.py`/`hotels.py` to import from it (zero effective access change, verified). Full API suite green apart from 2 pre-existing unrelated `test_management_roi.py` failures (confirmed pre-existing via baseline check) and sibling-owned in-flight TDD files.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 in progress (19-01 closed this session; 19-02 summary present; 19-03 closed this session; 19-04 unconfirmed).
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4: 19-01, 19-02, 19-03, 19-04 all closed).
 
 ## Performance Metrics
 
