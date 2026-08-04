@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Billing, Work Order Archival, and Backlog Cleanup
 status: in_progress
-last_updated: "2026-08-03T17:00:00Z"
-last_activity: 2026-08-03 -- Plan 15-01 (work-order bulk-archive backend) executed and closed. Commits d4d4aef5/b2bed05b. 270/270 API tests passing (258 baseline + 12 new), zero regressions.
+last_updated: "2026-08-03T18:15:00Z"
+last_activity: 2026-08-03 -- Plan 15-02 (work-order bulk-archive frontend) executed and closed. Commits 0544505e/61d3c4a8/ef077e50. Both Phase 15 plans now code-complete; migration 089 apply + live browser walkthrough still pending as follow-up.
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # GSD State
@@ -18,18 +18,20 @@ progress:
 ## Current Position
 
 Phase: 15 of 17 (Work-Order Bulk-Archive)
-Plan: 01 of 02 complete — 02 (frontend: Archived tab, bulk-select modal) next
-Status: Plan 15-01 closed, ready to execute 15-02
-Last activity: 2026-08-03 — Plan 15-01 executed and closed
+Plan: 02 of 02 complete — both plans closed, phase verification next
+Status: Plan 15-02 closed; Phase 15 plans complete, pending migration 089 apply + phase verification
+Last activity: 2026-08-03 — Plan 15-02 executed and closed
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.3 — Phase 15: Work-Order Bulk-Archive, Plan 15-01 (backend) closed, Plan 15-02 (frontend) next.
+**Current focus:** Milestone v1.3 — Phase 15: Work-Order Bulk-Archive, both plans (15-01 backend, 15-02 frontend) closed; migration 089 apply + phase verification next.
 
 **15-01 CLOSED (2026-08-03, commits `d4d4aef5`/`b2bed05b`):** Work-order bulk-archive backend. New `archived_at TIMESTAMPTZ`/`archived_by UUID` columns on `work_orders` (migration 089, not yet applied to remote — deployment handled separately per established convention) plus three new endpoints on the existing work-orders router: `POST /work-orders/bulk-archive` (explicit selection, rejects non-completed/cancelled status with 409 and cross-tenant ids with 404, zero mutation on rejection), `POST /work-orders/bulk-archive-by-age` (archives all completed work orders older than N days for the caller's tenant, zero-match is a valid outcome), and `POST /work-orders/bulk-unarchive` (restores any archived work order, no status precondition). `GET /work-orders` gained an `archived` query param and now excludes archived rows by default in both the engineer-merge branch and the standard branch. Every archive/unarchive action writes one `operational_audit_events` row per work order (`work_order.archived`/`work_order.unarchived`). New `test_work_order_archive.py` (12 tests, TDD RED→GREEN) covers RBAC (non-management 403 via existing `require_role` guard), tenant isolation, non-archivable rejection, audit logging, default-list exclusion (both role branches), and a full archive-then-unarchive round trip reconstructable from audit events. **Regression found and fixed (Rule 1):** the new `archived` query param broke `test_tenant_isolation.py::test_work_orders_list_returns_empty_for_hotel_a`, which calls `list_work_orders()` directly and bypasses FastAPI's `Query()` resolution — the raw `Query(False)` sentinel object is truthy, so the omitted kwarg took the `archived=True` code path against a fake query builder that didn't implement `.not_`; fixed by passing `archived=False` explicitly at that one call site. Full API smoke suite: 270/270 passed (258 baseline + 12 new). Tasks 2 and 3 (both plan-specified to touch the same router file and same test file) were implemented and committed together in one RED→GREEN cycle rather than an artificial mid-file split — see `15-01-SUMMARY.md` Deviations. Migration 089 must be applied to the remote Supabase project before 15-02's frontend can be exercised against real data. See `15-01-SUMMARY.md`.
+
+**15-02 CLOSED (2026-08-03, commits `0544505e`/`61d3c4a8`/`ef077e50`):** Work-order bulk-archive frontend, built on Plan 15-01's endpoints. `engineeringApi` gained an `archived` boolean param on `listWorkOrders` plus three typed methods (`bulkArchiveWorkOrders`, `bulkArchiveWorkOrdersByAge`, `bulkUnarchiveWorkOrders`). New `BulkArchiveModal.tsx` (checkbox multi-select of completed/cancelled work orders, filtered client-side from an open-ended page fetch, plus a separate archive-by-age control) and `ArchivedWorkOrdersPanel.tsx` (flat archived-list view with a manager-gated per-row Restore button, keyed `['work-orders', 'archived']` so the page's existing Realtime `invalidateQueries({queryKey:['work-orders']})` prefix-match covers it with zero new subscription code). Work Orders page gained a third "Archived" `PageHeader` tab and a manager-only "Archive..." action button (`Button variant="outline"`, matching an existing real variant rather than inventing one); the 2-way `activeTab` ternary became a 3-way if/else-if/else; `FailurePredictionSidebar`'s existing `activeTab === 'work-orders'` gate was confirmed to already correctly exclude the new tab with no code change. 19 new EN/ES locale keys at parity, including CLDR `_one`/`_other` plural pairs. `npm run type-check` and `npm run lint` both pass with zero errors across every new/changed file. **Environment notes (not code deviations):** found and restarted two stale dev servers predating this session's commits — web `:3000`'s `/login` was 500ing on a crashed Turbopack child-process artifact, and API `:8003`'s uvicorn `--reload` process (started 2026-08-02) hadn't picked up 15-01's new routes, returning 405 for them. After restarting both, authenticated curl calls against the real dev Supabase project confirmed the three new endpoints are correctly registered, RBAC-passed, and reach the DB layer (`bulk-archive-by-age` returns the expected `42703 archived_at does not exist` until migration 089 lands; `bulk-unarchive` returns a correct 422 on malformed UUIDs). Migration 089 apply (flagged to the team-lead — this executor has no Supabase MCP tool access) and a full browser-driven walkthrough (no Playwright/browser tool available to this executor) remain open follow-ups before Phase 15 can be marked fully verified — see `15-02-SUMMARY.md`.
 
 ## Previous milestones
 
