@@ -319,7 +319,7 @@ def calculate_housekeeping_efficiency(
         "total_clean_minutes": round(total_clean_minutes, 1),
         "minutes_per_occupied_room": minutes_per_occupied_room,
         "by_room_type": by_room_type,
-        "definition": "minutes_per_occupied_room = total clean minutes / distinct (room, day) clean sessions",
+        "definition": "Average minutes spent cleaning each occupied room, based on completed clean sessions.",
     }
 
 
