@@ -205,67 +205,51 @@ async def run_failure_predictions(x_cron_secret: str = Header(None)):
     return {"data": result, "message": f"Failure predictions complete: {result}"}
 
 
+def run_monthly_trueup(*, today: date | None = None) -> dict:
+    from routers.billing import true_up_tenant
+    current_day = today or date.today()
+
+    # Query by period_end, NOT by "this month's period_start" — this is the
+    # primary fix for the early-finalization bug: a cron firing on day 28 of
+    # a 30-day month finds ZERO rows here (period_end=day 30 is not <=
+    # day 28), so no premature finalization is even attempted. Also
+    # self-healing: any previously-skipped period gets picked up once its
+    # period_end finally passes, without needing to know which month it was.
+    ledgers = supabase.table("credit_ledger")\
+        .select("tenant_id, period_start")\
+        .eq("is_finalized", False)\
+        .lte("period_end", current_day.isoformat())\
+        .execute()
+
+    invoiced = errors = skipped = 0
+    for ledger in (ledgers.data or []):
+        tenant_id = ledger.get("tenant_id")
+        ledger_period_start = ledger.get("period_start")
+        if not tenant_id or not ledger_period_start:
+            continue
+        result = true_up_tenant(
+            tenant_id,
+            date.fromisoformat(ledger_period_start),
+            require_active=True,
+            today=current_day,
+        )
+        status = result.get("status")
+        if status == "invoiced":
+            invoiced += 1
+        elif status == "error":
+            errors += 1
+        else:
+            skipped += 1
+
+    return {"invoiced": invoiced, "errors": errors, "skipped": skipped}
+
+
 @router.post("/billing/monthly-trueup")
 async def monthly_trueup(x_cron_secret: str = Header(None)):
     verify_cron(x_cron_secret)
-    import stripe
-    from core.config import settings
-    stripe.api_key = settings.stripe_secret_key
-
-    today = date.today()
-    period_start = date(today.year, today.month, 1)
-
-    # credit_ledger and subscriptions share tenant_id but have no direct FK —
-    # fetch them separately and join in Python.
-    ledgers = supabase.table("credit_ledger")\
-        .select("tenant_id, credits_used, credits_included")\
-        .eq("period_start", period_start.isoformat())\
-        .execute()
-
-    processed = 0
-    errors = 0
-    for ledger in (ledgers.data or []):
-        tenant_id = ledger.get("tenant_id")
-        if not tenant_id:
-            continue
-
-        sub_result = supabase.table("subscriptions")\
-            .select("stripe_customer_id, plan_status, cap_cents, stripe_subscription_id")\
-            .eq("tenant_id", tenant_id)\
-            .maybe_single()\
-            .execute()
-        sub = (sub_result.data if sub_result else None) or {}
-
-        if sub.get("plan_status") != "active":
-            continue
-        stripe_cid = sub.get("stripe_customer_id")
-        if not stripe_cid:
-            continue
-
-        used = ledger.get("credits_used", 0)
-        included = ledger.get("credits_included", 5000)
-        overage_credits = max(0, used - included)
-
-        if overage_credits > 0:
-            cap_cents = sub.get("cap_cents")
-            overage_cents = int(overage_credits * 2)  # $0.02/credit
-            if cap_cents:
-                overage_cents = min(overage_cents, cap_cents - settings.base_plan_price_cents)
-            if overage_cents > 0:
-                try:
-                    stripe.InvoiceItem.create(
-                        customer=stripe_cid,
-                        amount=overage_cents,
-                        currency="usd",
-                        description=f"AI Credits Overage: {overage_credits} credits @ $0.02",
-                    )
-                    processed += 1
-                except Exception as e:
-                    logger.error("Stripe invoice failed for customer=%s: %s", stripe_cid, e, exc_info=True)
-                    errors += 1
-
+    result = run_monthly_trueup()
     _record_cron_run("billing.monthly-trueup")
-    return {"status": "ok", "invoices_created": processed, "errors": errors}
+    return {"status": "ok", **result}
 
 
 @router.post("/logbook/shift-summary")
