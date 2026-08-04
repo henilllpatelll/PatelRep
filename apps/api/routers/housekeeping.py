@@ -1946,6 +1946,16 @@ async def import_hk_details(
         .execute()
     room_map: dict[str, str] = {r["room_number"]: r["id"] for r in (rooms_res.data or [])}
 
+    # Prior status per room, so the stay_reset_at boundary only moves on a genuine
+    # fresh-inspection transition — not on every imported row that already was INSPECTED.
+    prior_status_res = supabase.table("room_status") \
+        .select("room_id, status") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    prior_status_map: dict[str, str] = {
+        r["room_id"]: r["status"] for r in (prior_status_res.data or [])
+    }
+
     applied = 0
     skipped_active = 0
     not_found: list[str] = []
@@ -1983,7 +1993,7 @@ async def import_hk_details(
             "stripped_at": None,
             "assigned_to": None,
         }
-        if resolved_status == "INSPECTED":
+        if resolved_status == "INSPECTED" and prior_status_map.get(room_id) != "INSPECTED":
             update_data["stay_reset_at"] = now_iso
 
         _execute_room_status_clean_type_write(

@@ -1027,7 +1027,25 @@ async def get_room_history(
     )
     if stay_reset_at:
         query = query.gte("created_at", stay_reset_at)
-    return {"data": query.execute().data or []}
+    history = query.execute().data or []
+
+    changed_by_ids = list({h["changed_by"] for h in history if h.get("changed_by")})
+    profiles_map: dict = {}
+    if changed_by_ids:
+        profiles_result = (
+            supabase.table("user_profiles")
+            .select("id, full_name, preferred_name")
+            .in_("id", changed_by_ids)
+            .execute()
+        )
+        profiles_map = {p["id"]: p for p in (profiles_result.data or [])}
+
+    for h in history:
+        profile = profiles_map.get(h.get("changed_by"))
+        h["user_profiles"] = profile
+        h["actor_name"] = (profile.get("preferred_name") or profile.get("full_name")) if profile else None
+
+    return {"data": history}
 
 
 # ---------------------------------------------------------------------------

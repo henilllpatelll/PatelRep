@@ -393,6 +393,50 @@ async def test_room_history_respects_limit(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_room_history_includes_actor_attribution(monkeypatch):
+    db = FakeDB({
+        "room_status_history": [
+            {
+                "id": "hist-1",
+                "room_id": "room-1",
+                "tenant_id": "hotel-a",
+                "from_status": "IN_PROGRESS",
+                "to_status": "CLEAN",
+                "changed_by": "hk-1",
+                "created_at": "2026-05-25T16:00:00+00:00",
+            },
+            {
+                "id": "hist-2",
+                "room_id": "room-1",
+                "tenant_id": "hotel-a",
+                "from_status": "DIRTY",
+                "to_status": "IN_PROGRESS",
+                "changed_by": None,
+                "created_at": "2026-05-25T15:00:00+00:00",
+            },
+        ],
+        "user_profiles": [
+            {"id": "hk-1", "full_name": "Housekeeper One", "preferred_name": "HK One"},
+        ],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.get_room_history(
+        "room-1",
+        limit=50,
+        current_user=HOUSEKEEPER,
+    )
+
+    entries = response["data"]
+    attributed = next(e for e in entries if e["id"] == "hist-1")
+    unattributed = next(e for e in entries if e["id"] == "hist-2")
+    assert attributed["actor_name"] == "HK One"
+    assert attributed["user_profiles"]["full_name"] == "Housekeeper One"
+    assert unattributed["actor_name"] is None
+    assert unattributed["user_profiles"] is None
+
+
+@pytest.mark.asyncio
 async def test_room_status_undo_rejects_other_housekeeper_change(monkeypatch):
     db = FakeDB({
         "room_status": [{

@@ -770,6 +770,86 @@ async def test_hk_details_import_resets_stale_card_fields_and_import_markers(mon
 
 
 @pytest.mark.asyncio
+async def test_hk_details_import_does_not_restamp_stay_reset_at_when_already_inspected(monkeypatch):
+    room_id = "77777777-7777-4777-8777-777777777777"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "107"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "INSPECTED",
+            "fo_status": "VAC",
+            "stay_reset_at": "2026-05-01T09:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_hk_details",
+        lambda _pdf: (
+            [HKDetailsRow(
+                room_number="107",
+                raw_status="Inspected",
+                our_status="INSPECTED",
+                fo_status="VAC",
+                reservation_status="Stayover",
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_hk_details(
+        file=UploadFile(filename="hk-details.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    status = db.rows["room_status"][0]
+    assert status["status"] == "INSPECTED"
+    assert status["stay_reset_at"] == "2026-05-01T09:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_hk_details_import_stamps_stay_reset_at_on_genuine_inspection_transition(monkeypatch):
+    room_id = "88888888-8888-4888-8888-888888888888"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "108"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "CLEAN",
+            "fo_status": "VAC",
+            "stay_reset_at": None,
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_hk_details",
+        lambda _pdf: (
+            [HKDetailsRow(
+                room_number="108",
+                raw_status="Inspected",
+                our_status="INSPECTED",
+                fo_status="VAC",
+                reservation_status="Stayover",
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_hk_details(
+        file=UploadFile(filename="hk-details.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    status = db.rows["room_status"][0]
+    assert status["status"] == "INSPECTED"
+    assert status["stay_reset_at"] is not None
+
+
+@pytest.mark.asyncio
 async def test_task_sheet_import_keeps_occ_due_out_departure_occupied_dirty(monkeypatch):
     room_id = "22222222-2222-4222-8222-222222222222"
     db = FakeDB({
