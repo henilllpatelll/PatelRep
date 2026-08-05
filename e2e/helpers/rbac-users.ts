@@ -61,9 +61,15 @@ loadEnvFile('apps/api/.env')
 const _rawApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || ''
 // Ignore localhost URLs that bleed in from apps/web/.env.local during CI/CD
 const _isLocalhost = _rawApiUrl.includes('localhost') || _rawApiUrl.includes('127.0.0.1')
-const API_URL = (_rawApiUrl && !_isLocalhost)
-  ? _rawApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
-  : 'https://patelrep-web-production.up.railway.app'
+// RBAC_API_URL is an explicit, deliberate opt-in (unlike NEXT_PUBLIC_API_URL/API_URL, which can
+// bleed in unintentionally) — it always wins, including for localhost, so local-dev verification
+// runs (web + API both local, same cloud Supabase project) can seed against the real local API.
+const _explicitApiUrl = (process.env.RBAC_API_URL || '').trim()
+const API_URL = _explicitApiUrl
+  ? _explicitApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
+  : (_rawApiUrl && !_isLocalhost)
+    ? _rawApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
+    : 'https://patelrep-web-production.up.railway.app'
 
 function requireEnvPassword(name: string): string {
   const value = process.env[name]

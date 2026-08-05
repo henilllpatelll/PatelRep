@@ -933,7 +933,7 @@ class InviteStaffRequest(SanitizedBaseModel):
         "housekeeping_supervisor",
         "housekeeper",
         "engineer",
-        "engineer",
+        "chief_engineer",
         "front_desk",
     ]
     full_name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
@@ -952,7 +952,7 @@ class AddStaffDirectRequest(SanitizedBaseModel):
         "housekeeping_supervisor",
         "housekeeper",
         "engineer",
-        "engineer",
+        "chief_engineer",
         "front_desk",
     ]
     department_id: Optional[UUID4] = None
