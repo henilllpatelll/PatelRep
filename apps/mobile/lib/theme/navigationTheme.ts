@@ -1,7 +1,7 @@
 import {
   DefaultTheme,
   type Theme as ReactNavigationTheme,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 import {
   getThemeTokens,
   type ThemeMode,

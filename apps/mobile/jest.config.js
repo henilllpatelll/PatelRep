@@ -18,4 +18,5 @@ module.exports = {
   modulePaths: [path.resolve(__dirname, 'node_modules')],
   setupFiles: ['<rootDir>/jest.setup.js'],
   roots: ['<rootDir>'],
+  maxWorkers: 2,
 };

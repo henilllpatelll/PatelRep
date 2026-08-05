@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
-import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
+import { ThemeProvider as NavigationThemeProvider } from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";

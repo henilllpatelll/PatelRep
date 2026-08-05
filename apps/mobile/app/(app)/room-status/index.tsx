@@ -650,7 +650,14 @@ const styles = StyleSheet.create({
 
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
 
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+  modalBackdrop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
   modalSheet: {
     position: "absolute", bottom: 0, left: 0, right: 0,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,

@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "patelrep",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1a1815"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.patelrep.app",
@@ -70,6 +65,14 @@
         }
       ],
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1a1815"
+        }
+      ],
       "expo-sqlite"
     ],
     "experiments": {

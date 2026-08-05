@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { DefaultTheme } from "@react-navigation/native";
+import { DefaultTheme } from "expo-router/react-navigation";
 import { getThemeTokens, type ThemeMode } from "@/components/shared/tokens";
 import { getNavigationTheme } from "@/lib/theme/navigationTheme";
 
