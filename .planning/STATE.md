@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-05T08:26:14Z"
-last_activity: 2026-08-05 -- Phase 22 (Expo SDK 54->57 Bump) plan 22-01 executed and closed: fixed all 3 pre-existing jest failures (stale i18n mock interpolation, not component bugs) for a 409/409 green baseline, and deleted the stale EAS-ignored apps/mobile/android/ directory so app.json's newArchEnabled:true is the sole New-Arch config source of truth before the three SDK hops begin.
+last_updated: "2026-08-05T14:47:18Z"
+last_activity: 2026-08-05 -- Phase 22 plan 22-02 closed: upgraded apps/mobile to Expo 55.0.28 / React Native 0.83.10, passed expo-doctor 19/19, TypeScript, Jest 412/412, and finished EAS Android preview build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418; isolated hop boundary commit 11e4b41a.
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 15
-  completed_plans: 10
-  percent: 67
+  completed_plans: 11
+  percent: 73
 ---
 
 # GSD State
@@ -18,18 +18,18 @@ progress:
 ## Current Position
 
 Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, IN PROGRESS
-Plan: 1 of 5 (22-01 CLOSED)
-Status: Phase 21 complete (3/3 plans). Phase 22 underway — 22-01 (baseline: jest green + New-Arch reconciliation) closed. 22-02 (hop 54→55), 22-03 (hop 55→56), 22-04 (hop 56→57), 22-05 (phase gate) remain.
-Last activity: 2026-08-05 — 22-01 executed: fixed 3 pre-existing jest failures (ProfileHandoff.test.tsx missing i18n mock key, GuestRequestsList.test.tsx missing interpolation support in its i18n mock) for a 409/409 green baseline; deleted the stale, EAS-ignored, committed apps/mobile/android/ directory (50 files) so app.json (newArchEnabled:true) is the sole committed New-Arch config source of truth. No app/source behavior changed. tsc --noEmit clean.
+Plan: 2 of 5 (22-02 CLOSED)
+Status: Phase 21 complete (3/3 plans). Phase 22 underway — 22-01 baseline and 22-02 Expo SDK 55 hop closed. 22-03 (hop 55→56), 22-04 (hop 56→57), and 22-05 (phase gate) remain.
+Last activity: 2026-08-05 — 22-02 upgraded apps/mobile to Expo 55.0.28 / React Native 0.83.10, reconciled mandatory New Architecture and StatusBar changes, passed expo-doctor 19/19, TypeScript, Jest 412/412, and finished EAS Android preview build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418. Hop rollback boundary: 11e4b41a.
 
-Progress: [██████░░░░] 67%
+Progress: [███████░░░] 73%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 19 (RBAC Audit and Normalization) closed. Phase 20 (Close Deferred v1.3 Verification Items) closed (2/2 plans). Next: Phase 21 (Test-Data Hygiene).
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 22 Expo SDK 54→57 bump is in progress; next is plan 22-03 (SDK 55→56).
 
 ## Previous milestones
 
@@ -325,12 +325,12 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 ## Current Position
 
-Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, IN PROGRESS (1/5 plans).
-Plan: 1 of 5 (22-01 CLOSED this session, commits `75d1a808`/`965a22d5`, SUMMARY on disk).
-Status: Phase 21 (Dev/QA Test-Data Hygiene) closed (3/3 plans). Phase 22 (Expo SDK 54→57 Bump) underway — 22-01 (baseline plan: jest green + MOBILE-02 New-Arch reconciliation, no SDK bump, no EAS build) closed. Remaining: 22-02 (hop 54→55), 22-03 (hop 55→56, react-navigation fork via codemod), 22-04 (hop 56→57), 22-05 (phase gate).
-Last activity: 2026-08-05 — 22-01 executed: root-caused and fixed all 3 pre-existing jest failures — both were stale `react-i18next` test mocks (one missing a key, one not interpolating `{{}}` values), not component or SDK bugs — for a clean 409/409 jest baseline (`npx jest` exit 0, `npx tsc --noEmit` exit 0). Deleted the stale, EAS-ignored, committed `apps/mobile/android/` directory (50 tracked files) per MOBILE-02, confirming `app.json`'s `newArchEnabled: true` is the sole committed New-Arch source of truth and `babel.config.js`'s `dynamic-import-node` Hermes/Supabase guard is untouched. This is the reference baseline the three hop plans (22-02..22-04) will each compare their own jest runs against.
+Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, IN PROGRESS (2/5 plans).
+Plan: 2 of 5 (22-02 CLOSED this session, code commit `11e4b41a`, SUMMARY on disk).
+Status: Phase 21 (Dev/QA Test-Data Hygiene) closed (3/3 plans). Phase 22 (Expo SDK 54→57 Bump) underway — 22-01 baseline and 22-02 hop 54→55 closed. Remaining: 22-03 (hop 55→56, react-navigation fork via codemod), 22-04 (hop 56→57), 22-05 (phase gate).
+Last activity: 2026-08-05 — 22-02 upgraded apps/mobile to Expo 55.0.28 / React Native 0.83.10 / React 19.2.0 / expo-router 55.0.17. Removed obsolete platform `newArchEnabled` fields, removed the deprecated root StatusBar `backgroundColor` prop, aligned React test peers, and added `ColorSchemeName='unspecified'` coverage. Gates: expo-doctor 19/19, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, EAS Android preview build `10c95e4d-6cac-4a7e-b677-d0fa5a8b5418` FINISHED. Isolated rollback boundary: `11e4b41a`.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3), Phase 22 in progress (1/5 plans). Next: 22-02 (hop 54→55).
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3), Phase 22 in progress (2/5 plans). Next: 22-03 (hop 55→56).
 
 ## Performance Metrics
 
@@ -379,11 +379,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | 21 | 02 | 8 min | 2 | 1 | 2026-08-05 |
 | 21 | 03 | 12 min | 2 | 1 | 2026-08-05 |
 | 22 | 01 | 4 min | 2 | 2 | 2026-08-05 |
+| 22 | 02 | 128 min | 2 | 7 | 2026-08-05 |
 
 ## Session
 
-Last session: 2026-08-05T08:26:14Z
-Stopped At: Completed 22-01-PLAN.md (jest baseline fixed to 409/409 green — root-caused both stale-mock failures rather than quarantining; `apps/mobile/android/` deleted from git per MOBILE-02, `app.json` newArchEnabled:true confirmed as sole source of truth, babel `dynamic-import-node` plugin confirmed intact). No SDK bump and no EAS build in this plan — those begin in 22-02. Next: 22-02 (hop 54→55) — `/gsd:execute-phase 22` to continue.
+Last session: 2026-08-05T14:47:18Z
+Stopped At: Completed 22-02-PLAN.md (Expo SDK 55 hop committed at `11e4b41a`; expo-doctor 19/19, TypeScript and Jest 412/412 green; EAS Android preview build `10c95e4d-6cac-4a7e-b677-d0fa5a8b5418` FINISHED). Next: 22-03 (hop 55→56) — `/gsd:execute-phase 22` to continue.
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
@@ -412,4 +413,6 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (18 requirements: DOC-01..03, R
 
 **22-01 CLOSED (2026-08-05, commits `75d1a808`/`965a22d5`):** Baseline plan for the SDK 54→57 bump — not a hop, no SDK version changed, no EAS build run. Task 1: root-caused and fixed all 3 pre-existing `npx jest` failures (`ProfileHandoff.test.tsx` ×1, `GuestRequestsList.test.tsx` ×2), 406/409 → **409/409 green**. Both root causes were stale `react-i18next` test mocks, not component bugs: `ProfileHandoff.test.tsx`'s mock i18n table was simply missing the `"profile.appVersion"` key (real value `"PatelRep v{{version}}"`), so `t()` fell back to the raw key and `getByText("PatelRep v1.0.0")` never matched; `GuestRequestsList.test.tsx`'s mock `t: (key) => key` didn't interpolate values at all, so `t("guestRequests.roomLabel", { room: "214" })` rendered the literal key instead of `"Room 214"`, failing both of the suite's `getByText("Room 214")` assertions. Fixed by adding the missing key and by giving the mock real `{{placeholder}}` interpolation — no app/source behavior changed, no tests quarantined. Task 2 (MOBILE-02): `git rm -r android` removed the stale, `.easignore`-excluded, EAS-ignored committed `apps/mobile/android/` directory (50 tracked files, stale June build artifacts) — this is a Continuous-Native-Generation project, so `android/` regenerates from `app.json` when needed. Confirmed `app.json`'s `newArchEnabled: true` (untouched, sole source of truth) and `babel.config.js`'s `dynamic-import-node` plugin (Hermes/Supabase dynamic-import crash guard) both intact. `npx tsc --noEmit` clean throughout. This establishes the green jest baseline and eliminates the New-Arch config divergence the three hop plans (22-02 `54→55`, 22-03 `55→56`, 22-04 `56→57`) depend on. See `22-01-SUMMARY.md`.
 
-**Next:** `/gsd:execute-phase 22` to continue with 22-02 (hop 54→55).
+**22-02 CLOSED (2026-08-05, commit `11e4b41a`):** Hop 1/3 upgraded apps/mobile from Expo SDK 54 to resolved Expo 55.0.28 / React Native 0.83.10 / React 19.2.0 / expo-router 55.0.17 via `expo install --fix`. SDK reconciliation removed `ios.newArchEnabled` and `android.newArchEnabled` because SDK 55 makes New Architecture mandatory and rejects the obsolete fields; removed the deprecated root Expo StatusBar `backgroundColor` prop; kept `babel.config.js`'s `dynamic-import-node` Supabase/Hermes guard; confirmed `expo-av` remains unused. React Native 0.83's `ColorSchemeName='unspecified'` was added to the existing light fallback with focused coverage. Jest peer timeouts exposed stale test dependencies, so `react-test-renderer` was aligned to React 19.2.0 and `@testing-library/react-native` to the expo-router-compatible 13.x line. All gates green in order: expo-doctor 19/19, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, then EAS Android preview build `10c95e4d-6cac-4a7e-b677-d0fa5a8b5418` FINISHED and produced an APK. The full hop was held for the cloud result and committed as the isolated rollback boundary `11e4b41a`. See `22-02-SUMMARY.md`.
+
+**Next:** `/gsd:execute-phase 22` to continue with 22-03 (hop 55→56).
