@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-05T14:47:18Z"
-last_activity: 2026-08-05 -- Phase 22 plan 22-02 closed: upgraded apps/mobile to Expo 55.0.28 / React Native 0.83.10, passed expo-doctor 19/19, TypeScript, Jest 412/412, and finished EAS Android preview build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418; isolated hop boundary commit 11e4b41a.
+last_updated: "2026-08-05T18:28:17Z"
+last_activity: 2026-08-05 -- Phase 22 plan 22-03 closed: upgraded apps/mobile to Expo 56.0.18 / React Native 0.85.3, migrated to Expo Router's navigation fork, passed expo-doctor 21/21, TypeScript, Jest 412/412, and finished EAS Android preview build 20c05179-893a-4a2b-83b7-8d8ea0c1edbd; isolated hop boundary commit fdcdc72a.
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 15
-  completed_plans: 11
-  percent: 73
+  completed_plans: 12
+  percent: 80
 ---
 
 # GSD State
@@ -18,18 +18,18 @@ progress:
 ## Current Position
 
 Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, IN PROGRESS
-Plan: 2 of 5 (22-02 CLOSED)
-Status: Phase 21 complete (3/3 plans). Phase 22 underway — 22-01 baseline and 22-02 Expo SDK 55 hop closed. 22-03 (hop 55→56), 22-04 (hop 56→57), and 22-05 (phase gate) remain.
-Last activity: 2026-08-05 — 22-02 upgraded apps/mobile to Expo 55.0.28 / React Native 0.83.10, reconciled mandatory New Architecture and StatusBar changes, passed expo-doctor 19/19, TypeScript, Jest 412/412, and finished EAS Android preview build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418. Hop rollback boundary: 11e4b41a.
+Plan: 3 of 5 (22-03 CLOSED)
+Status: Phase 21 complete (3/3 plans). Phase 22 underway — 22-01 baseline, 22-02 Expo SDK 55 hop, and 22-03 Expo SDK 56 hop closed. 22-04 (hop 56→57) and 22-05 (phase gate) remain.
+Last activity: 2026-08-05 — 22-03 upgraded apps/mobile to Expo 56.0.18 / React Native 0.85.3, migrated navigation imports to Expo Router's SDK 56 fork, passed expo-doctor 21/21, TypeScript, Jest 412/412, and finished EAS Android preview build 20c05179-893a-4a2b-83b7-8d8ea0c1edbd. Hop rollback boundary: fdcdc72a.
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 80%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 22 Expo SDK 54→57 bump is in progress; next is plan 22-03 (SDK 55→56).
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 22 Expo SDK 54→57 bump is in progress; next is plan 22-04 (SDK 56→57.0.9).
 
 ## Previous milestones
 
@@ -326,11 +326,11 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 ## Current Position
 
 Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, IN PROGRESS (2/5 plans).
-Plan: 2 of 5 (22-02 CLOSED this session, code commit `11e4b41a`, SUMMARY on disk).
-Status: Phase 21 (Dev/QA Test-Data Hygiene) closed (3/3 plans). Phase 22 (Expo SDK 54→57 Bump) underway — 22-01 baseline and 22-02 hop 54→55 closed. Remaining: 22-03 (hop 55→56, react-navigation fork via codemod), 22-04 (hop 56→57), 22-05 (phase gate).
-Last activity: 2026-08-05 — 22-02 upgraded apps/mobile to Expo 55.0.28 / React Native 0.83.10 / React 19.2.0 / expo-router 55.0.17. Removed obsolete platform `newArchEnabled` fields, removed the deprecated root StatusBar `backgroundColor` prop, aligned React test peers, and added `ColorSchemeName='unspecified'` coverage. Gates: expo-doctor 19/19, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, EAS Android preview build `10c95e4d-6cac-4a7e-b677-d0fa5a8b5418` FINISHED. Isolated rollback boundary: `11e4b41a`.
+Plan: 3 of 5 (22-03 CLOSED this session, code commit `fdcdc72a`, SUMMARY on disk).
+Status: Phase 21 (Dev/QA Test-Data Hygiene) closed (3/3 plans). Phase 22 (Expo SDK 54→57 Bump) underway — 22-01 baseline, 22-02 hop 54→55, and 22-03 hop 55→56 closed. Remaining: 22-04 (hop 56→57.0.9), 22-05 (phase gate).
+Last activity: 2026-08-05 — 22-03 upgraded apps/mobile to Expo 56.0.18 / React Native 0.85.3 / React 19.2.3 / expo-router 56.2.17. Ran the official navigation-fork codemod, reconciled SDK 56 config/tooling contracts, and used the plan-authorized codemod-only fallback because Expo Doctor rejects direct `@react-navigation` packages. Gates: expo-doctor 21/21, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, EAS Android preview build `20c05179-893a-4a2b-83b7-8d8ea0c1edbd` FINISHED. Isolated rollback boundary: `fdcdc72a`.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3), Phase 22 in progress (2/5 plans). Next: 22-03 (hop 55→56).
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3), Phase 22 in progress (3/5 plans). Next: 22-04 (hop 56→57.0.9).
 
 ## Performance Metrics
 
@@ -380,11 +380,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | 21 | 03 | 12 min | 2 | 1 | 2026-08-05 |
 | 22 | 01 | 4 min | 2 | 2 | 2026-08-05 |
 | 22 | 02 | 128 min | 2 | 7 | 2026-08-05 |
+| 22 | 03 | 213 min | 3 | 9 | 2026-08-05 |
 
 ## Session
 
-Last session: 2026-08-05T14:47:18Z
-Stopped At: Completed 22-02-PLAN.md (Expo SDK 55 hop committed at `11e4b41a`; expo-doctor 19/19, TypeScript and Jest 412/412 green; EAS Android preview build `10c95e4d-6cac-4a7e-b677-d0fa5a8b5418` FINISHED). Next: 22-03 (hop 55→56) — `/gsd:execute-phase 22` to continue.
+Last session: 2026-08-05T18:28:17Z
+Stopped At: Completed 22-03-PLAN.md (Expo SDK 56 hop committed at `fdcdc72a`; expo-doctor 21/21, TypeScript and Jest 412/412 green; EAS Android preview build `20c05179-893a-4a2b-83b7-8d8ea0c1edbd` FINISHED). Next: 22-04 (hop 56→57.0.9) — `/gsd:execute-phase 22` to continue.
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
@@ -415,4 +416,6 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (18 requirements: DOC-01..03, R
 
 **22-02 CLOSED (2026-08-05, commit `11e4b41a`):** Hop 1/3 upgraded apps/mobile from Expo SDK 54 to resolved Expo 55.0.28 / React Native 0.83.10 / React 19.2.0 / expo-router 55.0.17 via `expo install --fix`. SDK reconciliation removed `ios.newArchEnabled` and `android.newArchEnabled` because SDK 55 makes New Architecture mandatory and rejects the obsolete fields; removed the deprecated root Expo StatusBar `backgroundColor` prop; kept `babel.config.js`'s `dynamic-import-node` Supabase/Hermes guard; confirmed `expo-av` remains unused. React Native 0.83's `ColorSchemeName='unspecified'` was added to the existing light fallback with focused coverage. Jest peer timeouts exposed stale test dependencies, so `react-test-renderer` was aligned to React 19.2.0 and `@testing-library/react-native` to the expo-router-compatible 13.x line. All gates green in order: expo-doctor 19/19, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, then EAS Android preview build `10c95e4d-6cac-4a7e-b677-d0fa5a8b5418` FINISHED and produced an APK. The full hop was held for the cloud result and committed as the isolated rollback boundary `11e4b41a`. See `22-02-SUMMARY.md`.
 
-**Next:** `/gsd:execute-phase 22` to continue with 22-03 (hop 55→56).
+**22-03 CLOSED (2026-08-05, commit `fdcdc72a`):** Hop 2/3 upgraded apps/mobile from Expo SDK 55 to Expo 56.0.18 / React Native 0.85.3 / React 19.2.3 / expo-router 56.2.17. The official SDK 56 codemod moved the navigation provider, theme types, and focused test from `@react-navigation/native` to `expo-router/react-navigation`; no direct React Navigation imports remain. A temporary exact direct dependency was removed because Expo Doctor 1.20.1 explicitly rejects all `@react-navigation` packages alongside SDK 56 Expo Router, invoking the plan-authorized codemod-only fallback and leaving MOBILE-03's literal wording for phase-gate reconciliation. SDK 56 compatibility work moved splash config into its plugin, aligned the RN Jest preset and TypeScript 6 config, replaced removed `StyleSheet.absoluteFillObject` typing, and capped Jest at two workers after proving default parallelism caused only contention timeouts. Gates: expo-doctor 21/21, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, focused navigation theme 4/4, and EAS Android preview build `20c05179-893a-4a2b-83b7-8d8ea0c1edbd` FINISHED with an APK. The full hop was held for the sole cloud result and committed as rollback boundary `fdcdc72a`. See `22-03-SUMMARY.md`.
+
+**Next:** `/gsd:execute-phase 22` to continue with 22-04 (hop 56→57.0.9).

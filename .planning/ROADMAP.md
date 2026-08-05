@@ -137,7 +137,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 **Plans**: 5 plans (5 sequential waves — one per hop plus prereq and audit)
 - [x] 22-01-PLAN.md — Prereq: green jest baseline + MOBILE-02 New-Arch reconciliation (delete stale android/)
 - [x] 22-02-PLAN.md — Hop 1/3: SDK 54→55 (New Arch mandatory), 4 gates + green EAS build
-- [ ] 22-03-PLAN.md — Hop 2/3: SDK 55→56, react-navigation fork codemod + MOBILE-03 explicit dep, 4 gates + green EAS build
+- [x] 22-03-PLAN.md — Hop 2/3: SDK 55→56, react-navigation fork codemod + MOBILE-03 explicit dep, 4 gates + green EAS build
 - [ ] 22-04-PLAN.md — Hop 3/3: SDK 56→57.0.9 (exact pin), 4 gates + green EAS build
 - [ ] 22-05-PLAN.md — MOBILE-04: npm audit resolved-or-accepted-risk + refreshed overrides
 
@@ -167,4 +167,4 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 | 19. RBAC Audit and Normalization | v1.4 | Complete    | 2026-08-04 | - |
 | 20. Close Deferred v1.3 Verification Items | v1.4 | Complete    | 2026-08-05 | - |
 | 21. Dev/QA Test-Data Hygiene | v1.4 | Complete    | 2026-08-05 | - |
-| 22. Expo SDK 54→57 Bump | v1.4 | 2/5 | In Progress | - |
+| 22. Expo SDK 54→57 Bump | v1.4 | 3/5 | In Progress | - |
