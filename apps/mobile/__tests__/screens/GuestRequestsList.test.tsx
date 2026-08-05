@@ -7,8 +7,18 @@ jest.mock("expo-router", () => ({
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
+const mockTranslations: Record<string, string> = {
+  "guestRequests.roomLabel": "Room {{room}}",
+};
+
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, values?: Record<string, unknown>) => {
+      const template = mockTranslations[key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values[k] ?? `{{${k}}}`));
+    },
+  }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,

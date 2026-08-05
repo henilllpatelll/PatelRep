@@ -31,6 +31,7 @@ const mockEn: Record<string, string> = {
   "profile.signOut": "Sign out",
   "profile.signOutTitle": "Sign out",
   "profile.signOutConfirm": "Are you sure?",
+  "profile.appVersion": "PatelRep v{{version}}",
   "staff.roles.housekeeper": "Housekeeper",
   "common.cancel": "Cancel",
 };
