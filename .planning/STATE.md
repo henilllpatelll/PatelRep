@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-04T18:31:00Z"
-last_activity: 2026-08-04 -- Phase 19 (RBAC Audit and Normalization) all 4 plans executed and closed: RBAC-AUDIT.md artifact, guest_requests DELETE gate, lost_found PATCH/DELETE gates, core/roles.py consolidation. Next: /gsd:plan-phase 20.
+last_updated: "2026-08-05T01:05:00Z"
+last_activity: 2026-08-05 -- Phase 20 (Close Deferred v1.3 Verification Items) plan 20-01 executed and closed: e2e/20-verify-rbac.spec.ts (VERIFY-01 + VERIFY-04 live-browser coverage), chief_engineer staff-creation and dispatch_re_clean bugs fixed at the source, migration 092 written (not yet applied). Next: 20-02-PLAN.md (VERIFY-02, VERIFY-03).
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 40
 ---
 
@@ -17,10 +17,10 @@ progress:
 
 ## Current Position
 
-Phase: 19 of 22 (RBAC Audit and Normalization) — second phase of milestone v1.4, CLOSED
-Plan: 4 of 4 (19-01, 19-02, 19-03, 19-04 all CLOSED)
-Status: Phase 19 complete — all plans executed and verified
-Last activity: 2026-08-04 — 19-04 executed: created apps/api/core/roles.py single source-of-truth role-group module, repointed programs.py/safety.py/hotels.py to import from it (zero effective access change). Phase 19 fully closed (4/4 plans).
+Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, IN PROGRESS
+Plan: 1 of 2 (20-01 CLOSED; 20-02 pending)
+Status: Phase 19 complete (4/4). Phase 20 in progress (1/2 plans).
+Last activity: 2026-08-05 — 20-01 executed: e2e/20-verify-rbac.spec.ts created (VERIFY-01 archive-button role gate + VERIFY-04 inspection re-assign to housekeeping_supervisor), 5/6 tests passing live + 1 honestly skipped pending a DB migration. Two real bugs fixed at the source (chief_engineer staff-creation typo, dispatch_re_clean DIRTY-status 400); one real bug flagged with a written-but-unapplied migration (chief_engineer DB CHECK constraint).
 
 Progress: [████░░░░░░] 40%
 
@@ -29,7 +29,7 @@ Progress: [████░░░░░░] 40%
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 19 (RBAC Audit and Normalization) closed. Phase 20 (Close Deferred v1.3 Verification Items) next.
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 19 (RBAC Audit and Normalization) closed. Phase 20 (Close Deferred v1.3 Verification Items) in progress — 20-01 closed, 20-02 (VERIFY-02, VERIFY-03) next.
 
 ## Previous milestones
 
@@ -325,12 +325,12 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 ## Current Position
 
-Phase: 19 of 22 (RBAC Audit and Normalization) — second phase of milestone v1.4, in progress.
-Plan: 4 plans total (19-01, 19-02, 19-03, 19-04). 19-01 CLOSED this session (RBAC-AUDIT.md artifact, commit `2e829e21`). 19-02 also has a SUMMARY on disk (closed by a concurrent executor). 19-03 CLOSED this session (lost-found PATCH/DELETE RBAC gate, commits `03775fbb`/`710896df`, SUMMARY on disk). 19-04 CLOSED this session (role-group consolidation, `core/roles.py` created commit `d8b6636f`; router repointing commingled into concurrent sibling commit `710896df` due to a shared-working-directory git stash race — verified correct against HEAD, SUMMARY on disk). All 4 plans of Phase 19 now closed.
-Status: Phase 18 (Documentation Drift Fixes) closed. Phase 19 closed (4/4 plans).
-Last activity: 2026-08-04 — 19-04 executed: created `apps/api/core/roles.py` single source-of-truth role-group module (ALL_ROLES/ALL_STAFF_ROLES/MANAGER_ROLES/PROGRAM_MANAGER_ROLES), repointed `programs.py`/`safety.py`/`hotels.py` to import from it (zero effective access change, verified). Full API suite green apart from 2 pre-existing unrelated `test_management_roi.py` failures (confirmed pre-existing via baseline check) and sibling-owned in-flight TDD files.
+Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, in progress.
+Plan: 2 plans total (20-01, 20-02). 20-01 CLOSED this session (VERIFY-01 + VERIFY-04, commits `c6ca4a36`/`ce0e50c8`, SUMMARY on disk). 20-02 (VERIFY-02, VERIFY-03) not yet started.
+Status: Phase 19 (RBAC Audit and Normalization) closed (4/4 plans). Phase 20 in progress (1/2 plans).
+Last activity: 2026-08-05 — 20-01 executed: `e2e/20-verify-rbac.spec.ts` created (live-browser coverage for VERIFY-01 archive-button role gate and VERIFY-04 inspection re-assign to housekeeping_supervisor), 5 tests passing + 1 honestly skipped (chief_engineer, blocked on an unapplied DB migration, not weakened). Two real bugs found and fixed at the source: `InviteStaffRequest`/`AddStaffDirectRequest` rejected `chief_engineer` (Pydantic Literal typo), and `POST /rooms/{room_id}/re-clean` unconditionally 400'd on every real failed inspection. A third real bug (user_roles_role_check DB CHECK constraint still excludes chief_engineer, migration 064 drift) was written as `supabase/migrations/092_restore_chief_engineer_role.sql` but not applied — needs Supabase MCP access this executor lacks, flagged for the orchestrator per the migration-085 precedent. Full API suite green apart from the 2 pre-existing unrelated `test_management_roi.py` failures. Two consecutive full spec runs confirmed zero residual `@patelrep-test.com` users or orphaned inspection/assignment rows.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4: 19-01, 19-02, 19-03, 19-04 all closed).
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 in progress (1/2: 20-01 closed, 20-02 pending).
 
 ## Performance Metrics
 
@@ -373,11 +373,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4: 19-01, 19-02, 19
 | 19 | 02 | 12 min | 2 | 2 | 2026-08-04 |
 | 19 | 01 | ~15 min | 1 | 1 | 2026-08-04 |
 | Phase 19-rbac-audit-and-normalization P03 | 12min | 2 tasks | 2 files |
+| 20 | 01 | 75 min | 2 | 6 | 2026-08-05 |
 
 ## Session
 
-Last session: 2026-08-04T00:00:00Z
-Stopped At: Completed 17-06-PLAN.md (Room History visibility + actor attribution, UX-06) — live diagnostic redone fresh, stay_reset_at over-trigger narrowed, actor attribution added, live-verified against the real dev API, full suite green apart from pre-existing baseline failures. This closes Phase 17 (Backlog Cleanup) — 8/8 plans — and milestone v1.3's plan-level execution.
+Last session: 2026-08-05T01:05:00Z
+Stopped At: Completed 20-01-PLAN.md (VERIFY-01 archive-button role gate + VERIFY-04 inspection re-assign to housekeeping_supervisor) — `e2e/20-verify-rbac.spec.ts` created, 5/6 tests passing live, 1 honestly skipped (chief_engineer, pending migration 092). Two real bugs fixed at the source (chief_engineer staff-creation Pydantic typo, `dispatch_re_clean` DIRTY-status 400); one real bug flagged with a written-but-unapplied migration (chief_engineer DB CHECK constraint, needs Supabase MCP access). Zero residual test data confirmed across two full spec runs. Next: 20-02-PLAN.md (VERIFY-02, VERIFY-03).
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
