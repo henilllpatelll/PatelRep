@@ -120,7 +120,10 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
   2. A human-reviewed `hotel_id` delete-allowlist and preserve-list document exists, explicitly naming the standing QA fixture tenant(s) to keep.
   3. A cleanup script exists that deletes only data scoped to allowlisted `hotel_id`s, requires a mandatory dry-run pass before any real execution, and explicitly excludes the append-only `controlled_incidents`/`controlled_incident_events` tables.
   4. Running the script in dry-run mode against the dev/QA project produces a report showing zero deletions outside the allowlist.
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 21-01-PLAN.md — QA-01: add `tenants.is_test` column (migration 094 via MCP) + flag non-fixture tenants
+- [ ] 21-02-PLAN.md — QA-02: write human-reviewed `21-ALLOWLIST.md` preserve/delete-list from live inventory
+- [ ] 21-03-PLAN.md — QA-03/#4: dry-run-gated allowlist-scoped cleanup script + clean dry-run report
 
 ### Phase 22: Expo SDK 54→57 Bump
 **Goal**: `apps/mobile` runs on Expo SDK 57.0.9 with New Architecture consistently enabled across config, `@react-navigation/native` as an explicit direct dependency, and the 19 tracked `npm audit` advisories resolved or explicitly accepted.
