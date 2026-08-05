@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-05T01:54:00Z"
-last_activity: 2026-08-05 -- Phase 20 (Close Deferred v1.3 Verification Items) plan 20-02 executed and closed: e2e/20-verify-gm.spec.ts (VERIFY-02 + VERIFY-03 live-browser coverage). Four real bugs fixed/escalated at the source: Scheduling today-roster response-shape mismatch (fixed), CORS headers missing on rate-limited 429s (fixed), Guest Request drawer stale-state 422 on second advance click (fixed), guest_requests DELETE endpoint FK-blocked for every request ever (migration 093 written, not yet applied). Phase 20 is now fully CLOSED (2/2 plans; all 4 deferred v1.3 VERIFY items have live evidence). Next: 21-test-data-hygiene.
+last_updated: "2026-08-05T07:52:00Z"
+last_activity: 2026-08-05 -- Phase 21 (Dev/QA Test-Data Hygiene) plan 21-01 executed and closed: migration 094 (tenants.is_test BOOLEAN NOT NULL DEFAULT false) written and applied live to oacnwalhcpqdabivweki, confirmed via schema inspection; 9 non-fixture tenants flagged is_test=true, PRESERVE fixture confirmed is_test=false. No deletes performed. Phase 21 now in progress (1/3 plans). Next: 21-02.
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 60
+  total_plans: 10
+  completed_plans: 8
+  percent: 80
 ---
 
 # GSD State
@@ -325,12 +325,12 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 ## Current Position
 
-Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, CLOSED.
-Plan: 2 plans total (20-01, 20-02). 20-01 CLOSED (VERIFY-01 + VERIFY-04, commits `c6ca4a36`/`ce0e50c8`, SUMMARY on disk). 20-02 CLOSED this session (VERIFY-02 + VERIFY-03, commits `d22a9322`/`3356692c`, SUMMARY on disk).
-Status: Phase 19 (RBAC Audit and Normalization) closed (4/4 plans). Phase 20 closed (2/2 plans) — all 4 deferred v1.3 VERIFY items now have live-browser evidence.
-Last activity: 2026-08-05 — 20-02 executed: `e2e/20-verify-gm.spec.ts` created (live-browser coverage for VERIFY-02 NULL-name "Unnamed Staff" fallback across Staff/Scheduling/Housekeeping, and VERIFY-03 guest-request drawer advance chain with kanban reflect), 3/3 tests passing live across multiple consecutive full runs (zero residual `@patelrep-test.com` users, zero orphaned shift_assignments). Four real bugs found and fixed/escalated at the source: (1) `GET /schedules/today-roster` returned the wrong response shape and never joined profiles/roles, so the Scheduling page's roster panel was structurally always empty — fixed; (2) `CORSMiddleware` sat inside `RateLimitMiddleware`, so every rate-limited 429 left with zero CORS headers, surfacing to browsers as an opaque "blocked by CORS policy" error instead of a readable 429 — fixed by reordering middleware registration; (3) the Guest Request drawer never re-synced its held `request` snapshot after a successful transition, so a second advance click silently 422'd (the literal deferred VERIFY-03 risk) — fixed with a `useEffect` resync; (4) `DELETE /guest-requests/{id}` has never deleted anything, ever, because `guest_request_events` was `ON DELETE RESTRICT` and every request gets a "created" event at creation — this is the exact gap migration 087 explicitly flagged and deferred for guest_request_events/guest_messages/guest_recovery_actions; written as `supabase/migrations/093_guest_requests_delete_cascade.sql` but not applied (same escalation as migration 092), leaving 10 residual honestly-flagged (not silently swallowed) `verified`-status test guest_requests in the dev hotel pending that migration. Full API suite green apart from the 2 pre-existing unrelated `test_management_roi.py` failures.
+Phase: 21 of 22 (Dev/QA Test-Data Hygiene) — fourth phase of milestone v1.4, in progress.
+Plan: 1 of 3 (21-01 CLOSED this session, commit `b0e5978d`, SUMMARY on disk). 21-02 and 21-03 not yet executed.
+Status: Phase 20 (Close Deferred v1.3 Verification Items) closed (2/2 plans). Phase 21 in progress (1/3 plans) — QA-01 schema flag half satisfied (tenants.is_test column live + flagged), cleanup script and remaining QA-01/02/03 work still pending in 21-02/21-03.
+Last activity: 2026-08-05 — 21-01 executed: migration `094_tenant_is_test_flag.sql` written and applied live to the dev/QA Supabase project `oacnwalhcpqdabivweki` (via Supabase MCP `apply_migration`, performed by the orchestrator ahead of this file+git-only execution), confirmed `tenants.is_test BOOLEAN NOT NULL DEFAULT false` via schema inspection. All non-fixture tenants (9 of 10) flagged `is_test=true`; the standing QA fixture `23264962-aa09-4e4f-a49d-fc345cc91414` confirmed `is_test=false`. No deletes performed — reversible metadata write only.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2). Next: Phase 21 (Dev/QA Test-Data Hygiene).
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 in progress (1/3). Next: 21-02.
 
 ## Performance Metrics
 
@@ -375,11 +375,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 19-rbac-audit-and-normalization P03 | 12min | 2 tasks | 2 files |
 | 20 | 01 | 75 min | 2 | 6 | 2026-08-05 |
 | 20 | 02 | ~110 min | 2 | 6 | 2026-08-05 |
+| 21 | 01 | 5 min | 2 | 1 | 2026-08-05 |
 
 ## Session
 
-Last session: 2026-08-05T01:54:00Z
-Stopped At: Completed 20-02-PLAN.md (VERIFY-02 NULL-name "Unnamed Staff" fallback + VERIFY-03 guest-request drawer advance chain) — `e2e/20-verify-gm.spec.ts` created, 3/3 tests passing live across multiple consecutive full runs. Four real bugs fixed/escalated at the source: Scheduling today-roster response-shape mismatch (fixed), CORS headers missing on rate-limited 429 responses (fixed), Guest Request drawer stale-state 422 on second advance click (fixed), guest_requests DELETE endpoint FK-blocked for every request ever (migration 093 written, not yet applied — needs Supabase MCP access, same escalation as migration 092). Zero residual `@patelrep-test.com` users / orphaned shift_assignments confirmed; 10 residual marker-tagged `verified` guest_requests honestly flagged pending migration 093. Phase 20 is now fully CLOSED (2/2 plans) — all 4 deferred v1.3 VERIFY items have live-browser evidence. Next: Phase 21 (Dev/QA Test-Data Hygiene) — `/gsd:plan-phase 21` or `/gsd:discuss-phase 21`.
+Last session: 2026-08-05T07:52:00Z
+Stopped At: Completed 21-01-PLAN.md (QA-01 schema flag: migration 094 `tenants.is_test` written + applied live to `oacnwalhcpqdabivweki`, confirmed boolean/NOT NULL/default false via schema inspection; 9 non-fixture tenants flagged `is_test=true`, PRESERVE fixture `23264962-aa09-4e4f-a49d-fc345cc91414` confirmed `is_test=false`). No deletes performed. Next: 21-02 (`/gsd:execute-phase 21` to continue, or `/gsd:plan-phase 21` if 21-02/21-03 need (re)planning).
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
@@ -397,5 +398,7 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (18 requirements: DOC-01..03, R
 - Phase 22: Expo SDK 54→57 Bump — MOBILE-01..04 (fully isolated from apps/api and apps/web; sequenced last since it's the single highest-risk item and a rollback shouldn't block the other four)
 
 **Coverage validation:** all 18 v1.4 requirements mapped to exactly one phase, no orphans, no duplicates. `.planning/REQUIREMENTS.md` traceability table updated to match (phase numbers finalized, no longer provisional).
+
+**21-01 CLOSED (2026-08-05, commit `b0e5978d`):** QA-01 half satisfied — schema-level test-tenant marker. New `supabase/migrations/094_tenant_is_test_flag.sql` (`ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE`, mirrors the `085_opera_pilot_flag.sql` boolean-flag idiom). Migration applied live to the dev/QA project `oacnwalhcpqdabivweki` via Supabase MCP `apply_migration` by the orchestrator (this executor has no Supabase MCP tool access) and independently confirmed via `information_schema.columns`: `is_test` boolean, `NOT NULL`, default `false` — Phase Success Criterion #1 satisfied. Every non-fixture tenant flagged `is_test = true` via `UPDATE public.tenants SET is_test = true WHERE id <> '23264962-aa09-4e4f-a49d-fc345cc91414'` (excludes-the-fixture scoping chosen over an explicit UUID allowlist, since the research doc's prose count of 10 candidates disagreed with its own 9-UUID inventory table — exclusion is correct regardless of which count is right). Verified distribution: `is_test=false` → 1 row (the PRESERVE fixture), `is_test=true` → **9 rows**; fixture independently confirmed `is_test=false`. No destructive delete performed — this was the phase's one allowed live-data write, reversible metadata only. See `21-01-SUMMARY.md`.
 
 **Next:** `/gsd:plan-phase 18`
