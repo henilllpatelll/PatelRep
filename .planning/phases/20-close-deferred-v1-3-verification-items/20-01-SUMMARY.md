@@ -134,8 +134,7 @@ completed: 2026-08-05
 
 ## User Setup Required
 
-**One migration requires manual application by someone with Supabase MCP or dashboard access — this executor does not have it:**
-- `supabase/migrations/092_restore_chief_engineer_role.sql` — additive-only, widens `user_roles_role_check` to re-include `chief_engineer`. Apply via `mcp__plugin_supabase_supabase__apply_migration` (same mechanism used for migration 085, STATE.md Phase 06-02) against the `oacnwalhcpqdabivweki` project. After applying, re-run `e2e/20-verify-rbac.spec.ts` — the chief_engineer test will stop skipping automatically.
+**RESOLVED by orchestrator (2026-08-05):** `supabase/migrations/092_restore_chief_engineer_role.sql` was applied via `mcp__plugin_supabase_supabase__apply_migration` against the `oacnwalhcpqdabivweki` dev project (constraint confirmed widened to include `chief_engineer`; no existing rows affected — zero chief_engineer rows pre-existed). `e2e/20-verify-rbac.spec.ts` was then re-run: all 6 tests pass (the chief_engineer button-gate assertion self-activated — no longer skipped). VERIFY-01 is now 4/4 live-verified with zero skips.
 
 **Data-loss follow-up (optional, at the user's discretion):**
 - 4 historical `room_assignments` rows for room 103 (Sonesta ES Suites Fossil Creek dev/test hotel) were unintentionally deleted during manual debugging — see bug-756 in `.wolf/buglog.json` for exact ids/dates and reconstruction evidence from `room_status_history`. Not blocking any current feature; flagged for awareness only.
