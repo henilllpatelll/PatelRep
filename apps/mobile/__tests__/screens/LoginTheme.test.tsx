@@ -83,7 +83,7 @@ jest.mock("@/lib/supabase", () => ({
 
 import LoginScreen from "@/app/(auth)/login";
 
-function flattenedStyle(node: { props: { style: unknown } }) {
+function flattenedStyle(node: { props: Record<string, unknown> }) {
   return StyleSheet.flatten(
     node.props.style as StyleProp<ViewStyle & TextStyle>,
   ) as ViewStyle & TextStyle;
