@@ -3,33 +3,33 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-05T01:05:00Z"
-last_activity: 2026-08-05 -- Phase 20 (Close Deferred v1.3 Verification Items) plan 20-01 executed and closed: e2e/20-verify-rbac.spec.ts (VERIFY-01 + VERIFY-04 live-browser coverage), chief_engineer staff-creation and dispatch_re_clean bugs fixed at the source, migration 092 written (not yet applied). Next: 20-02-PLAN.md (VERIFY-02, VERIFY-03).
+last_updated: "2026-08-05T01:54:00Z"
+last_activity: 2026-08-05 -- Phase 20 (Close Deferred v1.3 Verification Items) plan 20-02 executed and closed: e2e/20-verify-gm.spec.ts (VERIFY-02 + VERIFY-03 live-browser coverage). Four real bugs fixed/escalated at the source: Scheduling today-roster response-shape mismatch (fixed), CORS headers missing on rate-limited 429s (fixed), Guest Request drawer stale-state 422 on second advance click (fixed), guest_requests DELETE endpoint FK-blocked for every request ever (migration 093 written, not yet applied). Phase 20 is now fully CLOSED (2/2 plans; all 4 deferred v1.3 VERIFY items have live evidence). Next: 21-test-data-hygiene.
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
-  percent: 40
+  completed_plans: 7
+  percent: 60
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, IN PROGRESS
-Plan: 1 of 2 (20-01 CLOSED; 20-02 pending)
-Status: Phase 19 complete (4/4). Phase 20 in progress (1/2 plans).
-Last activity: 2026-08-05 — 20-01 executed: e2e/20-verify-rbac.spec.ts created (VERIFY-01 archive-button role gate + VERIFY-04 inspection re-assign to housekeeping_supervisor), 5/6 tests passing live + 1 honestly skipped pending a DB migration. Two real bugs fixed at the source (chief_engineer staff-creation typo, dispatch_re_clean DIRTY-status 400); one real bug flagged with a written-but-unapplied migration (chief_engineer DB CHECK constraint).
+Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, CLOSED
+Plan: 2 of 2 (20-01 CLOSED; 20-02 CLOSED)
+Status: Phase 19 complete (4/4). Phase 20 complete (2/2 plans) — all 4 deferred v1.3 VERIFY items now have live-browser evidence.
+Last activity: 2026-08-05 — 20-02 executed: e2e/20-verify-gm.spec.ts created (VERIFY-02 NULL-name "Unnamed Staff" fallback across Staff/Scheduling/Housekeeping + VERIFY-03 guest-request drawer advance chain with kanban reflect), 3/3 tests passing live across multiple consecutive runs. Four real bugs fixed/escalated: Scheduling today-roster response-shape mismatch (fixed), CORS headers missing on rate-limited 429 responses (fixed), Guest Request drawer stale-state causing a silent 422 on the second advance click (fixed), guest_requests DELETE endpoint FK-blocked for every request ever (migration 093 written, not yet applied — same escalation pattern as migration 092).
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 19 (RBAC Audit and Normalization) closed. Phase 20 (Close Deferred v1.3 Verification Items) in progress — 20-01 closed, 20-02 (VERIFY-02, VERIFY-03) next.
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 19 (RBAC Audit and Normalization) closed. Phase 20 (Close Deferred v1.3 Verification Items) closed (2/2 plans). Next: Phase 21 (Test-Data Hygiene).
 
 ## Previous milestones
 
@@ -325,12 +325,12 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 ## Current Position
 
-Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, in progress.
-Plan: 2 plans total (20-01, 20-02). 20-01 CLOSED this session (VERIFY-01 + VERIFY-04, commits `c6ca4a36`/`ce0e50c8`, SUMMARY on disk). 20-02 (VERIFY-02, VERIFY-03) not yet started.
-Status: Phase 19 (RBAC Audit and Normalization) closed (4/4 plans). Phase 20 in progress (1/2 plans).
-Last activity: 2026-08-05 — 20-01 executed: `e2e/20-verify-rbac.spec.ts` created (live-browser coverage for VERIFY-01 archive-button role gate and VERIFY-04 inspection re-assign to housekeeping_supervisor), 5 tests passing + 1 honestly skipped (chief_engineer, blocked on an unapplied DB migration, not weakened). Two real bugs found and fixed at the source: `InviteStaffRequest`/`AddStaffDirectRequest` rejected `chief_engineer` (Pydantic Literal typo), and `POST /rooms/{room_id}/re-clean` unconditionally 400'd on every real failed inspection. A third real bug (user_roles_role_check DB CHECK constraint still excludes chief_engineer, migration 064 drift) was written as `supabase/migrations/092_restore_chief_engineer_role.sql` but not applied — needs Supabase MCP access this executor lacks, flagged for the orchestrator per the migration-085 precedent. Full API suite green apart from the 2 pre-existing unrelated `test_management_roi.py` failures. Two consecutive full spec runs confirmed zero residual `@patelrep-test.com` users or orphaned inspection/assignment rows.
+Phase: 20 of 22 (Close Deferred v1.3 Verification Items) — third phase of milestone v1.4, CLOSED.
+Plan: 2 plans total (20-01, 20-02). 20-01 CLOSED (VERIFY-01 + VERIFY-04, commits `c6ca4a36`/`ce0e50c8`, SUMMARY on disk). 20-02 CLOSED this session (VERIFY-02 + VERIFY-03, commits `d22a9322`/`3356692c`, SUMMARY on disk).
+Status: Phase 19 (RBAC Audit and Normalization) closed (4/4 plans). Phase 20 closed (2/2 plans) — all 4 deferred v1.3 VERIFY items now have live-browser evidence.
+Last activity: 2026-08-05 — 20-02 executed: `e2e/20-verify-gm.spec.ts` created (live-browser coverage for VERIFY-02 NULL-name "Unnamed Staff" fallback across Staff/Scheduling/Housekeeping, and VERIFY-03 guest-request drawer advance chain with kanban reflect), 3/3 tests passing live across multiple consecutive full runs (zero residual `@patelrep-test.com` users, zero orphaned shift_assignments). Four real bugs found and fixed/escalated at the source: (1) `GET /schedules/today-roster` returned the wrong response shape and never joined profiles/roles, so the Scheduling page's roster panel was structurally always empty — fixed; (2) `CORSMiddleware` sat inside `RateLimitMiddleware`, so every rate-limited 429 left with zero CORS headers, surfacing to browsers as an opaque "blocked by CORS policy" error instead of a readable 429 — fixed by reordering middleware registration; (3) the Guest Request drawer never re-synced its held `request` snapshot after a successful transition, so a second advance click silently 422'd (the literal deferred VERIFY-03 risk) — fixed with a `useEffect` resync; (4) `DELETE /guest-requests/{id}` has never deleted anything, ever, because `guest_request_events` was `ON DELETE RESTRICT` and every request gets a "created" event at creation — this is the exact gap migration 087 explicitly flagged and deferred for guest_request_events/guest_messages/guest_recovery_actions; written as `supabase/migrations/093_guest_requests_delete_cascade.sql` but not applied (same escalation as migration 092), leaving 10 residual honestly-flagged (not silently swallowed) `verified`-status test guest_requests in the dev hotel pending that migration. Full API suite green apart from the 2 pre-existing unrelated `test_management_roi.py` failures.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 in progress (1/2: 20-01 closed, 20-02 pending).
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2). Next: Phase 21 (Dev/QA Test-Data Hygiene).
 
 ## Performance Metrics
 
@@ -374,11 +374,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 in pro
 | 19 | 01 | ~15 min | 1 | 1 | 2026-08-04 |
 | Phase 19-rbac-audit-and-normalization P03 | 12min | 2 tasks | 2 files |
 | 20 | 01 | 75 min | 2 | 6 | 2026-08-05 |
+| 20 | 02 | ~110 min | 2 | 6 | 2026-08-05 |
 
 ## Session
 
-Last session: 2026-08-05T01:05:00Z
-Stopped At: Completed 20-01-PLAN.md (VERIFY-01 archive-button role gate + VERIFY-04 inspection re-assign to housekeeping_supervisor) — `e2e/20-verify-rbac.spec.ts` created, 5/6 tests passing live, 1 honestly skipped (chief_engineer, pending migration 092). Two real bugs fixed at the source (chief_engineer staff-creation Pydantic typo, `dispatch_re_clean` DIRTY-status 400); one real bug flagged with a written-but-unapplied migration (chief_engineer DB CHECK constraint, needs Supabase MCP access). Zero residual test data confirmed across two full spec runs. Next: 20-02-PLAN.md (VERIFY-02, VERIFY-03).
+Last session: 2026-08-05T01:54:00Z
+Stopped At: Completed 20-02-PLAN.md (VERIFY-02 NULL-name "Unnamed Staff" fallback + VERIFY-03 guest-request drawer advance chain) — `e2e/20-verify-gm.spec.ts` created, 3/3 tests passing live across multiple consecutive full runs. Four real bugs fixed/escalated at the source: Scheduling today-roster response-shape mismatch (fixed), CORS headers missing on rate-limited 429 responses (fixed), Guest Request drawer stale-state 422 on second advance click (fixed), guest_requests DELETE endpoint FK-blocked for every request ever (migration 093 written, not yet applied — needs Supabase MCP access, same escalation as migration 092). Zero residual `@patelrep-test.com` users / orphaned shift_assignments confirmed; 10 residual marker-tagged `verified` guest_requests honestly flagged pending migration 093. Phase 20 is now fully CLOSED (2/2 plans) — all 4 deferred v1.3 VERIFY items have live-browser evidence. Next: Phase 21 (Dev/QA Test-Data Hygiene) — `/gsd:plan-phase 21` or `/gsd:discuss-phase 21`.
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
