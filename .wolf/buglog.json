@@ -12417,6 +12417,127 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-04T12:05:34.310Z"
+    },
+    {
+      "id": "bug-753",
+      "timestamp": "2026-08-05T00:41:40.730Z",
+      "error_message": "POST /staff/invite, /staff/onboarding-invite, and /staff/add-direct all reject role=\"chief_engineer\" with 422 (Literal list had \"engineer\" duplicated instead of listing \"chief_engineer\"), even though the Staff page Add-Staff form (apps/web/app/(dashboard)/staff/page.tsx) offers \"Chief Engineer\" as a selectable role option and validates it client-side. Any GM adding/inviting a Chief Engineer in production gets a submit failure. Found while seeding an RBAC test chief_engineer user for Phase 20 VERIFY-01 verification.",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "InviteStaffRequest.role and AddStaffDirectRequest.role Literal[...] lists both had \"engineer\" listed twice (copy-paste typo) and never included \"chief_engineer\", despite chief_engineer being a fully active role used pervasively elsewhere (RBAC gates, safety.py, programs.py, evidence.py, ai_copilot.py, assets.py, core/roles.py).",
+      "fix": "Replaced the duplicate role literal with chief_engineer in both Pydantic Literal role lists (models/requests.py InviteStaffRequest + AddStaffDirectRequest). This alone was necessary but NOT sufficient -- see bug-755 for the deeper DB-level CHECK constraint that still blocks chief_engineer user_roles rows from being created at all. Verified via live OpenAPI schema that this Pydantic-level fix takes effect. Full apps/api pytest suite (554/556, 2 pre-existing unrelated failures in test_management_roi.py) still green.",
+      "tags": [
+        "api",
+        "staff",
+        "rbac",
+        "chief_engineer",
+        "pydantic",
+        "production-bug",
+        "phase-20"
+      ],
+      "related_bugs": [
+        "bug-755"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T00:41:40.730Z"
+    },
+    {
+      "id": "bug-754",
+      "timestamp": "2026-08-05T00:41:40.730Z",
+      "error_message": "Local API dev server (apps/api, port 8003, npm run dev:api / uvicorn --reload) did not pick up a source edit to apps/api/models/requests.py after several minutes — OpenAPI schema kept reporting the pre-fix role enum. Killing the PID netstat reported as LISTENING on 8003 did not stop responses either. Recurred a second time later in the same session for a different edit to the same file (routers/rooms.py) -- WatchFiles silently failed to detect the second change even though it had correctly detected the first change to the same file minutes earlier; a full process-tree kill (all python.exe in the Win32_Process listing, not just the netstat-reported PID) + restart was required both times.",
+      "file": "apps/api (dev server process)",
+      "root_cause": "A stale orphaned multiprocessing.spawn worker (PID with ParentProcessId pointing at an already-dead uvicorn --reload parent) was still bound to port 8003 and serving requests with old in-memory code, independent of the (dead) parent PID netstat/Get-NetTCPConnection reported as the socket owner. Same failure class previously documented in .planning STATE.md Phase 06-05 (\"orphaned multiprocessing.spawn zombie workers masking a crash-on-restart\").",
+      "fix": "Enumerated all python.exe processes via PowerShell Get-CimInstance Win32_Process (not just netstat PID, which was stale/misleading), identified the orphaned spawn_main child by its ParentProcessId, force-killed it, confirmed port 8003 fully released, then started a fresh npm run dev:api. OpenAPI schema then correctly reflected the code change.",
+      "tags": [
+        "environment",
+        "dev-server",
+        "uvicorn",
+        "reload",
+        "windows",
+        "zombie-process",
+        "phase-20"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-05T01:00:19.008Z"
+    },
+    {
+      "id": "bug-755",
+      "timestamp": "2026-08-05T00:46:41.704Z",
+      "error_message": "Even after fixing bug-753 (Pydantic role Literal), POST /staff/add-direct for role=chief_engineer still fails: auth user + user_profiles row get created successfully, then the user_roles insert 400s with Postgres error 23514 (check_violation) against user_roles_role_check. No hotel can create a real chief_engineer staff member today -- the JWT custom-claims hook (migration 019) reads role exclusively from user_roles, so no valid chief_engineer JWT session can ever be issued while this constraint stands.",
+      "file": "supabase/migrations (user_roles_role_check)",
+      "root_cause": "Migration 064_merge_chief_engineer.sql (deliberately, at the time) merged chief_engineer into engineer and tightened user_roles_role_check to 5 values (gm, housekeeping_supervisor, front_desk, housekeeper, engineer), dropping chief_engineer, and migrated all then-existing chief_engineer rows to engineer. No later migration restored it. But the APPLICATION layer re-introduced/kept chief_engineer as a fully distinct, actively used role in many places added or maintained AFTER migration 064: core/roles.py MANAGER_ROLES, routers/{safety,programs,evidence,ai_copilot,assets,integrations}.py RBAC gates, apps/web/lib/utils/routeGuard.ts (ALL_ROLES + the /engineering route rule), and apps/web/app/(dashboard)/staff/page.tsx, which still offers \"Chief Engineer\" as a selectable Add-Staff role (client-validated by its own zod enum that includes it). Net effect: the DB rejects a role value the entire rest of the stack treats as first-class and offers through the UI. Found while seeding a chief_engineer test user for Phase 20 VERIFY-01 (Engineering Work Orders archive-button role gate) live verification -- this blocks that specific sub-check.",
+      "fix": "Not applied to the live DB by this executor. Wrote supabase/migrations/092_restore_chief_engineer_role.sql (additive-only: widens user_roles_role_check back to include chief_engineer, updates the column comment; deliberately does NOT restore migration 064s narrowed assigned_task_update/assigned_work_order_update RLS policies, since excluding chief_engineer from managing others assignments there already matches the same restriction the Work Orders canManage gate applies). Did not run supabase db push -- a dry run confirmed the remote migration history has extensive pre-existing drift (many remote migrations were applied via MCP under auto-generated timestamp versions that do not match these sequential local filenames), so an unscoped push risks re-applying/mismatching unrelated history exactly as previously documented for migration 085 (STATE.md Phase 06-02). This executor has no Supabase MCP tool access (same constraint documented for 06-02); flagging for the orchestrator/team-lead to apply migration 092 via mcp__plugin_supabase_supabase__apply_migration, the same path used to resolve 085. VERIFY-01s chief_engineer button-gate sub-assertion is written in e2e/20-verify-rbac.spec.ts to attempt real seeding and test.skip() with an explicit, informative reason when it is blocked by this precondition, rather than silently passing or being weakened. Cleaned up one orphaned auth user + user_profiles row (test-chief-eng@patelrep-test.com) left by a failed manual seeding attempt during investigation via the Supabase Admin API.",
+      "tags": [
+        "database",
+        "migration",
+        "chief_engineer",
+        "rbac",
+        "check-constraint",
+        "production-bug",
+        "deployment-gap",
+        "phase-20"
+      ],
+      "related_bugs": [
+        "bug-753"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T00:46:41.704Z"
+    },
+    {
+      "id": "bug-756",
+      "timestamp": "2026-08-05T00:56:44.012Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Had \"overall_result\"",
+      "fix": "Changed to \"DEBUG re-clean bypass check: latest={latest!r} co",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-05T00:58:07.501Z"
+    },
+    {
+      "id": "bug-756",
+      "timestamp": "2026-08-05T00:59:58.867Z",
+      "error_message": "INCIDENT (self-caused, not a product bug): during manual debugging of the re-clean 400 (bug-757), an ad hoc cleanup script queried room_assignments by room_id only (no assignment_date filter) and deleted ALL rows for room 103 in the GM dev/test hotel, including 4 pre-existing historical rows unrelated to this test run: assignment_date 2026-06-28, 2026-07-10, 2026-07-17, 2026-07-31 (ids e679176a-f394-4699-8c52-2dd3562a972b, 4efc460f-7d05-45d5-b722-3e945030e300, 7c61eb70-f343-4d25-845a-812dd7308f52, 97284a6b-0cd0-4309-9e49-2bcbfe1606c1). Only their id + assignment_date were captured before deletion (select was id,assignment_date only) -- assigned_to/shift_id/clean_type/is_ai_suggested were not, so an exact restore is not possible from data on hand.",
+      "file": "ad hoc debugging command (not part of e2e/20-verify-rbac.spec.ts)",
+      "root_cause": "Executor error: scoped a DELETE-preceding SELECT to room_id only when it should have matched the same room_id+assignment_date=today scoping used everywhere else (including in the actual spec file, which is correctly scoped throughout and does not have this bug).",
+      "fix": "Not restorable exactly by this executor (no Supabase PITR/dashboard access). room_status_history for room 103 shows real activity on all 4 affected dates (e.g. 2026-07-31 IN_PROGRESS->CLEAN by user 340db246-c29e-40a6-8684-440045588ebf, clean_type=LIGHT per notes), which could support a best-effort manual reconstruction, but exact shift_id/is_ai_suggested values are unknown and were deliberately NOT guessed/fabricated to avoid writing false-precision data into history. Flagging for the user/orchestrator: consider Supabase point-in-time recovery for the room_assignments table if exact restoration is wanted. This is confirmed to be the GM internal dev/test hotel (used for manual verification across every phase in this project, not a live paying customer), which bounds real-world impact, but it is still a genuine data-loss mistake that must not be repeated.",
+      "tags": [
+        "incident",
+        "data-loss",
+        "executor-error",
+        "room_assignments",
+        "phase-20",
+        "process"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T00:59:58.867Z"
+    },
+    {
+      "id": "bug-757",
+      "timestamp": "2026-08-05T01:00:12.044Z",
+      "error_message": "POST /rooms/{room_id}/re-clean (housekeepingApi.sendReClean, called by InspectionModal Dispatch Re-clean button -- the ONLY caller of this endpoint anywhere in apps/web) unconditionally 400s (\"Room must be CLEAN or INSPECTED to dispatch a re-clean\") for every real failed inspection, every time, with no workaround in the UI. Found while driving VERIFY-04 (Phase 20) live: fail an inspection, click Dispatch Re-clean in the re-clean step dialog -> 400, modal shows an error banner and gets stuck, the re-assign drawer this whole flow exists to reach is never shown.",
+      "file": "apps/api/routers/rooms.py (dispatch_re_clean)",
+      "root_cause": "The AAFTER INSERT trigger on_inspection_complete (migration 017_functions.sql) synchronously flips room_status.status to DIRTY the instant a failed inspection row is inserted -- i.e. before submitInspection() even returns to the frontend. dispatch_re_clean then required from_status IN (CLEAN, INSPECTED), which is never true by the time its only real caller (the re-clean step shown after a failed inspection) can ever invoke it. 100% reproducible, zero prior test coverage on this endpoint.",
+      "fix": "Added a narrow, evidence-checked bypass: when from_status == DIRTY, look up the rooms most recent inspections row; if its overall_result is failed and it completed within the last 24h, allow the dispatch (preserves the original guards intent -- reject unrelated DIRTY rooms, e.g. departure/mid-cleaning/OOO -- while unblocking the one real, intended caller). Verified live end-to-end via e2e/20-verify-rbac.spec.ts VERIFY-04: fail inspection -> Dispatch Re-clean now returns 200 -> re-assign drawer appears -> housekeeping_supervisor selectable -> re-assign succeeds. No existing test coverage existed for this endpoint to update; the e2e spec is the regression test for this fix.",
+      "tags": [
+        "api",
+        "rooms",
+        "inspections",
+        "reclean",
+        "race-condition",
+        "production-bug",
+        "phase-20",
+        "verify-04"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:00:12.044Z"
     }
   ]
 }

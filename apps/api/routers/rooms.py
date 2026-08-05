@@ -704,7 +704,35 @@ async def dispatch_re_clean(
 
     from_status: str | None = current_row.data.get("status")
     if from_status not in ("CLEAN", "INSPECTED"):
-        raise HTTPException(status_code=400, detail="Room must be CLEAN or INSPECTED to dispatch a re-clean")
+        # A failed inspection's AFTER INSERT trigger (migration 017,
+        # handle_inspection_complete) synchronously flips room_status to
+        # DIRTY the moment the inspection row is written -- before the
+        # frontend's InspectionModal "Dispatch Re-Clean" step (the only
+        # caller of this endpoint) ever gets a chance to call it. Without
+        # this bypass, the endpoint 400s on every single real failed
+        # inspection, unconditionally. Only allow it when the room's most
+        # recent inspection genuinely failed, and recently, so unrelated
+        # DIRTY rooms (departure, mid-cleaning) still get rejected as before.
+        allow_dirty_bypass = False
+        if from_status == "DIRTY":
+            latest_inspection = (
+                supabase.table("inspections")
+                .select("overall_result, created_at")
+                .eq("room_id", room_id)
+                .eq("tenant_id", current_user.hotel_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            latest = (latest_inspection.data or [None])[0]
+            if latest and latest.get("overall_result") == "failed":
+                created_at = latest.get("created_at")
+                if created_at:
+                    inspected_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                    if datetime.now(timezone.utc) - inspected_at < timedelta(hours=24):
+                        allow_dirty_bypass = True
+        if not allow_dirty_bypass:
+            raise HTTPException(status_code=400, detail="Room must be CLEAN or INSPECTED to dispatch a re-clean")
 
     room_result = (
         supabase.table("rooms")
