@@ -17,10 +17,10 @@
 
 ### Deferred v1.3 Verification Closure
 
-- [ ] **VERIFY-01**: Non-manager roles (housekeeper, front_desk) confirmed live in-browser to not see the "Archive..." button on the Engineering Work Orders page (Phase 15 deferred item)
-- [ ] **VERIFY-02**: NULL staff `full_name` renders the "Unnamed Staff" fallback live in-browser across Staff, Scheduling, and Housekeeping pages, no console error (Phase 17 deferred item)
-- [ ] **VERIFY-03**: Guest Request drawer status-advance buttons click through end-to-end at each status in the chain and the kanban board reflects the new status (Phase 17 deferred item)
-- [ ] **VERIFY-04**: Inspections re-assign picker successfully re-assigns a failed inspection to a `housekeeping_supervisor` end-to-end (Phase 17 deferred item)
+- [x] **VERIFY-01**: Non-manager roles (housekeeper, front_desk) confirmed live in-browser to not see the "Archive..." button on the Engineering Work Orders page (Phase 15 deferred item)
+- [x] **VERIFY-02**: NULL staff `full_name` renders the "Unnamed Staff" fallback live in-browser across Staff, Scheduling, and Housekeeping pages, no console error (Phase 17 deferred item)
+- [x] **VERIFY-03**: Guest Request drawer status-advance buttons click through end-to-end at each status in the chain and the kanban board reflects the new status (Phase 17 deferred item)
+- [x] **VERIFY-04**: Inspections re-assign picker successfully re-assigns a failed inspection to a `housekeeping_supervisor` end-to-end (Phase 17 deferred item)
 
 ### Dev/QA Test-Data Hygiene
 
@@ -63,10 +63,10 @@
 | RBAC-02 | Phase 19 | Done |
 | RBAC-03 | Phase 19 | Done |
 | RBAC-04 | Phase 19 | Done |
-| VERIFY-01 | Phase 20 | Pending |
-| VERIFY-02 | Phase 20 | Pending |
-| VERIFY-03 | Phase 20 | Pending |
-| VERIFY-04 | Phase 20 | Pending |
+| VERIFY-01 | Phase 20 | Done |
+| VERIFY-02 | Phase 20 | Done |
+| VERIFY-03 | Phase 20 | Done |
+| VERIFY-04 | Phase 20 | Done |
 | QA-01 | Phase 21 | Pending |
 | QA-02 | Phase 21 | Pending |
 | QA-03 | Phase 21 | Pending |
