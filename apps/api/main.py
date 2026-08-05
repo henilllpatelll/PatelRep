@@ -98,22 +98,22 @@ app = FastAPI(
 )
 
 # Middleware pipeline — Starlette adds in LIFO: last add_middleware = outermost = first on request.
-# Execution order on request: SecurityHeaders → RateLimit → CORS → App
-# Execution order on response: App → CORS → RateLimit → SecurityHeaders
+# Execution order on request: SecurityHeaders → CORS → RateLimit → App
+# Execution order on response: App → RateLimit → CORS → SecurityHeaders
+#
+# CORS MUST be outside (added after) RateLimit. RateLimitMiddleware can short-circuit
+# with an early 429 response without ever calling its own call_next() — if CORS sits
+# inside that (as it originally did here), CORSMiddleware.dispatch() is never entered
+# for a rate-limited request, so the 429 response leaves with NO Access-Control-* headers.
+# Browsers can't distinguish a missing-CORS-header response from an actual CORS policy
+# violation, so every legitimately rate-limited cross-origin request surfaced to the
+# frontend as an opaque "blocked by CORS policy" / net::ERR_FAILED console error instead
+# of a real, catchable 429 — hiding the real error and breaking any 429 retry/backoff UX.
+# Found live via e2e/20-verify-gm.spec.ts VERIFY-02 intermittently failing its
+# zero-console-errors assertion. See .wolf/buglog.json.
 
-# 1. CORS (innermost — handles preflight and sets Access-Control-* headers)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_ALLOWED_ORIGINS,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
-    allow_credentials=True,
-    allow_methods=_ALLOWED_METHODS,
-    allow_headers=_ALLOWED_HEADERS,
-    expose_headers=_EXPOSE_HEADERS,
-    max_age=600,
-)
-
-# 2. Rate limiting (middle — applied after CORS preflight is resolved)
+# 1. Rate limiting (innermost — closest to the app; its early 429s must still pass
+#    through CORS and SecurityHeaders on the way out, so it cannot be outside either)
 app.add_middleware(
     RateLimitMiddleware,
     enabled=settings.api_rate_limit_enabled,
@@ -126,6 +126,19 @@ app.add_middleware(
     auth_rule=RateLimitRule(settings.api_rate_limit_auth_per_minute, 60),
     webhook_rule=RateLimitRule(settings.api_rate_limit_webhook_per_minute, 60),
     health_rule=RateLimitRule(settings.api_rate_limit_health_per_minute, 60),
+)
+
+# 2. CORS (middle — handles preflight and sets Access-Control-* headers on every
+#    response that leaves RateLimit, including its early 429s)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
+    allow_credentials=True,
+    allow_methods=_ALLOWED_METHODS,
+    allow_headers=_ALLOWED_HEADERS,
+    expose_headers=_EXPOSE_HEADERS,
+    max_age=600,
 )
 
 # 3. Security headers (outermost — applied to every response regardless of outcome)

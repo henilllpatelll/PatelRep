@@ -12538,6 +12538,289 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-05T01:00:12.044Z"
+    },
+    {
+      "id": "bug-759",
+      "timestamp": "2026-08-05T01:07:51.431Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (2 removed) | Also: Phase: 19 of 22 (RBAC Audit and Normalization) — s; Plan: 4 of 4 (19-01, 19-02, 19-03, 19-04 all CLOSE",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-05T01:08:11.461Z"
+    },
+    {
+      "id": "bug-760",
+      "timestamp": "2026-08-05T01:08:16.259Z",
+      "error_message": "Wrong reference: next should be in",
+      "file": ".planning/STATE.md",
+      "root_cause": "Used \"next\" instead of \"in\"",
+      "fix": "Changed next → in",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:08:16.259Z"
+    },
+    {
+      "id": "bug-761",
+      "timestamp": "2026-08-05T01:19:01.618Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/scheduling.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 32→55 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:19:01.618Z"
+    },
+    {
+      "id": "bug-762",
+      "timestamp": "2026-08-05T01:19:30.762Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "No early return/throw for edge case: !drawerRequest",
+      "fix": "Added guard clause: if (!drawerRequest)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:19:30.762Z"
+    },
+    {
+      "id": "bug-763",
+      "timestamp": "2026-08-05T01:19:34.576Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "Had \"flex flex-col rounded-[var(--r-lg)] border border",
+      "fix": "Changed to `gr-column-${col.key}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:19:34.576Z"
+    },
+    {
+      "id": "bug-764",
+      "timestamp": "2026-08-05T01:20:42.680Z",
+      "error_message": "Scheduling page /scheduling \"Today's Roster\" panel always renders empty, regardless of who is actually clocked in/on shift today, and would show blank names even if it did render.",
+      "file": "apps/api/routers/scheduling.py (today_roster) + apps/web/lib/api/scheduling.ts (TodayRosterResponse) + apps/web/app/(dashboard)/scheduling/page.tsx (TodayRoster)",
+      "root_cause": "GET /schedules/today-roster returned a bare {\"data\": [...]} array, but the frontend RosterEntry query (`select: (res) => res.data.roster`) expects {\"data\": {\"roster\": [...], \"date\": ...}} per TodayRosterResponse — so `res.data.roster` was always undefined and `roster` fell back to []. Separately, even the raw rows the backend built hardcoded \"full_name\": None and \"role\": None for every entry (never joined user_profiles/user_roles), so even a correctly-shaped response would have rendered every staff member as \"Unnamed Staff\" (via getDisplayName fallback), not just genuinely nameless ones. Found while seeding a live NULL-full_name staff row for VERIFY-02 (Phase 20) and discovering the roster panel never showed ANY staff, named or not — zero prior test coverage on this endpoint.",
+      "fix": "today_roster now batch-fetches user_profiles (full_name) and user_roles (role) for the on-shift user_ids, mirroring the existing list_staff pattern (profile.get(\"full_name\") or \"\"), and returns {\"data\": {\"roster\": [...], \"date\": today_str}} matching the frontend TodayRosterResponse contract. Verified live via e2e/20-verify-gm.spec.ts VERIFY-02: a seeded shift_assignments row for a NULL-name housekeeper now correctly appears in the roster with the \"Unnamed Staff\" fallback.",
+      "tags": [
+        "api",
+        "scheduling",
+        "roster",
+        "response-shape-mismatch",
+        "production-bug",
+        "phase-20",
+        "verify-02"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:20:42.680Z"
+    },
+    {
+      "id": "bug-765",
+      "timestamp": "2026-08-05T01:20:42.680Z",
+      "error_message": "Guest Request drawer (apps/web/components/guest-requests/GuestRequestDrawer.tsx) advance-chain breaks after the FIRST click: clicking a second advance button (e.g. Dispatch after Acknowledge) re-sends the already-applied status and the backend correctly 422s it, with no error shown to the user — the click silently does nothing.",
+      "file": "apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "GuestRequestsPage holds the open drawer's request in its own `drawerRequest` state, captured once at card-click time. A successful transition mutation (`updateMutation`) only invalidates the ['guest-requests-kanban'] query — it never updates `drawerRequest` itself. So after Acknowledge succeeds (open->acknowledged, 200), the still-open drawer keeps rendering based on the STALE status='open', which means it keeps showing the \"Acknowledge\" button. Clicking it again calls transitionRequest(id, {status: 'acknowledged'}) a second time, but the request's real current status is now 'acknowledged', and _ALLOWED_TRANSITIONS['acknowledged'] = {dispatched, cancelled} does not include 'acknowledged' itself -> 422 from validate_guest_request_transition. updateMutation has no onError handler, so this fails completely silently -- the exact deferred VERIFY-03 risk (\"drawer advance buttons click through the legal status chain end-to-end\") was real. The sibling inline card buttons (GuestRequestCard) do NOT have this bug because they read `request` fresh from the kanban query result every render, not from separately-held state.",
+      "fix": "Added a useEffect in GuestRequestsPage that re-syncs drawerRequest to the latest matching row in allRequests (the same data already driving the kanban columns) whenever the kanban query refetches, so the open drawer's buttons always reflect the real current status. Verified live via e2e/20-verify-gm.spec.ts VERIFY-03: opened the drawer once and clicked all 6 advance buttons (Acknowledge -> Dispatch -> Arrived -> Contacted -> Resolve -> Verify) in sequence with zero 422s, board reflecting each new status after every click.",
+      "tags": [
+        "web",
+        "guest-requests",
+        "react-query",
+        "stale-state",
+        "production-bug",
+        "phase-20",
+        "verify-03"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:20:42.680Z"
+    },
+    {
+      "id": "bug-766",
+      "timestamp": "2026-08-05T01:23:12.479Z",
+      "error_message": "Significant refactor of ",
+      "file": "e2e/20-verify-gm.spec.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:23:12.479Z"
+    },
+    {
+      "id": "bug-767",
+      "timestamp": "2026-08-05T01:26:22.189Z",
+      "error_message": "CSS fix: allRequests",
+      "file": "apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "allRequests: GuestRequest[] = (data as any)?.data ?? [] → GuestRequest[] = useMemo(() => (data as any)?.data ?? [], [data])",
+      "fix": "Changed allRequests: GuestRequest[] = (data as any)?.data ?? [] → GuestRequest[] = useMemo(() => (data as any)?.data ?? [], [data])",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:26:22.189Z"
+    },
+    {
+      "id": "bug-768",
+      "timestamp": "2026-08-05T01:30:02.960Z",
+      "error_message": "Significant refactor of ",
+      "file": "e2e/20-verify-gm.spec.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→18 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:30:02.960Z"
+    },
+    {
+      "id": "bug-766",
+      "timestamp": "2026-08-05T01:37:23.744Z",
+      "error_message": "After force-killing the stale :8003 uvicorn --reload process tree (same class as bug-754), the API kept serving OLD code (pre-scheduling.py-fix response shape) even though a brand-new uvicorn process was confirmed started and /health returned live data from it.",
+      "file": "apps/api (dev environment — Windows process management, no source file)",
+      "root_cause": "The killed reloader process (PID 98200) had already spawned a multiprocessing.spawn worker child (PID 81624, cmdline `spawn_main(parent_pid=98200, ...)`) before it was killed. Stop-Process on the parent orphaned this child instead of terminating it (normal Windows behavior — no automatic child cleanup), and the orphan kept the inherited listening socket on port 8003 alive and serving requests using its original, pre-edit in-memory FastAPI app object. `Get-NetTCPConnection -LocalPort 8003` continued to report the ALREADY-DEAD original PID (98200) as the listener even after that PID no longer existed in Get-Process/Get-CimInstance, which masked the real actively-answering orphan (81624) during the first two restart attempts. A brand-new uvicorn tree (started correctly, confirmed via a fresh /health 200) coexisted on the same port without erroring, so nothing in the restart flow signaled a conflict.",
+      "fix": "Diagnosed by planting a temporary unmistakable marker field in the endpoint response and confirming it did NOT appear despite a fresh-looking server — proved something other than the new process was answering. Cross-referenced Get-NetTCPConnection's OwningProcess against Get-Process for that PID (came back empty = phantom/orphaned listener) and Get-Process python* (found 81624, a python.exe multiprocessing.spawn child with parent_pid=98200 — the PID just killed). Force-killed 81624 directly; Get-NetTCPConnection then correctly reported the real new reloader PID as the listener, and the endpoint immediately reflected the current source.",
+      "tags": [
+        "dev-environment",
+        "windows",
+        "uvicorn",
+        "reload",
+        "orphaned-process",
+        "multiprocessing-spawn",
+        "phase-20",
+        "verify-02"
+      ],
+      "related_bugs": [
+        "bug-754"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:37:23.744Z"
+    },
+    {
+      "id": "bug-770",
+      "timestamp": "2026-08-05T01:38:23.457Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "e2e/20-verify-gm.spec.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:38:23.457Z"
+    },
+    {
+      "id": "bug-771",
+      "timestamp": "2026-08-05T01:42:16.224Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/api/main.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:42:16.224Z"
+    },
+    {
+      "id": "bug-770",
+      "timestamp": "2026-08-05T01:44:53.832Z",
+      "error_message": "Intermittent browser console error on every dashboard page: \"Access to fetch at .../v1/auth/me from origin ... has been blocked by CORS policy: No Access-Control-Allow-Origin header is present\" + \"Failed to load resource: net::ERR_FAILED\" — happened on roughly half of repeated live runs of e2e/20-verify-gm.spec.ts (VERIFY-02's zero-console-errors assertion).",
+      "file": "apps/api/main.py (middleware registration order)",
+      "root_cause": "Starlette middleware is LIFO: the LAST middleware registered via app.add_middleware() becomes the OUTERMOST wrapper. main.py registered CORSMiddleware first (innermost) and RateLimitMiddleware second, making RateLimit sit OUTSIDE (in front of) CORS on the request path. RateLimitMiddleware short-circuits with an early 429 JSONResponse WITHOUT calling its own call_next() once a client exceeds its per-route rate limit (10/min on /v1/auth/me, exhausted quickly by real repeated page navigation in a browser session, e.g. multiple dashboard pages each independently checking auth). Because CORS sat inside RateLimit, CORSMiddleware.dispatch() was never entered for that rejected request, so the 429 response left with ZERO Access-Control-* headers. Browsers cannot distinguish \"no CORS headers present\" from \"actual CORS policy violation\" and report the same opaque blocked-by-CORS console error for both, so the frontend never even received a readable 429 body — it just saw a network-level failure. Confirmed live: `curl -i -H \"Origin: http://localhost:3000\" http://localhost:8003/v1/auth/me` after exhausting the limit returned 429 with NO access-control-allow-origin header (SecurityHeadersMiddleware's headers WERE present on the same response, since it sat outside RateLimit and CORS both). This affects every legitimately rate-limited authenticated cross-origin request in production, not just this test.",
+      "fix": "Reordered app.add_middleware() calls in main.py so RateLimitMiddleware is registered FIRST (innermost) and CORSMiddleware SECOND, with SecurityHeadersMiddleware remaining last (outermost) — new response path is App -> RateLimit -> CORS -> SecurityHeaders, so CORS (and SecurityHeaders) unconditionally post-process every response including RateLimit's early 429s. Verified live: after exhausting the /v1/auth/me rate limit, the 429 response now includes access-control-allow-origin: http://localhost:3000 and the browser correctly receives/parses the 429 instead of reporting a CORS block. Full apps/api pytest suite re-run: 554/556 (same 2 pre-existing, unrelated test_management_roi.py failures, no new regressions).",
+      "tags": [
+        "api",
+        "cors",
+        "rate-limit",
+        "middleware-ordering",
+        "production-bug",
+        "phase-20",
+        "verify-02"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:44:53.832Z"
+    },
+    {
+      "id": "bug-773",
+      "timestamp": "2026-08-05T01:50:53.983Z",
+      "error_message": "Type error",
+      "file": "e2e/20-verify-gm.spec.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:50:53.983Z"
+    },
+    {
+      "id": "bug-773",
+      "timestamp": "2026-08-05T01:51:25.511Z",
+      "error_message": "DELETE /guest-requests/{id} has never successfully deleted anything, for any guest request, ever — always 400s with Postgres 23503 (foreign key violation), even for a request created a moment earlier with zero transitions.",
+      "file": "supabase/migrations (guest_request_events / guest_messages / guest_recovery_actions FKs) — apps/api/routers/guest_requests.py delete_guest_request is correct, unaffected",
+      "root_cause": "guest_request_events.guest_request_id (migration 072) was declared ON DELETE RESTRICT, and create_guest_request() unconditionally writes one guest_request_events row (event_type=\"created\") at creation time — so a guest_requests row always has a blocking child event from the instant it exists, before any real activity. guest_messages and guest_recovery_actions share the identical RESTRICT + immutable-trigger shape and would fail the same way once populated. Confirmed live: creating a request via POST /guest-requests and immediately calling DELETE /guest-requests/{id} on it returns {\"error\":{\"code\":\"23503\",...}}. Found while tearing down the VERIFY-03 (Phase 20) live fixture. This is the EXACT gap migration 087 explicitly identified and deliberately deferred while fixing the identical issue for lost_found_custody_events: \"The other three tables sharing reject_guest_recovery_mutation() (guest_request_events, guest_messages, guest_recovery_actions) are untouched.\" guestRequestsApi.deleteRequest is defined in the web API client but is not called anywhere in apps/web — this endpoint has zero real UI callers today, so the bug had zero production surface area until something (like this test) calls it directly.",
+      "fix": "Wrote supabase/migrations/093_guest_requests_delete_cascade.sql applying migration 087's exact, already-reviewed design (CASCADE the FK, narrow the immutable trigger to BEFORE UPDATE only so history stays un-editable but a full parent delete can cascade) to all three remaining tables: guest_request_events, guest_messages, guest_recovery_actions. Matches delete_guest_request()'s own existing code, which already deletes the linked task/task_comments and relies on the DB to cascade the rest — the router code was correct, the schema was the gap. NOT yet applied to the DB (this executor has no Supabase MCP/migration-apply access) — same escalation pattern as migration 092 in Phase 20-01: written, verified safe by inspection and by mirroring 087's proven pattern, flagged for the orchestrator/team-lead to apply via Supabase MCP. e2e/20-verify-gm.spec.ts VERIFY-03's afterAll already calls DELETE (forward-compatible, will self-heal once 093 lands) and logs an explicit warning instead of silently swallowing the current pending-migration failure.",
+      "tags": [
+        "api",
+        "database",
+        "guest-requests",
+        "foreign-key",
+        "append-only",
+        "production-bug",
+        "migration-pending",
+        "phase-20",
+        "verify-03"
+      ],
+      "related_bugs": [
+        "bug-755"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T01:51:25.511Z"
     }
   ]
 }

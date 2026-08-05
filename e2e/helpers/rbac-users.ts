@@ -65,7 +65,7 @@ const _isLocalhost = _rawApiUrl.includes('localhost') || _rawApiUrl.includes('12
 // bleed in unintentionally) — it always wins, including for localhost, so local-dev verification
 // runs (web + API both local, same cloud Supabase project) can seed against the real local API.
 const _explicitApiUrl = (process.env.RBAC_API_URL || '').trim()
-const API_URL = _explicitApiUrl
+export const API_URL = _explicitApiUrl
   ? _explicitApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
   : (_rawApiUrl && !_isLocalhost)
     ? _rawApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')

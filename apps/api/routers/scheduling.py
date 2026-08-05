@@ -349,18 +349,37 @@ async def today_roster(
         .is_("clocked_out_at", "null")\
         .execute()
 
+    # Include rows where staff is currently on shift OR clocked in but not out.
+    rows = [
+        r for r in (result.data or [])
+        if r.get("is_on_shift") or r.get("clocked_in_at")
+    ]
+
+    user_ids = list({r["user_id"] for r in rows})
+    profiles_map: dict = {}
+    roles_map: dict = {}
+    if user_ids:
+        profiles_result = supabase.table("user_profiles")\
+            .select("id, full_name")\
+            .in_("id", user_ids)\
+            .execute()
+        profiles_map = {p["id"]: (p.get("full_name") or "") for p in (profiles_result.data or [])}
+
+        roles_result = supabase.table("user_roles")\
+            .select("user_id, role")\
+            .eq("tenant_id", current_user.hotel_id)\
+            .eq("is_active", True)\
+            .in_("user_id", user_ids)\
+            .execute()
+        roles_map = {r["user_id"]: r["role"] for r in (roles_result.data or [])}
+
     roster = []
-    for row in (result.data or []):
+    for row in rows:
         shift = row.get("shifts") or {}
-
-        # Include rows where staff is currently on shift OR clocked in but not out.
-        if not row.get("is_on_shift") and not row.get("clocked_in_at"):
-            continue
-
         roster.append({
             "user_id": row["user_id"],
-            "full_name": None,
-            "role": None,
+            "full_name": profiles_map.get(row["user_id"], ""),
+            "role": roles_map.get(row["user_id"]),
             "shift": {
                 "name": shift.get("name"),
                 "start_time": shift.get("start_time"),
@@ -370,4 +389,8 @@ async def today_roster(
             "is_on_shift": row.get("is_on_shift", False),
         })
 
-    return {"data": roster}
+    # Frontend contract (TodayRosterResponse) expects {data: {roster, date}} —
+    # this previously returned a bare {data: [...]}, so RosterEntry.select()
+    # (`res.data.roster`) always resolved to undefined and the panel silently
+    # rendered empty regardless of who was actually on shift. See bug log.
+    return {"data": {"roster": roster, "date": today_str}}
