@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
 status: in_progress
-last_updated: "2026-08-05T07:52:00Z"
-last_activity: 2026-08-05 -- Phase 21 (Dev/QA Test-Data Hygiene) plan 21-01 executed and closed: migration 094 (tenants.is_test BOOLEAN NOT NULL DEFAULT false) written and applied live to oacnwalhcpqdabivweki, confirmed via schema inspection; 9 non-fixture tenants flagged is_test=true, PRESERVE fixture confirmed is_test=false. No deletes performed. Phase 21 now in progress (1/3 plans). Next: 21-02.
+last_updated: "2026-08-05T08:10:00Z"
+last_activity: 2026-08-05 -- Phase 21 (Dev/QA Test-Data Hygiene) plan 21-03 executed and closed: apps/api/scripts/cleanup_test_data.py written (dry-run-default, allowlist-scoped, FK-safe cleanup tool), dry-run executed live against oacnwalhcpqdabivweki showing 339 rows across 10 tables would be deleted, zero rows outside the 9-tenant allowlist, zero rows in the two excluded append-only compliance tables. No real delete performed; --execute never invoked. This closes Phase 21 (3/3 plans) and milestone v1.4.
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # GSD State
@@ -325,12 +325,12 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 ## Current Position
 
-Phase: 21 of 22 (Dev/QA Test-Data Hygiene) — fourth phase of milestone v1.4, in progress.
-Plan: 2 of 3 (21-01 CLOSED, commit `b0e5978d`, SUMMARY on disk. 21-02 CLOSED this session, commit `368c0a86`, SUMMARY on disk). 21-03 not yet executed.
-Status: Phase 20 (Close Deferred v1.3 Verification Items) closed (2/2 plans). Phase 21 in progress (2/3 plans) — QA-01 schema flag satisfied (tenants.is_test column live + flagged), QA-02 satisfied (ratified delete-allowlist/preserve-list document), cleanup script (QA-03, remaining half of QA-01/02) still pending in 21-03.
-Last activity: 2026-08-05 — 21-02 executed: `.planning/phases/21-dev-qa-test-data-hygiene/21-ALLOWLIST.md` written — ratifies PRESERVE fixture `23264962-aa09-4e4f-a49d-fc345cc91414` (never delete) and a 9-tenant DELETE ALLOWLIST, live-reconfirmed 2026-08-05 (resolves the research doc's internal 10-vs-9 prose/table discrepancy in favor of 9). Explicitly flags the two empty near-duplicate "Sonesta ES Suites Fossil Creek" tenants and the `isoval-20260512190107` isolation-validation leftover as safe-by-UUID-not-name. Records `controlled_incidents`/`controlled_incident_events` as permanently excluded (migration 070 immutability triggers, QA-03). Documentation only — no tenant data queried or modified by this executor (no Supabase MCP access; live counts supplied by the orchestrator's fresh re-query). This is the source-of-truth Plan 21-03 must transcribe its `DELETE_ALLOWLIST`/`PRESERVE` constants from.
+Phase: 21 of 22 (Dev/QA Test-Data Hygiene) — fourth phase of milestone v1.4, CLOSED (3/3 plans).
+Plan: 3 of 3 (21-01 CLOSED, commit `b0e5978d`, SUMMARY on disk. 21-02 CLOSED, commit `368c0a86`, SUMMARY on disk. 21-03 CLOSED this session, commits `0ca4450d`/`50d1b18e`, SUMMARY on disk).
+Status: Phase 20 (Close Deferred v1.3 Verification Items) closed (2/2 plans). Phase 21 (Dev/QA Test-Data Hygiene) closed (3/3 plans) — QA-01/QA-02/QA-03 all satisfied: tenants.is_test schema flag live + flagged (21-01), ratified delete-allowlist/preserve-list document (21-02), dry-run-gated allowlist-scoped cleanup script built and proven clean in dry-run (21-03). Milestone v1.4's last remaining phase is 22 (Expo SDK 54→57 Bump).
+Last activity: 2026-08-05 — 21-03 executed: `apps/api/scripts/cleanup_test_data.py` written (dry-run-default `--execute` gate, `PRESERVE`/`DELETE_ALLOWLIST`/`EXCLUDE_TABLES` transcribed from 21-ALLOWLIST.md, `is_test` cross-check guardrail, table discovery with a documented 85-table fallback, fixpoint FK-violation retry loop for `--execute` mode). Ran in default dry-run mode against the live dev/QA Supabase project (`oacnwalhcpqdabivweki`): exit 0, 339 rows across 10 tables would be deleted, zero rows outside the 9-tenant allowlist, zero rows in `controlled_incidents`/`controlled_incident_events`. `--execute` never invoked — zero real deletes performed. This closes Phase 21 and QA-01..03.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 in progress (2/3). Next: 21-03.
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3). Next: Phase 22 (Expo SDK 54→57 Bump).
 
 ## Performance Metrics
 
@@ -377,11 +377,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | 20 | 02 | ~110 min | 2 | 6 | 2026-08-05 |
 | 21 | 01 | 5 min | 2 | 1 | 2026-08-05 |
 | 21 | 02 | 8 min | 2 | 1 | 2026-08-05 |
+| 21 | 03 | 12 min | 2 | 1 | 2026-08-05 |
 
 ## Session
 
-Last session: 2026-08-05T07:58:00Z
-Stopped At: Completed 21-02-PLAN.md (QA-02 delete-allowlist/preserve-list: `.planning/phases/21-dev-qa-test-data-hygiene/21-ALLOWLIST.md` written and ratified — PRESERVE fixture `23264962-aa09-4e4f-a49d-fc345cc91414` + 9-tenant DELETE ALLOWLIST, live-reconfirmed 2026-08-05, controlled_incidents/controlled_incident_events documented as permanently excluded). Documentation only, no tenant data touched. Next: 21-03 (the cleanup tool itself, transcribing constants from 21-ALLOWLIST.md) — `/gsd:execute-phase 21` to continue.
+Last session: 2026-08-05T08:10:00Z
+Stopped At: Completed 21-03-PLAN.md (QA-03 cleanup script: `apps/api/scripts/cleanup_test_data.py` written and proven clean via a live dry-run against oacnwalhcpqdabivweki — 339 rows across 10 tables, all allowlist-scoped, zero rows outside the 9-tenant allowlist, zero rows in the two excluded append-only compliance tables. No real delete performed; `--execute` never invoked). This closes Phase 21 (3/3 plans) and QA-01..03. Next: Phase 22 (Expo SDK 54→57 Bump) — `/gsd:plan-phase 22` to continue.
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
@@ -403,5 +404,9 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (18 requirements: DOC-01..03, R
 **21-01 CLOSED (2026-08-05, commit `b0e5978d`):** QA-01 half satisfied — schema-level test-tenant marker. New `supabase/migrations/094_tenant_is_test_flag.sql` (`ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE`, mirrors the `085_opera_pilot_flag.sql` boolean-flag idiom). Migration applied live to the dev/QA project `oacnwalhcpqdabivweki` via Supabase MCP `apply_migration` by the orchestrator (this executor has no Supabase MCP tool access) and independently confirmed via `information_schema.columns`: `is_test` boolean, `NOT NULL`, default `false` — Phase Success Criterion #1 satisfied. Every non-fixture tenant flagged `is_test = true` via `UPDATE public.tenants SET is_test = true WHERE id <> '23264962-aa09-4e4f-a49d-fc345cc91414'` (excludes-the-fixture scoping chosen over an explicit UUID allowlist, since the research doc's prose count of 10 candidates disagreed with its own 9-UUID inventory table — exclusion is correct regardless of which count is right). Verified distribution: `is_test=false` → 1 row (the PRESERVE fixture), `is_test=true` → **9 rows**; fixture independently confirmed `is_test=false`. No destructive delete performed — this was the phase's one allowed live-data write, reversible metadata only. See `21-01-SUMMARY.md`.
 
 **21-02 CLOSED (2026-08-05, commit `368c0a86`):** QA-02 satisfied — ratified delete-allowlist/preserve-list document, `.planning/phases/21-dev-qa-test-data-hygiene/21-ALLOWLIST.md`. Names PRESERVE fixture `23264962-aa09-4e4f-a49d-fc345cc91414` (Sonesta ES Suites Fossil Creek, slug `-2`, 6 users/114 rooms/16 tasks/43 work orders) as never-delete, and enumerates a 9-tenant DELETE ALLOWLIST by UUID/name/slug/users/rooms/why-safe — live-reconfirmed 2026-08-05 against `oacnwalhcpqdabivweki`, resolving the research doc's own internal 10-vs-9 prose/table discrepancy in favor of **9** (matches 21-01's independently-verified `is_test=true` row count). Explicitly flags the two empty near-duplicate "Sonesta ES Suites Fossil Creek" tenants (slugs `-1` and un-suffixed) and the `isoval-20260512190107` isolation-validation leftover as safe-to-delete-by-UUID despite name similarity to the real fixture. Records `controlled_incidents`/`controlled_incident_events` as permanently excluded append-only tables (migration 070 BEFORE UPDATE/DELETE immutability triggers, fire even for service-role — QA-03's exclusion requirement). Scope note makes explicit this document authorizes only the cleanup tool's allowlist, not a real `--execute` destructive run, and mandates a fresh live re-query immediately before any such run. Documentation-only plan — this executor has no Supabase MCP access and performed no DB query or write; live counts were supplied directly by the orchestrator's fresh re-query. This is the source-of-truth Plan 21-03 must transcribe its `DELETE_ALLOWLIST`/`PRESERVE` constants from. See `21-02-SUMMARY.md`.
+
+**21-03 CLOSED (2026-08-05, commits `0ca4450d`/`50d1b18e`):** QA-03 satisfied — dry-run-gated, allowlist-scoped cleanup script, `apps/api/scripts/cleanup_test_data.py`. `--execute` is a single `store_true` flag (`dry_run = not args.execute`); constants (`PRESERVE`, `DELETE_ALLOWLIST` — exactly the 9 UUIDs, `EXCLUDE_TABLES = {controlled_incidents, controlled_incident_events}`) transcribed verbatim from 21-ALLOWLIST.md. Guardrails run before any DB write, including in dry-run: `DELETE_ALLOWLIST`/`PRESERVE` disjointness, non-empty allowlist, and a live cross-check that every allowlisted UUID has `is_test=true` and no `PRESERVE` UUID does. Table discovery attempts an `information_schema` RPC first, falling back to (and unioned with) a documented 85-table explicit list live-verified by the orchestrator against `oacnwalhcpqdabivweki` at authoring time; the discovered set is subtracted by `EXCLUDE_TABLES` and `tenants` itself — the script deletes child data only, never the tenant row. `--execute` mode uses a fixpoint FK-violation retry loop (attempt every table, defer on a 23503/RESTRICT error, repeat until no progress or raise) instead of a hand-maintained topological sort. Ran live in default dry-run mode against `oacnwalhcpqdabivweki` (`python apps/api/scripts/cleanup_test_data.py`, no flags): exit 0, report showed **339 rows across 10 tables** would be deleted (`cleaning_checklist_items` 225, `cleaning_checklist_templates` 36, `departments` 36, `inspection_template_items` 6, `inspection_templates` 1, `room_status` 8, `rooms` 8, `staff_invitations` 2, `subscriptions` 9, `user_roles` 8), zero rows outside the 9-tenant allowlist (every query `.in_("tenant_id", DELETE_ALLOWLIST)`-scoped), and zero rows touched in `controlled_incidents`/`controlled_incident_events` (subtracted from the queried table set entirely). One cosmetic auto-fix (Rule 1): a Unicode em-dash in the report's excluded-tables line rendered as a mojibake byte under the Windows console's default codepage — swapped for a plain ASCII `--`, re-verified clean, committed separately (`50d1b18e`). `--execute` was never invoked anywhere in this plan — zero real deletes performed, per the plan's hard scope boundary. See `21-03-SUMMARY.md`.
+
+**Phase 21 (Dev/QA Test-Data Hygiene) status: CLOSED.** All 3 plans executed (21-01, 21-02, 21-03) — QA-01, QA-02, QA-03 all satisfied. A real `--execute` cleanup run against the 9 allowlisted tenants remains a distinct, later, human-authorized action (per 21-ALLOWLIST.md Section 5) — not performed or scheduled by this phase.
 
 **Next:** `/gsd:plan-phase 18`
