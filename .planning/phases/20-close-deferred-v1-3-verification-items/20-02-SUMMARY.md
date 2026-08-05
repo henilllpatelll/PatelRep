@@ -138,14 +138,15 @@ completed: 2026-08-05
 
 ## User Setup Required
 
-**Follow-up (parallels 20-01's migration 092 resolution):**
-- `supabase/migrations/093_guest_requests_delete_cascade.sql` needs to be applied to the `oacnwalhcpqdabivweki` dev project via Supabase MCP (`apply_migration`). Written and verified safe by inspection (mirrors migration 087's already-applied, already-reviewed design exactly).
-- Once applied, an optional one-time sweep can remove the 10 residual `guest_requests` rows this session's repeated test/debug runs left behind (`status='verified'`, `title ILIKE '%VERIFY-03%'`) — harmless (correctly terminal, not visible on the active kanban board) but worth clearing for Phase 21 hygiene bookkeeping.
+**RESOLVED by orchestrator (2026-08-05):**
+- `supabase/migrations/093_guest_requests_delete_cascade.sql` was applied to the `oacnwalhcpqdabivweki` dev project via `mcp__plugin_supabase_supabase__apply_migration`. All three FKs (`guest_request_events`/`guest_messages`/`guest_recovery_actions`) confirmed changed from `RESTRICT` to `CASCADE`; immutability triggers recreated as UPDATE-only per migration 087's design.
+- The 11 residual phase-20 `guest_requests` rows (10 `title ILIKE '%VERIFY-03%'` + 1 `delete-test-fresh-no-transitions` probe row) were then deleted by explicit id — cascade removed their events (0 orphaned events remain). Confirmed via query: `verify03_rows=0`, `delete_probe_rows=0`, `orphan_events=0`. The successful cascade delete also live-confirms migration 093 fixes the `DELETE /guest-requests/{id}` bug.
+- One pre-existing test row remains (`QA audit test guest request - safe to delete`, created 2026-08-02, from a prior phase) — intentionally left for Phase 21 (Dev/QA Test-Data Hygiene) as it is not this phase's residue.
 
 ## Next Phase Readiness
 - VERIFY-02 and VERIFY-04 (20-01) and VERIFY-03/VERIFY-02 (this plan) now all have durable, repeatable Playwright coverage — `e2e/20-verify-gm.spec.ts` is CI-able once `TEST_PASSWORD`/`RBAC_API_URL` are set in that environment, same as its sibling.
-- **Teardown confirmation:** across the final clean runs, `@patelrep-test.com` auth users = 0, orphaned `shift_assignments` for today = 0 (both fully self-cleaning). `guest_requests` residue = 10 rows, all clearly marker-tagged (`title ILIKE '%VERIFY-03%'`), all `status='verified'` (not visible on the active kanban board, harmless), explicitly logged (not silently swallowed) as blocked on migration 093 — this is an honest, migration-gated limitation, not an untracked leak. Phase 21 (Test-Data Hygiene) should either accept this as a documented trade-off of exercising a real audited workflow live, or plan the migration-093 apply + one-time sweep noted above.
-- Phase 20 is now fully closed: all 4 deferred v1.3 verification items (VERIFY-01 through VERIFY-04) have live-browser evidence, with 2 migrations (092, 093) written and escalated for orchestrator application.
+- **Teardown confirmation (final, post-orchestrator cleanup):** `@patelrep-test.com` auth users = 0, orphaned `shift_assignments` for today = 0 (both self-cleaning), and `guest_requests` phase-20 residue = 0 (all 11 rows deleted after migration 093 was applied — see User Setup Required above). No untracked leak; the only remaining test-tagged row is a prior-phase Aug-2 artifact left for Phase 21.
+- Phase 20 is now fully closed: all 4 deferred v1.3 verification items (VERIFY-01 through VERIFY-04) have live-browser evidence, and both surfaced-bug migrations (092, 093) have been applied to the dev DB by the orchestrator.
 
 ---
 *Phase: 20-close-deferred-v1-3-verification-items*
