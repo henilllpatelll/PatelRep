@@ -24,21 +24,21 @@ describe("resolveThemeMode", () => {
     expect(resolveThemeMode("system", "dark")).toBe("dark");
   });
 
-  it.each(["light", null, undefined] as const)(
+  it.each(["light", "unspecified", null, undefined] as const)(
     "uses light for System with OS scheme %p",
     (systemScheme) => {
       expect(resolveThemeMode("system", systemScheme)).toBe("light");
     },
   );
 
-  it.each(["light", "dark", null, undefined] as const)(
+  it.each(["light", "dark", "unspecified", null, undefined] as const)(
     "keeps an explicit Light choice when OS scheme is %p",
     (systemScheme) => {
       expect(resolveThemeMode("light", systemScheme)).toBe("light");
     },
   );
 
-  it.each(["light", "dark", null, undefined] as const)(
+  it.each(["light", "dark", "unspecified", null, undefined] as const)(
     "keeps an explicit Dark choice when OS scheme is %p",
     (systemScheme) => {
       expect(resolveThemeMode("dark", systemScheme)).toBe("dark");

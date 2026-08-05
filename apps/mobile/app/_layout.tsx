@@ -154,7 +154,6 @@ function RootChrome() {
     <NavigationThemeProvider value={getNavigationTheme(mode)}>
       <StatusBar
         style={mode === "dark" ? "light" : "dark"}
-        backgroundColor={theme.shell.bg}
         animated={false}
       />
       <Stack screenOptions={{ headerShown: false }}>

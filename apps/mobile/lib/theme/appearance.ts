@@ -14,7 +14,7 @@ export function normalizeAppearancePreference(
 
 export function resolveThemeMode(
   preference: AppearancePreference,
-  systemScheme: ResolvedThemeMode | null | undefined,
+  systemScheme: ResolvedThemeMode | "unspecified" | null | undefined,
 ): ResolvedThemeMode {
   if (preference !== "system") {
     return preference;

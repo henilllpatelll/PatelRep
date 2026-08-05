@@ -37,7 +37,7 @@ describe("root app chrome", () => {
     expect(rootLayoutSource).toMatch(
       /<StatusBar[\s\S]*style=\{mode === "dark" \? "light" : "dark"\}/,
     );
-    expect(rootLayoutSource).toContain(
+    expect(rootLayoutSource).not.toContain(
       "backgroundColor={theme.shell.bg}",
     );
     expect(rootLayoutSource).toContain("animated={false}");
