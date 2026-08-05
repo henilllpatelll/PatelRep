@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -178,7 +178,7 @@ export function GuestRequestsPage() {
     },
   })
 
-  const allRequests: GuestRequest[] = (data as any)?.data ?? []
+  const allRequests: GuestRequest[] = useMemo(() => (data as any)?.data ?? [], [data])
   const columns = COLUMNS.map(col => ({
     ...col,
     requests: allRequests.filter(r => col.filter(r, today)).sort(urgentFirst),
@@ -188,6 +188,19 @@ export function GuestRequestsPage() {
     (id: string, status: Exclude<GuestRequest['status'], 'open'>) => updateMutation.mutate({ id, status }),
     [updateMutation]
   )
+
+  // The drawer holds its own `request` snapshot captured at click time, so a
+  // successful advance mutation (which only invalidates the kanban query) would
+  // otherwise leave the open drawer showing the pre-transition status — clicking
+  // the same (now-stale) advance button again re-sends the already-applied status
+  // as the "next" status, which the backend's state machine correctly rejects
+  // with a 422 (see .wolf/buglog.json). Keep the open drawer's copy in sync with
+  // the latest fetched data so its buttons always reflect the real current status.
+  useEffect(() => {
+    if (!drawerRequest) return
+    const fresh = allRequests.find(r => r.id === drawerRequest.id)
+    if (fresh && fresh !== drawerRequest) setDrawerRequest(fresh)
+  }, [allRequests, drawerRequest])
 
   return (
     <div className="flex flex-col h-full">
@@ -233,7 +246,7 @@ export function GuestRequestsPage() {
           ) : (
             <div className="grid grid-cols-3 gap-4 h-full min-h-0">
               {columns.map(col => (
-                <div key={col.key} className="flex flex-col rounded-[var(--r-lg)] border border-line overflow-hidden">
+                <div key={col.key} data-testid={`gr-column-${col.key}`} className="flex flex-col rounded-[var(--r-lg)] border border-line overflow-hidden">
                   <div className={cn('flex items-center justify-between px-3.5 py-2.5 shrink-0', col.headerClass)}>
                     <span className="text-[12px] font-semibold uppercase tracking-[0.08em]">
                       {col.label}
