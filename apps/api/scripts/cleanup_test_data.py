@@ -180,7 +180,7 @@ def main():
     print(f"TOTAL rows {'would be deleted' if dry_run else 'deleted'}: {total}")
     print(f"Scope: only tenant_ids in DELETE_ALLOWLIST ({len(DELETE_ALLOWLIST)} tenants). "
           "Zero rows touched outside the allowlist (every query is .in_('tenant_id', DELETE_ALLOWLIST)-scoped).")
-    print(f"Excluded tables (never touched, append-only): {sorted(EXCLUDE_TABLES)} — 0 rows.")
+    print(f"Excluded tables (never touched, append-only): {sorted(EXCLUDE_TABLES)} -- 0 rows.")
     print(f"tenants row itself: NOT deleted (child data only).")
 
 
