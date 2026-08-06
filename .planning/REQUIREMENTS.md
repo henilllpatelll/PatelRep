@@ -30,10 +30,10 @@
 
 ### Mobile Dependency Health
 
-- [ ] **MOBILE-01**: `apps/mobile`'s Expo SDK is upgraded from ~54 to 57.0.9 via sequential single-major hops (54→55→56→57), each gated by `expo-doctor` + `npx jest` + type-check + a green EAS Android cloud build
-- [ ] **MOBILE-02**: The New Architecture configuration divergence between `app.json` (`newArchEnabled: true`) and `android/gradle.properties` (`newArchEnabled=false`) is reconciled before the first hop
-- [ ] **MOBILE-03**: `@react-navigation/native` is added as an explicit direct dependency before the 55→56 hop (currently relied on transitively via `expo-router`, which drops that transitive dependency at SDK 56)
-- [ ] **MOBILE-04**: The remaining 19 `npm audit` advisories in `apps/mobile` (tracked since v1.1, all requiring the SDK 57 major bump) are resolved or explicitly re-documented as accepted risk post-bump
+- [x] **MOBILE-01**: `apps/mobile`'s Expo SDK is upgraded from ~54 to 57.0.9 via sequential single-major hops (54→55→56→57), each gated by `expo-doctor` + `npx jest` + type-check + a green EAS Android cloud build
+- [x] **MOBILE-02**: The New Architecture configuration divergence between `app.json` (`newArchEnabled: true`) and `android/gradle.properties` (`newArchEnabled=false`) is reconciled before the first hop
+- [x] **MOBILE-03**: `@react-navigation/native@7.3.14` is an explicit direct production dependency on the final Expo 57.0.9 graph, added at the first boundary where Expo Doctor accepts it after the SDK 56 incompatibility was documented
+- [x] **MOBILE-04**: The remaining 19 `npm audit` advisories in `apps/mobile` (tracked since v1.1, all requiring the SDK 57 major bump) are resolved or explicitly re-documented as accepted risk post-bump
 
 ## Future Requirements (Deferred)
 
@@ -70,9 +70,9 @@
 | QA-01 | Phase 21 | Pending |
 | QA-02 | Phase 21 | Pending |
 | QA-03 | Phase 21 | Pending |
-| MOBILE-01 | Phase 22 | Pending |
-| MOBILE-02 | Phase 22 | Pending |
-| MOBILE-03 | Phase 22 | Pending |
-| MOBILE-04 | Phase 22 | Pending |
+| MOBILE-01 | Phase 22 | Done |
+| MOBILE-02 | Phase 22 | Done |
+| MOBILE-03 | Phase 22 | Done |
+| MOBILE-04 | Phase 22 | Done |
 
 **Coverage:** 18/18 v1.4 requirements mapped. No orphans.
