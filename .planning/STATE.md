@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Platform and Ops Hardening
-status: in_progress
-last_updated: "2026-08-05T22:22:00Z"
-last_activity: 2026-08-05 -- Phase 22 plan 22-05 closed MOBILE-04 with npm audit 0, a scoped xcode-to-uuid 11.1.1 override, and full mobile dependency/type/test gates green; phase verification intentionally not started and MOBILE-03 remains its explicit gap.
+status: complete
+last_updated: "2026-08-06T03:24:18Z"
+last_activity: 2026-08-06 -- Phase 22 plan 22-06 closed MOBILE-03 with exact React Navigation 7.3.14, a finished Android preview artifact tied to dependency commit ce01c7ed, and passed 4/4 phase verification with no gaps.
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 5
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -17,10 +17,10 @@ progress:
 
 ## Current Position
 
-Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, PLAN EXECUTION COMPLETE (verification pending)
-Plan: 5 of 5 (22-05 CLOSED)
-Status: Phase 22 plan execution is complete (5/5); phase verification has not started. MOBILE-04 is closed with npm audit 0. MOBILE-03 remains the explicit phase-verifier gap carried from Plans 22-03/22-04.
-Last activity: 2026-08-05 — 22-05 removed the unused stale tar override, scoped xcode to uuid 11.1.1, and reduced the mobile audit from 11 moderate affected nodes (one unique GHSA) to zero. Expo remains exactly 57.0.9; Doctor 20/20, npm tree, TypeScript, and Jest 412/412 are green. Commits: 9bf8275c and 1f646953.
+Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, CLOSED AND VERIFIED
+Plan: 6 of 6 (22-06 CLOSED)
+Status: Phase 22 is complete and passed 4/4 verification with no gaps. MOBILE-01 through MOBILE-04 are satisfied; milestone v1.4 plan execution and phase verification are complete.
+Last activity: 2026-08-06 — 22-06 added exact direct `@react-navigation/native@7.3.14` on Expo 57.0.9, kept Router-fork imports and the xcode/UUID override intact, passed the focused and full mobile gates, and produced finished EAS Android preview build `6e7a1d7a-2851-4868-8609-8103adb24c77` tied exactly to dependency commit `ce01c7ed`. Verification commit: `508cbd52`.
 
 Progress: [██████████] 100%
 
@@ -29,7 +29,7 @@ Progress: [██████████] 100%
 See: .planning/PROJECT.md (updated 2026-08-04)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. Phase 22 plan execution is complete; next is phase verification, including the carried MOBILE-03 gap.
+**Current focus:** Milestone v1.4 — Platform and Ops Hardening. All five phases and all 16 plans are complete and phase-verified; next is the milestone completion/audit workflow.
 
 ## Previous milestones
 
@@ -325,17 +325,20 @@ Progress: [██████████] v1.3: Phase 15 closed (2/2 plans), Ph
 
 ## Current Position
 
-Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, PLAN EXECUTION COMPLETE (5/5 plans; verification pending).
-Plan: 5 of 5 (22-05 CLOSED this session; commits `9bf8275c` and `1f646953`; SUMMARY on disk).
-Status: Phase 22 plan execution is complete. MOBILE-04 is satisfied with npm audit 0 and complete advisory evidence. Phase verification was not started; MOBILE-03 remains its explicit carried gap.
-Last activity: 2026-08-05 — 22-05 removed the stale unused tar override and applied `overrides.xcode.uuid = 11.1.1`, clearing the sole residual advisory without `npm audit fix --force`. Gates: audit 0, expo-doctor 20/20, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, clean `npm ls --all`, xcode UUID compatibility smoke green, exact `expo@57.0.9` preserved.
+Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, CLOSED AND VERIFIED (6/6 plans).
+Plan: 6 of 6 (22-06 CLOSED this session; commits `ce01c7ed` and `508cbd52`; SUMMARY on disk).
+Status: Phase 22 passed 4/4 verification with no gaps. MOBILE-03 is closed at the first compatible SDK 57 boundary, MOBILE-04 remains audit-zero, and all four MOBILE requirements are satisfied.
+Last activity: 2026-08-06 — 22-06 added exact direct `@react-navigation/native@7.3.14`, preserved exact Expo 57.0.9, Router-fork application imports, and `overrides.xcode.uuid = 11.1.1`, then passed focused/full local gates and finished one matching EAS Android preview build. Build `6e7a1d7a-2851-4868-8609-8103adb24c77` records `gitCommitHash` `ce01c7ed05a162e5069d1f075a4633fbcf7b9303` and exposes an APK.
 
-Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3), Phase 22 plan execution complete (5/5 plans), verification pending.
+Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed (2/2), Phase 21 closed (3/3), Phase 22 closed and verified (6/6). Milestone execution: 16/16 plans.
 
-## Decisions (Phase 22 Plan 05)
+## Decisions (Phase 22 Plans 05-06)
 
 - Removed the unused tar override instead of forcing tar v7; SDK 57 installs no tar package and tar v7 is a documented Expo prebuild incompatibility.
 - Scoped uuid 11.1.1 to xcode, clearing the sole residual audit advisory with zero accepted risks while preserving xcode's verified CommonJS v4 API.
+- Closed MOBILE-03 on SDK 57, the first boundary where Doctor accepts exact direct `@react-navigation/native@7.3.14`; preserved the historical SDK 56 rejection rather than rewriting hop history.
+- Kept application and focused-test imports on `expo-router/react-navigation`, so the direct manifest dependency does not create a second provider path.
+- Committed the exact two-file dependency graph before EAS submission and required the cloud record's full `gitCommitHash` to equal that commit.
 
 ## Performance Metrics
 
@@ -388,11 +391,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | 22 | 03 | 213 min | 3 | 9 | 2026-08-05 |
 | 22 | 04 | 214 min | 2 | 4 | 2026-08-05 |
 | 22 | 05 | 13 min | 2 | 3 | 2026-08-05 |
+| 22 | 06 | 33 min | 3 | 3 | 2026-08-06 |
 
 ## Session
 
-Last session: 2026-08-05T22:22:00Z
-Stopped At: Completed 22-05-PLAN.md (MOBILE-04 audit 0; scoped xcode/uuid override; Doctor, dependency tree, TypeScript, and Jest green). Phase verification intentionally not started; MOBILE-03 remains the explicit verifier gap.
+Last session: 2026-08-06T03:24:18Z
+Stopped At: Completed 22-06-PLAN.md and Phase 22 re-verification (MOBILE-03 exact direct dependency; matching finished EAS Android artifact; Doctor, dependency tree, TypeScript, Jest, and audit green). Phase 22 is passed 4/4 with no gaps; milestone v1.4 is ready for completion/audit.
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
@@ -427,4 +431,4 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (18 requirements: DOC-01..03, R
 
 **22-04 CLOSED (2026-08-05, commit `10a2c585`):** Hop 3/3 upgraded apps/mobile to the roadmap-locked exact Expo 57.0.9 / React Native 0.86.2 / React 19.2.3 / expo-router 57.0.10. The live Doctor matrix now recommends Expo 57.0.10, so only Expo itself is excluded from install-version validation while the other 20 Doctor checks remain active and green. Strict `npm ls --all` reconciliation added the missing SDK-compatible Router drawer, Worklets, Metro, web, and testing peers. Expo Router's navigation-fork imports and the `dynamic-import-node` Hermes guard remain intact. Gates: expo-doctor 20/20, TypeScript exit 0, Jest 45/45 suites and 412/412 tests, clean dependency tree, and EAS Android preview build `1d5ca7fb-e467-4d39-916f-434ba92b7b6e` FINISHED with an APK. The complete built graph was then committed as isolated rollback boundary `10a2c585`. An isolated clone proved direct `@react-navigation/native@7.3.14` now passes SDK 57 Doctor, but adding it after the build would break artifact/commit identity; MOBILE-03's literal direct-dependency wording therefore remains an explicit verifier gap for 22-05. See `22-04-SUMMARY.md`.
 
-**Next:** `/gsd:execute-phase 22` to continue with 22-05 (audit remediation and phase gate).
+**Next:** Run the milestone completion/audit workflow for v1.4; all five phases and 16/16 plans are closed and phase-verified.

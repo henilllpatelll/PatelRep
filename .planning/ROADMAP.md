@@ -68,7 +68,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 - [x] **Phase 19: RBAC Audit and Normalization** - Every router mutation is consistently role-gated, with drifted role-group constants consolidated into one verified source of truth (completed 2026-08-04)
 - [x] **Phase 20: Close Deferred v1.3 Verification Items** - The 4 human-verification items deferred from v1.3 are confirmed live in-browser against post-RBAC-fix code (completed 2026-08-05)
 - [x] **Phase 21: Dev/QA Test-Data Hygiene** - Dev/QA Supabase test data can be safely identified and cleaned via an `is_test` flag plus an allowlist- and dry-run-gated cleanup script (completed 2026-08-05)
-- [ ] **Phase 22: Expo SDK 54→57 Bump** - apps/mobile runs on Expo SDK 57.0.9 via sequential single-major hops, each gated by a green EAS Android build
+- [x] **Phase 22: Expo SDK 54→57 Bump** - apps/mobile runs on Expo SDK 57.0.9 via sequential single-major hops, each gated by a green EAS Android build (completed 2026-08-06)
 
 ## Phase Details
 
@@ -140,7 +140,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 - [x] 22-03-PLAN.md — Hop 2/3: SDK 55→56, react-navigation fork codemod + MOBILE-03 explicit dep, 4 gates + green EAS build
 - [x] 22-04-PLAN.md — Hop 3/3: SDK 56→57.0.9 (exact pin), 4 gates + green EAS build
 - [x] 22-05-PLAN.md — MOBILE-04: npm audit resolved-or-accepted-risk + refreshed overrides
-- [ ] 22-06-PLAN.md — MOBILE-03 gap closure: exact direct dependency + fresh SDK 57 local/EAS evidence
+- [x] 22-06-PLAN.md — MOBILE-03 gap closure: exact direct dependency + fresh SDK 57 local/EAS evidence
 
 ## Progress
 
@@ -168,4 +168,4 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.3-ROADMAP.md
 | 19. RBAC Audit and Normalization | v1.4 | Complete    | 2026-08-04 | - |
 | 20. Close Deferred v1.3 Verification Items | v1.4 | Complete    | 2026-08-05 | - |
 | 21. Dev/QA Test-Data Hygiene | v1.4 | Complete    | 2026-08-05 | - |
-| 22. Expo SDK 54→57 Bump | v1.4 | 5/6 | In Progress | - |
+| 22. Expo SDK 54→57 Bump | v1.4 | 6/6 | Complete | 2026-08-06 |
