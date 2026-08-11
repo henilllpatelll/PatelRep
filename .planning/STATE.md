@@ -2,41 +2,43 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: RBAC Enforcement Tooling
-status: roadmap_created
-last_updated: "2026-08-11T00:00:00Z"
-last_activity: 2026-08-11 -- ROADMAP.md created for v1.5 (Phases 23-24, RBAC-05..08, 100% coverage). Next: /gsd:plan-phase 23.
+status: phase_complete
+last_updated: "2026-08-11T23:44:49Z"
+last_activity: 2026-08-11 -- 24-01-PLAN.md executed: AST-based apps/api/scripts/check_bare_role_comparisons.py + rbac_bare_comparison_allowlist.json (25 entries) + pytest CI guard. Phase 24 complete. Both v1.5 phases (23-24) now closed. Next: /gsd:complete-milestone.
 progress:
   total_phases: 2
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 100
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 23 of 24 (Route×Role Permission Matrix) — CLOSED
+Phase: 24 of 24 (CI Guard Against New Bare Role Comparisons) — CLOSED
 Plan: 1 of 1 (complete)
-Status: Phase 23 complete, ready to plan Phase 24
-Last activity: 2026-08-11 — 23-01-PLAN.md executed: AST-based apps/api/scripts/generate_rbac_matrix.py generates apps/api/RBAC-MATRIX.md (30 routers, 286 routes), enforced by a new pytest CI drift guard. Next: /gsd:plan-phase 24.
+Status: Phase 24 complete. Both v1.5 phases (23, 24) closed — milestone ready to ship.
+Last activity: 2026-08-11 — 24-01-PLAN.md executed: AST-based apps/api/scripts/check_bare_role_comparisons.py (whole-router-module scan for bare current_user.role comparisons), apps/api/rbac_bare_comparison_allowlist.json (25 reasoned entries, 10 router files), apps/api/tests/smoke/test_bare_role_comparison_guard.py (RBAC-07 CI guard). Deliberate-drift proof passed (fail on introduction, pass + clean tree on revert). Full suite: 557/560 passed (3 pre-existing, unrelated management_roi.py failures), zero new failures. Next: /gsd:complete-milestone.
 
-Progress: [█░░░░░░░░░] 50% (1/2 phases in v1.5)
+Progress: [██████████] 100% (2/2 phases in v1.5)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** v1.5 RBAC Enforcement Tooling — Phase 23 (auto-generated route×role permission matrix), then Phase 24 (CI lint rule blocking new bare role comparisons, with an allowlist for confirmed-intentional pre-existing checks).
+**Current focus:** v1.5 RBAC Enforcement Tooling — both phases complete (Phase 23 auto-generated route×role permission matrix, Phase 24 CI lint rule blocking new bare role comparisons). Ready for `/gsd:complete-milestone`.
 
 ## v1.5 Roadmap
 
 Derived from `.planning/REQUIREMENTS.md` (4 requirements, RBAC-05..08). No research doc (explicitly skipped — internal tooling on an already-understood codebase). Continues phase numbering from v1.4's last phase (22) — v1.5 starts at Phase 23. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
 
-- Phase 23: Route×Role Permission Matrix — RBAC-05, RBAC-06 (generator script produces `RBAC-MATRIX.md` by introspecting live code, deterministic/re-runnable)
-- Phase 24: CI Guard Against New Bare Role Comparisons — RBAC-07, RBAC-08 (CI check blocks new bare role comparisons outside `require_role()`/`core/roles.py`; documented allowlist for `lost_found.py`/`safety.py`'s Phase-19-confirmed-intentional inline checks)
+- Phase 23: Route×Role Permission Matrix — RBAC-05, RBAC-06 (generator script produces `RBAC-MATRIX.md` by introspecting live code, deterministic/re-runnable) — CLOSED 2026-08-11
+- Phase 24: CI Guard Against New Bare Role Comparisons — RBAC-07, RBAC-08 (CI check blocks new bare role comparisons outside `require_role()`/`core/roles.py`; documented allowlist for `lost_found.py`/`safety.py`'s Phase-19-confirmed-intentional inline checks) — CLOSED 2026-08-11
+
+**24-01 CLOSED (2026-08-11, commits `ca3193f0`/`ca307814`):** `apps/api/scripts/check_bare_role_comparisons.py` (whole-router-module AST scan for bare `current_user.role` comparisons, reuses `generate_rbac_matrix.py`'s `parse_role_constants` rather than re-deriving it), `apps/api/rbac_bare_comparison_allowlist.json` (25 reasoned entries across 10 router files, matched by `(router, exact comparison text)` not line number), `apps/api/tests/smoke/test_bare_role_comparison_guard.py` (RBAC-07 CI enforcement, picked up automatically by `ci.yml`'s existing `pytest tests/smoke/` step). Dry run matched the plan's known inventory exactly (10 files, 25 occurrences); `safety.py:84` correctly excluded since it imports `MANAGER_ROLES` from `core.roles`. Deliberate-drift proof: a temporary bare comparison in `tasks.py` made the guard fail naming the file/line/code, `git checkout --` reverted cleanly, guard passed again. Full suite: 556 passed baseline → 557 passed with the 1 new test (3 pre-existing, unrelated `test_management_roi.py` failures unchanged). See `24-01-SUMMARY.md`.
 
 ## Previous milestones
 
