@@ -135,4 +135,4 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
 | 21. Dev/QA Test-Data Hygiene | v1.4 | 3/3 | Complete | 2026-08-05 |
 | 22. Expo SDK 54→57 Bump | v1.4 | 6/6 | Complete | 2026-08-06 |
 | 23. Route×Role Permission Matrix | v1.5 | 1/1 | Complete | 2026-08-11 |
-| 24. CI Guard Against New Bare Role Comparisons | v1.5 | 1/1 | Complete | 2026-08-11 |
+| 24. CI Guard Against New Bare Role Comparisons | v1.5 | Complete    | 2026-08-11 | 2026-08-11 |

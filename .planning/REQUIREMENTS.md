@@ -9,10 +9,10 @@ Closes the RBAC tooling gap deferred from Phase 19 (v1.4): a one-time audit (`RB
 
 ### RBAC Tooling
 
-- [ ] **RBAC-05**: A generated `RBAC-MATRIX.md` (or equivalent) artifact exists, listing every route in `apps/api/routers/` with its required role(s) — "none" for identity/self-service endpoints, the specific role tuple/constant name otherwise — produced by introspecting live code, not hand-maintained prose
-- [ ] **RBAC-06**: The matrix is produced by a re-runnable script (checked into the repo, e.g. `scripts/` or `apps/api/scripts/`) that a developer or CI can invoke on demand; running it against unchanged code reproduces the same output (no manual editing required to stay accurate)
-- [ ] **RBAC-07**: A CI check fails the build when a router file adds a new bare role-comparison (`current_user.role == "..."`, `current_user.role in {...}`/`not in {...}`, equivalent literal-role-set patterns) that isn't a call to `require_role()` and isn't sourced from an imported `core/roles.py` constant
-- [ ] **RBAC-08**: Pre-existing inline role checks that are intentional (e.g. `lost_found.py`'s custody-state set, `safety.py`'s self-service exception — both confirmed correct in the Phase 19 audit) are handled via an explicit, documented allowlist rather than causing the new CI check to fail on landing or being silently excluded file-wide
+- [x] **RBAC-05**: A generated `RBAC-MATRIX.md` (or equivalent) artifact exists, listing every route in `apps/api/routers/` with its required role(s) — "none" for identity/self-service endpoints, the specific role tuple/constant name otherwise — produced by introspecting live code, not hand-maintained prose
+- [x] **RBAC-06**: The matrix is produced by a re-runnable script (checked into the repo, e.g. `scripts/` or `apps/api/scripts/`) that a developer or CI can invoke on demand; running it against unchanged code reproduces the same output (no manual editing required to stay accurate)
+- [x] **RBAC-07**: A CI check fails the build when a router file adds a new bare role-comparison (`current_user.role == "..."`, `current_user.role in {...}`/`not in {...}`, equivalent literal-role-set patterns) that isn't a call to `require_role()` and isn't sourced from an imported `core/roles.py` constant
+- [x] **RBAC-08**: Pre-existing inline role checks that are intentional (e.g. `lost_found.py`'s custody-state set, `safety.py`'s self-service exception — both confirmed correct in the Phase 19 audit) are handled via an explicit, documented allowlist rather than causing the new CI check to fail on landing or being silently excluded file-wide
 
 ## v2 Requirements
 
@@ -30,10 +30,10 @@ None identified — this milestone's scope is fully contained in v1.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RBAC-05 | Phase 23 | Pending |
-| RBAC-06 | Phase 23 | Pending |
-| RBAC-07 | Phase 24 | Pending |
-| RBAC-08 | Phase 24 | Pending |
+| RBAC-05 | Phase 23 | Complete |
+| RBAC-06 | Phase 23 | Complete |
+| RBAC-07 | Phase 24 | Complete |
+| RBAC-08 | Phase 24 | Complete |
 
 **Coverage:**
 - v1 requirements: 4 total
