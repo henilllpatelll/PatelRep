@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: RBAC Enforcement Tooling
-status: defining_requirements
+status: roadmap_created
 last_updated: "2026-08-11T00:00:00Z"
-last_activity: 2026-08-11 -- Milestone v1.5 "RBAC Enforcement Tooling" started via /gsd-new-milestone. User directed autonomous execution to completion.
+last_activity: 2026-08-11 -- ROADMAP.md created for v1.5 (Phases 23-24, RBAC-05..08, 100% coverage). Next: /gsd:plan-phase 23.
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,26 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-11 — Milestone v1.5 started
+Phase: 23 of 24 (Route×Role Permission Matrix)
+Plan: — (ready to plan)
+Status: Ready to plan
+Last activity: 2026-08-11 — ROADMAP.md created for v1.5 (Phases 23-24)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** v1.5 RBAC Enforcement Tooling — auto-generated route×role permission matrix + CI lint rule blocking new bare role comparisons.
+**Current focus:** v1.5 RBAC Enforcement Tooling — Phase 23 (auto-generated route×role permission matrix), then Phase 24 (CI lint rule blocking new bare role comparisons, with an allowlist for confirmed-intentional pre-existing checks).
+
+## v1.5 Roadmap
+
+Derived from `.planning/REQUIREMENTS.md` (4 requirements, RBAC-05..08). No research doc (explicitly skipped — internal tooling on an already-understood codebase). Continues phase numbering from v1.4's last phase (22) — v1.5 starts at Phase 23. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
+
+- Phase 23: Route×Role Permission Matrix — RBAC-05, RBAC-06 (generator script produces `RBAC-MATRIX.md` by introspecting live code, deterministic/re-runnable)
+- Phase 24: CI Guard Against New Bare Role Comparisons — RBAC-07, RBAC-08 (CI check blocks new bare role comparisons outside `require_role()`/`core/roles.py`; documented allowlist for `lost_found.py`/`safety.py`'s Phase-19-confirmed-intentional inline checks)
 
 ## Previous milestones
 

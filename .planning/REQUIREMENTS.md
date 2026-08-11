@@ -28,20 +28,18 @@ None identified — this milestone's scope is fully contained in v1.
 
 ## Traceability
 
-Filled in during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RBAC-05 | TBD | Pending |
-| RBAC-06 | TBD | Pending |
-| RBAC-07 | TBD | Pending |
-| RBAC-08 | TBD | Pending |
+| RBAC-05 | Phase 23 | Pending |
+| RBAC-06 | Phase 23 | Pending |
+| RBAC-07 | Phase 24 | Pending |
+| RBAC-08 | Phase 24 | Pending |
 
 **Coverage:**
 - v1 requirements: 4 total
-- Mapped to phases: 0
-- Unmapped: 4 ⚠️ (roadmap not yet created)
+- Mapped to phases: 4
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-11*
-*Last updated: 2026-08-11 after initial definition*
+*Last updated: 2026-08-11 after roadmap creation (Phases 23-24)*

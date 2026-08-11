@@ -7,6 +7,7 @@
 - ✅ **v1.2 Stabilization Pass** — Phases 12-14 (shipped 2026-08-03). Full details: `.planning/milestones/v1.2-ROADMAP.md`
 - ✅ **v1.3 Billing, Work Order Archival, and Backlog Cleanup** — Phases 15-17 (shipped 2026-08-04). Full details: `.planning/milestones/v1.3-ROADMAP.md`
 - ✅ **v1.4 Platform and Ops Hardening** — Phases 18-22 (shipped 2026-08-11). Full details: `.planning/milestones/v1.4-ROADMAP.md`
+- 🚧 **v1.5 RBAC Enforcement Tooling** — Phases 23-24 (in progress, started 2026-08-11)
 
 ## Phases
 
@@ -73,6 +74,37 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
 
 </details>
 
+### 🚧 v1.5 RBAC Enforcement Tooling (In Progress, started 2026-08-11)
+
+**Milestone Goal:** Close the RBAC tooling gap deferred from Phase 19 — make role-check drift structurally hard to reintroduce, instead of relying on periodic manual audits.
+
+- [ ] **Phase 23: Route×Role Permission Matrix** - An auto-generated `RBAC-MATRIX.md` lists every route's required role(s), produced by a re-runnable, deterministic script instead of hand-maintained prose
+- [ ] **Phase 24: CI Guard Against New Bare Role Comparisons** - A CI check fails the build when a router adds a new bare role-comparison outside `require_role()`/`core/roles.py`, with pre-existing intentional inline checks handled via a documented allowlist
+
+## Phase Details
+
+### Phase 23: Route×Role Permission Matrix
+**Goal**: Every API route's required role(s) are documented in an accurate, auto-generated artifact that a developer can regenerate on demand rather than hand-maintain, replacing the one-time manual `RBAC-AUDIT.md` inventory with a living one.
+**Depends on**: Nothing (first phase in milestone; introspects current code as-is, no dependency on Phase 24's lint check)
+**Requirements**: RBAC-05, RBAC-06
+**Success Criteria** (what must be TRUE):
+  1. Running the generator script produces an `RBAC-MATRIX.md` (or equivalent) artifact listing every route in `apps/api/routers/` with its required role(s) — "none" for identity/self-service endpoints, the specific role tuple/constant name otherwise.
+  2. The matrix is derived by introspecting live code (`require_role()` calls and `core/roles.py`-sourced constants), not hand-typed prose — spot-checked against `.planning/phases/19-rbac-audit-and-normalization/RBAC-AUDIT.md`'s known 30-router inventory for consistency.
+  3. Running the script twice against unchanged code reproduces byte-identical output (deterministic, no manual editing required to stay accurate).
+  4. The script is checked into the repo (e.g. `apps/api/scripts/`) and can be invoked with a single documented command by a developer or CI.
+**Plans**: TBD
+
+### Phase 24: CI Guard Against New Bare Role Comparisons
+**Goal**: A router file that adds a new bare role-comparison outside `require_role()`/an imported `core/roles.py` constant fails CI, while the pre-existing intentional inline checks the Phase 19 audit already confirmed correct continue to pass via an explicit, documented allowlist.
+**Depends on**: Phase 23 (reuses the same AST-based introspection approach for identifying role-check call sites across `apps/api/routers/`; not a hard technical dependency, but shares enough parsing logic to sequence after)
+**Requirements**: RBAC-07, RBAC-08
+**Success Criteria** (what must be TRUE):
+  1. A CI check (script + workflow/pre-commit step) scans `apps/api/routers/` and fails the build when it finds a new bare role-comparison pattern (`current_user.role == "..."`, `current_user.role in {...}`/`not in {...}`, equivalent literal-role-set patterns) that isn't a call to `require_role()` and isn't sourced from an imported `core/roles.py` constant.
+  2. Running the check against the current, Phase-19-audited codebase passes cleanly with zero false positives — `lost_found.py`'s custody-state set and `safety.py`'s self-service exception are both confirmed-correct per the Phase 19 audit and pass via an explicit allowlist entry, not a blanket file exclusion.
+  3. Introducing a new bare role-comparison in a router file (proven via a deliberate test case) causes the check to fail, demonstrating it actually blocks drift rather than merely documenting it.
+  4. The allowlist is a checked-in, reviewable artifact (e.g. JSON/YAML) with an inline explanation for each entry, so a reviewer can see why it's intentional rather than a silent carve-out.
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -100,3 +132,5 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
 | 20. Close Deferred v1.3 Verification Items | v1.4 | 2/2 | Complete | 2026-08-05 |
 | 21. Dev/QA Test-Data Hygiene | v1.4 | 3/3 | Complete | 2026-08-05 |
 | 22. Expo SDK 54→57 Bump | v1.4 | 6/6 | Complete | 2026-08-06 |
+| 23. Route×Role Permission Matrix | v1.5 | 0/TBD | Not started | - |
+| 24. CI Guard Against New Bare Role Comparisons | v1.5 | 0/TBD | Not started | - |
