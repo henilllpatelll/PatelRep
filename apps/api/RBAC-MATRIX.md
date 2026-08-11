@@ -6,7 +6,7 @@
 python apps/api/scripts/generate_rbac_matrix.py
 ```
 
-Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and its source location -- introspected via AST from `require_role(...)` call sites and `core/roles.py` constants, matching Phase 19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. `none` = any authenticated staff member (no role restriction). `role-restricted (inline, see source)` = no `require_role(...)` dependency, but the route body has an inline `if <cond involving .role>: raise HTTPException(...)` gate that denies access to non-matching roles (see the `Source` column for the resolved condition) -- distinct from an inline `.role` comparison that only filters/scopes a query or response without denying access, which remains `none`. `N/A (not role-based)` = gated by a separate auth mechanism (cron secret, webhook signature) instead of a role. A pytest drift guard (`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file ever goes stale relative to the code it describes.
+Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and its source location -- introspected via AST from `require_role(...)` call sites and `core/roles.py` constants, matching Phase 19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. `none` = any authenticated staff member (no role restriction). `role-restricted (inline, see source)` = no `require_role(...)` dependency, but the route body has an inline `if <cond involving .role>: raise HTTPException(...)` gate that denies access to non-matching roles (see the `Source` column for the resolved condition) -- distinct from an inline `.role` comparison that only filters/scopes a query or response without denying access, which remains `none`. `N/A (not role-based)` = gated by a separate, deliberate auth mechanism (cron secret, webhook signature) instead of a role. `UNVERIFIED (no auth dependency detected)` = no `require_role(...)`, `verify_cron(...)`, or `get_current_user*` dependency was found at all -- flag for review, this may be a route with no authentication. A pytest drift guard (`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file ever goes stale relative to the code it describes.
 
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
@@ -279,10 +279,10 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | tasks.py | /v1/tasks/{task_id} | DELETE | none |  |
 | tasks.py | /v1/tasks/{task_id}/comments | POST | none |  |
 | tasks.py | /v1/tasks/batch | POST | none |  |
-| webhooks.py | /v1/webhooks/opera | POST | N/A (not role-based) |  |
-| webhooks.py | /v1/webhooks/stripe | POST | N/A (not role-based) |  |
-| webhooks.py | /v1/webhooks/twilio-sms | POST | N/A (not role-based) |  |
-| webhooks.py | /v1/webhooks/twilio-status | POST | N/A (not role-based) |  |
+| webhooks.py | /v1/webhooks/opera | POST | UNVERIFIED (no auth dependency detected) |  |
+| webhooks.py | /v1/webhooks/stripe | POST | UNVERIFIED (no auth dependency detected) |  |
+| webhooks.py | /v1/webhooks/twilio-sms | POST | UNVERIFIED (no auth dependency detected) |  |
+| webhooks.py | /v1/webhooks/twilio-status | POST | UNVERIFIED (no auth dependency detected) |  |
 | work_orders.py | /v1/work-orders | POST | none |  |
 | work_orders.py | /v1/work-orders | GET | none | inline: current_user.role == 'engineer' [L193] |
 | work_orders.py | /v1/work-orders/{wo_id} | GET | none |  |

@@ -357,7 +357,14 @@ def _extract_route_rows(
                 required_roles_display = "none"
             source_parts = list(gate_notes)
         else:
-            required_roles_display = "N/A (not role-based)"
+            # WR-01: distinct from the verify_cron(...) case above -- this route has no
+            # require_role(...), no verify_cron(...), and no get_current_user*
+            # dependency at all, i.e. no auth mechanism was detected by this scanner.
+            # Do not reuse "N/A (not role-based)" here: that label is reserved for a
+            # deliberate non-role auth mechanism (cron secret, webhook signature) and
+            # should read as reassuring, not blend a potential missing-auth defect into
+            # the same bucket.
+            required_roles_display = "UNVERIFIED (no auth dependency detected)"
             source_parts = []
 
         source_parts.extend(inline_notes)
@@ -428,8 +435,11 @@ def render_markdown(rows: list[dict], api_prefix: str) -> str:
         "gate that denies access to non-matching roles (see the `Source` column for the "
         "resolved condition) -- distinct from an inline `.role` comparison that only "
         "filters/scopes a query or response without denying access, which remains `none`. "
-        '`N/A (not role-based)` = gated by a separate auth mechanism (cron secret, '
-        "webhook signature) instead of a role. A pytest drift guard "
+        '`N/A (not role-based)` = gated by a separate, deliberate auth mechanism (cron '
+        "secret, webhook signature) instead of a role. "
+        '`UNVERIFIED (no auth dependency detected)` = no `require_role(...)`, '
+        "`verify_cron(...)`, or `get_current_user*` dependency was found at all -- flag "
+        "for review, this may be a route with no authentication. A pytest drift guard "
         "(`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file "
         "ever goes stale relative to the code it describes.",
         "",
