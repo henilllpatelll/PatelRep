@@ -112,30 +112,49 @@ def find_bare_role_comparisons(
     return violations
 
 
-def load_allowlist(allowlist_path: Path) -> set[tuple[str, str]]:
-    """Read the allowlist JSON, return a set of (router filename, exact comparison
-    text) pairs. A missing file means "nothing is allowlisted yet" -- an empty set,
-    not an error -- so this is safe to call before Task 2 populates the file."""
+def load_allowlist(allowlist_path: Path) -> dict[tuple[str, str], int]:
+    """Read the allowlist JSON, return a count of allowlisted occurrences per
+    (router filename, exact comparison text) key. A missing file means "nothing is
+    allowlisted yet" -- an empty dict, not an error -- so this is safe to call before
+    Task 2 populates the file.
+
+    Matching is intentionally line-number-agnostic (unrelated edits elsewhere in the
+    file shouldn't false-positive), but occurrence-count-aware: each duplicate entry
+    for the same (router, code) key raises the number of allowed occurrences of that
+    exact text by one, so a genuinely new occurrence beyond the allowlisted count is
+    still flagged. See CR-01 in the phase 24 code review."""
     if not allowlist_path.exists():
-        return set()
+        return {}
     data = json.loads(allowlist_path.read_text(encoding="utf-8"))
-    return {(entry["router"], entry["code"]) for entry in data.get("entries", [])}
+    counts: dict[tuple[str, str], int] = {}
+    for entry in data.get("entries", []):
+        key = (entry["router"], entry["code"])
+        counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def find_violations(api_root: Path, allowlist_path: Path) -> list[dict]:
     """Every bare role comparison in apps/api/routers/*.py not present in the
-    allowlist, sorted by (router, line) for stable, readable output."""
+    allowlist, sorted by (router, line) for stable, readable output.
+
+    Matching is per-occurrence: the Nth time a given (router, code) text is seen in a
+    live scan is only covered if the allowlist has at least N entries for that same
+    key. This preserves tolerance for line-number drift (the original design goal of
+    matching on text rather than line) while catching a new, unreviewed occurrence
+    whose text happens to duplicate an already-allowlisted one elsewhere in the file."""
     core_roles = generate_rbac_matrix.parse_role_constants(api_root / "core" / "roles.py")
     router_files = sorted(
         p for p in (api_root / "routers").glob("*.py") if p.name != "__init__.py"
     )
-    allowlist = load_allowlist(allowlist_path)
+    allowlist_counts = load_allowlist(allowlist_path)
+    seen_counts: dict[tuple[str, str], int] = {}
 
     violations: list[dict] = []
     for router_path in router_files:
         for violation in find_bare_role_comparisons(router_path, core_roles):
             key = (violation["router"], violation["code"])
-            if key not in allowlist:
+            seen_counts[key] = seen_counts.get(key, 0) + 1
+            if seen_counts[key] > allowlist_counts.get(key, 0):
                 violations.append(violation)
 
     violations.sort(key=lambda v: (v["router"], v["line"]))
