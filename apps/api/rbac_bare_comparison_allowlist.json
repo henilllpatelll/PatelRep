@@ -1,0 +1,154 @@
+{
+  "entries": [
+    {
+      "router": "clean_sessions.py",
+      "line": 66,
+      "code": "current_user.role in ('gm', 'housekeeping_supervisor')",
+      "reason": "Legitimate mixed pattern, session-management self-scope narrowing (RBAC-AUDIT.md clean_sessions.py row)."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 213,
+      "code": "current_user.role not in MESSAGE_ROLES",
+      "reason": "MESSAGE_ROLES gate on messaging actions; Phase 23 CR-01 confirmed genuine denial gate, not filter-only."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 300,
+      "code": "current_user.role not in MESSAGE_ROLES",
+      "reason": "MESSAGE_ROLES gate on messaging actions; Phase 23 CR-01 confirmed genuine denial gate, not filter-only."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 334,
+      "code": "current_user.role not in MESSAGE_ROLES",
+      "reason": "MESSAGE_ROLES gate on messaging actions; Phase 23 CR-01 confirmed genuine denial gate, not filter-only."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 375,
+      "code": "current_user.role not in {'gm', 'front_desk'}",
+      "reason": "Compensation-approval role check (RBAC-AUDIT.md guest_requests.py row)."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 382,
+      "code": "current_user.role == 'gm'",
+      "reason": "Data-shaping ternary reading role for the approved_by field, not a denial gate, but still a bare comparison per RBAC-07's literal wording -- reviewed correct."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 444,
+      "code": "current_user.role not in SLA_POLICY_ROLES",
+      "reason": "SLA_POLICY_ROLES gate incl. the DELETE route Phase 19's RBAC-03 review specifically closed as a gap-fix."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 476,
+      "code": "current_user.role not in SLA_POLICY_ROLES",
+      "reason": "SLA_POLICY_ROLES gate incl. the DELETE route Phase 19's RBAC-03 review specifically closed as a gap-fix."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 493,
+      "code": "current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'}",
+      "reason": "Accessible-room-features gate (RBAC-AUDIT.md guest_requests.py row)."
+    },
+    {
+      "router": "guest_requests.py",
+      "line": 590,
+      "code": "current_user.role not in SLA_POLICY_ROLES",
+      "reason": "SLA_POLICY_ROLES gate incl. the DELETE route Phase 19's RBAC-03 review specifically closed as a gap-fix."
+    },
+    {
+      "router": "late_checkout.py",
+      "line": 61,
+      "code": "current_user.role == 'housekeeper'",
+      "reason": "Self-scope narrowing to own-room actions (RBAC-AUDIT.md: \"Mixed -- legitimate\")."
+    },
+    {
+      "router": "logbook.py",
+      "line": 124,
+      "code": "current_user.role in ('gm', 'housekeeping_supervisor', 'engineer')",
+      "reason": "Genuine denial gate: is_privileged feeds `if not (is_author or is_privileged): raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py::test_inline_role_gated_routes_are_not_labeled_none, which lists this route as role-gated."
+    },
+    {
+      "router": "logbook.py",
+      "line": 176,
+      "code": "current_user.role in ('gm', 'housekeeping_supervisor', 'engineer')",
+      "reason": "Genuine denial gate: is_privileged feeds `if not (is_author or is_privileged): raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py::test_inline_role_gated_routes_are_not_labeled_none, which lists this route as role-gated."
+    },
+    {
+      "router": "lost_found.py",
+      "line": 170,
+      "code": "current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}",
+      "reason": "Custody-state gate (RBAC-AUDIT.md lost_found.py row)."
+    },
+    {
+      "router": "lost_found.py",
+      "line": 218,
+      "code": "current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}",
+      "reason": "One of the exact PATCH/DELETE gaps Phase 19's RBAC-03 review found and closed this milestone (\"2 GAPS FOUND AND CLOSED THIS PHASE\")."
+    },
+    {
+      "router": "lost_found.py",
+      "line": 256,
+      "code": "current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}",
+      "reason": "One of the exact PATCH/DELETE gaps Phase 19's RBAC-03 review found and closed this milestone (\"2 GAPS FOUND AND CLOSED THIS PHASE\")."
+    },
+    {
+      "router": "rooms.py",
+      "line": 51,
+      "code": "current_user.role in UNDO_ALL_ROLES",
+      "reason": "UNDO_ALL_ROLES undo-permission gate (RBAC-AUDIT.md rooms.py row)."
+    },
+    {
+      "router": "rooms.py",
+      "line": 55,
+      "code": "current_user.role == 'housekeeper'",
+      "reason": "Housekeeper self-only undo exception (RBAC-AUDIT.md rooms.py row)."
+    },
+    {
+      "router": "rooms.py",
+      "line": 198,
+      "code": "current_user.role == 'gm'",
+      "reason": "gm-only force-override check (RBAC-AUDIT.md rooms.py row)."
+    },
+    {
+      "router": "scheduling.py",
+      "line": 278,
+      "code": "current_user.role in SUPERVISOR_ROLES",
+      "reason": "Genuine denial gate: is_supervisor feeds `if not is_own and not is_supervisor: raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py's classification of the clock-in route as role-gated."
+    },
+    {
+      "router": "scheduling.py",
+      "line": 311,
+      "code": "current_user.role in SUPERVISOR_ROLES",
+      "reason": "Genuine denial gate: is_supervisor feeds `if not is_own and not is_supervisor: raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py's classification of the clock-out route as role-gated."
+    },
+    {
+      "router": "tasks.py",
+      "line": 142,
+      "code": "current_user.role == 'housekeeper'",
+      "reason": "Self-scope narrowing (RBAC-AUDIT.md: \"Mixed -- legitimate\")."
+    },
+    {
+      "router": "work_orders.py",
+      "line": 38,
+      "code": "current_user.role != 'engineer'",
+      "reason": "Engineer self-assignment restriction helper (RBAC-AUDIT.md: \"sophisticated... engineer-specific self-assignment restrictions layered under the route gate\")."
+    },
+    {
+      "router": "work_orders.py",
+      "line": 66,
+      "code": "current_user.role == 'engineer'",
+      "reason": "Engineer self-assignment restriction helper (RBAC-AUDIT.md: \"sophisticated... engineer-specific self-assignment restrictions layered under the route gate\")."
+    },
+    {
+      "router": "work_orders.py",
+      "line": 193,
+      "code": "current_user.role == 'engineer'",
+      "reason": "Engineer's own-work-order list-scoping filter (RBAC-AUDIT.md work_orders.py row context)."
+    }
+  ]
+}
