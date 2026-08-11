@@ -6,7 +6,7 @@
 python apps/api/scripts/generate_rbac_matrix.py
 ```
 
-Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and its source location -- introspected via AST from `require_role(...)` call sites and `core/roles.py` constants, matching Phase 19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. `none` = any authenticated staff member (no role restriction). `N/A (not role-based)` = gated by a separate auth mechanism (cron secret, webhook signature) instead of a role. A pytest drift guard (`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file ever goes stale relative to the code it describes.
+Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and its source location -- introspected via AST from `require_role(...)` call sites and `core/roles.py` constants, matching Phase 19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. `none` = any authenticated staff member (no role restriction). `role-restricted (inline, see source)` = no `require_role(...)` dependency, but the route body has an inline `if <cond involving .role>: raise HTTPException(...)` gate that denies access to non-matching roles (see the `Source` column for the resolved condition) -- distinct from an inline `.role` comparison that only filters/scopes a query or response without denying access, which remains `none`. `N/A (not role-based)` = gated by a separate auth mechanism (cron secret, webhook signature) instead of a role. A pytest drift guard (`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file ever goes stale relative to the code it describes.
 
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
@@ -86,19 +86,19 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | feedback.py | /v1/feedback | GET | gm | require_role('gm') [L131] |
 | guest_requests.py | /v1/guest-requests | POST | none |  |
 | guest_requests.py | /v1/guest-requests/{request_id}/transition | POST | none |  |
-| guest_requests.py | /v1/guest-requests/{request_id}/messages | POST | none | inline: current_user.role not in MESSAGE_ROLES [L213] |
-| guest_requests.py | /v1/guest-requests/{request_id}/messages | GET | none | inline: current_user.role not in MESSAGE_ROLES [L300] |
-| guest_requests.py | /v1/guest-requests/{request_id}/satisfaction | POST | none | inline: current_user.role not in MESSAGE_ROLES [L334] |
-| guest_requests.py | /v1/guest-requests/{request_id}/recovery-actions | POST | none | inline: current_user.role not in {'gm', 'front_desk'} [L375]; inline: current_user.role == 'gm' [L382] |
+| guest_requests.py | /v1/guest-requests/{request_id}/messages | POST | role-restricted (inline, see source) | gate: if current_user.role not in MESSAGE_ROLES: raise HTTPException(...) [L213]; inline: current_user.role not in MESSAGE_ROLES [L213] |
+| guest_requests.py | /v1/guest-requests/{request_id}/messages | GET | role-restricted (inline, see source) | gate: if current_user.role not in MESSAGE_ROLES: raise HTTPException(...) [L300]; inline: current_user.role not in MESSAGE_ROLES [L300] |
+| guest_requests.py | /v1/guest-requests/{request_id}/satisfaction | POST | role-restricted (inline, see source) | gate: if current_user.role not in MESSAGE_ROLES: raise HTTPException(...) [L334]; inline: current_user.role not in MESSAGE_ROLES [L334] |
+| guest_requests.py | /v1/guest-requests/{request_id}/recovery-actions | POST | role-restricted (inline, see source) | gate: if requires_approval and current_user.role not in {'gm', 'front_desk'}: raise HTTPException(...) [L375]; inline: current_user.role not in {'gm', 'front_desk'} [L375]; inline: current_user.role == 'gm' [L382] |
 | guest_requests.py | /v1/guest-requests/metrics/summary | GET | none |  |
 | guest_requests.py | /v1/guest-requests/accessibility/features | GET | none |  |
 | guest_requests.py | /v1/guest-requests/sla-policies | GET | none |  |
-| guest_requests.py | /v1/guest-requests/sla-policies | POST | none | inline: current_user.role not in SLA_POLICY_ROLES [L444] |
-| guest_requests.py | /v1/guest-requests/sla-policies/{policy_id} | DELETE | none | inline: current_user.role not in SLA_POLICY_ROLES [L476] |
-| guest_requests.py | /v1/guest-requests/accessibility/features | PUT | none | inline: current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'} [L493] |
+| guest_requests.py | /v1/guest-requests/sla-policies | POST | role-restricted (inline, see source) | gate: if current_user.role not in SLA_POLICY_ROLES: raise HTTPException(...) [L444]; inline: current_user.role not in SLA_POLICY_ROLES [L444] |
+| guest_requests.py | /v1/guest-requests/sla-policies/{policy_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in SLA_POLICY_ROLES: raise HTTPException(...) [L476]; inline: current_user.role not in SLA_POLICY_ROLES [L476] |
+| guest_requests.py | /v1/guest-requests/accessibility/features | PUT | role-restricted (inline, see source) | gate: if current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'}: raise HTTPException(...) [L493]; inline: current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'} [L493] |
 | guest_requests.py | /v1/guest-requests | GET | none |  |
 | guest_requests.py | /v1/guest-requests/{request_id} | PATCH | none |  |
-| guest_requests.py | /v1/guest-requests/{request_id} | DELETE | none | inline: current_user.role not in SLA_POLICY_ROLES [L590] |
+| guest_requests.py | /v1/guest-requests/{request_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in SLA_POLICY_ROLES: raise HTTPException(...) [L590]; inline: current_user.role not in SLA_POLICY_ROLES [L590] |
 | hotels.py | /v1/hotels | POST | none |  |
 | hotels.py | /v1/hotels/{hotel_id} | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_STAFF_ROLES) [L117] |
 | hotels.py | /v1/hotels/{hotel_id} | PATCH | gm | require_role('gm') [L134] |
@@ -151,8 +151,8 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | late_checkout.py | /v1/late-checkout/requests/{request_id} | PATCH | front_desk, gm, housekeeping_supervisor | require_role('front_desk', 'gm', 'housekeeping_supervisor') [L73] |
 | logbook.py | /v1/logbook/entries | POST | none |  |
 | logbook.py | /v1/logbook/entries | GET | none |  |
-| logbook.py | /v1/logbook/entries/{entry_id} | PATCH | none | inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L124] |
-| logbook.py | /v1/logbook/entries/{entry_id} | DELETE | none | inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L176] |
+| logbook.py | /v1/logbook/entries/{entry_id} | PATCH | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L125]; inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L124] |
+| logbook.py | /v1/logbook/entries/{entry_id} | DELETE | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L177]; inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L176] |
 | logbook.py | /v1/logbook/shift-summary/{shift_id} | GET | none |  |
 | logbook.py | /v1/logbook/shift-summary/generate | POST | engineer, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer') [L209] |
 | lost_found.py | /v1/lost-found/upload-photo | POST | none |  |
@@ -160,9 +160,9 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | lost_found.py | /v1/lost-found | GET | none |  |
 | lost_found.py | /v1/lost-found/{item_id} | GET | none |  |
 | lost_found.py | /v1/lost-found/{item_id}/custody-events | GET | none |  |
-| lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | none | inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L170] |
-| lost_found.py | /v1/lost-found/{item_id} | PATCH | none | inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L218] |
-| lost_found.py | /v1/lost-found/{item_id} | DELETE | none | inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L256] |
+| lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}: raise HTTPException(...) [L170]; inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L170] |
+| lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}: raise HTTPException(...) [L218]; inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L218] |
+| lost_found.py | /v1/lost-found/{item_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}: raise HTTPException(...) [L256]; inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L256] |
 | management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L132] |
 | management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L153] |
 | management_roi.py | /v1/reports/roi/housekeeping-efficiency | GET | gm | require_role('gm') [L186] |
@@ -243,8 +243,8 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | scheduling.py | /v1/schedules/assignments | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L198] |
 | scheduling.py | /v1/schedules/assignments/bulk | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L214] |
 | scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L246] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | none | inline: current_user.role in SUPERVISOR_ROLES [L278] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | none | inline: current_user.role in SUPERVISOR_ROLES [L311] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L280]; inline: current_user.role in SUPERVISOR_ROLES [L278] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L313]; inline: current_user.role in SUPERVISOR_ROLES [L311] |
 | scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L334] |
 | shifts.py | /v1/shifts/current | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L38] |
 | shifts.py | /v1/shifts/start | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L50] |

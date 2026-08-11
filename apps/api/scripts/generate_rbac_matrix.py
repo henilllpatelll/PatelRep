@@ -181,6 +181,82 @@ def _iter_default_exprs(func: ast.AST):
             yield default
 
 
+def _expr_involves_role(node: ast.AST, taint_vars: set[str]) -> bool:
+    """True if `node`'s subtree contains a `<name>.role` comparison directly, or a
+    reference to a boolean variable previously derived from one (see `taint_vars`,
+    populated by `_collect_role_gated_ifs`'s fixed-point pass)."""
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Compare):
+            left = sub.left
+            if isinstance(left, ast.Attribute) and left.attr == "role":
+                return True
+        if isinstance(sub, ast.Name) and sub.id in taint_vars:
+            return True
+    return False
+
+
+def _stmts_raise_http_exception(stmts: list[ast.stmt]) -> bool:
+    """True if any statement in `stmts` (searched recursively) raises HTTPException(...)."""
+    for stmt in stmts:
+        for sub in ast.walk(stmt):
+            if not isinstance(sub, ast.Raise) or not isinstance(sub.exc, ast.Call):
+                continue
+            func = sub.exc.func
+            if isinstance(func, ast.Name) and func.id == "HTTPException":
+                return True
+            if isinstance(func, ast.Attribute) and func.attr == "HTTPException":
+                return True
+    return False
+
+
+def _collect_role_gated_ifs(func: ast.AST) -> list[ast.If]:
+    """Find `if <cond involving .role>: raise HTTPException(...)` gate blocks within a
+    route function -- these are genuine authorization denials, not query/data filters.
+
+    Two-step approach:
+    1. Fixed-point taint pass: a simple `name = <expr>` assignment is "role-tainted" if
+       its RHS involves a `.role` comparison or another already-tainted name (handles the
+       common `is_supervisor = current_user.role in X; is_own = ...; if not is_own and not
+       is_supervisor: raise HTTPException(...)` pattern used in e.g. scheduling.py and
+       logbook.py, where the role check is factored into an intermediate boolean before
+       the gating `if`).
+    2. Any `ast.If` whose `test` involves role (directly or via a tainted name) AND whose
+       `body` or `orelse` raises `HTTPException(...)` is a real gate.
+
+    This is a heuristic, not a full data-flow analysis (see WR-02 in 23-REVIEW.md for a
+    documented limitation: checks factored into a separately-defined helper function are
+    not seen). It is intentionally conservative: a role comparison used only to filter a
+    query or scope a response (no raise in the same `if`) is correctly left undetected,
+    e.g. `tasks.py`'s housekeeper query-scoping and `safety.py`'s response-list filtering.
+    """
+    taint_vars: set[str] = set()
+    for _ in range(5):
+        changed = False
+        for sub in ast.walk(func):
+            if not (
+                isinstance(sub, ast.Assign)
+                and len(sub.targets) == 1
+                and isinstance(sub.targets[0], ast.Name)
+            ):
+                continue
+            name = sub.targets[0].id
+            if name not in taint_vars and _expr_involves_role(sub.value, taint_vars):
+                taint_vars.add(name)
+                changed = True
+        if not changed:
+            break
+
+    gated_ifs: list[ast.If] = []
+    for sub in ast.walk(func):
+        if not isinstance(sub, ast.If):
+            continue
+        if not _expr_involves_role(sub.test, taint_vars):
+            continue
+        if _stmts_raise_http_exception(sub.body) or _stmts_raise_http_exception(sub.orelse):
+            gated_ifs.append(sub)
+    return gated_ifs
+
+
 def _extract_route_rows(
     tree: ast.Module,
     router_filename: str,
@@ -257,6 +333,16 @@ def _extract_route_rows(
             suffix = "" if resolved is not None else " (unresolved)"
             inline_notes.append(f"inline: {desc} [L{sub.lineno}]{suffix}")
 
+        # CR-01: an inline `if <cond involving .role>: raise HTTPException(...)` is a real
+        # authorization gate, not a query/data filter -- it must not be reported as "none"
+        # (no role restriction). Only relevant when there's no `require_role(...)` gate
+        # already (that case wins outright below).
+        gated_ifs = _collect_role_gated_ifs(node) if require_role_call is None else []
+        gate_notes = [
+            f"gate: if {ast.unparse(gated.test)}: raise HTTPException(...) [L{gated.lineno}]"
+            for gated in gated_ifs
+        ]
+
         if require_role_call is not None:
             resolved_roles = _resolve_require_role_args(require_role_call, constants)
             required_roles_display = ", ".join(sorted(set(resolved_roles)))
@@ -265,8 +351,11 @@ def _extract_route_rows(
             required_roles_display = "N/A (not role-based)"
             source_parts = [f"verify_cron(...) [L{verify_cron_call.lineno}]"]
         elif auth_dependency_name is not None:
-            required_roles_display = "none"
-            source_parts = []
+            if gated_ifs:
+                required_roles_display = "role-restricted (inline, see source)"
+            else:
+                required_roles_display = "none"
+            source_parts = list(gate_notes)
         else:
             required_roles_display = "N/A (not role-based)"
             source_parts = []
@@ -334,6 +423,11 @@ def render_markdown(rows: list[dict], api_prefix: str) -> str:
         "`require_role(...)` call sites and `core/roles.py` constants, matching Phase "
         "19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. "
         '`none` = any authenticated staff member (no role restriction). '
+        '`role-restricted (inline, see source)` = no `require_role(...)` dependency, but '
+        "the route body has an inline `if <cond involving .role>: raise HTTPException(...)` "
+        "gate that denies access to non-matching roles (see the `Source` column for the "
+        "resolved condition) -- distinct from an inline `.role` comparison that only "
+        "filters/scopes a query or response without denying access, which remains `none`. "
         '`N/A (not role-based)` = gated by a separate auth mechanism (cron secret, '
         "webhook signature) instead of a role. A pytest drift guard "
         "(`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file "
