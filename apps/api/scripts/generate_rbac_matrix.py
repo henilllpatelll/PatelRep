@@ -426,6 +426,16 @@ def build_matrix_rows(api_root: Path) -> list[dict]:
     return rows
 
 
+def _escape_table_cell(value: str) -> str:
+    """WR-03: escape `|` (would otherwise shift/break table columns) and collapse
+    embedded newlines (would otherwise break out of the row entirely) before a value
+    is inserted into a `|`-delimited Markdown table cell. `required_roles_display` and
+    `source` are built from `ast.unparse(...)` output, which is not guaranteed to be
+    free of either character (e.g. a bitwise-or expression unparses with a literal `|`;
+    a multi-line f-string default unparses with embedded newlines)."""
+    return value.replace("|", "\\|").replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+
+
 def render_markdown(rows: list[dict], api_prefix: str) -> str:
     """Render the full route x role Markdown table. No timestamp or other
     non-deterministic content -- repeated runs against unchanged code must be
@@ -462,10 +472,12 @@ def render_markdown(rows: list[dict], api_prefix: str) -> str:
         "|---|---|---|---|---|",
     ]
     for row in rows:
-        lines.append(
-            f"| {row['router']} | {row['path']} | {row['method']} | "
-            f"{row['required_roles_display']} | {row['source']} |"
-        )
+        router_cell = _escape_table_cell(row["router"])
+        path_cell = _escape_table_cell(row["path"])
+        method_cell = _escape_table_cell(row["method"])
+        roles_cell = _escape_table_cell(row["required_roles_display"])
+        source_cell = _escape_table_cell(row["source"])
+        lines.append(f"| {router_cell} | {path_cell} | {method_cell} | {roles_cell} | {source_cell} |")
     lines.append("")
     lines.append(f"**{router_count} routers, {len(rows)} routes.**")
     return "\n".join(lines) + "\n"
