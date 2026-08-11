@@ -92,7 +92,8 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
   2. The matrix is derived by introspecting live code (`require_role()` calls and `core/roles.py`-sourced constants), not hand-typed prose — spot-checked against `.planning/phases/19-rbac-audit-and-normalization/RBAC-AUDIT.md`'s known 30-router inventory for consistency.
   3. Running the script twice against unchanged code reproduces byte-identical output (deterministic, no manual editing required to stay accurate).
   4. The script is checked into the repo (e.g. `apps/api/scripts/`) and can be invoked with a single documented command by a developer or CI.
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 23-01-PLAN.md — AST-based `apps/api/scripts/generate_rbac_matrix.py` generator producing `apps/api/RBAC-MATRIX.md`, plus a pytest CI drift guard
 
 ### Phase 24: CI Guard Against New Bare Role Comparisons
 **Goal**: A router file that adds a new bare role-comparison outside `require_role()`/an imported `core/roles.py` constant fails CI, while the pre-existing intentional inline checks the Phase 19 audit already confirmed correct continue to pass via an explicit, documented allowlist.
