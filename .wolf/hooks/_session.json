@@ -31,6 +31,46 @@
       "count": 1,
       "tokens": 0,
       "first_read": "2026-08-11T22:02:47.724Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/phases/18-documentation-drift-fixes/18-01-SUMMARY.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:07:07.104Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/phases/19-rbac-audit-and-normalization/19-01-SUMMARY.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:07:07.490Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/milestones/v1.4-ROADMAP.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:07:26.274Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/milestones/v1.4-REQUIREMENTS.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:07:26.795Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/STATE.md": {
+      "count": 2,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:07:34.417Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/MILESTONES.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:07:39.929Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md": {
+      "count": 2,
+      "tokens": 6766,
+      "first_read": "2026-08-11T22:07:49.243Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/milestones/v1.3-ROADMAP.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:08:39.454Z"
     }
   },
   "files_written": [
@@ -39,14 +79,90 @@
       "action": "edit",
       "tokens": 31,
       "at": "2026-08-11T22:05:35.645Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/MILESTONES.md",
+      "action": "edit",
+      "tokens": 598,
+      "at": "2026-08-11T22:08:35.915Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/ROADMAP.md",
+      "action": "edit",
+      "tokens": 81,
+      "at": "2026-08-11T22:08:50.846Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/ROADMAP.md",
+      "action": "edit",
+      "tokens": 199,
+      "at": "2026-08-11T22:09:25.512Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/ROADMAP.md",
+      "action": "edit",
+      "tokens": 104,
+      "at": "2026-08-11T22:09:30.899Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 572,
+      "at": "2026-08-11T22:10:10.246Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 301,
+      "at": "2026-08-11T22:10:20.344Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 1014,
+      "at": "2026-08-11T22:10:38.601Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 95,
+      "at": "2026-08-11T22:10:43.102Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 838,
+      "at": "2026-08-11T22:10:58.344Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 25,
+      "at": "2026-08-11T22:11:01.526Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/PROJECT.md",
+      "action": "edit",
+      "tokens": 430,
+      "at": "2026-08-11T22:11:21.696Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+      "action": "edit",
+      "tokens": 465,
+      "at": "2026-08-11T22:11:39.234Z"
     }
   ],
   "edit_counts": {
-    "apps/mobile/.gitignore": 1
+    "apps/mobile/.gitignore": 1,
+    ".planning/MILESTONES.md": 1,
+    ".planning/ROADMAP.md": 3,
+    ".planning/PROJECT.md": 7,
+    ".planning/STATE.md": 1
   },
   "anatomy_hits": 1,
-  "anatomy_misses": 5,
-  "repeated_reads_warned": 0,
+  "anatomy_misses": 13,
+  "repeated_reads_warned": 2,
   "cerebrum_warnings": 0,
   "stop_count": 0
 }

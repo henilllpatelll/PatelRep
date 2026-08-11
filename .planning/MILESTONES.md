@@ -104,3 +104,29 @@
 
 ---
 
+
+## v1.4 Platform and Ops Hardening (Shipped: 2026-08-11)
+
+**Delivered:** Paid down accumulated platform debt across RBAC consistency, documentation accuracy, dev/QA data hygiene, and mobile dependency health — closing 18/18 requirements and every deferred v1.3 verification item with zero known open issues at ship.
+
+**Phases completed:** 18-22 (5 phases, 16 plans, 32 tasks)
+
+**Key accomplishments:**
+- Corrected three drifted CLAUDE.md sections (cron mechanism, local-credential note, 30-router domain map) to match production reality
+- Built `core/roles.py` as a single source-of-truth for role-group constants, closed two real RBAC gaps (an ungated guest-request delete endpoint, a lost-found custody-state bypass), and produced a full 30-router audit artifact
+- Closed all 4 human-verification items deferred from v1.3 live in-browser, surfacing and fixing 7 previously-undiscovered production bugs along the way — including a guest-request DELETE endpoint that had never worked for any request, a structurally-broken Scheduling roster endpoint, and a CORS-masking rate-limit middleware ordering bug
+- Added a schema-level `tenants.is_test` flag, a human-reviewed delete-allowlist, and a dry-run-gated cleanup script for the shared dev/QA Supabase project — verified clean against 339 live rows with zero deletions outside the allowlist
+- Upgraded `apps/mobile` from Expo SDK 54 to 57.0.9 across three sequential single-major hops, each gated by a green EAS Android cloud build, resolving all 19 previously-tracked `npm audit` advisories
+- The milestone-level audit caught and closed a cross-phase gap invisible to any single phase's own verification: a newly-restored `chief_engineer` role could log in but hit a broken, 403ing dashboard — fixed and live-verified through a real seeded-user browser session before shipping
+
+**Stats:**
+- 145 files changed, +34,728/-3,799 lines
+- 5 phases, 16 plans, 32 tasks, 62 commits
+- 7 days from milestone start to ship (2026-08-04 → 2026-08-11)
+
+**Git range:** `40402245` → `HEAD` (tag `v1.4`)
+
+**What's next:** TBD via `/gsd-new-milestone`
+
+---
+

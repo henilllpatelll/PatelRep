@@ -13725,6 +13725,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-11T08:40:34.443Z"
+    },
+    {
+      "id": "bug-827",
+      "timestamp": "2026-08-11T22:08:35.922Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/MILESTONES.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→24 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T22:08:35.922Z"
+    },
+    {
+      "id": "bug-828",
+      "timestamp": "2026-08-11T22:09:25.519Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "73 lines replaced/restructured",
+      "fix": "Rewrote 87→18 lines (73 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T22:09:25.519Z"
+    },
+    {
+      "id": "bug-829",
+      "timestamp": "2026-08-11T22:10:10.253Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 20→18 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T22:10:10.253Z"
     }
   ]
 }

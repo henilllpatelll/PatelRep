@@ -1,38 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Platform and Ops Hardening
-status: complete
-last_updated: "2026-08-06T03:24:18Z"
-last_activity: 2026-08-06 -- Phase 22 plan 22-06 closed MOBILE-03 with exact React Navigation 7.3.14, a finished Android preview artifact tied to dependency commit ce01c7ed, and passed 4/4 phase verification with no gaps.
+milestone: none
+milestone_name: null
+status: awaiting_next_milestone
+last_updated: "2026-08-11T00:00:00Z"
+last_activity: 2026-08-11 -- v1.4 "Platform and Ops Hardening" archived and tagged. All 5 phases, 16 plans, 18/18 requirements shipped; milestone audit passed after closing a cross-phase chief_engineer RBAC/dashboard gap same-session.
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 16
-  completed_plans: 16
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 22 of 22 (Expo SDK 54→57 Bump) — fifth and final phase of milestone v1.4, CLOSED AND VERIFIED
-Plan: 6 of 6 (22-06 CLOSED)
-Status: Phase 22 is complete and passed 4/4 verification with no gaps. MOBILE-01 through MOBILE-04 are satisfied; milestone v1.4 plan execution and phase verification are complete.
-Last activity: 2026-08-06 — 22-06 added exact direct `@react-navigation/native@7.3.14` on Expo 57.0.9, kept Router-fork imports and the xcode/UUID override intact, passed the focused and full mobile gates, and produced finished EAS Android preview build `6e7a1d7a-2851-4868-8609-8103adb24c77` tied exactly to dependency commit `ce01c7ed`. Verification commit: `508cbd52`.
+No milestone in progress. v1.4 shipped and archived 2026-08-11. Next: run `/gsd-new-milestone` to scope v1.5.
 
-Progress: [██████████] 100%
+Progress: [          ] 0% (next milestone not yet started)
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-04)
+See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.4 — Platform and Ops Hardening. All five phases and all 16 plans are complete and phase-verified; next is the milestone completion/audit workflow.
+**Current focus:** Planning next milestone via `/gsd-new-milestone`.
 
 ## Previous milestones
 
+- v1.4 "Platform and Ops Hardening" shipped and archived 2026-08-11 (5 phases, 18-22, all closed — 16/16 plans, 18/18 requirements; milestone audit found and closed a cross-phase chief_engineer RBAC/dashboard gap same-session — same "fix in-milestone, don't defer" pattern as v1.0-v1.3). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.4-*`.
 - v1.3 "Billing, Work Order Archival, and Backlog Cleanup" shipped and archived 2026-08-04 (3 phases, 15-17, all closed — 14/14 plans; migration-deployment gap found and closed during milestone audit, same pattern as v1.2). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.3-*`.
 - v1.2 "Stabilization Pass" shipped and archived 2026-08-03 (3 phases, 12-14, all closed — 7/7 plans; migration deployment gap found and closed during milestone audit). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.2-*`.
 - v1.1 "Mobile UI Parity" shipped and archived 2026-08-02 (5 phases, 7-11, all closed — 49/49 plans). Full history: `.planning/MILESTONES.md`, `.planning/milestones/v1.1-*`.

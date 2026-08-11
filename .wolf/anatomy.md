@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T22:05:35.640Z
-> Files: 4 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T22:11:39.218Z
+> Files: 8 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -918,6 +918,10 @@
 
 ## .planning/
 
+- `MILESTONES.md` — Project Milestones: PatelRep (~2662 tok)
+- `PROJECT.md` — PatelRep (~6713 tok)
+- `ROADMAP.md` — Roadmap: PatelRep (~1323 tok)
+- `STATE.md` — GSD State (~27084 tok)
 - `v1.4-MILESTONE-AUDIT.md` — v1.4 "Platform and Ops Hardening" — Milestone Audit (~2587 tok)
 
 ## .planning/UI-REFRESH-PLAN.md
