@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-08-11 | v1.4 milestone audit (gsd-integration-checker) found chief_engineer role broken end-to-end: migration 092 (Phase 20) restored it as creatable, but core/roles.py (Phase 19) still excluded it from ALL_STAFF_ROLES, and dashboard/page.tsx had no render case despite ChiefEngineerDashboard.tsx existing unused. Fixed: added chief_engineer to ALL_ROLES/ALL_STAFF_ROLES + corrected stale comment; wired dashboard switch case; found+fixed 3 more inline role-drift gates in reports.py during live verification (normalized to PROGRAM_MANAGER_ROLES / added chief_engineer). Live-verified via real browser login as a seeded chief_engineer test user: dashboard renders correctly, 0 console errors. bug-823. | apps/api/core/roles.py, apps/api/routers/reports.py, apps/web/app/(dashboard)/dashboard/page.tsx | complete | ~400 tok |
 | 2026-07-27 | UI Refresh Wave 5 (per-surface polish, P5+P7): Card unified across billing/dashboard/logbook/onboarding/lost-found/management-roi/guest-requests/housekeeping (14 inline `bg-surface rounded border` divs → `<Card>`, 2 justified dialog-shell exceptions left); Card.tsx gained `onClick` (keyboard-accessible, focus ring) + HTMLAttributes passthrough (`data-testid` etc.) for Playwright compat. Progressive disclosure: RoomStatusBoard.tsx floor groups are now collapsible (per-floor toggle, default expanded); reports.tsx MaintenanceTab's 9-card KPI grid split into 5 primary + 4 secondary behind a "Show detailed timing metrics" toggle; evidence/page.tsx's 5 always-stacked sections (acknowledgements+competency / documents+detail / evidence capture+records / applicability / exceptions) now render one-at-a-time via `PageHeader.tabs`, updated e2e/phase2-evidence.spec.ts to click the relevant tab before asserting (DOM intentionally restructured per plan). Exceptions region converted to StateBlock. tsc + lint + i18n gate clean throughout. Playwright phase1/phase4 regressions run against local dev server: 2 pre-existing failures (work-orders resume timing-flake, PM-schedules ES heading) confirmed identical on unmodified Wave-4 baseline via git-stash bisection — not caused by this wave. Manual Playwright walkthrough (throwaway script, removed after use) confirmed floor collapse toggle, evidence tab switching, and reports disclosure toggle all work against live local API. Not yet committed — pending user review. | apps/web/components/ui/Card.tsx, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/{housekeeping,reports,evidence,billing,dashboard,logbook,onboarding,lost-found,management-roi}/page.tsx, apps/web/components/guest-requests/GuestRequestsPage.tsx, apps/web/e2e/phase2-evidence.spec.ts | complete | ~450 tok |
 | 2026-07-26 | UI Refresh Wave 2 (partial — floor components checkpoint): converted raw <button> to Button/IconButton in components/housekeeping/{RoomCard,OccupancyImportModal,RoomStatusBoard,RoomDetailDrawer}.tsx and components/engineering/{FailurePredictionSidebar,EngineeringRoomBoard,CreateWorkOrderModal,WorkOrderDetailDrawer,PMCompletionModal}.tsx — ~28 buttons converted, using Button's new `loading` prop to replace hand-rolled spinners where the button had a leading icon (icon hidden while loading so it doesn't double up with the spinner). Left legitimate custom cases raw: filter-chip pills (RoomStatusBoard/EngineeringRoomBoard, matches existing chipClass() pattern), Pass/Fail/N/A 3-way segmented toggles (InspectionModal, PMCompletionModal), disclosure/accordion headers (PredictionPanel, RoomDetailDrawer history), icon-over-label grid action tiles (RoomDetailDrawer note/WO/lost-found), and dropzone trigger areas. tsc + lint clean; manually verified /housekeeping loads with no console errors and RoomDetailDrawer opens showing all converted button labels correctly. NOT yet committed — remaining Wave 2 scope is large: floor app pages (housekeeping/engineering/tasks page.tsx files), then guest-facing (lost-found, guest-requests), then managers/settings (scheduling, logbook, staff, settings/*) — roughly 250+ more raw buttons across ~45 files. | apps/web/components/housekeeping/*.tsx, apps/web/components/engineering/*.tsx | in_progress | ~200 tok |
 | 2026-07-26 | UI Refresh Wave 1 (header unification): migrated all 22 hand-rolled `<h1>` content pages to PageHeader (eyebrow/title/subtitle/tabs/actions), folded existing in-page tab bars (work-orders, safety, sop, reports) into PageHeader.tabs, converted all 6 role-dashboard greetings (GM/Housekeeper/Supervisor/Engineer/FrontDesk/ChiefEngineer) to DashboardGreeting with a generalized subtitle prop. Downgraded management-roi's access-denied h1 to p (not a page title). tsc + lint + i18n gate + EN/ES parity (1375/1375) all clean; manually verified 9 pages (dashboard, tasks, work-orders incl. tab switch, safety incl. tab switch, sop, staff, housekeeping board) as GM in light+dark, no console errors, no regressions. Not yet committed — pending user review. | 22 app/(dashboard) page.tsx files, apps/web/components/dashboard/*.tsx (6 files), apps/web/components/shared/Sidebar.tsx (untouched this wave) | complete | ~150 tok |
@@ -8961,3 +8962,247 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 07:12 | Session end: 37 writes across 16 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~58375 tok |
 | 07:12 | Session end: 37 writes across 16 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~58375 tok |
 | 07:34 | Session end: 37 writes across 16 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~58375 tok |
+| 18:23 | Edited apps/api/routers/lost_found.py | 2→4 lines | ~79 |
+| 18:24 | Created .planning/phases/19-rbac-audit-and-normalization/19-02-SUMMARY.md | — | ~913 |
+| 18:24 | Edited apps/api/routers/lost_found.py | modified delete_lost_found_item() | ~84 |
+| 18:24 | Edited .planning/phases/19-rbac-audit-and-normalization/19-02-SUMMARY.md | expanded (+8 lines) | ~86 |
+| 18:24 | Edited .planning/STATE.md | expanded (+9 lines) | ~617 |
+| 18:24 | Edited .planning/STATE.md | inline fix | ~11 |
+| 18:25 | Edited .planning/STATE.md | 3→4 lines | ~26 |
+| 18:25 | Created .planning/phases/19-rbac-audit-and-normalization/19-03-SUMMARY.md | — | ~1283 |
+| 18:25 | Session end: 45 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~62863 tok |
+| 18:25 | Session end: 45 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~62863 tok |
+| 18:25 | Edited .planning/phases/19-rbac-audit-and-normalization/19-03-SUMMARY.md | expanded (+8 lines) | ~82 |
+| 18:26 | Session end: 46 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~62951 tok |
+| 18:26 | Session end: 46 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~62962 tok |
+| 18:26 | Edited .planning/STATE.md | artifact() → gate() | ~276 |
+| 18:27 | Session end: 47 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~63258 tok |
+| 18:27 | Session end: 47 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~63258 tok |
+| 18:27 | Session end: 47 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~63258 tok |
+| 18:27 | Session end: 47 writes across 19 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~63258 tok |
+| 18:30 | Created .planning/phases/19-rbac-audit-and-normalization/19-04-SUMMARY.md | — | ~1587 |
+| 18:30 | Edited .planning/STATE.md | 6→6 lines | ~359 |
+| 18:31 | Session end: 49 writes across 20 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~65373 tok |
+| 18:32 | Edited .planning/STATE.md | 9→9 lines | ~107 |
+| 18:32 | Edited .planning/STATE.md | sections() → closed() | ~230 |
+| 18:34 | Session end: 51 writes across 20 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~65787 tok |
+| 18:34 | Session end: 51 writes across 20 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 34 reads | ~65787 tok |
+| 18:36 | Created .planning/phases/19-rbac-audit-and-normalization/19-VERIFICATION.md | — | ~2416 |
+| 18:36 | Edited .planning/REQUIREMENTS.md | 4→4 lines | ~237 |
+| 18:36 | Edited .planning/REQUIREMENTS.md | 4→4 lines | ~32 |
+| 18:37 | Session end: 54 writes across 21 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 43 reads | ~69964 tok |
+| 18:37 | Session end: 54 writes across 21 files (HousekeeperHome.test.tsx, 07-VERIFICATION.md, STATE.md, REQUIREMENTS.md, 17-03-SUMMARY.md) | 43 reads | ~69964 tok |
+
+## Session: 2026-08-04 18:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:43 | Created .planning/phases/20-close-deferred-v1-3-verification-items/20-RESEARCH.md | — | ~4345 |
+| 18:44 | Phase 20 research: 4 deferred v1.3 verify items | 20-RESEARCH.md | RBAC harness found, backend-only P19 confirmed | ~9k |
+| 18:44 | Session end: 1 writes across 1 files (20-RESEARCH.md) | 11 reads | ~10993 tok |
+| 18:45 | Session end: 1 writes across 1 files (20-RESEARCH.md) | 12 reads | ~10993 tok |
+| 18:48 | Created .planning/phases/20-close-deferred-v1-3-verification-items/20-01-PLAN.md | — | ~2946 |
+| 18:49 | Created .planning/phases/20-close-deferred-v1-3-verification-items/20-02-PLAN.md | — | ~2756 |
+| 18:49 | Edited .planning/ROADMAP.md | 2→4 lines | ~128 |
+| 18:50 | Session end: 4 writes across 4 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md) | 14 reads | ~17240 tok |
+| 18:50 | Session end: 4 writes across 4 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md) | 16 reads | ~22586 tok |
+| 18:51 | Session end: 4 writes across 4 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md) | 16 reads | ~22586 tok |
+| 18:53 | Session end: 4 writes across 4 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md) | 16 reads | ~22586 tok |
+| 18:53 | Session end: 4 writes across 4 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md) | 17 reads | ~22586 tok |
+| 19:28 | Session end: 4 writes across 4 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md) | 24 reads | ~46754 tok |
+| 19:37 | Edited e2e/helpers/rbac-users.ts | modified replace() | ~241 |
+| 19:38 | Edited apps/api/models/requests.py | modified InviteStaffRequest() | ~95 |
+| 19:38 | Edited apps/api/models/requests.py | modified AddStaffDirectRequest() | ~108 |
+| 19:43 | Created supabase/migrations/092_restore_chief_engineer_role.sql | — | ~738 |
+| 19:51 | Created e2e/20-verify-rbac.spec.ts | — | ~5007 |
+| 19:52 | Edited e2e/20-verify-rbac.spec.ts | 8→10 lines | ~187 |
+| 19:54 | Edited apps/api/routers/rooms.py | modified in() | ~506 |
+| 19:56 | Edited apps/api/routers/rooms.py | 2→3 lines | ~71 |
+| 19:58 | Edited apps/api/routers/rooms.py | 3→2 lines | ~36 |
+| 20:01 | Edited e2e/20-verify-rbac.spec.ts | 2→5 lines | ~113 |
+| 20:06 | Created .planning/phases/20-close-deferred-v1-3-verification-items/20-01-SUMMARY.md | — | ~4902 |
+| 20:07 | Edited .planning/STATE.md | inline fix | ~11 |
+| 20:07 | Edited .planning/STATE.md | 8→8 lines | ~428 |
+| 20:07 | Edited .planning/STATE.md | 4→4 lines | ~174 |
+| 20:08 | Edited .planning/STATE.md | 8→8 lines | ~130 |
+| 20:08 | Edited .planning/STATE.md | 4→4 lines | ~177 |
+| 20:08 | Edited .planning/STATE.md | inline fix | ~60 |
+| 20:11 | Edited .planning/phases/20-close-deferred-v1-3-verification-items/20-01-SUMMARY.md | modified orchestrator() | ~149 |
+| 20:18 | Edited e2e/helpers/rbac-users.ts | modified replace() | ~71 |
+| 20:19 | Edited apps/api/routers/scheduling.py | expanded (+23 lines) | ~620 |
+| 20:19 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | inline fix | ~16 |
+| 20:19 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | added 2 condition(s) | ~274 |
+| 20:19 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | 2→2 lines | ~55 |
+| 20:20 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/fix-buglog.js | — | ~1364 |
+| 20:21 | Created e2e/20-verify-gm.spec.ts | — | ~3839 |
+| 20:23 | Edited e2e/20-verify-gm.spec.ts | 3→6 lines | ~138 |
+| 20:24 | Edited e2e/20-verify-gm.spec.ts | 6→6 lines | ~105 |
+| 20:24 | Edited e2e/20-verify-gm.spec.ts | modified if() | ~187 |
+| 20:24 | Edited e2e/20-verify-gm.spec.ts | 2→2 lines | ~59 |
+| 20:26 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | inline fix | ~19 |
+| 20:26 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | inline fix | ~25 |
+| 20:29 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/debug-modal.js | — | ~439 |
+| 20:30 | Edited e2e/20-verify-gm.spec.ts | expanded (+11 lines) | ~270 |
+| 20:30 | Edited e2e/20-verify-gm.spec.ts | 5→9 lines | ~218 |
+| 20:32 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/debug-scheduling.js | — | ~302 |
+| 20:32 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/debug-roster.js | — | ~53 |
+| 20:37 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/fix-buglog2.js | — | ~712 |
+| 20:38 | Edited e2e/20-verify-gm.spec.ts | added error handling | ~270 |
+| 20:42 | Edited apps/api/main.py | added error handling | ~699 |
+| 20:44 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/fix-buglog3.js | — | ~889 |
+| 20:50 | Created supabase/migrations/093_guest_requests_delete_cascade.sql | — | ~1269 |
+| 20:50 | Edited e2e/20-verify-gm.spec.ts | added 1 condition(s) | ~369 |
+| 20:51 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/fix-buglog4.js | — | ~939 |
+| 20:56 | Created .planning/phases/20-close-deferred-v1-3-verification-items/20-02-SUMMARY.md | — | ~4949 |
+| 20:56 | Edited .planning/phases/20-close-deferred-v1-3-verification-items/20-02-SUMMARY.md | expanded (+8 lines) | ~91 |
+| 20:56 | Edited .planning/STATE.md | 10→10 lines | ~214 |
+| 20:57 | Edited .planning/STATE.md | 13→13 lines | ~371 |
+| 20:57 | Edited .planning/STATE.md | 6→6 lines | ~635 |
+| 20:57 | Edited .planning/STATE.md | 6→7 lines | ~303 |
+| 20:58 | Phase 20-02 complete: VERIFY-02/VERIFY-03 live-verified, 4 real bugs fixed/escalated (roster shape, CORS/rate-limit ordering, drawer staleness, guest_requests delete cascade) | e2e/20-verify-gm.spec.ts, apps/api/main.py, apps/api/routers/scheduling.py, apps/web/components/guest-requests/GuestRequestsPage.tsx, supabase/migrations/093 | Phase 20 CLOSED (2/2 plans) | ~n/a |
+| 21:03 | Edited .planning/phases/20-close-deferred-v1-3-verification-items/20-02-SUMMARY.md | modified orchestrator() | ~280 |
+| 21:03 | Edited .planning/phases/20-close-deferred-v1-3-verification-items/20-02-SUMMARY.md | modified confirmation() | ~167 |
+| 21:07 | Created .planning/phases/20-close-deferred-v1-3-verification-items/20-VERIFICATION.md | — | ~2999 |
+| 21:08 | Edited .planning/REQUIREMENTS.md | 4→4 lines | ~194 |
+| 21:08 | Edited .planning/REQUIREMENTS.md | 4→4 lines | ~34 |
+| 21:10 | Session end: 58 writes across 26 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 70 reads | ~115244 tok |
+| 21:10 | Session end: 58 writes across 26 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 70 reads | ~115244 tok |
+| 21:18 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-RESEARCH.md | — | ~5364 |
+| 21:18 | Phase 21 research: test-data hygiene (is_test col, cleanup script, allowlist) | .planning/phases/21-dev-qa-test-data-hygiene/21-RESEARCH.md | done | ~9k |
+| 21:19 | Session end: 59 writes across 27 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 75 reads | ~126020 tok |
+| 21:19 | Session end: 59 writes across 27 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 75 reads | ~126020 tok |
+| 02:36 | Session end: 59 writes across 27 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 75 reads | ~126020 tok |
+| 02:39 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-01-PLAN.md | — | ~1681 |
+| 02:39 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-02-PLAN.md | — | ~1936 |
+| 02:40 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-03-PLAN.md | — | ~2530 |
+| 02:41 | Edited .planning/ROADMAP.md | 4→7 lines | ~135 |
+| 02:41 | Session end: 63 writes across 30 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 75 reads | ~132750 tok |
+| 02:42 | Session end: 63 writes across 30 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 78 reads | ~138513 tok |
+| 02:43 | Session end: 63 writes across 30 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 78 reads | ~138513 tok |
+| 02:44 | Session end: 63 writes across 30 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 78 reads | ~138513 tok |
+| 02:44 | Session end: 63 writes across 30 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 78 reads | ~138513 tok |
+| 02:46 | Created supabase/migrations/094_tenant_is_test_flag.sql | — | ~88 |
+| 02:47 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-01-SUMMARY.md | — | ~1611 |
+| 02:47 | Edited .planning/phases/21-dev-qa-test-data-hygiene/21-01-SUMMARY.md | expanded (+6 lines) | ~66 |
+| 02:48 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-ALLOWLIST.md | — | ~2118 |
+| 02:48 | Edited .planning/STATE.md | modified CLOSED() | ~496 |
+| 02:48 | Edited .planning/STATE.md | 8→8 lines | ~312 |
+| 02:48 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-02-SUMMARY.md | — | ~1398 |
+| 02:48 | Edited .planning/STATE.md | 7→8 lines | ~170 |
+| 02:48 | Edited .planning/phases/21-dev-qa-test-data-hygiene/21-02-SUMMARY.md | 3→8 lines | ~49 |
+| 02:49 | Edited .planning/STATE.md | 9→9 lines | ~146 |
+| 02:49 | Edited .planning/STATE.md | 6→6 lines | ~429 |
+| 02:49 | Edited .planning/STATE.md | 1→2 lines | ~22 |
+| 02:49 | Edited .planning/STATE.md | 2→2 lines | ~150 |
+| 02:50 | Edited .planning/STATE.md | modified CLOSED() | ~787 |
+| 02:52 | Created apps/api/scripts/cleanup_test_data.py | — | ~2538 |
+| 02:53 | Edited apps/api/scripts/cleanup_test_data.py | "Excluded tables (never to" → "Excluded tables (never to" | ~28 |
+| 02:54 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-03-SUMMARY.md | — | ~2361 |
+| 02:54 | Edited .planning/phases/21-dev-qa-test-data-hygiene/21-03-SUMMARY.md | expanded (+7 lines) | ~69 |
+| 02:55 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/test_state.js | — | ~257 |
+| 02:56 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/test_state2.js | — | ~49 |
+| 02:56 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/test_state3.js | — | ~138 |
+| 02:56 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/test_state4.js | — | ~47 |
+| 02:57 | Edited .planning/STATE.md | 10→10 lines | ~180 |
+| 02:57 | Edited .planning/STATE.md | modified project() | ~424 |
+| 02:58 | Edited .planning/STATE.md | modified CLOSED() | ~1124 |
+| 02:58 | Edited .planning/STATE.md | 7→8 lines | ~180 |
+| 03:01 | Created .planning/phases/21-dev-qa-test-data-hygiene/21-VERIFICATION.md | — | ~2961 |
+| 03:03 | Session end: 90 writes across 41 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 88 reads | ~171724 tok |
+| 03:03 | Session end: 90 writes across 41 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 88 reads | ~171724 tok |
+| 03:10 | Created .planning/phases/22-expo-sdk-54-57-bump/22-RESEARCH.md | — | ~5877 |
+| 03:12 | Session end: 91 writes across 42 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 97 reads | ~183531 tok |
+| 03:12 | Session end: 91 writes across 42 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 97 reads | ~183531 tok |
+| 03:14 | Created .planning/phases/22-expo-sdk-54-57-bump/22-01-PLAN.md | — | ~1772 |
+| 03:15 | Created .planning/phases/22-expo-sdk-54-57-bump/22-02-PLAN.md | — | ~1612 |
+| 03:16 | Created .planning/phases/22-expo-sdk-54-57-bump/22-03-PLAN.md | — | ~2586 |
+| 03:16 | Created .planning/phases/22-expo-sdk-54-57-bump/22-04-PLAN.md | — | ~1402 |
+| 03:17 | Created .planning/phases/22-expo-sdk-54-57-bump/22-05-PLAN.md | — | ~1717 |
+| 03:17 | Edited .planning/ROADMAP.md | 2→7 lines | ~201 |
+| 03:18 | Session end: 97 writes across 47 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 97 reads | ~196746 tok |
+| 03:18 | Session end: 97 writes across 47 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 97 reads | ~196746 tok |
+| 03:21 | Session end: 97 writes across 47 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 102 reads | ~205266 tok |
+| 03:21 | Session end: 97 writes across 47 files (20-RESEARCH.md, 20-01-PLAN.md, 20-02-PLAN.md, ROADMAP.md, rbac-users.ts) | 102 reads | ~205266 tok |
+| 03:24 | Edited apps/mobile/__tests__/screens/ProfileHandoff.test.tsx | 7→8 lines | ~78 |
+| 03:24 | Edited apps/mobile/__tests__/screens/GuestRequestsList.test.tsx | added nullish coalescing | ~121 |
+| 03:26 | Created .planning/phases/22-expo-sdk-54-57-bump/22-01-SUMMARY.md | — | ~1775 |
+| 03:26 | Edited .planning/phases/22-expo-sdk-54-57-bump/22-01-SUMMARY.md | expanded (+6 lines) | ~55 |
+| 03:27 | Edited .planning/STATE.md | 20→20 lines | ~369 |
+| 03:28 | Edited .planning/STATE.md | 8→8 lines | ~382 |
+| 03:28 | Edited .planning/STATE.md | 8→9 lines | ~175 |
+| 03:28 | Edited .planning/STATE.md | modified CLOSED() | ~565 |
+| 03:28 | Edited .planning/phases/22-expo-sdk-54-57-bump/22-01-SUMMARY.md | 2→2 lines | ~192 |
+| 07:40 | Upgraded mobile dependency graph to Expo SDK 55.0.28 / React Native 0.83.10 and removed SDK-55-invalid New-Arch/StatusBar config | apps/mobile/package.json, package-lock.json, app.json, app/_layout.tsx | dependency alignment complete; doctor rerun pending | ~900 |
+| 07:55 | Closed SDK 55 local gates and launched Android preview build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418 | apps/mobile | expo-doctor 19/19, TypeScript green, Jest 45/45 suites and 412/412 tests; EAS queued | ~700 |
+| 09:47 | Finished SDK 55 Android preview build and committed rollback boundary 11e4b41a | apps/mobile | EAS build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418 FINISHED; APK produced | ~550 |
+| 09:54 | Closed GSD plan 22-02 with summary/state/roadmap commit df0fcf8e | .planning/phases/22-expo-sdk-54-57-bump/22-02-SUMMARY.md, .planning/STATE.md, .planning/ROADMAP.md | phase now 2/5; next 22-03 | ~450 |
+| 09:56 | Loaded Plan 22-03 execution context and verified the SDK 55 rollback boundary | .planning/phases/22-expo-sdk-54-57-bump/22-03-PLAN.md, apps/mobile | commit 11e4b41a present; navigation theme focused baseline 4/4 green | ~350 |
+| 10:08 | Completed SDK 56 local migration and verification gates | apps/mobile | Expo 56.0.18/RN 0.85.3; official router codemod applied; doctor 21/21, TypeScript green, Jest 45/45 suites and 412/412 tests | ~950 |
+| 13:28 | Closed GSD plan 22-03 after green SDK 56 Android build | apps/mobile, .planning | EAS 20c05179-893a-4a2b-83b7-8d8ea0c1edbd FINISHED; hop fdcdc72a; docs 4335e372; next 22-04 | ~650 |
+| 13:35 | Aligned the SDK 57 dependency graph for Plan 22-04 | apps/mobile/package.json, apps/mobile/package-lock.json, apps/mobile/app.json | Expo pinned exactly 57.0.9; React Native 0.86.2 and SDK 57 peers installed; status-bar config plugin added | ~400 |
+| 17:12 | Closed GSD plan 22-04 after green SDK 57 Android build | apps/mobile, .planning | EAS 1d5ca7fb-e467-4d39-916f-434ba92b7b6e FINISHED; hop 10a2c585; docs e05ff685; MOBILE-03 verifier gap documented; next 22-05 | ~650 |
+| 17:15 | Loaded Plan 22-05 execution context and attempted the read-only mobile audit snapshot; PowerShell 5.1 rejected ConvertFrom-Json -Depth, so no dependency files changed | apps/mobile/package.json, .wolf/buglog.json | audit retry required with compatible parser | ~1800 |
+| 17:23 | Remediated the final SDK 57 mobile dependency advisory with a scoped xcode UUID override and removed the unused stale tar override | apps/mobile/package.json, apps/mobile/package-lock.json | npm audit 0; doctor 20/20; npm tree, TypeScript, xcode UUID smoke, and Jest 412/412 green; Expo package remains 57.0.9 | ~2400 |
+| 17:28 | Created the MOBILE-04 audit disposition record with exact before/after counts and per-advisory treatment | .planning/phases/22-expo-sdk-54-57-bump/22-AUDIT-ACCEPTED-RISK.md, .wolf/anatomy.md | zero residual accepted risks; tar/brace/uuid groups accounted; no force fix | ~1100 |
+| 17:32 | Drafted Plan 22-05 completion summary after all mobile dependency gates passed | .planning/phases/22-expo-sdk-54-57-bump/22-05-SUMMARY.md, .wolf/anatomy.md | ready for self-check and STATE update; phase verification not started | ~900 |
+| 17:35 | Updated GSD state for completed Plan 22-05 using the legacy-layout fallback | .planning/STATE.md, .planning/phases/22-expo-sdk-54-57-bump/22-05-SUMMARY.md | 15/15 plan artifacts on disk, phase verification pending, MOBILE-03 gap preserved | ~700 |
+| 17:38 | Completed Phase 22 goal verification and session closeout | .planning/phases/22-expo-sdk-54-57-bump/22-VERIFICATION.md, .wolf/anatomy.md, .wolf/cerebrum.md, .wolf/buglog.json | gaps_found, 3/4 must-haves; MOBILE-03 direct dependency is the sole gap; next workflow is gap planning | ~1200 |
+| 19:49 | Initialized GSD Phase 22 gap planning and validated roadmap/verification context | .planning/ROADMAP.md, .planning/phases/22-expo-sdk-54-57-bump/22-VERIFICATION.md | Phase exists with five completed plans; research skipped by --gaps; MOBILE-03 remains the only verifier gap | ~700 |
+| 19:45 | Attempted the mandatory Phase 22 GSD planner spawn | C:/Users/Henil/.codex/agents/gsd-planner.toml, .wolf/buglog.json, .wolf/cerebrum.md | Planner could not start because gpt-5.3-codex is unsupported for the active ChatGPT account; no plan or implementation files were changed | ~500 |
+| 20:40 | Remapped the mandatory GSD planning roles to supported current models and reinitialized Phase 22 gap planning | C:/Users/Henil/.codex/agents/gsd-planner.toml, C:/Users/Henil/.codex/agents/gsd-plan-checker.toml, .wolf/buglog.json, .wolf/cerebrum.md | planner uses gpt-5.6-sol; checker uses gpt-5.6-terra; Phase 22 init succeeds | ~600 |
+| 20:46 | Loaded Phase 22 gap evidence and completed-plan history for MOBILE-03 planning | .planning/STATE.md, .planning/ROADMAP.md, .planning/REQUIREMENTS.md, .planning/phases/22-expo-sdk-54-57-bump/* | Sole gap confirmed: exact @react-navigation/native 7.3.14 must join the SDK 57 graph and receive fresh local/EAS verification | ~1800 |
+| 20:51 | Created and GSD-validated Phase 22 gap-closure Plan 06 | .planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md, .wolf/anatomy.md | Valid frontmatter and structure; 3 tasks cover exact dependency, full local/EAS gates, and 4/4 re-verification | ~1200 |
+| 20:52 | Committed only the validated Phase 22 gap plan after the known GSD PowerShell commit-helper fallback | .planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md | Commit bb1a0448 contains exactly one file; unrelated working-tree changes remain unstaged | ~300 |
+| 20:57 | Statistically verified Phase 22 Plan 06 against MOBILE-03 and completed evidence | .planning/phases/22-expo-sdk-54-57-bump/22-0{1..6}-PLAN.md, 22-VERIFICATION.md, completed summaries | GSD structure is valid; Task 1 omits the commit required by Task 2's immutable EAS-boundary gate | ~2500 |
+| 21:01 | Revised and revalidated Plan 22-06 for the checker-blocked commit-to-EAS link | .planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md | Task 1 now creates a two-file rollback commit; Tasks 2-3 require EAS gitCommitHash equality; committed as 4f184ddf | ~700 |
+| 21:04 | Passed the second independent GSD plan-checker review and synchronized the Phase 22 roadmap | .planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md, .planning/ROADMAP.md, .wolf/cerebrum.md | all 6 plans structurally valid; MOBILE-01..04 covered; Phase 22 now shows 5/6 with 22-06 pending execution | ~900 |
+| 21:11 | Rechecked Phase 22 closure status | .planning/ROADMAP.md, .planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md, 22-VERIFICATION.md | not closed: 5/6 plans complete, no 22-06 summary, and prior verification still records the MOBILE-03 gap | ~300 |
+| 10:25 | Loaded the GSD/OpenWolf execution contracts and located the known missing project-local GSD engine issue | .wolf/OPENWOLF.md, .wolf/cerebrum.md, .wolf/buglog.json, global get-shit-done skill | Required context loaded; bug-793 confirms the installed global .cjs engine is the correct fallback | ~900 |
+| 21:51 | Loaded Plan 22-06, state, and dirty-tree boundary; corrected the PowerShell 5.1 UTC timestamp probe | 22-06-PLAN.md, .planning/STATE.md, .wolf/buglog.json, .wolf/cerebrum.md | Autonomous 3-task execution confirmed; unrelated dirty paths remain unstaged; portable UTC timestamp command recorded | ~1800 |
+| 22:01 | Added exact React Navigation direct production dependency for Plan 22-06 | apps/mobile/package.json, apps/mobile/package-lock.json | npm installed @react-navigation/native 7.3.14 exactly; Expo/xcode boundaries pending focused assertions | ~300 |
+| 22:03 | Ran the first Plan 22-06 focused gate sequence | apps/mobile package graph and navigation sources | manifest/lock/tree, focused Jest 4/4, and Doctor 20/20 green; literal rg no-match required corrected scan semantics and full Task 1 gate restart | ~500 |
+| 22:05 | Completed Plan 22-06 Task 1 focused gates and atomic rollback boundary | apps/mobile/package.json, apps/mobile/package-lock.json | all restarted assertions green; commit ce01c7ed05a162e5069d1f075a4633fbcf7b9303 contains exactly the two dependency files and both are clean | ~600 |
+| 22:10 | Completed Plan 22-06 ordered local stack and submitted the sole matching EAS Android build | apps/mobile dependency graph, EAS build 6e7a1d7a-2851-4868-8609-8103adb24c77 | npm ci/tree, Doctor 20/20, TypeScript, Jest 412/412, audit 0 green; single build tied to ce01c7ed is waiting | ~1200 |
+| 22:24 | Closed Phase 22 MOBILE-03 verification after the matching SDK 57 cloud artifact finished | EAS build 6e7a1d7a-2851-4868-8609-8103adb24c77, 22-VERIFICATION.md, 22-06-SUMMARY.md | build FINISHED with APK and gitCommitHash exactly ce01c7ed; post-build tree/audit green; phase verification passed 4/4 with no gaps | ~1600 |
+| 22:40 | Independently re-verified Phase 22 against code, commits, all local gates, and live EAS metadata | apps/mobile, 22-VERIFICATION.md | passed 4/4; Doctor 20/20, lint/type/Jest 412/412, audit 0, sole matching EAS build confirmed; report unchanged | ~1200 |
+| 22:44 | Completed GSD Phase 22 tracking and corrected legacy-helper traceability drift | .planning/ROADMAP.md, .planning/REQUIREMENTS.md, .wolf/cerebrum.md, .wolf/buglog.json | Phase 22 remains 6/6 complete; MOBILE-01..04 marked Done with SDK 57-compatible MOBILE-03 wording; commit f74e4419 | ~700 |
+
+## Session: 2026-08-11 02:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-11 02:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:04 | Edited .planning/REQUIREMENTS.md | 3→3 lines | ~134 |
+| 03:04 | Edited .planning/REQUIREMENTS.md | 3→3 lines | ~23 |
+| 03:09 | Created .planning/v1.4-MILESTONE-AUDIT.md | — | ~2379 |
+| 03:24 | Edited apps/api/core/roles.py | 6→9 lines | ~174 |
+| 03:24 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added 1 import(s) | ~70 |
+| 03:24 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 4→6 lines | ~52 |
+| 03:32 | Created verify_ce_tmp.mjs | — | ~133 |
+| 03:33 | Created verify_ce_tmp.mjs | — | ~227 |
+| 03:35 | Edited apps/api/routers/reports.py | inline fix | ~23 |
+| 03:35 | Edited apps/api/routers/reports.py | inline fix | ~22 |
+| 03:35 | Edited apps/api/routers/reports.py | added 1 import(s) | ~38 |
+| 03:35 | Edited apps/api/routers/reports.py | inline fix | ~26 |
+| 03:40 | Edited .planning/v1.4-MILESTONE-AUDIT.md | 15→14 lines | ~60 |
+| 03:40 | Edited .planning/v1.4-MILESTONE-AUDIT.md | expanded (+16 lines) | ~647 |
+
+## Session: 2026-08-11 16:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-11 17:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-11 17:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:05 | Edited apps/mobile/.gitignore | 3→6 lines | ~29 |

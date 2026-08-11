@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T12:11:27.810Z
-> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T22:05:35.640Z
+> Files: 4 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -36,6 +36,9 @@
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/686ef36c-e5b4-4867-85a7-7d43f49217fb/scratchpad/
 
 
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/
+
+
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/b05610ee-fc7b-410c-90c0-8a68b1724167/scratchpad/
 
 
@@ -65,6 +68,7 @@
 
 ## ./
 
+- `verify_ce_tmp.mjs` — Declares raw (~227 tok)
 
 ## .claude/
 
@@ -914,7 +918,7 @@
 
 ## .planning/
 
-- `STATE.md` — GSD State (~22872 tok)
+- `v1.4-MILESTONE-AUDIT.md` — v1.4 "Platform and Ops Hardening" — Milestone Audit (~2587 tok)
 
 ## .planning/UI-REFRESH-PLAN.md
 
@@ -939,8 +943,18 @@
 
 ## .planning/phases/17-backlog-cleanup/
 
-- `17-06-SUMMARY.md` — Phase 17 Plan 06: Room History Visibility + Actor Attribution Summary (~2353 tok)
-- `17-VERIFICATION.md` — Phase 17: Backlog Cleanup Verification Report (~3546 tok)
+
+## .planning/phases/19-rbac-audit-and-normalization/
+
+
+## .planning/phases/20-close-deferred-v1-3-verification-items/
+
+
+## .planning/phases/21-dev-qa-test-data-hygiene/
+
+
+## .planning/phases/22-expo-sdk-54-57-bump/
+
 
 ## .planning/research/
 
@@ -992,6 +1006,7 @@
 
 ## apps/api/routers/
 
+- `reports.py` — API: 4 endpoints (~4468 tok)
 
 ## apps/api/scripts/
 
@@ -1025,8 +1040,6 @@
 
 ## apps/api/tests/smoke/
 
-- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~16810 tok)
-- `test_webhooks_and_transitions.py` — FakeDB: table, select, delete, update + 21 more (~7040 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -1051,6 +1064,7 @@
 
 ## apps/mobile/
 
+- `.gitignore` — Git ignore rules (~62 tok)
 
 ## apps/mobile/__tests__/components/
 

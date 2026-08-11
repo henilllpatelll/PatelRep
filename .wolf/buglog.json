@@ -2,6 +2,25 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-823",
+      "timestamp": "2026-08-11T00:00:00.000Z",
+      "error_message": "v1.4 milestone audit (cross-phase integration check): chief_engineer users, now creatable since migration 092 (Phase 20), get 403 on GET /hotels/{hotel_id} and /hotels/{hotel_id}/stats, and land on a broken '/dashboard' with 'No dashboard available for your role.' despite a fully-built but unused ChiefEngineerDashboard.tsx component.",
+      "file": "apps/api/core/roles.py, apps/api/routers/hotels.py, apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Phase 19 (2026-08-04) wrote core/roles.py under the stale assumption that chief_engineer 'was retired by migration 064... can no longer occur in a live JWT', so ALL_STAFF_ROLES = ALL_ROLES deliberately excludes it (contradicting the same file's MANAGER_ROLES/PROGRAM_MANAGER_ROLES, which already include chief_engineer). hotels.py gates two endpoints on ALL_STAFF_ROLES. Phase 20 (2026-08-05, one phase later) added migration 092, which restores chief_engineer as a fully live, distinct role at the DB layer — matching how routeGuard.ts, staff creation, and >15 backend RBAC gates already treated it — but nothing cross-checked core/roles.py's ALL_STAFF_ROLES against that restoration. Separately, apps/web/app/(dashboard)/dashboard/page.tsx's role switch has no case for chief_engineer, falling to a 'No dashboard available' default, even though ChiefEngineerDashboard.tsx exists fully built and is never imported anywhere in apps/web.",
+      "fix": "Fixed same session: added chief_engineer to core/roles.py's ALL_ROLES/ALL_STAFF_ROLES (corrected the stale comment), wired a chief_engineer case in dashboard/page.tsx to the existing ChiefEngineerDashboard.tsx, and normalized reports.py's 3 remaining inline role-list gates (found live while verifying the fix — get_guest_recovery_report/get_daily_summary/get_staff_performance to PROGRAM_MANAGER_ROLES, get_maintenance_report to add chief_engineer). Verified live: seeded a real chief_engineer test user, logged in via the actual browser UI, confirmed /dashboard renders correctly with 0 console errors (was 3x 403 on /v1/reports/maintenance before the reports.py fix). Full API suite 553/553 relevant tests pass (3 pre-existing unrelated ROI test failures confirmed via git-stash A/B), web type-check clean.",
+      "tags": [
+        "rbac",
+        "cross-phase",
+        "chief_engineer",
+        "dashboard",
+        "milestone-audit",
+        "v1.4"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T00:00:00.000Z"
+    },
+    {
       "id": "bug-677",
       "timestamp": "2026-07-27T00:00:00.000Z",
       "error_message": "e2e/phase4-programs.spec.ts: 'PM Schedules page heading and status copy translate EN <-> ES at 390px' fails — getByRole('heading', { name: 'Programas de mantenimiento preventivo' }) not visible within 10000ms. Confirmed the i18n key is correct: i18n/locales/es.ts programs.pmSchedules.title = 'Programas de mantenimiento preventivo' exactly. Has a cascading effect: the next test in the same file ('PM completion form opens with translated core labels') then fails too (strict-mode 'Verifier' locator ambiguity) when run in the same suite run, but passes/skips cleanly in isolation — likely leaked ES language state from the first test's incomplete run (its 'reset to English' step never executes because the assertion above it throws first).",
@@ -12821,6 +12840,891 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-08-05T01:51:25.511Z"
+    },
+    {
+      "id": "bug-775",
+      "timestamp": "2026-08-05T01:56:48.310Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→10 lines (5 removed) | Also: Phase: 20 of 22 (Close Deferred v1.3 Verification ; Plan: 2 plans total (20-01, 20-02). 20-01 CLOSED t | Also: Last session: 2026-08-05T01:05:00Z; Stopped At: Completed 20-01-PLAN.md (VERIFY-01 arc",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-05T01:57:54.831Z"
+    },
+    {
+      "id": "bug-776",
+      "timestamp": "2026-08-05T02:03:00.954Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/20-close-deferred-v1-3-verification-items/20-02-SUMMARY.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T02:03:00.954Z"
+    },
+    {
+      "id": "bug-777",
+      "timestamp": "2026-08-05T07:48:37.665Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→8 lines (5 removed) | Also: Last session: 2026-08-05T01:54:00Z; Stopped At: Completed 20-02-PLAN.md (VERIFY-02 NUL | Also: last_updated: \"2026-08-05T01:54:00Z\"; last_activity: 2026-08-05 -- Phase 20 (Close Defer | Also: Plan: 1 of 3 (21-01 CLOSED this session, commit `b; Status: Phase 20 (Close Deferred v1.3 Verification",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-08-05T07:49:37.497Z"
+    },
+    {
+      "id": "bug-778",
+      "timestamp": "2026-08-05T07:49:48.463Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `tenants.is_test`",
+      "fix": "Changed to `.planning/phases/21-dev-qa-test-data-hygiene/21-A",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T07:49:48.463Z"
+    },
+    {
+      "id": "bug-779",
+      "timestamp": "2026-08-05T07:53:31.496Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/scripts/cleanup_test_data.py",
+      "root_cause": "Had \"Excluded tables (never touched, append-only): {so",
+      "fix": "Changed to \"Excluded tables (never touched, append-only): {so",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T07:53:31.496Z"
+    },
+    {
+      "id": "bug-780",
+      "timestamp": "2026-08-05T08:24:48.664Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/GuestRequestsList.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T08:24:48.664Z"
+    },
+    {
+      "id": "bug-781",
+      "timestamp": "2026-08-05T08:28:57.896Z",
+      "error_message": "Wrong reference: None should be After",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-01-SUMMARY.md",
+      "root_cause": "Used \"None\" instead of \"After\"",
+      "fix": "Changed None → After",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T08:28:57.896Z"
+    },
+    {
+      "id": "bug-782",
+      "timestamp": "2026-08-05T12:39:31Z",
+      "error_message": "Get-Date : A parameter cannot be found that matches parameter name 'AsUTC'.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The installed Windows PowerShell version does not support Get-Date -AsUTC.",
+      "fix": "Used [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ') for a portable UTC timestamp.",
+      "tags": [
+        "powershell",
+        "tooling",
+        "timestamp"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:39:31Z"
+    },
+    {
+      "id": "bug-783",
+      "timestamp": "2026-08-05T12:42:45Z",
+      "error_message": "expo-doctor: ios/android should NOT have additional property 'newArchEnabled' under Expo SDK 55.",
+      "file": "apps/mobile/app.json",
+      "root_cause": "SDK 55 makes the New Architecture mandatory and removes the platform newArchEnabled config fields, but the SDK-54 config retained both fields after expo install --fix.",
+      "fix": "Removed ios.newArchEnabled and android.newArchEnabled; expo-doctor then passed 19/19 checks.",
+      "tags": [
+        "expo",
+        "sdk-55",
+        "new-architecture",
+        "config"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:42:45Z"
+    },
+    {
+      "id": "bug-784",
+      "timestamp": "2026-08-05T12:42:45Z",
+      "error_message": "SDK 55 deprecation audit found a StatusBar backgroundColor prop despite research expecting none.",
+      "file": "apps/mobile/app/_layout.tsx",
+      "root_cause": "The root Expo StatusBar retained the removed/deprecated Android backgroundColor prop from the SDK-54 implementation.",
+      "fix": "Removed the backgroundColor prop while preserving theme-driven style and animation behavior.",
+      "tags": [
+        "expo",
+        "sdk-55",
+        "status-bar",
+        "deprecation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:42:45Z"
+    },
+    {
+      "id": "bug-785",
+      "timestamp": "2026-08-05T12:45:00Z",
+      "error_message": "TypeScript rejected React Native SDK 55 ColorSchemeName because it can include 'unspecified'.",
+      "file": "apps/mobile/lib/theme/appearance.ts",
+      "root_cause": "resolveThemeMode accepted only light/dark/null while React Native 0.83 widened the system color-scheme value.",
+      "fix": "Accepted 'unspecified' as a light fallback and added focused coverage for system and explicit preferences.",
+      "tags": [
+        "expo",
+        "sdk-55",
+        "typescript",
+        "react-native"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:45:00Z"
+    },
+    {
+      "id": "bug-786",
+      "timestamp": "2026-08-05T12:47:00Z",
+      "error_message": "The SDK 55 Jest run timed out in 16 suites after React upgraded to 19.2.0.",
+      "file": "apps/mobile/package.json",
+      "root_cause": "react-test-renderer remained on 19.1.0 and @testing-library/react-native 12.9.0 did not satisfy expo-router 55's >=13.2.0 peer contract.",
+      "fix": "Aligned react-test-renderer to 19.2.0 and @testing-library/react-native to ^13.2.0; all 45 suites and 412 tests passed.",
+      "tags": [
+        "expo",
+        "sdk-55",
+        "jest",
+        "peer-dependencies"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:47:00Z"
+    },
+    {
+      "id": "bug-787",
+      "timestamp": "2026-08-05T12:49:00Z",
+      "error_message": "npm 10.9.3 repeatedly failed to replace apps/mobile/package-lock.json with UNKNOWN -4094 open.",
+      "file": "apps/mobile/package-lock.json",
+      "root_cause": "The bundled npm process could not complete its Windows lockfile replacement despite the dependency resolution itself succeeding.",
+      "fix": "Ran the same install with npx npm@10.9.4, which wrote the lockfile successfully; npm ls then exited cleanly.",
+      "tags": [
+        "npm",
+        "windows",
+        "package-lock",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:49:00Z"
+    },
+    {
+      "id": "bug-788",
+      "timestamp": "2026-08-05T12:52:00Z",
+      "error_message": "EAS failed to upload the project tarball because its local shallow git clone exited 128.",
+      "file": "apps/mobile/eas.json",
+      "root_cause": "Git's Windows local-clone protection blocked EAS CLI's temporary file:// repository clone before any remote build was created.",
+      "fix": "Retried with command-scoped GIT_CLONE_PROTECTION_ACTIVE=false; EAS created Android preview build 10c95e4d-6cac-4a7e-b677-d0fa5a8b5418.",
+      "tags": [
+        "eas",
+        "windows",
+        "git",
+        "build"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:52:00Z"
+    },
+    {
+      "id": "bug-789",
+      "timestamp": "2026-08-05T14:48:00Z",
+      "error_message": "gsd-tools commit treated words from a quoted multi-word message as Git pathspecs on PowerShell.",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-02-SUMMARY.md",
+      "root_cause": "The Windows GSD commit helper did not preserve the multi-word message as one Git argument.",
+      "fix": "Used native git with an explicit seven-file staging list and verified the cached diff before commit 11e4b41a.",
+      "tags": [
+        "gsd",
+        "powershell",
+        "git",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:48:00Z"
+    },
+    {
+      "id": "bug-790",
+      "timestamp": "2026-08-05T14:50:00Z",
+      "error_message": "GSD state advance/progress/decision/session helpers could not parse the project's expanded STATE.md format.",
+      "file": ".planning/STATE.md",
+      "root_cause": "The helpers expect canonical single Current Position, Progress, Decisions, and Session fields, while this project preserves a long archival state document with duplicated sections.",
+      "fix": "Kept the successful metric and roadmap updates, then manually reconciled the active frontmatter/current-position/session/closed-plan sections with apply_patch.",
+      "tags": [
+        "gsd",
+        "state",
+        "tooling",
+        "format"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:50:00Z"
+    },
+    {
+      "id": "bug-791",
+      "timestamp": "2026-08-05T14:51:00Z",
+      "error_message": "An initial STATE.md apply_patch could not find lines copied from mojibake PowerShell output.",
+      "file": ".planning/STATE.md",
+      "root_cause": "Default Get-Content rendering showed UTF-8 arrows and dashes as mojibake, so the copied patch context did not match the actual file bytes.",
+      "fix": "Re-read STATE.md with Get-Content -Encoding UTF8 and applied the patch using the real Unicode text.",
+      "tags": [
+        "powershell",
+        "utf8",
+        "apply-patch",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:51:00Z"
+    },
+    {
+      "id": "bug-792",
+      "timestamp": "2026-08-05T14:53:00Z",
+      "error_message": "PowerShell mangled git cat-file's 11e4b41a^{commit} revision expression into an invalid switch.",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-02-SUMMARY.md",
+      "root_cause": "The unquoted caret expression was interpreted by the Windows command layer instead of being passed literally to Git.",
+      "fix": "Verified the commit with git show --no-patch --oneline 11e4b41a instead.",
+      "tags": [
+        "git",
+        "powershell",
+        "verification",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:53:00Z"
+    },
+    {
+      "id": "bug-793",
+      "timestamp": "2026-08-05T14:55:00Z",
+      "error_message": "Cannot find module .claude/get-shit-done/bin/gsd-tools.js.",
+      "file": ".claude/get-shit-done/bin/gsd-tools.js",
+      "root_cause": "This workspace does not vendor the Codex compatibility helper at the documented local .js path.",
+      "fix": "Used the installed upstream helper at C:/Users/Henil/.claude/get-shit-done/bin/gsd-tools.cjs from the repository root.",
+      "tags": [
+        "gsd",
+        "tooling",
+        "windows"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:55:00Z"
+    },
+    {
+      "id": "bug-794",
+      "timestamp": "2026-08-05T14:57:00Z",
+      "error_message": "npm UNKNOWN -4094 open apps/mobile/package-lock.json recurred during the SDK 56 install, including with npm 10.9.4.",
+      "file": "apps/mobile/package-lock.json",
+      "root_cause": "The Windows npm lockfile replacement issue from bug-787 recurred; npm 10.9.4 was not sufficient on this hop.",
+      "fix": "Retried with npx npm@11.5.1 install, which wrote the lockfile successfully; a subsequent expo install --fix completed.",
+      "tags": [
+        "npm",
+        "windows",
+        "package-lock",
+        "sdk-56"
+      ],
+      "related_bugs": [
+        "bug-787"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:57:00Z"
+    },
+    {
+      "id": "bug-795",
+      "timestamp": "2026-08-05T14:59:00Z",
+      "error_message": "jest-expo could not start because the React Native Jest preset moved to @react-native/jest-preset.",
+      "file": "apps/mobile/package.json",
+      "root_cause": "SDK 56 jest-expo declares @react-native/jest-preset as a required peer, but expo install --fix did not add it to the app's devDependencies.",
+      "fix": "Added exact @react-native/jest-preset@0.85.3 to match React Native 0.85.3 and aligned react-test-renderer to React 19.2.3.",
+      "tags": [
+        "expo",
+        "sdk-56",
+        "jest",
+        "peer-dependency"
+      ],
+      "related_bugs": [
+        "bug-786"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T14:59:00Z"
+    },
+    {
+      "id": "bug-796",
+      "timestamp": "2026-08-05T15:01:00Z",
+      "error_message": "expo-doctor failed because app.json retained the removed top-level splash field and because SDK 56 forbids direct @react-navigation packages with expo-router.",
+      "file": "apps/mobile/app.json",
+      "root_cause": "SDK 56 moved splash configuration to the expo-splash-screen plugin, and the plan's proposed direct @react-navigation/native dependency conflicts with Expo Router 56's fork compatibility check.",
+      "fix": "Moved splash options into the expo-splash-screen plugin and used the plan-authorized codemod-only fallback by removing the direct navigation package; expo-doctor then passed 21/21.",
+      "tags": [
+        "expo",
+        "sdk-56",
+        "expo-doctor",
+        "react-navigation",
+        "config"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T15:01:00Z"
+    },
+    {
+      "id": "bug-797",
+      "timestamp": "2026-08-05T15:03:00Z",
+      "error_message": "TypeScript 6 rejected deprecated baseUrl and then could not discover Jest/Node globals automatically.",
+      "file": "apps/mobile/tsconfig.json",
+      "root_cause": "The SDK 56 TypeScript 6 matrix deprecates baseUrl and requires explicit ambient type inclusion for this project's test files.",
+      "fix": "Removed baseUrl (paths remain relative to tsconfig) and added explicit compiler types for jest and node; tsc then reached the remaining RN API issue.",
+      "tags": [
+        "typescript",
+        "sdk-56",
+        "tsconfig",
+        "jest"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T15:03:00Z"
+    },
+    {
+      "id": "bug-798",
+      "timestamp": "2026-08-05T15:04:00Z",
+      "error_message": "React Native 0.85 types no longer expose StyleSheet.absoluteFillObject.",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "The SDK 56 React Native 0.85 type surface removed the legacy absoluteFillObject helper used by the room-status modal backdrop.",
+      "fix": "Replaced the spread helper with equivalent explicit absolute positioning; TypeScript passed afterward.",
+      "tags": [
+        "react-native",
+        "sdk-56",
+        "typescript",
+        "stylesheet"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T15:04:00Z"
+    },
+    {
+      "id": "bug-799",
+      "timestamp": "2026-08-05T15:06:00Z",
+      "error_message": "Six async screen tests exceeded Jest's 5-second timeout only during the full SDK 56 parallel run.",
+      "file": "apps/mobile/jest.config.js",
+      "root_cause": "SDK 56's heavier Jest/React Native startup caused worker contention; all six failures passed together in-band, proving no behavior regression.",
+      "fix": "Capped Jest at two workers; the unchanged npx jest command then passed all 45 suites and 412 tests.",
+      "tags": [
+        "jest",
+        "sdk-56",
+        "timeout",
+        "workers"
+      ],
+      "related_bugs": [
+        "bug-786"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T15:06:00Z"
+    },
+    {
+      "id": "bug-800",
+      "timestamp": "2026-08-05T18:36:00Z",
+      "error_message": "expo-doctor expected expo~57.0.10 and rejected the roadmap-locked exact expo@57.0.9 pin.",
+      "file": "apps/mobile/package.json",
+      "root_cause": "The latest SDK 57 compatibility matrix advanced its recommended Expo patch to 57.0.10 after the roadmap locked 57.0.9.",
+      "fix": "Kept expo pinned exactly 57.0.9 and used Expo Doctor's supported expo.install.exclude entry for that single intentional patch mismatch; all 20 checks then passed.",
+      "tags": [
+        "expo",
+        "sdk-57",
+        "expo-doctor",
+        "dependency-pin"
+      ],
+      "related_bugs": [
+        "bug-796"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T18:36:00Z"
+    },
+    {
+      "id": "bug-801",
+      "timestamp": "2026-08-05T18:39:00Z",
+      "error_message": "SDK 57 alignment left npm ls --all invalid because Router drawer, Worklets, Metro, web, and testing peers were missing.",
+      "file": "apps/mobile/package.json",
+      "root_cause": "expo install --fix and Expo Doctor do not cover every strict transitive peer in this app's SDK 57 dependency graph.",
+      "fix": "Installed the SDK-compatible gesture-handler, Reanimated, Worklets, Metro config, React DOM, and Testing Library DOM peers; npm ls --all then reported a clean tree.",
+      "tags": [
+        "expo",
+        "sdk-57",
+        "npm",
+        "peer-dependency"
+      ],
+      "related_bugs": [
+        "bug-795",
+        "bug-800"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T18:39:00Z"
+    },
+    {
+      "id": "bug-802",
+      "timestamp": "2026-08-05T18:41:00Z",
+      "error_message": "TypeScript rejected LoginTheme.test.tsx because ReactTestInstance props no longer satisfied a helper requiring a style property.",
+      "file": "apps/mobile/__tests__/screens/LoginTheme.test.tsx",
+      "root_cause": "The SDK 57 peer graph exposed React Test Renderer's indexed props type, which is wider than the test helper's required style-property shape.",
+      "fix": "Changed the helper input to an object with Record<string, unknown> props; TypeScript and all 412 Jest tests passed.",
+      "tags": [
+        "expo",
+        "sdk-57",
+        "typescript",
+        "test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T18:41:00Z"
+    },
+    {
+      "id": "bug-803",
+      "timestamp": "2026-08-05T18:43:00Z",
+      "error_message": "EAS stopped before upload because Git clone protection rejected its local shallow file-protocol clone with an active core.hooksPath.",
+      "file": "apps/mobile/eas.json",
+      "root_cause": "EAS clones the trusted local repository into a staging directory, while Git clone protection disallows that file transport configuration by default.",
+      "fix": "Reproduced the clone failure, verified the target was the trusted workspace, and set GIT_CLONE_PROTECTION_ACTIVE=false only for the EAS process; the sole remote SDK 57 build then finished green.",
+      "tags": [
+        "eas",
+        "git",
+        "windows",
+        "clone-protection",
+        "sdk-57"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T18:43:00Z"
+    },
+    {
+      "id": "bug-804",
+      "timestamp": "2026-08-05T22:15:18Z",
+      "error_message": "ConvertFrom-Json: A parameter cannot be found that matches parameter name 'Depth'.",
+      "file": "PowerShell audit evidence command",
+      "root_cause": "The workspace shell is Windows PowerShell 5.1, whose ConvertFrom-Json cmdlet does not support the -Depth parameter used by newer PowerShell releases.",
+      "fix": "Retry the read-only npm audit JSON parse without -Depth and keep dependency explanations separate so advisory evidence remains concise.",
+      "tags": [
+        "powershell",
+        "npm-audit",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:15:18Z"
+    },
+    {
+      "id": "bug-805",
+      "timestamp": "2026-08-05T22:19:00Z",
+      "error_message": "TypeError: Cannot read properties of undefined (reading 'project') at pbxProject.allUuids",
+      "file": "Plan 22-05 xcode/uuid compatibility probe",
+      "root_cause": "The probe called xcode.generateUuid() on an unparsed project, but generateUuid() requires this.hash.project.objects to exist before it checks UUID collisions.",
+      "fix": "Initialize the minimal project hash in the probe before calling generateUuid; separately verify uuid v11 CommonJS exposes v4().",
+      "tags": [
+        "xcode",
+        "uuid",
+        "probe",
+        "sdk-57"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:19:00Z"
+    },
+    {
+      "id": "bug-806",
+      "timestamp": "2026-08-05T22:20:00Z",
+      "error_message": "Error: Cannot find module '@expo/cli/package.json' from the workspace root",
+      "file": "Plan 22-05 Expo version evidence command",
+      "root_cause": "The follow-up Node probe ran from the repository root instead of apps/mobile, so Node resolved the wrong node_modules tree.",
+      "fix": "Run mobile package-version and compatibility probes with apps/mobile as the working directory.",
+      "tags": [
+        "node-resolution",
+        "expo",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-805"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:20:00Z"
+    },
+    {
+      "id": "bug-807",
+      "timestamp": "2026-08-05T22:28:00Z",
+      "error_message": "apply_patch verification failed twice while inserting the new audit document into .wolf/anatomy.md",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The patch contexts included the console's mojibake rendering of UTF-8 em dashes, so they did not match the file's actual bytes.",
+      "fix": "Retry with only the adjacent ASCII-only 22-05-PLAN.md line as the patch anchor and isolate the anatomy edit from other file patches.",
+      "tags": [
+        "openwolf",
+        "encoding",
+        "apply-patch"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-05T22:29:00Z"
+    },
+    {
+      "id": "bug-808",
+      "timestamp": "2026-08-05T22:30:00Z",
+      "error_message": "git diff --check reported trailing whitespace on the scope and recorded lines of 22-AUDIT-ACCEPTED-RISK.md",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-AUDIT-ACCEPTED-RISK.md",
+      "root_cause": "Markdown hard-break spaces were unnecessary because each field already occupies its own paragraph line.",
+      "fix": "Remove the two trailing-space pairs, rerun git diff --check, and amend the Task 2 commit.",
+      "tags": [
+        "markdown",
+        "whitespace",
+        "git"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:30:00Z"
+    },
+    {
+      "id": "bug-809",
+      "timestamp": "2026-08-05T22:33:00Z",
+      "error_message": "GSD state helpers could not parse Current Plan/Total Plans, progress, decisions, or session fields in .planning/STATE.md",
+      "file": ".planning/STATE.md",
+      "root_cause": "STATE.md uses a legacy duplicated layout that does not match the current gsd-tools parser; only record-metric found a writable target.",
+      "fix": "Preserve historical blocks and manually update the active frontmatter, both Phase 22 current-position blocks, decisions, metric row, and session fields.",
+      "tags": [
+        "gsd",
+        "state",
+        "parser",
+        "legacy-layout"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:33:00Z"
+    },
+    {
+      "id": "bug-810",
+      "timestamp": "2026-08-05T12:35:00Z",
+      "error_message": "The 'gpt-5.3-spark' model is not supported when using Codex with a ChatGPT account.",
+      "file": "C:/Users/Henil/.codex/agents/gsd-executor.toml",
+      "root_cause": "The registered GSD Codex role routes to a model unavailable to this ChatGPT account, so the required executor agent failed before reading the plan.",
+      "fix": "Spawned standard fallback agents with the complete gsd-executor/gsd-verifier role sources and upstream workflow contracts while preserving every GSD wave and verification gate.",
+      "tags": [
+        "gsd",
+        "codex",
+        "agent-role",
+        "model-compatibility"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:35:00Z"
+    },
+    {
+      "id": "bug-811",
+      "timestamp": "2026-08-05T12:45:00Z",
+      "error_message": "Get-Content could not find apps/mobile/apps/mobile/package.json.",
+      "file": "Phase 22 orchestrator package-version probe",
+      "root_cause": "The probe used an apps/mobile-prefixed path while its working directory was already apps/mobile, duplicating the directory segment.",
+      "fix": "Use package.json relative to the apps/mobile working directory, or run the prefixed path from the repository root.",
+      "tags": [
+        "powershell",
+        "working-directory",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T12:45:00Z"
+    },
+    {
+      "id": "bug-812",
+      "timestamp": "2026-08-05T22:36:00Z",
+      "error_message": "Optional ripgrep search returned exit code 1 when no Phase 22 verification anatomy entry existed.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "ripgrep uses exit code 1 for a valid no-match result, which the command wrapper reports as a failed script.",
+      "fix": "Used PowerShell Select-String for optional existence checks and added the missing 22-VERIFICATION.md anatomy entry.",
+      "tags": [
+        "ripgrep",
+        "openwolf",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:36:00Z"
+    },
+    {
+      "id": "bug-813",
+      "timestamp": "2026-08-05T22:38:00Z",
+      "error_message": "apply_patch verification failed while adding the Phase 22 verification entry to .wolf/anatomy.md.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The patch repeated the known bug-807 mistake by using console-mojibake context around UTF-8 em-dash lines.",
+      "fix": "Retried with the adjacent ASCII-only 22-05-SUMMARY.md line as the sole patch anchor; the verification entry was added successfully.",
+      "tags": [
+        "openwolf",
+        "encoding",
+        "apply-patch"
+      ],
+      "related_bugs": [
+        "bug-807"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T22:38:00Z"
+    },
+    {
+      "id": "bug-814",
+      "timestamp": "2026-08-05T19:45:01-05:00",
+      "error_message": "The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account.",
+      "file": "C:/Users/Henil/.codex/agents/gsd-planner.toml",
+      "root_cause": "The mandatory GSD planner role is pinned to gpt-5.3-codex, but this Codex desktop session is authenticated with a ChatGPT account that cannot start that model.",
+      "fix": "Remapped gsd-planner to gpt-5.6-sol and gsd-plan-checker to gpt-5.6-terra with xhigh reasoning, then reinitialized /gsd:plan-phase 22 --gaps successfully.",
+      "tags": [
+        "gsd",
+        "subagent",
+        "model-compatibility",
+        "codex-desktop"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T20:40:27-05:00"
+    },
+    {
+      "id": "bug-815",
+      "timestamp": "2026-08-05T20:52:27.9840466-05:00",
+      "error_message": "gsd-tools commit treated words from the quoted Phase 22 gap-plan commit message as Git pathspecs on PowerShell.",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md",
+      "root_cause": "The Windows GSD commit helper did not preserve the multi-word message as one Git argument, recurring from bug-789.",
+      "fix": "Use native git with an explicit one-file staging list, inspect the cached diff, and commit only 22-06-PLAN.md.",
+      "tags": [
+        "gsd",
+        "powershell",
+        "git",
+        "tooling",
+        "planning"
+      ],
+      "related_bugs": [
+        "bug-789"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T20:52:27.9840466-05:00"
+    },
+    {
+      "id": "bug-816",
+      "timestamp": "2026-08-05T20:53:22.1302557-05:00",
+      "error_message": "Final GSD validation invoked node without the gsd-tools path and attempted to load local modules named frontmatter and verify.",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md",
+      "root_cause": "A JavaScript orchestration variable was mistakenly referenced as a PowerShell variable inside exec_command, leaving the node script path empty.",
+      "fix": "Rerun both validators with the absolute gsd-tools.cjs path written directly in each PowerShell command.",
+      "tags": [
+        "gsd",
+        "powershell",
+        "validation",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T20:53:22.1302557-05:00"
+    },
+    {
+      "id": "bug-817",
+      "timestamp": "2026-08-05T21:01:04.0348493-05:00",
+      "error_message": "apply_patch verification failed while adding the Plan 22-06 commit-boundary checker learning to .wolf/cerebrum.md.",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The patch used a long mojibake-sensitive adjacent line as context, so its expected UTF-8 text did not match the console-rendered copy.",
+      "fix": "Retried with the ASCII-only Do-Not-Repeat heading as the sole patch anchor; the learning was added successfully.",
+      "tags": [
+        "openwolf",
+        "encoding",
+        "apply-patch",
+        "planning"
+      ],
+      "related_bugs": [
+        "bug-813"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T21:01:04.0348493-05:00"
+    },
+    {
+      "id": "bug-815",
+      "timestamp": "2026-08-05T21:04:16-05:00",
+      "error_message": "apply_patch verification failed while adding the final Phase 22 planning learning to .wolf/cerebrum.md.",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The planner had already inserted a newer Phase 22 gap-closure learning above the expected GSD role-model anchor, so the combined patch's exact context no longer matched.",
+      "fix": "Re-read the targeted Key Learnings lines, enriched the existing Phase 22 entry with the commit/EAS hash boundary, and applied the memory update using current context.",
+      "tags": [
+        "openwolf",
+        "apply-patch",
+        "concurrent-agent",
+        "planning"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-05T21:04:16-05:00"
+    },
+    {
+      "id": "bug-818",
+      "timestamp": "2026-08-06T02:51:18Z",
+      "error_message": "Get-Date: A parameter cannot be found that matches parameter name 'AsUTC'.",
+      "file": "Plan 22-06 execution start-time probe",
+      "root_cause": "The workspace shell is Windows PowerShell 5.1, whose Get-Date cmdlet does not support the newer -AsUTC parameter.",
+      "fix": "Use [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ') for portable UTC timestamps in this checkout.",
+      "tags": [
+        "powershell",
+        "tooling",
+        "gsd",
+        "timestamp"
+      ],
+      "related_bugs": [
+        "bug-804"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-06T02:51:18Z"
+    },
+    {
+      "id": "bug-819",
+      "timestamp": "2026-08-06T03:03:00Z",
+      "error_message": "Task 1 navigation import scan failed after rg '@react-navigation/' returned no matches.",
+      "file": ".planning/phases/22-expo-sdk-54-57-bump/22-06-PLAN.md",
+      "root_cause": "Ripgrep exits 1 for a valid no-match result; the current supported imports are expo-router/react-navigation and therefore do not contain the literal @react-navigation/ pattern.",
+      "fix": "Treat the literal scan's no-match result as confirmation that no external provider import exists, and add a combined scan/assertion that requires the expected expo-router/react-navigation matches while rejecting any line that lacks that supported path.",
+      "tags": [
+        "ripgrep",
+        "react-navigation",
+        "expo-router",
+        "verification",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-812"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-06T03:03:00Z"
+    },
+    {
+      "id": "bug-820",
+      "timestamp": "2026-08-06T03:10:00Z",
+      "error_message": "EAS CLI printed 'Failed to upload metadata to EAS Build: Request failed: 400 (Bad Request)' during the 614 MB upload.",
+      "file": "apps/mobile EAS Android preview submission",
+      "root_cause": "The CLI metadata subrequest returned a transient 400 while the main archive upload continued successfully; the process did not exit and subsequently created a single remote build record.",
+      "fix": "Do not retry or submit a duplicate. Persisted with the same --wait process, which uploaded the archive, computed the fingerprint, and created build 6e7a1d7a-2851-4868-8609-8103adb24c77.",
+      "tags": [
+        "eas",
+        "upload",
+        "metadata",
+        "android",
+        "sdk-57"
+      ],
+      "related_bugs": [
+        "bug-803"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-06T03:10:00Z"
+    },
+    {
+      "id": "bug-821",
+      "timestamp": "2026-08-06T03:25:00Z",
+      "error_message": "gsd-tools state advance-plan returned: Cannot parse Current Plan or Total Plans in Phase from STATE.md",
+      "file": ".planning/STATE.md",
+      "root_cause": "This repository's legacy STATE.md layout uses prose position fields and duplicated historical blocks that the current GSD state parser cannot recognize.",
+      "fix": "Preserve historical blocks and update the active frontmatter, current-position prose, progress, decisions, metrics, and session fields manually; use the roadmap helper separately where supported.",
+      "tags": [
+        "gsd",
+        "state",
+        "parser",
+        "legacy-layout",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-06T03:25:00Z"
+    },
+    {
+      "id": "bug-822",
+      "timestamp": "2026-08-06T03:43:00Z",
+      "error_message": "gsd-tools phase complete 22 shifted the Phase 22 ROADMAP progress columns and left MOBILE-01..04 unchecked/Pending in REQUIREMENTS.md.",
+      "file": ".planning/ROADMAP.md, .planning/REQUIREMENTS.md",
+      "root_cause": "The current phase-complete helper does not understand this repository's legacy progress-table/traceability layout; it treated the completed row fields as its own schema and did not update requirement status entries.",
+      "fix": "Reviewed the helper diff, restored the canonical 6/6 | Complete | 2026-08-06 roadmap row, marked MOBILE-01..04 complete, and updated MOBILE-03 wording to the independently verified first-compatible-SDK-57 boundary.",
+      "tags": [
+        "gsd",
+        "phase-complete",
+        "roadmap",
+        "requirements",
+        "traceability",
+        "legacy-layout"
+      ],
+      "related_bugs": [
+        "bug-809",
+        "bug-821"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-06T03:43:00Z"
+    },
+    {
+      "id": "bug-825",
+      "timestamp": "2026-08-11T08:24:42.001Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/core/roles.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 6→9 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T08:24:42.001Z"
+    },
+    {
+      "id": "bug-826",
+      "timestamp": "2026-08-11T08:40:34.443Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/v1.4-MILESTONE-AUDIT.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 15→14 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T08:40:34.443Z"
     }
   ]
 }
