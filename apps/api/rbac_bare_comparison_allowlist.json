@@ -1,4 +1,5 @@
 {
+  "_matching_semantics": "Matching is per (router, code) occurrence COUNT, not per-line and not set-membership: check_bare_role_comparisons.py's load_allowlist() counts how many entries share the same (router, code) key, and find_violations() only flags the Nth-plus-one live occurrence of that same text beyond the allowlisted count. `line` is documentation-only (records where the reviewed occurrence was found at review time; tolerant of drift from unrelated edits) -- it is NOT used for matching. Consequently, duplicate entries sharing the same (router, code) -- e.g. guest_requests.py's MESSAGE_ROLES/SLA_POLICY_ROLES rows, logbook.py's role-in-tuple row -- are load-bearing: each one legitimately raises the allowed-occurrence count by one, and removing a 'duplicate' would cause CI to flag one fewer genuine occurrence as covered. See CR-01/WR-03 in the phase 24 code review.",
   "entries": [
     {
       "router": "clean_sessions.py",
