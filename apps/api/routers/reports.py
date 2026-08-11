@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date, timedelta
 from middleware.auth import require_role, CurrentUser
 from core.database import supabase
+from core.roles import PROGRAM_MANAGER_ROLES
 from services.guest_recovery.contracts import calculate_guest_request_metrics
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -12,7 +13,7 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 async def get_guest_recovery_report(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer")),
+    current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES)),
 ):
     """Quantify guest-response performance from immutable lifecycle timestamps."""
     today = date.today()
@@ -37,7 +38,7 @@ async def get_guest_recovery_report(
 @router.get("/daily-summary")
 async def get_daily_summary(
     report_date: Optional[date] = Query(None, alias="date"),
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
+    current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))
 ):
     """Return a daily operational summary: room statuses, task completion, open WOs."""
     target_date = report_date or date.today()
@@ -84,7 +85,7 @@ async def get_staff_performance(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
     format: Optional[str] = Query(None),
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
+    current_user: CurrentUser = Depends(require_role(*PROGRAM_MANAGER_ROLES))
 ):
     """Return staff performance metrics for a date range."""
     today = date.today()
@@ -237,7 +238,7 @@ async def get_staff_performance(
 async def get_maintenance_report(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
-    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer", "chief_engineer"))
 ):
     """Return work order KPIs for a date range."""
     today = date.today()

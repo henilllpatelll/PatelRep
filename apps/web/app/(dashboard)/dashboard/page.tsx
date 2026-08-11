@@ -11,6 +11,7 @@ import { HousekeeperDashboard } from '@/components/dashboard/HousekeeperDashboar
 import { SupervisorDashboard } from '@/components/dashboard/SupervisorDashboard'
 import { EngineerDashboard } from '@/components/dashboard/EngineerDashboard'
 import { FrontDeskDashboard } from '@/components/dashboard/FrontDeskDashboard'
+import { ChiefEngineerDashboard } from '@/components/dashboard/ChiefEngineerDashboard'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -154,6 +155,8 @@ export default function DashboardPage() {
       return <SupervisorDashboard />
     case 'engineer':
       return <EngineerDashboard />
+    case 'chief_engineer':
+      return <ChiefEngineerDashboard />
     case 'front_desk':
       return <FrontDeskDashboard />
     case 'gm':

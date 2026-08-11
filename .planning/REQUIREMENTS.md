@@ -24,9 +24,9 @@
 
 ### Dev/QA Test-Data Hygiene
 
-- [ ] **QA-01**: `tenants` table gains an `is_test BOOLEAN NOT NULL DEFAULT false` column
-- [ ] **QA-02**: A human-reviewed `hotel_id` delete-allowlist and preserve-list is documented, explicitly naming the standing QA fixture tenant(s) to keep
-- [ ] **QA-03**: A cleanup script exists that only deletes data scoped to the allowlisted test `hotel_id`s, requires a mandatory dry-run pass before executing, and explicitly excludes append-only tables (`controlled_incidents`, `controlled_incident_events`)
+- [x] **QA-01**: `tenants` table gains an `is_test BOOLEAN NOT NULL DEFAULT false` column
+- [x] **QA-02**: A human-reviewed `hotel_id` delete-allowlist and preserve-list is documented, explicitly naming the standing QA fixture tenant(s) to keep
+- [x] **QA-03**: A cleanup script exists that only deletes data scoped to the allowlisted test `hotel_id`s, requires a mandatory dry-run pass before executing, and explicitly excludes append-only tables (`controlled_incidents`, `controlled_incident_events`)
 
 ### Mobile Dependency Health
 
@@ -67,9 +67,9 @@
 | VERIFY-02 | Phase 20 | Done |
 | VERIFY-03 | Phase 20 | Done |
 | VERIFY-04 | Phase 20 | Done |
-| QA-01 | Phase 21 | Pending |
-| QA-02 | Phase 21 | Pending |
-| QA-03 | Phase 21 | Pending |
+| QA-01 | Phase 21 | Done |
+| QA-02 | Phase 21 | Done |
+| QA-03 | Phase 21 | Done |
 | MOBILE-01 | Phase 22 | Done |
 | MOBILE-02 | Phase 22 | Done |
 | MOBILE-03 | Phase 22 | Done |

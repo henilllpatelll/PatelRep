@@ -1,10 +1,13 @@
 """Canonical role-group constants. Single source of truth — routers must import
 from here rather than defining local *_ROLES tuples, to prevent silent drift."""
 
-ALL_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper")
-# chief_engineer was retired by migration 064_merge_chief_engineer.sql — it can no
-# longer occur in a live JWT. Some routers still reference it in role-group
-# constants as a harmless no-op; do not re-add it to ALL_ROLES / ALL_STAFF_ROLES.
+ALL_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "chief_engineer")
+# chief_engineer was merged into engineer at the DB layer by migration
+# 064_merge_chief_engineer.sql, then restored as a fully live, distinct role by
+# migration 092_restore_chief_engineer_role.sql — it was never actually retired
+# at the application layer (routeGuard.ts, staff creation, and MANAGER_ROLES/
+# PROGRAM_MANAGER_ROLES below all already treated it as live). Keep it in
+# ALL_ROLES / ALL_STAFF_ROLES.
 
 ALL_STAFF_ROLES = ALL_ROLES  # hotels.py's prior definition had a duplicate "engineer"
 
