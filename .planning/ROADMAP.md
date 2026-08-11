@@ -78,7 +78,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
 
 **Milestone Goal:** Close the RBAC tooling gap deferred from Phase 19 — make role-check drift structurally hard to reintroduce, instead of relying on periodic manual audits.
 
-- [ ] **Phase 23: Route×Role Permission Matrix** - An auto-generated `RBAC-MATRIX.md` lists every route's required role(s), produced by a re-runnable, deterministic script instead of hand-maintained prose
+- [x] **Phase 23: Route×Role Permission Matrix** - An auto-generated `RBAC-MATRIX.md` lists every route's required role(s), produced by a re-runnable, deterministic script instead of hand-maintained prose
 - [ ] **Phase 24: CI Guard Against New Bare Role Comparisons** - A CI check fails the build when a router adds a new bare role-comparison outside `require_role()`/`core/roles.py`, with pre-existing intentional inline checks handled via a documented allowlist
 
 ## Phase Details
@@ -93,7 +93,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
   3. Running the script twice against unchanged code reproduces byte-identical output (deterministic, no manual editing required to stay accurate).
   4. The script is checked into the repo (e.g. `apps/api/scripts/`) and can be invoked with a single documented command by a developer or CI.
 **Plans**: 1 plan
-- [ ] 23-01-PLAN.md — AST-based `apps/api/scripts/generate_rbac_matrix.py` generator producing `apps/api/RBAC-MATRIX.md`, plus a pytest CI drift guard
+- [x] 23-01-PLAN.md — AST-based `apps/api/scripts/generate_rbac_matrix.py` generator producing `apps/api/RBAC-MATRIX.md`, plus a pytest CI drift guard (complete 2026-08-11)
 
 ### Phase 24: CI Guard Against New Bare Role Comparisons
 **Goal**: A router file that adds a new bare role-comparison outside `require_role()`/an imported `core/roles.py` constant fails CI, while the pre-existing intentional inline checks the Phase 19 audit already confirmed correct continue to pass via an explicit, documented allowlist.
@@ -133,5 +133,5 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
 | 20. Close Deferred v1.3 Verification Items | v1.4 | 2/2 | Complete | 2026-08-05 |
 | 21. Dev/QA Test-Data Hygiene | v1.4 | 3/3 | Complete | 2026-08-05 |
 | 22. Expo SDK 54→57 Bump | v1.4 | 6/6 | Complete | 2026-08-06 |
-| 23. Route×Role Permission Matrix | v1.5 | 0/TBD | Not started | - |
+| 23. Route×Role Permission Matrix | v1.5 | 1/1 | Complete | 2026-08-11 |
 | 24. CI Guard Against New Bare Role Comparisons | v1.5 | 0/TBD | Not started | - |

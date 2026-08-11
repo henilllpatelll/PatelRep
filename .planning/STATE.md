@@ -17,12 +17,12 @@ progress:
 
 ## Current Position
 
-Phase: 23 of 24 (Route×Role Permission Matrix)
-Plan: — (ready to plan)
-Status: Ready to plan
-Last activity: 2026-08-11 — ROADMAP.md created for v1.5 (Phases 23-24)
+Phase: 23 of 24 (Route×Role Permission Matrix) — CLOSED
+Plan: 1 of 1 (complete)
+Status: Phase 23 complete, ready to plan Phase 24
+Last activity: 2026-08-11 — 23-01-PLAN.md executed: AST-based apps/api/scripts/generate_rbac_matrix.py generates apps/api/RBAC-MATRIX.md (30 routers, 286 routes), enforced by a new pytest CI drift guard. Next: /gsd:plan-phase 24.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 50% (1/2 phases in v1.5)
 
 ## Project Reference
 
@@ -400,11 +400,14 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | 22 | 04 | 214 min | 2 | 4 | 2026-08-05 |
 | 22 | 05 | 13 min | 2 | 3 | 2026-08-05 |
 | 22 | 06 | 33 min | 3 | 3 | 2026-08-06 |
+| Phase 23 P01 | 25min | 3 tasks | 3 files |
 
 ## Session
 
-Last session: 2026-08-06T03:24:18Z
-Stopped At: Completed 22-06-PLAN.md and Phase 22 re-verification (MOBILE-03 exact direct dependency; matching finished EAS Android artifact; Doctor, dependency tree, TypeScript, Jest, and audit green). Phase 22 is passed 4/4 with no gaps; milestone v1.4 is ready for completion/audit.
+Last session: 2026-08-11T23:05:45Z
+Stopped At: Completed 23-01-PLAN.md (AST-based RBAC route×role matrix generator + CI drift guard). Phase 23 is complete (1/1 plans). Next: /gsd:plan-phase 24.
+
+**Phase 22 handoff (2026-08-06T03:24:18Z):** Completed 22-06-PLAN.md and Phase 22 re-verification (MOBILE-03 exact direct dependency; matching finished EAS Android artifact; Doctor, dependency tree, TypeScript, Jest, and audit green). Phase 22 is passed 4/4 with no gaps; milestone v1.4 is ready for completion/audit.
 
 **Milestone v1.3 audit (2026-08-04):** `.planning/v1.3-MILESTONE-AUDIT.md` (now archived to `.planning/milestones/v1.3-MILESTONE-AUDIT.md`) — 23/23 requirements satisfied, integration checker confirmed zero cross-phase wiring gaps and zero file-overlap across Phases 15-17, full regression suite 549/551 (2 pre-existing unrelated failures). One gap found and closed same-session: migration 091 (`ai_interactions.interaction_type` CHECK constraint widening, DATA-01) was code-complete but not yet applied to production — applied via Supabase MCP and verified live (`pg_get_constraintdef`, all 14 values present). Milestone archived: `.planning/milestones/v1.3-ROADMAP.md`, `.planning/milestones/v1.3-REQUIREMENTS.md`, MILESTONES.md entry added, PROJECT.md full evolution review completed, ROADMAP.md collapsed.
 
