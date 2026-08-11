@@ -32,6 +32,18 @@ KNOWN LIMITATION (mirrors `generate_rbac_matrix.py`'s WR-02 note): only a `.role
 attribute access on the *left*-hand side of a comparison is detected (matching the
 existing codebase convention). `.role` on the right-hand side, or a chained access
 like `.role.lower()`, is not handled -- no such pattern exists in the codebase today.
+
+KNOWN LIMITATION: allowlist matching is exact-string equality against `ast.unparse()`
+output (quote style, spacing, set/tuple literal rendering, etc.). `ast.unparse()`'s
+exact formatting is not part of Python's stable public contract across minor/major
+versions -- a future Python upgrade that changes its formatting could make every
+existing allowlist entry stop matching simultaneously, failing CI for every router
+file at once even though no actual code drifted. If that happens, run
+`python apps/api/scripts/check_bare_role_comparisons.py --regenerate-allowlist` to
+rewrite each entry's `code` field to match current `ast.unparse()` output (entries are
+correlated to live findings by `(router, line)`, not by text, so this works even when
+text has drifted) -- then diff-review the result before committing, since a human
+still needs to confirm nothing *actually* changed.
 """
 
 from __future__ import annotations
@@ -161,7 +173,65 @@ def find_violations(api_root: Path, allowlist_path: Path) -> list[dict]:
     return violations
 
 
+def regenerate_allowlist(api_root: Path, allowlist_path: Path) -> None:
+    """Rewrite every allowlist entry's `code` field to match current
+    `ast.unparse()` output. Entries are correlated to live findings by
+    `(router, line)` -- deliberately NOT by text, since matching by text is
+    exactly what's unstable across Python versions (see WR-02). Existing
+    `reason` fields, `line` values, and entry order are preserved untouched.
+
+    Intended for auditor-reviewed use after a Python upgrade changes
+    `ast.unparse()` formatting and every entry stops matching at once --
+    always diff-review the rewritten file before committing, since this only
+    re-syncs formatting, it does not re-validate that each entry is still a
+    legitimate bare comparison."""
+    if not allowlist_path.exists():
+        print(f"No allowlist file found at {allowlist_path}; nothing to regenerate.")
+        return
+
+    data = json.loads(allowlist_path.read_text(encoding="utf-8"))
+    core_roles = generate_rbac_matrix.parse_role_constants(api_root / "core" / "roles.py")
+    router_files = sorted(
+        p for p in (api_root / "routers").glob("*.py") if p.name != "__init__.py"
+    )
+
+    live_by_router_line: dict[tuple[str, int], str] = {}
+    for router_path in router_files:
+        for violation in find_bare_role_comparisons(router_path, core_roles):
+            live_by_router_line[(violation["router"], violation["line"])] = violation["code"]
+
+    updated = 0
+    missing: list[str] = []
+    for entry in data.get("entries", []):
+        key = (entry["router"], entry["line"])
+        live_code = live_by_router_line.get(key)
+        if live_code is None:
+            missing.append(f"{entry['router']}:{entry['line']}")
+            continue
+        if live_code != entry["code"]:
+            entry["code"] = live_code
+            updated += 1
+
+    allowlist_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(
+        f"Regenerated {updated} entr{'y' if updated == 1 else 'ies'} against current "
+        "ast.unparse() output. Diff-review before committing."
+    )
+    if missing:
+        print(
+            "WARNING: no live bare role comparison found at these allowlisted "
+            "(router, line) locations -- entry may be stale and need manual "
+            "review/removal:"
+        )
+        for m in missing:
+            print(f"  {m}")
+
+
 def main() -> None:
+    if "--regenerate-allowlist" in sys.argv[1:]:
+        regenerate_allowlist(API_ROOT, ALLOWLIST_PATH)
+        return
+
     violations = find_violations(API_ROOT, ALLOWLIST_PATH)
     if violations:
         for violation in violations:
