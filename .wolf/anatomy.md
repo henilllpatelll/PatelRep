@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T22:11:39.218Z
-> Files: 8 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T22:13:34.419Z
+> Files: 9 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -1014,6 +1014,7 @@
 
 ## apps/api/scripts/
 
+- `cleanup_test_data.py` — discover_tenant_tables, run_guardrails, count_or_delete, execute_with_fk_retry (~2538 tok)
 
 ## apps/api/services/
 

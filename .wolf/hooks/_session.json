@@ -71,6 +71,16 @@
       "count": 1,
       "tokens": 0,
       "first_read": "2026-08-11T22:08:39.454Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/scripts/cleanup_test_data.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:13:21.030Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/scripts/cleanup_test_data.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-11T22:13:31.316Z"
     }
   },
   "files_written": [
@@ -151,6 +161,12 @@
       "action": "edit",
       "tokens": 465,
       "at": "2026-08-11T22:11:39.234Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/scripts/cleanup_test_data.py",
+      "action": "edit",
+      "tokens": 18,
+      "at": "2026-08-11T22:13:34.433Z"
     }
   ],
   "edit_counts": {
@@ -158,10 +174,11 @@
     ".planning/MILESTONES.md": 1,
     ".planning/ROADMAP.md": 3,
     ".planning/PROJECT.md": 7,
-    ".planning/STATE.md": 1
+    ".planning/STATE.md": 1,
+    "apps/api/scripts/cleanup_test_data.py": 1
   },
   "anatomy_hits": 1,
-  "anatomy_misses": 13,
+  "anatomy_misses": 15,
   "repeated_reads_warned": 2,
   "cerebrum_warnings": 0,
   "stop_count": 0
