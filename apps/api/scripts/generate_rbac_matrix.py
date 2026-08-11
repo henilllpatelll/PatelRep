@@ -8,6 +8,21 @@ This script parses router source text with Python's built-in `ast` module only. 
 never imports or executes router modules, so it has zero runtime dependencies (no
 env vars, no Supabase credentials, no running app required) -- matching the
 zero-dependency style of the enum-drift-guard precedent (test_enum_contracts.py).
+
+KNOWN LIMITATION (WR-02, 23-REVIEW.md): inline `<name>.role` comparisons and the
+`if <cond involving .role>: raise HTTPException(...)` gate detection in
+`_collect_role_gated_ifs` only inspect the route function's own AST subtree (its body,
+including nested closures defined inside it). A role check factored into a
+separately-defined module-level helper function that the route calls (e.g. a shared
+`_authorize(current_user, ...)` helper) is invisible to this scanner -- the route would
+silently fall back to "none" with no `source` annotation, and the CI drift guard
+(test_rbac_matrix_contract.py) would not catch it, since it only detects drift between
+this generator and the committed file, not classification correctness. No such helper
+pattern exists in apps/api/routers/ today (every inline role-gate is a route body
+literal), but if a future DRY refactor factors the repeated
+`if current_user.role not in {...}: raise HTTPException(403, ...)` pattern into a shared
+helper, this scanner must be extended to also inspect module-level helper functions
+referenced by name within the route body.
 """
 
 from __future__ import annotations
