@@ -37,13 +37,17 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 *(Next milestone not yet defined — run `/gsd-new-milestone` to scope it.)*
 
-## Current Milestone
+## Current Milestone: v1.5 RBAC Enforcement Tooling
 
-None in progress. v1.4 shipped 2026-08-11; see Previous Milestones in `.planning/STATE.md` and `.planning/MILESTONES.md`.
+**Goal:** Close the RBAC tooling gap deferred from Phase 19 — make role-check drift structurally hard to reintroduce, instead of relying on periodic manual audits.
+
+**Target features:**
+- Auto-generated route×role permission matrix (every endpoint's required role(s), derived from live code, regenerable on demand)
+- CI lint rule blocking new bare role-comparison checks outside `core/roles.py`
 
 ## Next Milestone Goals
 
-TBD — scoped via `/gsd-new-milestone`.
+TBD — scoped via `/gsd-new-milestone` after v1.5 ships.
 
 ### Out of Scope
 
@@ -134,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 — milestone v1.4 (Platform and Ops Hardening) shipped.*
+*Last updated: 2026-08-11 — milestone v1.5 (RBAC Enforcement Tooling) started.*

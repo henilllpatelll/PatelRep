@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: null
-status: awaiting_next_milestone
+milestone: v1.5
+milestone_name: RBAC Enforcement Tooling
+status: defining_requirements
 last_updated: "2026-08-11T00:00:00Z"
-last_activity: 2026-08-11 -- v1.4 "Platform and Ops Hardening" archived and tagged. All 5 phases, 16 plans, 18/18 requirements shipped; milestone audit passed after closing a cross-phase chief_engineer RBAC/dashboard gap same-session.
+last_activity: 2026-08-11 -- Milestone v1.5 "RBAC Enforcement Tooling" started via /gsd-new-milestone. User directed autonomous execution to completion.
 progress:
   total_phases: 0
   completed_phases: 0
@@ -17,16 +17,17 @@ progress:
 
 ## Current Position
 
-No milestone in progress. v1.4 shipped and archived 2026-08-11. Next: run `/gsd-new-milestone` to scope v1.5.
-
-Progress: [          ] 0% (next milestone not yet started)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-08-11 — Milestone v1.5 started
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Planning next milestone via `/gsd-new-milestone`.
+**Current focus:** v1.5 RBAC Enforcement Tooling — auto-generated route×role permission matrix + CI lint rule blocking new bare role comparisons.
 
 ## Previous milestones
 
