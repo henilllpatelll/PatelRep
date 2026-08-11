@@ -295,16 +295,71 @@ def _extract_route_rows(
     return rows
 
 
-if __name__ == "__main__":
-    # Temporary Task-1 debug block: proves the engine against one router
-    # (programs.py, which exercises both starred core.roles constants and multiple
-    # decorators). Replaced by a real main() in Task 2.
-    core_roles = parse_role_constants(ROLES_PATH)
-    api_prefix = parse_api_prefix(MAIN_PATH)
-    router_path = ROUTERS_DIR / "programs.py"
-    tree = ast.parse(router_path.read_text(encoding="utf-8"), filename=str(router_path))
-    constants = _resolve_router_constants(tree, core_roles)
-    router_prefix = get_router_prefix(tree)
-    rows = _extract_route_rows(tree, router_path.name, api_prefix, router_prefix, constants)
+def build_matrix_rows(api_root: Path) -> list[dict]:
+    """Glob apps/api/routers/*.py (excluding __init__.py), sorted alphabetically by
+    filename for deterministic output. Within a file, routes stay in source (line)
+    order -- the AST walk already preserves definition order."""
+    core_roles = parse_role_constants(api_root / "core" / "roles.py")
+    api_prefix = parse_api_prefix(api_root / "main.py")
+    router_files = sorted(
+        p for p in (api_root / "routers").glob("*.py") if p.name != "__init__.py"
+    )
+    rows: list[dict] = []
+    for router_path in router_files:
+        tree = ast.parse(router_path.read_text(encoding="utf-8"), filename=str(router_path))
+        constants = _resolve_router_constants(tree, core_roles)
+        router_prefix = get_router_prefix(tree)
+        rows.extend(
+            _extract_route_rows(tree, router_path.name, api_prefix, router_prefix, constants)
+        )
+    return rows
+
+
+def render_markdown(rows: list[dict], api_prefix: str) -> str:
+    """Render the full route x role Markdown table. No timestamp or other
+    non-deterministic content -- repeated runs against unchanged code must be
+    byte-identical."""
+    router_count = len({row["router"] for row in rows})
+    lines = [
+        "# RBAC Matrix",
+        "",
+        "**Generated file -- do not hand-edit.** Regenerate with:",
+        "",
+        "```",
+        "python apps/api/scripts/generate_rbac_matrix.py",
+        "```",
+        "",
+        f"Every route in `apps/api/routers/` (API prefix `{api_prefix}`), its required "
+        "role(s), and its source location -- introspected via AST from "
+        "`require_role(...)` call sites and `core/roles.py` constants, matching Phase "
+        "19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. "
+        '`none` = any authenticated staff member (no role restriction). '
+        '`N/A (not role-based)` = gated by a separate auth mechanism (cron secret, '
+        "webhook signature) instead of a role. A pytest drift guard "
+        "(`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file "
+        "ever goes stale relative to the code it describes.",
+        "",
+        "| Router | Route | Method | Required Role(s) | Source |",
+        "|---|---|---|---|---|",
+    ]
     for row in rows:
-        print(row)
+        lines.append(
+            f"| {row['router']} | {row['path']} | {row['method']} | "
+            f"{row['required_roles_display']} | {row['source']} |"
+        )
+    lines.append("")
+    lines.append(f"**{router_count} routers, {len(rows)} routes.**")
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    api_prefix = parse_api_prefix(MAIN_PATH)
+    rows = build_matrix_rows(API_ROOT)
+    markdown = render_markdown(rows, api_prefix)
+    OUTPUT_PATH.write_text(markdown, encoding="utf-8")
+    router_count = len({row["router"] for row in rows})
+    print(f"Wrote {OUTPUT_PATH} ({router_count} routers, {len(rows)} routes)")
+
+
+if __name__ == "__main__":
+    main()
