@@ -101,7 +101,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.4-ROADMAP.md
 **Requirements**: RBAC-07, RBAC-08
 **Success Criteria** (what must be TRUE):
   1. A CI check (script + workflow/pre-commit step) scans `apps/api/routers/` and fails the build when it finds a new bare role-comparison pattern (`current_user.role == "..."`, `current_user.role in {...}`/`not in {...}`, equivalent literal-role-set patterns) that isn't a call to `require_role()` and isn't sourced from an imported `core/roles.py` constant.
-  2. Running the check against the current, Phase-19-audited codebase passes cleanly with zero false positives — `lost_found.py`'s custody-state set and `safety.py`'s self-service exception are both confirmed-correct per the Phase 19 audit and pass via an explicit allowlist entry, not a blanket file exclusion.
+  2. Running the check against the current, Phase-19-audited codebase passes cleanly with zero false positives — `lost_found.py`'s custody-state set (confirmed-correct per the Phase 19 audit) passes via an explicit allowlist entry, and `safety.py`'s self-service exception passes automatically because it imports `MANAGER_ROLES` from `core/roles.py` (not a blanket file exclusion in either case).
   3. Introducing a new bare role-comparison in a router file (proven via a deliberate test case) causes the check to fail, demonstrating it actually blocks drift rather than merely documenting it.
   4. The allowlist is a checked-in, reviewable artifact (e.g. JSON/YAML) with an inline explanation for each entry, so a reviewer can see why it's intentional rather than a silent carve-out.
 **Plans**: 1 plan
