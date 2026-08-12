@@ -13773,6 +13773,310 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-11T22:10:10.253Z"
+    },
+    {
+      "id": "bug-830",
+      "timestamp": "2026-08-11T22:43:15.078Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→11 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T22:43:15.078Z"
+    },
+    {
+      "id": "bug-831",
+      "timestamp": "2026-08-11T22:56:42.778Z",
+      "error_message": "Wrong reference: TBD should be 1",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "Used \"TBD\" instead of \"1\"",
+      "fix": "Changed TBD → 1",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T22:56:42.778Z"
+    },
+    {
+      "id": "bug-832",
+      "timestamp": "2026-08-11T23:00:23.562Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/23-route-role-permission-matrix/23-01-PLAN.md",
+      "root_cause": "Had `Depends(verify_cron)`",
+      "fix": "Changed to `apps/api/middleware/auth.py`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:00:23.562Z"
+    },
+    {
+      "id": "bug-833",
+      "timestamp": "2026-08-11T23:04:04.539Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/scripts/generate_rbac_matrix.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→68 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:04:04.539Z"
+    },
+    {
+      "id": "bug-834",
+      "timestamp": "2026-08-11T23:07:01.770Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (5 removed) | Also: Last session: 2026-08-06T03:24:18Z; Stopped At: Completed 22-06-PLAN.md and Phase 22 r",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-11T23:07:27.266Z"
+    },
+    {
+      "id": "bug-835",
+      "timestamp": "2026-08-11T23:20:30.229Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/scripts/generate_rbac_matrix.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (2 removed) | Also: lines.append(; f\"| {row['router']} | {row['path']} | {row['method",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-11T23:21:52.918Z"
+    },
+    {
+      "id": "bug-836",
+      "timestamp": "2026-08-11T23:21:23.488Z",
+      "error_message": "Missing error handling in that",
+      "file": "../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/scripts/generate_rbac_matrix.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:21:23.488Z"
+    },
+    {
+      "id": "bug-837",
+      "timestamp": "2026-08-11T23:22:25.000Z",
+      "error_message": "Missing error handling in test_rbac_matrix_matches_generated_output",
+      "file": "../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/tests/smoke/test_rbac_matrix_contract.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:22:25.000Z"
+    },
+    {
+      "id": "bug-838",
+      "timestamp": "2026-08-11T23:40:01.751Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/24-ci-guard-bare-role-comparisons/24-01-PLAN.md",
+      "root_cause": "Had \" not crash). Confirm the printed violation count ",
+      "fix": "Changed to \" not crash). Confirm the printed violation count ",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-11T23:40:36.583Z"
+    },
+    {
+      "id": "bug-839",
+      "timestamp": "2026-08-11T23:40:25.148Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/24-ci-guard-bare-role-comparisons/24-01-PLAN.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 14→15 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:40:25.148Z"
+    },
+    {
+      "id": "bug-840",
+      "timestamp": "2026-08-11T23:40:56.915Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "Had 's custody-state set and `",
+      "fix": "Changed to 's custody-state set (confirmed-correct per the Ph",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:40:56.915Z"
+    },
+    {
+      "id": "bug-841",
+      "timestamp": "2026-08-11T23:46:45.749Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 25→25 lines (11 removed) | Also: **Current focus:** v1.5 RBAC Enforcement Tooling —; - Phase 23: Route×Role Permission Matrix — RBAC-05",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-11T23:47:06.069Z"
+    },
+    {
+      "id": "bug-842",
+      "timestamp": "2026-08-11T23:52:19.884Z",
+      "error_message": "Missing error handling in load_allowlist",
+      "file": "../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/scripts/check_bare_role_comparisons.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:52:19.884Z"
+    },
+    {
+      "id": "bug-843",
+      "timestamp": "2026-08-11T23:55:11.132Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/rbac_bare_comparison_allowlist.json",
+      "root_cause": "Had \"entries\"",
+      "fix": "Changed to \"_matching_semantics\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-11T23:55:11.132Z"
+    },
+    {
+      "id": "bug-844",
+      "timestamp": "2026-08-12T00:04:39.290Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/MILESTONES.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→21 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T00:04:39.290Z"
+    },
+    {
+      "id": "bug-845",
+      "timestamp": "2026-08-12T00:05:19.059Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "27 lines replaced/restructured",
+      "fix": "Rewrote 34→11 lines (27 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T00:05:19.059Z"
+    },
+    {
+      "id": "bug-846",
+      "timestamp": "2026-08-12T00:06:13.679Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T00:06:13.679Z"
+    },
+    {
+      "id": "bug-847",
+      "timestamp": "2026-08-12T02:55:33.286Z",
+      "error_message": "Wrong reference: started should be shipped",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "Used \"started\" instead of \"shipped\"",
+      "fix": "Changed started → shipped",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T02:55:33.286Z"
+    },
+    {
+      "id": "bug-848",
+      "timestamp": "2026-08-12T02:55:50.213Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 32→29 lines (16 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T02:55:50.213Z"
     }
   ]
 }

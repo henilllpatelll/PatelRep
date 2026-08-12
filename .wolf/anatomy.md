@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-11T22:13:34.419Z
-> Files: 9 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-12T02:56:50.653Z
+> Files: 27 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -39,6 +39,9 @@
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/
 
 
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/9c1798f7-3da6-40ea-b194-8745fc2bee3e/scratchpad/
+
+
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/b05610ee-fc7b-410c-90c0-8a68b1724167/scratchpad/
 
 
@@ -54,6 +57,26 @@
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/f6e84128-acd3-4897-9c9d-4355f0716401/scratchpad/
 
 
+## ../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/scripts/
+
+- `generate_rbac_matrix.py` — Generate apps/api/RBAC-MATRIX.md by statically introspecting apps/api/routers/*.py. (~6434 tok)
+
+## ../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/tests/smoke/
+
+- `test_rbac_matrix_contract.py` — test_rbac_matrix_matches_generated_output, test_inline_role_gated_routes_are_not_labeled_none, test_ (~1405 tok)
+
+## ../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/
+
+- `rbac_bare_comparison_allowlist.json` (~2207 tok)
+
+## ../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/scripts/
+
+- `check_bare_role_comparisons.py` — Detect "bare" role comparisons in apps/api/routers/*.py -- i.e. a `<name>.role == (~3314 tok)
+
+## ../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/tests/smoke/
+
+- `test_bare_role_comparison_guard.py` — API: 1 endpoints (~1855 tok)
+
 ## ../PatelRep-web-v2/apps/web/
 
 
@@ -68,7 +91,6 @@
 
 ## ./
 
-- `verify_ce_tmp.mjs` — Declares raw (~227 tok)
 
 ## .claude/
 
@@ -918,11 +940,12 @@
 
 ## .planning/
 
-- `MILESTONES.md` — Project Milestones: PatelRep (~2662 tok)
-- `PROJECT.md` — PatelRep (~6713 tok)
-- `ROADMAP.md` — Roadmap: PatelRep (~1323 tok)
-- `STATE.md` — GSD State (~27084 tok)
-- `v1.4-MILESTONE-AUDIT.md` — v1.4 "Platform and Ops Hardening" — Milestone Audit (~2587 tok)
+- `MILESTONES.md` — Project Milestones: PatelRep (~3115 tok)
+- `PROJECT.md` — PatelRep (~7728 tok)
+- `REQUIREMENTS.md` — Requirements: PatelRep — v1.5 RBAC Enforcement Tooling (~773 tok)
+- `ROADMAP.md` — Roadmap: PatelRep (~1488 tok)
+- `STATE.md` — GSD State (~27994 tok)
+- `v1.5-MILESTONE-AUDIT.md` — v1.5 "RBAC Enforcement Tooling" — Milestone Audit (~1736 tok)
 
 ## .planning/UI-REFRESH-PLAN.md
 
@@ -960,6 +983,23 @@
 ## .planning/phases/22-expo-sdk-54-57-bump/
 
 
+## .planning/phases/23-route-role-permission-matrix/
+
+- `.review-fix-recovery-pending.json` (~53 tok)
+- `23-01-SUMMARY.md` — Dependency graph (~2060 tok)
+- `23-REVIEW-FIX.md` — Phase 23: Code Review Fix Report (~1625 tok)
+- `23-REVIEW.md` — Phase 23: Code Review Report (~3510 tok)
+- `23-VERIFICATION.md` — Phase 23: Route Role Permission Matrix Verification Report (~2144 tok)
+
+## .planning/phases/24-ci-guard-bare-role-comparisons/
+
+- `24-01-PLAN.md` (~6124 tok)
+- `24-01-SUMMARY.md` — Dependency graph (~2218 tok)
+- `24-CONTEXT.md` — Phase 24: CI Guard Against New Bare Role Comparisons - Context (~1452 tok)
+- `24-REVIEW-FIX.md` — Phase 24: Code Review Fix Report (~1286 tok)
+- `24-REVIEW.md` — Phase 24: Code Review Report (~2584 tok)
+- `24-VERIFICATION.md` — Phase 24: CI Guard Against New Bare Role Comparisons Verification Report (~3031 tok)
+
 ## .planning/research/
 
 
@@ -995,6 +1035,7 @@
 
 ## apps/api/
 
+- `rbac_bare_comparison_allowlist.json` (~1910 tok)
 
 ## apps/api/core/
 
@@ -1010,11 +1051,12 @@
 
 ## apps/api/routers/
 
-- `reports.py` — API: 4 endpoints (~4468 tok)
+- `tasks.py` — API: 7 endpoints (~2976 tok)
 
 ## apps/api/scripts/
 
-- `cleanup_test_data.py` — discover_tenant_tables, run_guardrails, count_or_delete, execute_with_fk_retry (~2538 tok)
+- `check_bare_role_comparisons.py` — Detect "bare" role comparisons in apps/api/routers/*.py -- i.e. a `<name>.role == (~1959 tok)
+- `generate_rbac_matrix.py` — Generate apps/api/RBAC-MATRIX.md by statically introspecting apps/api/routers/*.py. (~5370 tok)
 
 ## apps/api/services/
 
@@ -1045,6 +1087,7 @@
 
 ## apps/api/tests/smoke/
 
+- `test_bare_role_comparison_guard.py` — test_no_unlisted_bare_role_comparisons (~623 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -1069,7 +1112,6 @@
 
 ## apps/mobile/
 
-- `.gitignore` — Git ignore rules (~62 tok)
 
 ## apps/mobile/__tests__/components/
 
