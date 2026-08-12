@@ -139,7 +139,11 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.5-ROADMAP.md
   1. Clicking a housekeeping row in `AIRiskAlertsPanel` navigates to and highlights that specific room's detail on the housekeeping board, not the generic `/housekeeping` list.
   2. Clicking a maintenance row in `AIRiskAlertsPanel` navigates to that specific asset's failure-prediction detail on the engineering predictions page — a working destination where none existed before.
   3. Following a deep link to a room/asset that no longer exists, or that belongs to a different tenant than the logged-in user, shows a graceful empty/not-found state rather than a crash or cross-tenant data leak.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 26-01-PLAN.md — Backend: add `id` to `/ai/risk-alerts` asset_risks select + regression test
+- [ ] 26-02-PLAN.md — Frontend: RiskAlerts type, both panel links, housekeeping deep link (RoomStatusBoard + Suspense), engineering deep link (predictions page Suspense split + scroll/highlight)
 
 ### Phase 27: Room-Readiness One-Click Reassign / Escalate / Acknowledge
 **Goal**: A housekeeping supervisor or GM can act on a HIGH-risk room-readiness prediction directly from the panel — reassign the room, escalate to a supervisor, or acknowledge and suppress further alerts — with one confirming tap, executed directly against the existing assignment/notification endpoints rather than a new governance layer.
