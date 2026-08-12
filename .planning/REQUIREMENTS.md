@@ -9,9 +9,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### AI Copilot Proactive Intelligence
 
-- [ ] **AI-03**: Housekeeping supervisor/GM can reassign a room's cleaning from a HIGH-risk room-readiness prediction with one confirming tap, defaulting to the least-loaded eligible housekeeper
-- [ ] **AI-04**: When no eligible housekeeper has slack, the reassign action degrades to notifying a supervisor instead of forcing a bad assignment
-- [ ] **AI-05**: Housekeeping supervisor/GM can acknowledge a room-readiness prediction, suppressing further re-notification for that room until risk re-escalates after being cleared
+- [x] **AI-03**: Housekeeping supervisor/GM can reassign a room's cleaning from a HIGH-risk room-readiness prediction with one confirming tap, defaulting to the least-loaded eligible housekeeper
+- [x] **AI-04**: When no eligible housekeeper has slack, the reassign action degrades to notifying a supervisor instead of forcing a bad assignment
+- [x] **AI-05**: Housekeeping supervisor/GM can acknowledge a room-readiness prediction, suppressing further re-notification for that room until risk re-escalates after being cleared
 - [x] **AI-06**: Engineer/chief_engineer/GM receives a proactive notification when an asset's failure-risk prediction newly crosses into HIGH risk — not on every nightly re-run while it stays HIGH
 - [x] **AI-07**: Clicking a housekeeping row in the AI Risk Alerts panel opens the specific room's detail (not a generic housekeeping list link)
 - [x] **AI-08**: Clicking a maintenance row in the AI Risk Alerts panel opens the specific asset's failure-prediction detail (currently has no link at all)
@@ -43,9 +43,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AI-03 | Phase 27 | Pending |
-| AI-04 | Phase 27 | Pending |
-| AI-05 | Phase 27 | Pending |
+| AI-03 | Phase 27 | Complete (2026-08-12) |
+| AI-04 | Phase 27 | Complete (2026-08-12) |
+| AI-05 | Phase 27 | Complete (2026-08-12) |
 | AI-06 | Phase 25 | Complete (2026-08-12) |
 | AI-07 | Phase 26 | Complete (2026-08-12) |
 | AI-08 | Phase 26 | Complete (2026-08-12) |
@@ -54,7 +54,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 - v1 requirements: 6 total
 - Mapped to phases: 6 (Phase 25: AI-06; Phase 26: AI-07, AI-08; Phase 27: AI-03, AI-04, AI-05)
 - Unmapped: 0
+- Complete: 6/6 (all phases closed 2026-08-12)
 
 ---
 *Requirements defined: 2026-08-12*
-*Last updated: 2026-08-12 after roadmap creation (100% coverage, Phases 25-27)*
+*Last updated: 2026-08-12 after Phase 27 closure — milestone v1.6 100% complete (6/6 requirements)*
