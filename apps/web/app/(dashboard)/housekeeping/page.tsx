@@ -647,21 +647,22 @@ function SupervisorHousekeepingPage() {
   const [predictions, setPredictions] = useState<RoomPrediction[]>([])
   const [predictionsLoading, setPredictionsLoading] = useState(false)
 
-  useEffect(() => {
-    const fetchPredictions = async () => {
-      setPredictionsLoading(true)
-      try {
-        const res = await housekeepingApi.getPredictions()
-        setPredictions(res.data?.rooms || [])
-        setLastSyncedAt(new Date())
-      } catch {
-        // silently fail - predictions are optional
-      } finally {
-        setPredictionsLoading(false)
-      }
+  const fetchPredictions = useCallback(async () => {
+    setPredictionsLoading(true)
+    try {
+      const res = await housekeepingApi.getPredictions()
+      setPredictions(res.data?.rooms || [])
+      setLastSyncedAt(new Date())
+    } catch {
+      // silently fail - predictions are optional
+    } finally {
+      setPredictionsLoading(false)
     }
+  }, [setLastSyncedAt])
+
+  useEffect(() => {
     fetchPredictions()
-  }, [selectedDate, setLastSyncedAt])
+  }, [selectedDate, fetchPredictions])
 
   const navigate = (delta: number) => {
     const current = parseISO(selectedDate)
@@ -729,7 +730,12 @@ function SupervisorHousekeepingPage() {
 
       {/* Prediction alerts */}
       {predictions.some((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM') && (
-        <PredictionPanel predictions={predictions} isLoading={predictionsLoading} />
+        <PredictionPanel
+          predictions={predictions}
+          isLoading={predictionsLoading}
+          canAssignRooms={canAssignRooms}
+          onActionComplete={fetchPredictions}
+        />
       )}
 
       {/* Housekeeper chip bar (assign mode) */}
