@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: "AI Copilot Proactive Intelligence"
 status: in_progress
-last_updated: "2026-08-12T10:14:13Z"
-last_activity: 2026-08-12 -- Plan 25-01 (Failure-Prediction Proactive Push + Dedup) executed and closed. notify_engineers_asset_risk_high() wired into run_asset_failure_predictions with edge-triggered dedup; 9 new tests, full suite 570/570 (3 pre-existing unrelated management_roi failures unchanged).
+last_updated: "2026-08-12T10:32:00Z"
+last_activity: 2026-08-12 -- Plan 26-01 (Deep-Linked Alert Surfaces, backend id field) executed and closed. get_risk_alerts()'s asset_risks select now includes id; new select_calls capture on FakeDB + regression test guarding it; full suite 571/571 new-baseline (3 pre-existing unrelated management_roi failures unchanged). Wave 1 of 2 done for phase 26 -- plan 26-02 (frontend) is next, depends on this plan's id field.
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 2
+  completed_plans: 2
   percent: 0
 ---
 
@@ -17,10 +17,10 @@ progress:
 
 ## Current Position
 
-Phase: 25 of 27 (Failure-Prediction Proactive Push + Dedup) — plan 25-01 complete
-Plan: 25-01 CLOSED (commits d625b37c/0be5dda5) — phase 25 has no further planned plans; ready for phase gate / next phase planning
-Status: Plan 25-01 executed and closed. Ready for phase-25 verification or /gsd:plan-phase 26.
-Last activity: 2026-08-12 — Plan 25-01 executed (TDD, 2 tasks, RED then GREEN), SUMMARY + STATE updated
+Phase: 26 of 27 (Deep-Linked Alert Surfaces) — plan 26-01 complete, plan 26-02 (frontend, wave 2) pending
+Plan: 26-01 CLOSED (commits 69a4934a/f06acced) — depends_on: [] confirmed; 26-02 depends_on 26-01 and can now proceed since maintenance_risks[].id is live in code
+Status: Plan 26-01 executed and closed. Ready for /gsd:execute-phase 26 (plan 26-02) or direct execution of 26-02-PLAN.md.
+Last activity: 2026-08-12 — Plan 26-01 executed (2 auto tasks, no TDD), SUMMARY + STATE updated
 
 Progress: [          ] 0% (0/3 phases complete)
 
@@ -40,6 +40,8 @@ Roadmap derived from `.planning/REQUIREMENTS.md` (6 requirements, AI-03..AI-08) 
 - Phase 27: Room-Readiness One-Click Reassign / Escalate / Acknowledge — AI-03, AI-04, AI-05 (Track B2: acts directly against the existing `POST /housekeeping/assignments` endpoint, not the `ai_recommendations` governance wrapper which is out of scope; depends on Phase 26 for UX completeness)
 
 **25-01 CLOSED (2026-08-12, commits `d625b37c`/`0be5dda5`):** Asset failure-prediction proactive push + dedup, TDD (RED→GREEN). `notify_engineers_asset_risk_high()` added to `apps/api/services/ai/failure_predictions.py`, mirroring `notify_supervisors_high_risk`'s shape exactly (direct `notifications` batch-insert, internal try/except, returns int count, never raises). Recipients resolved from `user_roles` (tenant_id + role in [engineer, chief_engineer, gm] + is_active=True, never `user_profiles`), deduped by `user_id` so a dual-role user gets exactly one notification. Wired into `run_asset_failure_predictions`'s per-asset loop, edge-triggered on `previous_score < 70 <= risk_score` where `previous_score = asset.get("failure_risk_score") or 0` (treats missing key/None/0 uniformly as not-HIGH, since the DB column defaults to 0 not NULL) — captured from the same `assets` row before this run's update overwrites it, so 3 consecutive cron runs on an unchanged HIGH asset produce exactly 1 notification total, and re-entering HIGH after dropping out notifies again. Notify call wrapped in its own try/except so a per-tenant notification-insert failure doesn't abort other assets or other tenants' runs in the same all-hotels cron pass. `notifications_sent` propagated through both `run_asset_failure_predictions` and `run_all_hotels_failure_predictions` return dicts. New `test_failure_prediction_notifications.py` (9 tests — plan specified 8 truths, one split into two clearer sub-tests) covers all 4 ROADMAP.md success criteria plus 2 CONTEXT.md edge-case guards (never-analyzed-asset first-HIGH, dual-role dedup). Two test-harness bugs found and fixed during GREEN (both Rule 1, test-only): two direct-call tests were missing `monkeypatch.setattr(module, "supabase", db)` and one assertion read a `FakeDB.rows` key before it existed. Full suite: 570/570 passed (561 baseline + 9 new), same 3 pre-existing unrelated `test_management_roi.py` failures unchanged. See `25-01-SUMMARY.md`.
+
+**26-01 CLOSED (2026-08-12, commits `69a4934a`/`f06acced`):** Deep-linked alert surfaces — backend prerequisite (AI-08), autonomous, 2 auto tasks, wave 1 of 2. `get_risk_alerts()` (`apps/api/routers/ai_copilot.py`) `asset_risks` query select changed from `"name, failure_risk_score"` to `"id, name, failure_risk_score"` — the entire production change, confirmed by 26-RESEARCH.md as the one column the live `assets` table already has but the endpoint wasn't exposing. `room_risks` and `sla_breaches` untouched (room_id already flows via `rooms(room_number)`'s join). Guarded by a new regression test rather than a naive row-echo assertion: `apps/api/tests/smoke/fake_supabase.py`'s `FakeDB` gained `select_calls` (list of `(table_name, args)`, purely additive, mirrors the existing `test_housekeeping_assignments.py` local convention) so `test_risk_alerts_asset_select_includes_id` (`apps/api/tests/test_ai_copilot_rbac.py`) can assert on the actual select-string content, not just on FakeDB's unfiltered row echo (which would pass even without the fix, since the fake doesn't simulate PostgREST column projection). Full suite: 571/571 passed (570 baseline + 1 new), same 3 pre-existing unrelated `test_management_roi.py` failures unchanged. No deviations — plan executed exactly as written. Plan 26-02 (frontend, wave 2, depends_on 26-01) can now rely on `maintenance_risks[].id` being present in the real API response. See `26-01-SUMMARY.md`.
 
 ## Previous milestones
 
