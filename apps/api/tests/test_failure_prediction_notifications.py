@@ -136,7 +136,7 @@ async def test_asset_already_high_does_not_renotify(monkeypatch):
     result = await failure_predictions.run_asset_failure_predictions("hotel-1")
 
     assert result["notifications_sent"] == 0
-    assert db.rows["notifications"] == []
+    assert db.rows.get("notifications", []) == []
 
 
 # ---------------------------------------------------------------------------
@@ -236,13 +236,14 @@ async def test_recipients_notify_when_user_roles_populated(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_dual_role_user_dedup():
+def test_dual_role_user_dedup(monkeypatch):
     db = FakeDB({
         "user_roles": [
             {"user_id": "staff-1", "tenant_id": "hotel-1", "role": "gm", "is_active": True},
             {"user_id": "staff-1", "tenant_id": "hotel-1", "role": "engineer", "is_active": True},
         ],
     })
+    monkeypatch.setattr(failure_predictions, "supabase", db)
 
     sent = failure_predictions.notify_engineers_asset_risk_high(
         hotel_id="hotel-1",
@@ -262,8 +263,9 @@ def test_dual_role_user_dedup():
 # ---------------------------------------------------------------------------
 
 
-def test_zero_recipients_returns_zero():
+def test_zero_recipients_returns_zero(monkeypatch):
     db = FakeDB({"user_roles": []})
+    monkeypatch.setattr(failure_predictions, "supabase", db)
 
     sent = failure_predictions.notify_engineers_asset_risk_high(
         hotel_id="hotel-1",

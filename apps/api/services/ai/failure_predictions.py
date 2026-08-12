@@ -306,6 +306,74 @@ def _analyze_asset(
 
 
 # ---------------------------------------------------------------------------
+# notify_engineers_asset_risk_high
+# ---------------------------------------------------------------------------
+
+def notify_engineers_asset_risk_high(
+    hotel_id: str,
+    asset_id: str,
+    asset_name: str,
+    risk_score: int,
+    predicted_failure_window: str | None,
+    recommendation: str | None,
+) -> int:
+    """
+    Insert in-app notifications for all engineers, chief engineers, and GMs
+    for an asset that has newly crossed into HIGH failure risk.
+
+    Returns the number of notifications inserted.
+    """
+    try:
+        recipients_result = (
+            supabase.table("user_roles")
+            .select("user_id")
+            .eq("tenant_id", hotel_id)
+            .in_("role", ["engineer", "chief_engineer", "gm"])
+            .eq("is_active", True)
+            .execute()
+        )
+        recipients = recipients_result.data or []
+    except Exception as exc:
+        logger.error("Failed to fetch recipients for hotel=%s: %s", hotel_id, exc)
+        return 0
+
+    # user_roles allows multiple role rows per (user_id, tenant_id) — dedupe
+    # so a dual-role user (e.g. gm + engineer) gets exactly one notification.
+    recipient_ids = {r["user_id"] for r in recipients if r.get("user_id")}
+    if not recipient_ids:
+        return 0
+
+    window_str = predicted_failure_window or "an unspecified timeframe"
+    body = f"Predicted failure window: {window_str}."
+    if recommendation:
+        body += f" {recommendation}"
+
+    notifications = [
+        {
+            "tenant_id": hotel_id,
+            "user_id": user_id,
+            "type": "asset_risk_high",
+            "title": f"{asset_name} at high failure risk",
+            "body": body,
+            "data": {"asset_id": asset_id, "risk_level": "HIGH", "risk_score": risk_score},
+            "is_read": False,
+            "push_sent": False,
+        }
+        for user_id in recipient_ids
+    ]
+
+    try:
+        supabase.table("notifications").insert(notifications).execute()
+        return len(notifications)
+    except Exception as exc:
+        logger.error(
+            "Failed to insert asset risk notifications for hotel=%s asset=%s: %s",
+            hotel_id, asset_id, exc,
+        )
+        return 0
+
+
+# ---------------------------------------------------------------------------
 # run_asset_failure_predictions  (per-hotel)
 # ---------------------------------------------------------------------------
 
@@ -313,13 +381,14 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
     """
     Analyze all active assets for a hotel and generate/update failure predictions.
 
-    Returns dict: { "analyzed": int, "high_risk": int, "updated": int }
+    Returns dict: { "analyzed": int, "high_risk": int, "updated": int, "notifications_sent": int }
     """
     logger.info("Starting failure prediction run for hotel %s", hotel_id)
 
     analyzed = 0
     high_risk = 0
     updated = 0
+    notifications_sent = 0
 
     # --- 1. Fetch all active assets for this hotel ---
     try:
@@ -334,11 +403,11 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
     except Exception as exc:
         logger.error("Failed to fetch assets for hotel=%s: %s", hotel_id, exc)
         logger.error("ERROR fetching assets for hotel %s: %s", hotel_id, exc)
-        return {"analyzed": 0, "high_risk": 0, "updated": 0}
+        return {"analyzed": 0, "high_risk": 0, "updated": 0, "notifications_sent": 0}
 
     if not assets:
         logger.info("No active assets found for hotel %s", hotel_id)
-        return {"analyzed": 0, "high_risk": 0, "updated": 0}
+        return {"analyzed": 0, "high_risk": 0, "updated": 0, "notifications_sent": 0}
 
     logger.info("Found %d active assets for hotel %s", len(assets), hotel_id)
 
@@ -348,6 +417,8 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
         asset_id = asset.get("id")
         if not asset_id:
             continue
+
+        previous_score = asset.get("failure_risk_score") or 0
 
         # --- 2a. Fetch recent work orders (last 12 months) ---
         try:
@@ -416,6 +487,24 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
                 "Failed to update failure_risk_score on asset=%s: %s", asset_id, exc
             )
 
+        # --- 6. Notify engineers/chief_engineers/gm on new HIGH-risk crossing ---
+        if previous_score < 70 <= risk_score:
+            try:
+                sent = notify_engineers_asset_risk_high(
+                    hotel_id=hotel_id,
+                    asset_id=asset_id,
+                    asset_name=asset.get("name", "Unknown Asset"),
+                    risk_score=risk_score,
+                    predicted_failure_window=prediction.get("predicted_failure_window"),
+                    recommendation=prediction.get("recommendation"),
+                )
+                notifications_sent += sent
+            except Exception as exc:
+                logger.error(
+                    "Failed to send asset risk notification for asset=%s hotel=%s: %s",
+                    asset_id, hotel_id, exc,
+                )
+
         updated += 1
         logger.info(
             "Asset %s (%s) — risk_score=%d, window=%s",
@@ -423,10 +512,15 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
         )
 
     logger.info(
-        "Hotel %s complete: analyzed=%d, high_risk=%d, updated=%d",
-        hotel_id, analyzed, high_risk, updated,
+        "Hotel %s complete: analyzed=%d, high_risk=%d, updated=%d, notifications_sent=%d",
+        hotel_id, analyzed, high_risk, updated, notifications_sent,
     )
-    return {"analyzed": analyzed, "high_risk": high_risk, "updated": updated}
+    return {
+        "analyzed": analyzed,
+        "high_risk": high_risk,
+        "updated": updated,
+        "notifications_sent": notifications_sent,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -448,11 +542,11 @@ async def run_all_hotels_failure_predictions() -> dict:
     except Exception as exc:
         logger.error("Failed to fetch tenant_ids from assets: %s", exc)
         logger.error("ERROR fetching hotel list: %s", exc)
-        return {"analyzed": 0, "high_risk": 0, "updated": 0}
+        return {"analyzed": 0, "high_risk": 0, "updated": 0, "notifications_sent": 0}
 
     logger.info("Found %d hotels with active assets", len(hotel_ids))
 
-    total: dict = {"analyzed": 0, "high_risk": 0, "updated": 0}
+    total: dict = {"analyzed": 0, "high_risk": 0, "updated": 0, "notifications_sent": 0}
 
     for hotel_id in hotel_ids:
         try:
@@ -460,13 +554,14 @@ async def run_all_hotels_failure_predictions() -> dict:
             total["analyzed"] += stats.get("analyzed", 0)
             total["high_risk"] += stats.get("high_risk", 0)
             total["updated"] += stats.get("updated", 0)
+            total["notifications_sent"] += stats.get("notifications_sent", 0)
         except Exception as exc:
             logger.error("Failure prediction run failed for hotel=%s: %s", hotel_id, exc)
             logger.error("ERROR for hotel %s: %s", hotel_id, exc)
 
     logger.info(
-        "All-hotels run complete: analyzed=%d, high_risk=%d, updated=%d",
-        total["analyzed"], total["high_risk"], total["updated"],
+        "All-hotels run complete: analyzed=%d, high_risk=%d, updated=%d, notifications_sent=%d",
+        total["analyzed"], total["high_risk"], total["updated"], total["notifications_sent"],
     )
     return total
 
