@@ -1,171 +1,159 @@
 # Feature Research
 
-**Domain:** Operational practices (platform/ops hardening) for a multi-tenant FastAPI + Supabase SaaS, no ORM
-**Researched:** 2026-08-04
-**Confidence:** MEDIUM-HIGH (codebase findings HIGH; external practice recommendations MEDIUM — synthesized from multiple WebSearch sources, no single canonical spec exists for these three practices)
+**Domain:** Proactive AI alerting + one-click actions for hotel ops / predictive-maintenance SaaS (PatelRep v1.6)
+**Researched:** 2026-08-12
+**Confidence:** HIGH (internal grounding in existing code; external validation from CMMS/predictive-maintenance + hotel-housekeeping SaaS norms)
 
-This milestone (v1.4) ships **no new user-facing features**. "Features" below are read as **operational practices/deliverables**: (1) RBAC normalization, (2) shared-DB test-data hygiene, (3) documentation-drift prevention.
+## Scope Recap
 
-## Current-State Findings (grounds the recommendations below)
+This is a **subsequent milestone** on an existing app. Three gaps to close:
 
-- `require_role(*roles)` in `apps/api/middleware/auth.py:127-136` is a clean FastAPI `Depends`-based dependency — this is already the industry-standard shape (verify JWT → resolve claims → declarative per-route dependency). It does not need replacing.
-- 214 occurrences of `current_user.role` / `require_role(` across 28 files in `apps/api/routers/`. Many are legitimate **object-level** checks (e.g. `rooms.py:55` — a housekeeper may only undo a room they're assigned to; `safety.py:84` — a user may only view their own training unless they're a manager). These structurally cannot be expressed by `require_role()`, which only sees role, not resource state.
-- Role-set constants are **redefined per-file with no shared source of truth**, and they've already drifted:
-  - `MANAGER_ROLES` = `("gm", "housekeeping_supervisor", "chief_engineer")` in `safety.py:34` vs. `("gm", "housekeeping_supervisor", "engineer", "chief_engineer")` in `programs.py:43` — same name, different membership.
-  - `hotels.py:11` — `ALL_STAFF_ROLES` lists `"engineer"` twice and omits `"chief_engineer"` entirely — a likely bug.
-  - At least 9 other one-off constants (`SESSION_ROLES`, `SHIFT_ROLES`, `SUPERVISOR_ROLES`, `UNDO_ALL_ROLES`, `MESSAGE_ROLES`, `SLA_POLICY_ROLES`, `EVIDENCE_CAPTURE_ROLES`, `COMPETENCY_MANAGER_ROLES`) exist, each hand-maintained.
-  - A separate `custom_role_id` override system exists in `staff.py` (migrations 028/029) layered on top of the fixed 6-role enum — any normalization must account for effective-role resolution, not just the literal `role` claim.
-- Automated tests (`apps/api/tests/`) already run against `fake_supabase.py` / mocked env vars (`tests/smoke/conftest.py`) — they do **not** touch the real Supabase project. The shared-DB risk is specifically **manual/Playwright QA** against the live `oacnwalhcpqdabivweki` project, not CI.
-- `apps/api/.env` **exists locally** with real keys — confirms the CLAUDE.md claim "no live API credentials in the local environment" is stale, consistent with the milestone brief.
-- No existing seed/teardown script scopes to a designated "test tenant" — `supabase/seed.sql` and `apps/api/scripts/seed_hotel_layout.py` seed general schema/layout data, not tagged QA fixtures.
+1. Make **room-readiness predictions actionable** (`PredictionPanel.tsx` is read-only today).
+2. **Proactive push parity** for failure predictions (room-readiness already pushes on HIGH escalation via `services/ai/predictions.py::notify_supervisors_high_risk`; `services/ai/failure_predictions.py` sends **nothing** — confirmed, no notification code path exists).
+3. **Consistent deep-linked alert surfaces** (`AIRiskAlertsPanel.tsx` housekeeping rows link to generic `/housekeeping`; maintenance rows have **no** action link).
+
+Chat/system-initiated copilot messaging is **out of scope** — do not scope it in.
 
 ## Feature Landscape
 
-### Table Stakes (Any Competent Team Would Do These)
+### Table Stakes (Users Expect These)
 
-| Practice | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Audit script enumerating every route-level auth check (which routes use `require_role`, which rely solely on an inline `if current_user.role ==` with no dependency) | You cannot normalize what you haven't inventoried; scattered checks are otherwise invisible to code review | LOW | Simple grep/AST script over `apps/api/routers/*.py`; output is a worklist, not a fix |
-| Apply `require_role()` consistently to every route that only needs role-level gating (no resource ownership involved) | This is the one enforcement point FastAPI's own DI model is built for; leaving some routes to inline checks is the exact inconsistency this milestone targets | LOW–MEDIUM | Mechanical per-route change; risk is regressions if a role-set literal is copied wrong during migration (see the `MANAGER_ROLES` drift above — do this via one shared constant, not copy-paste) |
-| Single shared module (e.g. `core/roles.py`) defining every role-group constant once, imported everywhere instead of redefined per-router | Directly fixes the `MANAGER_ROLES` mismatch and the `ALL_STAFF_ROLES` bug found above | LOW | Pure refactor; no behavior change if done correctly — write a smoke test asserting old vs. new constant sets are equal before deleting the old ones |
-| Explicit, named helper for object/row-level checks (e.g. `assert_self_or_role(current_user, resource_owner_id, *bypass_roles)`) instead of ad hoc `if current_user.role == "housekeeper" and x.assigned_to == current_user.user_id` scattered inline | Keeps the legitimate second authorization layer (ownership) from being confused with — or accidentally deleted during — route-level RBAC normalization | LOW–MEDIUM | Do not try to force ownership checks into `require_role()`; it has no concept of resource state |
-| Designate specific hotel tenant(s) as "QA test tenants" via an explicit flag/naming convention (leverages the existing `hotel_id` isolation boundary already enforced by every query + RLS) | The app is already multi-tenant-isolated by `hotel_id` — this is the cheapest possible test-data boundary, requiring no new isolation mechanism | LOW | E.g. a `is_test_tenant boolean` column on `tenants`/`hotels`, or a reserved name prefix (`"QA-*"`) checked in a script |
-| Cleanup script that hard-scopes every `DELETE`/reset to `hotel_id IN (<tagged test tenants>)`, never touching un-tagged tenants, with a dry-run mode that prints row counts before deleting | Prevents a cleanup run from ever touching another engineer's in-flight manual QA data or real customer data in the same project | MEDIUM | Must respect FK cascade order (see migration 023 cascade FK deletes) or run inside a transaction; dry-run-first is the safety rail |
-| Fix the two known-stale CLAUDE.md claims directly (cron mechanism: GitHub Actions → APScheduler in-process; credentials: "none locally" → Stripe/Supabase keys ARE present) | These are the two concrete instances of drift this milestone exists to prevent — fixing them is a precondition for any drift-detection tooling (a check can't defend a fact that's currently wrong) | LOW | Direct doc edit, already fully diagnosed by memory/`project_cron_scheduler.md` |
-| One CI or pre-commit check per **known-fragile fact**, not a general-purpose doc linter — e.g. grep that fails if CLAUDE.md says "GitHub Actions" runs cron while `apscheduler` import exists in `main.py`, and a check that env-var docs match `.env.example` keys | Cheap, targeted, catches the exact class of drift already observed twice; a general prose-freshness linter is unreliable and expensive to maintain | LOW | Sources agree: targeted, high-signal checks beat broad "doc linting" for small teams — see anti-features below |
+Features users assume exist. Missing these = product feels incomplete or the alert feels like dead-end noise.
 
-### Differentiators (Worth Doing, Not Required for v1.4 to Be Complete)
+| Feature | Why Expected | Complexity | Notes / Dependencies |
+|---------|--------------|------------|----------------------|
+| Every alert carries a concrete next action | CMMS norm: "if an alert fires and the responder cannot take a specific action, the alert should not exist." A read-only risk pill is a dead end. | LOW | `PredictionPanel` rows and `AIRiskAlertsPanel` maintenance rows currently violate this. Add a primary action button per row. |
+| Acknowledge / dismiss | Lets a supervisor clear a handled alert so it stops nagging; already the norm for failure predictions. | LOW | Failure dashboard already has `acknowledge`. Room-readiness has **no** acknowledge — add one, and have it suppress re-push (see dedup below). |
+| Deep link to the source record | Clicking an alert must land on the exact room/asset/WO, not a generic list. | LOW | Fix `AIRiskAlertsPanel`: housekeeping row → `/housekeeping?room={room_id}` (drawer open), maintenance row → `/engineering/predictions?asset={id}`. SLA row already deep-ish (`/engineering`). |
+| Proactive push on new HIGH-risk asset | Room-readiness already pushes; engineers expect the same for equipment about to fail. Parity gap is the core ask. | MEDIUM | Reuse `notifications` table + the `notify_role`/`notify_supervisors_high_risk` pattern. Target `engineer` + `chief_engineer` + `gm`. |
+| Edge-triggered dedup (no re-notify while risk stays HIGH) | Predictions re-run every 30 min (room) / nightly (asset). Re-pushing an unchanged HIGH every cycle is textbook alert fatigue. | MEDIUM | Room-readiness **already** does this: `risk_level == "HIGH" and previous_risk != "HIGH"`. Replicate for assets. See "Dedup design" below. |
+| Confidence / rationale on the alert | AI alerts without "why" get ignored or distrusted. | LOW | Data already exists: `confidence_score`, `risk_factors` (room), `ai_reasoning` + `failure_indicators` (asset). Surface, don't recompute. |
+| Role-gated actions | A housekeeper shouldn't authorize a spend; front desk shouldn't reassign engineers. | LOW | Reuse `require_role`/`useRole`. Reassign → `housekeeping_supervisor`/`gm`; authorize AI action → `chief_engineer`/`gm` (matches existing `canAuthorize`). |
 
-| Practice | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Auto-generated route × role permission matrix (a script that walks FastAPI's route table and each route's `Depends(require_role(...))` args, emits a Markdown table) | Turns "what can a front_desk user do?" from an archaeology exercise into a build artifact; also doubles as a regression check — if the generated table changes unexpectedly, a PR reviewer notices | MEDIUM | Only works well **after** normalization — routes still using inline checks won't show up correctly, so this is naturally sequenced after the table-stakes items |
-| Lint rule (custom AST check, e.g. via `ast`/`libcst` or a simple regex CI step) that flags new PRs introducing a bare `current_user.role ==`/`!=`/`in {...}` comparison for pure route gating, nudging the author toward `require_role()` or the shared object-check helper | Stops the pattern from re-fragmenting after the initial cleanup — normalization efforts that aren't enforced tend to decay within a few months | MEDIUM | Needs a documented exception list for legitimate object-level checks so the linter doesn't cry wolf |
-| Soft-delete + scheduled hard-delete (pg_cron, batched) for tagged test data instead of a synchronous destructive `DELETE` | Gives a recovery window if the cleanup script's tenant-tag scoping has a bug, and batches the delete to avoid locking large tables during another engineer's active QA session | MEDIUM | Supabase's own guidance (see Sources) recommends this pattern specifically for live/shared databases over synchronous bulk delete |
-| "Last-verified" date + owner note on the specific CLAUDE.md sections most prone to drift (cron jobs table, env-var/credentials section, infra URLs) | Cheap signal for a human reviewer ("this hasn't been checked in 3 months") without building tooling that verifies prose semantically | LOW | Convention, not automation — pairs well with the targeted CI checks above rather than replacing them |
+### Differentiators (Competitive Advantage)
 
-### Anti-Features (Would Look Like Progress, Actually Aren't — for This App's Scale)
+Features that set the product apart. Align with core value: **save floor staff time, don't add phone complexity.**
 
-| Practice | Why It's Tempting | Why Problematic Here | Alternative |
+| Feature | Value Proposition | Complexity | Notes / Dependencies |
+|---------|-------------------|------------|----------------------|
+| One-click reassign with AI-suggested least-loaded housekeeper pre-selected | Turns "Room 214 will be late" into a 1-tap fix. Competitors (HelloShift, Unifocus) auto-balance by productivity/proximity; we match that but keep a human in the loop. | MEDIUM | **Recommend: pre-picked default + confirm, NOT silent auto-execute.** Route through existing `ai_recommendations` (`source_type='room_readiness'`, `suggested_action='adjust_room_assignment'` — both enum values already exist in migration 073). Least-loaded = fewest DIRTY/IN_PROGRESS rooms via existing `count_rooms_ahead` logic. See "Reassign design" below. |
+| AI-recommended action with governed authorize → execute → outcome loop | Auditability: "AI suggested, GM authorized, it prevented a failure." Rare in SMB hotel tooling. | LOW (already built) | `ai_recommendations` lifecycle already exists and is wired for failure predictions (`authorizeRecommendation`). Extend the same UI affordance to room-readiness and to the alert panel — do **not** build a second governance system. |
+| Escalation chain / watermark for un-actioned alerts | If nobody reassigns a HIGH room or acks a failing asset, escalate to GM after a threshold. | MEDIUM | Pattern already exists for work orders: `escalation_level` column as a watermark (`internal.py::check_escalations`, tiers at 30/90/150 min). Apply a lightweight version to predictions. |
+| Batch action on grouped alerts | "3 rooms behind on floor 2 → reassign all" / "acknowledge all low-value alerts." Reduces taps at shift change. | MEDIUM | CMMS best practice is to **group related alerts into one actionable notification**. Only worth it once single-item actions ship. Group by floor (room) or asset category (maintenance). |
+| Tiered alert routing (observe vs act vs escalate) | Separates "log & monitor" from "do something now" so the feed isn't a flat wall of red. | MEDIUM | Map to existing bands: room LOW/MEDIUM/HIGH; asset <40 / 40–69 / ≥70. Only MEDIUM+/≥40 should push; LOW stays in-dashboard. |
+
+### Anti-Features (Commonly Requested, Often Problematic)
+
+| Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Adopting an external policy engine (Casbin, Oso, Permit.io) to replace `require_role()` | "RBAC normalization" sounds like exactly what these tools are for | Overkill for 6 fixed roles + `hotel_id` tenant scoping + a small `custom_role_id` override table; adds a policy language, a new deployment/config surface, and a learning curve disproportionate to the app's actual authorization complexity. Sources are explicit that these tools earn their cost at higher role/policy complexity than PatelRep currently has | Keep `require_role()` as the canonical route-level gate; formalize the object-level layer with one small internal helper (see table stakes) — re-evaluate only if roles or `custom_role_id` combinations grow substantially |
-| Fully automated CLAUDE.md generation from code/AST (regenerate the whole file every commit) | Sounds like it eliminates drift entirely | Brittle, strips human-curated "why" context (e.g. the rationale notes throughout CLAUDE.md), and is itself a new thing that needs maintenance — trades one drift problem for a fragile-generator problem | Targeted, fact-specific CI checks (table stakes) for the handful of claims that are actually prone to going stale; leave prose sections human-owned |
-| Nightly full wipe/reset of the shared dev Supabase project | Simplest possible "clean test data" mental model | Directly breaks the stated constraint: real engineers use the same project for manual testing side-by-side; a blanket reset destroys another engineer's in-flight QA session and any persistent demo/staging data with no way to distinguish "test junk" from "someone's active work" | Scoped, tag-based cleanup limited to explicitly marked test tenants (table stakes), on demand or on a long TTL — never a blanket reset |
-| Standing up a second, fully separate staging Supabase project as a v1.4 deliverable | Feels like the "proper" fix for shared-DB risk | High cost relative to this milestone's scope — dual migrations, dual env config, dual seed data, ongoing sync burden — and CLAUDE.md already documents "no dedicated staging DB" as a deliberate current-state constraint, not an oversight to silently reverse | Tenant-tagged isolation within the existing project (in scope now); revisit a project split only if tagged isolation proves insufficient |
+| Re-notify every cron run while risk stays HIGH | "Keep reminding us it's still broken." | **Primary alert-fatigue driver.** Room preds run `*/30` (up to 48 pushes/day/room); assets nightly. A stuck-HIGH asset would ping every night forever → staff mute the bell. | Edge-triggered notify on **transition into HIGH only**, plus a re-arm window (don't re-fire if it dipped and re-rose within ~6–12h) and acknowledge-suppression. Send a *digest* if persistence must be surfaced, not a repeat push. |
+| Silent auto-reassign / auto-create-WO with no confirmation | "Just let the AI fix it." | Reassignment moves a real person's workload; auto-WO can authorize spend. Consequential changes that bypass human confirm erode trust and cause floor disputes. Existing governance (`ai_recommendations`) deliberately requires `authorized_by`. | Pre-fill the AI's choice, require **one confirming tap**. Auto-execute only truly reversible, zero-cost actions (e.g. mark-as-read), never assignment or spend. |
+| Flat "everything is an alert" feed | "Surface all risks." | Flat systems where every signal = same notification are the root cause of alert fatigue. LOW-risk rooms flooding the panel bury the one HIGH that matters. | Tiered: only MEDIUM+/≥40 surfaces in `AIRiskAlertsPanel`; LOW stays as ambient dashboard state. Cap/rank the feed. |
+| Per-alert email/SMS for every prediction | "I want to know immediately, everywhere." | SMS (Twilio) credentials aren't even available locally, and per-event SMS compounds fatigue + cost against the $2.50/room/mo cap. | In-app `notifications` (bell) is the default channel. Reserve any future email for the **daily GM digest** cron that already exists (`reports.daily-summary-email`). |
+| Notify all roles on every alert | "Make sure someone sees it." | Broadcasting a failing compressor to housekeepers is noise that trains everyone to ignore the bell. | Route by domain+role: room-readiness → `housekeeping_supervisor`/`gm`; asset failure → `engineer`/`chief_engineer`/`gm`. Matches existing `notify_supervisors_high_risk` targeting. |
+| New standalone predictions inbox / notification center rebuild | "We need a better place to manage all this." | Duplicates the existing bell + `AIRiskAlertsPanel` + per-domain dashboards; big surface, little marginal value this milestone. | Enhance the three existing surfaces in place. Defer any unified center to v2+. |
+
+## Dedup Design (answers the "new HIGH-risk asset" push question)
+
+**Use edge-triggered state-transition notification with a watermark column — the pattern already proven twice in this codebase.**
+
+- **Room-readiness (already correct):** fetches `existing_risk_map`, pushes only when `risk_level == "HIGH" and previous_risk != "HIGH"`. Keep as-is; add acknowledge-suppression so a supervisor who acked a room isn't re-pinged if it flickers.
+- **Failure predictions (to build):** before the delete-then-insert, read the prior row's `risk_score` band. Push **only on transition into ≥70 from below 70**. Persist a watermark so the nightly re-run of a still-HIGH asset does **not** re-push.
+  - Add `last_notified_risk_band` (or reuse `is_acknowledged` + a `notified_at`) on the prediction/asset row. This mirrors the `escalation_level` watermark used in `internal.py::check_escalations` to "prevent duplicate notifications across cron runs."
+  - **Re-arm rule:** only re-notify if the band was below 70 for at least one intervening run (or ~12h) before re-crossing. Prevents 69↔71 flapping from spamming.
+  - **Acknowledge = suppress:** an acknowledged prediction never re-pushes even if it stays HIGH; the dashboard row is the persistent surface.
+
+Net: one push per genuine LOW/MED→HIGH transition per asset, not one per cron cycle.
+
+## Reassign Design (answers the "one-click reassign to which housekeeper" question)
+
+**Recommend: picker pre-selected to the AI's least-loaded pick, requiring one confirming tap — not a silent auto-assign, and not a blank picker.**
+
+- **Default choice = least-loaded eligible housekeeper.** Reuse `count_rooms_ahead` (fewest remaining DIRTY/IN_PROGRESS rooms today); tie-break on rolling avg clean time for that room_type (`housekeeper_profiles`). This is what Unifocus/HelloShift do (balance by productivity + workload).
+- **Why confirm, not auto:** reassignment is consequential (shifts a person's floor workload). Silent auto-assign is an anti-feature. Pre-filling the pick keeps it one-tap-fast while preserving the human check.
+- **Route through governance:** create an `ai_recommendations` row (`source_type='room_readiness'`, `suggested_action='adjust_room_assignment'`, `action_payload={room_id, from_hk, to_hk}`) → authorize → execute updates `room_assignments.assigned_to`. Reuses the exact loop the failure dashboard already uses; no new governance code.
+- **Escalate alternative:** if no eligible housekeeper has slack, the action degrades to `notify_supervisor` (also an existing `suggested_action` enum value) rather than forcing a bad reassignment.
+- **Deep-link fallback:** the `AIRiskAlertsPanel` housekeeping "Reassign" link should open the room drawer on `/housekeeping` with the reassign action primed (fixes today's generic `href="/housekeeping"`).
 
 ## Feature Dependencies
 
 ```
-[Role-set constant consolidation (core/roles.py)]
-    └──requires──> [Audit script inventory of current checks]
+Deep-linked alert surfaces (AIRiskAlertsPanel fix)
+    └──requires──> source_id present on each alert row (room_id / asset_id) [already in payload]
 
-[require_role() applied consistently to route-level gates]
-    └──requires──> [Audit script inventory]
-    └──requires──> [Role-set constant consolidation]
+Room-readiness one-click reassign
+    └──requires──> ai_recommendations governance loop [EXISTS, migration 073]
+    └──requires──> least-loaded picker (count_rooms_ahead / housekeeper_profiles) [EXISTS]
+    └──enhances──> PredictionPanel (adds action buttons to read-only rows)
 
-[Object-level check helper (assert_self_or_role)]
-    └──requires──> [Audit script inventory]  (to separate "route gate" from "ownership check" cases)
+Failure-prediction proactive push
+    └──requires──> notify pattern (notifications table + notify_role) [EXISTS in internal.py/predictions.py]
+    └──requires──> edge-triggered dedup watermark [pattern EXISTS: escalation_level / existing_risk_map]
 
-[Auto-generated permission matrix]
-    └──requires──> [require_role() applied consistently]   (inline checks won't show up in the matrix)
-
-[Lint rule blocking new inline role checks]
-    └──requires──> [Object-level check helper exists]        (needs an approved alternative to point authors to)
-
-[Tagged test-tenant convention]
-    (no dependency — can start immediately)
-
-[Scoped cleanup script]
-    └──requires──> [Tagged test-tenant convention]            (can't safely delete without a marker)
-
-[Doc-drift CI checks (cron wording, credentials wording)]
-    └──requires──> [CLAUDE.md stale claims corrected first]   (a check must defend a true fact, not encode the current wrong one)
+Batch actions ──requires──> single-item actions shipped first
+Escalation chain ──enhances──> proactive push (both use the same watermark idea)
+Silent auto-execute ──conflicts──> ai_recommendations human-authorize invariant (do NOT combine)
 ```
 
 ### Dependency Notes
 
-- **Auto-generated permission matrix requires consistent `require_role()` usage:** the generator can only read what's declared as a FastAPI dependency; routes still gating via inline `if` blocks are invisible to it, so this is a natural second-wave item, not a first-wave one.
-- **Lint rule requires the object-level helper to exist first:** without an approved alternative pattern, the lint rule has nothing constructive to suggest and will just generate noise/exceptions.
-- **Cleanup script requires the tagging convention:** deleting by `hotel_id` membership in an untagged, ad hoc list is exactly the kind of manual, error-prone process this milestone should eliminate.
-- **Doc-drift CI checks require the underlying facts to be correct first:** encoding a check that asserts "CLAUDE.md says GitHub Actions runs cron" before fixing the text would just make the wrong claim harder to change later.
+- **One-click reassign requires `ai_recommendations`:** the table already models `source_type='room_readiness'` and `suggested_action='adjust_room_assignment'`/`notify_supervisor` — build on it, don't fork.
+- **Proactive push requires dedup:** shipping the push without the watermark would immediately create nightly alert-fatigue on stuck-HIGH assets — treat them as one unit of work.
+- **Auto-execute conflicts with governance:** the append-only `ai_recommendation_events` + required `authorized_by` exist specifically to keep a human in the loop; a silent-auto path would undermine the audit trail.
 
 ## MVP Definition
 
-### Launch With (v1.4 must-have)
+### Launch With (v1.6 core)
 
-- [ ] Correct the two known-stale CLAUDE.md claims (cron mechanism, local credentials) — direct edit, no tooling prerequisite
-- [ ] Audit script inventorying every `current_user.role` / `require_role()` usage per router, classified as route-level-gate vs. object-level-check
-- [ ] `core/roles.py` (or equivalent) consolidating all role-group constants into one source of truth, fixing the `MANAGER_ROLES` drift and `ALL_STAFF_ROLES` bug found above
-- [ ] `require_role()` applied to every route classified as a pure route-level gate by the audit
-- [ ] Named helper for object-level/ownership checks, applied to the routes classified as such (not forced into `require_role()`)
-- [ ] Test-tenant tagging convention (flag or naming convention) introduced on `hotels`/`tenants`
-- [ ] Cleanup script scoped strictly to tagged test tenants, with mandatory dry-run output before any delete
+- [ ] **Deep-linked alert rows** in `AIRiskAlertsPanel` (housekeeping → room drawer; maintenance → prediction card) — LOW cost, removes dead-end alerts.
+- [ ] **Failure-prediction proactive push** with edge-triggered dedup watermark — closes the parity gap without fatigue.
+- [ ] **Room-readiness one-click reassign** (pre-picked least-loaded + confirm) via existing `ai_recommendations` loop.
+- [ ] **Acknowledge on room-readiness** predictions (suppresses re-push).
 
-### Add After Validation (v1.4.x)
+### Add After Validation (v1.x)
 
-- [ ] Auto-generated route × role permission matrix doc — add once `require_role()` coverage is consistent enough to be worth generating from
-- [ ] CI lint rule blocking new bare role comparisons for route gating — add once the object-level helper has been in use long enough to have a stable exception list
-- [ ] Targeted CI/pre-commit checks defending the two corrected doc facts (cron mechanism, credentials) specifically
-- [ ] "Last-verified" convention on the highest-drift-risk CLAUDE.md sections
+- [ ] **Batch actions** (reassign-all-on-floor, ack-all) — trigger: supervisors report tap-fatigue at shift change.
+- [ ] **Escalation chain** for un-actioned HIGH predictions → GM — trigger: alerts sit unacted past a threshold.
 
 ### Future Consideration (v2+)
 
-- [ ] Soft-delete + pg_cron scheduled hard-delete for tagged test data — defer until the synchronous scoped-delete script has proven the tagging boundary is safe
-- [ ] Re-evaluate a policy engine (Casbin/Oso) only if role count or `custom_role_id` combinations grow enough that a shared-constants file stops being sufficient
-- [ ] Dedicated separate staging Supabase project — explicitly out of scope per current CLAUDE.md constraint; revisit only if tagged in-project isolation proves insufficient at higher engineer/QA concurrency
+- [ ] Unified notification center — defer; enhance existing three surfaces first.
+- [ ] Cross-channel delivery (email/SMS per alert) — defer; blocked on Twilio creds + cost cap, digest-only if ever.
 
 ## Feature Prioritization Matrix
 
-| Practice | Value | Implementation Cost | Priority |
+| Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Fix two stale CLAUDE.md claims | HIGH | LOW | P1 |
-| Audit script (inventory checks) | HIGH | LOW | P1 |
-| Consolidate role constants (`core/roles.py`) | HIGH | LOW | P1 |
-| Apply `require_role()` consistently | HIGH | MEDIUM | P1 |
-| Object-level check helper | HIGH | LOW–MEDIUM | P1 |
-| Test-tenant tagging convention | HIGH | LOW | P1 |
-| Scoped cleanup script + dry-run | HIGH | MEDIUM | P1 |
-| Auto-generated permission matrix | MEDIUM | MEDIUM | P2 |
-| Lint rule for new inline role checks | MEDIUM | MEDIUM | P2 |
-| Targeted doc-drift CI checks | MEDIUM | LOW | P2 |
-| Soft-delete + pg_cron sweep | LOW–MEDIUM | MEDIUM | P3 |
-| External policy engine (Casbin/Oso) | LOW (at current scale) | HIGH | P3 (reject unless triggers hit) |
-| Separate staging Supabase project | LOW (out of scope) | HIGH | P3 (reject per current constraint) |
+| Deep-linked alert rows | HIGH | LOW | P1 |
+| Failure-prediction push + dedup watermark | HIGH | MEDIUM | P1 |
+| Room-readiness one-click reassign (governed) | HIGH | MEDIUM | P1 |
+| Acknowledge room-readiness (push suppression) | MEDIUM | LOW | P1 |
+| Batch / grouped actions | MEDIUM | MEDIUM | P2 |
+| Escalation chain for un-actioned alerts | MEDIUM | MEDIUM | P2 |
+| Unified notification center | LOW | HIGH | P3 |
+| Per-alert email/SMS | LOW | MEDIUM | P3 (anti) |
 
-**Priority key:**
-- P1: Must have for v1.4 to be considered done
-- P2: Should have, natural second wave once P1 lands
-- P3: Nice to have / explicitly deferred, only reconsider if stated triggers occur
+## Competitor Feature Analysis
 
-## Explicit Answer: What Happens to `require_role()`
-
-**Extend and apply consistently — do not replace.** `require_role()` at `apps/api/middleware/auth.py:127` already matches the industry-standard FastAPI pattern (verified JWT → resolved claims → declarative per-route `Depends`), confirmed across every FastAPI RBAC source reviewed. The actual gap isn't the mechanism, it's:
-1. **Inconsistent application** — many routes gate role purely via inline `if` instead of the dependency that already exists for this.
-2. **No single source of truth for role groups** — same-named constants (`MANAGER_ROLES`) already disagree across files.
-3. **No distinct, named pattern for object-level/ownership checks** — these are legitimate and must stay separate from route-level RBAC (structurally, `require_role()` cannot see resource state), but right now they're indistinguishable in the code from checks that should have been `require_role()` calls.
-
-Normalization = (a) one shared constants module, (b) `require_role()` on every pure route-gate, (c) one named helper for ownership checks, (d) an audit/lint step to keep it that way. No new framework is warranted at this app's current role/policy complexity.
+| Feature | HelloShift / Unifocus / Actabl (housekeeping) | TMA / oxmaint / clickmaint (CMMS) | Our Approach |
+|---------|-----------------------------------------------|-----------------------------------|--------------|
+| Reassignment | Drag-and-drop + bulk; auto-balance by productivity/proximity/floor | n/a | AI-pre-picked least-loaded + one-tap confirm, governed by `ai_recommendations` |
+| Alert dedup | Real-time status, reassign dynamically | Baseline-then-threshold, multi-signal correlation, group + dedup | Edge-triggered transition + watermark + re-arm window (already the house pattern) |
+| Actionability | Assignments pushed to attendant mobile | "Every alert tier auto-attaches an action" | Every prediction row gets a primary action; no read-only dead ends |
+| Governance | Rule-based auto-assign | Tiered observe/act/escalate | Human-authorized loop with append-only audit trail |
 
 ## Sources
 
-- [require_role() FastAPI centralization — DeepWiki RBAC Implementation](https://deepwiki.com/fastapi-practices/fastapi_best_architecture/3.2-rbac-system) — MEDIUM confidence, community reference architecture
-- [RBAC/ABAC Authorization in FastAPI — practical guide](https://blog.greeden.me/en/2026/03/24/introduction-to-rbac-abac-authorization-management-in-fastapi-a-practical-guide-to-designing-secure-authorization-with-roles-attributes-and-policies/) — MEDIUM confidence
-- [FastAPI Auth with Dependency Injection — PropelAuth](https://www.propelauth.com/post/fastapi-auth-with-dependency-injection) — MEDIUM confidence
-- [FastAPI dependency injection masterclass](https://medium.com/the-pythonworld/fastapi-dependency-injection-masterclass-cleaner-code-better-architecture-f29b906bfaf9) — MEDIUM confidence
-- [Deleting data and dropping objects safely — Supabase Docs](https://supabase.com/docs/guides/database/postgres/data-deletion) — HIGH confidence, official docs; source for soft-delete + pg_cron batching guidance
-- [Testing Overview — Supabase Docs](https://supabase.com/docs/guides/local-development/testing/overview) — HIGH confidence, official docs
-- [Testing for Vibe Coders: From Zero to Production Confidence — Supabase Blog](https://supabase.com/blog/testing-for-vibe-coders-from-zero-to-production-confidence) — MEDIUM confidence
-- [Best Practices for Supabase — Security, Scaling & Maintainability](https://leanware.co/insights/supabase-best-practices) — MEDIUM confidence
-- [Multi-Tenant Test Data: Definition, Examples & Best Practices — GoMask](https://gomask.ai/glossary/multi-tenant-test-data) — MEDIUM confidence
-- [Multi-Tenant SaaS Testing for Stable Performance — QATestLab](https://blog.qatestlab.com/2026/04/02/multi-tenant-saas-testing-guide-ensuring-performance-and-scalability/) — LOW-MEDIUM confidence, single vendor blog
-- [Continuous Documentation as an Agent-Driven Practice — AgentPatterns.ai](https://www.agentpatterns.ai/workflows/continuous-documentation/) — MEDIUM confidence; source for "scheduled comparison, PR-based correction, human review" pattern
-- [Doc Drift Detection in CI: Catching Stale Docs on Every Merge](https://understandingdata.com/posts/doc-drift-detection-ci/) — MEDIUM confidence
-- [How to Catch Documentation Drift with Claude Code and GitHub Actions — Dosu](https://dosu.dev/blog/how-to-catch-documentation-drift-claude-code-github-actions) — MEDIUM confidence
-- [Claude Code for documentation drift — Koder.ai](https://koder.ai/blog/claude-code-docs-drift) — MEDIUM confidence; source for "source of truth per doc type, drift checks per PR" recommendation
-- [CLAUDE.md Best Practices, 2026 — AgentLint Blog](https://www.agentlint.app/blog/claude-md-best-practices-2026/) — LOW-MEDIUM confidence, single vendor blog
-- [Best Permit.io Alternatives & Competitors — OsoHQ](https://www.osohq.com/learn/permitio-alternatives) — MEDIUM confidence; source for "overkill for small teams" framing (vendor-authored, cross-checked against Permify's independent comparison)
-- [Top Alternatives to AWS Cedar — OsoHQ](https://www.osohq.com/learn/aws-cedar-alternatives-authorization-tools) — MEDIUM confidence
-- Codebase inspection: `apps/api/middleware/auth.py`, `apps/api/routers/*.py` (grep for `current_user.role`, `require_role(`, `_ROLES\s*=`), `apps/api/tests/smoke/conftest.py`, `apps/api/.env` presence — HIGH confidence, direct read
+- [Monitoring & Alerting Best Practices to Reduce Alert Fatigue — OneUptime (2026-02)](https://oneuptime.com/blog/post/2026-02-20-monitoring-alerting-best-practices/view) — MEDIUM
+- [Predictive Maintenance Alerts: How to Reduce Alert Fatigue — oxmaint](https://oxmaint.com/article/predictive-maintenance-alert-fatigue) — MEDIUM
+- [Reduce IoT False Alarms in Predictive Maintenance — oxmaint](https://oxmaint.com/blog/post/reduce-iot-false-alarms-predictive-maintenance) — MEDIUM
+- [Predictive Maintenance Best Practices for CMMS and EAM — TMA Systems](https://www.tmasystems.com/blog/predictive-maintenance-best-practices) — MEDIUM
+- [Alert Fatigue in Monitoring — Icinga](https://icinga.com/blog/alert-fatigue-monitoring/) — MEDIUM
+- [Best Hotel Housekeeping Software 2026 — HotelTechReport](https://hoteltechreport.com/operations/housekeeping-software) — MEDIUM
+- [Hotel Housekeeping Management — HelloShift](https://www.helloshift.com/housekeeping-management) — MEDIUM
+- [Housekeeping Software — Unifocus](https://www.unifocus.com/en/operations-software/housekeeping-software) — MEDIUM
+- Internal (HIGH): `apps/api/services/ai/predictions.py` (edge-triggered room push), `apps/api/services/ai/failure_predictions.py` (no push — parity gap), `apps/api/routers/internal.py::check_escalations` (`escalation_level` watermark dedup), `supabase/migrations/073_pms_ai_governance.sql` (`ai_recommendations` lifecycle + `adjust_room_assignment`/`notify_supervisor` actions), `apps/web/components/housekeeping/PredictionPanel.tsx` (read-only today), `apps/web/components/dashboard/AIRiskAlertsPanel.tsx` (generic links).
 
 ---
-*Feature research for: PatelRep v1.4 — Platform and Ops Hardening (RBAC normalization, test-data hygiene, doc-drift prevention)*
-*Researched: 2026-08-04*
+*Feature research for: proactive AI alerting + one-click actions (PatelRep v1.6)*
+*Researched: 2026-08-12*

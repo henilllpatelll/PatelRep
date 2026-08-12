@@ -1,149 +1,152 @@
 # Project Research Summary
 
-**Project:** PatelRep — v1.4 "Platform and Ops Hardening"
-**Domain:** Maintenance/hardening pass on an existing production multi-tenant FastAPI + Next.js + Expo SaaS (no ORM, Supabase-backed) — NOT a new-feature milestone
-**Researched:** 2026-08-04
+**Project:** PatelRep — AI Copilot Proactive Intelligence (milestone v1.6)
+**Domain:** Proactive prediction-driven alerting + one-click actions on an existing hotel-ops SaaS
+**Researched:** 2026-08-12
 **Confidence:** HIGH
 
 ## Executive Summary
 
-v1.4 has five work items — Expo SDK 54→57, FastAPI RBAC-check normalization, two CLAUDE.md doc-drift fixes, test-data hygiene on the shared dev/QA Supabase project, and closing ~5 deferred human-verification items from v1.3 — and all five are maintenance on code that already exists, not new architecture to design. The most important finding across all four research files is that RBAC "normalization" is not a style pass, it's a bug hunt: `guest_requests.py` has an unguarded `DELETE` endpoint (any authenticated hotel user, including a housekeeper, can permanently delete a guest request), `hotels.py`'s `ALL_STAFF_ROLES` lists `"engineer"` twice while omitting `"chief_engineer"` entirely, and `MANAGER_ROLES` is independently defined with two different memberships in `programs.py` vs. `safety.py`. Scope the RBAC work narrowly to the three inline-only routers (`guest_requests.py`, `lost_found.py`, `auth.py`) plus a pre-refactor audit of existing constants, not a blanket sweep of all 30 routers.
+This milestone is an **integration study, not a greenfield build**. The two capabilities in scope — (a) making room-readiness predictions actionable with one-click reassign/escalate, and (b) proactive push parity for asset-failure predictions — are fully served by patterns, tables, and dependencies that already ship in the codebase. All four research tracks independently reached the same conclusion: **the work is wiring, not adopting.** Nothing new gets installed. No new Realtime subscription, no web-push stack, no new governance system, no new notification service. The correct implementation copies an idiom the codebase already runs (the room-readiness edge-triggered notification) and extends two existing UI surfaces (`PredictionPanel`, `AIRiskAlertsPanel`).
 
-The recommended approach is: fix the two isolated doc-drift items first (zero dependencies, unblocks nothing but costs nothing); do RBAC normalization second, scoped to the confirmed gaps and preceded by an audit-and-diff step (never merge same-named constants without comparing contents); re-verify the deferred v1.3 items third, against the post-RBAC-fix code since three of the five items share files with the RBAC pass; do dev-DB cleanup fourth (independent, but before final re-verification so stale test data doesn't contaminate a browser check); and do the Expo bump last and hop-by-hop, since it's the highest-risk, most isolated item and a rollback shouldn't block the other four.
+The recommended approach splits into **two independent tracks that can ship in parallel or either order**. Track A (backend, engineering domain) adds proactive push for failure predictions by mirroring the existing `notify_supervisors_high_risk` idiom, gated by edge-triggered dedup. Track B (frontend + light backend) deep-links the alert panel to real room/asset records and wires reassign/escalate to the *existing* `POST /housekeeping/assignments` endpoint. A governance-analytics wrapper (`ai_recommendations` for room-readiness) is optional, additive, and must be built last — only if unified ROI metrics are an explicit requirement. It must never gate the actions themselves.
 
-Key risks are all "looks-done-but-isn't" traps rather than unknowns: SDK 55 makes New Architecture mandatory while `android/gradle.properties` still has a stale `newArchEnabled=false` override; role-constant consolidation can silently widen or narrow live permissions if same-named constants aren't diffed first; and the shared dev/QA/production Supabase project has zero `is_test` schema support, requiring a human-curated allowlist and an explicit "preserve list" for the team's one standing QA fixture tenant. None require new dependencies — they require sequencing discipline and audit-before-refactor rigor.
+**The load-bearing risk is entirely at the seam between the churning prediction cron and a user acting on a row the cron is about to rewrite.** Failure predictions use delete-then-insert (new UUID every night), so client-held prediction IDs go stale; the fix is to key every action off the stable entity (`asset_id`/`room_id`) and re-resolve server-side, never off the volatile prediction PK. The second-biggest risk is alert fatigue: the failure path has *no prior-state baseline to diff against* (the nightly wipe destroys it), so a naive "notify when risk >= 70" spams the chief engineer every single night. The mitigation — anchor the edge-trigger on `assets.failure_risk_score`, which survives the wipe, and read it *before* the overwrite — is the single most bug-prone spot in the milestone and must carry a double-run idempotency test. RBAC gating on new mutating endpoints is a recurring miss in this codebase (multiple prior incidents) and must be encoded per-action and covered by the existing RBAC-matrix CI test.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new technology is introduced. `expo` `~54.0.0` → `57.0.9` must be hopped one SDK at a time (54→55→56→57) — SDK 56 breaks this repo specifically because `expo-router` drops its transitive `@react-navigation/native` dependency while `app/_layout.tsx` imports it directly, requiring it as an explicit dependency before the 55→56 hop. `require_role()` in `apps/api/middleware/auth.py` stays the canonical RBAC mechanism — do not adopt Casbin, Oso, or Permit.io; overkill for 6 fixed roles + `hotel_id` tenant scoping. `expo-speech-recognition` (community package) changes its own versioning scheme to align with Expo SDK numbers from SDK 56 — verify its resolved version manually post-bump. No new npm/pip packages needed for RBAC, doc fixes, or test-data cleanup — all zero-new-dependency, in-repo refactors.
+**Add nothing.** Both capabilities map onto already-installed dependencies and already-running patterns. This is the correct outcome given the project's explicit zero-dependency bias and the A2 architecture decision capping Supabase Realtime at exactly 3 surfaces. See STACK.md.
 
-**Core technologies:**
-- `expo`/`react-native`/`react`: version bump only (57.0.9 / 0.86.x / 19.2.x) — no API rewrite, hop-by-hop with EAS build gate at each step
-- `require_role()`: extend and apply consistently, do not replace with a policy engine
-- `core/roles.py` (new, small): single source of truth for role-group constants — the actual missing piece, not a new library
+**Core technologies (all already installed — reuse, do not add):**
+- `@radix-ui/react-toast` (via `components/ui/Toast.tsx`, globally mounted) — success/error feedback after one-click actions; `useToast()` already used in 8+ screens.
+- `@tanstack/react-query` 5.101.4 — mutations + cache invalidation + polling; existing pattern in `Header` and `AIRiskAlertsPanel` (120s poll).
+- `supabase` Python SDK 2.31.0 — new action endpoints and `notifications` inserts, no-ORM convention.
+- `apscheduler` 3.11.3 — the existing nightly `ai.failure-predictions` cron gains a notifications-insert step; no new job.
+- **Do NOT use:** web-push/VAPID/service workers, a 4th Realtime subscription, a bespoke `predictions_actions` table, a second toast library, or Twilio SMS in the MVP path (no local creds; floor staff are on the out-of-scope mobile app).
 
-### Expected Practices (reframed — this milestone has no user-facing features)
+### Expected Features
 
-**Must have:**
-- Audit script inventorying every role check per router, classified route-gate vs. object-level, before any consolidation
-- Consolidated role-group constants fixing the confirmed `MANAGER_ROLES` drift and `ALL_STAFF_ROLES` duplicate/missing-role bug
-- `require_role()` applied to confirmed gaps — starting with `guest_requests.py`'s ungated `DELETE`
-- Named object-level-check helper, kept separate from route-level RBAC
-- Test-tenant tagging (`is_test` flag) + cleanup script scoped to an explicit human-reviewed `hotel_id` allowlist with mandatory dry-run
-- Direct edits to the two stale CLAUDE.md claims (cron mechanism, credentials)
+Scope closes three gaps: `PredictionPanel.tsx` is read-only; `failure_predictions.py` sends *no* proactive notification (parity gap); `AIRiskAlertsPanel.tsx` links to generic lists (maintenance rows have no link at all). Chat/system-initiated copilot messaging is explicitly out of scope. See FEATURES.md.
 
-**Should have (second wave, not required for v1.4):**
-- Auto-generated route × role permission matrix
-- CI lint rule blocking new bare role comparisons
-- Targeted CI checks defending the two corrected doc facts
+**Must have (table stakes — v1.6 MVP):**
+- Deep-linked alert rows (housekeeping -> room drawer; maintenance -> prediction card) — removes dead-end alerts.
+- Failure-prediction proactive push with edge-triggered dedup watermark — closes the parity gap without fatigue.
+- Room-readiness one-click reassign (AI pre-picked least-loaded housekeeper + one confirming tap) via existing governance affordance.
+- Acknowledge on room-readiness predictions (suppresses re-push).
 
-**Defer:**
-- Soft-delete + pg_cron scheduled hard-delete
-- External policy engine — only if role/policy complexity grows substantially
-- Separate staging Supabase project — deliberate current-state constraint
+**Should have (competitive differentiators, v1.x):**
+- Batch/grouped actions ("reassign all on floor 2") — after single-item actions ship, when supervisors report tap-fatigue.
+- Escalation chain for un-actioned HIGH predictions -> GM — reuses the `escalation_level` watermark idiom from work orders.
+
+**Defer (v2+):**
+- Unified notification center — duplicates the bell + panel + per-domain dashboards; enhance the three existing surfaces first.
+- Per-alert email/SMS — blocked on Twilio creds + the $2.50/room/mo cost cap; digest-only if ever.
+- Silent auto-reassign / auto-create-WO — an **anti-feature**; consequential changes must keep a human in the loop.
 
 ### Architecture Approach
 
-All five items are hardening passes with no new component design. The critical finding is file-level blast-radius overlap: RBAC normalization and the deferred v1.3 verification closures collide on `staff.py`, `scheduling.py`, `work_orders.py`, and `guest_requests.py`. This dictates sequencing — re-verifying deferred items before RBAC fixes land risks signing off on behavior the RBAC fix then changes underneath it.
+Two independent tracks, both pull-based (respecting Realtime scope C1) and both keeping logic in single-domain modules (respecting flat-services C2). The dedup backbone is a **level->edge conversion off persistent state**: convert a continuously-recomputed risk *band* into a one-shot *edge* by diffing against a value that survives the recompute. Room-readiness already does this off its upserted row; failure predictions must anchor on `assets.failure_risk_score` (which survives the nightly wipe) instead of the deleted `failure_predictions` row. See ARCHITECTURE.md.
 
-**Major components (existing, not new):**
-1. `apps/api/middleware/auth.py` — home for `require_role()` and consolidated role-group constants (no new `services/` module)
-2. `apps/api/routers/{guest_requests,lost_found,auth}.py` — the actual RBAC normalization scope (inline-only routers)
-3. `apps/mobile/{app.json, android/gradle.properties, babel.config.js}` — isolated from API/web; internally highest-risk due to a stale New-Architecture override
-4. Shared dev Supabase project (`oacnwalhcpqdabivweki`) — backs local dev, mobile dev, and manual QA simultaneously; no schema-level test flag exists today
+**Major components:**
+1. `services/ai/failure_predictions.py` — gains a `notify_engineers_high_failure_risk()` sibling to the existing room-readiness notifier; targets `chief_engineer` + `gm`; edge-triggers on `<70 -> >=70` crossing read *before* the score overwrite.
+2. `notifications` table + `Header.tsx` bell — the **only** proactive-push channel (pull/poll); new `type='asset_risk_high'` rows surface automatically, no schema change.
+3. `AIRiskAlertsPanel.tsx` + target pages — param'd hrefs (`?highlightRoom=` / `?asset=`) read via `useSearchParams`; routes already exist, no new route files.
+4. Reassign/escalate — execute **directly** against the existing `POST /housekeeping/assignments` endpoint and the `notify` idiom; `ai_recommendations` is an optional analytics *wrapper*, never the execution path.
 
 ### Critical Pitfalls
 
-1. **SDK 55 makes New Architecture mandatory while a stale local override (`android/gradle.properties: newArchEnabled=false`) still exists** — reconcile with `app.json`'s `newArchEnabled: true` before any version bump lands.
-2. **A shared constant name already means two different role sets** (`MANAGER_ROLES` differs between `programs.py` and `safety.py`) — diff contents before merging; treat every collision as a product decision to confirm, not a bug to auto-fix.
-3. **A role is duplicated and another silently dropped inside one constant** (`hotels.py`'s `ALL_STAFF_ROLES`) — write an audit test asserting no duplicates and full coverage before refactoring.
-4. **Normalizing to role-only checks can strip co-located business-rule authorization** — `evidence.py` already had this incident (bug-444); classify role-membership vs. business-state-validity before touching any route.
-5. **No `is_test`/`is_demo` schema flag exists anywhere** — cleanup must use a human-curated `hotel_id` allowlist (never a name-pattern heuristic), plus an explicit preserve-list naming the standing QA fixture tenant.
+1. **One-click action targets a prediction row the cron already deleted** (failure delete-then-insert mints a new UUID nightly) — key actions off the stable `asset_id`/`room_id`, re-resolve server-side, and flip `is_acknowledged=True` atomically so the acted row survives the wipe.
+2. **Notification spam — re-notifying every cron cycle instead of on transition** (the failure path has no baseline to diff) — anchor the edge-trigger on `assets.failure_risk_score` read *before* overwrite; notify only on `<70 -> >=70`; add a re-notify cooldown for assets. Requires a double-run idempotency test asserting exactly one notification.
+3. **Reassign acts on stale prediction fields instead of live room state** (`housekeeper_id`/`risk_level` are up to 30 min stale) — re-read `room_status` inside the request; guard against reassigning an already-clean room.
+4. **Stale prediction rows never cleared -> ghost HIGH alerts + broken *silent* dedup** (a cleaned-then-re-dirtied room keeps `previous_risk=HIGH` and never re-notifies) — add a read-side freshness filter and clear stale rows at the end of each cron pass.
+5. **Missing `require_role()` on new mutating endpoints** (a recurring miss here — multiple prior incidents) — encode the role matrix per-action; cover with the existing RBAC-matrix CI test.
+6. **Notification insert crashes the whole cron** (direct precedent: `_queue_safety_notification` NoneType 500) — wrap per-tenant try/except, use `result.data or []`, guard `.maybe_single()` None.
+7. **Deep-link 404s or cross-tenant leaks** — link to the stable entity, never a prediction PK; re-authorize `tenant_id` + role at the destination; graceful empty state for since-deleted predictions.
+8. **Recipients resolved from `user_profiles` instead of `user_roles`** — standardize on `user_roles` with `is_active=True` so alert targeting can't diverge from who can actually act.
 
 ## Implications for Roadmap
 
-Suggested phase structure, five phases, sequenced by file-overlap and risk-isolation:
+The research converges on a build order that is **dependency-driven, not convenience-driven**. Track A and Track B are independent (different domains, files, tables) and do not block each other. The suggested phases below map directly onto that split.
 
-### Phase 1: Documentation Drift Fixes
-**Rationale:** Fully isolated, already fully diagnosed, costs nothing to do first.
-**Delivers:** Corrected CLAUDE.md cron-mechanism section (APScheduler, not GitHub Actions), corrected credentials claim (narrow to the two AI keys), and the router-count drift fix (30 routers exist vs. fewer documented).
-**Addresses:** Both confirmed stale claims.
-**Avoids:** N/A — no dependencies, blocks nothing.
+### Phase 1: Failure-Prediction Proactive Push + Dedup (Track A)
+**Rationale:** Highest value, lowest risk, fully self-contained in one file + one existing table, matches an existing idiom exactly, zero frontend dependency. Closes the glaring "failure predictions never proactively alert" parity gap.
+**Delivers:** `notify_engineers_high_failure_risk()` in `failure_predictions.py`; edge-trigger anchored on `assets.failure_risk_score` captured before overwrite; recipients from `user_roles` `is_active=True`; per-tenant try/except isolation.
+**Uses:** existing `notifications` table + bell (no schema change), `apscheduler` nightly job.
+**Avoids:** Pitfall 2 (spam), 6 (cron crash), 8 (wrong recipient table). **Must carry the double-run idempotency test** (run nightly cron 3x on unchanged data -> exactly 0 repeat notifications).
 
-### Phase 2: RBAC Audit and Normalization
-**Rationale:** Must land before deferred-verification closures — three of those five items share files with this pass. Must start with audit/diff, per the constant-collision pitfalls, before any consolidation code is written.
-**Delivers:** (a) audit script classifying every role check; (b) diffed, consolidated role-group constants fixing `MANAGER_ROLES` and `ALL_STAFF_ROLES`; (c) `require_role()` applied to confirmed gaps in `guest_requests.py` and `lost_found.py`; (d) a named object-level-check helper.
-**Addresses:** All P1 RBAC items.
-**Avoids:** Constant collisions, duplicate/missing roles, stripped business-rule checks, cross-surface call-site regressions.
+### Phase 2: Deep-Linked Alert Surfaces (Track B1)
+**Rationale:** Pure frontend (2 pages + 1 component); unblocks actionable UX for *both* prediction types and is a prerequisite for reassign feeling complete (a "Reassign" link is only useful if it lands on the right room). Adds the missing maintenance-row link — the biggest single UX gap.
+**Delivers:** param'd hrefs in `AIRiskAlertsPanel.tsx`; `useSearchParams` highlight on `housekeeping/page.tsx` and `engineering/predictions/page.tsx`; destination re-authorization + graceful empty state.
+**Implements:** pull-based proactive surfaces (C1-safe; routes already exist).
+**Avoids:** Pitfall 7 (deep-link auth/404), and read-side of Pitfall 3 (freshness filter).
 
-### Phase 3: Close Deferred v1.3 Verification Items
-**Rationale:** Re-verify against post-RBAC-fix code, not current code. Confirmed count is 5 items (not the ~10 estimated), concentrated in v1.3 Phases 15 and 17.
-**Delivers:** Browser-verified closure of: Archive-button role visibility; NULL `full_name` fallback rendering; Guest Request drawer status-advance flow; Inspections re-assign picker; migration `091_ai_interactions_widen_interaction_type.sql` applied to remote Supabase.
-**Addresses:** The "closing deferred human-verification items" scope line.
-**Avoids:** Re-marking items verified from code review alone instead of an actual browser click-through.
+### Phase 3: Room-Readiness One-Click Reassign / Escalate (Track B2)
+**Rationale:** Depends on Phase 2 for good UX; reuses the already-verified `POST /housekeeping/assignments` endpoint so backend work is near-zero. Executes directly — governance is not the execution path.
+**Delivers:** action buttons on `PredictionPanel.tsx` (`useMutation` + `useToast()`); reassign pre-picked to least-loaded housekeeper (`count_rooms_ahead` / `housekeeper_profiles`) with one confirming tap; escalate via the `notify` idiom; acknowledge that suppresses re-push; per-action `require_role`.
+**Addresses:** the "make predictions actionable" core ask.
+**Avoids:** Pitfall 1 (act off stable entity), 2/reassign variant, 3 (stale fields + already-clean guard), 5 (RBAC).
 
-### Phase 4: Dev/QA Test-Data Hygiene
-**Rationale:** Independent of the other four, but should run before or alongside Phase 3 so stale data doesn't confuse a browser check.
-**Delivers:** (a) schema-level `is_test BOOLEAN NOT NULL DEFAULT false` column; (b) human-reviewed `hotel_id` delete-allowlist plus a preserve-list naming the standing QA fixture tenant; (c) cleanup script with mandatory dry-run, transaction-scoped deletes, explicit exclusion of append-only `controlled_incidents`/`controlled_incident_events` tables.
-**Uses:** Supabase MCP `list_tables`/`get_advisors` for a pre-cleanup snapshot.
-**Implements:** The allowlist-first pattern.
-
-### Phase 5: Expo SDK 54→57 Bump
-**Rationale:** Fully isolated from the other four, but the single highest-risk item — sequenced last so a rollback doesn't block other phases.
-**Delivers:** Three explicit per-hop upgrades (54→55, 55→56, 56→57), each with `expo-doctor`, `npx jest`, type-check, and a full EAS cloud build gate. Includes reconciling the New-Architecture-flag divergence before the first hop, adding `@react-navigation/native` explicitly during the 55→56 hop, re-validating the `dynamic-import-node` Hermes workaround and `legacy-peer-deps` post-bump, and confirming `expo-speech-recognition`'s resolved version.
-**Uses:** Version targets from stack research; `npx expo-codemod sdk-56-expo-router-react-navigation-replace` for the SDK 56 hop.
+### Phase 4 (optional, LAST): ai_recommendations Governance Wrapper for Room-Readiness (Track C1)
+**Rationale:** Additive analytics/ROI only; must not gate the action. Build **only** if unified outcome metrics ("flagged 40 at-risk rooms, staff acted on 32, prevented 28 late check-ins") are an explicit requirement.
+**Delivers:** edge-triggered materialization of `ai_recommendations` rows (new HIGH only, never one-per-room-per-cron) reusing the existing `/recommendations` + `/metrics` endpoints; schema already supports `source_type='room_readiness'` (migration 073, no migration needed).
+**Avoids:** Anti-Pattern 1 (governance-queue firehose).
 
 ### Phase Ordering Rationale
 
-- Doc-drift first because it's free and fully independent.
-- RBAC before deferred-verification closure because of a direct file-overlap dependency — verifying against pre-fix code invalidates the verification once the RBAC fix lands.
-- Test-data cleanup can run in parallel with or slightly before Phase 3, being file-independent but data-adjacent.
-- Expo bump last because it has zero cross-item file overlap and the highest standalone risk — isolating it means a difficult bisection doesn't stall unrelated hardening work.
+- **Track A before/parallel to Track B:** A is self-contained backend with no frontend dependency; it can proceed independently and is the highest-value gap closure.
+- **B1 before B2:** deep-linking is a prerequisite for reassign UX to feel complete — the reassign action lands via the deep-linked room drawer.
+- **C1 strictly last and optional:** governance must be decoupled from correctness; wiring it early would risk forcing the every-30-min room firehose through the human-decision queue.
+- The dedup design (edge-trigger off persistent state) is the connective tissue across A and C1 and the single most important design decision — it is a *correctness* concern, not a scale one.
 
 ### Research Flags
 
-Needs research: Phase 2 (RBAC — per-route classification is close to a planning deliverable itself, budget explicit audit time), Phase 5 (Expo — `expo-codemod` behavior on this repo's own direct `@react-navigation/native` imports is unverified, worth a dry-run spike).
+Phases likely needing deeper research/careful design during planning:
+- **Phase 1 (Failure push + dedup):** the ordering hazard (read prior `assets.failure_risk_score` *before* the overwrite at lines 410-413) is the most bug-prone spot in the milestone. Flag the delete-then-insert -> upsert-on-`(tenant_id, asset_id)` decision and the re-notify cooldown policy explicitly. Warrants a focused design pass + the double-run test.
+- **Phase 3 (Reassign):** the live-state re-read contract and the least-loaded picker tie-break rules deserve explicit specification; the role matrix (can a housekeeper reassign their own late room, or supervisor-only?) is an open product question to settle in planning.
 
-Standard patterns (skip research-phase): Phase 1 (doc-drift, fully diagnosed), Phase 3 (deferred-verification closure, standard browser click-through against documented repro steps), Phase 4 (test-data cleanup, well-established allowlist+dry-run+transaction pattern).
+Phases with standard patterns (skip `/gsd:research-phase`):
+- **Phase 2 (Deep-linking):** bounded, well-understood App Router `useSearchParams` change; no new routes.
+- **Phase 4 (Governance wrapper):** the `ai_recommendations` lifecycle is already built and wired for failure predictions; extending it to room-readiness is a known pattern.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Current repo state read directly; Expo SDK 55/56/57 changelogs fetched from official sources; RBAC library landscape MEDIUM (WebSearch synthesis) but corroborated across sources and direct code inspection |
-| Features | MEDIUM-HIGH | Codebase findings (role drift, missing test-data flag) HIGH, direct inspection; external best-practice framing MEDIUM, synthesized from multiple WebSearch sources with no single authoritative spec |
-| Architecture | HIGH | Almost entirely direct repo inspection across 30 router files, `app.json`/`eas.json`, and v1.3 verification files — strongest-sourced of the four |
-| Pitfalls | HIGH (RBAC/test-data), MEDIUM (Expo native-module risk) | RBAC/test-data grounded in live code + `.wolf/buglog.json` first-party incidents; Expo New-Arch-mandatory fact verified directly, general SDK 56/57 native-module risk WebSearch-corroborated only |
+| Stack | HIGH | Installed versions read directly from `package.json`/`requirements.txt`; every recommendation is "reuse existing." No external adoption risk. |
+| Features | HIGH | Internal grounding in current code (verified read-only panels, missing notification path) plus external CMMS/housekeeping-SaaS norms corroborating the alert-fatigue and actionability findings. |
+| Architecture | HIGH | Every integration decision verified against current source with file/line citations; two hard constraints (C1 Realtime scope, C2 flat services) respected throughout. |
+| Pitfalls | HIGH | Grounded in this project's own prediction/notification code AND its bug history (`.wolf/buglog.json`, `.wolf/cerebrum.md`) — project-specific, not generic advice. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- Deferred-item count discrepancy: brief estimated "~10," direct read of verification files found 5 — confirm with whoever produced the original estimate before finalizing Phase 3 scope.
-- `expo-codemod sdk-56-expo-router-react-navigation-replace` coverage on this repo's direct `@react-navigation/native` imports is unverified — dry-run before relying on it.
-- `--legacy-peer-deps` necessity post-bump unverified by upstream docs — re-test at each hop, don't assume.
-- `_ensure_housekeeper()`'s owning router unspecified (deferred item #4) — confirm location before re-verification to know if it overlaps RBAC work.
-- EAS cloud image Node-version floor unconfirmed — `eas.json` has no explicit node pin; confirm before first post-bump cloud build.
+- **Role matrix for reassign is a product decision, not a code fact.** Research recommends supervisor/GM-only (a housekeeper reassigning off their own queue is a workload-gaming risk), with self-service modeled as an escalation *request* rather than a direct reassign. Confirm with the product owner during Phase 3 planning.
+- **Failure-prediction storage model choice** (keep delete-then-insert + anchor on `assets.failure_risk_score`, vs. convert to upsert-on-`(tenant_id, asset_id)`). Research leans toward upsert for stable in-flight references, but the score-anchor works without a schema change. Decide in Phase 1 planning; the double-run test validates either choice.
+- **Re-notify cooldown cadence for assets** (e.g. don't re-alert the same asset within 7 days even if it re-crosses) is a policy value to set with the GM, not derivable from code.
+- **Whether ROI/outcome metrics are in scope** determines whether Phase 4 is built at all. Flag for milestone requirements.
 
 ## Sources
 
-### Primary (HIGH confidence)
-- Direct repo inspection: `apps/api/middleware/auth.py`, `apps/api/routers/*.py` (30 files), `apps/mobile/{package.json,app.json,eas.json,babel.config.js,android/gradle.properties,.easignore}`, `supabase/migrations/070_texas_safety_compliance.sql`, `apps/api/core/scheduler.py`, `.planning/phases/{15,16,17}-*/*-VERIFICATION.md`, `CLAUDE.md`
-- Expo SDK 55/56/57 official changelogs (expo.dev/changelog)
-- Expo upgrade walkthrough docs, Expo New Architecture guide (docs.expo.dev)
-- Supabase official docs: data-deletion guide, testing overview
-- `.wolf/buglog.json` first-party incident history (bug-277, bug-403, bug-444, Mobile EAS Android CNG archive rule, tar v7 pinning, dynamic-import-node fix)
+### Primary (HIGH confidence — internal, read directly)
+- `apps/api/services/ai/predictions.py` — room-readiness engine: upsert-on-`room_id`, `existing_risk_map` transition dedup, `notify_supervisors_high_risk` (the idiom to mirror).
+- `apps/api/services/ai/failure_predictions.py` — delete-then-insert (392-399), `assets.failure_risk_score` update (410-413), no notification path (the parity gap).
+- `apps/api/routers/ai_copilot.py:768-969` — risk-alerts aggregation + `ai_recommendations` lifecycle endpoints.
+- `apps/api/routers/internal.py::check_escalations` — `escalation_level` persisted-counter dedup (the watermark model).
+- `apps/api/routers/notifications.py` — recipient resolution via `user_roles`, tenant+user scoping.
+- `supabase/migrations/073_pms_ai_governance.sql` — `ai_recommendations` lifecycle, `source_type='room_readiness'` + `adjust_room_assignment`/`notify_supervisor` already allowed; migration 013 (`notifications`, `room_readiness_predictions`).
+- `apps/web/components/dashboard/AIRiskAlertsPanel.tsx`, `components/housekeeping/PredictionPanel.tsx`, `components/shared/Header.tsx`, `components/ui/Toast.tsx` — current UI surfaces.
+- `apps/web/package.json` / `apps/api/requirements.txt` — authoritative installed versions.
+- `.wolf/buglog.json` / `.wolf/cerebrum.md` — prior incidents (`get_current_user` vs `require_role`, NoneType cron 500, cron all-stale, RBAC-matrix test) and the authorize/assignment contracts.
+- `CLAUDE.md` — constraints A1 (flat services / C2), A2 (Realtime scoped to 3 surfaces / C1), Current Scope (web-only, no local Twilio/AI creds), $2.50/room/mo cap.
 
-### Secondary (MEDIUM confidence)
-- WebSearch synthesis on 2026 FastAPI RBAC best practices (permit.io, app-generator.dev, DeepWiki, PropelAuth, Medium)
-- WebSearch synthesis on multi-tenant test-data hygiene and doc-drift CI patterns (GoMask, QATestLab, AgentPatterns.ai, understandingdata.com, Dosu, Koder.ai)
-- jamsch/expo-speech-recognition release notes (maintainer versioning-scheme note, cross-checked)
-
-### Tertiary (LOW confidence)
-- OsoHQ Permit.io alternatives comparison, AgentLint CLAUDE.md best-practices blog — corroboration only, not primary basis for any recommendation
+### Secondary (MEDIUM confidence — external validation)
+- OneUptime, Icinga — monitoring/alerting best practices to reduce alert fatigue (edge-triggering, tiering).
+- oxmaint, TMA Systems — predictive-maintenance alert-fatigue + "every alert tier auto-attaches an action" norms.
+- HotelTechReport, HelloShift, Unifocus — hotel-housekeeping SaaS reassignment norms (auto-balance by productivity/proximity, human-in-loop).
 
 ---
-*Research completed: 2026-08-04*
+*Research completed: 2026-08-12*
 *Ready for roadmap: yes*

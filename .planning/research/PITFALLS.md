@@ -1,299 +1,279 @@
 # Pitfalls Research
 
-**Domain:** Platform/ops hardening on a live production system — multi-major Expo SDK bump (54→57) on a documented-fragile EAS pipeline, RBAC-check normalization across 21 FastAPI routers, and test-data hygiene on a Supabase project shared by local dev/QA/production
-**Researched:** 2026-08-04
-**Confidence:** HIGH for RBAC and test-data findings (all derived from direct reads of live `apps/api/routers/*.py`, `supabase/migrations/070_texas_safety_compliance.sql`, `.wolf/buglog.json` incident history, and project memory); HIGH for Expo SDK 55 New-Architecture-mandatory fact and repo-config divergence (verified against `app.json`/`android/gradle.properties`); MEDIUM for general SDK 56/57 native-module-risk framing (WebSearch-verified against Expo's own changelog, not Context7)
+**Domain:** Proactive prediction-driven alerting + one-click actions on an existing reactive hotel-ops system (PatelRep v1.6)
+**Researched:** 2026-08-12
+**Confidence:** HIGH — grounded in this project's actual prediction/notification code (`services/ai/predictions.py`, `services/ai/failure_predictions.py`, `routers/notifications.py`, `routers/internal.py`) and its own bug history (`.wolf/buglog.json`, `.wolf/cerebrum.md`), not generic advice.
 
-> This research found **three live, currently-existing inconsistencies in the running codebase** that are exactly the failure mode this milestone must avoid re-creating at scale — they are not hypothetical:
-> 1. `apps/api/routers/hotels.py:11` — `ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "engineer")` — `"engineer"` listed **twice**, `"chief_engineer"` **missing entirely**.
-> 2. `MANAGER_ROLES` is defined as **two different role sets** under the same name: `apps/api/routers/programs.py:43` = `("gm","housekeeping_supervisor","engineer","chief_engineer")` vs. `apps/api/routers/safety.py:34` = `("gm","housekeeping_supervisor","chief_engineer")` — `"engineer"` is present in one, absent in the other.
-> 3. `apps/mobile/app.json` sets `newArchEnabled: true` for both platforms, while the checked-in `apps/mobile/android/gradle.properties` sets `newArchEnabled=false` and pins `reactNativeArchitectures=x86_64` (emulator-only) — a config the project's own memory (`.wolf/buglog.json` bug 2026-06-05, project memory `project_eas_build_status.md`) once used as a deliberate build-fix.
->
-> These are cited throughout the pitfalls below as concrete evidence, not analogies.
+> **Scope note.** This milestone makes *existing, already-computed* predictions actionable and pushes notifications for failure predictions. The prediction engines already exist and run on cron. The risk is almost entirely at the **seam** between a 30-min/nightly cron that rewrites prediction rows and a user who is looking at / acting on a row that the cron is about to overwrite or delete. Every critical pitfall below lives at that seam.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: SDK 55 makes New Architecture mandatory — the repo's own escape hatch stops working mid-bump
+### Pitfall 1: One-click action targets a prediction row the cron already deleted (failure predictions)
 
 **What goes wrong:**
-Expo SDK 54 is the last release that supports Legacy Architecture; SDK 55 and later **cannot run with New Architecture disabled** (verified via Expo's own SDK 55 changelog: "SDK 54 is the final release to include Legacy Architecture support, and you will not be able to use the Legacy Architecture in SDK 55 projects and later"). This project's own build history shows New Architecture was previously the *cause* of a build failure, and the documented fix path included setting `newArchEnabled=false` in `android/gradle.properties`. That escape hatch is currently still present in the checked-in `apps/mobile/android/gradle.properties` (`newArchEnabled=false`, `reactNativeArchitectures=x86_64`) even though `app.json` already declares `newArchEnabled: true`. The moment the bump crosses SDK 54→55, this local/legacy config becomes not just stale but **invalid** — a future contributor who reaches for the old fix (because it's still sitting in the repo) will find it silently ignored or, worse, will hit a build failure with no documented recovery path, because the "just disable New Arch" playbook this team used before no longer exists.
+`run_asset_failure_predictions()` does **delete-then-insert**, not upsert: it runs `failure_predictions.delete().eq("is_acknowledged", False)` then `insert(prediction)` every nightly run (`failure_predictions.py:392-399`). Room readiness uses `upsert(on_conflict="room_id")` (`predictions.py:402`), which keeps the same PK but **replaces every column** (`predicted_ready_at`, `risk_level`, `housekeeper_id`, `rooms_remaining_for_hk`). So: a user opens the panel at 11:59pm, the nightly `ai.failure-predictions` cron fires at `0 0 * * *`, deletes the unacknowledged prediction row they're viewing, inserts a new one with a **new UUID**, and the user's "Create Work Order" / "Authorize" click posts a `prediction_id` (or `ai_recommendation` tied to it) that no longer exists → 404, or worse, a silently orphaned `ai_recommendation`.
 
 **Why it happens:**
-The gradle.properties file is a native build artifact that is *not* regenerated by `app.json` unless the checked-in `android/` directory is deleted and Expo prebuild regenerates it — but this project's `.easignore` **excludes** `android/` from EAS uploads (by explicit prior design, per the "Mobile EAS Android CNG archive rule" fix), meaning EAS builds always prebuild fresh from `app.json`, while a contributor running `expo run:android` locally uses the stale checked-in file. The two build paths (local vs. EAS) can silently diverge on exactly the flag whose meaning is about to change.
+The prediction engines were built as read-only refresh jobs. Delete-then-insert was fine when nothing referenced the row mid-flight. Making them actionable introduces a reader/actor whose lifetime now overlaps the cron's rewrite window, which the original design never accounted for.
 
 **How to avoid:**
-Before touching `expo` version numbers: (1) delete the stale New-Architecture override from `android/gradle.properties` (or delete `android/` locally and let prebuild regenerate it, matching what EAS already does), (2) grep the whole mobile tree for `newArchEnabled` and `reactNativeArchitectures` and make `app.json` the single source of truth, (3) do the SDK bump in the documented Expo sequence — one SDK at a time (54→55→56→57), running `npx expo-doctor@latest` and a full local + EAS build after each hop, not one jump to 57.
+- **Do not key user actions off the volatile prediction row PK.** Key the action off the stable underlying entity — `asset_id` (failure) or `room_id` (readiness) — plus the tenant. The action endpoint should re-resolve the current prediction/state server-side from `asset_id`/`room_id`, never trust an ID the client is holding.
+- **Make "acting" flip `is_acknowledged = True` atomically as part of the action**, because the nightly delete only removes `is_acknowledged = False` rows (`failure_predictions.py:394-397`). An acknowledged/acted row survives the cron. This is the existing escape hatch — use it deliberately.
+- For failure predictions, convert delete-then-insert to an **upsert keyed on `(tenant_id, asset_id)`** so the PK is stable and in-flight references survive (matches how room readiness already behaves).
 
 **Warning signs:**
-`expo-doctor` warns about New Architecture config mismatch between `app.json` and native project files. A local `expo run:android` build succeeds while EAS fails (or vice versa) on the same commit. Native module crash logs referencing Fabric/TurboModules only on one build path.
+- Action endpoints accept a `prediction_id` from the request body and `.eq("id", prediction_id)` without re-deriving from `asset_id`/`room_id`.
+- 404s or "prediction not found" errors clustered right after `0 0 * * *` (nightly) or on `:00`/`:30` (readiness).
+- `ai_recommendations` rows whose linked `failure_prediction` no longer exists.
 
-**Phase to address:** Expo SDK bump phase — must be the *first* step, before any version bump lands.
+**Phase to address:** Backend action-endpoint phase (before any UI wiring). This is a data-model/endpoint contract decision, not a UI concern.
 
 ---
 
-### Pitfall 2: Multi-hop SDK jump skips the intermediate safety net the "zero new dependency" convention relies on
+### Pitfall 2: "Reassign" acts on stale prediction fields instead of live room state
 
 **What goes wrong:**
-CLAUDE.md and multiple phase plans document a hard project convention: "zero new npm dependencies planned by design; any exception requires a green EAS build before merging." That convention was designed and tested against **single-step, patch-level** changes (e.g., `npm audit fix` bumping `expo`/`babel-preset-expo`/`expo-updates` by a patch). A 54→57 jump is not that — Expo's own guidance for this exact case is `npx expo install expo@57.0.0 --fix` run **sequentially per major**, each followed by `expo-doctor` and a fresh native build, because SDK 56 alone removed the Objective-C++ interop middle layer in favor of direct Swift/C++ JSI calls and changed the default Hermes bytecode diffing behavior — changes big enough that skipping straight to 57 risks masking which specific SDK hop broke a given native module. The project has direct precedent for this exact failure class: a prior `tar` override to v7 broke `expo prebuild` outright (buglog: "Do NOT override tar to v7 — it breaks expo prebuild"), and pinning `react-test-renderer` to the wrong React minor caused an ERESOLVE failure under `legacy-peer-deps`.
-Additionally, `@expo/vector-icons` (^15), `expo-speech-recognition` (^0.3.2, a non-Expo-core native module used for voice input), and `expo-sqlite` are all native-module dependencies whose Expo-SDK-major compatibility is not guaranteed across a 3-major jump — none of them are in Expo's own "no changes needed" surface.
+`room_readiness_predictions.housekeeper_id` is a **snapshot** of `room_status.assigned_to` taken when the `*/30` cron last ran (`predictions.py:407`). It can be up to 30 minutes stale — or reference a `room_assignments` row that was since deleted/reassigned. If the one-click "reassign" button reads the housekeeper from the prediction row and reassigns *from* that stale value (or shows the supervisor a stale "currently assigned to Maria" when it's now Ana), the supervisor makes a decision on wrong data, or an optimistic "reassign from X to Y" clobbers an assignment change made in the last 30 minutes. Same hazard for `risk_level`: a room shown HIGH may already be CLEAN (see Pitfall 3).
 
 **Why it happens:**
-"Zero new dependencies" was written to prevent *unplanned* npm churn, not to guarantee that *existing* dependencies remain compatible across a multi-major native runtime change. Teams conflate "we didn't add anything" with "nothing needs updating," but Expo SDK majors force transitive native-module version bumps (React Native itself, Hermes, autolinking) regardless of what's in `package.json`.
+Predictions are a materialized cache. UIs naturally render whatever the cache says. The moment a cache value drives a *write*, staleness becomes a correctness bug rather than a cosmetic lag.
 
 **How to avoid:**
-Treat this as N single-major upgrades, not one bump: `expo install expo@55 --fix` → doctor → full EAS build → repeat for 56, then 57. After each hop, specifically re-verify `expo-speech-recognition` (voice input is a documented AI-copilot fast-path feature) and `expo-sqlite` (offline queue) against a real Android build, since these are the two dependencies most likely to have native-module ABI breaks that `expo-doctor` won't catch pre-build.
+- The reassign/escalate endpoint must **re-read current `room_status` (status, `assigned_to`) inside the request** and act on that, using the prediction only to *surface* the room, never as the source of truth for the mutation.
+- Consider a lightweight guard: reject the action if `room_status.status` is no longer DIRTY/IN_PROGRESS (the room is already clean → reassignment is meaningless), returning a friendly "this room is already ready" rather than performing a no-op reassign.
+- Reuse the existing assignment write path (`room_assignments` with `{date, assignments:[{room_id, housekeeper_id}]}`) rather than inventing a prediction-specific write — the cerebrum's supervisor-assignment contract already defines the correct shape.
 
 **Warning signs:**
-`expo-doctor` passes but the EAS build fails with a native linking error naming one of the non-core Expo packages. Voice input or offline sync silently stops working post-upgrade despite a green build (these are exactly the surfaces without existing e2e coverage per the mobile test suite gaps noted in project memory).
+- Reassign endpoint reads `housekeeper_id` from `room_readiness_predictions` and writes it anywhere.
+- No `room_status` re-read between "user clicked" and "assignment written."
+- QA: reassign a room, then reassign again before the next cron tick — second action uses the pre-first-action housekeeper.
 
-**Phase to address:** Expo SDK bump phase — sequence the migration as explicit per-major steps in the phase plan, each with its own EAS-build gate.
+**Phase to address:** Backend action-endpoint phase.
 
 ---
 
-### Pitfall 3: Existing Hermes/build workarounds are re-applied blindly instead of re-validated
+### Pitfall 3: Stale prediction rows never get cleared → false alerts + broken dedup
 
 **What goes wrong:**
-`apps/mobile/babel.config.js` carries `plugins: ['dynamic-import-node']` specifically because `@supabase/supabase-js` uses a variable `import()` that older Hermes rejected — a fix discovered and documented in project memory. SDK 56 changed Hermes bytecode diffing defaults and reworked the native module call path; it is not verified whether this specific Hermes limitation still exists on the post-bump Hermes version. A team doing the SDK bump commonly just re-applies every old workaround "for safety" without testing whether it's still needed, still correct, or now actively harmful (e.g., a babel transform interacting badly with a newer bundler default).
+`run_room_predictions()` only upserts rows for rooms currently in `get_at_risk_rooms()` (DIRTY/IN_PROGRESS with a check-in in the next 12h). When a room is cleaned or its reservation cancels, it **drops out of the at-risk set and its prediction row is never updated or deleted** — it lingers with `risk_level = "HIGH"` and a `last_calculated_at` that keeps aging. Two downstream failures:
+1. **PredictionPanel / AIRiskAlertsPanel show ghost HIGH-risk rooms** that are actually already ready — and once actionable, offer a "reassign" button for a clean room.
+2. **The notification dedup breaks in the *silent* direction.** The escalation guard is `if risk_level == "HIGH" and previous_risk != "HIGH"` (`predictions.py:428-429`), where `previous_risk` comes from the lingering row. A room that went HIGH → (cleaned, row frozen at HIGH) → dirty-again-HIGH will have `previous_risk == "HIGH"` and **no new notification fires** for a genuinely new risk. This is worse than spam: a real at-risk room goes un-alerted.
 
 **Why it happens:**
-Workarounds accumulate in config files with no expiry marker and no test asserting *why* they're needed, so nobody removes them — they're only ever added to.
+The read-only panel tolerated ghost rows (nobody noticed a stale card). Turning rows actionable and using them as the dedup baseline makes both staleness modes load-bearing.
 
 **How to avoid:**
-When bumping past SDK 55, explicitly re-test the specific failure each workaround was added for (temporarily remove `dynamic-import-node` from babel config, run a build, see if the Supabase dynamic-import Hermes error reproduces) before assuming it's still required. Same treatment for the `.npmrc` `legacy-peer-deps=true` — verify whether the React 19 peer-dep conflict it was added for (React 18.2.0-era per an earlier bug log entry, now React 19.1.0) still exists at the new dependency graph.
+- Add a **freshness filter everywhere predictions are read**: ignore rows whose `last_calculated_at` is older than ~1 cron interval (e.g. > 35 min for readiness), or LEFT JOIN to live `room_status` and drop rows no longer DIRTY/IN_PROGRESS.
+- Better: at the end of each `run_room_predictions` pass, **delete/clear prediction rows for rooms no longer in the at-risk set** for that tenant, so the cache reflects reality and the dedup baseline is trustworthy.
+- Track "already notified" with an explicit persisted marker (mirror `internal.py`'s `escalation_level` counter, `internal.py:502-582`) rather than inferring it from a mutable `risk_level` that can freeze.
 
 **Warning signs:**
-A workaround that predates the current React/RN version is carried forward with no re-test note in the phase's verification steps.
+- A room shows HIGH on the dashboard but is CLEAN on the housekeeping board.
+- `last_calculated_at` far older than the last cron run for rows still displayed.
+- A room that was fixed and re-degraded never re-notifies.
 
-**Phase to address:** Expo SDK bump phase, as an explicit "re-validate legacy workarounds" checklist step before closing the phase.
+**Phase to address:** Split — the freshness/clear-stale-rows fix belongs in the prediction-engine phase; the read-side freshness filter belongs in the deep-link/UI phase.
 
 ---
 
-### Pitfall 4: A shared constant name silently means two different role sets in two files — text-based "normalization" will pick the wrong one
+### Pitfall 4: Notification spam — re-notifying every cron cycle instead of on state transition
 
 **What goes wrong:**
-`MANAGER_ROLES` already exists as a named role-tuple in **two separate routers** with **different membership**:
-- `apps/api/routers/programs.py:43` → `("gm", "housekeeping_supervisor", "engineer", "chief_engineer")`
-- `apps/api/routers/safety.py:34` → `("gm", "housekeeping_supervisor", "chief_engineer")` (no `"engineer"`)
-
-If a normalization pass consolidates these into one shared `MANAGER_ROLES` constant in `middleware/auth.py` (or a new `roles.py`) without first asking *why* they differ, it will either **loosen** safety.py routes (giving line-level `engineer`s access to safety-compliance actions that were deliberately restricted to management + chief engineer) or **tighten** programs.py routes (removing `engineer` access that operational-programs routes currently rely on). Both directions are silent, ship clean, pass generic RBAC tests (which usually assert "gm can" / "housekeeper can't," not the full boundary), and only surface when a specific role hits a specific route in production.
+The milestone wants failure predictions to gain "proactive push notification parity" with room readiness. The naive implementation notifies for every asset with `risk_score >= 70` on **every nightly run** — so the chief engineer gets the same "Chiller #2 at risk" push every single night until the asset is fixed. Alert fatigue makes staff mute the channel, defeating the feature. Note the failure path has **no natural baseline to diff against**: delete-then-insert wipes the prior row, so there's literally no `previous_risk` to compare (unlike readiness, which at least reads `existing_risk_map` first, `predictions.py:293-303`).
 
 **Why it happens:**
-Convenience constants were invented independently per-router as each domain was built, with nobody checking whether the same English name was already taken elsewhere with different intent. There is currently no canonical role-matrix file — `require_role()` itself (`apps/api/middleware/auth.py:127`) is a generic `*roles: str` dependency with no enum, no central registry, and no compile-time or test-time check that two same-named tuples match.
+Room readiness got transition-only notification right (`previous_risk != "HIGH"`); a developer copying "parity" may copy the *notification call* without realizing the failure path lacks the prior-state read that makes dedup possible.
 
 **How to avoid:**
-Before any consolidation, build a route-by-route inventory (endpoint → current effective role set → git blame/PR context for *why* that set was chosen) and treat every discrepancy as a **product decision to confirm with the domain, not a bug to auto-fix**. Do not rename-and-merge same-named constants — diff their contents first. Any genuinely-intended single source of truth should live in `middleware/auth.py` as typed frozensets per logical permission tier (e.g., `SAFETY_MANAGERS`, `OPERATIONS_MANAGERS`), not a single overloaded `MANAGER_ROLES`.
+- Notify **only on transition into high risk**, not on presence of high risk. For failure predictions this requires reading the prior state (or a `last_notified_risk` / `notified_at` marker) **before** the delete-then-insert, because the insert destroys it.
+- Add an explicit dedup key: persist e.g. `failure_predictions.notified_at` or a row in a notification-log keyed by `(asset_id, predicted_failure_window)`, and suppress if already notified for the same window. Mirror the `escalation_level`-style persisted counter from `internal.py`.
+- Consider a re-notify cooldown (e.g. don't re-alert the same asset within 7 days even if it re-crosses the threshold) since assets, unlike rooms, don't resolve within a shift.
 
 **Warning signs:**
-`grep -rn "ROLES = (" apps/api/routers/` returns the same identifier name in more than one file. A normalization PR diff shows a route's role list changing membership (not just becoming a named constant) without an explicit "this route's set changed because X" note.
+- Notification count scales with (high-risk assets × nights) rather than (new high-risk transitions).
+- Staff reporting "same alert every morning."
+- The failure-notification code has no read of prior state before insert.
 
-**Phase to address:** RBAC normalization phase — must be step 1 (inventory + diff), before any consolidation code is written.
+**Phase to address:** Notification-parity phase. This is the core design decision of that phase.
 
 ---
 
-### Pitfall 5: A role is duplicated and another is silently dropped inside a single constant — copy-paste, not malice
+### Pitfall 5: Forgetting `require_role()` on the new action endpoints (recurring in this codebase)
 
 **What goes wrong:**
-`apps/api/routers/hotels.py:11`: `ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "engineer")`. `"engineer"` appears twice; `"chief_engineer"` — a real, distinct role in this system (`middleware/auth.py` `CurrentUser.role`, and used elsewhere as its own entry in `require_role()` calls) — is **absent**, despite the constant's name claiming to cover "all staff." Any route currently gated by `ALL_STAFF_ROLES` silently 403s chief engineers today. A normalization pass that treats this constant as already-correct and just "extracts" it to a shared module will **propagate the bug** to every router that then imports the shared version, widening the blast radius of an existing defect instead of fixing it.
+The new mutating endpoints — reassign, escalate, create-WO-from-prediction, authorize — must be RBAC-gated, and this project has **repeatedly shipped mutations that weren't**. From `.wolf/buglog.json`: "Wrong reference: `get_current_user` should be `require_role`" (line 7815); "An unsupported role could acknowledge a document" (line 7465); chief_engineer 403/routing gaps (line 7). The specific open question here — *should a housekeeper be able to reassign their own predicted-late room, or only a supervisor?* — must be answered per action, not left to default `get_current_user` (which authenticates but does not authorize).
 
 **Why it happens:**
-Role tuples are hand-typed tuples of string literals with no type safety, no `Enum`, and no test asserting set membership against the canonical 6-role list (`housekeeper`, `engineer`, `housekeeping_supervisor`, `chief_engineer`, `front_desk`, `gm` per CLAUDE.md). A typo/duplicate is indistinguishable from an intentional restriction at review time.
+`get_current_user` and `require_role(...)` are both `Depends(...)` one-liners that look identical at the call site; the difference is invisible in review unless you check every route. It has slipped through here multiple times.
 
 **How to avoid:**
-As part of the RBAC-normalization phase, first write one test that asserts every `require_role(...)` argument list and every named role-constant only contains values from the canonical role enum, contains no duplicates, and — for constants named "ALL_*" or "ANY_*" — actually contains all 6 roles. Run it *before* refactoring to catch pre-existing bugs like this one as a documented finding, not something the refactor accidentally "launders" into looking intentional.
+- Decide the role matrix **explicitly per action** and encode it:
+  - **Reassign a room** (changes another person's workload) → supervisor/GM only: `require_role("housekeeping_supervisor", "gm")`. A housekeeper reassigning rooms off their own queue is a workload-gaming risk; keep reassignment supervisory. If self-service "I can't finish this" is desired, model it as a *flag/escalation request*, not a direct reassign.
+  - **Escalate / create WO from a failure prediction** → engineering roles (`engineer`, `chief_engineer`); **Authorize** an AI recommendation → GM/chief engineer only. The cerebrum already fixes this contract: "only GM/chief engineer can authorize, and controlled safety/compliance actions are never valid AI actions."
+- Add an RBAC-matrix test for the new endpoints (the repo already has `test_rbac_matrix_matches_generated_output`, per buglog line 13892) so an ungated route fails CI.
 
 **Warning signs:**
-Any role-tuple with a repeated string literal. Any `ALL_*`/`ANY_STAFF`-named constant with fewer than the full canonical role count.
+- A new mutating route `Depends(get_current_user)` with no `require_role`.
+- Role logic done inside the handler body (`if user.role == ...`) instead of the dependency — easy to forget a branch.
 
-**Phase to address:** RBAC normalization phase — covered by the same audit-test as Pitfall 4, run first.
+**Phase to address:** Backend action-endpoint phase; verified by the RBAC-matrix test phase/CI.
 
 ---
 
-### Pitfall 6: Normalizing to role-only checks strips out co-located business-rule authorization that isn't expressible as a role
+### Pitfall 6: Notification insert path crashes the whole cron (direct precedent)
 
 **What goes wrong:**
-`apps/api/routers/evidence.py` had a real, already-fixed incident (bug-444, 2026-07-21): an acknowledgement mutation checked only authentication/role and not whether the target document's property applicability was still current, letting an "unsupported role" acknowledge a document and letting staff acknowledge a procedure whose applicability had already been removed. The fix added both an explicit role gate *and* an applicability re-check in the same code path. If a later normalization effort mechanically replaces ad hoc inline checks with a single `Depends(require_role(...))` pattern, it is easy to lift out the role check into the dependency and **leave the business-rule check behind unmoved, or drop it entirely** if the refactor conflates "authorization" with "role membership" — RBAC is necessary but not sufficient for routes like this one.
+Adding a `notify_*` call inside the nightly failure loop risks repeating **bug at `internal.py:44`**: `_queue_safety_notification` hit `AttributeError: 'NoneType' object has no attribute 'data'` because a Supabase query returned `None`, and the entire safety-training cron returned HTTP 500 (`.wolf/buglog.json:7552`). If the new failure-notification helper isn't defensively wrapped, one bad tenant (e.g. no supervisors on file, or a `.maybe_single()` returning `None`) aborts the run for **all remaining hotels**.
 
 **Why it happens:**
-"Normalize the RBAC pattern" is naturally scoped to what `require_role()` can express (role membership), so anything bundled with the role check that *isn't* a role check (state validity, applicability windows, ownership) is easy to treat as out-of-scope for the refactor and get lost in the diff, especially across 21 routers where reviewers can't hold every route's full authorization logic in their head.
+Supabase SDK calls return `None`/empty in more shapes than expected (`.maybe_single()` → `None`, `result.data` → `None`), and a cron loop over tenants has no per-tenant isolation unless you add it.
 
 **How to avoid:**
-Before refactoring any given route, explicitly classify its current authorization logic into "role membership" (goes in `require_role`) vs. "business-state validity" (must remain as an explicit in-handler check, independently tested). Never assume a route's only authorization concern is role — grep each router for post-`require_role` checks (`.eq(`, `if current_user`, state comparisons) before touching it, and keep them.
+- Wrap each hotel's notification work in try/except and continue the loop (the existing prediction engines already do this per-hotel, `predictions.py:479-485` / `failure_predictions.py:457-466` — the new notification code must be *inside* that protection, not outside it).
+- Treat `result.data or []` defensively (the readiness `notify_supervisors_high_risk` already does, `predictions.py:230`) — mirror that, never assume `.data` is non-None.
+- Never let a notification failure roll back or abort the prediction write it accompanies.
 
 **Warning signs:**
-A route's line count drops significantly after "just" adding `require_role` because inline validation logic was removed along with the informal role check it used to sit next to. Regression tests for `evidence.py`'s applicability re-check (added for bug-444) start failing during the normalization phase — treat that as a hard stop, not a test to update.
+- `/health` shows a cron job flipping to error/stale after the notification code lands (this project monitors `cron_health`; see buglog 7712/10195 for prior all-stale incidents).
+- A single tenant's data shape breaks the aggregate run.
 
-**Phase to address:** RBAC normalization phase — per-route classification step, with `evidence.py` as the canonical "don't regress this" reference case.
+**Phase to address:** Notification-parity phase.
 
 ---
 
-### Pitfall 7: A role missing from a shared multi-role endpoint breaks a specific UI surface, not "RBAC in general"
+### Pitfall 7: Deep-link payload leaks or 404s across the room/asset boundary
 
 **What goes wrong:**
-bug-277 (2026-06-30): `GET /staff` required `gm`/`housekeeping_supervisor`/`engineer`, but `front_desk` was missing even though the Housekeeping `RoomStatusBoard` component calls `staffApi.list()` for **all** roles that view the board, to resolve housekeeper names. The result was a 403 with console errors specifically for front-desk users on a specific screen — not a broad, easily-noticed failure. A single generic role-gate on an endpoint is often serving multiple call sites (web dashboard section, mobile equivalent, an internal cron, an AI Copilot tool call) each with a different set of roles that legitimately need it, and centralizing the check can make it easy to gate by "what role owns this domain" (e.g., staff → HR-ish domain → managers only) instead of "what roles actually call this in practice."
+`AIRiskAlertsPanel` is to be deep-linked to real room/asset records. The notification `data` payload currently carries `{"room_id": ..., "risk_level": "HIGH"}` (`predictions.py:248`). Failure alerts will need `{"asset_id": ...}`. Two hazards: (1) the deep-link target must **re-authorize on load** — a notification row proves the user was a recipient, but the linked room/asset page must still enforce `tenant_id` scoping and role, or a stale/forwarded link becomes a cross-tenant read; (2) because prediction rows churn (Pitfalls 1/3), a deep link built from a since-deleted prediction 404s.
 
 **Why it happens:**
-The role gate is usually written when the endpoint is created, reflecting the *original* caller's role. New callers (a different dashboard section, a new mobile screen) get added later and nobody revisits the original gate.
+Deep links feel like "just a URL," so developers skip re-checking authorization at the destination and assume the referenced record still exists.
 
 **How to avoid:**
-Before normalizing any endpoint's role gate, grep both `apps/web` and `apps/mobile` for every call site of that endpoint's typed API client function and cross-reference which roles' screens actually invoke it, not just which role "owns" the domain conceptually. Add this cross-reference as a required artifact (a short table: endpoint → calling surfaces → roles) for each router touched in the normalization phase.
+- Deep-link to the **stable entity** (`/engineering?asset={asset_id}`, `/housekeeping?room={room_id}`), never to a prediction PK. Entities outlive predictions.
+- The destination route/endpoint must independently enforce `.eq("tenant_id", current_user.hotel_id)` and role — never trust that arriving via a notification implies authorization.
+- Handle the "record moved on" case gracefully (room already clean / prediction gone) with an informative empty state, not a hard 404.
 
 **Warning signs:**
-A role gate is tighter than the set of roles whose UI screens call that endpoint (found via the web/mobile lib/api grep, not by reading the router in isolation).
+- Deep-link URLs containing `prediction_id`.
+- Destination handler reads the linked record without a tenant filter.
 
-**Phase to address:** RBAC normalization phase — cross-surface call-site audit, same step as Pitfall 4's inventory.
+**Phase to address:** Deep-linking phase (destination authorization) + UI phase (graceful-empty handling).
 
 ---
 
-### Pitfall 8: No `is_test`/`is_demo` flag exists anywhere in the schema — cleanup has nothing to filter on except heuristics
+### Pitfall 8: Notification recipients resolved from the wrong role table (`user_profiles` vs `user_roles`)
 
 **What goes wrong:**
-There is no `is_test`, `test_tenant`, `demo`, or `sandbox` column on `tenants`, `hotels`, or any other table in `supabase/migrations/` (confirmed by search — zero matches). Documented manual/Playwright testing runs directly against a real, named, production hotel tenant ("Sonesta ES Suites Fort Worth Fossil Creek," per project reference credentials) using its real GM login on the live Railway-deployed API and the shared Supabase project. Any test-data-cleanup script for this milestone must therefore invent a way to identify "test data" with **zero existing schema support** — which almost always means someone reaches for a name-pattern heuristic (`WHERE hotel_name ILIKE '%test%'` or `WHERE created_at > X AND email LIKE '%@test%'`), and a heuristic like that can match legitimate tenant or guest data that happens to contain the word "test" (a hotel's actual guest named "Test Testerman," a real "Test Kitchen" conference room note, a hotel that ran an internal system called "TestFest").
+`notify_supervisors_high_risk` selects recipients from **`user_profiles.role`** (`predictions.py:224-228`), while the RBAC/auth layer and the broadcast/direct endpoints resolve staff from **`user_roles`** (`notifications.py:63-68, 108-114`) and JWT custom claims. If these two tables drift (a role change written to one but not the other), high-risk alerts go to the wrong set of people — either missing a current supervisor or notifying a demoted one. Adding failure-prediction notifications will re-make this choice; copying the readiness code copies the `user_profiles` dependency.
 
 **Why it happens:**
-Test data hygiene was never a first-class schema concern because the project didn't have a separate staging database — "test data" and "real data" are, by construction, indistinguishable at the schema level today.
+Two plausible "list the supervisors" sources exist; the prediction service happened to pick `user_profiles` while the rest of the notification domain uses `user_roles`. Inconsistency is invisible until roles change.
 
 **How to avoid:**
-Do not write a blanket query. Design the cleanup phase around an **explicit, human-curated allowlist of `hotel_id`/`tenant_id` values known to be test/QA fixtures**, produced by manually cross-referencing `tenants` against the team's own memory of which hotels were created for testing (starting from the one documented production test account, plus a manual read of the full `tenants` table row-by-row with a human sign-off per row before any delete). Add the schema-level `is_test BOOLEAN NOT NULL DEFAULT false` column as part of this milestone specifically so future cleanup never again needs a heuristic — this is a one-time debt-payoff opportunity, not optional polish.
+- Standardize recipient resolution on **`user_roles` with `is_active = True`** (the same source RBAC trusts), so alert targeting can't diverge from who can actually act. Filter to active roles only — don't page someone who's been deactivated.
+- If `user_profiles` must stay for display, still resolve *who to notify* from `user_roles`.
 
 **Warning signs:**
-Any cleanup script whose `WHERE` clause is a string match on name/email rather than an explicit `IN (...)` list of pre-approved UUIDs. A cleanup PR with no accompanying human-reviewed list of exactly which `hotel_id`s are affected.
+- Alerts reaching a former supervisor, or a new supervisor getting none.
+- Grep shows notification recipient queries split across `user_profiles` and `user_roles`.
 
-**Phase to address:** Test-data-cleanup phase — the allowlist-and-flag design must be decided before any DELETE/UPDATE statement is written, and should be the phase's first deliverable.
-
----
-
-### Pitfall 9: The append-only tables are the *safe* ones — the real danger is the ordinary mutable tables a cleanup script touches without a trigger to stop it
-
-**What goes wrong:**
-`controlled_incidents` and `controlled_incident_events` (migration `070_texas_safety_compliance.sql:99-101`) have a `BEFORE UPDATE OR DELETE` trigger (`reject_controlled_incident_mutation()`) that raises `'Controlled incidents are append-only; add a controlled_incident_event instead.'` on any attempted mutation — a cleanup script hitting these tables gets a **hard, loud failure**, which is actually the best-case outcome. The real risk is everywhere else: `room_status`, `work_orders`, `guest_requests`, `logbook_entries`, `lost_found_items`, and dozens of other tables have **no such protection** and will accept a DELETE or UPDATE silently and irreversibly (standard `ON DELETE CASCADE`/`RESTRICT` FKs govern referential integrity, not data-safety intent). A cleanup script written and tested against the append-only tables (where mistakes are caught immediately) can build false confidence that the *pattern* is safe, then get run against the much larger set of ordinary tables where the same mistake is unrecoverable.
-
-**Why it happens:**
-The append-only trigger was added for a specific Texas safety-compliance/legal-hold requirement (evidentiary integrity for incident records), not as a general test-data-safety mechanism — but its presence can be mistaken for "the dangerous tables are protected" when it's actually the opposite: everything *without* that trigger is the higher-risk surface for this cleanup task.
-
-**How to avoid:**
-Treat the append-only tables as **out of scope** for this cleanup (correctly — legal-hold data should never be deleted for test-hygiene reasons regardless of allowlist). Focus all safety-rail effort on the ordinary mutable tables: require every delete/update in the cleanup script to run inside a transaction with an explicit row-count assertion (`assert deleted_count == expected_count`) before commit, and dry-run every statement as a `SELECT` first, printing the exact rows that would be affected, gated behind a human "yes" per hotel before the destructive version runs.
-
-**Warning signs:**
-A cleanup script's only safety check is "does this table have a delete-blocking trigger" rather than an explicit allowlist scoped by `hotel_id`. No dry-run/preview step before the actual delete.
-
-**Phase to address:** Test-data-cleanup phase — scope explicitly excludes `controlled_incidents`/`controlled_incident_events` and any other legal-hold table; safety rails concentrate on the unprotected majority.
-
----
-
-### Pitfall 10: The shared prod-adjacent database means "test data" and "the team's only working QA environment" are the same rows
-
-**What goes wrong:**
-Because there is no separate staging database, the real, named, production hotel tenant used for manual GM-login verification (documented in project reference credentials, and referenced throughout `.wolf/buglog.json` incident history as the basis for live click-through verification) is simultaneously "real customer-adjacent data" and "the team's active QA fixture." A cleanup effort aimed at removing stale/junk test data that isn't careful to special-case this tenant risks deleting the rooms, staff accounts, room-status history, or work orders that the *next* milestone's Self-Verification Policy (mandatory per CLAUDE.md: browser-test every feature against a running instance before declaring done) depends on. Losing that fixture doesn't just lose "some test rows" — it breaks the team's only mechanism for satisfying the project's own verification policy until it's manually rebuilt.
-
-**Why it happens:**
-"Clean up test data" framed generically suggests removing anything that looks like a test artifact, without distinguishing between throwaway one-off test rows (safe to remove) and the team's standing, reused QA fixture tenant (must be preserved and is explicitly *not* stale junk).
-
-**How to avoid:**
-Explicitly hardcode-exclude the known QA fixture tenant's `hotel_id` from any cleanup allowlist as a "preserve" entry, not just leave it un-flagged — make its exclusion a visible, reviewed line in the cleanup PR, not an accidental byproduct of it not matching a name heuristic. Document which tenant(s) are the intentional standing fixtures vs. one-off throwaway test data as part of this phase's output, since that distinction doesn't currently exist anywhere in writing.
-
-**Warning signs:**
-The cleanup phase's plan doesn't name the specific fixture tenant it's preserving. Post-cleanup, the documented test-account login stops working or shows unexpectedly empty data.
-
-**Phase to address:** Test-data-cleanup phase — must ship a written "preserve list" alongside the "delete list," reviewed by a human before execution.
+**Phase to address:** Notification-parity phase (and opportunistically align the existing readiness path).
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|-----------------|
-| Consolidating same-named role constants (`MANAGER_ROLES`) without diffing contents first | Refactor looks done fast | Silently loosens or tightens live permissions (Pitfall 4) | **Never** |
-| Reusing an existing `ALL_STAFF_ROLES`-style constant as "already correct" during extraction | Less to verify | Propagates a pre-existing duplicate/missing-role bug to every new importer (Pitfall 5) | **Never** — audit every constant's contents against the canonical role list first |
-| Jumping `expo@54` → `expo@57` in one `expo install` command | Fewer PRs, less build-gate friction | Can't isolate which SDK hop broke a native module; violates Expo's own upgrade guidance | **Never** for a 3-major jump on a documented-fragile pipeline |
-| Re-applying every old Hermes/babel workaround without re-testing | Feels "safe," avoids re-litigating old fixes | Carries forward now-unnecessary (or now-harmful) config indefinitely | Only if paired with a documented re-test; otherwise never |
-| Name-pattern (`ILIKE '%test%'`) test-data cleanup query | Fast to write, no manual review needed | Risk of deleting real customer/guest data containing the word "test" (Pitfall 8) | **Never** |
-| Treating the append-only-trigger tables as the benchmark for "what's dangerous" | Simple mental model | Misdirects safety-rail effort away from the actually-unprotected majority of tables (Pitfall 9) | Never as the *sole* safety model — fine as one documented exclusion among many |
+|----------|-------------------|----------------|-----------------|
+| Action endpoint trusts client-supplied `prediction_id` | One less DB read | 404s / orphaned recommendations after every cron rewrite (Pitfall 1) | Never — always re-derive from `asset_id`/`room_id` |
+| Notify on `risk == HIGH` presence, not transition | Simple loop, no prior-state read | Nightly alert spam → staff mute channel (Pitfall 4) | Never for recurring assets; acceptable only if a persisted dedup marker exists |
+| Leave stale prediction rows uncleared | No delete logic to write | Ghost alerts + broken silent dedup (Pitfall 3) | MVP-only, and only if a read-side freshness filter is added |
+| Reuse readiness's `user_profiles` recipient query for failures | Copy-paste parity | Wrong-recipient drift vs `user_roles` (Pitfall 8) | Never — resolve from `user_roles` |
+| Role check inside handler body instead of `require_role` dependency | Feels flexible | Missed branch = ungated mutation (Pitfall 5, recurring here) | Never for the authorization gate itself |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|-----------------|-------------------|
-| Expo SDK / EAS build | Assuming `app.json`'s `newArchEnabled` is authoritative when a checked-in `android/gradle.properties` overrides it locally | Delete or align the checked-in native override before the bump; verify EAS (prebuild-from-`app.json`) and local (`expo run:android`, uses checked-in `android/`) builds agree |
-| Expo SDK / native modules | Treating "no new npm dependency" as equivalent to "no native compatibility risk" during a major bump | Explicitly re-verify each existing native-module dependency (`expo-speech-recognition`, `expo-sqlite`, `@expo/vector-icons`) against the new SDK major, one hop at a time |
-| Hermes / `@supabase/supabase-js` | Assuming the `dynamic-import-node` babel workaround is still required post-bump without testing | Temporarily remove the workaround and attempt a build to confirm the original Hermes limitation still applies before keeping it |
-| Supabase (shared dev/QA/prod project) | Running an RBAC-normalization regression suite or a cleanup script directly against the shared project without a schema/data snapshot first | Use `list_tables`/read-only `get_advisors` review before any destructive change, and keep a restorable snapshot/backup checkpoint before executing cleanup DELETEs |
-| Supabase RLS vs. service-role API | Assuming RLS will catch an over-broad DELETE/UPDATE from the FastAPI service-role client during cleanup | Service-role bypasses RLS entirely (documented project convention); the query's own `WHERE`/allowlist is the only real backstop |
-
-## Performance Traps
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|-----------------|
-| Cleanup script deletes rows in a loop, one hotel/table at a time, without batching | Long-running script holds locks, risks partial completion on timeout/interrupt | Wrap each hotel's full cleanup in a single transaction with an explicit commit per hotel, not per row | Dozens+ of test tenants with thousands of child rows each |
-| RBAC-normalization introduces a shared role-constant module imported by all 21 routers | Non-issue at current scale, but a typo in the shared module now breaks 21 routers' authorization at once instead of 1 | Add the audit test from Pitfall 5 as a CI gate on the shared module specifically, since blast radius has grown | Any time after the constants are centralized |
+|-------------|----------------|------------------|
+| `*/30` readiness cron vs live user action | Reassign off the prediction's 30-min-stale `housekeeper_id` | Re-read `room_status.assigned_to` in the request; act on live state |
+| Nightly failure cron (delete-then-insert) vs in-flight action | Act on a row the cron just deleted/re-inserted with a new UUID | Convert to upsert on `(tenant_id, asset_id)`; flip `is_acknowledged=True` on action |
+| Supabase realtime (deliberately only 3 surfaces) | Add a WebSocket subscription for prediction panels to "keep them fresh" | Predictions are cron-driven, not realtime — use pull-to-refresh + freshness filter; do **not** expand the realtime surface (violates the A2 realtime-scope contract in CLAUDE.md) |
+| In-app notification insert inside tenant loop | Unhandled `None`/empty from Supabase aborts the whole cron | Per-tenant try/except, `result.data or []`, `.maybe_single()` None-guards (repeat of `internal.py:44` bug) |
+| APScheduler in-process cron | Assuming a run is isolated per hotel | One tenant's exception must not abort the rest — wrap per-hotel |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Silently widening a role set during "normalization" (e.g., merging `MANAGER_ROLES` variants) | Privilege escalation — a role gains access to actions it was deliberately excluded from (Pitfall 4) | Diff every constant's membership before merging; require a named product-decision comment for any set that changes |
-| Silently narrowing a role set during "normalization" | Legitimate users 403 on routes they need (Pitfall 7), often reported as "broken feature" not "security," delaying detection | Cross-reference web/mobile call sites per Pitfall 7 before changing any gate |
-| Stripping business-rule checks (applicability, state validity) when lifting role checks into `require_role()` | Authorization bypass on the exact class of bug already fixed once in `evidence.py` (bug-444) | Classify and preserve non-role checks explicitly, per Pitfall 6 |
-| Test-data cleanup query with no `hotel_id`/tenant scope check, run via the service-role client | Cross-tenant data loss — deletes another hotel's real data because the query wasn't tenant-scoped at all, not just imprecise | Every cleanup statement must include an explicit tenant/hotel allowlist `IN (...)`, never a global predicate |
-| Logging full row contents or PII during a cleanup dry-run for review | Sensitive guest/staff data (names, contact info) ends up in a review artifact/PR/chat log | Log only `hotel_id`, table name, and row count in dry-run previews, not row contents |
+| Deep-link destination trusts the notification instead of re-authorizing | Cross-tenant room/asset read via forwarded/stale link | Enforce `tenant_id` + role at the destination endpoint, independent of how the user arrived |
+| Notification rows inserted without `tenant_id` | Cross-tenant leak into another hotel's bell feed | Always set `tenant_id`; `list_notifications` already double-filters `tenant_id`+`user_id` (`notifications.py:16-17`) — keep every insert consistent |
+| Ungated reassign/authorize endpoint | Housekeeper gaming their queue; unauthorized WO authorization | `require_role()` per action (Pitfall 5); RBAC-matrix test in CI |
+| Reassign endpoint doesn't verify target housekeeper is same-tenant/active | Assigning rooms to a user outside the property | Mirror `send_direct_message`'s same-tenant recipient check (`notifications.py:107-117`) |
+
+## Performance Traps
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Per-room / per-supervisor notification INSERT in a loop | Slow cron, many round-trips | Batch-insert notifications (readiness already builds a list then one `insert()`, `predictions.py:238-260`) — keep it batched for failures too | Multi-hotel scale, many high-risk rooms at once |
+| Re-fetching `existing_risk_map` per room instead of once per hotel | Extra queries | Readiness fetches it once per hotel before the loop (`predictions.py:293`) — replicate that, don't per-item | Large properties |
+| No index on the dedup/freshness columns you add | Slow filters as prediction tables grow | Add index on `(tenant_id, last_calculated_at)` / `notified_at` (repo added FK indexes in migration 038) | Grows with history retention |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-------------------|
-| RBAC normalization ships with no visible error-message change, but a role that used to succeed now 403s | Staff member hits a wall mid-shift with a generic "not authorized" message and no path forward | Treat any role-set change as requiring the same Self-Verification browser click-through (per CLAUDE.md policy) for every affected role, not just `gm` |
-| Expo bump changes a native permission-prompt or notification behavior (SDK56 touched Android edge-to-edge correctness) without re-testing on-device | Housekeeper-facing screens (photo capture, voice input, notifications) look subtly broken on real hardware despite passing CI | Manual on-device (or emulator) walkthrough of camera/voice/notification flows after each SDK hop, not just `expo-doctor` |
+|---------|-------------|-----------------|
+| Actionable button on a ghost/stale prediction | Supervisor reassigns an already-clean room | Freshness filter + "already ready" guard (Pitfall 3) |
+| Same failure alert every morning | Staff mute notifications, miss the real one | Transition-only + cooldown (Pitfall 4) |
+| Optimistic UI shows reassign succeeded, cron reverts display 30 min later | Confusion / distrust of the feature | Re-render from live state after action; don't leave optimistic-only state that the next cron contradicts |
+| One-click action with no undo/confirm for reassign | Wrong housekeeper gets a queue dumped on them | Lightweight confirm or an undo window for reassignment (note: the mobile blocker flow already dropped an 8s-undo pattern per cerebrum — match current expectations, don't reintroduce a rejected pattern) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Expo SDK bump:** Often missing a re-test of `newArchEnabled` consistency across `app.json` and the checked-in `android/gradle.properties` — verify they agree and that EAS's prebuild-from-`app.json` path was exercised, not just the local build.
-- [ ] **Expo SDK bump:** Often missing per-hop verification — verify each of 55→56→57 individually built and ran on-device, not just the final combined diff.
-- [ ] **Expo SDK bump:** Often missing re-validation of the `dynamic-import-node` babel workaround and `legacy-peer-deps` — verify whether they're still necessary post-bump.
-- [ ] **RBAC normalization:** Often missing a pre-refactor audit of existing constants — verify no same-named role constant means two different things before merging (Pitfall 4/5 class).
-- [ ] **RBAC normalization:** Often missing a cross-surface call-site check — verify every role currently calling an endpoint (via web/mobile API client grep) still can after the gate changes.
-- [ ] **RBAC normalization:** Often missing preservation of co-located business-rule checks — verify `evidence.py`'s applicability re-check and any similar in-handler validation still runs after refactor.
-- [ ] **Test-data cleanup:** Often missing an explicit written allowlist — verify the cleanup PR includes a human-reviewed list of exact `hotel_id`s to delete AND a separate list of `hotel_id`s explicitly preserved (including the documented QA fixture tenant).
-- [ ] **Test-data cleanup:** Often missing a dry-run/preview step — verify every destructive statement was first run as a read-only preview showing exact affected rows before executing.
-- [ ] **Doc-drift fixes:** Often "fixed" in one direction only (doc updated to match code, or vice versa) without confirming which one is actually still true in production — verify against the live system, not just internal consistency.
-- [ ] **Deferred v1.3 human-verification follow-ups:** Often re-marked "verified" based on code review alone — verify each of the ~10 items via an actual browser click-through per CLAUDE.md's Self-Verification Policy, since the original reason they were deferred was lack of browser tooling in a sandboxed executor, not lack of importance.
+- [ ] **Reassign endpoint:** Often missing live `room_status` re-read — verify it ignores the prediction's stale `housekeeper_id`/`risk_level`.
+- [ ] **Failure notifications:** Often missing transition dedup — verify it does NOT fire on every nightly run for an unchanged high-risk asset.
+- [ ] **Action on failure prediction:** Often missing `is_acknowledged=True` flip — verify the acted-on row survives the next nightly delete-then-insert.
+- [ ] **Every new mutating route:** Often missing `require_role` — grep new routes for `Depends(get_current_user)` with no role gate.
+- [ ] **Deep links:** Often built off `prediction_id` — verify they target `room_id`/`asset_id` and the destination re-authorizes tenant+role.
+- [ ] **Stale rows:** Often uncleared — verify a cleaned room stops appearing as HIGH within one cron interval.
+- [ ] **Cron resilience:** Often un-isolated — verify one tenant with no supervisors / no assets doesn't 500 the whole run.
+- [ ] **Recipient source:** Often `user_profiles` — verify notifications resolve recipients from `user_roles` `is_active=True`.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|----------------|------------------|
-| RBAC normalization silently loosened a permission | MEDIUM | Revert the specific constant/route to its prior scoped tuple; add the audit test (Pitfall 4/5) before re-attempting; check audit logs for any actions taken under the widened window |
-| RBAC normalization silently tightened a permission | LOW–MEDIUM | Restore the missing role to the specific route (not the whole constant, until diffed); verify via the affected role's actual UI surface |
-| Expo bump broke a native module (voice input, offline sync) | MEDIUM–HIGH | Bisect by reverting to the last-known-good intermediate SDK hop (55 or 56) rather than reverting all the way to 54; re-apply the bump one hop at a time with on-device testing |
-| `newArchEnabled` mismatch caused a build failure post-SDK-55 | LOW | Delete checked-in `android/` and let Expo prebuild regenerate from `app.json` (matches what EAS already does); there is no "disable New Arch" fallback available past SDK 54 |
-| Test-data cleanup deleted rows outside the intended allowlist | HIGH (no soft-delete on most tables) | Restore from the most recent Supabase backup/point-in-time-recovery snapshot for the affected tables; this is why a pre-cleanup backup checkpoint and a dry-run preview are non-negotiable, not optional |
-| Cleanup script hit `controlled_incidents`/`controlled_incident_events` and was rejected by the trigger | NONE | No recovery needed — the trigger did its job; exclude these tables from the cleanup script's scope going forward |
+|---------|---------------|----------------|
+| Orphaned `ai_recommendations` after cron deleted the prediction (P1) | MEDIUM | Switch failure path to upsert on `(tenant_id, asset_id)`; backfill/relink orphaned recommendations by `asset_id` |
+| Notification spam already shipped (P4) | LOW | Add persisted `notified_at`/dedup marker + suppress; historical spam can't be unsent |
+| Ghost HIGH rooms in panel (P3) | LOW | Add read-side freshness filter immediately (fast); add cron-side stale-row clear as follow-up |
+| Ungated endpoint discovered (P5) | LOW–MEDIUM | Add `require_role`, add RBAC-matrix test; audit for any actions already taken by unauthorized roles |
+| Cron 500 from notification None (P6) | LOW | Wrap in per-tenant try/except + `data or []` guard; re-run cron manually via `X-Cron-Secret` endpoint |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|--------------------|----------------|
-| 1. SDK 55 New-Arch-mandatory collides with stale local override | Expo bump | `app.json` and `android/gradle.properties` agree on New Architecture before any version bump; both local and EAS builds succeed |
-| 2. Multi-hop jump skips intermediate safety net | Expo bump | Each of 55/56/57 has its own commit, `expo-doctor` run, and full EAS build in the phase's history — not a single squashed 54→57 diff |
-| 3. Stale workarounds carried forward unverified | Expo bump | A documented re-test (workaround removed, build attempted, result recorded) exists for `dynamic-import-node` and `legacy-peer-deps` |
-| 4. Same-named constant, different role sets | RBAC normalization | Pre-refactor audit artifact lists every existing role-constant and flags name collisions with differing contents, reviewed before merge |
-| 5. Duplicate/missing role inside one constant | RBAC normalization | Audit test asserts no duplicate role strings and full coverage for any `ALL_*`-named constant, run before and after refactor |
-| 6. Business-rule checks stripped during role-check lift | RBAC normalization | `evidence.py` applicability regression test (bug-444 coverage) still passes; per-route classification table exists in the phase's plan |
-| 7. Role missing from a shared multi-surface endpoint | RBAC normalization | Cross-reference table (endpoint → web/mobile call sites → roles) produced and reconciled against the new gate for every touched router |
-| 8. No schema flag for test data forces heuristic cleanup | Test-data cleanup | Cleanup PR contains an explicit `hotel_id` allowlist, not a name/pattern `WHERE` clause; `is_test` column added to schema |
-| 9. Append-only tables mistaken for the safety benchmark | Test-data cleanup | Cleanup script's scope explicitly excludes `controlled_incidents`/`controlled_incident_events`; safety rails (transaction + row-count assert + dry-run) applied to the ordinary mutable tables instead |
-| 10. Shared prod-adjacent DB includes the team's live QA fixture | Test-data cleanup | Written "preserve list" naming the documented QA fixture tenant exists and is reviewed alongside the delete list |
+|---------|------------------|--------------|
+| P1 Deleted-row action | Backend action-endpoint phase | Fire nightly cron while an action is in flight; action still resolves via `asset_id` |
+| P2 Stale-field reassign | Backend action-endpoint phase | Reassign twice within one cron interval; second uses live `assigned_to` |
+| P3 Stale rows / broken silent dedup | Prediction-engine phase (clear) + UI phase (freshness filter) | Clean a HIGH room; it disappears within one interval; re-degrade re-notifies |
+| P4 Notification spam | Notification-parity phase | Run nightly cron 3× on unchanged data; exactly 0 repeat notifications |
+| P5 Missing RBAC | Action-endpoint phase → CI | RBAC-matrix test covers every new route; housekeeper cannot reassign |
+| P6 Cron-crashing notify | Notification-parity phase | Tenant with no supervisors/assets; run completes, `/health` cron stays "ok" |
+| P7 Deep-link auth/404 | Deep-linking phase | Forwarded link from another tenant is rejected; deleted-prediction link shows empty state |
+| P8 Wrong recipient table | Notification-parity phase | Change a role in `user_roles`; alerts follow it immediately |
 
 ## Sources
 
-- Codebase reads (HIGH, authoritative for this app): `apps/api/middleware/auth.py` (`require_role` implementation), `apps/api/routers/hotels.py:11`, `apps/api/routers/programs.py:43`, `apps/api/routers/safety.py:34`, `apps/api/routers/evidence.py:36-41`, `apps/api/routers/work_orders.py`, `apps/api/routers/assets.py` (role-tuple comparison), `apps/mobile/app.json`, `apps/mobile/eas.json`, `apps/mobile/android/gradle.properties`, `apps/mobile/.easignore`, `apps/mobile/babel.config.js`, `apps/mobile/package.json`, `supabase/migrations/070_texas_safety_compliance.sql` (append-only trigger, lines 99-101)
-- `.wolf/buglog.json` incident history (HIGH — first-party, dated, this repo): bug-277 (front_desk 403 on shared staff endpoint), bug-403 (housekeeping 500 pattern), bug-444 (evidence acknowledgement RBAC + business-rule gap), Mobile EAS Android CNG archive rule entry (2026-06-05), `tar` v7 / `react-test-renderer` pinning entries, dynamic-import-node Hermes fix entry
-- Project memory (HIGH, first-party): `project_eas_build_status.md` (EAS build resolution history, `newArchEnabled=false` fix), `reference_test_account.md` (documented production GM test account/hotel)
-- `.planning/milestones/v1.3-MILESTONE-AUDIT.md` (HIGH — source of the "~10 deferred human-verification follow-ups" referenced in this milestone's scope)
-- `CLAUDE.md` project root (HIGH — "zero new npm dependencies," fragile EAS pipeline, Self-Verification Policy, canonical 6-role list)
-- Expo SDK 55/56/57 official changelogs (MEDIUM — WebSearch-verified, not Context7): New Architecture becomes mandatory in SDK 55, Hermes/native-module interop changes in SDK 56, React Native 0.86 non-breaking-by-design in SDK 57 — https://expo.dev/changelog/sdk-55 , https://expo.dev/changelog/sdk-56 , https://expo.dev/changelog/sdk-57
-- Secondary Expo SDK 57 analysis (LOW-MEDIUM, corroborating but not authoritative): https://paddyb.com/tutorials/expo-sdk-57-upgrade-guide.html , https://medium.com/@onix_react/whats-new-in-expo-sdk-57-c3133d32ba37
+- `apps/api/services/ai/predictions.py` — room readiness engine: upsert-on-`room_id`, `existing_risk_map` transition dedup, `notify_supervisors_high_risk` recipient query (HIGH confidence, primary source).
+- `apps/api/services/ai/failure_predictions.py` — delete-then-insert of `is_acknowledged=False` rows, per-hotel loop isolation (HIGH confidence, primary source).
+- `apps/api/routers/notifications.py` — recipient resolution via `user_roles`, tenant+user scoping, same-tenant recipient check (HIGH confidence).
+- `apps/api/routers/internal.py` — `escalation_level` persisted-counter dedup pattern (the model to mirror for failure notifications) (HIGH confidence).
+- `.wolf/buglog.json` — prior incidents: `get_current_user` vs `require_role` (7815), unsupported-role acknowledge (7465), `_queue_safety_notification` NoneType 500 (7552), notification bell non-functional (4526), cron all-stale incidents (7712, 10195), RBAC-matrix test presence (13892) (HIGH confidence, project-specific).
+- `.wolf/cerebrum.md` — AI-recommendation lifecycle + "only GM/chief engineer can authorize" contract; A2 realtime-scope contract; supervisor assignment write shape (HIGH confidence).
+- `CLAUDE.md` — multi-tenancy filter mandate, realtime-scope A2, credit-cap constraints, cron schedule table (HIGH confidence).
 
 ---
-*Pitfalls research for: Expo SDK 54→57 bump, RBAC-check normalization across 21 FastAPI routers, and test-data hygiene on a shared dev/QA/production Supabase project*
-*Researched: 2026-08-04*
+*Pitfalls research for: proactive prediction-driven alerting + one-click actions on PatelRep*
+*Researched: 2026-08-12*
