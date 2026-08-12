@@ -131,7 +131,7 @@ export interface RiskAlerts {
     predicted_ready_at: string
     rooms: { room_number: string }
   }>
-  maintenance_risks: Array<{ name: string; failure_risk_score: number }>
+  maintenance_risks: Array<{ id: string; name: string; failure_risk_score: number }>
   sla_breaches: Array<{ work_order_number: string; title: string; due_at: string }>
 }
 

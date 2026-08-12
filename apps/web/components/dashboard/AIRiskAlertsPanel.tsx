@@ -86,7 +86,7 @@ export function AIRiskAlertsPanel() {
                     </div>
                   </div>
                   <a
-                    href="/housekeeping"
+                    href={`/housekeeping?room=${r.room_id}`}
                     className="text-xs text-[var(--caution)] hover:underline shrink-0"
                   >
                     Reassign
@@ -136,6 +136,12 @@ export function AIRiskAlertsPanel() {
                       </span>
                     </div>
                   </div>
+                  <a
+                    href={`/engineering/predictions?asset=${r.id}`}
+                    className="text-xs text-[var(--caution)] hover:underline shrink-0"
+                  >
+                    View
+                  </a>
                 </div>
               ))}
             </div>
