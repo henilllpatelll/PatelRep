@@ -90,6 +90,9 @@ export interface RoomPrediction {
   avg_speed_rooms_per_hr: number | null
   risk_factors: string[]
   last_calculated_at: string
+  is_acknowledged?: boolean
+  acknowledged_at?: string | null
+  acknowledged_by?: string | null
   // enriched by board endpoint:
   room_number?: string
 }
@@ -119,6 +122,23 @@ export const housekeepingApi = {
     ),
 
   getPredictions: () => apiClient.get('/housekeeping/predictions'),
+
+  reassignAtRiskRoom: (roomId: string) =>
+    apiClient.post(`/housekeeping/room-readiness/${roomId}/reassign`) as Promise<{
+      data:
+        | { action: 'reassigned'; housekeeper_id: string }
+        | { action: 'escalated'; reason: 'no_eligible_housekeeper' }
+    }>,
+
+  escalateAtRiskRoom: (roomId: string) =>
+    apiClient.post(`/housekeeping/room-readiness/${roomId}/escalate`) as Promise<{
+      data: { action: 'escalated'; notifications_sent: number }
+    }>,
+
+  acknowledgeAtRiskRoom: (roomId: string) =>
+    apiClient.post(`/housekeeping/room-readiness/${roomId}/acknowledge`) as Promise<{
+      data: { action: 'acknowledged' | 'already_acknowledged' }
+    }>,
 
   submitInspection: (data: SubmitInspectionPayload) =>
     apiClient.post('/housekeeping/inspections', data) as Promise<{ data: { id: string } }>,
