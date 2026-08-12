@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -738,7 +738,9 @@ function SupervisorHousekeepingPage() {
       {/* Main layout */}
       <div className="flex gap-4 items-start">
         <div className="flex-1 min-w-0">
-          <RoomStatusBoard />
+          <Suspense>
+            <RoomStatusBoard />
+          </Suspense>
         </div>
         {assignmentMode && canAssignRooms && (
           <div className="hidden lg:block">

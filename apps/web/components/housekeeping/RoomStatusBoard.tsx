@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { ChevronDown } from 'lucide-react'
@@ -208,6 +209,7 @@ export function RoomStatusBoard() {
   const supabase = useMemo(() => createClient(), [])
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
+  const searchParams = useSearchParams()
 
   const {
     rooms: allRooms,
@@ -329,6 +331,17 @@ export function RoomStatusBoard() {
   )
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+
+  useEffect(() => {
+    const roomId = searchParams.get('room')
+    if (!roomId || allRooms.length === 0) return
+    const match = displayRooms.find((r: any) => r.room_id === roomId)
+    if (match) setSelectedRoom(withLateCheckout(match))
+    // no match => graceful no-op (room deleted / already cleaned off today's
+    // board / belongs to a different tenant — displayRooms is already
+    // tenant-scoped server-side, so this can never leak cross-tenant data)
+  }, [searchParams, allRooms, displayRooms, withLateCheckout])
+
   const [assignError, setAssignError] = useState<string | null>(null)
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set())
