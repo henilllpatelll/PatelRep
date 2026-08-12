@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -127,6 +128,8 @@ interface PredictionCardProps {
   canAuthorize: boolean
   onAuthorize: (id: string) => void
   isAuthorizing: boolean
+  cardRef?: (el: HTMLDivElement | null) => void
+  isHighlighted?: boolean
 }
 
 function PredictionCard({
@@ -141,6 +144,8 @@ function PredictionCard({
   canAuthorize,
   onAuthorize,
   isAuthorizing,
+  cardRef,
+  isHighlighted,
 }: PredictionCardProps) {
   const { t } = useTranslation()
   const score = prediction.risk_score
@@ -168,8 +173,9 @@ function PredictionCard({
     : null
 
   return (
+    <div ref={cardRef}>
     <Card
-      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}${score >= 70 ? ' border-red-200 bg-[var(--alert-soft)]' : ''}`}
+      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}${score >= 70 ? ' border-red-200 bg-[var(--alert-soft)]' : ''}${isHighlighted ? ' ring-2 ring-[var(--caution)] ring-offset-2' : ''}`}
     >
       {/* Top row */}
       <div className="flex items-start gap-4">
@@ -329,6 +335,7 @@ function PredictionCard({
         )}
       </div>
     </Card>
+    </div>
   )
 }
 
@@ -351,17 +358,20 @@ function StatCard({ label, value, accent = 'text-gray-900' }: StatCardProps) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function PredictionsPage() {
+function PredictionsPageContent() {
   const { t } = useTranslation()
   const { isGM, role } = useRole()
   const canManage = isGM || role === 'engineer'
   const canAuthorize = isGM || role === 'chief_engineer'
   const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
 
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   // ── Queries & mutations ────────────────────────────────────────────────────
 
@@ -417,6 +427,33 @@ export default function PredictionsPage() {
     if (statusFilter === 'acknowledged' && !p.is_acknowledged) return false
     return true
   })
+
+  // ── Deep link: scroll to and highlight a specific asset's prediction ───────
+
+  useEffect(() => {
+    const assetId = searchParams.get('asset')
+    if (!assetId || allPredictions.length === 0) return
+    const target = allPredictions.find((p) => p.asset_id === assetId)
+    if (!target) return // graceful not-found: deleted asset, cross-tenant id
+                         // (getFailurePredictionHistory is already tenant-scoped
+                         // server-side), or aged out of the 50-row history cap —
+                         // page just renders normally, no error
+    const isVisible = filtered.some((p) => p.id === target.id)
+    if (!isVisible) {
+      setRiskFilter('all')
+      setStatusFilter('all')
+    }
+    setHighlightedId(target.id)
+    const clearTimer = setTimeout(() => setHighlightedId(null), 3000)
+    return () => clearTimeout(clearTimer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, allPredictions])
+
+  useEffect(() => {
+    if (!highlightedId) return
+    if (!filtered.some((p) => p.id === highlightedId)) return
+    cardRefs.current[highlightedId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [filtered, highlightedId])
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
@@ -609,6 +646,8 @@ export default function PredictionsPage() {
             <PredictionCard
               key={prediction.id}
               prediction={prediction}
+              cardRef={(el) => { cardRefs.current[prediction.id] = el }}
+              isHighlighted={highlightedId === prediction.id}
               canManage={canManage}
               expandedId={expandedId}
               onToggleExpand={handleToggleExpand}
@@ -633,5 +672,13 @@ export default function PredictionsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function PredictionsPage() {
+  return (
+    <Suspense>
+      <PredictionsPageContent />
+    </Suspense>
   )
 }
