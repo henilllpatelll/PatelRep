@@ -1,0 +1,60 @@
+# Requirements: PatelRep v1.6 — AI Copilot Proactive Intelligence
+
+**Defined:** 2026-08-12
+**Core Value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
+
+## v1 Requirements
+
+Requirements for this milestone. Each maps to roadmap phases.
+
+### AI Copilot Proactive Intelligence
+
+- [ ] **AI-03**: Housekeeping supervisor/GM can reassign a room's cleaning from a HIGH-risk room-readiness prediction with one confirming tap, defaulting to the least-loaded eligible housekeeper
+- [ ] **AI-04**: When no eligible housekeeper has slack, the reassign action degrades to notifying a supervisor instead of forcing a bad assignment
+- [ ] **AI-05**: Housekeeping supervisor/GM can acknowledge a room-readiness prediction, suppressing further re-notification for that room until risk re-escalates after being cleared
+- [ ] **AI-06**: Engineer/chief_engineer/GM receives a proactive notification when an asset's failure-risk prediction newly crosses into HIGH risk — not on every nightly re-run while it stays HIGH
+- [ ] **AI-07**: Clicking a housekeeping row in the AI Risk Alerts panel opens the specific room's detail (not a generic housekeeping list link)
+- [ ] **AI-08**: Clicking a maintenance row in the AI Risk Alerts panel opens the specific asset's failure-prediction detail (currently has no link at all)
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### AI Copilot Proactive Intelligence
+
+- **AI-09**: Supervisors can batch-reassign or batch-acknowledge grouped alerts (e.g. all HIGH-risk rooms on one floor) — deferred pending evidence of shift-change tap-fatigue
+- **AI-10**: Un-actioned HIGH-risk predictions escalate to GM after a threshold, mirroring the existing work-order `escalation_level` watermark pattern — deferred pending evidence that alerts are going un-actioned
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| System/chat-initiated AI Copilot messaging | Requires a push-to-chat architectural bridge that doesn't exist today; a bigger initiative than this milestone's wiring-focused scope. Deliberately deferred per PROJECT.md's Current Milestone section. |
+| `ai_recommendations` governance wrapper around room-readiness actions | Research (ARCHITECTURE.md) recommends executing reassign/escalate directly against existing endpoints (`POST /housekeeping/assignments`, existing notify idiom) rather than routing through the governance table — that table models AI-authored *recommendations*, and room-readiness reassignment is a direct, deterministic action, not an AI recommendation requiring authorization. Revisit only if unified cross-domain ROI/outcome metrics become an explicit product goal. |
+| Per-alert email/SMS delivery | Twilio credentials aren't available locally, and per-event SMS compounds notification cost against the $2.50/room/mo AI-credit cap. In-app `notifications` (bell) remains the channel; any future email stays scoped to the existing daily GM digest cron. |
+| Unified notification center / inbox rebuild | Would duplicate the existing bell + `AIRiskAlertsPanel` + per-domain dashboards for little marginal value this milestone. Enhance the three existing surfaces in place instead. |
+| Silent auto-reassign / auto-notify with no human confirmation | Reassignment moves a real person's workload; the existing `ai_recommendations` human-authorize invariant exists specifically to prevent silent consequential changes. One confirming tap is required for AI-03. |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AI-03 | TBD | Pending |
+| AI-04 | TBD | Pending |
+| AI-05 | TBD | Pending |
+| AI-06 | TBD | Pending |
+| AI-07 | TBD | Pending |
+| AI-08 | TBD | Pending |
+
+**Coverage:**
+- v1 requirements: 6 total
+- Mapped to phases: 0 (roadmap not yet created)
+- Unmapped: 6 ⚠️ (pending roadmap creation)
+
+---
+*Requirements defined: 2026-08-12*
+*Last updated: 2026-08-12 after initial definition*
