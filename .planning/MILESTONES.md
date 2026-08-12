@@ -153,3 +153,27 @@
 
 ---
 
+
+## v1.6 AI Copilot Proactive Intelligence (Shipped: 2026-08-12)
+
+**Delivered:** Turned the already-computed room-readiness and asset-failure predictions from passive/inconsistent surfaces into an actionable, consistent proactive-alerting system — engineers get notification parity with room-readiness, dashboard alert rows link to the real room/asset instead of dead ends, and supervisors can act on a HIGH-risk room prediction with one tap instead of only reading about it.
+
+**Phases completed:** 25-27 (3 phases, 6 plans, 6/6 requirements — AI-03 through AI-08)
+
+**Key accomplishments:**
+- Asset failure-risk predictions gained the same edge-triggered proactive-notification parity room-readiness predictions already had (`notify_engineers_asset_risk_high`, dedup anchored on `assets.failure_risk_score` read before the cron's own overwrite) — engineers/chief engineers/GMs are notified once on a new HIGH crossing, never spammed on unchanged re-runs (Phase 25, AI-06)
+- `AIRiskAlertsPanel` rows are real deep links: housekeeping rows open the exact room's detail drawer (was a generic `/housekeeping` link), maintenance rows open the exact asset's prediction card (had no link at all before) — both required a genuinely-scoped one-line backend fix (`asset_risks` select was missing `id`) the roadmap's "pure frontend" framing had missed (Phase 26, AI-07/AI-08)
+- Supervisors/GMs can reassign a HIGH-risk room to the least-loaded eligible housekeeper, escalate, or acknowledge-and-suppress directly from the Predictions panel with one confirming tap — reassign/escalate both re-read live room state before acting so a stale prediction can't trigger a bad action, and reassign degrades to notifying a supervisor instead of forcing an assignment onto an already-overloaded housekeeper (Phase 27, AI-03/AI-04/AI-05)
+- Phase 27 uncovered and fixed a significant pre-existing production bug while extending the same function: `run_room_predictions`'s buffer-vs-checkin subtraction mixed a timezone-aware and a timezone-naive datetime, raised on every real call, was silently swallowed by the function's own broad `except`, and skipped every room's prediction update — the `predictions.run` cron (already running every 30 minutes in production) had likely never actually recomputed a room's risk level or fired a supervisor notification before this fix
+- All three phases ran through a full autonomous discuss→research→plan→plan-check→execute→verify→close cycle with independent spot-checks at every stage (re-running test suites, type-checks, builds, and live Supabase queries rather than trusting agent-reported summaries); the plan-checker step caught one wave/dependency ordering bug (Phase 26) and one test-fixture gap (Phase 27) before either could waste an execution cycle
+
+**Stats:**
+- 3 phases, 6 plans, ~30 tasks, 1 new Postgres migration (095, applied and live-verified), 3 new backend endpoints, 0 regressions across a final 589-test backend suite
+- 2026-08-12 → 2026-08-12 (single-session milestone)
+
+**Git range:** `070981a1` → `HEAD` (tag `v1.6`)
+
+**What's next:** TBD via `/gsd-new-milestone` — v2 backlog already seeded: AI-09 (batch-reassign/acknowledge) and AI-10 (un-actioned-prediction escalation-to-GM), both deferred pending evidence of real need.
+
+---
+
