@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: "AI Copilot Proactive Intelligence"
-status: defining_requirements
+status: roadmap_created
 last_updated: "2026-08-12T00:00:00Z"
-last_activity: 2026-08-12 -- Milestone v1.6 "AI Copilot Proactive Intelligence" started via /gsd-new-milestone. Scope confirmed: actionable room-readiness predictions, failure-prediction proactive push parity, consistent deep-linked alert surface. Chat-initiated copilot explicitly deferred.
+last_activity: 2026-08-12 -- Roadmap created for milestone v1.6. 3 phases derived from 6 requirements (AI-03..AI-08), continuing phase numbering from v1.5's last phase (24) -- v1.6 starts at Phase 25. 100% requirement coverage, no orphans.
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,19 +17,27 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-12 — Milestone v1.6 started
+Phase: 25 of 27 (Failure-Prediction Proactive Push + Dedup) — ready to plan
+Plan: — (plans not yet created; roadmap plan counts are TBD)
+Status: Roadmap created, ready for /gsd:plan-phase 25
+Last activity: 2026-08-12 — Roadmap created for milestone v1.6 (Phases 25-27, 100% requirement coverage)
 
-Progress: [          ] 0% (defining requirements)
+Progress: [          ] 0% (0/3 phases complete)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-12)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Milestone v1.6 — AI Copilot Proactive Intelligence.
+**Current focus:** Milestone v1.6 — AI Copilot Proactive Intelligence. Phase 25: Failure-Prediction Proactive Push + Dedup.
+
+## Current Milestone: v1.6 AI Copilot Proactive Intelligence
+
+Roadmap derived from `.planning/REQUIREMENTS.md` (6 requirements, AI-03..AI-08) and `.planning/research/SUMMARY.md`'s recommended track split. Continues phase numbering from v1.5's last phase (24) — v1.6 starts at Phase 25. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
+
+- Phase 25: Failure-Prediction Proactive Push + Dedup — AI-06 (Track A: proactive notification parity for asset-failure predictions, edge-triggered dedup anchored on `assets.failure_risk_score`; self-contained backend, no dependency)
+- Phase 26: Deep-Linked Alert Surfaces — AI-07, AI-08 (Track B1: `AIRiskAlertsPanel` rows link to the real room/asset; pure frontend, no dependency)
+- Phase 27: Room-Readiness One-Click Reassign / Escalate / Acknowledge — AI-03, AI-04, AI-05 (Track B2: acts directly against the existing `POST /housekeeping/assignments` endpoint, not the `ai_recommendations` governance wrapper which is out of scope; depends on Phase 26 for UX completeness)
 
 ## Previous milestones
 

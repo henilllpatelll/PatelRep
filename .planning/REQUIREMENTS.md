@@ -43,18 +43,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AI-03 | TBD | Pending |
-| AI-04 | TBD | Pending |
-| AI-05 | TBD | Pending |
-| AI-06 | TBD | Pending |
-| AI-07 | TBD | Pending |
-| AI-08 | TBD | Pending |
+| AI-03 | Phase 27 | Pending |
+| AI-04 | Phase 27 | Pending |
+| AI-05 | Phase 27 | Pending |
+| AI-06 | Phase 25 | Pending |
+| AI-07 | Phase 26 | Pending |
+| AI-08 | Phase 26 | Pending |
 
 **Coverage:**
 - v1 requirements: 6 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 6 ⚠️ (pending roadmap creation)
+- Mapped to phases: 6 (Phase 25: AI-06; Phase 26: AI-07, AI-08; Phase 27: AI-03, AI-04, AI-05)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-12*
-*Last updated: 2026-08-12 after initial definition*
+*Last updated: 2026-08-12 after roadmap creation (100% coverage, Phases 25-27)*
