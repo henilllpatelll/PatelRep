@@ -89,7 +89,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.5-ROADMAP.md
 
 **Milestone Goal:** Turn the already-computed room-readiness and asset-failure predictions from passive/inconsistent surfaces into an actionable, consistent proactive-alerting system for staff — without making the copilot chat itself system-initiated (deferred).
 
-- [ ] **Phase 25: Failure-Prediction Proactive Push + Dedup** - Asset failure predictions gain proactive push-notification parity with room-readiness predictions, edge-triggered so staff are alerted once on a new HIGH-risk crossing, not spammed every nightly re-run
+- [x] **Phase 25: Failure-Prediction Proactive Push + Dedup** - Asset failure predictions gain proactive push-notification parity with room-readiness predictions, edge-triggered so staff are alerted once on a new HIGH-risk crossing, not spammed every nightly re-run (completed 2026-08-12)
 - [ ] **Phase 26: Deep-Linked Alert Surfaces** - AI Risk Alerts panel rows link directly to the specific room or asset they describe, instead of a generic list or dead end
 - [ ] **Phase 27: Room-Readiness One-Click Reassign / Escalate / Acknowledge** - Supervisors/GMs can reassign, escalate, or acknowledge a HIGH-risk room-readiness prediction directly from the panel with one confirming tap
 
@@ -182,6 +182,6 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.5-ROADMAP.md
 | 22. Expo SDK 54→57 Bump | v1.4 | 6/6 | Complete | 2026-08-06 |
 | 23. Route×Role Permission Matrix | v1.5 | 1/1 | Complete | 2026-08-11 |
 | 24. CI Guard Against New Bare Role Comparisons | v1.5 | 1/1 | Complete | 2026-08-11 |
-| 25. Failure-Prediction Proactive Push + Dedup | v1.6 | 0/TBD | Not started | - |
+| 25. Failure-Prediction Proactive Push + Dedup | v1.6 | Complete    | 2026-08-12 | - |
 | 26. Deep-Linked Alert Surfaces | v1.6 | 0/TBD | Not started | - |
 | 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 0/TBD | Not started | - |

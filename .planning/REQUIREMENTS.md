@@ -12,7 +12,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **AI-03**: Housekeeping supervisor/GM can reassign a room's cleaning from a HIGH-risk room-readiness prediction with one confirming tap, defaulting to the least-loaded eligible housekeeper
 - [ ] **AI-04**: When no eligible housekeeper has slack, the reassign action degrades to notifying a supervisor instead of forcing a bad assignment
 - [ ] **AI-05**: Housekeeping supervisor/GM can acknowledge a room-readiness prediction, suppressing further re-notification for that room until risk re-escalates after being cleared
-- [ ] **AI-06**: Engineer/chief_engineer/GM receives a proactive notification when an asset's failure-risk prediction newly crosses into HIGH risk — not on every nightly re-run while it stays HIGH
+- [x] **AI-06**: Engineer/chief_engineer/GM receives a proactive notification when an asset's failure-risk prediction newly crosses into HIGH risk — not on every nightly re-run while it stays HIGH
 - [ ] **AI-07**: Clicking a housekeeping row in the AI Risk Alerts panel opens the specific room's detail (not a generic housekeeping list link)
 - [ ] **AI-08**: Clicking a maintenance row in the AI Risk Alerts panel opens the specific asset's failure-prediction detail (currently has no link at all)
 
@@ -46,7 +46,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-03 | Phase 27 | Pending |
 | AI-04 | Phase 27 | Pending |
 | AI-05 | Phase 27 | Pending |
-| AI-06 | Phase 25 | Pending |
+| AI-06 | Phase 25 | Complete (2026-08-12) |
 | AI-07 | Phase 26 | Pending |
 | AI-08 | Phase 26 | Pending |
 
