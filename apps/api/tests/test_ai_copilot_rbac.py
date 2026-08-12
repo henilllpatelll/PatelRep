@@ -113,6 +113,28 @@ def test_open_endpoints_accept_any_role():
         )
 
 
+# --- /ai/risk-alerts maintenance_risks carries an asset id (AI-08) ---
+
+@pytest.mark.asyncio
+async def test_risk_alerts_asset_select_includes_id(monkeypatch):
+    """AI-08: /ai/risk-alerts must select+return `id` on assets so the
+    frontend can build a maintenance deep link. Asserts the select-string
+    itself (not just the echoed row) because FakeDB does not enforce
+    column projection like real PostgREST does."""
+    db = FakeDB({
+        "assets": [
+            {"id": "asset-1", "tenant_id": "hotel-1", "name": "Boiler", "failure_risk_score": 85},
+        ],
+    })
+    monkeypatch.setattr(ai_copilot, "supabase", db)
+
+    response = await ai_copilot.get_risk_alerts(current_user=_user("gm"))
+
+    assert response["data"]["maintenance_risks"][0]["id"] == "asset-1"
+    asset_select_args = next(args for table, args in db.select_calls if table == "assets")
+    assert "id" in " ".join(str(a) for a in asset_select_args)
+
+
 # --- /ai/assignments/confirm excludes housekeeper ---
 
 @pytest.mark.asyncio

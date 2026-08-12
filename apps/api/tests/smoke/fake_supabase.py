@@ -40,6 +40,7 @@ class FakeDB:
         self.storage_uploads = []
         self.storage = FakeStorage(self)
         self._id_counter = 0
+        self.select_calls = []
 
     def next_id(self, table_name):
         self._id_counter += 1
@@ -63,8 +64,9 @@ class FakeQuery:
         self.range_end = None
         self.single = False
 
-    def select(self, *_args, **_kwargs):
+    def select(self, *args, **_kwargs):
         self.action = "select"
+        self.db.select_calls.append((self.table_name, args))
         return self
 
     def insert(self, payload):
