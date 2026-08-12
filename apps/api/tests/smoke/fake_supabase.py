@@ -182,8 +182,8 @@ class FakeQuery:
 
         if self.action == "select":
             if self.single:
-                return SimpleNamespace(data=matched[0] if matched else None)
-            return SimpleNamespace(data=matched)
+                return SimpleNamespace(data=matched[0] if matched else None, count=len(matched))
+            return SimpleNamespace(data=matched, count=len(matched))
 
         if self.action == "insert":
             payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
