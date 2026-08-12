@@ -780,7 +780,7 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
         .lt("due_at", datetime.now(timezone.utc).isoformat())\
         .execute()
     asset_risks = supabase.table("assets")\
-        .select("name, failure_risk_score")\
+        .select("id, name, failure_risk_score")\
         .eq("tenant_id", current_user.hotel_id)\
         .gte("failure_risk_score", 70)\
         .order("failure_risk_score", desc=True)\
