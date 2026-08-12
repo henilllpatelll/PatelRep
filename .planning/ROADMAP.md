@@ -91,7 +91,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.5-ROADMAP.md
 
 - [x] **Phase 25: Failure-Prediction Proactive Push + Dedup** - Asset failure predictions gain proactive push-notification parity with room-readiness predictions, edge-triggered so staff are alerted once on a new HIGH-risk crossing, not spammed every nightly re-run (completed 2026-08-12)
 - [x] **Phase 26: Deep-Linked Alert Surfaces** - AI Risk Alerts panel rows link directly to the specific room or asset they describe, instead of a generic list or dead end (completed 2026-08-12)
-- [ ] **Phase 27: Room-Readiness One-Click Reassign / Escalate / Acknowledge** - Supervisors/GMs can reassign, escalate, or acknowledge a HIGH-risk room-readiness prediction directly from the panel with one confirming tap
+- [x] **Phase 27: Room-Readiness One-Click Reassign / Escalate / Acknowledge** - Supervisors/GMs can reassign, escalate, or acknowledge a HIGH-risk room-readiness prediction directly from the panel with one confirming tap (completed 2026-08-12)
 
 ## Phase Details
 
@@ -193,4 +193,4 @@ Plans:
 | 24. CI Guard Against New Bare Role Comparisons | v1.5 | 1/1 | Complete | 2026-08-11 |
 | 25. Failure-Prediction Proactive Push + Dedup | v1.6 | Complete    | 2026-08-12 | - |
 | 26. Deep-Linked Alert Surfaces | v1.6 | Complete    | 2026-08-12 | - |
-| 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 0/TBD | Not started | - |
+| 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 3/3 | Complete | 2026-08-12 |
