@@ -155,7 +155,12 @@ Plans:
   3. A housekeeping_supervisor or GM can acknowledge a room-readiness prediction, and that room stops re-triggering notifications until its risk clears and re-escalates.
   4. A housekeeper (non-supervisor/GM) attempting reassign, escalate, or acknowledge on a prediction receives a 403 — these actions are supervisor/GM-only.
   5. Reassign/escalate act against freshly re-read live room state at the moment of the request (not the up-to-30-minutes-stale prediction snapshot) — e.g. attempting to reassign a room that's already been cleaned since the prediction was generated is guarded/blocked rather than silently executed.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 27-01-PLAN.md — Migration 095 (is_acknowledged/acknowledged_at/acknowledged_by on room_readiness_predictions), applied to live Supabase via MCP
+- [ ] 27-02-PLAN.md — Backend (TDD): run_room_predictions acknowledgement-aware notify gate + 3 new endpoints (reassign/escalate/acknowledge) reusing create_assignments/count_rooms_ahead/notify_supervisors_high_risk
+- [ ] 27-03-PLAN.md — Frontend: PredictionPanel action buttons (role-gated, confirm-tap), housekeepingApi methods, fetchPredictions refresh wiring, EN/ES i18n keys
 
 ## Progress
 
