@@ -6,10 +6,11 @@ from typing import Optional
 from datetime import date, datetime, time, timedelta, timezone
 from dateutil import tz
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
+from models.requests import CreateAssignmentsRequest, RoomAssignmentItem, SubmitInspectionRequest
 from core.database import supabase
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 from services.opera_pdf import parse_hk_details, parse_task_sheet
+from services.ai.predictions import count_rooms_ahead, notify_supervisors_high_risk
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,47 @@ def _ensure_housekeeper(user_id: str, hotel_id: str) -> None:
     if result.data:
         return
     raise HTTPException(status_code=404, detail="Housekeeper not found")
+
+
+def _active_housekeepers(hotel_id: str, target_date: date) -> list[str]:
+    """Candidate housekeeper ids for a given date: prefer today's
+    shift_assignments, falling back to all active housekeeper/supervisor
+    user_roles. Ids only (this call site doesn't need names) — mirrors the
+    same fallback chain suggest_assignments already uses."""
+    hk_rows = (
+        supabase.table("shift_assignments")
+        .select("user_id")
+        .eq("tenant_id", hotel_id)
+        .eq("work_date", target_date.isoformat())
+        .execute()
+    ).data or []
+    ids = list({row["user_id"] for row in hk_rows if row.get("user_id")})
+    if ids:
+        return ids
+
+    fallback_rows = (
+        supabase.table("user_roles")
+        .select("user_id")
+        .eq("tenant_id", hotel_id)
+        .in_("role", ["housekeeper", "housekeeping_supervisor"])
+        .eq("is_active", True)
+        .execute()
+    ).data or []
+    return list({row["user_id"] for row in fallback_rows if row.get("user_id")})
+
+
+def _fetch_room_prediction_or_404(room_id: str, hotel_id: str, columns: str = "*") -> dict:
+    result = (
+        supabase.table("room_readiness_predictions")
+        .select(columns)
+        .eq("room_id", room_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+    return result.data
 
 
 def _clean_type_payload(clean_type: str | None) -> dict:
@@ -1221,6 +1263,103 @@ async def get_predictions(
             "rooms": result.data or [],
         }
     }
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/room-readiness/{room_id}/reassign
+# POST /housekeeping/room-readiness/{room_id}/escalate
+# POST /housekeeping/room-readiness/{room_id}/acknowledge
+# ---------------------------------------------------------------------------
+
+@router.post("/room-readiness/{room_id}/reassign")
+async def reassign_at_risk_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    _ensure_tenant_row("rooms", room_id, current_user.hotel_id, "Room")
+
+    status_row = (
+        supabase.table("room_status")
+        .select("status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not status_row or not status_row.data:
+        raise HTTPException(status_code=404, detail="Room status not found")
+    if status_row.data["status"] not in {"DIRTY", "IN_PROGRESS", "PICKUP"}:
+        raise HTTPException(status_code=409, detail="Room is no longer awaiting cleaning")
+
+    today = date.today()
+    today_str = today.isoformat()
+    candidates = _active_housekeepers(current_user.hotel_id, today)
+    loads = [(hk_id, count_rooms_ahead(hk_id, room_id, current_user.hotel_id, today_str)) for hk_id in candidates]
+    eligible = [(hk_id, n) for hk_id, n in loads if n <= 4]
+
+    if not eligible:
+        pred = _fetch_room_prediction_or_404(room_id, current_user.hotel_id, columns="predicted_ready_at")
+        room_info = (
+            supabase.table("rooms").select("room_number")
+            .eq("id", room_id).eq("tenant_id", current_user.hotel_id)
+            .maybe_single().execute()
+        )
+        room_number = (room_info.data or {}).get("room_number", "")
+        notify_supervisors_high_risk(
+            current_user.hotel_id, room_number, room_id, pred["predicted_ready_at"],
+        )
+        return {"data": {"action": "escalated", "reason": "no_eligible_housekeeper"}}
+
+    chosen_id = min(eligible, key=lambda t: t[1])[0]
+    car = CreateAssignmentsRequest(
+        date=today,
+        assignments=[RoomAssignmentItem(room_id=room_id, housekeeper_id=chosen_id)],
+    )
+    await create_assignments(request=car, current_user=current_user)
+    return {"data": {"action": "reassigned", "housekeeper_id": chosen_id}}
+
+
+@router.post("/room-readiness/{room_id}/escalate")
+async def escalate_at_risk_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    _ensure_tenant_row("rooms", room_id, current_user.hotel_id, "Room")
+    pred = _fetch_room_prediction_or_404(
+        room_id, current_user.hotel_id, columns="risk_level, predicted_ready_at",
+    )
+    if pred.get("risk_level") != "HIGH":
+        raise HTTPException(status_code=409, detail="Room is no longer HIGH risk")
+
+    room_info = (
+        supabase.table("rooms").select("room_number")
+        .eq("id", room_id).eq("tenant_id", current_user.hotel_id)
+        .maybe_single().execute()
+    )
+    room_number = (room_info.data or {}).get("room_number", "")
+
+    sent = notify_supervisors_high_risk(
+        current_user.hotel_id, room_number, room_id, pred["predicted_ready_at"],
+    )
+    return {"data": {"action": "escalated", "notifications_sent": sent}}
+
+
+@router.post("/room-readiness/{room_id}/acknowledge")
+async def acknowledge_at_risk_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    _ensure_tenant_row("rooms", room_id, current_user.hotel_id, "Room")
+    pred = _fetch_room_prediction_or_404(room_id, current_user.hotel_id, columns="is_acknowledged")
+    if pred.get("is_acknowledged"):
+        return {"data": {"action": "already_acknowledged"}}
+
+    supabase.table("room_readiness_predictions").update({
+        "is_acknowledged": True,
+        "acknowledged_at": datetime.now(timezone.utc).isoformat(),
+        "acknowledged_by": current_user.user_id,
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+    return {"data": {"action": "acknowledged"}}
 
 
 # ---------------------------------------------------------------------------

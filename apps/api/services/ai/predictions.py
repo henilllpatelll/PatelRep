@@ -293,12 +293,12 @@ def run_room_predictions(hotel_id: str) -> dict:
     try:
         existing_preds_result = (
             supabase.table("room_readiness_predictions")
-            .select("room_id, risk_level")
+            .select("room_id, risk_level, is_acknowledged")
             .eq("tenant_id", hotel_id)
             .execute()
         )
-        existing_risk_map: dict[str, str] = {
-            r["room_id"]: r.get("risk_level", "LOW")
+        existing_risk_map: dict[str, dict] = {
+            r["room_id"]: {"risk_level": r.get("risk_level", "LOW"), "is_acknowledged": bool(r.get("is_acknowledged"))}
             for r in (existing_preds_result.data or [])
         }
     except Exception as exc:
@@ -357,7 +357,10 @@ def run_room_predictions(hotel_id: str) -> dict:
             checkin_dt = _parse_iso(checkin_time_str)
             # Normalise both to UTC naive for arithmetic
             checkin_naive = checkin_dt.replace(tzinfo=None) if checkin_dt.tzinfo else checkin_dt
-            buffer_minutes = (checkin_naive - predicted_ready_at).total_seconds() / 60
+            predicted_ready_naive = (
+                predicted_ready_at.replace(tzinfo=None) if predicted_ready_at.tzinfo else predicted_ready_at
+            )
+            buffer_minutes = (checkin_naive - predicted_ready_naive).total_seconds() / 60
         except Exception as exc:
             logger.warning(
                 "Could not parse checkin_time for room %s: %s — skipping", room_id, exc
@@ -398,22 +401,38 @@ def run_room_predictions(hotel_id: str) -> dict:
         minutes_to_checkin = int(buffer_minutes + minutes_remaining)
 
         # --- Step 8: Upsert prediction ---
+        prev = existing_risk_map.get(room_id, {"risk_level": "LOW", "is_acknowledged": False})
+        previous_risk = prev["risk_level"]
+        was_acknowledged = prev["is_acknowledged"]
+
+        upsert_payload = {
+            "room_id": room_id,
+            "tenant_id": hotel_id,
+            "housekeeper_id": assigned_to,
+            "predicted_ready_at": predicted_ready_at.isoformat(),
+            "confidence_score": confidence_score,
+            "risk_level": risk_level,
+            "checkin_time": checkin_time_str,
+            "minutes_to_checkin": minutes_to_checkin,
+            "rooms_remaining_for_hk": rooms_ahead,
+            "avg_speed_rooms_per_hr": avg_speed_rooms_per_hr,
+            "risk_factors": risk_factors,
+            "last_calculated_at": now_utc.isoformat(),
+        }
+        # Acknowledgements are scoped to a HIGH-risk episode: once risk drops
+        # below HIGH, clear any prior acknowledgement so a later re-escalation
+        # to HIGH is treated as fresh. While still HIGH, omit the three ack
+        # columns entirely so the upsert's on_conflict merge leaves whatever
+        # acknowledgement state already exists untouched.
+        if risk_level != "HIGH":
+            upsert_payload.update({
+                "is_acknowledged": False,
+                "acknowledged_at": None,
+                "acknowledged_by": None,
+            })
         try:
             supabase.table("room_readiness_predictions").upsert(
-                {
-                    "room_id": room_id,
-                    "tenant_id": hotel_id,
-                    "housekeeper_id": assigned_to,
-                    "predicted_ready_at": predicted_ready_at.isoformat(),
-                    "confidence_score": confidence_score,
-                    "risk_level": risk_level,
-                    "checkin_time": checkin_time_str,
-                    "minutes_to_checkin": minutes_to_checkin,
-                    "rooms_remaining_for_hk": rooms_ahead,
-                    "avg_speed_rooms_per_hr": avg_speed_rooms_per_hr,
-                    "risk_factors": risk_factors,
-                    "last_calculated_at": now_utc.isoformat(),
-                },
+                upsert_payload,
                 on_conflict="room_id",
             ).execute()
             rooms_updated += 1
@@ -425,8 +444,7 @@ def run_room_predictions(hotel_id: str) -> dict:
             high_risk_count += 1
 
         # --- Step 9: Notify supervisors on new HIGH-risk escalations ---
-        previous_risk = existing_risk_map.get(room_id, "LOW")
-        if risk_level == "HIGH" and previous_risk != "HIGH":
+        if risk_level == "HIGH" and previous_risk != "HIGH" and not was_acknowledged:
             sent = notify_supervisors_high_risk(
                 hotel_id,
                 room_number,
