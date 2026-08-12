@@ -54,7 +54,7 @@ completed: 2026-08-11
 ## Accomplishments
 
 - New zero-dependency (`ast` + `json` stdlib only) detector, `apps/api/scripts/check_bare_role_comparisons.py`, that walks whole router modules for bare `<name>.role` comparisons and correctly distinguishes "imported from `core/roles.py`" (never flagged) from "any locally-known constant" (still flagged if not imported)
-- Dry run against the current codebase found exactly the known inventory: **10 files, 25 occurrences** (`clean_sessions.py`, `guest_requests.py` x9, `late_checkout.py`, `logbook.py` x2, `lost_found.py` x3, `rooms.py` x3, `scheduling.py` x2, `tasks.py`, `work_orders.py` x3) -- `safety.py:84` correctly absent (imports `MANAGER_ROLES` from `core.roles`)
+- Dry run against the current codebase found exactly the known inventory: **9 files, 25 occurrences** (`clean_sessions.py`, `guest_requests.py` x9, `late_checkout.py`, `logbook.py` x2, `lost_found.py` x3, `rooms.py` x3, `scheduling.py` x2, `tasks.py`, `work_orders.py` x3) -- `safety.py:84` correctly absent (imports `MANAGER_ROLES` from `core.roles`)
 - `apps/api/rbac_bare_comparison_allowlist.json` populated with all 25 entries, `code` text copied verbatim from the detector's own output, each with a specific reason sourced from `RBAC-AUDIT.md` and Phase 23's CR-01/WR-04 fixes
 - New `apps/api/tests/smoke/test_bare_role_comparison_guard.py::test_no_unlisted_bare_role_comparisons`, picked up automatically by `ci.yml`'s existing `pytest tests/smoke/` step -- zero false positives against the Phase-19-audited codebase
 - Deliberate-drift proof: a temporary `if current_user.role == "phase24_deliberate_drift_test": pass` inserted into `tasks.py` made the new test FAIL naming `tasks.py:146` and the exact comparison text; `git checkout -- apps/api/routers/tasks.py` restored a clean tree and the test PASSED again
@@ -81,7 +81,7 @@ completed: 2026-08-11
 
 ## Deviations from Plan
 
-None - plan executed exactly as written. The detector's dry-run output matched the plan's stated known inventory exactly (10 files, 25 occurrences, same file:line list), so no discrepancy investigation was needed before writing the allowlist.
+None - plan executed exactly as written. The detector's dry-run output matched the plan's stated known inventory exactly (9 files, 25 occurrences, same file:line list), so no discrepancy investigation was needed before writing the allowlist.
 
 ## Issues Encountered
 
