@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: null
-status: awaiting_next_milestone
-last_updated: "2026-08-11T00:00:00Z"
-last_activity: 2026-08-11 -- v1.5 "RBAC Enforcement Tooling" archived and tagged. Both phases (23-24), 2/2 plans, 4/4 requirements shipped; milestone audit passed with 0 gaps after both phases' own code-review-fix cycles caught and closed 2 critical classification bugs pre-verification.
+milestone: v1.6
+milestone_name: "AI Copilot Proactive Intelligence"
+status: defining_requirements
+last_updated: "2026-08-12T00:00:00Z"
+last_activity: 2026-08-12 -- Milestone v1.6 "AI Copilot Proactive Intelligence" started via /gsd-new-milestone. Scope confirmed: actionable room-readiness predictions, failure-prediction proactive push parity, consistent deep-linked alert surface. Chat-initiated copilot explicitly deferred.
 progress:
   total_phases: 0
   completed_phases: 0
@@ -17,16 +17,19 @@ progress:
 
 ## Current Position
 
-No milestone in progress. v1.5 shipped and archived 2026-08-11. Next: run `/gsd-new-milestone` to scope v1.6.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-08-12 — Milestone v1.6 started
 
-Progress: [          ] 0% (next milestone not yet started)
+Progress: [          ] 0% (defining requirements)
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11)
+See: .planning/PROJECT.md (updated 2026-08-12)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Planning next milestone via `/gsd-new-milestone`.
+**Current focus:** Milestone v1.6 — AI Copilot Proactive Intelligence.
 
 ## Previous milestones
 

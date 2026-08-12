@@ -36,15 +36,20 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-*(Next milestone not yet defined — run `/gsd-new-milestone` to scope it.)*
+*(Scoped via `/gsd-new-milestone` 2026-08-12 — see Current Milestone below. Will move to Validated as phases close.)*
 
-## Current Milestone
+## Current Milestone: v1.6 AI Copilot Proactive Intelligence
 
-None in progress. v1.5 shipped 2026-08-11; see Previous Milestones in `.planning/STATE.md` and `.planning/MILESTONES.md`.
+**Goal:** Turn the already-computed room-readiness and asset-failure predictions from passive/inconsistent surfaces into an actionable, consistent proactive-alerting system for staff — without making the copilot chat itself system-initiated (deferred).
+
+**Target features:**
+- Room-readiness predictions become actionable (one-click reassign/escalate from the housekeeping board's `PredictionPanel` and the dashboard's `AIRiskAlertsPanel`), matching the action affordances failure predictions already have.
+- Failure predictions gain proactive push-notification parity with room-readiness predictions (notify chief engineer/supervisors on a new HIGH-risk asset, mirroring the existing `notify_supervisors_high_risk` room-readiness path).
+- Dashboard alert rows (`AIRiskAlertsPanel`) deep-link to the actual room/asset instead of a generic `/housekeeping` link; room-readiness proactive notifications considered for the existing `ai_recommendations` governance flow that failure predictions already use, for consistency.
 
 ## Next Milestone Goals
 
-TBD — scoped via `/gsd-new-milestone`.
+TBD — scoped at v1.6 completion via `/gsd-new-milestone`.
 
 ### Out of Scope
 
@@ -144,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 — milestone v1.5 (RBAC Enforcement Tooling) shipped.*
+*Last updated: 2026-08-12 — milestone v1.6 (AI Copilot Proactive Intelligence) started.*
