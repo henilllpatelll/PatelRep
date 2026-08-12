@@ -128,7 +128,8 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.5-ROADMAP.md
   2. Running the cron multiple times in a row with no underlying data change produces exactly one notification total for that HIGH-risk asset — not one per run (double-run idempotency test: 3 consecutive runs on unchanged data yield 0 repeat notifications after the first).
   3. Notification recipients are resolved from `user_roles` with `is_active=True` (not `user_profiles`), so alert targeting matches who can actually act on the asset.
   4. A notification-insert failure for one tenant (e.g. malformed data, transient DB error) is isolated via per-tenant try/except and does not crash the cron run for other tenants' asset predictions.
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 25-01-PLAN.md — notify_engineers_asset_risk_high() (TDD) + edge-triggered dedup wiring in run_asset_failure_predictions, notifications_sent propagated through both return dicts
 
 ### Phase 26: Deep-Linked Alert Surfaces
 **Goal**: Every row in the dashboard's AI Risk Alerts panel is a working link to the exact room or asset it describes, closing both the "generic link" gap (housekeeping) and the "no link at all" gap (maintenance).
