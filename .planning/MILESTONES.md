@@ -130,3 +130,26 @@
 
 ---
 
+
+## v1.5 RBAC Enforcement Tooling (Shipped: 2026-08-11)
+
+**Delivered:** Closed the RBAC tooling gap deferred from Phase 19 — role-check drift is now structurally hard to reintroduce instead of relying on periodic manual audits.
+
+**Phases completed:** 23-24 (2 phases, 2 plans, 6 tasks)
+
+**Key accomplishments:**
+- Auto-generated, deterministic `apps/api/RBAC-MATRIX.md` (30 routers, 286 routes) via a new AST-based generator (`apps/api/scripts/generate_rbac_matrix.py`), replacing the one-time hand-typed Phase 19 `RBAC-AUDIT.md` inventory with a living, regenerable artifact enforced by a pytest CI drift guard
+- New CI guard (`apps/api/scripts/check_bare_role_comparisons.py` + `apps/api/rbac_bare_comparison_allowlist.json`) fails the build the moment a router adds a bare `current_user.role` comparison outside `require_role()`/an imported `core/roles.py` constant, with a 25-entry reasoned allowlist for every pre-existing intentional inline check
+- Both phases' own code-review-fix cycles caught and closed a critical defect before phase-gate verification: Phase 23 fixed a bug mislabeling real inline 403-denial gates as unrestricted (`none`); Phase 24 fixed an allowlist-matching evasion gap (text-only matching let duplicate-text new violations slip through), replaced with per-occurrence-count matching
+- Milestone audit independently re-verified both fixes hold and confirmed the two phases' outputs are mutually consistent post-fix (every Phase-23-labeled inline gate has a matching Phase-24 allowlist entry, no orphans) — 4/4 requirements satisfied, 0 gaps
+
+**Stats:**
+- 2 phases, 2 plans, 6 tasks, ~17 commits (docs + code + 2 review-fix cycles)
+- <1 day from milestone start to ship (2026-08-11)
+
+**Git range:** `3bc42672` → `HEAD` (tag `v1.5`)
+
+**What's next:** TBD via `/gsd-new-milestone`
+
+---
+

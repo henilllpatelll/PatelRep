@@ -32,22 +32,19 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 - ✓ VERIFY-01..04 — All 4 human-verification items deferred from v1.3 (archive-button role gate, "Unnamed Staff" fallback, guest-request status-advance chain, inspection re-assign to supervisor) confirmed live in-browser — Validated in Phase 20, closed 2026-08-05 (surfaced and fixed 7 real production bugs along the way, including a guest-request DELETE endpoint that had never worked).
 - ✓ QA-01..03 — `tenants.is_test` schema flag, human-reviewed delete-allowlist, and a dry-run-gated cleanup script for the shared dev/QA Supabase project — Validated in Phase 21, closed 2026-08-05 (dry-run verified clean against 339 live rows, zero deletions outside the allowlist).
 - ✓ MOBILE-01..04 — `apps/mobile` upgraded Expo SDK 54→57.0.9 via 3 gated single-major hops (each with a green EAS Android build), New Architecture reconciled, `@react-navigation/native@7.3.14` an explicit direct dependency, all 19 tracked `npm audit` advisories resolved — Validated in Phase 22, closed 2026-08-06.
+- ✓ RBAC-05..08 — Auto-generated, deterministic `apps/api/RBAC-MATRIX.md` route×role permission matrix (30 routers, 286 routes) replacing the one-time manual Phase 19 audit, plus a CI guard (`apps/api/scripts/check_bare_role_comparisons.py` + a 25-entry reasoned allowlist) that fails the build on any new bare role-comparison outside `require_role()`/`core/roles.py` — Validated in Phase 23-24: RBAC Enforcement Tooling, closed 2026-08-11 (2/2 phases, 2/2 plans; both phases' own code-review-fix cycles caught and closed a critical classification bug before phase-gate verification — Phase 23's inline-gate mislabeling, Phase 24's allowlist-matching evasion; milestone audit independently re-confirmed both fixes and cross-phase consistency, 0 gaps).
 
 ### Active
 
 *(Next milestone not yet defined — run `/gsd-new-milestone` to scope it.)*
 
-## Current Milestone: v1.5 RBAC Enforcement Tooling
+## Current Milestone
 
-**Goal:** Close the RBAC tooling gap deferred from Phase 19 — make role-check drift structurally hard to reintroduce, instead of relying on periodic manual audits.
-
-**Target features:**
-- Auto-generated route×role permission matrix (every endpoint's required role(s), derived from live code, regenerable on demand)
-- CI lint rule blocking new bare role-comparison checks outside `core/roles.py`
+None in progress. v1.5 shipped 2026-08-11; see Previous Milestones in `.planning/STATE.md` and `.planning/MILESTONES.md`.
 
 ## Next Milestone Goals
 
-TBD — scoped via `/gsd-new-milestone` after v1.5 ships.
+TBD — scoped via `/gsd-new-milestone`.
 
 ### Out of Scope
 
@@ -56,15 +53,22 @@ TBD — scoped via `/gsd-new-milestone` after v1.5 ships.
 - iOS EAS build pipeline (IOS-01) — Android-only mobile builds remain the shipped target; iOS is a separate future initiative, not blocking anything shipped so far.
 - Live Stripe end-to-end verification for the billing revenue-integrity paths (true-up cron double-charge protection, real `InvoiceItem.create`) — Phase 16 shipped with 23 unit tests substituting for a live round-trip; deliberate deferral given the shared test account's blast radius, not a credential gap.
 - Separate staging Supabase project — deliberate current-state constraint (Phase 21/v1.4), not addressed yet; the dev/QA project now has `is_test` tenant flagging plus a dry-run-gated cleanup script instead.
-- Auto-generated route × role permission matrix, and a CI lint rule blocking new bare role comparisons — second-wave RBAC tooling deferred from v1.4 (Phase 19); do after the normalization pattern has settled.
+- Auto-generating the route×role matrix/CI guard for `apps/web`/`apps/mobile` route guards — v1.5's RBAC tooling was deliberately API-router-scoped (where the Phase 19 drift incidents actually occurred); frontend `routeGuard.ts` was not implicated and remains unaddressed.
 
 ## Context
 
-The stack is FastAPI with direct Supabase SDK queries, Next.js 14/16 web, and Expo/React Native mobile (Android-only EAS builds, now on Expo SDK 57.0.9). Tenant isolation is mandatory in every query and RLS is a second safety layer. Phase 1 established the reusable append-only `operational_audit_events` and `notification_deliveries` patterns, reused through Phases 2-4 rather than parallel mechanisms per domain. Mobile has its own reactive theme/primitive system (Phase 7), fully adopted app-wide (Phases 8-9) with dark mode and WCAG AA contrast (Phase 10). RBAC now has a single source of truth (`apps/api/core/roles.py`, Phase 19) that every router imports role-group constants from, rather than local, drift-prone tuples. As of v1.4: 553 API tests passing (3 pre-existing unrelated failures in `test_management_roi.py`, confirmed predating this milestone via `git stash` A/B comparison), `apps/mobile` Jest 412/412 passing with zero `npm audit` advisories, 1112+ commits since project start.
+The stack is FastAPI with direct Supabase SDK queries, Next.js 14/16 web, and Expo/React Native mobile (Android-only EAS builds, now on Expo SDK 57.0.9). Tenant isolation is mandatory in every query and RLS is a second safety layer. Phase 1 established the reusable append-only `operational_audit_events` and `notification_deliveries` patterns, reused through Phases 2-4 rather than parallel mechanisms per domain. Mobile has its own reactive theme/primitive system (Phase 7), fully adopted app-wide (Phases 8-9) with dark mode and WCAG AA contrast (Phase 10). RBAC has a single source of truth (`apps/api/core/roles.py`, Phase 19) that every router imports role-group constants from, now backed by two structural enforcement tools (Phase 23-24, v1.5): an auto-generated `apps/api/RBAC-MATRIX.md` and a CI guard blocking new bare role comparisons, both AST-based and checked into `apps/api/scripts/`. As of v1.5: 561 API tests passing (3 pre-existing unrelated failures in `test_management_roi.py`, confirmed predating this milestone), `apps/mobile` Jest 412/412 passing with zero `npm audit` advisories, 1129+ commits since project start.
 
-## Current State (as of v1.4, 2026-08-11)
+## Current State (as of v1.5, 2026-08-11)
+
+Everything validated at v1.0-v1.4 remains shipped and deployed. v1.5 was a pure platform-tooling milestone — no new user-facing features, by explicit scope decision — closing the RBAC tooling gap deferred from Phase 19. `apps/api/RBAC-MATRIX.md` is now a living, regenerable artifact (AST-based generator, 30 routers/286 routes, byte-identical on repeat runs, enforced by a pytest drift guard) that replaces the one-time hand-typed Phase 19 audit. A second CI guard (`apps/api/scripts/check_bare_role_comparisons.py` + a 25-entry reasoned allowlist) fails the build the moment a router adds a new bare `current_user.role` comparison outside `require_role()`/an imported `core/roles.py` constant — proven live via deliberate-drift tests in both phases (introduce a violation, confirm CI fails, revert, confirm it passes again with a clean tree). Notably, both phases' own code-review-fix cycles — not the milestone audit — caught the two most severe defects in the milestone, both in the security-classification logic itself: Phase 23 initially mislabeled real inline 403-denial gates as unrestricted (`none`), and Phase 24's allowlist initially matched by text alone, letting a new violation with duplicate text to an already-allowlisted entry evade detection; both fixed and independently re-verified before their phase-gate verifiers ran. The v1.5 milestone audit's incremental contribution was confirming those two independently-fixed defects left the two phases' outputs mutually consistent with each other (every Phase-23-labeled inline gate has a matching Phase-24 allowlist entry, no orphans) — the class of gap no single phase's own verification is scoped to catch. Two trivial, non-blocking tech-debt items were noted (a hand-duplicated one-line import-matching condition, unused dead constants) and accepted as-is.
+
+<details>
+<summary>Current State as of v1.4 (2026-08-11) — superseded, kept for history</summary>
 
 Everything validated at v1.0-v1.3 remains shipped and deployed. v1.4 was a pure hardening/ops milestone — no new user-facing features, by explicit scope decision. CLAUDE.md's cron-mechanism, credential, and 30-router domain-map doc-drift is corrected. RBAC now has a single source-of-truth module (`core/roles.py`) with two real access-control gaps closed (an ungated guest-request delete, a lost-found custody-state bypass). All 4 human-verification items deferred from v1.3 are confirmed live, which in the process surfaced and fixed 7 previously-undiscovered production bugs (a guest-request DELETE endpoint that had never worked for any request, a structurally-broken Scheduling roster endpoint, a CORS-masking rate-limit middleware ordering bug, a stale-drawer 422 bug, a Pydantic role-literal typo, a stale DB CHECK constraint, and a broken inspection re-clean dispatch). The shared dev/QA Supabase project now has a schema-level `is_test` flag and a dry-run-gated cleanup script, verified clean against 339 live rows. `apps/mobile` is upgraded from Expo SDK 54 to 57.0.9 across three gated hops, each with a green EAS Android build, resolving all 19 previously-tracked `npm audit` advisories. The v1.4 milestone audit — the first audit level no individual phase's own verification could reach — caught one real cross-phase gap: migration 092 restored `chief_engineer` as a live role, but `core/roles.py` (written one phase earlier, before 092 landed) still excluded it, breaking that role's dashboard and two API endpoints with a 403. Fixed and live-verified through a real seeded-user browser session (0 console errors) before shipping, along with the same inline-role-list drift found live in three `reports.py` endpoints during the fix's own verification.
+
+</details>
 
 <details>
 <summary>Current State as of v1.3 (2026-08-04) — superseded, kept for history</summary>
@@ -119,6 +123,8 @@ Everything validated at v1.0 remains shipped and deployed. Mobile now has full U
 | Fix real cross-phase gaps found during milestone audit immediately, not defer (again) | Same precedent as v1.0/v1.1 (migration-079, bug-449, the AI-copilot guest-request gap) — a milestone shouldn't ship with a known broken role/dashboard combination. | Shipped — `core/roles.py`, `dashboard/page.tsx`, and three `reports.py` endpoints fixed and live-verified (seeded `chief_engineer` browser session, 0 console errors) same session, before archiving v1.4. |
 | Escalate migrations to the orchestrator/team-lead rather than force-apply from a plan executor's sandboxed toolset | Established in Phase 6 (migration 085) and repeated for migrations 092/093/094 in Phases 20-21 — plan executors have no Supabase MCP access, and an unscoped `db push` is unsafe given this project's known pre-existing remote migration-history drift. | Shipped — consistent pattern across 4+ milestones now; worth eventually giving trusted executors scoped MCP access if the escalation volume keeps growing. |
 | Zero new npm dependencies for the Expo 54→57 bump beyond what each hop's own SDK requires | Mirrors v1.1's "zero new deps" mobile constraint — the EAS pipeline is fragile, so scope any dependency change tightly to what the major-version bump itself forces (e.g. `@react-navigation/native` as an explicit direct dependency, required once Expo Router forked from it at SDK 56). | Shipped — 3 sequential single-major hops, each gated by `expo-doctor` + `npx jest` + type-check + a green EAS Android build, committed as a rollback boundary before the next hop began. |
+| RBAC matrix/allowlist tooling built as stdlib-`ast`-only scripts, not a runtime dependency or ESLint-style plugin | Matches the project's existing zero-dependency drift-guard idiom (`schema/work_order_enums.json`/`test_enum_contracts.py`); the source being described is Python, so a Python AST scan is the natural fit and needs no env vars, DB, or running app to execute. | Shipped — Phase 23 (`generate_rbac_matrix.py`) and Phase 24 (`check_bare_role_comparisons.py`) both parse-only, never import/execute router code. |
+| Allowlist matches by `(router filename, exact comparison text)` with a per-key occurrence count, not by line number or a simple set | Line-number matching would false-positive on any unrelated edit elsewhere in the file; a naive set-membership match (the initial Phase 24 implementation) let a genuinely-new violation with duplicate text to an already-allowlisted entry silently evade detection — found by that phase's own code review. | Shipped — Phase 24's CR-01 fix moved to per-key occurrence-count matching, preserving line-number-agnostic robustness while closing the evasion gap; independently re-verified by the milestone audit. |
 
 ## Evolution
 
@@ -138,4 +144,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-11 — milestone v1.5 (RBAC Enforcement Tooling) started.*
+*Last updated: 2026-08-11 — milestone v1.5 (RBAC Enforcement Tooling) shipped.*
