@@ -97,6 +97,18 @@ export interface RoomPrediction {
   room_number?: string
 }
 
+export type BatchRoomActionError = { room_id: string; action: 'error'; status: number; detail: string }
+
+export type BatchReassignResult =
+  | { room_id: string; action: 'reassigned'; housekeeper_id: string }
+  | { room_id: string; action: 'escalated'; reason: 'no_eligible_housekeeper' }
+  | BatchRoomActionError
+
+export type BatchAcknowledgeResult =
+  | { room_id: string; action: 'acknowledged' }
+  | { room_id: string; action: 'already_acknowledged' }
+  | BatchRoomActionError
+
 export const housekeepingApi = {
   getBoard: (date: string, shiftId?: string, includePredictions = true) =>
     apiClient.get('/housekeeping/board', {
@@ -138,6 +150,24 @@ export const housekeepingApi = {
   acknowledgeAtRiskRoom: (roomId: string) =>
     apiClient.post(`/housekeeping/room-readiness/${roomId}/acknowledge`) as Promise<{
       data: { action: 'acknowledged' | 'already_acknowledged' }
+    }>,
+
+  batchReassignAtRiskRooms: (roomIds: string[]) =>
+    apiClient.post('/housekeeping/room-readiness/batch-reassign', { room_ids: roomIds }) as Promise<{
+      data: {
+        results: BatchReassignResult[]
+        succeeded: number
+        failed: number
+      }
+    }>,
+
+  batchAcknowledgeAtRiskRooms: (roomIds: string[]) =>
+    apiClient.post('/housekeeping/room-readiness/batch-acknowledge', { room_ids: roomIds }) as Promise<{
+      data: {
+        results: BatchAcknowledgeResult[]
+        succeeded: number
+        failed: number
+      }
     }>,
 
   submitInspection: (data: SubmitInspectionPayload) =>
