@@ -9,15 +9,15 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Batch Actions (AI-09 backlog item, unpacked into atomic requirements)
 
-- [ ] **AI-09**: Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, with a per-room outcome reported afterward (e.g. "3 reassigned, 1 escalated: no capacity") — not a single aggregate pass/fail result
-- [ ] **AI-10**: Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action
-- [ ] **AI-11**: Engineer/GM can select multiple unacknowledged asset-failure predictions and batch-acknowledge them in one confirming action. Scope corrected 2026-08-13 during Phase 28 research, two ways: (1) actors — the real single-item `acknowledge_failure_prediction` endpoint, `apps/api/routers/assets.py:114`, gates `require_role("gm", "engineer")` only; `chief_engineer` is excluded from that specific action across the majority of this file's endpoints, not a clear oversight, so batch mirrors the existing single-item gate exactly rather than widening it. (2) eligibility — dropped the "HIGH-risk" qualifier to match the real single-item Acknowledge button's gate (`canManage && !is_acknowledged`, no risk-level filter); adding a new HIGH-only restriction that doesn't exist on the single-item path would have been a behavior divergence, not a mirror.
+- [x] **AI-09**: Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, with a per-room outcome reported afterward (e.g. "3 reassigned, 1 escalated: no capacity") — not a single aggregate pass/fail result
+- [x] **AI-10**: Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action
+- [x] **AI-11**: Engineer/GM can select multiple unacknowledged asset-failure predictions and batch-acknowledge them in one confirming action. Scope corrected 2026-08-13 during Phase 28 research, two ways: (1) actors — the real single-item `acknowledge_failure_prediction` endpoint, `apps/api/routers/assets.py:114`, gates `require_role("gm", "engineer")` only; `chief_engineer` is excluded from that specific action across the majority of this file's endpoints, not a clear oversight, so batch mirrors the existing single-item gate exactly rather than widening it. (2) eligibility — dropped the "HIGH-risk" qualifier to match the real single-item Acknowledge button's gate (`canManage && !is_acknowledged`, no risk-level filter); adding a new HIGH-only restriction that doesn't exist on the single-item path would have been a behavior divergence, not a mirror.
 
 ### Escalation to GM (AI-10 backlog item, unpacked into atomic requirements)
 
-- [ ] **AI-12**: A HIGH-risk room-readiness or asset-failure prediction left un-actioned (not reassigned, escalated, or acknowledged) past a fixed 60-minute threshold automatically triggers a non-silent in-app notification to the GM
-- [ ] **AI-13**: Escalation stops permanently for a given prediction the moment it is reassigned, acknowledged, or its risk drops below HIGH — and only resumes counting if the same room/asset re-enters HIGH risk later
-- [ ] **AI-14**: The same continuous HIGH-risk episode never generates more than one GM escalation notification, regardless of how many times the 30-minute prediction cron re-runs while it remains un-actioned
+- [x] **AI-12**: A HIGH-risk room-readiness or asset-failure prediction left un-actioned (not reassigned, escalated, or acknowledged) past a fixed 60-minute threshold automatically triggers a non-silent in-app notification to the GM
+- [x] **AI-13**: Escalation stops permanently for a given prediction the moment it is reassigned, acknowledged, or its risk drops below HIGH — and only resumes counting if the same room/asset re-enters HIGH risk later
+- [x] **AI-14**: The same continuous HIGH-risk episode never generates more than one GM escalation notification, regardless of how many times the 30-minute prediction cron re-runs while it remains un-actioned
 
 ## v2 Requirements
 
@@ -53,18 +53,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AI-09 | Phase 28 | Not started |
-| AI-10 | Phase 28 | Not started |
-| AI-11 | Phase 28 | Not started |
-| AI-12 | Phase 29 | Not started |
-| AI-13 | Phase 29 | Not started |
-| AI-14 | Phase 29 | Not started |
+| AI-09 | Phase 28 | Complete (2026-08-13) |
+| AI-10 | Phase 28 | Complete (2026-08-13) |
+| AI-11 | Phase 28 | Complete (2026-08-13) |
+| AI-12 | Phase 29 | Complete (2026-08-13) |
+| AI-13 | Phase 29 | Complete (2026-08-13) |
+| AI-14 | Phase 29 | Complete (2026-08-13) |
 
 **Coverage:**
 - v1 requirements: 6 total
 - Mapped to phases: 6/6
 - Unmapped: 0
-- Complete: 0/6
+- Complete: 6/6
 
 ---
 *Requirements defined: 2026-08-13*

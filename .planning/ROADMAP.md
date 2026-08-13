@@ -102,7 +102,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 **Milestone Goal:** Extend the v1.6 proactive-alerting system with batch operations and unattended-alert escalation, closing the two items deliberately deferred at v1.6 close.
 
 - [x] **Phase 28: Batch Actions** - Supervisors/GMs and engineers/GMs can select multiple HIGH-risk predictions and reassign/acknowledge them in one confirming action instead of one at a time (completed 2026-08-13)
-- [ ] **Phase 29: Escalation to GM** - A HIGH-risk prediction left un-actioned past a fixed threshold automatically and reliably notifies the GM, exactly once per continuous HIGH episode
+- [x] **Phase 29: Escalation to GM** - A HIGH-risk prediction left un-actioned past a fixed threshold automatically and reliably notifies the GM, exactly once per continuous HIGH episode (completed 2026-08-13)
 
 ## Phase Details
 
@@ -167,4 +167,4 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 | 26. Deep-Linked Alert Surfaces | v1.6 | 2/2 | Complete | 2026-08-12 |
 | 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 3/3 | Complete | 2026-08-12 |
 | 28. Batch Actions | v1.7 | Complete    | 2026-08-13 | - |
-| 29. Escalation to GM | v1.7 | 0/0 | Not started | - |
+| 29. Escalation to GM | v1.7 | Complete    | 2026-08-13 | - |
