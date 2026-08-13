@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { UserPlus, Bell, Check, X } from 'lucide-react'
-import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
+import {
+  RoomPrediction,
+  housekeepingApi,
+  BatchReassignResult,
+  BatchAcknowledgeResult,
+} from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { AILabel, Mono, Pill } from '@/components/ui/primitives'
@@ -67,10 +73,14 @@ function PredictionRow({
   prediction,
   canAssignRooms,
   onActionComplete,
+  isSelected,
+  onToggleSelect,
 }: {
   prediction: RoomPrediction
   canAssignRooms: boolean
   onActionComplete: () => void
+  isSelected: boolean
+  onToggleSelect: (roomId: string) => void
 }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<ActionMode>('idle')
@@ -122,6 +132,15 @@ function PredictionRow({
   return (
     <div className="flex flex-col gap-2 px-4 py-3 border-b border-line last:border-0 hover:bg-surface-2 transition-colors">
       <div className="flex items-start gap-3">
+        {canAct && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(prediction.room_id)}
+            className="mt-1.5 shrink-0"
+            aria-label={`${t('housekeeping.predictionPanel.room')} ${roomLabel}`}
+          />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Mono className="text-[13px] font-semibold text-ink">{t('housekeeping.predictionPanel.room')} {roomLabel}</Mono>
@@ -239,6 +258,30 @@ function PredictionRow({
   )
 }
 
+// ── Batch result helpers ──────────────────────────────────────────────────────
+
+function roomLabelFor(roomId: string, predictions: RoomPrediction[]): string {
+  const match = predictions.find((p) => p.room_id === roomId)
+  return match?.room_number ? match.room_number : roomId.slice(0, 8)
+}
+
+function describeBatchResult(result: BatchReassignResult | BatchAcknowledgeResult, t: TFunction): string {
+  switch (result.action) {
+    case 'reassigned':
+      return t('housekeeping.predictionPanel.reassignedTo', { id: result.housekeeper_id })
+    case 'escalated':
+      return t('housekeeping.predictionPanel.escalatedNoCapacity')
+    case 'acknowledged':
+      return t('housekeeping.predictionPanel.acknowledged')
+    case 'already_acknowledged':
+      return t('housekeeping.predictionPanel.alreadyAcknowledged')
+    case 'error':
+      return t('housekeeping.predictionPanel.actionFailed')
+    default:
+      return ''
+  }
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface PredictionPanelProps {
@@ -248,11 +291,21 @@ interface PredictionPanelProps {
   onActionComplete: () => void
 }
 
+type BatchMode = 'idle' | 'confirm-reassign' | 'confirm-acknowledge'
+type BatchResultData = {
+  results: (BatchReassignResult | BatchAcknowledgeResult)[]
+  succeeded: number
+  failed: number
+}
+
 // ── Panel ─────────────────────────────────────────────────────────────────────
 
 export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActionComplete }: PredictionPanelProps) {
   const { t } = useTranslation()
   const [isExpanded, setIsExpanded] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [batchMode, setBatchMode] = useState<BatchMode>('idle')
+  const [batchResult, setBatchResult] = useState<BatchResultData | null>(null)
 
   const atRiskRooms = predictions
     .filter((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM')
@@ -263,6 +316,52 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
 
   const highCount = atRiskRooms.filter((p) => p.risk_level === 'HIGH').length
   const mediumCount = atRiskRooms.filter((p) => p.risk_level === 'MEDIUM').length
+
+  const actionableRoomIds = canAssignRooms
+    ? atRiskRooms.filter((p) => p.risk_level === 'HIGH').map((p) => p.room_id)
+    : []
+  const allSelected = actionableRoomIds.length > 0 && actionableRoomIds.every((id) => selected.has(id))
+
+  function handleActionComplete() {
+    setSelected(new Set())
+    setBatchMode('idle')
+    onActionComplete()
+  }
+
+  function toggleSelected(roomId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(roomId)) next.delete(roomId)
+      else next.add(roomId)
+      return next
+    })
+  }
+
+  function handleSelectAllToggle() {
+    setSelected(allSelected ? new Set() : new Set(actionableRoomIds))
+  }
+
+  const batchReassignMutation = useMutation({
+    mutationFn: (ids: string[]) => housekeepingApi.batchReassignAtRiskRooms(ids),
+    onSuccess: (res) => {
+      setBatchResult(res.data)
+      handleActionComplete()
+    },
+  })
+
+  const batchAcknowledgeMutation = useMutation({
+    mutationFn: (ids: string[]) => housekeepingApi.batchAcknowledgeAtRiskRooms(ids),
+    onSuccess: (res) => {
+      setBatchResult(res.data)
+      handleActionComplete()
+    },
+  })
+
+  function confirmBatchAction() {
+    const ids = [...selected]
+    if (batchMode === 'confirm-reassign') batchReassignMutation.mutate(ids)
+    else if (batchMode === 'confirm-acknowledge') batchAcknowledgeMutation.mutate(ids)
+  }
 
   return (
     <Card className="overflow-hidden p-0">
@@ -304,6 +403,132 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
       {/* ── Body ── */}
       {isExpanded && (
         <div>
+          {canAssignRooms && selected.size >= 1 && (
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-[var(--ai-soft)] border-b border-[var(--ai-line)]">
+              {batchMode === 'idle' && (
+                <>
+                  <span className="text-[12px] font-semibold text-ink">
+                    {t('housekeeping.predictionPanel.selectedCount', { count: selected.size })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllToggle}
+                    className="text-[11.5px] text-ink3 hover:text-ink2 underline underline-offset-2"
+                  >
+                    {t(
+                      allSelected
+                        ? 'housekeeping.predictionPanel.deselectAll'
+                        : 'housekeeping.predictionPanel.selectAll',
+                    )}
+                  </button>
+                  <div className="ml-auto flex gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBatchMode('confirm-reassign')}
+                      className="gap-1"
+                    >
+                      <UserPlus size={11} />
+                      {t('housekeeping.predictionPanel.batchReassign')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBatchMode('confirm-acknowledge')}
+                      className="gap-1"
+                    >
+                      <Check size={11} />
+                      {t('housekeeping.predictionPanel.batchAcknowledge')}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {batchMode === 'confirm-reassign' && (
+                <div className="flex items-center gap-2 w-full">
+                  <span className="text-[11.5px] text-ink2 font-medium flex-1">
+                    {t('housekeeping.predictionPanel.confirmBatchReassign', { count: selected.size })}
+                  </span>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={batchReassignMutation.isPending}
+                    onClick={confirmBatchAction}
+                    className="gap-1 shrink-0"
+                  >
+                    <Check size={11} />
+                    {t('housekeeping.predictionPanel.batchReassign')}
+                  </Button>
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBatchMode('idle')}
+                    aria-label={t('common.cancel')}
+                    className="text-ink3 hover:text-ink2 shrink-0"
+                  >
+                    <X size={14} />
+                  </IconButton>
+                </div>
+              )}
+
+              {batchMode === 'confirm-acknowledge' && (
+                <div className="flex items-center gap-2 w-full">
+                  <span className="text-[11.5px] text-ink2 font-medium flex-1">
+                    {t('housekeeping.predictionPanel.confirmBatchAcknowledge', { count: selected.size })}
+                  </span>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={batchAcknowledgeMutation.isPending}
+                    onClick={confirmBatchAction}
+                    className="gap-1 shrink-0"
+                  >
+                    <Check size={11} />
+                    {t('housekeeping.predictionPanel.batchAcknowledge')}
+                  </Button>
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBatchMode('idle')}
+                    aria-label={t('common.cancel')}
+                    className="text-ink3 hover:text-ink2 shrink-0"
+                  >
+                    <X size={14} />
+                  </IconButton>
+                </div>
+              )}
+            </div>
+          )}
+
+          {batchResult && (
+            <div className="px-4 py-3 border-b border-line bg-surface-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11.5px] font-semibold text-ink2">
+                  {t('housekeeping.predictionPanel.batchResultSummary', {
+                    succeeded: batchResult.succeeded,
+                    failed: batchResult.failed,
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBatchResult(null)}
+                  className="text-ink3 hover:text-ink2"
+                  aria-label={t('common.cancel')}
+                >
+                  <X size={11} />
+                </button>
+              </div>
+              <ul className="space-y-1">
+                {batchResult.results.map((result) => (
+                  <li key={result.room_id} className="text-[11px] text-ink3 font-mono">
+                    {t('housekeeping.predictionPanel.room')} {roomLabelFor(result.room_id, predictions)} —{' '}
+                    {describeBatchResult(result, t)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {isLoading ? (
             <>
               <SkeletonRow />
@@ -325,7 +550,9 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
                 key={prediction.room_id}
                 prediction={prediction}
                 canAssignRooms={canAssignRooms}
-                onActionComplete={onActionComplete}
+                onActionComplete={handleActionComplete}
+                isSelected={selected.has(prediction.room_id)}
+                onToggleSelect={toggleSelected}
               />
             ))
           )}
