@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: "AI Copilot Batch Actions & Escalation"
-status: planned
-last_updated: "2026-08-13T02:00:00Z"
-last_activity: 2026-08-13 -- Phase 28 planned and verified (4 plans, 3 waves, plan-checker PASSED). Ready to execute.
+status: in_progress
+last_updated: "2026-08-13T02:35:00Z"
+last_activity: 2026-08-13 -- Plan 28-01 (RR batch backend) executed and closed.
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 25
 ---
 
 # GSD State
@@ -18,11 +18,13 @@ progress:
 ## Current Position
 
 Phase: 28 of 29 (Batch Actions)
-Plan: 4 plans (28-01..28-04), 3 waves — not yet executed
-Status: Planned, ready to execute
-Last activity: 2026-08-13 — Phase 28 planned autonomously and passed plan-checker verification with no blockers. Phase-level research (28-RESEARCH.md) surfaced a real scope-correction: AI-11's actor list corrected from "Engineer/chief_engineer/GM" to "Engineer/GM" to match the real single-item `acknowledge_failure_prediction` endpoint gate (`assets.py:114`, `require_role("gm","engineer")` only) — REQUIREMENTS.md/ROADMAP.md/CONTEXT.md all updated and committed. Plans: 28-01 (RR batch backend, wave 1), 28-02 (asset batch backend, wave 2, depends on 28-01 for shared requests.py), 28-03 (RR batch frontend, wave 2, depends on 28-01), 28-04 (asset batch frontend, wave 3, depends on 28-02 + 28-03). Ready for execute-phase.
+Plan: 4 plans (28-01..28-04), 3 waves — 28-01 CLOSED, 28-02/28-03 (wave 2) next
+Status: In progress, executing Phase 28
+Last activity: 2026-08-13 — Phase 28 planned autonomously and passed plan-checker verification with no blockers. Phase-level research (28-RESEARCH.md) surfaced a real scope-correction: AI-11's actor list corrected from "Engineer/chief_engineer/GM" to "Engineer/GM" to match the real single-item `acknowledge_failure_prediction` endpoint gate (`assets.py:114`, `require_role("gm","engineer")` only) — REQUIREMENTS.md/ROADMAP.md/CONTEXT.md all updated and committed. Plans: 28-01 (RR batch backend, wave 1), 28-02 (asset batch backend, wave 2, depends on 28-01 for shared requests.py), 28-03 (RR batch frontend, wave 2, depends on 28-01), 28-04 (asset batch frontend, wave 3, depends on 28-02 + 28-03).
 
-Progress: [          ] 0% (planned, ready to execute Phase 28)
+**28-01 CLOSED (2026-08-13, commits `1e7d41b6`/`3408d757`/`c1af83d6`):** Room-readiness batch reassign/acknowledge backend (AI-09, AI-10), autonomous, 2 auto tasks, wave 1 of 3. New `BatchRoomReadinessRequest` (`apps/api/models/requests.py`, `room_ids: List[UUID4]`, min 1, max 50 — deliberately not reusing `BulkArchiveWorkOrdersRequest`'s 200 cap, since HIGH-risk lists at a 50-150 room property are inherently small and this is synchronous, not a background sweep). Two new endpoints in `apps/api/routers/housekeeping.py` — `POST /room-readiness/batch-reassign` and `POST /room-readiness/batch-acknowledge`, both gated `require_role("gm", "housekeeping_supervisor")` — each a thin per-id loop over Phase 27's existing single-item coroutines (`reassign_at_risk_room` / `acknowledge_at_risk_room`), wrapped in per-item `try/except HTTPException` so one room's 409/404 becomes a per-item error entry without aborting the rest of the batch; no bulk `.in_()` pre-fetch anywhere, so the per-item live re-read and existing tenant/404 guards are inherited by construction. Response shape: `{"data": {"results": [...], "succeeded": N, "failed": N}}`, order preserved. RBAC-MATRIX.md regenerated (30 routers, 291 routes, up from 289) to satisfy the Phase 23 CI drift guard — same class of expected drift Phase 27-02 hit. New `test_room_readiness_batch_actions.py` (14 tests) covers happy path, partial-failure best-effort, escalate-no-capacity-as-success, acknowledge idempotency, per-item live re-read (asserted via `FakeDB.select_calls` scaling linearly with room count), concurrent-mutation, cap/empty validation, RBAC, and tenant isolation. **One test-only bug found and fixed (Rule 1):** the initial test fixture seeded two shift-assigned housekeepers with only one valid `user_roles` entry and a flat mocked `count_rooms_ahead`, so `_active_housekeepers`'s internal `set`-based candidate list caused a nondeterministic `min()` tie-break (~50% intermittent failure) — fixed by simplifying to a single housekeeper per fixture (multi-candidate selection is already covered by `test_room_readiness_actions.py`); confirmed stable across 5 repeated full-file runs. Full suite: 603/603 passed (589 baseline + 14 new), same 3 pre-existing unrelated `test_management_roi.py` failures unchanged. Response shapes are final for Plan 28-03's frontend (documented in full in `28-01-SUMMARY.md`). See `28-01-SUMMARY.md`.
+
+Progress: [███       ] 25% (Plan 28-01 of 4 complete)
 
 ## Project Reference
 
