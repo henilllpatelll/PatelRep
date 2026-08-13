@@ -128,7 +128,11 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
   1. A HIGH-risk room-readiness or asset-failure prediction left un-actioned (not reassigned, escalated, or acknowledged) past a fixed 60-minute threshold triggers a non-silent in-app notification to the GM.
   2. Escalation stops firing for a given prediction the moment it is reassigned, acknowledged, or its risk drops below HIGH, and only resumes counting if the same room/asset later re-enters HIGH risk.
   3. The same continuous HIGH-risk episode never generates more than one GM escalation notification, no matter how many times the 30-minute prediction cron re-runs while it remains un-actioned.
-**Plans**: TBD
+**Plans**: 4 plans (2 waves: migration, then 3 parallel-ish plans sequenced by shared-file dependency)
+- [ ] 29-01-PLAN.md — Migration 096 (escalation_level + high_risk_since on both prediction tables), applied to live Supabase and schema-verified (wave 1)
+- [ ] 29-02-PLAN.md — Prediction-engine escalation-watermark carry-forward: upsert-merge omission for room_readiness_predictions, delete-then-insert carry-forward helper for failure_predictions (both run_asset_failure_predictions and run_single_asset_prediction) (wave 2, depends on 29-01)
+- [ ] 29-03-PLAN.md — New predictions.escalation-check cron: single-tier 60-minute GM escalation for both domains, scheduler wiring, 3x-consecutive-run dedup tests (wave 2, depends on 29-01)
+- [ ] 29-04-PLAN.md — Reset escalation watermark on action: all 5 single-item call sites (reassign/escalate/acknowledge in housekeeping.py, acknowledge/create-work-order in assets.py) (wave 3, depends on 29-02 for shared test file)
 
 ## Progress
 
