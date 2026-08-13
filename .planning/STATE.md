@@ -1,35 +1,35 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: "AI Copilot Proactive Intelligence"
-status: shipped
-last_updated: "2026-08-12T22:45:00Z"
-last_activity: 2026-08-12 -- Milestone v1.6 completed and archived (3/3 phases, 6/6 requirements, 0 gaps). ROADMAP.md/REQUIREMENTS.md archived to .planning/milestones/v1.6-*, PROJECT.md evolved (Validated/Active/Context/Key Decisions), MILESTONES.md entry written. Next milestone not yet scoped.
+milestone: v1.7
+milestone_name: "AI Copilot Batch Actions & Escalation"
+status: defining_requirements
+last_updated: "2026-08-13T00:00:00Z"
+last_activity: 2026-08-13 -- Milestone v1.7 started via /gsd-new-milestone. PROJECT.md updated (Current Milestone section, Active requirements AI-09/AI-10). Proceeding to requirements definition.
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: None active — milestone v1.6 shipped 2026-08-12 (3/3 phases, 6/6 plans, 6/6 requirements, 0 gaps at close)
-Plan: None active
-Status: No milestone in progress. Run `/gsd-new-milestone` to scope the next one.
-Last activity: 2026-08-12 — Milestone v1.6 close-out: ROADMAP.md/REQUIREMENTS.md archived to `.planning/milestones/v1.6-*`, ROADMAP.md reorganized (v1.6 collapsed into the `<details>` history block matching v1.0-v1.5), REQUIREMENTS.md deleted (fresh for next milestone), PROJECT.md fully evolved (3 new Validated entries, Active cleared, Context/Current State refreshed, 4 new Key Decisions, AI-09/AI-10 backlog carried into Next Milestone Goals), MILESTONES.md entry hand-written (the automated one-liner was too thin), local git tag `v1.6` created (not pushed).
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-08-13 — Milestone v1.7 started — AI-09 (batch reassign/acknowledge) and AI-10 (un-actioned-prediction escalation-to-GM) scoped as target features.
 
-Progress: [██████████] 100% (3/3 phases complete)
+Progress: [          ] 0% (requirements not yet finalized)
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-12)
+See: .planning/PROJECT.md (updated 2026-08-13)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** None — between milestones. Backlog carried forward: AI-09 (batch-reassign/acknowledge), AI-10 (un-actioned-prediction escalation-to-GM), both deferred pending usage evidence.
+**Current focus:** v1.7 AI Copilot Batch Actions & Escalation — AI-09 (batch reassign/acknowledge grouped HIGH-risk alerts), AI-10 (un-actioned HIGH-risk predictions auto-escalate to GM).
 
 ## Previous milestones
 

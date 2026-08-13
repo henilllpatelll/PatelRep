@@ -39,17 +39,20 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-*(Empty — v1.6 shipped 2026-08-12 with 0 carried-over Active items. Next milestone not yet scoped; run `/gsd-new-milestone` to populate.)*
+- AI-09 — Supervisors/GMs can batch-reassign or batch-acknowledge a group of HIGH-risk alerts (e.g. all rooms on one floor) in one action instead of one at a time.
+- AI-10 — A HIGH-risk room-readiness or asset-failure prediction left un-actioned past a time threshold auto-escalates to GM, mirroring the existing work-order `escalation_level` watermark pattern.
 
-## Current Milestone
+## Current Milestone: v1.7 AI Copilot Batch Actions & Escalation
 
-None in progress — v1.6 shipped 2026-08-12. Run `/gsd-new-milestone` to scope the next one.
+**Goal:** Extend the v1.6 proactive-alerting system with batch operations and unattended-alert escalation, closing the two items deliberately deferred at v1.6 close.
+
+**Target features:**
+- AI-09 — Batch-reassign / batch-acknowledge grouped HIGH-risk alerts
+- AI-10 — Un-actioned HIGH-risk predictions auto-escalate to GM after a threshold
 
 ## Next Milestone Goals
 
-TBD — scoped via `/gsd-new-milestone`. Backlog carried forward from v1.6 (see REQUIREMENTS.md's v2 section, archived at `.planning/milestones/v1.6-REQUIREMENTS.md`):
-- AI-09 — Supervisors can batch-reassign or batch-acknowledge grouped alerts (e.g. all HIGH-risk rooms on one floor) — deferred pending evidence of shift-change tap-fatigue with the new one-at-a-time actions.
-- AI-10 — Un-actioned HIGH-risk predictions escalate to GM after a threshold, mirroring the existing work-order `escalation_level` watermark pattern — deferred pending evidence that alerts are going un-actioned.
+TBD — scoped via next `/gsd-new-milestone` run, after v1.7 ships.
 
 ### Out of Scope
 
@@ -163,4 +166,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-12 — milestone v1.6 (AI Copilot Proactive Intelligence) shipped (3/3 phases, 6/6 requirements).*
+*Last updated: 2026-08-13 — milestone v1.7 (AI Copilot Batch Actions & Escalation) started, scoping requirements.*
