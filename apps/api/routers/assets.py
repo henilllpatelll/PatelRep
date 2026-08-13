@@ -118,6 +118,8 @@ async def acknowledge_failure_prediction(
             "is_acknowledged": True,
             "acknowledged_by": current_user.user_id,
             "acknowledged_at": datetime.now(timezone.utc).isoformat(),
+            "escalation_level": 0,
+            "high_risk_since": None,
         }) \
         .eq("id", prediction_id) \
         .eq("tenant_id", current_user.hotel_id) \
@@ -216,6 +218,12 @@ async def create_work_order_from_prediction(
     }
 
     wo_result = supabase.table("work_orders").insert(wo_data).execute()
+
+    supabase.table("failure_predictions").update({
+        "escalation_level": 0,
+        "high_risk_since": None,
+    }).eq("id", prediction_id).eq("tenant_id", current_user.hotel_id).execute()
+
     return {"data": wo_result.data[0] if wo_result.data else None}
 
 
