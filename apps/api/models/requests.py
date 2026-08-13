@@ -791,6 +791,10 @@ class BatchRoomReadinessRequest(SanitizedBaseModel):
     room_ids: List[UUID4] = Field(min_length=1, max_length=50)
 
 
+class BatchAcknowledgePredictionsRequest(SanitizedBaseModel):
+    prediction_ids: List[UUID4] = Field(min_length=1, max_length=50)
+
+
 class BulkArchiveByAgeRequest(SanitizedBaseModel):
     older_than_days: int = Field(ge=1, le=3650)
 

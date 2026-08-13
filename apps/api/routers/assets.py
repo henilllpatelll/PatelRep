@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import CompletePMProgramRequest, CreateAssetRequest, CreatePMScheduleRequest, UpdateAssetRequest
+from models.requests import BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreatePMScheduleRequest, UpdateAssetRequest
 from core.database import supabase
 from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
@@ -123,6 +123,36 @@ async def acknowledge_failure_prediction(
         .eq("tenant_id", current_user.hotel_id) \
         .execute()
     return {"data": result.data[0] if result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# 5b. POST /failure-predictions/batch-acknowledge  (NEW)
+# ---------------------------------------------------------------------------
+
+@router.post("/failure-predictions/batch-acknowledge")
+async def batch_acknowledge_failure_predictions(
+    body: BatchAcknowledgePredictionsRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "engineer")),
+):
+    """Best-effort batch acknowledge: loops acknowledge_failure_prediction per id, one
+    result per id. The single-item update returns data=None (not a 404) for a missing
+    or cross-tenant id, so that case must be treated as a per-item not_found here rather
+    than a silent success."""
+    results = []
+    for pid in body.prediction_ids:
+        prediction_id = str(pid)
+        try:
+            outcome = await acknowledge_failure_prediction(prediction_id=prediction_id, current_user=current_user)
+            if outcome["data"]:
+                results.append({"prediction_id": prediction_id, "action": "acknowledged"})
+            else:
+                results.append({"prediction_id": prediction_id, "action": "not_found"})
+        except HTTPException as e:
+            results.append({"prediction_id": prediction_id, "action": "error", "status": e.status_code, "detail": e.detail})
+
+    succeeded = sum(1 for r in results if r["action"] == "acknowledged")
+    failed = len(results) - succeeded
+    return {"data": {"results": results, "succeeded": succeeded, "failed": failed}}
 
 
 # ---------------------------------------------------------------------------
