@@ -101,7 +101,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 
 **Milestone Goal:** Extend the v1.6 proactive-alerting system with batch operations and unattended-alert escalation, closing the two items deliberately deferred at v1.6 close.
 
-- [ ] **Phase 28: Batch Actions** - Supervisors/GMs and engineers/GMs can select multiple HIGH-risk predictions and reassign/acknowledge them in one confirming action instead of one at a time
+- [x] **Phase 28: Batch Actions** - Supervisors/GMs and engineers/GMs can select multiple HIGH-risk predictions and reassign/acknowledge them in one confirming action instead of one at a time (completed 2026-08-13)
 - [ ] **Phase 29: Escalation to GM** - A HIGH-risk prediction left un-actioned past a fixed threshold automatically and reliably notifies the GM, exactly once per continuous HIGH episode
 
 ## Phase Details
@@ -114,11 +114,11 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
   1. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, and see a per-room outcome afterward (e.g. "3 reassigned, 1 escalated: no capacity") rather than a single aggregate pass/fail result.
   2. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action.
   3. Engineer/GM can select multiple unacknowledged asset-failure predictions and batch-acknowledge them in one confirming action (scope corrected from "Engineer/chief_engineer/GM, HIGH-risk only" 2026-08-13 during Phase 28 research — see 28-CONTEXT.md and REQUIREMENTS.md's AI-11 entry).
-**Plans**: 4 plans (2 waves of backend + frontend per domain; 3 waves total)
-- [ ] 28-01-PLAN.md — Room-readiness batch backend: batch-reassign + batch-acknowledge endpoints, per-item best-effort loop over Phase 27's single-item coroutines (wave 1)
-- [ ] 28-02-PLAN.md — Asset-failure batch backend: batch-acknowledge endpoint, gm/engineer only, per-item loop with not_found handling (wave 2)
-- [ ] 28-03-PLAN.md — Room-readiness batch frontend: checkbox select + inline contextual action bar in PredictionPanel.tsx (wave 2)
-- [ ] 28-04-PLAN.md — Asset-failure batch frontend: checkbox select + inline contextual action bar on the engineering predictions page (wave 3)
+**Plans**: 4/4 plans complete (2 waves of backend + frontend per domain; 3 waves total)
+- [x] 28-01-PLAN.md — Room-readiness batch backend: batch-reassign + batch-acknowledge endpoints, per-item best-effort loop over Phase 27's single-item coroutines (wave 1)
+- [x] 28-02-PLAN.md — Asset-failure batch backend: batch-acknowledge endpoint, gm/engineer only, per-item loop with not_found handling (wave 2)
+- [x] 28-03-PLAN.md — Room-readiness batch frontend: checkbox select + inline contextual action bar in PredictionPanel.tsx (wave 2)
+- [x] 28-04-PLAN.md — Asset-failure batch frontend: checkbox select + inline contextual action bar on the engineering predictions page (wave 3)
 
 ### Phase 29: Escalation to GM
 **Goal**: A HIGH-risk room-readiness or asset-failure prediction that sits un-actioned past a fixed threshold automatically and reliably notifies the GM — exactly once per continuous HIGH episode, never silently and never repeatedly.
@@ -162,5 +162,5 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 | 25. Failure-Prediction Proactive Push + Dedup | v1.6 | 1/1 | Complete | 2026-08-12 |
 | 26. Deep-Linked Alert Surfaces | v1.6 | 2/2 | Complete | 2026-08-12 |
 | 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 3/3 | Complete | 2026-08-12 |
-| 28. Batch Actions | v1.7 | 0/4 | Planned | - |
+| 28. Batch Actions | v1.7 | Complete    | 2026-08-13 | - |
 | 29. Escalation to GM | v1.7 | 0/0 | Not started | - |
