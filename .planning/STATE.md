@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: "AI Copilot Batch Actions & Escalation"
 status: in_progress
-last_updated: "2026-08-13T02:35:00Z"
-last_activity: 2026-08-13 -- Plan 28-01 (RR batch backend) executed and closed.
+last_updated: "2026-08-13T03:10:00Z"
+last_activity: 2026-08-13 -- Plan 28-02 (asset batch backend) executed and closed.
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 2
+  percent: 50
 ---
 
 # GSD State
@@ -18,13 +18,15 @@ progress:
 ## Current Position
 
 Phase: 28 of 29 (Batch Actions)
-Plan: 4 plans (28-01..28-04), 3 waves — 28-01 CLOSED, 28-02/28-03 (wave 2) next
+Plan: 4 plans (28-01..28-04), 3 waves — 28-01/28-02 CLOSED, 28-03 (wave 2, in progress by another agent) next, 28-04 (wave 3) after
 Status: In progress, executing Phase 28
 Last activity: 2026-08-13 — Phase 28 planned autonomously and passed plan-checker verification with no blockers. Phase-level research (28-RESEARCH.md) surfaced a real scope-correction: AI-11's actor list corrected from "Engineer/chief_engineer/GM" to "Engineer/GM" to match the real single-item `acknowledge_failure_prediction` endpoint gate (`assets.py:114`, `require_role("gm","engineer")` only) — REQUIREMENTS.md/ROADMAP.md/CONTEXT.md all updated and committed. Plans: 28-01 (RR batch backend, wave 1), 28-02 (asset batch backend, wave 2, depends on 28-01 for shared requests.py), 28-03 (RR batch frontend, wave 2, depends on 28-01), 28-04 (asset batch frontend, wave 3, depends on 28-02 + 28-03).
 
+**28-02 CLOSED (2026-08-13, commits `0c338893`/`b9690eb6`):** Asset failure-prediction batch acknowledge backend (AI-11), autonomous, 2 auto tasks, wave 2 of 3, depends_on 28-01. New `BatchAcknowledgePredictionsRequest` (`apps/api/models/requests.py`, `prediction_ids: List[UUID4]`, min 1, max 50 — cap matches 28-01's `BatchRoomReadinessRequest` for consistency). One new endpoint in `apps/api/routers/assets.py` — `POST /assets/failure-predictions/batch-acknowledge`, gated `require_role("gm", "engineer")` only, mirroring the single-item `acknowledge_failure_prediction` gate exactly (no `chief_engineer` — LOCKED per the phase-research scope correction, not widened). Thin per-id loop over the existing single-item coroutine, wrapped in per-item `try/except HTTPException`. **Domain difference from 28-01 handled correctly:** `acknowledge_failure_prediction` never raises 404 for a missing/cross-tenant id — its tenant-scoped `.update()` just matches zero rows and returns `{"data": None}` with a 200 — so the batch loop inspects the returned `data` directly: `None`/falsy → `{"prediction_id", "action": "not_found"}` (counts toward `failed`, distinct from `"error"`), truthy → `{"prediction_id", "action": "acknowledged"}`, a raised `HTTPException` → `{"prediction_id", "action": "error", "status", "detail"}`. RBAC-MATRIX.md regenerated (30 routers, 292 routes, up from 291) to satisfy the CI drift guard — same expected drift class as 27-02/28-01. New `test_asset_failure_batch_actions.py` (13 tests) covers happy path, the not_found-vs-acknowledged diff (both a missing id and a cross-tenant id), partial-failure best-effort (simulated raised exception), idempotency (re-acknowledging an already-acknowledged prediction still counts as acknowledged), cap/empty validation, and RBAC — including an explicit standalone assertion that `chief_engineer` is 403'd, proving the LOCKED "do not widen" decision. One anticipated deviation (Rule 3, blocking): RBAC-MATRIX.md regen, same class flagged by 28-01's own summary. Full suite: 616/616 passed (603 baseline + 13 new), same 3 pre-existing unrelated `test_management_roi.py` failures unchanged. Response shape is final for Plan 28-04's frontend — see `28-02-SUMMARY.md`.
+
 **28-01 CLOSED (2026-08-13, commits `1e7d41b6`/`3408d757`/`c1af83d6`):** Room-readiness batch reassign/acknowledge backend (AI-09, AI-10), autonomous, 2 auto tasks, wave 1 of 3. New `BatchRoomReadinessRequest` (`apps/api/models/requests.py`, `room_ids: List[UUID4]`, min 1, max 50 — deliberately not reusing `BulkArchiveWorkOrdersRequest`'s 200 cap, since HIGH-risk lists at a 50-150 room property are inherently small and this is synchronous, not a background sweep). Two new endpoints in `apps/api/routers/housekeeping.py` — `POST /room-readiness/batch-reassign` and `POST /room-readiness/batch-acknowledge`, both gated `require_role("gm", "housekeeping_supervisor")` — each a thin per-id loop over Phase 27's existing single-item coroutines (`reassign_at_risk_room` / `acknowledge_at_risk_room`), wrapped in per-item `try/except HTTPException` so one room's 409/404 becomes a per-item error entry without aborting the rest of the batch; no bulk `.in_()` pre-fetch anywhere, so the per-item live re-read and existing tenant/404 guards are inherited by construction. Response shape: `{"data": {"results": [...], "succeeded": N, "failed": N}}`, order preserved. RBAC-MATRIX.md regenerated (30 routers, 291 routes, up from 289) to satisfy the Phase 23 CI drift guard — same class of expected drift Phase 27-02 hit. New `test_room_readiness_batch_actions.py` (14 tests) covers happy path, partial-failure best-effort, escalate-no-capacity-as-success, acknowledge idempotency, per-item live re-read (asserted via `FakeDB.select_calls` scaling linearly with room count), concurrent-mutation, cap/empty validation, RBAC, and tenant isolation. **One test-only bug found and fixed (Rule 1):** the initial test fixture seeded two shift-assigned housekeepers with only one valid `user_roles` entry and a flat mocked `count_rooms_ahead`, so `_active_housekeepers`'s internal `set`-based candidate list caused a nondeterministic `min()` tie-break (~50% intermittent failure) — fixed by simplifying to a single housekeeper per fixture (multi-candidate selection is already covered by `test_room_readiness_actions.py`); confirmed stable across 5 repeated full-file runs. Full suite: 603/603 passed (589 baseline + 14 new), same 3 pre-existing unrelated `test_management_roi.py` failures unchanged. Response shapes are final for Plan 28-03's frontend (documented in full in `28-01-SUMMARY.md`). See `28-01-SUMMARY.md`.
 
-Progress: [███       ] 25% (Plan 28-01 of 4 complete)
+Progress: [█████     ] 50% (Plans 28-01, 28-02 of 4 complete)
 
 ## Project Reference
 
