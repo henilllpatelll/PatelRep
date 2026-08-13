@@ -374,6 +374,44 @@ def notify_engineers_asset_risk_high(
 
 
 # ---------------------------------------------------------------------------
+# _carry_forward_escalation_watermark
+# ---------------------------------------------------------------------------
+
+def _carry_forward_escalation_watermark(hotel_id: str, asset_id: str, risk_score: int, previous_score: int) -> dict:
+    """
+    Read the previous unacknowledged failure_predictions row for this asset
+    (before it gets deleted) and decide what escalation_level/high_risk_since
+    the NEW row should carry, since this table is rewritten via delete-then-
+    insert rather than upsert (no SQL merge semantics available).
+
+    "Was this asset already HIGH last cycle" is decided from `previous_score`
+    (the asset's own cached failure_risk_score from BEFORE this run's
+    recompute), not from whether the previous failure_predictions row's
+    high_risk_since happened to be non-NULL — that column can be reset to
+    NULL/0 by create_work_order_from_prediction without the asset's actual
+    risk ever dropping, and deriving "was previously HIGH" from the watermark
+    itself would misread that reset as a fresh crossing.
+
+    Returns a dict with exactly "escalation_level" and "high_risk_since" keys.
+    """
+    prev_pred = supabase.table("failure_predictions")\
+        .select("escalation_level, high_risk_since")\
+        .eq("tenant_id", hotel_id).eq("asset_id", asset_id).eq("is_acknowledged", False)\
+        .maybe_single().execute()
+    prev_row = prev_pred.data or {}
+    prev_escalation_level = prev_row.get("escalation_level", 0)
+    prev_high_risk_since = prev_row.get("high_risk_since")
+
+    now_utc = datetime.now(timezone.utc)
+    if risk_score >= 70 and previous_score >= 70:
+        return {"escalation_level": prev_escalation_level, "high_risk_since": prev_high_risk_since}
+    elif risk_score >= 70:
+        return {"escalation_level": 0, "high_risk_since": now_utc.isoformat()}
+    else:
+        return {"escalation_level": 0, "high_risk_since": None}
+
+
+# ---------------------------------------------------------------------------
 # run_asset_failure_predictions  (per-hotel)
 # ---------------------------------------------------------------------------
 
@@ -461,6 +499,9 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
 
         # --- 4. Delete existing unacknowledged prediction, insert new one ---
         try:
+            watermark = _carry_forward_escalation_watermark(hotel_id, asset_id, risk_score, previous_score)
+            prediction.update(watermark)
+
             supabase.table("failure_predictions").delete()\
                 .eq("tenant_id", hotel_id)\
                 .eq("asset_id", asset_id)\
@@ -631,6 +672,10 @@ async def run_single_asset_prediction(hotel_id: str, asset_id: str) -> dict | No
 
     # 5. Upsert: delete old unacknowledged, insert new
     try:
+        previous_score = asset.get("failure_risk_score") or 0
+        watermark = _carry_forward_escalation_watermark(hotel_id, asset_id, prediction_data["risk_score"], previous_score)
+        prediction_data.update(watermark)
+
         supabase.table("failure_predictions").delete().eq("tenant_id", hotel_id).eq("asset_id", asset_id).eq("is_acknowledged", False).execute()
         insert_result = supabase.table("failure_predictions").insert(prediction_data).execute()
         inserted = insert_result.data[0] if insert_result.data else prediction_data

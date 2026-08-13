@@ -423,13 +423,22 @@ def run_room_predictions(hotel_id: str) -> dict:
         # below HIGH, clear any prior acknowledgement so a later re-escalation
         # to HIGH is treated as fresh. While still HIGH, omit the three ack
         # columns entirely so the upsert's on_conflict merge leaves whatever
-        # acknowledgement state already exists untouched.
+        # acknowledgement state already exists untouched. The escalation
+        # watermark (escalation_level/high_risk_since) follows the same
+        # discipline: reset on drop below HIGH, stamp fresh on a new crossing,
+        # and omit entirely while continuously HIGH so Plan 03's cron-driven
+        # escalation isn't clobbered by this upsert.
         if risk_level != "HIGH":
             upsert_payload.update({
                 "is_acknowledged": False,
                 "acknowledged_at": None,
                 "acknowledged_by": None,
+                "escalation_level": 0,
+                "high_risk_since": None,
             })
+        elif previous_risk != "HIGH":
+            upsert_payload["high_risk_since"] = now_utc.isoformat()
+            upsert_payload["escalation_level"] = 0
         try:
             supabase.table("room_readiness_predictions").upsert(
                 upsert_payload,
