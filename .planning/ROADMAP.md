@@ -113,7 +113,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 **Success Criteria** (what must be TRUE):
   1. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, and see a per-room outcome afterward (e.g. "3 reassigned, 1 escalated: no capacity") rather than a single aggregate pass/fail result.
   2. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action.
-  3. Engineer/GM can select multiple HIGH-risk asset-failure predictions and batch-acknowledge them in one confirming action (scope corrected from "Engineer/chief_engineer/GM" 2026-08-13 during Phase 28 research — see 28-CONTEXT.md).
+  3. Engineer/GM can select multiple unacknowledged asset-failure predictions and batch-acknowledge them in one confirming action (scope corrected from "Engineer/chief_engineer/GM, HIGH-risk only" 2026-08-13 during Phase 28 research — see 28-CONTEXT.md and REQUIREMENTS.md's AI-11 entry).
 **Plans**: 4 plans (2 waves of backend + frontend per domain; 3 waves total)
 - [ ] 28-01-PLAN.md — Room-readiness batch backend: batch-reassign + batch-acknowledge endpoints, per-item best-effort loop over Phase 27's single-item coroutines (wave 1)
 - [ ] 28-02-PLAN.md — Asset-failure batch backend: batch-acknowledge endpoint, gm/engineer only, per-item loop with not_found handling (wave 2)
