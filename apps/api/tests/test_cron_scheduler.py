@@ -7,11 +7,13 @@ prod database from a local dev machine or the test suite.
 """
 import core.scheduler as sched
 
-# The 13 cron jobs the retired cron-jobs.yml drove.
+# The 13 cron jobs the retired cron-jobs.yml drove, plus predictions.escalation-check
+# (Phase 29, AI-12/AI-14 GM escalation cron).
 EXPECTED_JOBS = {
     "predictions.run",
     "opera.sync-reservations",
     "escalations.check",
+    "predictions.escalation-check",
     "pm.check-due",
     "reports.daily-summary-email",
     "evidence.reminders",

@@ -662,6 +662,73 @@ async def check_escalations(x_cron_secret: str = Header(None)):
     return {"status": "ok", "escalated": escalated, "notified": notified, "dnd_welfare_notified": dnd_notified}
 
 
+@router.post("/predictions/escalations/check")
+async def check_prediction_escalations(x_cron_secret: str = Header(None)):
+    """
+    Cron: single-tier GM escalation for HIGH-risk predictions left un-actioned
+    past 60 minutes. escalation_level watermark prevents duplicate notifications
+    across cron runs (mirrors check_escalations' escalation_level pattern,
+    collapsed to one tier per AI-17's deferral to v2).
+    """
+    verify_cron(x_cron_secret)
+
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(minutes=60)).isoformat()
+    escalated = 0
+
+    # --- Room-readiness ---
+    overdue_rooms = supabase.table("room_readiness_predictions")\
+        .select("room_id, tenant_id, high_risk_since, rooms(room_number)")\
+        .eq("risk_level", "HIGH")\
+        .eq("is_acknowledged", False)\
+        .lt("escalation_level", 1)\
+        .lt("high_risk_since", cutoff)\
+        .execute()
+
+    for row in (overdue_rooms.data or []):
+        if not row.get("high_risk_since"):
+            continue
+        room_id = row["room_id"]
+        hotel_id = row["tenant_id"]
+        room_number = (row.get("rooms") or {}).get("room_number", "unknown")
+        supabase.table("room_readiness_predictions")\
+            .update({"escalation_level": 1})\
+            .eq("room_id", room_id).eq("tenant_id", hotel_id).execute()
+        _notify_role(hotel_id, "gm", "escalation_auto",
+                     f"Room {room_number} needs attention",
+                     "HIGH-risk room readiness prediction has gone unactioned for over an hour.",
+                     {"room_id": room_id})
+        escalated += 1
+
+    # --- Asset-failure: risk_score >= 70, NOT risk_level = 'HIGH' — that column
+    # does not exist on failure_predictions (see 29-RESEARCH.md Pitfall 1) ---
+    overdue_assets = supabase.table("failure_predictions")\
+        .select("id, asset_id, tenant_id, high_risk_since, assets(name)")\
+        .gte("risk_score", 70)\
+        .eq("is_acknowledged", False)\
+        .lt("escalation_level", 1)\
+        .lt("high_risk_since", cutoff)\
+        .execute()
+
+    for row in (overdue_assets.data or []):
+        if not row.get("high_risk_since"):
+            continue
+        pred_id = row["id"]
+        hotel_id = row["tenant_id"]
+        asset_name = (row.get("assets") or {}).get("name", "Asset")
+        supabase.table("failure_predictions")\
+            .update({"escalation_level": 1})\
+            .eq("id", pred_id).eq("tenant_id", hotel_id).execute()
+        _notify_role(hotel_id, "gm", "escalation_auto_asset",
+                     f"{asset_name} needs attention",
+                     "HIGH-risk asset-failure prediction has gone unactioned for over an hour.",
+                     {"asset_id": row["asset_id"]})
+        escalated += 1
+
+    _record_cron_run("predictions.escalation-check")
+    return {"status": "ok", "escalated": escalated}
+
+
 @router.post("/lost-found/retention-check")
 async def check_lost_found_retention(x_cron_secret: str = Header(None)):
     """D-11: flag expired unclaimed items for manager review. Never auto-donates or discards."""

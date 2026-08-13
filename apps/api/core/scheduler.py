@@ -26,6 +26,7 @@ CRON_SCHEDULE: dict[str, dict] = {
     "predictions.run": {"minute": "*/30"},
     "opera.sync-reservations": {"minute": "*/30"},
     "escalations.check": {"minute": "*/30"},
+    "predictions.escalation-check": {"minute": "*/30"},
     # Daily 06:00.
     "pm.check-due": {"hour": 6, "minute": 0},
     "reports.daily-summary-email": {"hour": 6, "minute": 0},
@@ -65,6 +66,7 @@ def _job_handlers() -> dict[str, Callable[..., Awaitable]]:
         "predictions.run": internal.run_predictions,
         "opera.sync-reservations": internal.sync_opera_reservations,
         "escalations.check": internal.check_escalations,
+        "predictions.escalation-check": internal.check_prediction_escalations,
         "pm.check-due": internal.check_due_pm,
         "reports.daily-summary-email": internal.send_daily_summary_emails,
         "evidence.reminders": internal.send_evidence_reminders,
