@@ -1,186 +1,162 @@
 # Pitfalls Research
 
-**Domain:** Proactive prediction-driven alerting + one-click actions on an existing reactive hotel-ops system (PatelRep v1.6)
-**Researched:** 2026-08-12
-**Confidence:** HIGH — grounded in this project's actual prediction/notification code (`services/ai/predictions.py`, `services/ai/failure_predictions.py`, `routers/notifications.py`, `routers/internal.py`) and its own bug history (`.wolf/buglog.json`, `.wolf/cerebrum.md`), not generic advice.
+**Domain:** Batch actions (AI-09) + escalation-to-GM (AI-10) added on top of PatelRep's existing single-item room-readiness alerting system (v1.6, Phase 27)
+**Researched:** 2026-08-13
+**Confidence:** HIGH — grounded in the actual v1.6 code (`routers/housekeeping.py` reassign/escalate/acknowledge, `routers/internal.py` work-order/task escalation ladder, `services/ai/predictions.py`, migration 095, `tests/test_room_readiness_actions.py`) and this project's own documented migration/upsert incident history, not generic advice.
 
-> **Scope note.** This milestone makes *existing, already-computed* predictions actionable and pushes notifications for failure predictions. The prediction engines already exist and run on cron. The risk is almost entirely at the **seam** between a 30-min/nightly cron that rewrites prediction rows and a user who is looking at / acting on a row that the cron is about to overwrite or delete. Every critical pitfall below lives at that seam.
+> **Scope note.** This is a *subsequent* milestone bolting two new capabilities onto code that shipped in Phase 27 (v1.6). The risk surface is almost entirely about **reusing (or failing to reuse) three patterns Phase 27 already proved out**: (a) re-reading live state instead of trusting a cached prediction row, (b) the `escalation_level` tiered-ladder dedup already built for work orders/tasks in `internal.py`, and (c) the upsert-preserves-omitted-columns discipline validated by a dedicated characterization test for `is_acknowledged`. Every critical pitfall below is a way one of those three could be silently dropped when the code is generalized to "many rooms at once" and "a GM tier."
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: One-click action targets a prediction row the cron already deleted (failure predictions)
+### Pitfall 1: Batch action reads room/prediction state once, then acts on N rooms against that one stale snapshot
 
 **What goes wrong:**
-`run_asset_failure_predictions()` does **delete-then-insert**, not upsert: it runs `failure_predictions.delete().eq("is_acknowledged", False)` then `insert(prediction)` every nightly run (`failure_predictions.py:392-399`). Room readiness uses `upsert(on_conflict="room_id")` (`predictions.py:402`), which keeps the same PK but **replaces every column** (`predicted_ready_at`, `risk_level`, `housekeeper_id`, `rooms_remaining_for_hk`). So: a user opens the panel at 11:59pm, the nightly `ai.failure-predictions` cron fires at `0 0 * * *`, deletes the unacknowledged prediction row they're viewing, inserts a new one with a **new UUID**, and the user's "Create Work Order" / "Authorize" click posts a `prediction_id` (or `ai_recommendation` tied to it) that no longer exists → 404, or worse, a silently orphaned `ai_recommendation`.
+The existing single-item endpoints re-read live state as their *first* step and guard on it: `reassign_at_risk_room` re-reads `room_status.status` and 409s if it's not `{DIRTY, IN_PROGRESS, PICKUP}` (`housekeeping.py:1281-1292`); `escalate_at_risk_room` re-reads `risk_level` via `_fetch_room_prediction_or_404` and 409s if it's not `HIGH` (`housekeeping.py:1328-1332`). A batch version handling `room_ids: [r1..r10]` will be tempted to do **one bulk `SELECT ... in_(room_ids)`** up front, then loop and act on the in-memory list — which is fine for the *read*, but only if each item's action-time write is still individually re-validated against a fresh read, not against the batch snapshot taken at request start. Ten rooms take non-trivial wall-clock time to process (each reassign candidate-scoring loop does 2+ round trips per housekeeper via `count_rooms_ahead`); a room can flip CLEAN or get manually reassigned by someone else mid-batch, and item 8 acting on the item-1-era snapshot silently reassigns an already-clean room.
 
 **Why it happens:**
-The prediction engines were built as read-only refresh jobs. Delete-then-insert was fine when nothing referenced the row mid-flight. Making them actionable introduces a reader/actor whose lifetime now overlaps the cron's rewrite window, which the original design never accounted for.
+"Batch-read-then-batch-act" looks like an obvious perf win (1 query instead of N), and the single-item code's re-read discipline is easy to lose when the loop body gets refactored to iterate a pre-fetched list instead of calling the existing single-item function per item.
 
 **How to avoid:**
-- **Do not key user actions off the volatile prediction row PK.** Key the action off the stable underlying entity — `asset_id` (failure) or `room_id` (readiness) — plus the tenant. The action endpoint should re-resolve the current prediction/state server-side from `asset_id`/`room_id`, never trust an ID the client is holding.
-- **Make "acting" flip `is_acknowledged = True` atomically as part of the action**, because the nightly delete only removes `is_acknowledged = False` rows (`failure_predictions.py:394-397`). An acknowledged/acted row survives the cron. This is the existing escape hatch — use it deliberately.
-- For failure predictions, convert delete-then-insert to an **upsert keyed on `(tenant_id, asset_id)`** so the PK is stable and in-flight references survive (matches how room readiness already behaves).
+- The batch endpoint should **call the same per-item guard logic the single-item endpoints already use** (ideally by literally invoking `reassign_at_risk_room`/`escalate_at_risk_room`/`acknowledge_at_risk_room` per `room_id` inside the loop, not reimplementing the guard), so each item gets its own fresh `room_status`/`risk_level` read at the moment it's actually acted on — not a batch-start snapshot.
+- Bulk-read is fine for building the **candidate list to show the user before they confirm** (e.g. "10 rooms currently HIGH risk"); it must not be the source of truth for the write.
+- Explicitly test: kick off a batch reassign for 3 rooms, have a concurrent single-item action change room 2's status before the batch reaches it — room 2 must be skipped/409'd in the batch result, not force-reassigned.
 
 **Warning signs:**
-- Action endpoints accept a `prediction_id` from the request body and `.eq("id", prediction_id)` without re-deriving from `asset_id`/`room_id`.
-- 404s or "prediction not found" errors clustered right after `0 0 * * *` (nightly) or on `:00`/`:30` (readiness).
-- `ai_recommendations` rows whose linked `failure_prediction` no longer exists.
+- Batch handler does one `SELECT ... .in_("room_id", room_ids)` and then loops purely on that in-memory result without a per-item DB read before the write.
+- No 409-equivalent entry appears in the per-item result list even though a room changed state mid-batch in manual testing.
 
-**Phase to address:** Backend action-endpoint phase (before any UI wiring). This is a data-model/endpoint contract decision, not a UI concern.
+**Phase to address:** Batch-actions phase (AI-09) — backend endpoint design, before any UI wiring.
 
 ---
 
-### Pitfall 2: "Reassign" acts on stale prediction fields instead of live room state
+### Pitfall 2: Batch action has no defined partial-failure contract — this project's only existing batch precedent already gets this wrong
 
 **What goes wrong:**
-`room_readiness_predictions.housekeeper_id` is a **snapshot** of `room_status.assigned_to` taken when the `*/30` cron last ran (`predictions.py:407`). It can be up to 30 minutes stale — or reference a `room_assignments` row that was since deleted/reassigned. If the one-click "reassign" button reads the housekeeper from the prediction row and reassigns *from* that stale value (or shows the supervisor a stale "currently assigned to Maria" when it's now Ana), the supervisor makes a decision on wrong data, or an optimistic "reassign from X to Y" clobbers an assignment change made in the last 30 minutes. Same hazard for `risk_level`: a room shown HIGH may already be CLEAN (see Pitfall 3).
+`create_assignments` (`housekeeping.py:828-937`) is the **only existing multi-item write endpoint** in this codebase and is the closest precedent for AI-09. It validates all items up front (`_ensure_tenant_row`/`_ensure_housekeeper` in a loop, `housekeeping.py:836-838` — good, all-or-nothing on validation), then does a **single atomic `upsert()` for the `room_assignments` rows** (`housekeeping.py:886-898`, wrapped in try/except → 409 or 500) — but that's followed by **two more non-atomic per-room loops**: `room_status` updates (`housekeeping.py:900-927`) and fire-and-forget push notifications (`housekeeping.py:930-937`). If the `room_status` update for room 6 of 10 throws (e.g. a Supabase transient error), rooms 1-5 already have both `room_assignments` and `room_status` written correctly, rooms 7-10 never run, and the caller gets a single 500 with **no indication which rooms succeeded**. There is no per-item result list anywhere in this endpoint today. A batch reassign/escalate/acknowledge endpoint copying this shape inherits the exact same gap, except now the failure mode is worse because these actions are explicitly framed to the user as "act on N flagged rooms" — an opaque 500 after item 6 fails leaves the supervisor unable to tell which of the 10 rooms actually got reassigned.
 
 **Why it happens:**
-Predictions are a materialized cache. UIs naturally render whatever the cache says. The moment a cache value drives a *write*, staleness becomes a correctness bug rather than a cosmetic lag.
+The Supabase Python SDK has no multi-statement transaction primitive available to router code in this project (confirmed: no `BEGIN`/`COMMIT` usage anywhere in `routers/`), so "all-or-nothing" is only achievable within a single `upsert()`/`insert()` call, not across the multiple distinct writes one "action" requires (assignment + room_status mirror + notification, or prediction update + notification). Batch just multiplies this per-item instead of once.
 
 **How to avoid:**
-- The reassign/escalate endpoint must **re-read current `room_status` (status, `assigned_to`) inside the request** and act on that, using the prediction only to *surface* the room, never as the source of truth for the mutation.
-- Consider a lightweight guard: reject the action if `room_status.status` is no longer DIRTY/IN_PROGRESS (the room is already clean → reassignment is meaningless), returning a friendly "this room is already ready" rather than performing a no-op reassign.
-- Reuse the existing assignment write path (`room_assignments` with `{date, assignments:[{room_id, housekeeper_id}]}`) rather than inventing a prediction-specific write — the cerebrum's supervisor-assignment contract already defines the correct shape.
+- **Decide explicitly, before implementation: best-effort with a per-item result list**, not all-or-nothing across items — this matches the domain (a supervisor wants "8 succeeded, 2 need manual attention," not the whole batch rolled back because one room changed status). Return `{"data": {"results": [{"room_id": ..., "action": "reassigned"|"escalated"|"skipped", "reason": ...}, ...]}}` mirroring the single-item response shape per item.
+- Wrap each item's action in its own try/except inside the loop so one room's failure doesn't abort the remaining items (the existing `create_assignments` room_status loop does **not** do this today — don't copy that gap forward).
+- Cap batch size (e.g. 25-50 rooms) so partial-failure blast radius and request latency stay bounded — there's no precedent for unbounded batch size in this codebase.
 
 **Warning signs:**
-- Reassign endpoint reads `housekeeper_id` from `room_readiness_predictions` and writes it anywhere.
-- No `room_status` re-read between "user clicked" and "assignment written."
-- QA: reassign a room, then reassign again before the next cron tick — second action uses the pre-first-action housekeeper.
+- Batch endpoint wraps the whole loop in one try/except that returns 500 on any single-item failure.
+- Response shape has no per-item breakdown, only a single aggregate success/failure.
+- No test exercises "item 3 of 5 fails, verify 1/2/4/5 still succeeded and the response says so."
 
-**Phase to address:** Backend action-endpoint phase.
+**Phase to address:** Batch-actions phase (AI-09) — this is the core design decision of that phase, not an edge case to patch in later.
 
 ---
 
-### Pitfall 3: Stale prediction rows never get cleared → false alerts + broken dedup
+### Pitfall 3: Escalation-to-GM reintroduces the exact spam risk the work-order/task ladder was built to prevent, because room-readiness has no tiered counter today
 
 **What goes wrong:**
-`run_room_predictions()` only upserts rows for rooms currently in `get_at_risk_rooms()` (DIRTY/IN_PROGRESS with a check-in in the next 12h). When a room is cleaned or its reservation cancels, it **drops out of the at-risk set and its prediction row is never updated or deleted** — it lingers with `risk_level = "HIGH"` and a `last_calculated_at` that keeps aging. Two downstream failures:
-1. **PredictionPanel / AIRiskAlertsPanel show ghost HIGH-risk rooms** that are actually already ready — and once actionable, offer a "reassign" button for a clean room.
-2. **The notification dedup breaks in the *silent* direction.** The escalation guard is `if risk_level == "HIGH" and previous_risk != "HIGH"` (`predictions.py:428-429`), where `previous_risk` comes from the lingering row. A room that went HIGH → (cleaned, row frozen at HIGH) → dirty-again-HIGH will have `previous_risk == "HIGH"` and **no new notification fires** for a genuinely new risk. This is worse than spam: a real at-risk room goes un-alerted.
+This codebase already solved "notify → notify harder → auto-act" exactly once, for work orders and tasks: `check_escalations` in `internal.py:481-589` uses a **persisted `escalation_level` SMALLINT (0-3)** column (migration `041_escalation_level.sql`) with `.lt("escalation_level", N)` guards before every tier transition, so a `*/30` cron re-run never re-notifies a tier that's already fired (`internal.py:506,522,535,552,571,580`). Room readiness has **no equivalent counter** — it only has a boolean `is_acknowledged` (migration `095_room_readiness_acknowledgement.sql`) that a *human* sets by clicking Acknowledge, and `notify_supervisors_high_risk` (`predictions.py:197-260`) has **zero dedup logic of its own** — it unconditionally inserts a notification for every supervisor/GM every time it's called (its only caller-side protection today is the cron's `previous_risk != "HIGH"` transition check, plus the fact that a human manually clicking Escalate is expected to want to notify again). If AI-10 adds a new "auto-escalate to GM after room stays HIGH+unacknowledged for N minutes" cron tier and either (a) reuses `is_acknowledged` as the dedup gate, or (b) calls `notify_supervisors_high_risk` directly from the new cron without its own persisted marker, the GM gets re-notified every `*/30` cron cycle for as long as the room stays HIGH and unacknowledged — the identical alert-fatigue failure mode `escalation_level` was built to prevent for work orders, reintroduced for rooms because the two subsystems don't share a mechanism.
 
 **Why it happens:**
-The read-only panel tolerated ghost rows (nobody noticed a stale card). Turning rows actionable and using them as the dedup baseline makes both staleness modes load-bearing.
+`escalation_level` and `is_acknowledged` solve adjacent but different problems (system-driven tiered dedup vs. human-driven suppression) and a developer building AI-10 by pattern-matching "how do we escalate something in this codebase" is equally likely to find either one first — `is_acknowledged` is literally in the same table the new feature touches, making it the path of least resistance even though it's the wrong primitive for auto-escalation dedup.
 
 **How to avoid:**
-- Add a **freshness filter everywhere predictions are read**: ignore rows whose `last_calculated_at` is older than ~1 cron interval (e.g. > 35 min for readiness), or LEFT JOIN to live `room_status` and drop rows no longer DIRTY/IN_PROGRESS.
-- Better: at the end of each `run_room_predictions` pass, **delete/clear prediction rows for rooms no longer in the at-risk set** for that tenant, so the cache reflects reality and the dedup baseline is trustworthy.
-- Track "already notified" with an explicit persisted marker (mirror `internal.py`'s `escalation_level` counter, `internal.py:502-582`) rather than inferring it from a mutable `risk_level` that can freeze.
+- Add a **tiered `escalation_level` column to `room_readiness_predictions`**, mirroring `041_escalation_level.sql` exactly (`SMALLINT NOT NULL DEFAULT 0 CHECK (escalation_level BETWEEN 0 AND 2)` — GM tier only needs 0=none/1=supervisor-notified(existing)/2=GM-notified), and gate the new GM-tier cron on `.lt("escalation_level", 2)` the same way `internal.py` gates its tiers.
+- Keep `is_acknowledged` as the separate human-suppression signal it already is — acknowledging should still suppress the GM-escalation cron from firing (an acknowledged room shouldn't auto-escalate to the GM), but acknowledging is not the same event as "GM already notified."
+- If time-in-HIGH is the trigger condition (matching the ladder's due_at-based minutes-overdue model), the room needs a timestamp to measure from — `last_calculated_at` is refreshed every cron regardless of risk level, so it's the wrong anchor; use the timestamp the row first went `HIGH` (does not exist yet — needs its own column, e.g. `high_since`), not `last_calculated_at`.
 
 **Warning signs:**
-- A room shows HIGH on the dashboard but is CLEAN on the housekeeping board.
-- `last_calculated_at` far older than the last cron run for rows still displayed.
-- A room that was fixed and re-degraded never re-notifies.
+- New escalation cron code calls `notify_supervisors_high_risk` (or a GM-only variant) without first checking a persisted "already notified at this tier" column.
+- GM-escalation dedup logic reads `is_acknowledged` as its only gate.
+- No new column analogous to `escalation_level` appears in the migration for this feature.
+- Manual test: leave a room HIGH and unacknowledged across 3 consecutive `*/30` cron runs — GM should get exactly one notification, not three.
 
-**Phase to address:** Split — the freshness/clear-stale-rows fix belongs in the prediction-engine phase; the read-side freshness filter belongs in the deep-link/UI phase.
+**Phase to address:** Escalation phase (AI-10) — this is the core design decision of that phase.
 
 ---
 
-### Pitfall 4: Notification spam — re-notifying every cron cycle instead of on state transition
+### Pitfall 4: New escalation-state column(s) silently reset every `*/30` cron cycle unless `run_room_predictions` is taught to preserve them — exactly like `is_acknowledged` had to be
 
 **What goes wrong:**
-The milestone wants failure predictions to gain "proactive push notification parity" with room readiness. The naive implementation notifies for every asset with `risk_score >= 70` on **every nightly run** — so the chief engineer gets the same "Chiller #2 at risk" push every single night until the asset is fixed. Alert fatigue makes staff mute the channel, defeating the feature. Note the failure path has **no natural baseline to diff against**: delete-then-insert wipes the prior row, so there's literally no `previous_risk` to compare (unlike readiness, which at least reads `existing_risk_map` first, `predictions.py:293-303`).
+`room_readiness_predictions` rows are rewritten via `upsert(on_conflict="room_id")` every `*/30` cron run. When `is_acknowledged`/`acknowledged_at`/`acknowledged_by` were added (migration 095), the upsert *payload* built by `run_room_predictions` only ever set `risk_level`, `predicted_ready_at`, etc. — it never listed the ack columns — which only works because the FakeDB/Postgres upsert semantics **preserve omitted columns on conflict**, a behavior load-bearing enough that this project wrote a dedicated characterization test for it before trusting it (`test_upsert_preserves_omitted_ack_columns_on_conflict`, `test_room_readiness_actions.py:42-57`). Crucially, `run_room_predictions` was *also* explicitly coded to **actively clear** `is_acknowledged` when risk drops below HIGH (`test_run_room_predictions_clears_ack_when_risk_drops_below_high`, `test_room_readiness_actions.py:114-138`) — omission-preservation and explicit-reset are two different, both-necessary behaviors that had to each be written and tested. A new `escalation_level`/`high_since` column added for AI-10 needs the **identical two-part treatment**: (a) confirm via a characterization test that omitting it from the upsert payload preserves it across cron runs, and (b) explicitly decide and code whether it resets when risk drops below HIGH (almost certainly yes, mirroring `is_acknowledged`) — if the second half is skipped, a room that flickers HIGH → cleaned → HIGH again inherits a stale `escalation_level=2` from its first HIGH episode and the GM-tier cron silently never fires for the second, genuinely new episode (same "worse than spam — silent non-alert" failure mode already flagged for `previous_risk` staleness in the prior Phase-27 pitfalls research).
 
 **Why it happens:**
-Room readiness got transition-only notification right (`previous_risk != "HIGH"`); a developer copying "parity" may copy the *notification call* without realizing the failure path lacks the prior-state read that makes dedup possible.
+It's easy to assume "we already proved upsert preserves columns" covers *any* new column added later — but that characterization test only proves the *preservation* half. The *reset-on-resolve* half is separate application logic that has to be written per-column and is easy to forget when adding a second escalation-related column to a table that already has one.
 
 **How to avoid:**
-- Notify **only on transition into high risk**, not on presence of high risk. For failure predictions this requires reading the prior state (or a `last_notified_risk` / `notified_at` marker) **before** the delete-then-insert, because the insert destroys it.
-- Add an explicit dedup key: persist e.g. `failure_predictions.notified_at` or a row in a notification-log keyed by `(asset_id, predicted_failure_window)`, and suppress if already notified for the same window. Mirror the `escalation_level`-style persisted counter from `internal.py`.
-- Consider a re-notify cooldown (e.g. don't re-alert the same asset within 7 days even if it re-crosses the threshold) since assets, unlike rooms, don't resolve within a shift.
+- Write a new characterization test (or extend the existing one) asserting the upsert preserves the new escalation column(s) across a cron cycle where risk stays HIGH.
+- Write a companion test asserting `run_room_predictions` **resets** the new column(s) to 0/NULL when risk drops below HIGH, mirroring `test_run_room_predictions_clears_ack_when_risk_drops_below_high` exactly.
+- Decide reset semantics explicitly and document the decision in the migration's `COMMENT ON COLUMN` (migration 095 does this — reuse that convention).
 
 **Warning signs:**
-- Notification count scales with (high-risk assets × nights) rather than (new high-risk transitions).
-- Staff reporting "same alert every morning."
-- The failure-notification code has no read of prior state before insert.
+- Migration adds a column but no corresponding test exercises a full cron cycle with it populated.
+- `run_room_predictions`'s upsert payload-building code is not touched at all when the new column is added (a sign the reset-on-resolve logic was never written, only the column).
+- Manual test: escalate a room to GM tier, wait for it to clear (cleaned), let it go HIGH again — GM should be notified again; if it isn't, the column didn't reset.
 
-**Phase to address:** Notification-parity phase. This is the core design decision of that phase.
+**Phase to address:** Escalation phase (AI-10) — prediction-engine change, verified alongside the notification-dedup work in Pitfall 3.
 
 ---
 
-### Pitfall 5: Forgetting `require_role()` on the new action endpoints (recurring in this codebase)
+### Pitfall 5: New migration ships in the repo but the deployment-gap discipline this project has already been burned by twice (v1.2, v1.3) isn't automatically inherited by a new feature
 
 **What goes wrong:**
-The new mutating endpoints — reassign, escalate, create-WO-from-prediction, authorize — must be RBAC-gated, and this project has **repeatedly shipped mutations that weren't**. From `.wolf/buglog.json`: "Wrong reference: `get_current_user` should be `require_role`" (line 7815); "An unsupported role could acknowledge a document" (line 7465); chief_engineer 403/routing gaps (line 7). The specific open question here — *should a housekeeper be able to reassign their own predicted-late room, or only a supervisor?* — must be answered per action, not left to default `get_current_user` (which authenticates but does not authorize).
+This project's migration history already shows drift between "the file exists in the repo" and "the column exists in production": 99 migration files exist in `supabase/migrations/` today, but `CLAUDE.md`'s own "Key migrations" reference table only documents through migration 041 — 58 more migrations (042-095, including the `is_acknowledged` columns this exact feature will build on) postdate the last time that doc was updated. Two prior milestones (v1.2, v1.3, per project memory) shipped code-complete, tested migrations that were **never actually applied to production**, caught only by milestone-level audits querying live schema state — not by CI, not by code review. AI-10's new `escalation_level`/`high_since` column(s) on `room_readiness_predictions` are exactly the kind of small, easy-to-miss `ALTER TABLE ... ADD COLUMN` that slipped through before. If the escalation cron ships and reads/writes a column that's present in staging (where migrations ran) but not yet applied in production, the cron either 500s outright or — worse, if the Supabase client fails open on an unrecognized column in a partial update — silently no-ops the escalation write while reporting success.
 
 **Why it happens:**
-`get_current_user` and `require_role(...)` are both `Depends(...)` one-liners that look identical at the call site; the difference is invisible in review unless you check every route. It has slipped through here multiple times.
+Migrations in this repo are applied by whatever manual/CI process runs `supabase migration up` (or equivalent) against Railway's Postgres, decoupled from the code deploy that ships the router changes depending on the new column. Nothing in the deploy pipeline currently blocks a code deploy that references a column from a migration that hasn't run yet.
 
 **How to avoid:**
-- Decide the role matrix **explicitly per action** and encode it:
-  - **Reassign a room** (changes another person's workload) → supervisor/GM only: `require_role("housekeeping_supervisor", "gm")`. A housekeeper reassigning rooms off their own queue is a workload-gaming risk; keep reassignment supervisory. If self-service "I can't finish this" is desired, model it as a *flag/escalation request*, not a direct reassign.
-  - **Escalate / create WO from a failure prediction** → engineering roles (`engineer`, `chief_engineer`); **Authorize** an AI recommendation → GM/chief engineer only. The cerebrum already fixes this contract: "only GM/chief engineer can authorize, and controlled safety/compliance actions are never valid AI actions."
-- Add an RBAC-matrix test for the new endpoints (the repo already has `test_rbac_matrix_matches_generated_output`, per buglog line 13892) so an ungated route fails CI.
+- Before considering the escalation-phase work "done," **query the live production schema directly** (e.g. via Supabase MCP `list_tables` or `information_schema.columns`) to confirm the new column(s) exist — don't infer it from "the migration file is in `git log`" or "it worked locally."
+- Add the new migration to `CLAUDE.md`'s "Key migrations" table as part of this phase's PR, closing part of the existing doc-drift gap rather than adding to it.
+- Sequence the deploy so the migration is confirmed-applied to production **before** the router/cron code that depends on the new column is deployed, not simultaneously.
 
 **Warning signs:**
-- A new mutating route `Depends(get_current_user)` with no `require_role`.
-- Role logic done inside the handler body (`if user.role == ...`) instead of the dependency — easy to forget a branch.
+- The escalation cron starts throwing column-not-found errors in production only, not in local/staging tests.
+- `git log supabase/migrations/` shows the new file committed, but nobody has confirmed it ran against the Railway Postgres instance.
+- `CLAUDE.md`'s migration table still says "041" after this phase ships.
 
-**Phase to address:** Backend action-endpoint phase; verified by the RBAC-matrix test phase/CI.
+**Phase to address:** Escalation phase (AI-10) — deployment/release step, verified before marking the phase complete, not a coding concern.
 
 ---
 
-### Pitfall 6: Notification insert path crashes the whole cron (direct precedent)
+### Pitfall 6: Batch endpoint validates tenant scope for the request as a whole but not for every individual `room_id` in the array
 
 **What goes wrong:**
-Adding a `notify_*` call inside the nightly failure loop risks repeating **bug at `internal.py:44`**: `_queue_safety_notification` hit `AttributeError: 'NoneType' object has no attribute 'data'` because a Supabase query returned `None`, and the entire safety-training cron returned HTTP 500 (`.wolf/buglog.json:7552`). If the new failure-notification helper isn't defensively wrapped, one bad tenant (e.g. no supervisors on file, or a `.maybe_single()` returning `None`) aborts the run for **all remaining hotels**.
+Every existing per-item action calls `_ensure_tenant_row("rooms", room_id, current_user.hotel_id, "Room")` (`housekeeping.py:1279, 1327, 1352`) — a single-row tenant-scoped existence check per call. A batch endpoint accepting `room_ids: list[str]` will naturally want to replace N individual existence checks with one bulk query — e.g. `supabase.table("rooms").select("id").in_("id", room_ids).eq("tenant_id", hotel_id)` — which is fine **only if the handler then verifies every requested `room_id` actually came back in that filtered result**, i.e. `len(returned_ids) == len(room_ids)` or explicitly diffs the two sets. If the code instead just fetches the tenant-filtered subset and silently iterates only over what came back, a room ID belonging to a different hotel (typo, stale client cache, or a malicious/curious user editing a request body) is **silently dropped instead of rejected** — which is a correctness bug more than a security hole here (RLS still blocks the actual read/write), but it produces a batch result that doesn't match what the caller thinks it requested and can mask the fact that a room ID was wrong.
 
 **Why it happens:**
-Supabase SDK calls return `None`/empty in more shapes than expected (`.maybe_single()` → `None`, `result.data` → `None`), and a cron loop over tenants has no per-tenant isolation unless you add it.
+Bulk `.in_()` + `.eq("tenant_id", ...)` is the natural, idiomatic way to fetch N rows scoped to a tenant in one query, and the "does every requested ID appear in the result" check is an easy step to drop because the query already "does the filtering" — it just filters silently instead of loudly.
 
 **How to avoid:**
-- Wrap each hotel's notification work in try/except and continue the loop (the existing prediction engines already do this per-hotel, `predictions.py:479-485` / `failure_predictions.py:457-466` — the new notification code must be *inside* that protection, not outside it).
-- Treat `result.data or []` defensively (the readiness `notify_supervisors_high_risk` already does, `predictions.py:230`) — mirror that, never assume `.data` is non-None.
-- Never let a notification failure roll back or abort the prediction write it accompanies.
+- After the bulk tenant-scoped fetch, diff `set(requested_room_ids) - set(returned_room_ids)` and surface any missing ID as an explicit per-item `"not_found"` result (reusing the per-item result list from Pitfall 2), not a silent drop.
+- Keep `require_role("gm", "housekeeping_supervisor")` on the batch endpoint exactly as the single-item endpoints already have it — no new RBAC decision needed here, just don't lose the existing one when refactoring to a batch shape.
 
 **Warning signs:**
-- `/health` shows a cron job flipping to error/stale after the notification code lands (this project monitors `cron_health`; see buglog 7712/10195 for prior all-stale incidents).
-- A single tenant's data shape breaks the aggregate run.
+- Batch endpoint's tenant-scoped query result length isn't compared against the input `room_ids` length anywhere.
+- No test sends a `room_ids` array containing an ID from a second tenant fixture and asserts it's reported, not just omitted.
 
-**Phase to address:** Notification-parity phase.
+**Phase to address:** Batch-actions phase (AI-09) — same phase as Pitfall 1/2, same endpoint.
 
 ---
 
-### Pitfall 7: Deep-link payload leaks or 404s across the room/asset boundary
+### Pitfall 7: Frontend has no existing multi-select pattern to reuse — batch UI risks losing the per-item confirm-before-act discipline `PredictionPanel` already has
 
 **What goes wrong:**
-`AIRiskAlertsPanel` is to be deep-linked to real room/asset records. The notification `data` payload currently carries `{"room_id": ..., "risk_level": "HIGH"}` (`predictions.py:248`). Failure alerts will need `{"asset_id": ...}`. Two hazards: (1) the deep-link target must **re-authorize on load** — a notification row proves the user was a recipient, but the linked room/asset page must still enforce `tenant_id` scoping and role, or a stale/forwarded link becomes a cross-tenant read; (2) because prediction rows churn (Pitfalls 1/3), a deep link built from a since-deleted prediction 404s.
+`PredictionPanel.tsx` (`components/housekeeping/PredictionPanel.tsx:64-221`) is built entirely around **one room, one inline confirm-then-act flow** (`mode: 'confirm-reassign' | 'confirm-escalate' | 'confirm-acknowledge'`, a cancel button, a loading state, a result note) — there is no multi-select checkbox, "select all," or batch-confirm pattern anywhere in this codebase to extend. Building AI-09's batch UI from scratch risks two opposite failure modes: (a) losing the confirm step entirely for speed ("select 10 rooms, one Reassign All button, no per-room review"), which removes the safety net that made single-item actions safe to add in the first place, since reassignment is a workload-affecting action reviewed as "supervisory" per this codebase's RBAC decisions; or (b) building a batch UI that still requires per-item confirmation, which defeats the point of batching. Neither extreme has been decided yet, and there's no prior pattern in this repo (mobile or web) to copy for "confirm N items at once, show per-item results."
 
 **Why it happens:**
-Deep links feel like "just a URL," so developers skip re-checking authorization at the destination and assume the referenced record still exists.
+Every other bulk-ish flow in this app (task-sheet import, PDF-based room assignment) is a background/import operation, not an interactive multi-select-then-confirm UI — so there's genuinely no local precedent, unlike the backend where `create_assignments` at least exists as *a* batch pattern to critique.
 
 **How to avoid:**
-- Deep-link to the **stable entity** (`/engineering?asset={asset_id}`, `/housekeeping?room={room_id}`), never to a prediction PK. Entities outlive predictions.
-- The destination route/endpoint must independently enforce `.eq("tenant_id", current_user.hotel_id)` and role — never trust that arriving via a notification implies authorization.
-- Handle the "record moved on" case gracefully (room already clean / prediction gone) with an informative empty state, not a hard 404.
+- Decide explicitly (product/UX call, not an implementation detail): one confirm step for the whole batch selection, showing the room list being acted on before the single confirm click — mirroring the existing inline-confirm affordance's intent (visible list + one deliberate confirm) rather than either silent-bulk-action or N separate confirms.
+- Surface the per-item result list (Pitfall 2) after the batch completes, using the same success/escalated/skipped states the single-item flow already renders (`reassignedTo`, `escalatedNoCapacity`, `already_acknowledged` — `PredictionPanel.tsx:98-110`) per row, not just an aggregate toast.
 
 **Warning signs:**
-- Deep-link URLs containing `prediction_id`.
-- Destination handler reads the linked record without a tenant filter.
+- Batch UI ships with no visible list of what's about to be acted on before the confirm click.
+- Batch UI shows only a single aggregate success/failure toast with no per-room breakdown, despite the backend actually returning per-item results (Pitfall 2).
 
-**Phase to address:** Deep-linking phase (destination authorization) + UI phase (graceful-empty handling).
-
----
-
-### Pitfall 8: Notification recipients resolved from the wrong role table (`user_profiles` vs `user_roles`)
-
-**What goes wrong:**
-`notify_supervisors_high_risk` selects recipients from **`user_profiles.role`** (`predictions.py:224-228`), while the RBAC/auth layer and the broadcast/direct endpoints resolve staff from **`user_roles`** (`notifications.py:63-68, 108-114`) and JWT custom claims. If these two tables drift (a role change written to one but not the other), high-risk alerts go to the wrong set of people — either missing a current supervisor or notifying a demoted one. Adding failure-prediction notifications will re-make this choice; copying the readiness code copies the `user_profiles` dependency.
-
-**Why it happens:**
-Two plausible "list the supervisors" sources exist; the prediction service happened to pick `user_profiles` while the rest of the notification domain uses `user_roles`. Inconsistency is invisible until roles change.
-
-**How to avoid:**
-- Standardize recipient resolution on **`user_roles` with `is_active = True`** (the same source RBAC trusts), so alert targeting can't diverge from who can actually act. Filter to active roles only — don't page someone who's been deactivated.
-- If `user_profiles` must stay for display, still resolve *who to notify* from `user_roles`.
-
-**Warning signs:**
-- Alerts reaching a former supervisor, or a new supervisor getting none.
-- Grep shows notification recipient queries split across `user_profiles` and `user_roles`.
-
-**Phase to address:** Notification-parity phase (and opportunistically align the existing readiness path).
+**Phase to address:** Batch-actions phase (AI-09) — UI sub-phase, after the backend result-list contract (Pitfall 2) is settled, since the UI design depends on that shape.
 
 ---
 
@@ -188,92 +164,96 @@ Two plausible "list the supervisors" sources exist; the prediction service happe
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Action endpoint trusts client-supplied `prediction_id` | One less DB read | 404s / orphaned recommendations after every cron rewrite (Pitfall 1) | Never — always re-derive from `asset_id`/`room_id` |
-| Notify on `risk == HIGH` presence, not transition | Simple loop, no prior-state read | Nightly alert spam → staff mute channel (Pitfall 4) | Never for recurring assets; acceptable only if a persisted dedup marker exists |
-| Leave stale prediction rows uncleared | No delete logic to write | Ghost alerts + broken silent dedup (Pitfall 3) | MVP-only, and only if a read-side freshness filter is added |
-| Reuse readiness's `user_profiles` recipient query for failures | Copy-paste parity | Wrong-recipient drift vs `user_roles` (Pitfall 8) | Never — resolve from `user_roles` |
-| Role check inside handler body instead of `require_role` dependency | Feels flexible | Missed branch = ungated mutation (Pitfall 5, recurring here) | Never for the authorization gate itself |
+| Batch-read room/prediction state once, act on all items from that snapshot | Fewer DB round trips | Stale-state actions on later items in a slow batch (Pitfall 1) | Never for the write path; fine for the pre-confirm preview list only |
+| Wrap the whole batch loop in one try/except → single 500 on any failure | Less code | Opaque partial state, caller can't tell what succeeded (Pitfall 2) — this is what `create_assignments` already does, don't propagate it | Never — always per-item try/except + result list |
+| Gate GM-escalation dedup on `is_acknowledged` instead of a new tiered counter | Reuses an existing column, no migration needed | Re-notifies GM every cron cycle while unacknowledged — the exact spam bug `escalation_level` was built to prevent (Pitfall 3) | Never |
+| Add new escalation column without a preserve/reset characterization test pair | Faster to ship | Silent stale-tier bug on re-degrade, worse than spam (Pitfall 4) | Never — this project already paid for this lesson once (migration 095) |
+| Bulk tenant-scoped fetch without diffing requested vs. returned IDs | Simpler query | Silently drops out-of-tenant/bad IDs instead of reporting them (Pitfall 6) | Never — cheap to add the diff |
+| Ship batch UI with a single aggregate result toast | Faster to build | Supervisor can't tell which rooms need manual follow-up (Pitfall 7) | MVP-only if the per-item backend result is at least logged/inspectable elsewhere |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| `*/30` readiness cron vs live user action | Reassign off the prediction's 30-min-stale `housekeeper_id` | Re-read `room_status.assigned_to` in the request; act on live state |
-| Nightly failure cron (delete-then-insert) vs in-flight action | Act on a row the cron just deleted/re-inserted with a new UUID | Convert to upsert on `(tenant_id, asset_id)`; flip `is_acknowledged=True` on action |
-| Supabase realtime (deliberately only 3 surfaces) | Add a WebSocket subscription for prediction panels to "keep them fresh" | Predictions are cron-driven, not realtime — use pull-to-refresh + freshness filter; do **not** expand the realtime surface (violates the A2 realtime-scope contract in CLAUDE.md) |
-| In-app notification insert inside tenant loop | Unhandled `None`/empty from Supabase aborts the whole cron | Per-tenant try/except, `result.data or []`, `.maybe_single()` None-guards (repeat of `internal.py:44` bug) |
-| APScheduler in-process cron | Assuming a run is isolated per hotel | One tenant's exception must not abort the rest — wrap per-hotel |
+| `*/30` room-readiness cron vs. new `escalation_level`/`high_since` column | Column gets clobbered to default on every upsert because the field wasn't accounted for in preserve/reset logic | Explicit preserve-on-upsert + reset-below-HIGH tests, mirroring `is_acknowledged` (Pitfall 4) |
+| Existing `internal.py` escalation ladder (`work_orders`/`tasks`) vs. new room-readiness GM tier | Two independent, drifting implementations of "tiered escalation" in the same codebase | Mirror the `escalation_level SMALLINT 0-N CHECK` + `.lt("escalation_level", N)` pattern exactly (Pitfall 3) |
+| `notify_supervisors_high_risk` vs. new GM-tier notification | Calling it directly from a new cron without a persisted dedup gate, assuming it dedups itself (it doesn't — it's unconditional) | Gate the call site, not the helper; add the tier check before calling |
+| Supabase SDK (no multi-statement transactions) vs. multi-write batch actions | Assuming "batch endpoint" implies atomic all-or-nothing across items | Explicit best-effort + per-item result list contract (Pitfall 2), decided up front |
+| Migration deploy pipeline vs. code deploy | Assuming a merged migration file means the column exists in production | Verify live schema (Supabase `information_schema.columns` or MCP `list_tables`) before/as part of marking the phase done (Pitfall 5) |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Deep-link destination trusts the notification instead of re-authorizing | Cross-tenant room/asset read via forwarded/stale link | Enforce `tenant_id` + role at the destination endpoint, independent of how the user arrived |
-| Notification rows inserted without `tenant_id` | Cross-tenant leak into another hotel's bell feed | Always set `tenant_id`; `list_notifications` already double-filters `tenant_id`+`user_id` (`notifications.py:16-17`) — keep every insert consistent |
-| Ungated reassign/authorize endpoint | Housekeeper gaming their queue; unauthorized WO authorization | `require_role()` per action (Pitfall 5); RBAC-matrix test in CI |
-| Reassign endpoint doesn't verify target housekeeper is same-tenant/active | Assigning rooms to a user outside the property | Mirror `send_direct_message`'s same-tenant recipient check (`notifications.py:107-117`) |
+| Batch endpoint silently drops out-of-tenant `room_id`s instead of rejecting/reporting | Masks a caller sending IDs it shouldn't have (typo, stale cache, or probing); RLS already blocks the actual data leak, but the app-layer signal is lost | Diff requested vs. returned tenant-scoped IDs, report mismatches explicitly (Pitfall 6) |
+| New GM-escalation notification payload copies `data: {"room_id": ...}` pattern from `predictions.py:248` without re-checking destination authorization | Same deep-link-trusts-notification risk already flagged for the readiness/failure-prediction parity work — applies again to any new GM-facing deep link | Destination route re-enforces `tenant_id` + role independent of arriving via notification |
+| Batch action endpoint reuses `require_role("gm", "housekeeping_supervisor")` correctly but a new *separate* GM-only escalation-acknowledgement endpoint (if AI-10 adds one) forgets the gate | Recurring pattern in this codebase (`.wolf/buglog.json`: `get_current_user` vs `require_role` mixups) | Explicit RBAC-matrix test coverage for every new route, including new AI-10 endpoints, not just the batch ones |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Per-room / per-supervisor notification INSERT in a loop | Slow cron, many round-trips | Batch-insert notifications (readiness already builds a list then one `insert()`, `predictions.py:238-260`) — keep it batched for failures too | Multi-hotel scale, many high-risk rooms at once |
-| Re-fetching `existing_risk_map` per room instead of once per hotel | Extra queries | Readiness fetches it once per hotel before the loop (`predictions.py:293`) — replicate that, don't per-item | Large properties |
-| No index on the dedup/freshness columns you add | Slow filters as prediction tables grow | Add index on `(tenant_id, last_calculated_at)` / `notified_at` (repo added FK indexes in migration 038) | Grows with history retention |
+| Per-room `count_rooms_ahead` scoring loop (existing single-item reassign logic) run serially inside a batch of N rooms | Batch reassign of 10-20 rooms takes multiple seconds, increasing the staleness window from Pitfall 1 | Consider precomputing housekeeper loads once per batch request rather than recomputing per room per candidate; but must still re-validate each room's live status before writing (don't trade Pitfall 1 for speed) | Large batches (near the cap suggested in Pitfall 2) on a full-occupancy day |
+| Per-item notification INSERT in a batch escalate loop | N supervisors × M rooms individual inserts | Batch-insert notifications in one call the way `notify_supervisors_high_risk` already batches per-room (`predictions.py:238-260`) — extend that batching across rooms in one batch-escalate call, not one insert call per room | Batches near the size cap with many supervisors |
+| No index on new `escalation_level`/`high_since` columns | Slow GM-escalation cron query as `room_readiness_predictions` grows | Add a partial index mirroring `idx_work_orders_escalation` (`041_escalation_level.sql:24-26`) — `(tenant_id, escalation_level, high_since) WHERE risk_level = 'HIGH'` | Grows with hotel count × room count over time |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Actionable button on a ghost/stale prediction | Supervisor reassigns an already-clean room | Freshness filter + "already ready" guard (Pitfall 3) |
-| Same failure alert every morning | Staff mute notifications, miss the real one | Transition-only + cooldown (Pitfall 4) |
-| Optimistic UI shows reassign succeeded, cron reverts display 30 min later | Confusion / distrust of the feature | Re-render from live state after action; don't leave optimistic-only state that the next cron contradicts |
-| One-click action with no undo/confirm for reassign | Wrong housekeeper gets a queue dumped on them | Lightweight confirm or an undo window for reassignment (note: the mobile blocker flow already dropped an 8s-undo pattern per cerebrum — match current expectations, don't reintroduce a rejected pattern) |
+| Batch action with no visible per-item preview before confirm | Supervisor bulk-reassigns a room they didn't mean to include | Show the selected-room list in the confirm step, mirroring the existing inline-confirm pattern (Pitfall 7) |
+| Batch result shown as one aggregate toast | Supervisor can't tell which of 10 rooms actually succeeded, has to re-check the board manually | Per-item result list rendered per row (Pitfall 2 + 7) |
+| GM gets re-notified every 30 min for the same unresolved room | Alert fatigue, GM mutes notifications, misses genuinely new escalations | Tiered `escalation_level` dedup (Pitfall 3) |
+| Escalating to GM has no visible "already escalated to GM" state in the UI | Supervisor doesn't know whether clicking Escalate again does anything new | Surface `escalation_level` in the panel (e.g. "Escalated to GM 12 min ago") so the action's effect is legible, matching the existing "already_acknowledged" idempotent-response pattern (`PredictionPanel.tsx:108-110`) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Reassign endpoint:** Often missing live `room_status` re-read — verify it ignores the prediction's stale `housekeeper_id`/`risk_level`.
-- [ ] **Failure notifications:** Often missing transition dedup — verify it does NOT fire on every nightly run for an unchanged high-risk asset.
-- [ ] **Action on failure prediction:** Often missing `is_acknowledged=True` flip — verify the acted-on row survives the next nightly delete-then-insert.
-- [ ] **Every new mutating route:** Often missing `require_role` — grep new routes for `Depends(get_current_user)` with no role gate.
-- [ ] **Deep links:** Often built off `prediction_id` — verify they target `room_id`/`asset_id` and the destination re-authorizes tenant+role.
-- [ ] **Stale rows:** Often uncleared — verify a cleaned room stops appearing as HIGH within one cron interval.
-- [ ] **Cron resilience:** Often un-isolated — verify one tenant with no supervisors / no assets doesn't 500 the whole run.
-- [ ] **Recipient source:** Often `user_profiles` — verify notifications resolve recipients from `user_roles` `is_active=True`.
+- [ ] **Batch reassign/escalate/acknowledge:** Often does a batch-read-then-batch-act — verify each item re-reads live `room_status`/`risk_level` at write time, not from a request-start snapshot (Pitfall 1).
+- [ ] **Batch endpoint response:** Often returns a single aggregate result — verify it's a per-item list with explicit success/skipped/not_found/error per `room_id` (Pitfall 2).
+- [ ] **GM-escalation cron:** Often reuses `is_acknowledged` or calls `notify_supervisors_high_risk` directly — verify it gates on a new tiered `escalation_level`-style counter, not a boolean or an unconditional call (Pitfall 3).
+- [ ] **New escalation column(s):** Often ships with only a migration, no cron-cycle test — verify both a preserve-on-upsert-while-HIGH test AND a reset-when-below-HIGH test exist (Pitfall 4).
+- [ ] **Migration deploy:** Often assumed-applied because the file is merged — verify against live production schema before closing the phase, and update `CLAUDE.md`'s migration table (Pitfall 5).
+- [ ] **Batch tenant scoping:** Often filters silently — verify requested vs. returned `room_id` sets are diffed and mismatches are reported, not dropped (Pitfall 6).
+- [ ] **Batch UI:** Often ships as one-button-no-preview or defeats the point with N confirms — verify a single confirm with a visible item list, then per-item results after (Pitfall 7).
+- [ ] **RBAC on any new AI-10 endpoint:** Often uses `get_current_user` instead of `require_role` — grep for the mismatch, add to the RBAC-matrix test.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Orphaned `ai_recommendations` after cron deleted the prediction (P1) | MEDIUM | Switch failure path to upsert on `(tenant_id, asset_id)`; backfill/relink orphaned recommendations by `asset_id` |
-| Notification spam already shipped (P4) | LOW | Add persisted `notified_at`/dedup marker + suppress; historical spam can't be unsent |
-| Ghost HIGH rooms in panel (P3) | LOW | Add read-side freshness filter immediately (fast); add cron-side stale-row clear as follow-up |
-| Ungated endpoint discovered (P5) | LOW–MEDIUM | Add `require_role`, add RBAC-matrix test; audit for any actions already taken by unauthorized roles |
-| Cron 500 from notification None (P6) | LOW | Wrap in per-tenant try/except + `data or []` guard; re-run cron manually via `X-Cron-Secret` endpoint |
+| Batch action acted on stale state (P1) | LOW–MEDIUM | Because reassign/acknowledge are idempotent-ish and escalate just notifies, worst case is a spurious reassignment on an already-clean room — manually re-run correct assignment; add the per-item re-read guard and redeploy |
+| Opaque partial batch failure already shipped (P2) | LOW | Add per-tenant/per-item try/except + result list; for the specific failed batch, cross-check `room_assignments`/`room_readiness_predictions` directly against the requested `room_ids` to determine actual state |
+| GM-escalation spam already shipped (P3) | LOW | Add persisted `escalation_level` gate; historical spam can't be unsent, but a fast follow-up stops it immediately |
+| Stale `escalation_level` blocks a real re-escalation (P4) | LOW | Add the reset-on-resolve logic; one-time backfill: reset `escalation_level` to 0 for any room currently below HIGH |
+| Migration not applied in production discovered late (P5) | MEDIUM | Apply the migration directly against production via Supabase MCP/CLI, then verify with `information_schema.columns` before re-enabling the dependent cron/endpoint |
+| Cross-tenant room ID silently dropped from a batch (P6) | LOW | Add the diff-and-report check; audit logs for any batch requests that returned fewer results than requested `room_ids` |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| P1 Deleted-row action | Backend action-endpoint phase | Fire nightly cron while an action is in flight; action still resolves via `asset_id` |
-| P2 Stale-field reassign | Backend action-endpoint phase | Reassign twice within one cron interval; second uses live `assigned_to` |
-| P3 Stale rows / broken silent dedup | Prediction-engine phase (clear) + UI phase (freshness filter) | Clean a HIGH room; it disappears within one interval; re-degrade re-notifies |
-| P4 Notification spam | Notification-parity phase | Run nightly cron 3× on unchanged data; exactly 0 repeat notifications |
-| P5 Missing RBAC | Action-endpoint phase → CI | RBAC-matrix test covers every new route; housekeeper cannot reassign |
-| P6 Cron-crashing notify | Notification-parity phase | Tenant with no supervisors/assets; run completes, `/health` cron stays "ok" |
-| P7 Deep-link auth/404 | Deep-linking phase | Forwarded link from another tenant is rejected; deleted-prediction link shows empty state |
-| P8 Wrong recipient table | Notification-parity phase | Change a role in `user_roles`; alerts follow it immediately |
+|---------|-------------------|---------------|
+| P1 Batch-read-then-batch-act staleness | Batch-actions phase (AI-09) | Concurrent test: mutate room state mid-batch, verify the batch result reflects the fresh state at write time, not request-start |
+| P2 Undefined partial-failure semantics | Batch-actions phase (AI-09) | Test: force item 3 of 5 to fail, verify items 1/2/4/5 still succeed and the response lists all 5 outcomes individually |
+| P3 GM-escalation spam | Escalation phase (AI-10) | Run the escalation cron 3× consecutively on an unchanged unacknowledged-HIGH room; exactly 1 GM notification, not 3 |
+| P4 Escalation column reset/preserve gap | Escalation phase (AI-10) | Two characterization tests: preserve-while-HIGH, reset-when-below-HIGH — both green before merge |
+| P5 Migration deployment gap | Escalation phase (AI-10) | Query live production `information_schema.columns` for the new column(s) before marking the phase complete; update `CLAUDE.md` migration table |
+| P6 Cross-tenant ID silently dropped | Batch-actions phase (AI-09) | Test: batch request includes one `room_id` from a second-tenant fixture, verify it's reported as `not_found`/rejected, not silently omitted |
+| P7 No batch UI precedent → lost confirm discipline | Batch-actions phase (AI-09), UI sub-phase | Manual QA: batch UI shows selected-room list pre-confirm and per-room results post-batch |
 
 ## Sources
 
-- `apps/api/services/ai/predictions.py` — room readiness engine: upsert-on-`room_id`, `existing_risk_map` transition dedup, `notify_supervisors_high_risk` recipient query (HIGH confidence, primary source).
-- `apps/api/services/ai/failure_predictions.py` — delete-then-insert of `is_acknowledged=False` rows, per-hotel loop isolation (HIGH confidence, primary source).
-- `apps/api/routers/notifications.py` — recipient resolution via `user_roles`, tenant+user scoping, same-tenant recipient check (HIGH confidence).
-- `apps/api/routers/internal.py` — `escalation_level` persisted-counter dedup pattern (the model to mirror for failure notifications) (HIGH confidence).
-- `.wolf/buglog.json` — prior incidents: `get_current_user` vs `require_role` (7815), unsupported-role acknowledge (7465), `_queue_safety_notification` NoneType 500 (7552), notification bell non-functional (4526), cron all-stale incidents (7712, 10195), RBAC-matrix test presence (13892) (HIGH confidence, project-specific).
-- `.wolf/cerebrum.md` — AI-recommendation lifecycle + "only GM/chief engineer can authorize" contract; A2 realtime-scope contract; supervisor assignment write shape (HIGH confidence).
-- `CLAUDE.md` — multi-tenancy filter mandate, realtime-scope A2, credit-cap constraints, cron schedule table (HIGH confidence).
+- `apps/api/routers/housekeeping.py:1275-1362` — existing `reassign_at_risk_room`/`escalate_at_risk_room`/`acknowledge_at_risk_room`: live-state re-read + 409 guards, the pattern batch actions must not lose (HIGH confidence, primary source).
+- `apps/api/routers/housekeeping.py:828-937` — `create_assignments`: this project's only existing multi-item write endpoint; validates all-or-nothing, writes non-atomically across 3 phases, no per-item result — the concrete cautionary precedent for Pitfall 2 (HIGH confidence, primary source).
+- `apps/api/routers/internal.py:461-589` — `check_escalations`: the proven 3-tier `escalation_level` ladder for work orders/tasks, the pattern AI-10 should mirror rather than reinvent (HIGH confidence, primary source).
+- `apps/api/services/ai/predictions.py:197-260` — `notify_supervisors_high_risk`: confirmed to have no dedup of its own; all dedup today is caller-side (HIGH confidence, primary source).
+- `supabase/migrations/041_escalation_level.sql` — exact schema/index pattern for tiered escalation columns (HIGH confidence, primary source).
+- `supabase/migrations/095_room_readiness_acknowledgement.sql` — most recent precedent for adding columns to the upsert-based prediction table, with `COMMENT ON COLUMN` documentation convention (HIGH confidence, primary source).
+- `apps/api/tests/test_room_readiness_actions.py:42-57, 87-138` — the upsert-preserves-omitted-columns characterization test and the ack-reset-on-resolve test; the exact template Pitfall 4's new tests should follow (HIGH confidence, primary source).
+- `apps/web/components/housekeeping/PredictionPanel.tsx:64-221` — confirms no multi-select/batch UI pattern exists yet in this codebase (HIGH confidence, primary source).
+- Repo migration count (`ls supabase/migrations/` → 99 files) vs. `CLAUDE.md`'s "Key migrations" table (documents only through 041) — direct evidence of the doc-drift risk described in Pitfall 5 (HIGH confidence, verified this session).
+- Project memory: v1.2/v1.3 code-complete-but-unapplied-migration incidents, caught only by live-schema audits (MEDIUM confidence — sourced from project memory/milestone history, not re-verified against a specific commit this session).
+- `.planning/research/PITFALLS.md` (prior Phase-27 research, 2026-08-12) — background on the `is_acknowledged`/upsert design this milestone builds directly on top of (HIGH confidence, same repo, prior research pass).
 
 ---
-*Pitfalls research for: proactive prediction-driven alerting + one-click actions on PatelRep*
-*Researched: 2026-08-12*
+*Pitfalls research for: batch actions (AI-09) + escalation-to-GM (AI-10) on PatelRep's v1.6 room-readiness alerting system*
+*Researched: 2026-08-13*

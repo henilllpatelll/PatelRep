@@ -1,328 +1,143 @@
 # Architecture Research
 
-**Domain:** Proactive AI alerting / actionable predictions inside an existing hotel-ops SaaS (PatelRep, v1.6 milestone)
-**Researched:** 2026-08-12
-**Confidence:** HIGH (all findings verified against current source — file/line citations throughout)
+**Domain:** Integration of batch-action (AI-09) and auto-escalation (AI-10) capabilities into PatelRep's existing AI prediction/alerting system
+**Researched:** 2026-08-13
+**Confidence:** HIGH — every file/function/table name below was read directly from the current codebase, not inferred from prior phase docs.
 
-> Scope: how "actionable room-readiness predictions" (reassign/escalate) and "proactive push for failure
-> predictions" integrate with the **existing** architecture. This is a subsequent-milestone integration study,
-> not a greenfield stack survey. Two hard constraints are respected throughout:
-> **(C1)** Supabase Realtime stays scoped to its 3 existing surfaces — every new surface here is pull-based.
-> **(C2)** `services/` stays flat — no new service module unless logic is shared across 2+ domains.
+## Verified Current State (read from source, not assumed)
 
----
+### Room-readiness (housekeeping)
 
-## Standard Architecture
+| Piece | Real name | Location |
+|---|---|---|
+| Router | `housekeeping.py` | `apps/api/routers/housekeeping.py` |
+| Single-room actions | `reassign_at_risk_room`, `escalate_at_risk_room`, `acknowledge_at_risk_room` | `housekeeping.py:1274-1362`, mounted at `POST /housekeeping/room-readiness/{room_id}/reassign\|escalate\|acknowledge` |
+| Role gate | `require_role("gm", "housekeeping_supervisor")` on all three | same file |
+| Prediction engine | `run_room_predictions(hotel_id)` | `apps/api/services/ai/predictions.py:271` |
+| Cron entry point | `run_all_hotel_predictions()` → called by `routers/internal.py::run_predictions` → cron job id `predictions.run` | `predictions.py:467`, `core/scheduler.py:26` |
+| GM/supervisor notify helper | `notify_supervisors_high_risk(hotel_id, room_number, room_id, predicted_ready_at_str)` | `predictions.py:197` — inserts into `notifications` only, **not** `notification_deliveries` |
+| Table | `room_readiness_predictions` | columns used: `room_id, tenant_id, housekeeper_id, predicted_ready_at, confidence_score, risk_level, checkin_time, minutes_to_checkin, rooms_remaining_for_hk, avg_speed_rooms_per_hr, risk_factors, last_calculated_at, is_acknowledged, acknowledged_at, acknowledged_by` — ack columns added in migration `095_room_readiness_acknowledgement.sql`. **No `escalation_level` or "first seen HIGH" timestamp column exists today.** |
+| Frontend panel | `PredictionPanel.tsx` → `PredictionRow` (per-item, inline confirm) | `apps/web/components/housekeeping/PredictionPanel.tsx` |
+| Frontend API client | `housekeepingApi.reassignAtRiskRoom / escalateAtRiskRoom / acknowledgeAtRiskRoom` (all single `roomId` arg) | `apps/web/lib/api/housekeeping.ts:126-141` |
 
-### System Overview — current proactive-intelligence wiring (as-built)
+**Important existing precedent for Q1:** `reassign_at_risk_room` does **not** call a shared internal helper — it directly `await`s another route coroutine (`create_assignments`) from within itself (`housekeeping.py:1318`). FastAPI route handlers in this codebase are plain async functions that are already called directly from other route handlers in the same router file. There is no `services/housekeeping_room_readiness.py` extraction layer for this feature.
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  APScheduler (core/scheduler.py, in-process, production-gated)            │
-│    predictions.run */30      ai.failure-predictions 0 0 * * *             │
-└───────────┬───────────────────────────────┬──────────────────────────────┘
-            │                                │
-            ▼                                ▼
-  services/ai/predictions.py       services/ai/failure_predictions.py
-  (RULE-BASED, deterministic)      (LLM Claude + rule fallback)
-            │                                │
-     upsert on room_id                 DELETE unacked + INSERT
-            ▼                                ▼
-  room_readiness_predictions        failure_predictions  ─┐
-  (persistent row per room)         (wiped nightly)        │ also updates
-            │                                              ▼
-   edge-trigger: LOW/MED→HIGH               assets.failure_risk_score
-            │                                (PERSISTENT — survives wipe)
-            ▼                                              │
-  notify_supervisors_high_risk               (NO proactive push today) ✗
-  → notifications table                                   │
-  (supervisors + gm)                                      │
-            │                                              │
-            └──────────────┬───────────────────────────────┘
-                           ▼
-              notifications table  ──►  Header.tsx bell (PULL, poll)
-                           │
-                           ▼           GET /ai/risk-alerts (PULL, 120s)
-              AIRiskAlertsPanel.tsx (dashboard) — static hrefs, no deep-link
-                           │
-  ai_recommendations (governance lifecycle) — wired ONLY for failure_prediction,
-  and ONLY on-demand from UI (createFailurePredictionRecommendation), NOT the cron
-```
+### Asset failure (engineering)
 
-### Component Responsibilities (verified)
+| Piece | Real name | Location |
+|---|---|---|
+| Router | `assets.py` | `apps/api/routers/assets.py` |
+| Endpoints | `GET /failure-predictions` (active unacked, top 10 by risk), `GET /failure-predictions/history` (all, paginated 50, filterable by `acknowledged`/`risk_min`), `POST /failure-predictions/{prediction_id}/acknowledge`, `POST /failure-predictions/{prediction_id}/create-work-order` | `assets.py:69-160+` |
+| Role gate | `require_role("gm", "engineer")` on acknowledge + create-work-order | same file |
+| Prediction engine | `run_asset_failure_predictions(hotel_id)` (per-hotel, calls Claude via `_analyze_asset`), `run_single_asset_prediction` (on-demand single-asset) | `apps/api/services/ai/failure_predictions.py:380, 573` |
+| Cron entry point | `run_all_hotels_failure_predictions()` → `routers/internal.py::run_failure_predictions` → cron job id `ai.failure-predictions` (nightly, `hour:0`) | `failure_predictions.py:530`, `core/scheduler.py:39` |
+| GM/engineer notify helper | `notify_engineers_asset_risk_high(hotel_id, asset_id, asset_name, risk_score, predicted_failure_window, recommendation)` | `failure_predictions.py:312` — notifies `engineer`, `chief_engineer`, `gm` roles, inserts into `notifications` only |
+| Table | `failure_predictions` (migration `008_assets_pm.sql:101`) | columns: `id, tenant_id, asset_id, risk_score, predicted_failure_window, failure_indicators, estimated_repair_cost, estimated_replace_cost, recommendation, ai_reasoning, generated_at, is_acknowledged, acknowledged_by, acknowledged_at`. **No `escalation_level` or HIGH-since timestamp.** Row model differs from room-readiness: on every prediction run, the existing unacknowledged row is **deleted and a fresh row inserted** (`failure_predictions.py:464-470`), not upserted-in-place. This matters for AI-10 — a naive "time since row created" check would reset every re-run even if underlying risk is unchanged, unless the delete/insert is made conditional on risk actually changing, or an escalation timestamp is carried forward across the delete/insert. |
+| Frontend page | `apps/web/app/(dashboard)/engineering/predictions/page.tsx` → `PredictionCard`, one card per prediction, `useMutation` per action (acknowledge / create-work-order / authorize AI recommendation) | |
+| Frontend API client | `engineeringApi.acknowledgeFailurePrediction(predictionId)`, `createWorkOrderFromPrediction(predictionId)`, `getFailurePredictionHistory(params)` | `apps/web/lib/api/engineering.ts:257,304,307` |
 
-| Component | Responsibility | Current implementation |
-|-----------|----------------|------------------------|
-| `services/ai/predictions.py` | Room-readiness ETA + risk, **already pushes** on new HIGH | Rule-based; upserts `room_readiness_predictions` on `room_id`; `notify_supervisors_high_risk()` at lines 197-264 |
-| `services/ai/failure_predictions.py` | Asset failure risk (0-100) | LLM w/ rule fallback; **delete-and-insert** `failure_predictions` (lines 393-399); updates `assets.failure_risk_score` (410-413); **no notification** |
-| `ai_recommendations` table | Human-authorized action lifecycle | Migration 073; `source_type` CHECK **already allows** `'room_readiness'`; `suggested_action` CHECK already allows `'adjust_room_assignment'` + `'notify_supervisor'` |
-| `notifications` table | The **only** proactive-push channel (bell) | Migration 013 (lines 91-108); `data` JSONB for deep-link payload |
-| `AIRiskAlertsPanel.tsx` | Dashboard risk surface | `components/dashboard/AIRiskAlertsPanel.tsx`; consumes `GET /ai/risk-alerts`; **static** `href="/housekeeping"` / `href="/engineering"`; maintenance rows have **no link at all** |
-| `GET /ai/risk-alerts` | Aggregates 3 risk buckets | `ai_copilot.py:768-795`; HIGH room predictions + overdue WOs + assets ≥70 |
+**Key difference from room-readiness:** there is no "reassign" concept for an asset — the closest analog action is `create-work-order`. AI-09 batch semantics therefore differ per domain (see below).
 
----
+### Existing escalation-ladder precedent (closest prior art for AI-10)
 
-## The Five Integration Decisions
+`apps/api/routers/internal.py::check_escalations` (`POST /v1/internal/escalations/check`, cron job id `escalations.check`, `*/30 * * * *`):
 
-### Q1 — Room-readiness reassign/escalate: reuse `ai_recommendations` or lighter-weight direct?
+- Reads `work_orders.escalation_level` and `tasks.escalation_level` (both `INT`, added by migration `041` per project CLAUDE.md gotcha notes — confirmed in use at `internal.py:502-588`).
+- 3-tier ladder purely on **time since `due_at`** (30 / 90 / 150 min cutoffs computed fresh every run from `now`), not on a "first crossed HIGH" timestamp — because `due_at` is a fixed target set once at creation, unlike `risk_level`, which is recomputed every 30 min and can flip back down.
+- Tier 3 auto-escalates the entity itself (work order → `status="escalated"` via `transition_work_order_with_audit` RPC) and notifies GM.
+- Notification helper used here is **`_notify_role(hotel_id, target_role, notif_type, title, body, data)`** (`internal.py:433`) — inserts into **both** `notifications` and `notification_deliveries` (channel `in_app`, status `delivered`). This is a **different, more complete** pattern than `notify_supervisors_high_risk` / `notify_engineers_asset_risk_high`, which only insert into `notifications`.
+- Also registered independently in `CRON_SCHEDULE` (`core/scheduler.py:28`) as its own job id, separate from `predictions.run` and `ai.failure-predictions` — escalation-ladder logic is a **separate cron job**, not folded into the detection/prediction jobs.
 
-**Recommendation: SPLIT by action. Execute directly against native domain endpoints; use `ai_recommendations`
-ONLY as an optional analytics/outcome wrapper, never as the execution path — and only if outcome-metrics parity
-is an explicit milestone goal.**
+## Integration Design
 
-Why this, not "wrap everything in governance":
+### AI-09 — Batch actions
 
-- The `ai_recommendations` lifecycle (`pending → authorized → executed → outcome_recorded`, with an **immutable**
-  event log — migration 073 lines 78-81) exists to give humans oversight over **LLM-generated, expensive,
-  consequential** decisions (e.g. "spend money opening a work order on a $12k asset"). `confidence` is even
-  hardcoded to `0.5` for the legacy failure model (`ai_copilot.py:889`) because it can't calibrate.
-- Room-readiness is **rule-based and deterministic** (`predictions.py` has no LLM call). There is no "AI
-  authorization" semantics to honor — the buffer math is auditable by reading the code. Its actions are
-  **operational, reversible, low-stakes** (reassign a room; ping a supervisor).
-- **"Escalate" = a `notifications` insert.** That idiom already exists (`notify_supervisors_high_risk`). Wrapping
-  a bell-notification in a 4-state governance lifecycle is pure ceremony.
-- **"Reassign" = the existing `POST /housekeeping/assignments` endpoint** (verified: `housekeepingApi.saveAssignments`,
-  `lib/api/housekeeping.ts:108`). That path already has its own audit trail (`room_assignments` rows). A human
-  picks the new housekeeper — there is no "AI executed it" moment to stamp. Re-implementing assignment inside a
-  recommendation executor would duplicate domain logic and **violate C2** (assignment logic is housekeeping-only).
+**Endpoint shape:** new routes, following the existing precedent of calling single-item route coroutines directly (no service-layer extraction — this stays single-domain business logic per the project's services-layer convention: *"only extract to services/ when logic is shared across 2+ domains"*):
 
-**If** (and only if) the milestone wants unified ROI reporting ("we flagged 40 at-risk rooms, staff acted on 32,
-prevented 28 late check-ins"), then materialize an `ai_recommendations` row as a **governance wrapper**:
-`source_type='room_readiness'`, `suggested_action='adjust_room_assignment'`, `source_id=room_id`. Critically —
-**do NOT emit one per room per cron** (that firehose would bury the queue the `idx_ai_recommendations_queue` index
-serves). Materialize on the **same edge-trigger** the notification already uses (new HIGH only). "Executed" is
-stamped when the human completes the reassignment; the existing `/recommendations/metrics` endpoint
-(`ai_copilot.py:841`) then yields room-readiness ROI for free.
+- `POST /housekeeping/room-readiness/batch-reassign` — body `{"room_ids": [...]}`
+- `POST /housekeeping/room-readiness/batch-acknowledge` — body `{"room_ids": [...]}`
+- `POST /engineering/failure-predictions/batch-acknowledge` — body `{"prediction_ids": [...]}` (add to `assets.py`, same router that already owns `/failure-predictions/*`)
 
-Net: reassign/escalate ship as **direct actions**; the governance table is an **opt-in analytics layer**, decoupled
-from correctness.
+Each batch handler loops the ids and `await`s the corresponding existing single-item coroutine (`reassign_at_risk_room`, `acknowledge_at_risk_room`, `acknowledge_failure_prediction`) exactly the way `reassign_at_risk_room` already calls `create_assignments` today. Wrap each iteration in `try/except HTTPException` so one room's 404/409 (e.g. room no longer DIRTY, prediction already gone) doesn't abort the rest of the batch — there is no existing batch-endpoint precedent anywhere else in the codebase to follow for partial-failure shape, so return a per-item result list plus aggregate counts, e.g.:
 
-### Q2 — Failure-prediction proactive push: extend the `notify_supervisors_high_risk` idiom?
-
-**Recommendation: YES, directly.** Add a sibling notifier in `failure_predictions.py`, mirroring
-`notify_supervisors_high_risk` one-for-one:
-
-- Target roles `chief_engineer` + `gm` (the engineering analog of supervisor + gm).
-- `type = "asset_risk_high"`, `data = {"asset_id": ..., "risk_score": ...}` for deep-linking.
-- Insert into `notifications` — the established and **only** proactive-push channel (bell icon, `Header.tsx`).
-
-This **respects C1**: notifications are **pull** (the bell polls; `AIRiskAlertsPanel` polls every 120s). No new
-Realtime subscription is introduced. It also **respects C2**: the notifier stays inside the single-domain
-`failure_predictions.py` module — it is not shared with another domain, so it does not get promoted to a shared
-`services/notifications` helper. (If a *third* consumer ever appears, that's the trigger to extract a shared
-notifier — not now.)
-
-### Q3 — Dedup / idempotency so a stuck-HIGH asset doesn't spam every night
-
-**This is the load-bearing design problem, and the two prediction engines dedup differently *because their storage
-models differ*.**
-
-How **room-readiness** dedups (verified `predictions.py:292-306, 424-436`):
-- Its row is **upserted** and **persists** across runs. Before recomputing, it snapshots the prior risk per room
-  into `existing_risk_map`. It then **edge-triggers**: notify only when `risk_level == "HIGH" and previous != "HIGH"`.
-  A room that stays HIGH across many 30-min runs is silent after the first alert. This is a classic
-  level→edge conversion off persistent state.
-
-Why **failure predictions can't copy that verbatim**: the nightly job **deletes unacknowledged rows and
-re-inserts** (`failure_predictions.py:393-399`). Prior state in `failure_predictions` is destroyed each night, so
-every stuck-HIGH asset looks brand-new → nightly spam.
-
-Options compared:
-
-| Option | Mechanism | Verdict |
-|--------|-----------|---------|
-| **(a) Anchor on `assets.failure_risk_score`** | This column is **updated, not deleted** (`failure_predictions.py:410-413`) — it survives the wipe, exactly like the room prediction row survives. Capture the **prior** score *before* overwriting it, compute prior band, notify only on `<70 → ≥70` crossing. | **Primary. Chosen.** Zero new schema, perfect structural analog to room-readiness's `existing_risk_map`. |
-| **(b) Add `assets.failure_notified_at` + `failure_notified_band`** | Explicit notification watermark. | **Optional hardening.** Only if a "still HIGH after 7 days → remind" cadence is wanted, or to survive score flapping across the 70 boundary. |
-| **(c) Query existing unread `asset_risk_high` notification before insert** | Dedup at the notification layer. | **Rejected.** Fragile — a user marking the bell read would re-trigger the alert. |
-
-**Implementation note (ordering hazard):** the current code overwrites `assets.failure_risk_score` at lines
-410-413. The edge-trigger must read the **old** value **before** that write (or capture it when the asset row is
-first fetched at 326-333). This is the single most bug-prone spot — flag it for the phase plan and add a test that
-runs the nightly job twice against an unchanged HIGH asset and asserts exactly **one** notification.
-
-### Q4 — Deep-linking `AIRiskAlertsPanel` rows: new routing or just a URL-param change?
-
-**Verified answer: it is a small page modification, not zero-code, but it needs no new routes.**
-
-Current state (`AIRiskAlertsPanel.tsx`):
-- Housekeeping rows → static `href="/housekeeping"` (line 89). SLA rows → static `href="/engineering"` (line 117).
-- **Maintenance/asset rows have no link at all** (lines 126-140) — the biggest UX gap.
-- Confirmed the target pages do **not** read query params today: `app/(dashboard)/engineering/page.tsx` has no
-  `useSearchParams`, and `housekeeping/page.tsx` only uses `roomId` as internal state, not from the URL.
-
-So deep-linking requires, per target page (all pull-based, C1-safe):
-1. Change the panel hrefs to carry a param: `/housekeeping?highlightRoom=<room_id>`,
-   `/engineering/predictions?asset=<asset_id>` (the `engineering/predictions/page.tsx` and
-   `engineering/assets/page.tsx` routes **already exist** — no new route file needed).
-2. On each target page, add `useSearchParams()` (App Router client hook) to read the param and
-   scroll-to / highlight the matching row.
-3. Add the missing link on maintenance rows.
-
-This is a bounded frontend change (2 pages + 1 component), not a routing redesign.
-
-### Q5 — Build order (dependency-driven, not convenience)
-
-Two tracks are **independent** — they touch different domains, files, and tables, so they can ship in parallel or
-in either order. **Reassign-action does NOT block push-parity and vice-versa** (explicitly answering the downstream
-question).
-
-```
-Track A (backend, engineering domain)        Track B (frontend, shared panel)
-─────────────────────────────────────        ─────────────────────────────────
-A1. Failure-push + edge-dedup (Q2+Q3)   ┐    B1. Deep-link AIRiskAlertsPanel (Q4)
-    - failure_predictions.py notifier   │        - panel hrefs + params
-    - assets.failure_risk_score anchor  │        - useSearchParams on 2 pages
-    - double-run idempotency test       │        - add missing maint link
-                                        │
-                                        └──► B2. Reassign/escalate wiring (Q1 direct)
-                                                 - "Reassign" → existing
-                                                   POST /housekeeping/assignments
-                                                 - "Escalate" → notify idiom
-                                                 (benefits from B1's deep-link)
-
-               (optional, LAST, gated on wanting ROI parity)
-               C1. ai_recommendations wrapper for room_readiness (Q1 analytics)
-                   - edge-triggered materialization (new HIGH only)
-                   - reuses existing /recommendations + /metrics endpoints
+```json
+{"data": {"results": [{"room_id": "...", "action": "reassigned", "housekeeper_id": "..."}, {"room_id": "...", "error": "Room is no longer awaiting cleaning"}], "succeeded": 4, "failed": 1}}
 ```
 
-**Rationale for order:**
-1. **A1 first** — highest value, lowest risk, self-contained in one file + one existing table, matches an existing
-   idiom exactly, no frontend dependency. It closes the glaring "failure predictions never proactively alert" gap.
-2. **B1 next** — pure frontend, unblocks the actionable UX for *both* prediction types; a prerequisite for B2 feeling
-   complete (a "Reassign" link is only useful if it lands on the right room).
-3. **B2** — depends on B1 for good UX; reuses the already-verified `/housekeeping/assignments` endpoint, so backend
-   work is ~zero.
-4. **C1 last and optional** — additive governance/analytics; must not gate the action itself. Only build if unified
-   outcome metrics are an explicit requirement.
+**Does AI-09 apply to both domains?** Room-readiness has 3 single-item actions (reassign/escalate/acknowledge); asset failure has 2 (acknowledge/create-work-order). Batch **acknowledge** is the one action that is symmetric, low-risk, and clearly valuable in both domains (clearing noisy MEDIUM/LOW-risk backlogs). Batch **reassign** only makes sense for room-readiness (assets have no "reassign"). Batch **create-work-order** for assets is higher-risk (creates N real work orders with parts/cost implications in one click) — recommend scoping AI-09's first phase to `batch-reassign` + `batch-acknowledge` (room-readiness) and `batch-acknowledge` (asset-failure) only; leave batch-create-work-order and batch-escalate out unless the roadmap/requirements phase explicitly calls for them.
 
----
+**Role gates:** batch endpoints reuse the exact same `require_role(...)` as their single-item counterparts — `("gm", "housekeeping_supervisor")` for room-readiness, `("gm", "engineer")` for asset-failure.
 
-## Architectural Patterns
+**Frontend:** `PredictionPanel.tsx` and `engineering/predictions/page.tsx` currently render one row/card per item with no selection state or bulk toolbar — this is new UI, not a modification of an existing bulk pattern. Add checkbox selection + a bulk-action bar to both.
 
-### Pattern 1: Level→Edge conversion off persistent state (the dedup backbone)
+### AI-10 — Auto-escalation to GM
 
-**What:** Convert a continuously-recomputed *level* (risk band) into a one-shot *edge* (band crossing) by diffing
-against a value that survives the recompute. **When:** any periodic predictor that must alert on transitions, not
-states. **Trade-off:** requires a persistent anchor; if storage is wiped (failure predictions), you must anchor on
-a *sibling* persistent field (`assets.failure_risk_score`) rather than the wiped table.
+**Schema:** add `escalation_level INT NOT NULL DEFAULT 0` to both `room_readiness_predictions` and `failure_predictions`, mirroring `work_orders.escalation_level` / `tasks.escalation_level`. Also add a `high_risk_since TIMESTAMPTZ` (or `risk_score_high_since` for assets) column — **required** because unlike `work_orders.due_at` (a fixed target), `risk_level`/`risk_score` are recomputed every run and the existing upsert (room-readiness) / delete-insert (asset-failure) logic already resets `last_calculated_at` every cycle regardless of whether the room/asset has been HIGH for 5 minutes or 5 hours. Without a dedicated "first seen HIGH and unacknowledged" timestamp, there's no way to measure how long an alert has gone un-actioned.
 
-```python
-# room-readiness (existing, predictions.py) and failure-push (proposed) share this shape:
-prior_band = band(prior_score)          # snapshot BEFORE overwrite
-new_band   = band(new_score)
-if new_band == "HIGH" and prior_band != "HIGH":
-    notify(...)                          # edge only — silent while stuck HIGH
-```
+Both prediction engines already contain the exact code path where this timestamp should be stamped:
+- `predictions.py:447` — `if risk_level == "HIGH" and previous_risk != "HIGH" and not was_acknowledged:` (this is where `notify_supervisors_high_risk` currently fires) → also set `high_risk_since = now_utc` here, and add it to `upsert_payload`.
+- `failure_predictions.py:491` — `if previous_score < 70 <= risk_score:` (where `notify_engineers_asset_risk_high` currently fires) → same treatment, added to the `prediction` dict before insert. Because this table is delete-then-insert rather than upserted, the new row must carry forward `high_risk_since` from the row being deleted when the asset is *still* HIGH across a re-run (not newly crossing), otherwise every 24h re-run at midnight would reset the clock. Recommend reading the outgoing row's `high_risk_since` before the delete and reusing it unless this is a fresh crossing.
 
-### Pattern 2: Governance-wrapper, not governance-executor
+**Cron job:** do **not** fold this into `predictions.run` or `ai.failure-predictions` — those jobs are the *detection* engines (recompute risk from live state) and already correctly clear acknowledgement when risk drops below HIGH. Escalation is a distinct concern with a distinct trigger (elapsed time while un-acknowledged), exactly as `escalations.check` is already split out from work-order/task creation. Add a **new cron job**, following the `escalations.check` pattern exactly:
 
-**What:** When adding `ai_recommendations` tracking to an action that already has a native endpoint, the
-recommendation records *intent + outcome*; the native endpoint performs the *action*. **When:** deterministic /
-reversible / already-audited actions (reassignment). **Trade-off:** two writes (recommendation + native action)
-but zero duplicated domain logic and no C2 violation.
+- New coroutine `check_prediction_escalations` in `routers/internal.py` (guarded by `verify_cron(x_cron_secret)` like every other internal job), reading rows where `risk_level = 'HIGH' AND is_acknowledged = FALSE AND escalation_level < N AND high_risk_since < now - threshold`.
+- New job id, e.g. `predictions.escalation-check`, registered in `CRON_SCHEDULE` (`core/scheduler.py:26`) at `*/30` (same cadence as `escalations.check`), and added to the `_job_handlers()` map (`core/scheduler.py:64`). Note `build_scheduler()` raises `RuntimeError` on any mismatch between `CRON_SCHEDULE` keys and handler keys (`scheduler.py:101`) — both must be updated together or the app fails to boot.
 
-### Pattern 3: Pull-based proactive surfaces (C1 preservation)
+**GM notification path:** reuse `internal.py::_notify_role` (the notifications + notification_deliveries pattern), not `notify_supervisors_high_risk` / `notify_engineers_asset_risk_high` — those two already fire once on the *initial* HIGH crossing; escalation needs a **distinct notification type** (e.g. `room_risk_escalated_gm`, `asset_risk_escalated_gm`) so GMs can tell "new alert" apart from "reminder: still un-actioned," and `_notify_role` is the pattern already used for the equivalent WO/task GM-escalation reminders.
 
-**What:** New "proactive" alerts land in `notifications` (bell poll) and `/ai/risk-alerts` (120s poll), never a new
-Realtime channel. **When:** always, in this codebase, unless a surface is explicitly added to the 3-surface Realtime
-allowlist. **Trade-off:** up-to-120s latency vs. an architectural invariant that keeps WebSocket fan-out bounded —
-acceptable for shift-level ops alerts.
+## New vs Modified — summary table
 
-## Data Flow
+| File | New or Modified | What |
+|---|---|---|
+| `apps/api/routers/housekeeping.py` | Modified | Add `batch-reassign`, `batch-acknowledge` routes |
+| `apps/api/routers/assets.py` | Modified | Add `failure-predictions/batch-acknowledge` route |
+| `apps/api/services/ai/predictions.py` | Modified | Stamp `high_risk_since` on HIGH crossing in `run_room_predictions` |
+| `apps/api/services/ai/failure_predictions.py` | Modified | Stamp/carry-forward `high_risk_since` in `run_asset_failure_predictions` / `run_single_asset_prediction` |
+| `apps/api/routers/internal.py` | Modified | New `check_prediction_escalations` coroutine + `POST /internal/predictions/escalations/check` (or similar), using `_notify_role` |
+| `apps/api/core/scheduler.py` | Modified | New `CRON_SCHEDULE` entry + `_job_handlers()` entry |
+| `supabase/migrations/096_*.sql` (next free number) | New | `escalation_level`, `high_risk_since` on `room_readiness_predictions`; same two columns on `failure_predictions` |
+| `apps/web/components/housekeeping/PredictionPanel.tsx` | Modified | Multi-select + bulk action bar |
+| `apps/web/app/(dashboard)/engineering/predictions/page.tsx` | Modified | Multi-select + bulk acknowledge bar |
+| `apps/web/lib/api/housekeeping.ts` | Modified | Add `batchReassignAtRiskRooms`, `batchAcknowledgeAtRiskRooms` |
+| `apps/web/lib/api/engineering.ts` | Modified | Add `batchAcknowledgeFailurePredictions` |
 
-### New failure-prediction push (Track A1)
+No new router files, no new services/ modules — everything fits inside the existing domain files per the project's flat-architecture convention.
 
-```
-nightly cron → run_asset_failure_predictions(hotel)
-   fetch asset (has OLD failure_risk_score)         ← capture prior_band HERE
-   → analyze (Claude / fallback)  → new risk_score
-   → delete unacked + insert failure_predictions
-   → UPDATE assets.failure_risk_score = new         ← overwrite AFTER prior captured
-   → if band(new) == HIGH and prior_band != HIGH:
-        notify_engineers_high_failure_risk()  → notifications (chief_engineer + gm)
-                                                → bell + AIRiskAlertsPanel (pull)
-```
+## Build Order
 
-### Actionable room-readiness (Track B2, direct)
+**AI-09 and AI-10 are independent** — same pattern as v1.6's phase structure (25/26/27 ran on largely separate concerns). They touch different code paths:
+- AI-09 touches only route handlers + frontend selection UI.
+- AI-10 touches the prediction engines (new column stamping), a new cron job, and a new migration.
 
-```
-AIRiskAlertsPanel row (HIGH room, deep-linked via B1)
-  ├─ "Reassign" → /housekeeping?highlightRoom=<id> → POST /housekeeping/assignments (existing)
-  └─ "Escalate" → notify idiom (existing notify_supervisors_high_risk shape) → notifications
-        (optional C1: also write ai_recommendations row, edge-triggered, for ROI metrics)
-```
+They can be built as **parallel phases**. The one coordination point: both phases eventually want a migration file — if run in parallel worktrees, assign migration numbers sequentially to avoid the numbering collisions already documented in this project's history (e.g. `020`/`0201`, dual `039` files). Recommend AI-10 claims `096_*` first since its schema change is a hard prerequisite for its own cron logic, while AI-09 needs no migration at all (batch endpoints operate on existing columns only).
 
-## Anti-Patterns
+## Anti-Patterns To Avoid
 
-### Anti-Pattern 1: Forcing the every-30-min room firehose through the governance queue
+### Folding escalation-check into the detection cron
+**What people might do:** add the "has this been HIGH too long" check directly inside `run_room_predictions`/`run_asset_failure_predictions`.
+**Why it's wrong:** conflates two different lifecycles — risk detection (recomputed fresh every run) and escalation (must persist across runs, survive risk staying flat). The `escalations.check` job is already split out from work-order creation for exactly this reason; follow that precedent.
 
-**What people do:** insert an `ai_recommendations` row per at-risk room per cron. **Why it's wrong:** floods the
-`idx_ai_recommendations_queue`-backed queue, drowns the genuinely human-decision failure recommendations, and
-misrepresents deterministic rule output as "AI needing authorization." **Instead:** edge-trigger materialization
-(new HIGH only), or skip the governance table entirely for room-readiness unless ROI metrics are required.
-
-### Anti-Pattern 2: Deduping failure alerts against the wiped table
-
-**What people do:** check `failure_predictions` for a prior row to decide whether to notify. **Why it's wrong:** the
-nightly delete-and-insert destroys that row, so the check always sees "new." **Instead:** anchor the edge-trigger on
-`assets.failure_risk_score`, which survives the wipe — and read it *before* the overwrite.
-
-### Anti-Pattern 3: Re-implementing reassignment inside a recommendation executor
-
-**What people do:** build an executor that writes `room_assignments` when a recommendation is "authorized." **Why
-it's wrong:** duplicates housekeeping-domain logic, violates the flat-services rule (C2), and creates a second,
-divergent assignment path. **Instead:** the UI action calls the existing `POST /housekeeping/assignments`; the
-recommendation only records that it happened.
-
-### Anti-Pattern 4: Promoting the failure-push notifier to a shared service prematurely
-
-**What people do:** extract a `services/notifications` helper for the new engineer push. **Why it's wrong:** it's
-used by exactly one domain (engineering/failure) — C2 says extract only at 2+ consumers. **Instead:** keep it inside
-`failure_predictions.py` alongside its room-readiness twin in `predictions.py` until a real third consumer appears.
-
-## Integration Points
-
-### Tables touched
-
-| Table | New / Modified | Change |
-|-------|----------------|--------|
-| `notifications` | Modified (data only) | New `type='asset_risk_high'` rows; new `type` for HK escalate. **No schema change.** |
-| `assets` | Optional new columns | Only if Q3 option (b) hardening chosen (`failure_notified_at`, `failure_notified_band`). Otherwise untouched. |
-| `ai_recommendations` | Modified (data only) | Optional C1: `source_type='room_readiness'` rows. Schema **already supports** it (migration 073) — **no migration needed**. |
-| `room_readiness_predictions` / `failure_predictions` | Unchanged | Read-only for the new flows. |
-
-### Files touched
-
-| File | New / Modified | Change |
-|------|----------------|--------|
-| `services/ai/failure_predictions.py` | Modified | Add `notify_engineers_high_failure_risk()` + prior-band edge-trigger (A1). |
-| `services/ai/predictions.py` | Unchanged (or minor) | Already notifies. Only touch if wiring the optional `ai_recommendations` wrapper (C1). |
-| `routers/ai_copilot.py` | Possibly modified | Only if adding a room-readiness recommendation endpoint (optional C1). Push work needs no router change. |
-| `components/dashboard/AIRiskAlertsPanel.tsx` | Modified | Param'd hrefs; add missing maintenance link (B1). |
-| `app/(dashboard)/housekeeping/page.tsx` | Modified | `useSearchParams` highlight (B1). |
-| `app/(dashboard)/engineering/predictions/page.tsx` (or `/assets`) | Modified | `useSearchParams` highlight (B1). Routes already exist. |
-| `lib/api/housekeeping.ts` / `lib/api/ai.ts` | Unchanged / minor | `saveAssignments` already exists; add types only if C1 wrapper built. |
-
-## Scaling Considerations
-
-| Scale | Adjustment |
-|-------|------------|
-| 50-150 rooms (target) | Everything above is trivially fine. Per-hotel loops (`run_all_hotels_*`) are sequential and adequate. |
-| Many hotels × nightly LLM | The LLM failure job is the cost/latency bottleneck, not notifications. Already mitigated by per-asset `max_tokens=512` + rule fallback. Notifications are a bulk insert — negligible. |
-| Notification volume | Edge-triggering (Q3) is what keeps volume sane; without it, volume grows with stuck-HIGH assets × nights. This is a correctness, not scale, concern. |
+### Extracting a shared `services/ai/room_actions.py` for batch/single dedup
+**What people might do:** refactor `reassign_at_risk_room` etc. into a services-layer helper "to avoid duplication" between single and batch paths.
+**Why it's wrong:** contradicts this project's explicit convention (`services/` reserved for logic shared across 2+ *domains*, not for DRYing up single-domain route handlers) and there's no duplication problem to solve — the codebase's own pattern is calling route coroutines directly from other route coroutines within the same file, already proven by `reassign_at_risk_room → create_assignments`.
 
 ## Sources
 
-- `apps/api/services/ai/predictions.py` (room-readiness engine, `notify_supervisors_high_risk`, edge-trigger 292-306/424-436) — HIGH
-- `apps/api/services/ai/failure_predictions.py` (delete-and-insert 393-399, asset score update 410-413) — HIGH
-- `supabase/migrations/013_ai_systems.sql` (`room_readiness_predictions`, `notifications` schema) — HIGH
-- `supabase/migrations/073_pms_ai_governance.sql` (`ai_recommendations` lifecycle, CHECK constraints, immutable events) — HIGH
-- `apps/api/routers/ai_copilot.py:768-969` (risk-alerts aggregation + recommendation lifecycle endpoints) — HIGH
-- `apps/web/components/dashboard/AIRiskAlertsPanel.tsx` (static hrefs, missing maintenance link) — HIGH
-- `apps/web/lib/api/ai.ts` + `lib/api/housekeeping.ts` (existing clients; `saveAssignments`) — HIGH
-- Project CLAUDE.md constraints A1 (flat services / C2), A2 (Realtime scope / C1) — HIGH
+All findings verified by direct file reads on 2026-08-13 (not training-data assumptions):
+- `apps/api/routers/housekeeping.py`
+- `apps/api/routers/assets.py`
+- `apps/api/routers/internal.py`
+- `apps/api/services/ai/predictions.py`
+- `apps/api/services/ai/failure_predictions.py`
+- `apps/api/core/scheduler.py`
+- `apps/api/main.py`
+- `supabase/migrations/008_assets_pm.sql`
+- `supabase/migrations/095_room_readiness_acknowledgement.sql`
+- `apps/web/components/housekeeping/PredictionPanel.tsx`
+- `apps/web/lib/api/housekeeping.ts`
+- `apps/web/app/(dashboard)/engineering/predictions/page.tsx`
+- `apps/web/lib/api/engineering.ts`
 
 ---
-*Architecture research for: proactive AI alerting integration (v1.6)*
-*Researched: 2026-08-12*
+*Architecture research for: PatelRep v1.7 (AI-09 batch actions, AI-10 auto-escalation)*
+*Researched: 2026-08-13*

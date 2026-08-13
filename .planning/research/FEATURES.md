@@ -1,159 +1,115 @@
 # Feature Research
 
-**Domain:** Proactive AI alerting + one-click actions for hotel ops / predictive-maintenance SaaS (PatelRep v1.6)
-**Researched:** 2026-08-12
-**Confidence:** HIGH (internal grounding in existing code; external validation from CMMS/predictive-maintenance + hotel-housekeeping SaaS norms)
+**Domain:** Batch actions + auto-escalation for AI prediction/alerting (room-readiness copilot), hotel ops SaaS
+**Researched:** 2026-08-13
+**Confidence:** HIGH (internal grounding — full read of `PredictionPanel.tsx`, `housekeeping.py`, `internal.py`, `predictions.py`, migration 013/095); MEDIUM-HIGH external (verified against multiple SaaS bulk-action guides + PagerDuty/Opsgenie/AlertOps escalation-policy docs)
 
 ## Scope Recap
 
-This is a **subsequent milestone** on an existing app. Three gaps to close:
+Subsequent milestone. Two backlog items deferred at v1.6 close, now being scoped:
 
-1. Make **room-readiness predictions actionable** (`PredictionPanel.tsx` is read-only today).
-2. **Proactive push parity** for failure predictions (room-readiness already pushes on HIGH escalation via `services/ai/predictions.py::notify_supervisors_high_risk`; `services/ai/failure_predictions.py` sends **nothing** — confirmed, no notification code path exists).
-3. **Consistent deep-linked alert surfaces** (`AIRiskAlertsPanel.tsx` housekeeping rows link to generic `/housekeeping`; maintenance rows have **no** action link).
+- **AI-09 — batch actions:** select a group of HIGH-risk room-readiness alerts (e.g. all HIGH rooms on one floor) and reassign/acknowledge them in one action, instead of one row at a time. Deferred pending "evidence of shift-change tap-fatigue."
+- **AI-10 — escalation to GM:** a HIGH-risk prediction left un-actioned (no reassign/escalate/acknowledge) past a time threshold auto-escalates to GM. Deferred pending "evidence that alerts are going un-actioned."
 
-Chat/system-initiated copilot messaging is **out of scope** — do not scope it in.
+Both extend the existing single-item action set on `PredictionPanel.tsx` (`apps/web/components/housekeeping/PredictionPanel.tsx`) and its three endpoints (`apps/api/routers/housekeeping.py`: `/room-readiness/{room_id}/{reassign,escalate,acknowledge}`). AI-10 is structurally the same shape as the existing work-order/task escalation ladder (`apps/api/routers/internal.py::check_escalations`, tiers at 30/90/150 min, `escalation_level` watermark column).
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist. Missing these = product feels incomplete or the alert feels like dead-end noise.
+Features users assume exist once "batch" or "escalation" is on the table. Missing these makes the feature feel unsafe or half-built.
 
 | Feature | Why Expected | Complexity | Notes / Dependencies |
-|---------|--------------|------------|----------------------|
-| Every alert carries a concrete next action | CMMS norm: "if an alert fires and the responder cannot take a specific action, the alert should not exist." A read-only risk pill is a dead end. | LOW | `PredictionPanel` rows and `AIRiskAlertsPanel` maintenance rows currently violate this. Add a primary action button per row. |
-| Acknowledge / dismiss | Lets a supervisor clear a handled alert so it stops nagging; already the norm for failure predictions. | LOW | Failure dashboard already has `acknowledge`. Room-readiness has **no** acknowledge — add one, and have it suppress re-push (see dedup below). |
-| Deep link to the source record | Clicking an alert must land on the exact room/asset/WO, not a generic list. | LOW | Fix `AIRiskAlertsPanel`: housekeeping row → `/housekeeping?room={room_id}` (drawer open), maintenance row → `/engineering/predictions?asset={id}`. SLA row already deep-ish (`/engineering`). |
-| Proactive push on new HIGH-risk asset | Room-readiness already pushes; engineers expect the same for equipment about to fail. Parity gap is the core ask. | MEDIUM | Reuse `notifications` table + the `notify_role`/`notify_supervisors_high_risk` pattern. Target `engineer` + `chief_engineer` + `gm`. |
-| Edge-triggered dedup (no re-notify while risk stays HIGH) | Predictions re-run every 30 min (room) / nightly (asset). Re-pushing an unchanged HIGH every cycle is textbook alert fatigue. | MEDIUM | Room-readiness **already** does this: `risk_level == "HIGH" and previous_risk != "HIGH"`. Replicate for assets. See "Dedup design" below. |
-| Confidence / rationale on the alert | AI alerts without "why" get ignored or distrusted. | LOW | Data already exists: `confidence_score`, `risk_factors` (room), `ai_reasoning` + `failure_indicators` (asset). Surface, don't recompute. |
-| Role-gated actions | A housekeeper shouldn't authorize a spend; front desk shouldn't reassign engineers. | LOW | Reuse `require_role`/`useRole`. Reassign → `housekeeping_supervisor`/`gm`; authorize AI action → `chief_engineer`/`gm` (matches existing `canAuthorize`). |
+|---------|--------------|------------|-----------------------|
+| Multi-select checkboxes, scoped to actionable rows only | Standard data-table bulk pattern (GitHub Issues, Jira, ClickUp); selection should only be offered where an action is legal. | LOW | Only HIGH-risk rows currently render action buttons (`canAct = canAssignRooms && risk_level === 'HIGH'` in `PredictionPanel.tsx:89`). Selection checkboxes should appear on that same subset — MEDIUM rows stay read-only, matching today's gating. |
+| "Select all" shortcut for the current list | Reduces per-row tapping, the entire point of AI-09. | LOW | Scope to the currently-rendered/expanded HIGH list (typically single digits for a 50–150 room property) — not a paginated or hotel-wide select-all. |
+| Contextual action bar that appears once ≥1 row selected | Universal SaaS bulk pattern — floating/sticky bar showing count + available actions, replaces hunting for a menu. | LOW-MEDIUM | Reuse existing `Button` primitives; bar shows "N selected" + Reassign/Escalate/Acknowledge, mirrors the per-row button set already built. |
+| Confirm-before-commit step, scaled to N items | Existing single-item flow already requires a confirm sub-row before firing (`ActionMode = 'confirm-reassign' | ...`). Bulk actions carry more blast radius, so skipping confirmation here would be a regression versus the safety bar already set for single-item actions. | LOW | Reuse the same inline-confirm visual pattern, restate as "Reassign 4 rooms?" |
+| Per-item outcome after the batch runs | Single-item reassign already has two distinct outcomes (`reassigned` vs `escalated: no_eligible_housekeeper`) — a batch call must preserve that granularity, not collapse to one pass/fail toast. | MEDIUM | e.g. "3 reassigned, 1 escalated — no capacity." Loses trust if a batch silently partially fails. |
+| Deselect / clear selection control | Table stakes for any multi-select UI; users need an escape hatch before committing. | LOW | Standard checkbox-clear + explicit "Clear" affordance in the action bar. |
+| GM notification is not silent (AI-10) | An alert that "auto-escalates" with no notification is invisible — defeats the purpose of a safety net. | LOW | Reuse `notify_role` / `_notify_role` helper already used for WO/task escalation tiers (`internal.py`). |
+| Escalation only fires while the alert is still HIGH and un-actioned (AI-10) | Escalating a room that was already reassigned/acknowledged/dropped-to-MEDIUM is a false alarm and erodes trust in the whole ladder — exactly the failure mode PagerDuty's "acknowledge stops escalation" rule and Opsgenie's alert-policy model both guard against. | MEDIUM | Needs a per-room "un-actioned since" signal — see Dependencies below; this does not exist in the schema today. |
+| Escalation is idempotent (no repeat-notify every cron cycle) | The existing WO/task ladder explicitly guards against this ("Level tracking prevents duplicate notifications across cron runs" — `internal.py:488`). Skipping it here would immediately create the exact GM-notification spam the ladder pattern was built to avoid. | LOW | One watermark column write per escalation event, same shape as `work_orders.escalation_level`/`tasks.escalation_level`. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that set the product apart. Align with core value: **save floor staff time, don't add phone complexity.**
+Align with core value: save floor staff time without adding phone/dashboard complexity.
 
 | Feature | Value Proposition | Complexity | Notes / Dependencies |
-|---------|-------------------|------------|----------------------|
-| One-click reassign with AI-suggested least-loaded housekeeper pre-selected | Turns "Room 214 will be late" into a 1-tap fix. Competitors (HelloShift, Unifocus) auto-balance by productivity/proximity; we match that but keep a human in the loop. | MEDIUM | **Recommend: pre-picked default + confirm, NOT silent auto-execute.** Route through existing `ai_recommendations` (`source_type='room_readiness'`, `suggested_action='adjust_room_assignment'` — both enum values already exist in migration 073). Least-loaded = fewest DIRTY/IN_PROGRESS rooms via existing `count_rooms_ahead` logic. See "Reassign design" below. |
-| AI-recommended action with governed authorize → execute → outcome loop | Auditability: "AI suggested, GM authorized, it prevented a failure." Rare in SMB hotel tooling. | LOW (already built) | `ai_recommendations` lifecycle already exists and is wired for failure predictions (`authorizeRecommendation`). Extend the same UI affordance to room-readiness and to the alert panel — do **not** build a second governance system. |
-| Escalation chain / watermark for un-actioned alerts | If nobody reassigns a HIGH room or acks a failing asset, escalate to GM after a threshold. | MEDIUM | Pattern already exists for work orders: `escalation_level` column as a watermark (`internal.py::check_escalations`, tiers at 30/90/150 min). Apply a lightweight version to predictions. |
-| Batch action on grouped alerts | "3 rooms behind on floor 2 → reassign all" / "acknowledge all low-value alerts." Reduces taps at shift change. | MEDIUM | CMMS best practice is to **group related alerts into one actionable notification**. Only worth it once single-item actions ship. Group by floor (room) or asset category (maintenance). |
-| Tiered alert routing (observe vs act vs escalate) | Separates "log & monitor" from "do something now" so the feed isn't a flat wall of red. | MEDIUM | Map to existing bands: room LOW/MEDIUM/HIGH; asset <40 / 40–69 / ≥70. Only MEDIUM+/≥40 should push; LOW stays in-dashboard. |
+|---------|-------------------|------------|-----------------------|
+| "Select all HIGH on this floor" quick filter (AI-09) | Directly targets the deferral trigger — shift-change tap-fatigue is location-scoped (a supervisor walking one floor/wing, not the whole property). A flat select-all doesn't address that; a floor-scoped one does. | LOW-MEDIUM | `room_id` predictions already join `rooms(floor)` in some contexts (see `get_predictions` in `housekeeping.py:1252`) — floor is available to group by client-side without new backend work. |
+| Batch action reuses the exact single-item endpoints, per-row (AI-09) | Keeps outcome semantics identical to what's shipped (e.g. reassign's "escalated: no capacity" fallback is preserved per room, not silently dropped). Avoids a second business-logic path that can drift from the single-item one. | LOW-MEDIUM | Implement as either (a) client-side loop calling the three existing POST endpoints per selected `room_id`, or (b) one thin batch endpoint that internally calls the same handler functions in a loop. Either way: no new reassignment/escalation logic, just fan-out over what exists. |
+| Escalation timer anchored to "first classified HIGH," not a generic overdue clock (AI-10) | Room-readiness predictions don't have a task-style `due_at`; the meaningful "how long has this sat un-actioned" clock should start when the room first crossed into HIGH (a moment that's already computed once in `services/ai/predictions.py`, just not persisted). This is a genuinely different signal from the WO ladder's SLA-overdue math, tailored to this domain rather than copy-pasted. | MEDIUM | See Feature Dependencies — requires persisting that transition moment. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Re-notify every cron run while risk stays HIGH | "Keep reminding us it's still broken." | **Primary alert-fatigue driver.** Room preds run `*/30` (up to 48 pushes/day/room); assets nightly. A stuck-HIGH asset would ping every night forever → staff mute the bell. | Edge-triggered notify on **transition into HIGH only**, plus a re-arm window (don't re-fire if it dipped and re-rose within ~6–12h) and acknowledge-suppression. Send a *digest* if persistence must be surfaced, not a repeat push. |
-| Silent auto-reassign / auto-create-WO with no confirmation | "Just let the AI fix it." | Reassignment moves a real person's workload; auto-WO can authorize spend. Consequential changes that bypass human confirm erode trust and cause floor disputes. Existing governance (`ai_recommendations`) deliberately requires `authorized_by`. | Pre-fill the AI's choice, require **one confirming tap**. Auto-execute only truly reversible, zero-cost actions (e.g. mark-as-read), never assignment or spend. |
-| Flat "everything is an alert" feed | "Surface all risks." | Flat systems where every signal = same notification are the root cause of alert fatigue. LOW-risk rooms flooding the panel bury the one HIGH that matters. | Tiered: only MEDIUM+/≥40 surfaces in `AIRiskAlertsPanel`; LOW stays as ambient dashboard state. Cap/rank the feed. |
-| Per-alert email/SMS for every prediction | "I want to know immediately, everywhere." | SMS (Twilio) credentials aren't even available locally, and per-event SMS compounds fatigue + cost against the $2.50/room/mo cap. | In-app `notifications` (bell) is the default channel. Reserve any future email for the **daily GM digest** cron that already exists (`reports.daily-summary-email`). |
-| Notify all roles on every alert | "Make sure someone sees it." | Broadcasting a failing compressor to housekeepers is noise that trains everyone to ignore the bell. | Route by domain+role: room-readiness → `housekeeping_supervisor`/`gm`; asset failure → `engineer`/`chief_engineer`/`gm`. Matches existing `notify_supervisors_high_risk` targeting. |
-| New standalone predictions inbox / notification center rebuild | "We need a better place to manage all this." | Duplicates the existing bell + `AIRiskAlertsPanel` + per-domain dashboards; big surface, little marginal value this milestone. | Enhance the three existing surfaces in place. Defer any unified center to v2+. |
-
-## Dedup Design (answers the "new HIGH-risk asset" push question)
-
-**Use edge-triggered state-transition notification with a watermark column — the pattern already proven twice in this codebase.**
-
-- **Room-readiness (already correct):** fetches `existing_risk_map`, pushes only when `risk_level == "HIGH" and previous_risk != "HIGH"`. Keep as-is; add acknowledge-suppression so a supervisor who acked a room isn't re-pinged if it flickers.
-- **Failure predictions (to build):** before the delete-then-insert, read the prior row's `risk_score` band. Push **only on transition into ≥70 from below 70**. Persist a watermark so the nightly re-run of a still-HIGH asset does **not** re-push.
-  - Add `last_notified_risk_band` (or reuse `is_acknowledged` + a `notified_at`) on the prediction/asset row. This mirrors the `escalation_level` watermark used in `internal.py::check_escalations` to "prevent duplicate notifications across cron runs."
-  - **Re-arm rule:** only re-notify if the band was below 70 for at least one intervening run (or ~12h) before re-crossing. Prevents 69↔71 flapping from spamming.
-  - **Acknowledge = suppress:** an acknowledged prediction never re-pushes even if it stays HIGH; the dashboard row is the persistent surface.
-
-Net: one push per genuine LOW/MED→HIGH transition per asset, not one per cron cycle.
-
-## Reassign Design (answers the "one-click reassign to which housekeeper" question)
-
-**Recommend: picker pre-selected to the AI's least-loaded pick, requiring one confirming tap — not a silent auto-assign, and not a blank picker.**
-
-- **Default choice = least-loaded eligible housekeeper.** Reuse `count_rooms_ahead` (fewest remaining DIRTY/IN_PROGRESS rooms today); tie-break on rolling avg clean time for that room_type (`housekeeper_profiles`). This is what Unifocus/HelloShift do (balance by productivity + workload).
-- **Why confirm, not auto:** reassignment is consequential (shifts a person's floor workload). Silent auto-assign is an anti-feature. Pre-filling the pick keeps it one-tap-fast while preserving the human check.
-- **Route through governance:** create an `ai_recommendations` row (`source_type='room_readiness'`, `suggested_action='adjust_room_assignment'`, `action_payload={room_id, from_hk, to_hk}`) → authorize → execute updates `room_assignments.assigned_to`. Reuses the exact loop the failure dashboard already uses; no new governance code.
-- **Escalate alternative:** if no eligible housekeeper has slack, the action degrades to `notify_supervisor` (also an existing `suggested_action` enum value) rather than forcing a bad reassignment.
-- **Deep-link fallback:** the `AIRiskAlertsPanel` housekeeping "Reassign" link should open the room drawer on `/housekeeping` with the reassign action primed (fixes today's generic `href="/housekeeping"`).
+|---------|---------------|------------------|-------------|
+| Unbounded "select all across the whole hotel / all pages" (AI-09) | "Just let me select everything." | HIGH-risk lists at a 50–150 room property are inherently small (rarely more than a handful concurrently) — this is solving a pagination-scale problem the domain doesn't have, and adds UI complexity (indeterminate-select-all, "select all N matching filter" banners) for no real benefit here. | Select-all applies only to the currently-rendered/expanded HIGH list. |
+| Per-item customization inside one batch flow (e.g. picking a different housekeeper per room inside the batch modal) (AI-09) | "Let me fine-tune each one while I'm in there." | This is just N single actions wearing a batch costume — it reintroduces the exact per-row decision-making the batch feature exists to remove, while adding a much more complex UI (a mini reassignment picker per row, inside a bulk modal). | Keep batch actions uniform: the same action (reassign to AI-suggested housekeeper / escalate / acknowledge) applied identically to every selected row. Anything needing per-room judgment routes back to the existing single-row confirm flow. |
+| Full transactional undo/rollback after a batch commits (AI-09) | "What if I select the wrong rooms and hit reassign?" | Reverting a reassignment write (which cascades into `room_assignments` and downstream workload balance) is disproportionate engineering for a same-shift, small-blast-radius action that's already gated behind an explicit confirm step. Note: the existing single-item actions don't have undo either — adding it only for batch would be an inconsistent safety model. | Strong confirm-before-commit (reuse the inline confirm-subrow pattern, scaled to "Reassign 4 rooms?") instead of undo-after-commit. |
+| Escalation as an ownership/assignment change — i.e. actually reassigning the room record to the GM (AI-10) | "Make the GM own it so it's clearly someone's job." | GMs don't clean rooms; forcing an ownership transfer models this like an on-call rotation where the escalated party is expected to personally act, which doesn't fit a GM's role here. The existing WO tier-3 precedent is the right model: it sets `status='escalated'` (a state flag) and notifies GM — it does **not** reassign the work order to a different assignee. | Escalation flags the prediction (state/watermark) and notifies GM — visibility and accountability, not a forced ownership transfer. Matches the "notification-only, shared responsibility" pattern used by AlertOps Response Plays as an alternative to strict on-call ownership handoff. |
+| Escalating MEDIUM-risk predictions too (AI-10) | "Why only HIGH? MEDIUM rooms could also slip." | Scope creep beyond what's asked, and inconsistent with every existing action gate in this feature: `canAct` on the frontend and all three backend endpoints already restrict to `risk_level === 'HIGH'` only. Extending escalation to MEDIUM roughly doubles the alert surface for a tier the product has deliberately treated as "watch, don't act" so far. | Keep AI-10 scoped to HIGH only, matching every other action gate already in place. |
+| Uncapped repeat GM notification every 30-min cron cycle while still un-actioned (AI-10) | "Keep pinging until someone deals with it." | This is the exact alert-fatigue failure mode the existing WO/task escalation ladder was explicitly built to prevent via its `escalation_level` watermark ("prevents duplicate notifications across cron runs"). Un-capped re-notification would make AI-10 the one alerting path in the app that doesn't follow the house pattern. | One GM notification per HIGH-and-un-actioned episode (watermark-gated), only resettable if the room drops below HIGH and later re-crosses into HIGH. |
 
 ## Feature Dependencies
 
 ```
-Deep-linked alert surfaces (AIRiskAlertsPanel fix)
-    └──requires──> source_id present on each alert row (room_id / asset_id) [already in payload]
+AI-09 batch actions
+    └──requires──> existing single-item endpoints (reassign/escalate/acknowledge) [EXISTS: housekeeping.py:1274-1362]
+    └──requires──> per-row selection state added to PredictionPanel.tsx, scoped to canAct rows [NEW, frontend-only]
+    └──does NOT require──> schema changes (fan-out over existing mutations, no new tables/columns)
 
-Room-readiness one-click reassign
-    └──requires──> ai_recommendations governance loop [EXISTS, migration 073]
-    └──requires──> least-loaded picker (count_rooms_ahead / housekeeper_profiles) [EXISTS]
-    └──enhances──> PredictionPanel (adds action buttons to read-only rows)
+AI-10 escalation-to-GM
+    └──requires──> a persisted "un-actioned since" signal on room_readiness_predictions [GAP — see below]
+    └──requires──> escalations.check cron pattern + _notify_role helper [EXISTS: internal.py:481-589]
+    └──requires──> the escalation-clock reset must fire on ALL THREE actions (reassign/escalate/acknowledge), not just acknowledge [GAP — see below]
+    └──enhances──> the same 30-min cadence already used by predictions.run / escalations.check [EXISTS, no new cron job needed]
 
-Failure-prediction proactive push
-    └──requires──> notify pattern (notifications table + notify_role) [EXISTS in internal.py/predictions.py]
-    └──requires──> edge-triggered dedup watermark [pattern EXISTS: escalation_level / existing_risk_map]
-
-Batch actions ──requires──> single-item actions shipped first
-Escalation chain ──enhances──> proactive push (both use the same watermark idea)
-Silent auto-execute ──conflicts──> ai_recommendations human-authorize invariant (do NOT combine)
+AI-09 and AI-10 ──independent──> can ship in either order; AI-09 does not block AI-10 or vice versa
 ```
 
-### Dependency Notes
+### Dependency Notes — confirmed gaps in current schema/logic
 
-- **One-click reassign requires `ai_recommendations`:** the table already models `source_type='room_readiness'` and `suggested_action='adjust_room_assignment'`/`notify_supervisor` — build on it, don't fork.
-- **Proactive push requires dedup:** shipping the push without the watermark would immediately create nightly alert-fatigue on stuck-HIGH assets — treat them as one unit of work.
-- **Auto-execute conflicts with governance:** the append-only `ai_recommendation_events` + required `authorized_by` exist specifically to keep a human in the loop; a silent-auto path would undermine the audit trail.
+- **No "became HIGH at" timestamp exists today.** `room_readiness_predictions` (migration `013_ai_systems.sql`) has `last_calculated_at` (overwritten every 30-min recompute, not a transition marker) and `acknowledged_at`/`is_acknowledged` (migration `095_room_readiness_acknowledgement.sql`, set only by the manual acknowledge action). There is no column marking *when a room first crossed into HIGH*. `services/ai/predictions.py` already computes this moment once per transition (`risk_level == "HIGH" and previous_risk != "HIGH"`, line ~447) to decide whether to fire the one-time notification — but it discards it instead of persisting it. **AI-10 needs this persisted** (recommend a new `escalation_level` column on `room_readiness_predictions`, mirroring the `work_orders.escalation_level` / `tasks.escalation_level` watermark convention already used elsewhere in the codebase, set on the same transition). This is a real schema dependency, not just business-logic reuse — flag as MEDIUM complexity, not LOW.
+- **Only `acknowledge` currently marks a room as "actioned."** Checked `reassign_at_risk_room` and `escalate_at_risk_room` in `housekeeping.py` directly: neither writes to `is_acknowledged`/`acknowledged_at`. Reassign changes `room_assignments` (which will organically drop risk on the next `predictions.run` recompute) but doesn't touch the prediction row itself; escalate only re-sends notifications. If AI-10's un-actioned clock is reset by "any of the three actions," reassign and escalate need to also clear/touch the new watermark column — otherwise a supervisor who reassigns a room could still see it auto-escalate to GM minutes later, which would be a confusing regression, not a safety net.
+- **AI-09 has no schema dependency** — it is purely a frontend selection/batching concern layered on already-shipped, already-tested single-item mutations. This keeps it the lower-risk of the two features to build first if sequencing matters.
 
 ## MVP Definition
 
-### Launch With (v1.6 core)
+### Launch With (if this milestone ships both)
 
-- [ ] **Deep-linked alert rows** in `AIRiskAlertsPanel` (housekeeping → room drawer; maintenance → prediction card) — LOW cost, removes dead-end alerts.
-- [ ] **Failure-prediction proactive push** with edge-triggered dedup watermark — closes the parity gap without fatigue.
-- [ ] **Room-readiness one-click reassign** (pre-picked least-loaded + confirm) via existing `ai_recommendations` loop.
-- [ ] **Acknowledge on room-readiness** predictions (suppresses re-push).
+- [ ] **AI-09 batch reassign/acknowledge** on HIGH-risk rows, uniform action applied to a floor-scoped or full-list selection, fanned out over existing single-item endpoints, with per-row outcome reporting.
+- [ ] **AI-10 escalation-to-GM** for HIGH-risk predictions left un-actioned past a threshold, using a new watermark column, one-time GM notification, no ownership/assignment change.
 
-### Add After Validation (v1.x)
+### Add After Validation
 
-- [ ] **Batch actions** (reassign-all-on-floor, ack-all) — trigger: supervisors report tap-fatigue at shift change.
-- [ ] **Escalation chain** for un-actioned HIGH predictions → GM — trigger: alerts sit unacted past a threshold.
+- [ ] Tuning the AI-10 threshold value itself (see below) once real "how long do HIGH rooms sit un-actioned" data exists — ship with a conservative default, adjust from production telemetry rather than guessing twice.
 
-### Future Consideration (v2+)
+### Future Consideration (v2+, do not build now)
 
-- [ ] Unified notification center — defer; enhance existing three surfaces first.
-- [ ] Cross-channel delivery (email/SMS per alert) — defer; blocked on Twilio creds + cost cap, digest-only if ever.
+- [ ] Cross-selection batch actions spanning both HIGH housekeeping rooms and HIGH/failure-risk assets in one UI — no evidence this is needed; the two domains have different actors (supervisor vs engineer) and different action sets.
+- [ ] Configurable per-hotel escalation thresholds (GM-tunable minutes) — start with a fixed threshold matching the house pattern; only add configurability if GMs actually ask for it.
 
-## Feature Prioritization Matrix
+## Threshold Guidance for AI-10 (not prescriptive — flag for roadmap/phase decision)
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Deep-linked alert rows | HIGH | LOW | P1 |
-| Failure-prediction push + dedup watermark | HIGH | MEDIUM | P1 |
-| Room-readiness one-click reassign (governed) | HIGH | MEDIUM | P1 |
-| Acknowledge room-readiness (push suppression) | MEDIUM | LOW | P1 |
-| Batch / grouped actions | MEDIUM | MEDIUM | P2 |
-| Escalation chain for un-actioned alerts | MEDIUM | MEDIUM | P2 |
-| Unified notification center | LOW | HIGH | P3 |
-| Per-alert email/SMS | LOW | MEDIUM | P3 (anti) |
-
-## Competitor Feature Analysis
-
-| Feature | HelloShift / Unifocus / Actabl (housekeeping) | TMA / oxmaint / clickmaint (CMMS) | Our Approach |
-|---------|-----------------------------------------------|-----------------------------------|--------------|
-| Reassignment | Drag-and-drop + bulk; auto-balance by productivity/proximity/floor | n/a | AI-pre-picked least-loaded + one-tap confirm, governed by `ai_recommendations` |
-| Alert dedup | Real-time status, reassign dynamically | Baseline-then-threshold, multi-signal correlation, group + dedup | Edge-triggered transition + watermark + re-arm window (already the house pattern) |
-| Actionability | Assignments pushed to attendant mobile | "Every alert tier auto-attaches an action" | Every prediction row gets a primary action; no read-only dead ends |
-| Governance | Rule-based auto-assign | Tiered observe/act/escalate | Human-authorized loop with append-only audit trail |
+The existing WO/task ladder uses 30/90/150-minute tiers anchored to `due_at` overdue-elapsed time. Room-readiness HIGH predictions don't have an equivalent due-date concept — the closest analog is time since the one-time "newly HIGH" notification already fires. Because `predictions.run` and `escalations.check` both run on a 30-minute cadence, any threshold should be a multiple of 30 minutes to align cleanly with check intervals (a threshold like "45 minutes" would inconsistently span one or two cron runs). Suggest evaluating a single-tier design (unlike the WO ladder's three tiers) given HIGH-risk room windows are typically measured in a few hours until check-in at most — a 3-tier ladder modeled on 150-minute WO thresholds may be too slow for a room that needs to be ready today. This is a product/roadmap decision, not something this research can settle with certainty — flag as an open question for phase planning.
 
 ## Sources
 
-- [Monitoring & Alerting Best Practices to Reduce Alert Fatigue — OneUptime (2026-02)](https://oneuptime.com/blog/post/2026-02-20-monitoring-alerting-best-practices/view) — MEDIUM
-- [Predictive Maintenance Alerts: How to Reduce Alert Fatigue — oxmaint](https://oxmaint.com/article/predictive-maintenance-alert-fatigue) — MEDIUM
-- [Reduce IoT False Alarms in Predictive Maintenance — oxmaint](https://oxmaint.com/blog/post/reduce-iot-false-alarms-predictive-maintenance) — MEDIUM
-- [Predictive Maintenance Best Practices for CMMS and EAM — TMA Systems](https://www.tmasystems.com/blog/predictive-maintenance-best-practices) — MEDIUM
-- [Alert Fatigue in Monitoring — Icinga](https://icinga.com/blog/alert-fatigue-monitoring/) — MEDIUM
-- [Best Hotel Housekeeping Software 2026 — HotelTechReport](https://hoteltechreport.com/operations/housekeeping-software) — MEDIUM
-- [Hotel Housekeeping Management — HelloShift](https://www.helloshift.com/housekeeping-management) — MEDIUM
-- [Housekeeping Software — Unifocus](https://www.unifocus.com/en/operations-software/housekeeping-software) — MEDIUM
-- Internal (HIGH): `apps/api/services/ai/predictions.py` (edge-triggered room push), `apps/api/services/ai/failure_predictions.py` (no push — parity gap), `apps/api/routers/internal.py::check_escalations` (`escalation_level` watermark dedup), `supabase/migrations/073_pms_ai_governance.sql` (`ai_recommendations` lifecycle + `adjust_room_assignment`/`notify_supervisor` actions), `apps/web/components/housekeeping/PredictionPanel.tsx` (read-only today), `apps/web/components/dashboard/AIRiskAlertsPanel.tsx` (generic links).
+- [Bulk action UX: 8 design guidelines with examples for SaaS — Eleken](https://www.eleken.co/blog-posts/bulk-actions-ux) — MEDIUM
+- [Data table UI design reference guide for 2026 — Setproduct](https://www.setproduct.com/blog/data-table-ui-design) — MEDIUM
+- [Table multi-select pattern — Helios Design System (HashiCorp)](https://helios.hashicorp.design/patterns/table-multi-select) — MEDIUM
+- [Bulk editing pattern — eBay Playbook Design System](https://playbook.ebay.com/design-system/patterns/bulk-edit) — MEDIUM
+- [Best Practices for Alerting Using PagerDuty — DrDroid](https://drdroid.io/engineering-tools/best-practices-for-alerting-using-pagerduty) — MEDIUM
+- [How to set alert policies — Opsgenie/Atlassian docs](https://docs.opsgenie.com/docs/alert-policies) — MEDIUM
+- [Escalation policy tools comparison: incident.io vs. PagerDuty vs. Opsgenie](https://incident.io/blog/escalation-policy-tools-comparison) — MEDIUM
+- [Incident escalation policies: intelligent alert routing and on-call assignment — incident.io](https://incident.io/blog/incident-escalation-policies-guide) — MEDIUM
+- [Alert Escalation: How It Works & Best Practices — AlertOps](https://alertops.com/blogs/alert-escalation/) — MEDIUM
+- [Map Opsgenie Escalations to Response Plays — AlertOps](https://alertops.com/blogs/opsgenie-response-plays-vs-escalation-policies/) — MEDIUM
+- [Maintenance Escalation Rules: When to Notify Managers Automatically — oxmaint](https://oxmaint.com/article/maintenance-escalation-rules-when-to-notify-managers-automatically) — MEDIUM
+- Internal (HIGH): `apps/web/components/housekeeping/PredictionPanel.tsx` (single-item action UI + confirm pattern), `apps/api/routers/housekeeping.py:1274-1362` (reassign/escalate/acknowledge handlers), `apps/api/routers/internal.py:481-589` (`check_escalations` — 3-tier WO/task ladder, `escalation_level` watermark, `_notify_role`), `apps/api/services/ai/predictions.py` (edge-triggered HIGH-transition detection, currently not persisted), `supabase/migrations/013_ai_systems.sql` (`room_readiness_predictions` schema), `supabase/migrations/095_room_readiness_acknowledgement.sql` (`is_acknowledged`/`acknowledged_at`/`acknowledged_by`).
 
 ---
-*Feature research for: proactive AI alerting + one-click actions (PatelRep v1.6)*
-*Researched: 2026-08-12*
+*Feature research for: batch actions (AI-09) + escalation-to-GM (AI-10), PatelRep next milestone*
+*Researched: 2026-08-13*
