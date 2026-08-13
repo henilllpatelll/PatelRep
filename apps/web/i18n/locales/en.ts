@@ -1216,6 +1216,13 @@ const en = {
       authorizeAiAction: 'Authorize AI action',
       createWorkOrder: 'Create Work Order',
       acknowledgedDate: 'Acknowledged {{date}}',
+      batchAcknowledge: 'Batch acknowledge',
+      selectAll: 'Select all',
+      deselectAll: 'Deselect all',
+      selectedCount: '{{count}} selected',
+      confirmBatchAcknowledge: 'Acknowledge {{count}} predictions?',
+      batchResultSummary: '{{succeeded}} acknowledged, {{failed}} need attention',
+      resultNotFound: 'Not found',
     },
     workOrdersPage: {
       heading: 'Engineering',

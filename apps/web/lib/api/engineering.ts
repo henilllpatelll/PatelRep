@@ -117,6 +117,11 @@ export interface FailurePrediction {
   assets?: Asset & { asset_categories?: { name: string } }
 }
 
+export type BatchAcknowledgePredictionResult =
+  | { prediction_id: string; action: 'acknowledged' }
+  | { prediction_id: string; action: 'not_found' }
+  | { prediction_id: string; action: 'error'; status: number; detail: string }
+
 export interface PMSchedule {
   id: string
   asset_id: string
@@ -257,6 +262,17 @@ export const engineeringApi = {
   acknowledgeFailurePrediction: (predictionId: string) =>
     apiClient.post(`/assets/failure-predictions/${predictionId}/acknowledge`) as Promise<{
       data: FailurePrediction
+    }>,
+
+  batchAcknowledgeFailurePredictions: (predictionIds: string[]) =>
+    apiClient.post('/assets/failure-predictions/batch-acknowledge', {
+      prediction_ids: predictionIds,
+    }) as Promise<{
+      data: {
+        results: BatchAcknowledgePredictionResult[]
+        succeeded: number
+        failed: number
+      }
     }>,
 
   // ── PM Schedules ──────────────────────────────────────────────────────────────

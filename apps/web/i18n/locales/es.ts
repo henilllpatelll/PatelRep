@@ -1216,6 +1216,13 @@ const es = {
       authorizeAiAction: 'Autorizar acción de IA',
       createWorkOrder: 'Crear orden de trabajo',
       acknowledgedDate: 'Reconocido {{date}}',
+      batchAcknowledge: 'Reconocer en lote',
+      selectAll: 'Seleccionar todo',
+      deselectAll: 'Deseleccionar todo',
+      selectedCount: '{{count}} seleccionados',
+      confirmBatchAcknowledge: '¿Reconocer {{count}} predicciones?',
+      batchResultSummary: '{{succeeded}} reconocidas, {{failed}} requieren atención',
+      resultNotFound: 'No encontrado',
     },
     workOrdersPage: {
       heading: 'Ingeniería',
