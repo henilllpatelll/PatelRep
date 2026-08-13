@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: "AI Copilot Batch Actions & Escalation"
-status: context_gathered
-last_updated: "2026-08-13T01:00:00Z"
-last_activity: 2026-08-13 -- Phase 28 context gathered (28-CONTEXT.md, autonomous mode). Ready to plan Phase 28.
+status: planned
+last_updated: "2026-08-13T02:00:00Z"
+last_activity: 2026-08-13 -- Phase 28 planned and verified (4 plans, 3 waves, plan-checker PASSED). Ready to execute.
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -18,11 +18,11 @@ progress:
 ## Current Position
 
 Phase: 28 of 29 (Batch Actions)
-Plan: — (not yet planned)
-Status: Context gathered, ready to plan
-Last activity: 2026-08-13 — Phase 28 context gathered autonomously (user delegated discuss/plan decisions up front for this milestone): endpoint naming resolved to `batch-` prefix, batch endpoints loop existing single-item coroutines with per-item best-effort results (not all-or-nothing), selection UI uses an inline contextual action bar consistent with PredictionPanel.tsx's existing confirm pattern (not a modal), select-all scoped to current list only. See `.planning/phases/28-batch-actions/28-CONTEXT.md`.
+Plan: 4 plans (28-01..28-04), 3 waves — not yet executed
+Status: Planned, ready to execute
+Last activity: 2026-08-13 — Phase 28 planned autonomously and passed plan-checker verification with no blockers. Phase-level research (28-RESEARCH.md) surfaced a real scope-correction: AI-11's actor list corrected from "Engineer/chief_engineer/GM" to "Engineer/GM" to match the real single-item `acknowledge_failure_prediction` endpoint gate (`assets.py:114`, `require_role("gm","engineer")` only) — REQUIREMENTS.md/ROADMAP.md/CONTEXT.md all updated and committed. Plans: 28-01 (RR batch backend, wave 1), 28-02 (asset batch backend, wave 2, depends on 28-01 for shared requests.py), 28-03 (RR batch frontend, wave 2, depends on 28-01), 28-04 (asset batch frontend, wave 3, depends on 28-02 + 28-03). Ready for execute-phase.
 
-Progress: [          ] 0% (context gathered, ready to plan Phase 28)
+Progress: [          ] 0% (planned, ready to execute Phase 28)
 
 ## Project Reference
 
