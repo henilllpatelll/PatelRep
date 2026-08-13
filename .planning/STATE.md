@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: "AI Copilot Batch Actions & Escalation"
-status: defining_requirements
+status: roadmap_created
 last_updated: "2026-08-13T00:00:00Z"
-last_activity: 2026-08-13 -- Milestone v1.7 started via /gsd-new-milestone. PROJECT.md updated (Current Milestone section, Active requirements AI-09/AI-10). Proceeding to requirements definition.
+last_activity: 2026-08-13 -- ROADMAP.md created for v1.7 (Phases 28-29, requirements AI-09..AI-14). Ready to plan Phase 28.
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,19 +17,19 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-13 — Milestone v1.7 started — AI-09 (batch reassign/acknowledge) and AI-10 (un-actioned-prediction escalation-to-GM) scoped as target features.
+Phase: 28 of 29 (Batch Actions)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-08-13 — ROADMAP.md and STATE.md created for v1.7. Derived 2 phases from 6 v1 requirements (AI-09..AI-14) per research's recommended independent-phase split: Phase 28 Batch Actions (AI-09, AI-10, AI-11 — no schema dependency), Phase 29 Escalation to GM (AI-12, AI-13, AI-14 — new migration + cron). 100% requirement coverage, no orphans. REQUIREMENTS.md traceability updated.
 
-Progress: [          ] 0% (requirements not yet finalized)
+Progress: [          ] 0% (roadmap created, ready to plan Phase 28)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-08-13)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** v1.7 AI Copilot Batch Actions & Escalation — AI-09 (batch reassign/acknowledge grouped HIGH-risk alerts), AI-10 (un-actioned HIGH-risk predictions auto-escalate to GM).
+**Current focus:** v1.7 AI Copilot Batch Actions & Escalation — Phase 28 (Batch Actions: AI-09/AI-10/AI-11), Phase 29 (Escalation to GM: AI-12/AI-13/AI-14).
 
 ## Previous milestones
 

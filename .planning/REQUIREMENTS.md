@@ -53,17 +53,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AI-09 | TBD | Not started |
-| AI-10 | TBD | Not started |
-| AI-11 | TBD | Not started |
-| AI-12 | TBD | Not started |
-| AI-13 | TBD | Not started |
-| AI-14 | TBD | Not started |
+| AI-09 | Phase 28 | Not started |
+| AI-10 | Phase 28 | Not started |
+| AI-11 | Phase 28 | Not started |
+| AI-12 | Phase 29 | Not started |
+| AI-13 | Phase 29 | Not started |
+| AI-14 | Phase 29 | Not started |
 
 **Coverage:**
 - v1 requirements: 6 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 6
+- Mapped to phases: 6/6
+- Unmapped: 0
 - Complete: 0/6
 
 ---

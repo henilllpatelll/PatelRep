@@ -9,6 +9,7 @@
 - ✅ **v1.4 Platform and Ops Hardening** — Phases 18-22 (shipped 2026-08-11). Full details: `.planning/milestones/v1.4-ROADMAP.md`
 - ✅ **v1.5 RBAC Enforcement Tooling** — Phases 23-24 (shipped 2026-08-11). Full details: `.planning/milestones/v1.5-ROADMAP.md`
 - ✅ **v1.6 AI Copilot Proactive Intelligence** — Phases 25-27 (shipped 2026-08-12). Full details: `.planning/milestones/v1.6-ROADMAP.md`
+- 🚧 **v1.7 AI Copilot Batch Actions & Escalation** — Phases 28-29 (in progress, started 2026-08-13)
 
 ## Phases
 
@@ -96,6 +97,35 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 
 </details>
 
+### 🚧 v1.7 AI Copilot Batch Actions & Escalation (In Progress, started 2026-08-13)
+
+**Milestone Goal:** Extend the v1.6 proactive-alerting system with batch operations and unattended-alert escalation, closing the two items deliberately deferred at v1.6 close.
+
+- [ ] **Phase 28: Batch Actions** - Supervisors/GMs and engineers/chief_engineers/GMs can select multiple HIGH-risk predictions and reassign/acknowledge them in one confirming action instead of one at a time
+- [ ] **Phase 29: Escalation to GM** - A HIGH-risk prediction left un-actioned past a fixed threshold automatically and reliably notifies the GM, exactly once per continuous HIGH episode
+
+## Phase Details
+
+### Phase 28: Batch Actions
+**Goal**: Housekeeping supervisors/GMs and engineers/chief_engineers/GMs can select multiple HIGH-risk predictions and reassign or acknowledge them in one confirming action, instead of acting one row at a time.
+**Depends on**: Nothing (no schema dependency; extends Phase 27's existing single-item reassign/escalate/acknowledge endpoints and reuses the proven `BulkArchiveModal.tsx`/`BulkArchiveWorkOrdersRequest` selection pattern from Phase 15)
+**Requirements**: AI-09, AI-10, AI-11
+**Success Criteria** (what must be TRUE):
+  1. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, and see a per-room outcome afterward (e.g. "3 reassigned, 1 escalated: no capacity") rather than a single aggregate pass/fail result.
+  2. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action.
+  3. Engineer/chief_engineer/GM can select multiple HIGH-risk asset-failure predictions and batch-acknowledge them in one confirming action.
+**Plans**: TBD
+
+### Phase 29: Escalation to GM
+**Goal**: A HIGH-risk room-readiness or asset-failure prediction that sits un-actioned past a fixed threshold automatically and reliably notifies the GM — exactly once per continuous HIGH episode, never silently and never repeatedly.
+**Depends on**: Nothing (independent of Phase 28 per research — different code paths, no shared schema; sequenced second because its migration is a hard prerequisite for its own new cron job and claims the next migration number)
+**Requirements**: AI-12, AI-13, AI-14
+**Success Criteria** (what must be TRUE):
+  1. A HIGH-risk room-readiness or asset-failure prediction left un-actioned (not reassigned, escalated, or acknowledged) past a fixed 60-minute threshold triggers a non-silent in-app notification to the GM.
+  2. Escalation stops firing for a given prediction the moment it is reassigned, acknowledged, or its risk drops below HIGH, and only resumes counting if the same room/asset later re-enters HIGH risk.
+  3. The same continuous HIGH-risk episode never generates more than one GM escalation notification, no matter how many times the 30-minute prediction cron re-runs while it remains un-actioned.
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -128,3 +158,5 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 | 25. Failure-Prediction Proactive Push + Dedup | v1.6 | 1/1 | Complete | 2026-08-12 |
 | 26. Deep-Linked Alert Surfaces | v1.6 | 2/2 | Complete | 2026-08-12 |
 | 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 3/3 | Complete | 2026-08-12 |
+| 28. Batch Actions | v1.7 | 0/0 | Not started | - |
+| 29. Escalation to GM | v1.7 | 0/0 | Not started | - |
