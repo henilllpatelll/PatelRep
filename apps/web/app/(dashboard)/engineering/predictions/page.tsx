@@ -13,8 +13,10 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldCheck,
+  XCircle,
+  HelpCircle,
 } from 'lucide-react'
-import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
+import { engineeringApi, FailurePrediction, BatchAcknowledgePredictionResult } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
@@ -130,6 +132,8 @@ interface PredictionCardProps {
   isAuthorizing: boolean
   cardRef?: (el: HTMLDivElement | null) => void
   isHighlighted?: boolean
+  isSelected: boolean
+  onToggleSelect: (id: string) => void
 }
 
 function PredictionCard({
@@ -146,6 +150,8 @@ function PredictionCard({
   isAuthorizing,
   cardRef,
   isHighlighted,
+  isSelected,
+  onToggleSelect,
 }: PredictionCardProps) {
   const { t } = useTranslation()
   const score = prediction.risk_score
@@ -179,6 +185,15 @@ function PredictionCard({
     >
       {/* Top row */}
       <div className="flex items-start gap-4">
+        {canManage && !prediction.is_acknowledged && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(prediction.id)}
+            aria-label={assetName}
+            className="mt-1.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--caution)] focus:ring-[var(--caution)]"
+          />
+        )}
         <RiskRing score={score} />
 
         <div className="flex-1 min-w-0">
@@ -373,6 +388,14 @@ function PredictionsPageContent() {
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [batchConfirming, setBatchConfirming] = useState(false)
+  const [batchResult, setBatchResult] = useState<{
+    results: BatchAcknowledgePredictionResult[]
+    succeeded: number
+    failed: number
+  } | null>(null)
+
   // ── Queries & mutations ────────────────────────────────────────────────────
 
   const { data: predictions, isLoading } = useQuery({
@@ -386,6 +409,17 @@ function PredictionsPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['failure-predictions-history'] })
       queryClient.invalidateQueries({ queryKey: ['failure-predictions'] })
+    },
+  })
+
+  const batchAcknowledgeMutation = useMutation({
+    mutationFn: (ids: string[]) => engineeringApi.batchAcknowledgeFailurePredictions(ids),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['failure-predictions-history'] })
+      queryClient.invalidateQueries({ queryKey: ['failure-predictions'] })
+      setBatchResult(res.data)
+      setBatchConfirming(false)
+      setSelected(new Set())
     },
   })
 
@@ -414,6 +448,19 @@ function PredictionsPageContent() {
     setExpandedId((prev) => (prev === id ? null : id))
   }
 
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      if (next.size === 0) setBatchConfirming(false)
+      return next
+    })
+  }
+
   // ── Filtering ──────────────────────────────────────────────────────────────
 
   const allPredictions = predictions ?? []
@@ -427,6 +474,23 @@ function PredictionsPageContent() {
     if (statusFilter === 'acknowledged' && !p.is_acknowledged) return false
     return true
   })
+
+  const actionableIds = canManage
+    ? filtered.filter((p) => !p.is_acknowledged).map((p) => p.id)
+    : []
+
+  function handleSelectAll() {
+    setSelected(new Set(actionableIds))
+  }
+
+  function handleDeselectAll() {
+    setSelected(new Set())
+    setBatchConfirming(false)
+  }
+
+  function handleBatchAcknowledgeConfirm() {
+    batchAcknowledgeMutation.mutate([...selected])
+  }
 
   // ── Deep link: scroll to and highlight a specific asset's prediction ───────
 
@@ -585,6 +649,105 @@ function PredictionsPageContent() {
         )}
       </div>
 
+      {/* Batch action bar */}
+      {selected.size > 0 && (
+        <Card className="p-4 border-[var(--caution-line)] bg-[var(--caution-soft)]/40">
+          {!batchConfirming ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm font-medium text-gray-800">
+                {t('engineering.predictionsPage.selectedCount', { count: selected.size })}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={handleSelectAll}>
+                  {t('engineering.predictionsPage.selectAll')}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleDeselectAll}>
+                  {t('engineering.predictionsPage.deselectAll')}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setBatchConfirming(true)}
+                >
+                  {t('engineering.predictionsPage.batchAcknowledge')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm font-medium text-gray-800">
+                {t('engineering.predictionsPage.confirmBatchAcknowledge', { count: selected.size })}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setBatchConfirming(false)}
+                  disabled={batchAcknowledgeMutation.isPending}
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleBatchAcknowledgeConfirm}
+                  disabled={batchAcknowledgeMutation.isPending}
+                >
+                  {batchAcknowledgeMutation.isPending ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <CheckCircle size={12} />
+                  )}
+                  {t('engineering.predictionsPage.batchAcknowledge')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Batch result summary */}
+      {batchResult && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-gray-800">
+              {t('engineering.predictionsPage.batchResultSummary', {
+                succeeded: batchResult.succeeded,
+                failed: batchResult.failed,
+              })}
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => setBatchResult(null)}>
+              <XCircle size={14} />
+            </Button>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {batchResult.results.map((r) => (
+              <li key={r.prediction_id} className="flex items-center gap-1.5 text-xs text-gray-600">
+                {r.action === 'acknowledged' && (
+                  <>
+                    <CheckCircle size={12} className="text-[var(--ready)]" />
+                    {t('engineering.failurePrediction.acknowledged')}
+                  </>
+                )}
+                {r.action === 'not_found' && (
+                  <>
+                    <HelpCircle size={12} className="text-gray-400" />
+                    {t('engineering.predictionsPage.resultNotFound')}
+                  </>
+                )}
+                {r.action === 'error' && (
+                  <>
+                    <XCircle size={12} className="text-[var(--alert)]" />
+                    {r.detail}
+                  </>
+                )}
+                <span className="text-gray-400">— {r.prediction_id}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* Predictions list */}
       {isLoading ? (
         <div className="space-y-4">
@@ -667,6 +830,8 @@ function PredictionsPageContent() {
                 authorizeRecommendationMutation.isPending &&
                 authorizeRecommendationMutation.variables === prediction.id
               }
+              isSelected={selected.has(prediction.id)}
+              onToggleSelect={toggleSelected}
             />
           ))}
         </div>
