@@ -26,7 +26,8 @@ key-decisions:
   - "Did NOT attempt supabase db push / db push --include-all against the live project: a real dry-run against production confirmed the remote migration-history table has extensive drift (timestamp-versioned entries with no local file, spanning 001-034 and dozens of 2026-05..2026-08 timestamp versions) that makes db push refuse to run entirely, independent of --include-all — matching the exact danger this project's own prior plans (27-01, 21-01, 06-02, 15-02) already documented and avoided."
   - "Did NOT attempt `supabase migration repair` to force-reconcile the drifted history table: doing so would rewrite production migration-tracking metadata with no code-level way to verify correctness first, is explicitly out of this plan's scope, and is the kind of action prior plans in this codebase have consistently treated as unsafe to take unilaterally."
   - "Did NOT attempt supabase seed --linked as a raw-SQL-execution workaround: confirmed empirically that the installed CLI (v2.75.0) only supports `supabase seed buckets` at the top level — bare `supabase seed --linked` prints help and executes nothing, so the config.toml [db.seed] edit added to test this was reverted immediately (confirmed clean via git diff)."
-  - "Task 2 (apply + verify the migration against the live Supabase project) could NOT be completed from this executor's sandboxed context: exhaustively confirmed no Supabase MCP tool (attempted mcp__plugin_supabase_supabase__apply_migration, mcp__plugin_supabase_supabase__list_tables, mcp__supabase__apply_migration, mcp__supabase__list_tables — all returned a deterministic 'No such tool available', not a permissions error) is registered in this subagent's tool set, despite the orchestrator prompt asserting MCP access was confirmed available. No DB password, psql client, or Railway auth was available as a fallback path either. This mirrors the exact blocker this project's own 06-02-SUMMARY.md documented and resolved by having the orchestrator apply the migration afterward via real MCP access — same resolution path is required here."
+  - "Task 2 (apply + verify the migration against the live Supabase project) could NOT be completed from this executor's sandboxed context: exhaustively confirmed no Supabase MCP tool (attempted mcp__plugin_supabase_supabase__apply_migration, mcp__plugin_supabase_supabase__list_tables, mcp__supabase__apply_migration, mcp__supabase__list_tables — all returned a deterministic 'No such tool available', not a permissions error) is registered in this subagent's tool set, despite the orchestrator prompt asserting MCP access was confirmed available. No DB password, psql client, or Railway auth was available as a fallback path either. This mirrors the exact blocker this project's own 06-02-SUMMARY.md documented and resolved by having the orchestrator apply the migration afterward via real MCP access — same resolution path was needed here."
+  - "RESOLVED by orchestrator (2026-08-13): applied migration 096 directly via mcp__plugin_supabase_supabase__apply_migration(project_id=\"oacnwalhcpqdabivweki\", name=\"prediction_escalation_watermark\", query=<096 contents>) — returned {\"success\":true}. Verified via execute_sql against information_schema.columns: all 4 columns present on both tables (escalation_level: smallint, NOT NULL, default 0; high_risk_since: timestamp with time zone, nullable, no default) on both room_readiness_predictions and failure_predictions. Ran get_advisors(security) afterward: only the project's pre-existing baseline pg_graphql_anon_table_exposed/pg_graphql_authenticated_table_exposed WARNs (present across nearly every table in the project, predates this migration, same class already documented in 27-01/26-01 as table-level not column-level) — no new finding type or new table attributable to this migration."
 
 patterns-established: []
 
@@ -37,14 +38,14 @@ completed: 2026-08-13
 
 # Phase 29 Plan 01: Escalation Watermark Migration Summary
 
-**Wrote and committed `096_prediction_escalation_watermark.sql` (escalation_level + high_risk_since on both prediction tables); could NOT apply it to the live Supabase project from this sandboxed executor context — Task 2 is a documented blocker requiring real Supabase MCP tool access.**
+**Wrote and committed `096_prediction_escalation_watermark.sql` (escalation_level + high_risk_since on both prediction tables); Task 2 (apply to live Supabase + verify) was blocked in the executor's sandboxed subagent context (no Supabase MCP tools registered there) and was completed by the orchestrating session directly, which does have working Supabase MCP access — migration applied and schema verified live.**
 
 ## Performance
 
-- **Duration:** ~27 min
+- **Duration:** ~27 min (Task 1, executor) + orchestrator follow-up (Task 2, same session)
 - **Started:** 2026-08-13T15:05:00Z (approx)
-- **Completed:** 2026-08-13T15:32:36Z
-- **Tasks:** 1 of 2 completed (Task 2 blocked, not completed)
+- **Completed:** 2026-08-13 (Task 2 completed by orchestrator after executor handoff)
+- **Tasks:** 2 of 2 completed (Task 2 completed by orchestrator, not the sandboxed executor)
 - **Files modified:** 1
 
 ## Accomplishments
@@ -57,7 +58,7 @@ completed: 2026-08-13
 Each task was committed atomically:
 
 1. **Task 1: Write migration 096_prediction_escalation_watermark.sql** - `1563ab00` (feat)
-2. **Task 2: Apply migration to live Supabase project and verify** - NOT COMPLETED (blocked, no commit)
+2. **Task 2: Apply migration to live Supabase project and verify** - completed by orchestrator via `mcp__plugin_supabase_supabase__apply_migration`/`execute_sql`/`get_advisors` (no code changes, no commit — a live-database operation, not a file change)
 
 **Plan metadata:** (this SUMMARY.md + STATE.md commit, see below)
 
@@ -94,22 +95,21 @@ Each task was committed atomically:
 
 ---
 
-**Total deviations:** 1 blocking issue, not auto-fixed (Rule 3 attempted, genuine tool-access gap — same class as this project's own documented `06-02` precedent).
-**Impact on plan:** Task 1 (100% of the code artifact) is complete and correct. Task 2 (live application) is unresolved. Plans 02/03/04 (which read/write `escalation_level`/`high_risk_since` against real columns) **cannot be safely executed until migration 096 is actually applied to the live project** — this is a hard prerequisite, exactly as the plan's own objective states.
+**Total deviations:** 1 blocking issue in the sandboxed executor (Rule 3 attempted, genuine tool-access gap — same class as this project's own documented `06-02` precedent), resolved same-session by the orchestrator, which has real Supabase MCP access.
+**Impact on plan:** Both tasks now complete. Migration 096 is live on `oacnwalhcpqdabivweki` with all 4 columns verified present/correctly-typed on both tables, and no new security advisor findings. Plans 02, 03, and 04 can now safely execute against real columns.
 
 ## Issues Encountered
-See "Deviations from Plan" above — the entire issue is the Task 2 blocker; no other issues encountered during Task 1.
+See "Deviations from Plan" above — Task 2 was blocked in the sandboxed executor context (no Supabase MCP tools registered there) and resolved by the orchestrating session, which does have working Supabase MCP access.
 
 ## User Setup Required
-None - no external service configuration required. This is a pure infrastructure/tooling gap, not a missing credential the user needs to supply.
+None - no external service configuration required. This was a sandboxed-subagent tool-access gap, resolved within the same overall session by the orchestrator — not a credential the user needed to supply.
 
 ## Next Phase Readiness
-- **NOT ready.** Plans 02, 03, and 04 all depend on `escalation_level`/`high_risk_since` existing as real columns on `room_readiness_predictions` and `failure_predictions` in the live Supabase project. That is not yet true.
-- **Required follow-up before Plan 02/03/04 can run:** apply `supabase/migrations/096_prediction_escalation_watermark.sql` to project `oacnwalhcpqdabivweki` via `mcp__plugin_supabase_supabase__apply_migration` (or an equivalent verified-safe method) from a context that actually has that tool, then verify via `execute_sql`/`get_advisors` per the plan's Task 2 spec. Recorded as a blocker in STATE.md.
+- **Ready.** `escalation_level`/`high_risk_since` now exist as real columns (verified via live `information_schema.columns` query) on both `room_readiness_predictions` and `failure_predictions` in the live Supabase project. Plans 02, 03, and 04 can proceed.
 
 ---
 *Phase: 29-escalation-to-gm*
-*Completed: 2026-08-13 (partial — Task 1 only; Task 2 blocked)*
+*Completed: 2026-08-13 (Task 1 by executor, Task 2 by orchestrator — same overall session)*
 
 ## Self-Check: PASSED
 
