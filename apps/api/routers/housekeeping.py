@@ -6,7 +6,12 @@ from typing import Optional
 from datetime import date, datetime, time, timedelta, timezone
 from dateutil import tz
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import CreateAssignmentsRequest, RoomAssignmentItem, SubmitInspectionRequest
+from models.requests import (
+    CreateAssignmentsRequest,
+    RoomAssignmentItem,
+    SubmitInspectionRequest,
+    BatchRoomReadinessRequest,
+)
 from core.database import supabase
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 from services.opera_pdf import parse_hk_details, parse_task_sheet
@@ -1360,6 +1365,46 @@ async def acknowledge_at_risk_room(
         "acknowledged_by": current_user.user_id,
     }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
     return {"data": {"action": "acknowledged"}}
+
+
+@router.post("/room-readiness/batch-reassign")
+async def batch_reassign_rooms(
+    body: BatchRoomReadinessRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Best-effort batch reassign: loops reassign_at_risk_room per room id, one result per id."""
+    results = []
+    for rid in body.room_ids:
+        room_id = str(rid)
+        try:
+            outcome = await reassign_at_risk_room(room_id=room_id, current_user=current_user)
+            results.append({"room_id": room_id, **outcome["data"]})
+        except HTTPException as e:
+            results.append({"room_id": room_id, "action": "error", "status": e.status_code, "detail": e.detail})
+
+    succeeded = sum(1 for r in results if r["action"] != "error")
+    failed = len(results) - succeeded
+    return {"data": {"results": results, "succeeded": succeeded, "failed": failed}}
+
+
+@router.post("/room-readiness/batch-acknowledge")
+async def batch_acknowledge_rooms(
+    body: BatchRoomReadinessRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Best-effort batch acknowledge: loops acknowledge_at_risk_room per room id, one result per id."""
+    results = []
+    for rid in body.room_ids:
+        room_id = str(rid)
+        try:
+            outcome = await acknowledge_at_risk_room(room_id=room_id, current_user=current_user)
+            results.append({"room_id": room_id, **outcome["data"]})
+        except HTTPException as e:
+            results.append({"room_id": room_id, "action": "error", "status": e.status_code, "detail": e.detail})
+
+    succeeded = sum(1 for r in results if r["action"] != "error")
+    failed = len(results) - succeeded
+    return {"data": {"results": results, "succeeded": succeeded, "failed": failed}}
 
 
 # ---------------------------------------------------------------------------
