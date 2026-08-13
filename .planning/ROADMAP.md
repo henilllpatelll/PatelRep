@@ -113,7 +113,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.6-ROADMAP.md
 **Success Criteria** (what must be TRUE):
   1. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, and see a per-room outcome afterward (e.g. "3 reassigned, 1 escalated: no capacity") rather than a single aggregate pass/fail result.
   2. Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action.
-  3. Engineer/chief_engineer/GM can select multiple HIGH-risk asset-failure predictions and batch-acknowledge them in one confirming action.
+  3. Engineer/GM can select multiple HIGH-risk asset-failure predictions and batch-acknowledge them in one confirming action (scope corrected from "Engineer/chief_engineer/GM" 2026-08-13 during Phase 28 research — see 28-CONTEXT.md).
 **Plans**: TBD
 
 ### Phase 29: Escalation to GM

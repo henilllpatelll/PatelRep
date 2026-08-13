@@ -33,6 +33,10 @@ Supervisors/GMs (room-readiness) and engineers/chief_engineers/GMs (asset-failur
 - Room-readiness gets both batch-reassign and batch-acknowledge (AI-09, AI-10). Asset-failure gets batch-acknowledge only (AI-11) — assets have no "reassign" concept (ARCHITECTURE.md: no analogous action exists for an asset).
 - Batch create-work-order from asset predictions is explicitly NOT in this phase (AI-15, deferred to v2 as higher-risk since it creates real work orders).
 
+### Resolved during phase research (2026-08-13)
+- **AI-11 actor scope corrected to `gm`/`engineer` only, not `chief_engineer`.** The real single-item `acknowledge_failure_prediction` endpoint (`apps/api/routers/assets.py:114`) — plus `create-work-order` and most other asset-failure-prediction actions in the same file — gate `require_role("gm", "engineer")`. Only two unrelated PM-schedule endpoints in that file (`assets.py:214`, `:231`) include `chief_engineer`. This is a real, pre-existing inconsistency in the file, but not a clear single-endpoint oversight (majority pattern excludes it), so the new batch-acknowledge endpoint mirrors the existing single-item gate exactly rather than widening it. REQUIREMENTS.md's AI-11 wording corrected to match. If `chief_engineer` genuinely should have this access, that's a separate pre-existing gap outside this phase's scope — not silently fixed here.
+- **Batch-selection eligibility for asset-failure predictions mirrors the current single-item Acknowledge button's gate exactly** (currently: any un-acknowledged prediction, no HIGH-only restriction) rather than introducing a new HIGH-only restriction that doesn't exist on the single-item path today. Keeps single-item and batch behavior consistent, per this phase's general "don't reimplement or diverge from single-item logic" principle.
+
 ### Claude's Discretion
 - Exact per-item request cap value (recommend 50, confirm against any existing FastAPI/Pydantic conventions during planning).
 - Exact visual placement/styling of the action bar (top vs. bottom of the panel, sticky vs. inline) — follow whatever fits `PredictionPanel.tsx`'s existing layout with least structural change.

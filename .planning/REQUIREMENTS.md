@@ -11,7 +11,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [ ] **AI-09**: Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-reassign them in one confirming action, with a per-room outcome reported afterward (e.g. "3 reassigned, 1 escalated: no capacity") — not a single aggregate pass/fail result
 - [ ] **AI-10**: Housekeeping supervisor/GM can select multiple HIGH-risk room-readiness predictions and batch-acknowledge them in one confirming action
-- [ ] **AI-11**: Engineer/chief_engineer/GM can select multiple HIGH-risk asset-failure predictions and batch-acknowledge them in one confirming action
+- [ ] **AI-11**: Engineer/GM can select multiple HIGH-risk asset-failure predictions and batch-acknowledge them in one confirming action (scope corrected 2026-08-13 during Phase 28 research: the real single-item `acknowledge_failure_prediction` endpoint, `apps/api/routers/assets.py:114`, gates `require_role("gm", "engineer")` only — `chief_engineer` is excluded from that specific action across the majority of this file's endpoints, not a clear oversight. Batch mirrors the existing single-item gate exactly rather than widening it.)
 
 ### Escalation to GM (AI-10 backlog item, unpacked into atomic requirements)
 
