@@ -1296,6 +1296,11 @@ async def reassign_at_risk_room(
     if status_row.data["status"] not in {"DIRTY", "IN_PROGRESS", "PICKUP"}:
         raise HTTPException(status_code=409, detail="Room is no longer awaiting cleaning")
 
+    supabase.table("room_readiness_predictions").update({
+        "escalation_level": 0,
+        "high_risk_since": None,
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
     today = date.today()
     today_str = today.isoformat()
     candidates = _active_housekeepers(current_user.hotel_id, today)
@@ -1336,6 +1341,11 @@ async def escalate_at_risk_room(
     if pred.get("risk_level") != "HIGH":
         raise HTTPException(status_code=409, detail="Room is no longer HIGH risk")
 
+    supabase.table("room_readiness_predictions").update({
+        "escalation_level": 0,
+        "high_risk_since": None,
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
     room_info = (
         supabase.table("rooms").select("room_number")
         .eq("id", room_id).eq("tenant_id", current_user.hotel_id)
@@ -1363,6 +1373,8 @@ async def acknowledge_at_risk_room(
         "is_acknowledged": True,
         "acknowledged_at": datetime.now(timezone.utc).isoformat(),
         "acknowledged_by": current_user.user_id,
+        "escalation_level": 0,
+        "high_risk_since": None,
     }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
     return {"data": {"action": "acknowledged"}}
 

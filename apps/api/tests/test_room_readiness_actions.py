@@ -278,6 +278,7 @@ def _base_rows(room_status: str = "DIRTY", risk_level: str = "HIGH", is_acknowle
             "risk_level": risk_level, "is_acknowledged": is_acknowledged,
             "acknowledged_at": None, "acknowledged_by": None,
             "predicted_ready_at": "2026-08-12T15:00:00+00:00",
+            "escalation_level": 1, "high_risk_since": "2026-08-13T08:00:00+00:00",
         }],
         "room_assignments": [],
         "shift_assignments": [
@@ -346,6 +347,43 @@ async def test_reassign_assigns_least_loaded_eligible_housekeeper(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_reassign_success_resets_escalation_watermark(monkeypatch):
+    db = FakeDB({
+        "rooms": [{"id": _UUID_ROOM, "tenant_id": "hotel-1", "room_number": "101"}],
+        "room_status": [{"room_id": _UUID_ROOM, "tenant_id": "hotel-1", "status": "DIRTY"}],
+        "room_readiness_predictions": [{
+            "id": "pred-1", "room_id": _UUID_ROOM, "tenant_id": "hotel-1",
+            "risk_level": "HIGH", "is_acknowledged": False,
+            "predicted_ready_at": "2026-08-12T15:00:00+00:00",
+            "escalation_level": 1, "high_risk_since": "2026-08-13T08:00:00+00:00",
+        }],
+        "room_assignments": [],
+        "shift_assignments": [
+            {"user_id": _UUID_HK1, "tenant_id": "hotel-1", "work_date": date_today_str()},
+            {"user_id": _UUID_HK2, "tenant_id": "hotel-1", "work_date": date_today_str()},
+        ],
+        "user_roles": [
+            {"user_id": _UUID_HK1, "tenant_id": "hotel-1", "role": "housekeeper", "is_active": True},
+        ],
+        "notifications": [],
+        "user_profiles": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "count_rooms_ahead",
+        lambda hk_id, room_id, hotel_id, target_date: {_UUID_HK1: 2, _UUID_HK2: 5}.get(hk_id, 99),
+    )
+
+    response = await housekeeping_router.reassign_at_risk_room(room_id=_UUID_ROOM, current_user=SUPERVISOR)
+
+    assert response == {"data": {"action": "reassigned", "housekeeper_id": _UUID_HK1}}
+    row = next(r for r in db.rows["room_readiness_predictions"] if r["room_id"] == _UUID_ROOM)
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
+
+
+@pytest.mark.asyncio
 async def test_reassign_degrades_to_escalate_when_no_eligible_housekeeper(monkeypatch):
     db = FakeDB(_base_rows())
     monkeypatch.setattr(housekeeping_router, "supabase", db)
@@ -366,6 +404,25 @@ async def test_reassign_degrades_to_escalate_when_no_eligible_housekeeper(monkey
     assigned = [r for r in db.rows["room_assignments"] if r["room_id"] == "room-1"]
     assert assigned == []
     assert len(db.rows["notifications"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_reassign_no_capacity_resets_escalation_watermark(monkeypatch):
+    db = FakeDB(_base_rows())
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(predictions_module, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "count_rooms_ahead",
+        lambda hk_id, room_id, hotel_id, target_date: 5,
+    )
+
+    response = await housekeeping_router.reassign_at_risk_room(room_id="room-1", current_user=SUPERVISOR)
+
+    assert response == {"data": {"action": "escalated", "reason": "no_eligible_housekeeper"}}
+    row = next(r for r in db.rows["room_readiness_predictions"] if r["room_id"] == "room-1")
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
 
 
 @pytest.mark.asyncio
@@ -421,6 +478,20 @@ async def test_escalate_calls_notify_supervisors_high_risk_with_fresh_data(monke
 
 
 @pytest.mark.asyncio
+async def test_escalate_resets_escalation_watermark(monkeypatch):
+    db = FakeDB(_base_rows(risk_level="HIGH"))
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(predictions_module, "supabase", db)
+
+    response = await housekeeping_router.escalate_at_risk_room(room_id="room-1", current_user=SUPERVISOR)
+
+    assert response["data"]["action"] == "escalated"
+    row = next(r for r in db.rows["room_readiness_predictions"] if r["room_id"] == "room-1")
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
+
+
+@pytest.mark.asyncio
 async def test_escalate_409_when_risk_no_longer_high(monkeypatch):
     db = FakeDB(_base_rows(risk_level="MEDIUM"))
     monkeypatch.setattr(housekeeping_router, "supabase", db)
@@ -442,6 +513,8 @@ async def test_acknowledge_sets_ack_columns(monkeypatch):
     assert row["is_acknowledged"] is True
     assert row["acknowledged_at"] is not None
     assert row["acknowledged_by"] == SUPERVISOR.user_id
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
 
 
 @pytest.mark.asyncio
