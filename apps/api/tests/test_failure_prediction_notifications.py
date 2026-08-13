@@ -351,3 +351,164 @@ async def test_per_tenant_notification_failure_is_isolated(monkeypatch):
     ]
     assert len(db.rows["notifications"]) == 1
     assert len(hotel2_notifications) == 1
+
+
+# ---------------------------------------------------------------------------
+# 9. Escalation-watermark carry-forward across the delete-then-insert rewrite
+#    (AI-13 prereq — _carry_forward_escalation_watermark, both call sites)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_batch_run_carries_forward_escalation_watermark_while_still_high(monkeypatch):
+    db = FakeDB({
+        "assets": [{
+            "id": "asset-1",
+            "tenant_id": "hotel-1",
+            "is_active": True,
+            "name": "Boiler #1",
+            "failure_risk_score": 85,
+        }],
+        "failure_predictions": [{
+            "id": "pred-1",
+            "tenant_id": "hotel-1",
+            "asset_id": "asset-1",
+            "is_acknowledged": False,
+            "escalation_level": 1,
+            "high_risk_since": "2026-08-01T00:00:00+00:00",
+        }],
+        "user_roles": [],
+    })
+    monkeypatch.setattr(failure_predictions, "supabase", db)
+    monkeypatch.setattr(failure_predictions, "_analyze_asset", _fake_analyze(risk_score=85))
+
+    await failure_predictions.run_asset_failure_predictions("hotel-1")
+
+    row = next(r for r in db.rows["failure_predictions"] if r["asset_id"] == "asset-1")
+    assert row["escalation_level"] == 1
+    assert row["high_risk_since"] == "2026-08-01T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_batch_run_resets_escalation_watermark_when_risk_drops_below_high(monkeypatch):
+    db = FakeDB({
+        "assets": [{
+            "id": "asset-1",
+            "tenant_id": "hotel-1",
+            "is_active": True,
+            "name": "Boiler #1",
+            "failure_risk_score": 85,
+        }],
+        "failure_predictions": [{
+            "id": "pred-1",
+            "tenant_id": "hotel-1",
+            "asset_id": "asset-1",
+            "is_acknowledged": False,
+            "escalation_level": 1,
+            "high_risk_since": "2026-08-01T00:00:00+00:00",
+        }],
+        "user_roles": [],
+    })
+    monkeypatch.setattr(failure_predictions, "supabase", db)
+    monkeypatch.setattr(failure_predictions, "_analyze_asset", _fake_analyze(risk_score=40))
+
+    await failure_predictions.run_asset_failure_predictions("hotel-1")
+
+    row = next(r for r in db.rows["failure_predictions"] if r["asset_id"] == "asset-1")
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
+
+
+@pytest.mark.asyncio
+async def test_single_asset_prediction_carries_forward_escalation_watermark_while_still_high(monkeypatch):
+    db = FakeDB({
+        "assets": [{
+            "id": "asset-1",
+            "tenant_id": "hotel-1",
+            "is_active": True,
+            "name": "Boiler #1",
+            "failure_risk_score": 85,
+        }],
+        "failure_predictions": [{
+            "id": "pred-1",
+            "tenant_id": "hotel-1",
+            "asset_id": "asset-1",
+            "is_acknowledged": False,
+            "escalation_level": 1,
+            "high_risk_since": "2026-08-01T00:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(failure_predictions, "supabase", db)
+    monkeypatch.setattr(failure_predictions, "_analyze_asset", _fake_analyze(risk_score=85))
+
+    result = await failure_predictions.run_single_asset_prediction("hotel-1", "asset-1")
+
+    assert result["escalation_level"] == 1
+    assert result["high_risk_since"] == "2026-08-01T00:00:00+00:00"
+    row = next(r for r in db.rows["failure_predictions"] if r["asset_id"] == "asset-1")
+    assert row["escalation_level"] == 1
+    assert row["high_risk_since"] == "2026-08-01T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_carry_forward_does_not_restart_clock_after_work_order_reset_batch(monkeypatch):
+    """Simulates the POST-RESET state create_work_order_from_prediction (Plan 04)
+    leaves behind on an unacknowledged row — escalation_level/high_risk_since
+    already 0/None even though the asset's own failure_risk_score never dropped
+    below 70. The watermark-carry helper must read `previous_score` (from the
+    assets row), not the just-reset watermark columns, or it will misread this
+    as a fresh crossing and wrongly stamp a brand-new high_risk_since."""
+    db = FakeDB({
+        "assets": [{
+            "id": "asset-1",
+            "tenant_id": "hotel-1",
+            "is_active": True,
+            "name": "Boiler #1",
+            "failure_risk_score": 85,
+        }],
+        "failure_predictions": [{
+            "id": "pred-1",
+            "tenant_id": "hotel-1",
+            "asset_id": "asset-1",
+            "is_acknowledged": False,
+            "escalation_level": 0,
+            "high_risk_since": None,
+        }],
+        "user_roles": [],
+    })
+    monkeypatch.setattr(failure_predictions, "supabase", db)
+    monkeypatch.setattr(failure_predictions, "_analyze_asset", _fake_analyze(risk_score=85))
+
+    await failure_predictions.run_asset_failure_predictions("hotel-1")
+
+    row = next(r for r in db.rows["failure_predictions"] if r["asset_id"] == "asset-1")
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
+
+
+@pytest.mark.asyncio
+async def test_carry_forward_does_not_restart_clock_after_work_order_reset_single(monkeypatch):
+    db = FakeDB({
+        "assets": [{
+            "id": "asset-1",
+            "tenant_id": "hotel-1",
+            "is_active": True,
+            "name": "Boiler #1",
+            "failure_risk_score": 85,
+        }],
+        "failure_predictions": [{
+            "id": "pred-1",
+            "tenant_id": "hotel-1",
+            "asset_id": "asset-1",
+            "is_acknowledged": False,
+            "escalation_level": 0,
+            "high_risk_since": None,
+        }],
+    })
+    monkeypatch.setattr(failure_predictions, "supabase", db)
+    monkeypatch.setattr(failure_predictions, "_analyze_asset", _fake_analyze(risk_score=85))
+
+    result = await failure_predictions.run_single_asset_prediction("hotel-1", "asset-1")
+
+    assert result["escalation_level"] == 0
+    assert result["high_risk_since"] is None

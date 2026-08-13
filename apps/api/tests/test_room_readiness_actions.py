@@ -164,6 +164,91 @@ def test_run_room_predictions_notifies_on_fresh_high_when_not_acknowledged(monke
 
 
 # ---------------------------------------------------------------------------
+# B2. run_room_predictions escalation-watermark carry-forward (AI-13 prereq)
+# ---------------------------------------------------------------------------
+
+
+def test_run_room_predictions_preserves_escalation_watermark_while_still_high(monkeypatch):
+    db = FakeDB({
+        "room_readiness_predictions": [{
+            "id": "pred-1", "room_id": "room-1", "tenant_id": "hotel-1",
+            "risk_level": "HIGH", "is_acknowledged": False,
+            "acknowledged_at": None, "acknowledged_by": None,
+            "escalation_level": 1, "high_risk_since": "2026-08-01T00:00:00+00:00",
+        }],
+        "notifications": [],
+        "user_profiles": [],
+    })
+    monkeypatch.setattr(predictions_module, "supabase", db)
+    monkeypatch.setattr(
+        predictions_module,
+        "get_at_risk_rooms",
+        lambda hotel_id: [_at_risk_room("room-1", checkin_in_minutes=1)],
+    )
+
+    predictions_module.run_room_predictions("hotel-1")
+
+    row = next(r for r in db.rows["room_readiness_predictions"] if r["room_id"] == "room-1")
+    assert row["risk_level"] == "HIGH"
+    assert row["escalation_level"] == 1
+    assert row["high_risk_since"] == "2026-08-01T00:00:00+00:00"
+
+
+def test_run_room_predictions_resets_escalation_watermark_when_risk_drops_below_high(monkeypatch):
+    db = FakeDB({
+        "room_readiness_predictions": [{
+            "id": "pred-1", "room_id": "room-1", "tenant_id": "hotel-1",
+            "risk_level": "HIGH", "is_acknowledged": False,
+            "acknowledged_at": None, "acknowledged_by": None,
+            "escalation_level": 1, "high_risk_since": "2026-08-01T00:00:00+00:00",
+        }],
+        "notifications": [],
+        "user_profiles": [],
+    })
+    monkeypatch.setattr(predictions_module, "supabase", db)
+    monkeypatch.setattr(
+        predictions_module,
+        "get_at_risk_rooms",
+        lambda hotel_id: [_at_risk_room("room-1", checkin_in_minutes=600)],
+    )
+
+    predictions_module.run_room_predictions("hotel-1")
+
+    row = next(r for r in db.rows["room_readiness_predictions"] if r["room_id"] == "room-1")
+    assert row["risk_level"] != "HIGH"
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is None
+
+
+def test_run_room_predictions_stamps_fresh_high_risk_since_on_new_crossing(monkeypatch):
+    db = FakeDB({
+        "room_readiness_predictions": [{
+            "id": "pred-1", "room_id": "room-1", "tenant_id": "hotel-1",
+            "risk_level": "MEDIUM", "is_acknowledged": False,
+            "acknowledged_at": None, "acknowledged_by": None,
+            "escalation_level": 0, "high_risk_since": None,
+        }],
+        "notifications": [],
+        "user_profiles": [],
+    })
+    monkeypatch.setattr(predictions_module, "supabase", db)
+    monkeypatch.setattr(
+        predictions_module,
+        "get_at_risk_rooms",
+        lambda hotel_id: [_at_risk_room("room-1", checkin_in_minutes=1)],
+    )
+
+    predictions_module.run_room_predictions("hotel-1")
+
+    row = next(r for r in db.rows["room_readiness_predictions"] if r["room_id"] == "room-1")
+    assert row["risk_level"] == "HIGH"
+    assert row["escalation_level"] == 0
+    assert row["high_risk_since"] is not None
+    # must be a valid ISO string
+    datetime.fromisoformat(row["high_risk_since"])
+
+
+# ---------------------------------------------------------------------------
 # C. RBAC — non-supervisor roles blocked
 # ---------------------------------------------------------------------------
 
