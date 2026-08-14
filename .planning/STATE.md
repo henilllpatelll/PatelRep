@@ -2,32 +2,32 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Web UI/UX Redesign
-status: context_gathered
+status: phase_complete
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Phase 31 context captured. User said "continue" after Phase 30 closed; proceeding autonomously through the same discuss->research->plan->execute->verify->close pipeline. Key finding: notification inbox (NAV-03) is ~80% already built (existing UI + endpoints), collapsible sidebar (NAV-02) and command-palette record search (NAV-04) are genuinely net-new.
+last_activity: 2026-08-14 -- Phase 31 (Shell & Navigation Redesign) CLOSED. 6/6 plans complete, phase-goal verification PASSED (6/6 must-haves, independently re-checked by gsd-verifier). Orchestrator follow-up this session: discovered no v2.0 work had ever been deployed, pushed all 61+ commits to origin/main, found and fixed a real Room-Board regression-harness mask gap (Sidebar/Header weren't masked, causing false failures), re-verified zero drift flag-off AND flag-on against the real deployment, and live-verified notifications/collapse/record-search against production. Next: Phase 32 (Role Dashboard Homes), not yet started.
 progress:
   total_phases: 8
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
-  percent: 13
+  completed_phases: 2
+  total_plans: 12
+  completed_plans: 12
+  percent: 25
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 31 of 37 (Shell & Navigation Redesign)
-Plan: 31-01 CLOSED, 31-02 CLOSED, 31-03 CLOSED, 31-04 CLOSED, 31-05 CLOSED, 31-06 CLOSED (verification-only, no gates failed) — all 6 Phase 31 plans code-complete; 2 narrow follow-ups need the orchestrator's live Supabase MCP access before formal phase close (see 31-06-SUMMARY.md "Remaining Work" section)
-Status: Executing — proceeding autonomously (user said "continue" after Phase 30 closed)
-Last activity: 2026-08-14 — 31-06 (full standing gate suite + Room-Board regression re-pass + live browser self-verification of shell golden paths) closed
+Phase: 32 of 37 (Role Dashboard Homes) — not yet started
+Plan: — (Phase 31 fully closed; Phase 32 awaiting /gsd-discuss-phase or /gsd-plan-phase)
+Status: Phase 31 closed. Proceeding autonomously (user said "continue" after Phase 30 closed, applies through this milestone)
+Last activity: 2026-08-14 — Phase 31 verified PASSED and marked complete in ROADMAP.md/REQUIREMENTS.md. See 31-VERIFICATION entry below.
 
-Progress: [█░░░░░░░░░] 13% (1/8 phases)
+Progress: [██░░░░░░░░] 25% (2/8 phases)
 
 v2.0 phase map:
 - Phase 30: Additive Foundation & Regression Harness — FOUND-01..06 (exit gate: excluded Room Boards pixel-identical) — CLOSED 2026-08-14, verification PASSED 6/6
-- Phase 31: Shell & Navigation Redesign — NAV-01..06 — In progress (31-01, 31-02, 31-03, 31-04, 31-05 closed)
-- Phase 32: Role Dashboard Homes — HOME-01, HOME-02
+- Phase 31: Shell & Navigation Redesign — NAV-01..06 — CLOSED 2026-08-14, verification PASSED 6/6 (found+fixed a real regression-harness mask gap along the way, load-bearing for Phases 32-36)
+- Phase 32: Role Dashboard Homes — HOME-01, HOME-02 — Not started
 - Phase 33: Core Operational Sections — SEC-01a
 - Phase 34: Management & Admin Sections — SEC-01b
 - Phase 35: Engineering Section Chrome — ENG-01

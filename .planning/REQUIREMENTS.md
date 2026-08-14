@@ -22,12 +22,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Navigation & Shell
 
-- [ ] **NAV-01**: Sidebar, header, breadcrumbs, and command palette are redesigned using the Foundation token/variant system, remaining fully driven by the existing `getAllowedHrefs`/`getAllowedNavItems` RBAC source of truth
-- [ ] **NAV-02**: Sidebar is collapsible to an icon rail, with collapsed/expanded state persisted per-user in `uiPreferencesStore`
-- [ ] **NAV-03**: A notification inbox surfaces in the shell header, scoped to `hotel_id` + user, letting a user review what happened while they were away
-- [ ] **NAV-04**: Command palette search extends beyond nav-jump to find rooms, work orders, guests, and SOPs directly, filtered to what the current role is allowed to see
-- [ ] **NAV-05**: A role×nav visibility matrix (6 roles × every nav item) is captured against the old app and re-verified against the redesigned nav, logged in as each of the 6 roles
-- [ ] **NAV-06**: Navigation is simple, consistent, and self-evidently discoverable — a user can find any section relevant to their role without hunting
+- [x] **NAV-01**: Sidebar, header, breadcrumbs, and command palette are redesigned using the Foundation token/variant system, remaining fully driven by the existing `getAllowedHrefs`/`getAllowedNavItems` RBAC source of truth
+- [x] **NAV-02**: Sidebar is collapsible to an icon rail, with collapsed/expanded state persisted per-user in `uiPreferencesStore`
+- [x] **NAV-03**: A notification inbox surfaces in the shell header, scoped to `hotel_id` + user, letting a user review what happened while they were away
+- [x] **NAV-04**: Command palette search extends beyond nav-jump to find rooms, work orders, guests, and SOPs directly, filtered to what the current role is allowed to see
+- [x] **NAV-05**: A role×nav visibility matrix (6 roles × every nav item) is captured against the old app and re-verified against the redesigned nav, logged in as each of the 6 roles
+- [x] **NAV-06**: Navigation is simple, consistent, and self-evidently discoverable — a user can find any section relevant to their role without hunting
 
 ### Dashboard Homes
 
@@ -85,12 +85,12 @@ None deferred from this milestone's own scoping — the anti-features below were
 | FOUND-04 | Phase 30 | Complete |
 | FOUND-05 | Phase 30 | Complete |
 | FOUND-06 | Phase 30 | Complete |
-| NAV-01 | Phase 31 | Pending |
-| NAV-02 | Phase 31 | Pending |
-| NAV-03 | Phase 31 | Pending |
-| NAV-04 | Phase 31 | Pending |
-| NAV-05 | Phase 31 | Pending |
-| NAV-06 | Phase 31 | Pending |
+| NAV-01 | Phase 31 | Complete |
+| NAV-02 | Phase 31 | Complete |
+| NAV-03 | Phase 31 | Complete |
+| NAV-04 | Phase 31 | Complete |
+| NAV-05 | Phase 31 | Complete |
+| NAV-06 | Phase 31 | Complete |
 | HOME-01 | Phase 32 | Pending |
 | HOME-02 | Phase 32 | Pending |
 | SEC-01 (SEC-01a) | Phase 33 | Pending |
