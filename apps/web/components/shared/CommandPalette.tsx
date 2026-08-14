@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -202,9 +203,17 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[80] bg-ink/25 backdrop-blur-sm" />
+        <Dialog.Overlay
+          className={cn(
+            'fixed inset-0 bg-ink/25 backdrop-blur-sm',
+            redesigned ? 'z-modal' : 'z-[80]',
+          )}
+        />
         <Dialog.Content
-          className="fixed left-1/2 top-[12vh] z-[81] w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-pop"
+          className={cn(
+            'fixed left-1/2 top-[12vh] w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-pop',
+            redesigned ? 'z-modal' : 'z-[81]',
+          )}
           aria-describedby={undefined}
         >
           <Dialog.Title className="sr-only">{t('header.commandPalette')}</Dialog.Title>
@@ -221,10 +230,18 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
                 }
               }}
               placeholder={t('common.searchPlaceholder')}
-              className="flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink4"
+              className={cn(
+                'flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink4',
+                redesigned && 'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-md',
+              )}
             />
             <Dialog.Close
-              className="flex h-7 w-7 items-center justify-center rounded-md text-ink3 hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-md text-ink3 hover:bg-surface-2 hover:text-ink focus-visible:outline-none',
+                redesigned
+                  ? cn('focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]', 'transition-colors duration-fast ease-standard')
+                  : 'focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40',
+              )}
               aria-label={t('header.closeCommandPalette')}
             >
               <X size={14} />
@@ -243,7 +260,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
                       </p>
                     )}
                     {navResults.map((item) => (
-                      <PaletteResultRow key={item.key} item={item} onSelect={navigate} />
+                      <PaletteResultRow key={item.key} item={item} onSelect={navigate} redesigned={redesigned} />
                     ))}
                   </div>
                 )}
@@ -263,7 +280,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
                           </p>
                         ) : (
                           group.results.map((item) => (
-                            <PaletteResultRow key={item.key} item={item} onSelect={navigate} />
+                            <PaletteResultRow key={item.key} item={item} onSelect={navigate} redesigned={redesigned} />
                           ))
                         )}
                       </div>
@@ -278,12 +295,23 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   )
 }
 
-function PaletteResultRow({ item, onSelect }: { item: PaletteResult; onSelect: (href: string) => void }) {
+function PaletteResultRow({
+  item,
+  onSelect,
+  redesigned,
+}: {
+  item: PaletteResult
+  onSelect: (href: string) => void
+  redesigned?: boolean
+}) {
   const Icon = item.icon
   return (
     <button
       onClick={() => onSelect(item.href)}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-surface-2 focus:bg-surface-2 focus:outline-none"
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-surface-2 focus:bg-surface-2 focus:outline-none',
+        redesigned && 'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] transition-colors duration-fast ease-standard',
+      )}
     >
       <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent-soft text-accent shrink-0">
         <Icon size={14} />
