@@ -149,6 +149,7 @@ export const engineeringApi = {
     priority?: string
     assigned_to?: string
     room_id?: string
+    q?: string
     archived?: boolean
     page?: number
     per_page?: number

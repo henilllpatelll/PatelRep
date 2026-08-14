@@ -77,6 +77,7 @@ export const guestRequestsApi = {
   listRequests: (params?: {
     status?: GuestRequestStatus
     room_id?: string
+    q?: string
     page?: number
     per_page?: number
   }) =>
