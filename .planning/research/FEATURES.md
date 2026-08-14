@@ -1,115 +1,141 @@
 # Feature Research
 
-**Domain:** Batch actions + auto-escalation for AI prediction/alerting (room-readiness copilot), hotel ops SaaS
+**Domain:** UI/UX redesign IA patterns for a 16-section, 6-role operational B2B SaaS dashboard (hotel ops — floor staff on phones/tablets + managers/GMs on desktop)
 **Researched:** 2026-08-13
-**Confidence:** HIGH (internal grounding — full read of `PredictionPanel.tsx`, `housekeeping.py`, `internal.py`, `predictions.py`, migration 013/095); MEDIUM-HIGH external (verified against multiple SaaS bulk-action guides + PagerDuty/Opsgenie/AlertOps escalation-policy docs)
+**Confidence:** HIGH (internal — full read of `DashboardShell.tsx`, `Sidebar.tsx`, `navigation.ts`, `housekeepingNavigation.ts`, `MobileFloorNav.tsx`, `components/dashboard/*`); MEDIUM external (WebSearch across B2B SaaS nav/notification/mobile-nav guides, not verifiable against a single authoritative doc)
 
 ## Scope Recap
 
-Subsequent milestone. Two backlog items deferred at v1.6 close, now being scoped:
+v2.0 is a **redesign of already-built features**, not new capability. The frontend already ships a fairly mature shell — this research measures the *expected redesign patterns* against what exists so the roadmapper knows what is "evolve" vs "net-new."
 
-- **AI-09 — batch actions:** select a group of HIGH-risk room-readiness alerts (e.g. all HIGH rooms on one floor) and reassign/acknowledge them in one action, instead of one row at a time. Deferred pending "evidence of shift-change tap-fatigue."
-- **AI-10 — escalation to GM:** a HIGH-risk prediction left un-actioned (no reassign/escalate/acknowledge) past a time threshold auto-escalates to GM. Deferred pending "evidence that alerts are going un-actioned."
+**What already exists (baseline — do not re-derive):**
+- **Grouped role-gated sidebar** (`Sidebar.tsx`): three sections — Operations / Intelligence / People (`OPERATIONS_HREFS` / `INTELLIGENCE_HREFS` / `PEOPLE_HREFS`), active-state left-rail indicator, hotel switcher dropdown, i18n labels, GM-only Settings at bottom. Fixed 232px, no collapse.
+- **Single source of truth for RBAC nav** (`getAllowedHrefs` / `getAllowedNavItems` in `navigation.ts`) — Sidebar, CommandPalette, and Breadcrumbs all read through it. Handles `NAV_BY_ROLE`, `custom_role` modules, and `front_desk_modules`.
+- **Mobile bottom tab bar for floor roles only** (`MobileFloorNav.tsx`): housekeeper / engineer / front_desk get 3–4 thumb-reach tabs; managers keep sidebar + mobile drawer.
+- **Per-role dashboard home views** (`components/dashboard/`): Housekeeper, Supervisor, Engineer, ChiefEngineer, FrontDesk + shared `LiveOpsGrid`, `ROIMetricsStrip`, `TrendChartsRow`, `AIRiskAlertsPanel`, `DashboardGreeting`. **No dedicated `GMDashboard` component** — GM appears to compose from shared strips.
+- **CommandPalette**, **Breadcrumbs**, **PageHeader**, **StateBlock/EmptyState**, **useToast/Toaster**, **density/theme/accent prefs** (`uiPreferencesStore`).
 
-Both extend the existing single-item action set on `PredictionPanel.tsx` (`apps/web/components/housekeeping/PredictionPanel.tsx`) and its three endpoints (`apps/api/routers/housekeeping.py`: `/room-readiness/{room_id}/{reassign,escalate,acknowledge}`). AI-10 is structurally the same shape as the existing work-order/task escalation ladder (`apps/api/routers/internal.py::check_escalations`, tiers at 30/90/150 min, `escalation_level` watermark column).
+So the redesign's real opportunity is **shell + IA evolution**, not greenfield.
 
 ## Feature Landscape
 
-### Table Stakes (Users Expect These)
+### Table Stakes (Expected in Any Redesign of Software Like This)
 
-Features users assume exist once "batch" or "escalation" is on the table. Missing these makes the feature feel unsafe or half-built.
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Stable role-gated primary nav (sidebar desktop / bottom-tab floor) | Mature B2B SaaS ties default view to each role's 2–3 daily decisions; nav must not shift under the user | LOW (evolve) | Already present and well-structured. Redesign = visual refresh + grouping tune, NOT rebuild. **Hard dependency: all nav routes MUST stay routed through `getAllowedHrefs`** or nav drifts from API RBAC. |
+| Collapsible / icon-rail sidebar (desktop) | Managers on 16 sections need a way to reclaim horizontal space for data-dense tables; expected in modern dashboards | MEDIUM | Net-new — current sidebar is fixed 232px. Persist collapsed state in `uiPreferencesStore`. Collapsed rail must still show role-gated items only. |
+| Per-role dashboard "home" landing | 2026 baseline: sales-rep home ≠ admin home. Each persona lands on their decisions | LOW (evolve) | Mostly built. **Gap: no explicit GM home** — GM is the data-densest persona; redesign should give GM a first-class composed landing (ops health + ROI + exceptions), not a borrowed supervisor view. |
+| Global search / command palette | Users expect ⌘K to jump anywhere; table stakes once surface area exceeds ~10 sections | LOW (evolve) | Exists. See differentiator for evolving it from nav-only → record search. |
+| Breadcrumbs on nested sections | Orientation inside Engineering / Settings sub-trees | LOW (exists) | Keep. Must resolve correctly for the Room Board route (see boundary note). |
+| Empty / loading / error states | Floor staff hit spotty hotel wifi; blank screens read as "broken" | LOW (exists) | `StateBlock` already standardizes this. Redesign = ensure every redesigned section uses it. |
+| Responsive breakpoint behavior (drawer on mobile for managers, bottom-tab for floor) | Same system serves phone + desktop | LOW (exists) | Already handled via `md:` breakpoints + `MobileFloorNav`. Preserve the floor-vs-manager split. |
+| Toast confirmations for in-context actions | "Now" feedback after an action (mark clean, close WO) | LOW (exists) | Keep toasts *rare* — reserve for action confirmations, not passive events. |
 
-| Feature | Why Expected | Complexity | Notes / Dependencies |
-|---------|--------------|------------|-----------------------|
-| Multi-select checkboxes, scoped to actionable rows only | Standard data-table bulk pattern (GitHub Issues, Jira, ClickUp); selection should only be offered where an action is legal. | LOW | Only HIGH-risk rows currently render action buttons (`canAct = canAssignRooms && risk_level === 'HIGH'` in `PredictionPanel.tsx:89`). Selection checkboxes should appear on that same subset — MEDIUM rows stay read-only, matching today's gating. |
-| "Select all" shortcut for the current list | Reduces per-row tapping, the entire point of AI-09. | LOW | Scope to the currently-rendered/expanded HIGH list (typically single digits for a 50–150 room property) — not a paginated or hotel-wide select-all. |
-| Contextual action bar that appears once ≥1 row selected | Universal SaaS bulk pattern — floating/sticky bar showing count + available actions, replaces hunting for a menu. | LOW-MEDIUM | Reuse existing `Button` primitives; bar shows "N selected" + Reassign/Escalate/Acknowledge, mirrors the per-row button set already built. |
-| Confirm-before-commit step, scaled to N items | Existing single-item flow already requires a confirm sub-row before firing (`ActionMode = 'confirm-reassign' | ...`). Bulk actions carry more blast radius, so skipping confirmation here would be a regression versus the safety bar already set for single-item actions. | LOW | Reuse the same inline-confirm visual pattern, restate as "Reassign 4 rooms?" |
-| Per-item outcome after the batch runs | Single-item reassign already has two distinct outcomes (`reassigned` vs `escalated: no_eligible_housekeeper`) — a batch call must preserve that granularity, not collapse to one pass/fail toast. | MEDIUM | e.g. "3 reassigned, 1 escalated — no capacity." Loses trust if a batch silently partially fails. |
-| Deselect / clear selection control | Table stakes for any multi-select UI; users need an escape hatch before committing. | LOW | Standard checkbox-clear + explicit "Clear" affordance in the action bar. |
-| GM notification is not silent (AI-10) | An alert that "auto-escalates" with no notification is invisible — defeats the purpose of a safety net. | LOW | Reuse `notify_role` / `_notify_role` helper already used for WO/task escalation tiers (`internal.py`). |
-| Escalation only fires while the alert is still HIGH and un-actioned (AI-10) | Escalating a room that was already reassigned/acknowledged/dropped-to-MEDIUM is a false alarm and erodes trust in the whole ladder — exactly the failure mode PagerDuty's "acknowledge stops escalation" rule and Opsgenie's alert-policy model both guard against. | MEDIUM | Needs a per-room "un-actioned since" signal — see Dependencies below; this does not exist in the schema today. |
-| Escalation is idempotent (no repeat-notify every cron cycle) | The existing WO/task ladder explicitly guards against this ("Level tracking prevents duplicate notifications across cron runs" — `internal.py:488`). Skipping it here would immediately create the exact GM-notification spam the ladder pattern was built to avoid. | LOW | One watermark column write per escalation event, same shape as `work_orders.escalation_level`/`tasks.escalation_level`. |
+### Differentiators (Would Meaningfully Improve Floor/Manager Experience)
 
-### Differentiators (Competitive Advantage)
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Persistent notification inbox in the shell header** | The one clear gap: `notifications.py` API exists and toasts fire, but there's **no persistent, reviewable inbox** for "what happened while I was on the floor" (WO assigned to me, escalation, guest request). Toasts say "now," inbox says "later." | MEDIUM | Net-new shell surface. **RBAC/tenant dependency: must scope to current `hotel_id` + user** (multi-tenant scoping is the thing generic guides miss). Optimistic mark-read/archive. Foundational — lives in the shared Header. |
+| **Command palette → record search (not just nav jump)** | Let a supervisor type a room number, WO#, guest name, or SOP title and jump to the record, not just the section. Highest-leverage way to flatten a 16-section IA | MEDIUM–HIGH | Evolve existing CommandPalette. **Must filter results through `getAllowedHrefs`/role** so a housekeeper can't palette-jump to Billing. Can ship incrementally (add one record type per section). |
+| **Manager global filters (property + date-range) in the chrome** | GM/chief manage across time and (occasionally) properties. Hotel switcher exists; a persistent **date-range control** for reporting-heavy sections (Reports, Management ROI, Logbook) removes per-page re-selection | MEDIUM | Scope carefully — a *global* date filter is only coherent on data-dense manager sections; floor sections should ignore it. Consider section-scoped rather than truly global to avoid the anti-feature below. |
+| **Density-aware layouts wired to the existing `uiPreferencesStore`** | Same system, two body types: floor = few large tap targets; manager = dense tables. `density` (comfortable/balanced/dense) already exists but redesign should make section layouts genuinely respond to it | MEDIUM | Differentiator only if sections actually honor density. Low risk since store is built. |
+| **Floor "one primary action" home** | Housekeeper/engineer home should surface the single next task (next room, next WO) above the fold — progressive disclosure, minimum info to act | LOW–MEDIUM | Extends existing per-role dashboards; aligns with the project filter "save floor staff time, don't add phone complexity." |
+| **Contextual sub-nav in content area, not sidebar** | 2026 guidance: contextual options in the sidebar make users lose their place. Housekeeping/Engineering/Settings sub-tabs should live as in-content tabs, keeping the primary sidebar stable | MEDIUM | Current design puts Engineering/Housekeeping subnav *inside* the sidebar (expands under active item). Moving sub-nav into the content area is a defensible redesign choice — **but note the Room Board is reached via the Housekeeping sub-nav "Room Board" tab; see boundary.** |
 
-Align with core value: save floor staff time without adding phone/dashboard complexity.
-
-| Feature | Value Proposition | Complexity | Notes / Dependencies |
-|---------|-------------------|------------|-----------------------|
-| "Select all HIGH on this floor" quick filter (AI-09) | Directly targets the deferral trigger — shift-change tap-fatigue is location-scoped (a supervisor walking one floor/wing, not the whole property). A flat select-all doesn't address that; a floor-scoped one does. | LOW-MEDIUM | `room_id` predictions already join `rooms(floor)` in some contexts (see `get_predictions` in `housekeeping.py:1252`) — floor is available to group by client-side without new backend work. |
-| Batch action reuses the exact single-item endpoints, per-row (AI-09) | Keeps outcome semantics identical to what's shipped (e.g. reassign's "escalated: no capacity" fallback is preserved per room, not silently dropped). Avoids a second business-logic path that can drift from the single-item one. | LOW-MEDIUM | Implement as either (a) client-side loop calling the three existing POST endpoints per selected `room_id`, or (b) one thin batch endpoint that internally calls the same handler functions in a loop. Either way: no new reassignment/escalation logic, just fan-out over what exists. |
-| Escalation timer anchored to "first classified HIGH," not a generic overdue clock (AI-10) | Room-readiness predictions don't have a task-style `due_at`; the meaningful "how long has this sat un-actioned" clock should start when the room first crossed into HIGH (a moment that's already computed once in `services/ai/predictions.py`, just not persisted). This is a genuinely different signal from the WO ladder's SLA-overdue math, tailored to this domain rather than copy-pasted. | MEDIUM | See Feature Dependencies — requires persisting that transition moment. |
-
-### Anti-Features (Commonly Requested, Often Problematic)
+### Anti-Features (Sound Good, Don't Earn Their Keep Given the Floor-First Filter)
 
 | Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|------------------|-------------|
-| Unbounded "select all across the whole hotel / all pages" (AI-09) | "Just let me select everything." | HIGH-risk lists at a 50–150 room property are inherently small (rarely more than a handful concurrently) — this is solving a pagination-scale problem the domain doesn't have, and adds UI complexity (indeterminate-select-all, "select all N matching filter" banners) for no real benefit here. | Select-all applies only to the currently-rendered/expanded HIGH list. |
-| Per-item customization inside one batch flow (e.g. picking a different housekeeper per room inside the batch modal) (AI-09) | "Let me fine-tune each one while I'm in there." | This is just N single actions wearing a batch costume — it reintroduces the exact per-row decision-making the batch feature exists to remove, while adding a much more complex UI (a mini reassignment picker per row, inside a bulk modal). | Keep batch actions uniform: the same action (reassign to AI-suggested housekeeper / escalate / acknowledge) applied identically to every selected row. Anything needing per-room judgment routes back to the existing single-row confirm flow. |
-| Full transactional undo/rollback after a batch commits (AI-09) | "What if I select the wrong rooms and hit reassign?" | Reverting a reassignment write (which cascades into `room_assignments` and downstream workload balance) is disproportionate engineering for a same-shift, small-blast-radius action that's already gated behind an explicit confirm step. Note: the existing single-item actions don't have undo either — adding it only for batch would be an inconsistent safety model. | Strong confirm-before-commit (reuse the inline confirm-subrow pattern, scaled to "Reassign 4 rooms?") instead of undo-after-commit. |
-| Escalation as an ownership/assignment change — i.e. actually reassigning the room record to the GM (AI-10) | "Make the GM own it so it's clearly someone's job." | GMs don't clean rooms; forcing an ownership transfer models this like an on-call rotation where the escalated party is expected to personally act, which doesn't fit a GM's role here. The existing WO tier-3 precedent is the right model: it sets `status='escalated'` (a state flag) and notifies GM — it does **not** reassign the work order to a different assignee. | Escalation flags the prediction (state/watermark) and notifies GM — visibility and accountability, not a forced ownership transfer. Matches the "notification-only, shared responsibility" pattern used by AlertOps Response Plays as an alternative to strict on-call ownership handoff. |
-| Escalating MEDIUM-risk predictions too (AI-10) | "Why only HIGH? MEDIUM rooms could also slip." | Scope creep beyond what's asked, and inconsistent with every existing action gate in this feature: `canAct` on the frontend and all three backend endpoints already restrict to `risk_level === 'HIGH'` only. Extending escalation to MEDIUM roughly doubles the alert surface for a tier the product has deliberately treated as "watch, don't act" so far. | Keep AI-10 scoped to HIGH only, matching every other action gate already in place. |
-| Uncapped repeat GM notification every 30-min cron cycle while still un-actioned (AI-10) | "Keep pinging until someone deals with it." | This is the exact alert-fatigue failure mode the existing WO/task escalation ladder was explicitly built to prevent via its `escalation_level` watermark ("prevents duplicate notifications across cron runs"). Un-capped re-notification would make AI-10 the one alerting path in the app that doesn't follow the house pattern. | One GM notification per HIGH-and-un-actioned episode (watermark-gated), only resettable if the room drops below HIGH and later re-crosses into HIGH. |
+|---------|---------------|-----------------|-------------|
+| Fully customizable / drag-drop dashboard widgets | "Let each user build their own home" | Huge build + per-user state + support burden; floor staff will never touch it; violates "don't add complexity to their phone" | Ship strong role-default homes; let personalization be density/theme only (already exists). |
+| Truly global app-wide date/property filter applied to every section | Feels "powerful" and consistent | Meaningless on floor sections (a housekeeper's "today" is now); creates confusing state bleed between ops and reporting screens | Section-scoped filters on manager/reporting screens only. |
+| Multi-level mega-menu / deeply nested sidebar tree | "We have 16 sections + sub-pages, need hierarchy" | Deep nav trees bury actions; field-service evidence shows moving top items to a flat bottom-tab lifted engagement ~38% vs buried hamburger | Keep the flat 3-group sidebar + flat floor bottom-tab; use command palette + record search for the long tail. |
+| Notification badges/toasts on passive/background events | "Keep users informed" | Alert fatigue; toasts lose meaning if frequent; floor staff mid-task get interrupted | Route passive events to the persistent inbox (badge count only); reserve toasts for the user's own actions and true escalations. |
+| Replacing the floor bottom-tab bar with a hamburger to "unify" mobile nav | "One nav pattern everywhere is cleaner" | Hamburger hides primary actions; measurably worse for high-frequency task apps; floor staff are one-handed and mid-task | Keep the role-split: bottom-tab for floor roles, drawer for managers on mobile. |
+| Onboarding tours / coach-marks layered over the redesigned nav | "New IA needs explaining" | Interrupts the exact people (floor staff) who need zero friction; ages badly | If nav is well-designed it shouldn't need a tour; rely on clear labels + empty-state guidance. |
+
+## Room Board Chrome-vs-Board Boundary (Explicit — Quality Gate)
+
+The Housekeeping **Room Status Board** and Engineering **Room/Work-Order Board** are OUT OF SCOPE and must stay visually + functionally identical. The boundary is subtle because they render *inside* the shared shell:
+
+**In scope (redesign may touch — the chrome around the board):**
+- `DashboardShell.tsx` wrapper (the `<main>` padding, header, mobile-nav) — the board renders inside this `<main>`, so shell padding/spacing changes **will** reposition the board on the page. Allowed, but must not alter the board component's own internal grid/kanban layout.
+- Sidebar/nav **entry points** to the board: the Housekeeping section item, its `getHousekeepingSubNavItems` "Room Board" tab, and the Engineering work-orders board link — labels, icons, grouping, active-state highlighting are all fair game.
+- `Header`, `Breadcrumbs`, `PageHeader` chrome that appears above the board.
+- `MobileFloorNav` tabs that link into the board.
+
+**Out of scope (must NOT touch):**
+- The board components themselves (the real-time room-grid / kanban surfaces) — their internal visual design, columns, cards, drag interactions, and Realtime subscription behavior.
+
+**Concrete risks to flag for the roadmapper:**
+1. If sub-nav moves from sidebar → in-content tabs (a differentiator above), the "Room Board" tab is one of those tabs — moving it changes how the board page is *reached* without touching the board. Acceptable, but the board page's tab strip must still render the board untouched below it.
+2. Active-nav highlighting: `pathname.startsWith('/housekeeping')` currently lights up both the Housekeeping item and the Room Board sub-tab. Any nav-highlight refactor must preserve correct highlighting on `/housekeeping` (the board route) or the board *appears* orphaned even though it's unchanged.
+3. Any change to `uiPreferencesStore` density classes on the shell root cascades into the board's container — verify the board is visually unchanged at all three density settings.
 
 ## Feature Dependencies
 
 ```
-AI-09 batch actions
-    └──requires──> existing single-item endpoints (reassign/escalate/acknowledge) [EXISTS: housekeeping.py:1274-1362]
-    └──requires──> per-row selection state added to PredictionPanel.tsx, scoped to canAct rows [NEW, frontend-only]
-    └──does NOT require──> schema changes (fan-out over existing mutations, no new tables/columns)
+Nav shell redesign (Sidebar + Header + MobileFloorNav + DashboardShell)
+    └──requires──> getAllowedHrefs / getAllowedNavItems (RBAC single source of truth) stays authoritative
+                       └──requires──> API role model (core roles, custom_role_modules, front_desk_modules)
 
-AI-10 escalation-to-GM
-    └──requires──> a persisted "un-actioned since" signal on room_readiness_predictions [GAP — see below]
-    └──requires──> escalations.check cron pattern + _notify_role helper [EXISTS: internal.py:481-589]
-    └──requires──> the escalation-clock reset must fire on ALL THREE actions (reassign/escalate/acknowledge), not just acknowledge [GAP — see below]
-    └──enhances──> the same 30-min cadence already used by predictions.run / escalations.check [EXISTS, no new cron job needed]
+Notification inbox ──lives-in──> shell Header (foundational chrome)
+    └──requires──> tenant/role scoping (hotel_id + user) on notifications API
 
-AI-09 and AI-10 ──independent──> can ship in either order; AI-09 does not block AI-10 or vice versa
+Command palette record-search ──requires──> getAllowedHrefs (result filtering by role)
+
+Global/section date filter ──enhances──> manager/reporting sections only
+    └──conflicts──> floor "now"-oriented sections (don't apply there)
+
+Per-section redesigns ──independent-of──> each other (can parallelize AFTER shell lands)
+Contextual sub-nav move ──touches──> Room Board entry point (boundary care required)
 ```
 
-### Dependency Notes — confirmed gaps in current schema/logic
+### Dependency Notes
+- **Everything routes through `getAllowedHrefs`:** the strongest constraint. The frontend nav does not re-implement RBAC — it reads one function fed by role + custom-role modules + front-desk modules. Every new nav surface (collapsed rail, notification links, palette results) must read the same function or it silently exposes routes a role can't access.
+- **Shell is foundational, sections are leaves:** the shell (nav + header + mobile nav + density root) wraps all 16 sections and the Room Board. It must land first and stabilize; section redesigns are independent leaves that can be parallelized behind it.
+- **Notification inbox is net-new but constrained:** API exists; the work is a reviewable header surface with correct multi-tenant scoping and optimistic read/archive.
 
-- **No "became HIGH at" timestamp exists today.** `room_readiness_predictions` (migration `013_ai_systems.sql`) has `last_calculated_at` (overwritten every 30-min recompute, not a transition marker) and `acknowledged_at`/`is_acknowledged` (migration `095_room_readiness_acknowledgement.sql`, set only by the manual acknowledge action). There is no column marking *when a room first crossed into HIGH*. `services/ai/predictions.py` already computes this moment once per transition (`risk_level == "HIGH" and previous_risk != "HIGH"`, line ~447) to decide whether to fire the one-time notification — but it discards it instead of persisting it. **AI-10 needs this persisted** (recommend a new `escalation_level` column on `room_readiness_predictions`, mirroring the `work_orders.escalation_level` / `tasks.escalation_level` watermark convention already used elsewhere in the codebase, set on the same transition). This is a real schema dependency, not just business-logic reuse — flag as MEDIUM complexity, not LOW.
-- **Only `acknowledge` currently marks a room as "actioned."** Checked `reassign_at_risk_room` and `escalate_at_risk_room` in `housekeeping.py` directly: neither writes to `is_acknowledged`/`acknowledged_at`. Reassign changes `room_assignments` (which will organically drop risk on the next `predictions.run` recompute) but doesn't touch the prediction row itself; escalate only re-sends notifications. If AI-10's un-actioned clock is reset by "any of the three actions," reassign and escalate need to also clear/touch the new watermark column — otherwise a supervisor who reassigns a room could still see it auto-escalate to GM minutes later, which would be a confusing regression, not a safety net.
-- **AI-09 has no schema dependency** — it is purely a frontend selection/batching concern layered on already-shipped, already-tested single-item mutations. This keeps it the lower-risk of the two features to build first if sequencing matters.
+## Sequencing Guidance for Roadmapper
 
-## MVP Definition
+### Foundational (must land first — shared chrome, everything renders inside it)
+- [ ] **Nav shell redesign** — Sidebar (+ collapsible rail), Header, MobileFloorNav, DashboardShell visual pass. Keep `getAllowedHrefs` authoritative. **Highest Room-Board-boundary risk lives here.**
+- [ ] **Notification inbox in Header** — net-new, tenant/role-scoped.
+- [ ] **Command palette evolution** — nav-jump → record search, role-filtered.
+- [ ] **Density/theme contract** — confirm `uiPreferencesStore` classes behave across redesigned sections AND leave the Room Board visually unchanged.
 
-### Launch With (if this milestone ships both)
+### Section-by-section (independent — parallelizable once shell is stable)
+- [ ] Each of the 16 sections' internal layouts, redesigned to honor density + PageHeader/StateBlock/Breadcrumb contracts.
+- [ ] Per-role dashboard homes — **prioritize a first-class GM home** (the current gap), then refine floor "one primary action" homes.
 
-- [ ] **AI-09 batch reassign/acknowledge** on HIGH-risk rows, uniform action applied to a floor-scoped or full-list selection, fanned out over existing single-item endpoints, with per-row outcome reporting.
-- [ ] **AI-10 escalation-to-GM** for HIGH-risk predictions left un-actioned past a threshold, using a new watermark column, one-time GM notification, no ownership/assignment change.
+### Defer / avoid
+- [ ] Widget customization, global-everything filters, onboarding tours, nav-pattern "unification" — see Anti-Features.
 
-### Add After Validation
+## Feature Prioritization Matrix
 
-- [ ] Tuning the AI-10 threshold value itself (see below) once real "how long do HIGH rooms sit un-actioned" data exists — ship with a conservative default, adjust from production telemetry rather than guessing twice.
-
-### Future Consideration (v2+, do not build now)
-
-- [ ] Cross-selection batch actions spanning both HIGH housekeeping rooms and HIGH/failure-risk assets in one UI — no evidence this is needed; the two domains have different actors (supervisor vs engineer) and different action sets.
-- [ ] Configurable per-hotel escalation thresholds (GM-tunable minutes) — start with a fixed threshold matching the house pattern; only add configurability if GMs actually ask for it.
-
-## Threshold Guidance for AI-10 (not prescriptive — flag for roadmap/phase decision)
-
-The existing WO/task ladder uses 30/90/150-minute tiers anchored to `due_at` overdue-elapsed time. Room-readiness HIGH predictions don't have an equivalent due-date concept — the closest analog is time since the one-time "newly HIGH" notification already fires. Because `predictions.run` and `escalations.check` both run on a 30-minute cadence, any threshold should be a multiple of 30 minutes to align cleanly with check intervals (a threshold like "45 minutes" would inconsistently span one or two cron runs). Suggest evaluating a single-tier design (unlike the WO ladder's three tiers) given HIGH-risk room windows are typically measured in a few hours until check-in at most — a 3-tier ladder modeled on 150-minute WO thresholds may be too slow for a room that needs to be ready today. This is a product/roadmap decision, not something this research can settle with certainty — flag as an open question for phase planning.
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Nav shell redesign (role-gated, collapsible) | HIGH | MEDIUM | P1 |
+| Notification inbox in header | HIGH | MEDIUM | P1 |
+| Dedicated GM dashboard home | HIGH | LOW–MEDIUM | P1 |
+| Command palette → record search | HIGH | MEDIUM–HIGH | P2 |
+| Density-aware section layouts | MEDIUM | MEDIUM | P2 |
+| Floor "one primary action" home | HIGH | LOW–MEDIUM | P2 |
+| Contextual sub-nav → content area | MEDIUM | MEDIUM | P2 (boundary care) |
+| Section-scoped manager date filters | MEDIUM | MEDIUM | P3 |
+| Widget customization / global filters / tours | LOW | HIGH | P3 (avoid) |
 
 ## Sources
 
-- [Bulk action UX: 8 design guidelines with examples for SaaS — Eleken](https://www.eleken.co/blog-posts/bulk-actions-ux) — MEDIUM
-- [Data table UI design reference guide for 2026 — Setproduct](https://www.setproduct.com/blog/data-table-ui-design) — MEDIUM
-- [Table multi-select pattern — Helios Design System (HashiCorp)](https://helios.hashicorp.design/patterns/table-multi-select) — MEDIUM
-- [Bulk editing pattern — eBay Playbook Design System](https://playbook.ebay.com/design-system/patterns/bulk-edit) — MEDIUM
-- [Best Practices for Alerting Using PagerDuty — DrDroid](https://drdroid.io/engineering-tools/best-practices-for-alerting-using-pagerduty) — MEDIUM
-- [How to set alert policies — Opsgenie/Atlassian docs](https://docs.opsgenie.com/docs/alert-policies) — MEDIUM
-- [Escalation policy tools comparison: incident.io vs. PagerDuty vs. Opsgenie](https://incident.io/blog/escalation-policy-tools-comparison) — MEDIUM
-- [Incident escalation policies: intelligent alert routing and on-call assignment — incident.io](https://incident.io/blog/incident-escalation-policies-guide) — MEDIUM
-- [Alert Escalation: How It Works & Best Practices — AlertOps](https://alertops.com/blogs/alert-escalation/) — MEDIUM
-- [Map Opsgenie Escalations to Response Plays — AlertOps](https://alertops.com/blogs/opsgenie-response-plays-vs-escalation-policies/) — MEDIUM
-- [Maintenance Escalation Rules: When to Notify Managers Automatically — oxmaint](https://oxmaint.com/article/maintenance-escalation-rules-when-to-notify-managers-automatically) — MEDIUM
-- Internal (HIGH): `apps/web/components/housekeeping/PredictionPanel.tsx` (single-item action UI + confirm pattern), `apps/api/routers/housekeeping.py:1274-1362` (reassign/escalate/acknowledge handlers), `apps/api/routers/internal.py:481-589` (`check_escalations` — 3-tier WO/task ladder, `escalation_level` watermark, `_notify_role`), `apps/api/services/ai/predictions.py` (edge-triggered HIGH-transition detection, currently not persisted), `supabase/migrations/013_ai_systems.sql` (`room_readiness_predictions` schema), `supabase/migrations/095_room_readiness_acknowledgement.sql` (`is_acknowledged`/`acknowledged_at`/`acknowledged_by`).
+- Internal codebase (HIGH): `apps/web/components/shared/{DashboardShell,Sidebar,Header,MobileFloorNav,CommandPalette,Breadcrumbs}.tsx`, `apps/web/lib/utils/{navigation,housekeepingNavigation}.ts`, `apps/web/components/dashboard/*`, `apps/web/stores/uiPreferencesStore`.
+- [Role-Based Design for B2B SaaS Dashboards — The Higher Pitch](https://thehigherpitch.com/blogs/insights-role-based-design-b2b-dashboards/)
+- [B2B SaaS Design Trends and Examples for 2026 — ProCreator](https://procreator.design/blog/b2b-saas-design-trends-and-examples/)
+- [SaaS Navigation Design: 6 Patterns to Prevent Confusion — DesignPixil](https://designpixil.com/blog/saas-navigation-design-patterns)
+- [In-App Notification Center for SaaS — SuprSend](https://www.suprsend.com/post/in-app-notification-center)
+- [SaaS Notification UX: Real Examples & Patterns (2026) — SaaSUI](https://www.saasui.design/blog/saas-notification-toast-ux-patterns)
+- [Hamburger Menu vs Tab Bar — Onething Design](https://www.onething.design/post/hamburger-menu-vs-tab-bar)
+- [Bottom Navigation Pattern On Mobile Web — Smashing Magazine](https://www.smashingmagazine.com/2019/08/bottom-navigation-pattern-mobile-web-pages/)
 
 ---
-*Feature research for: batch actions (AI-09) + escalation-to-GM (AI-10), PatelRep next milestone*
+*Feature research for: web UI/UX redesign IA — 16-section, 6-role hotel-ops B2B SaaS*
 *Researched: 2026-08-13*

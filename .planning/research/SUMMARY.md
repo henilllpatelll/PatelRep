@@ -1,147 +1,155 @@
 # Project Research Summary
 
-**Project:** PatelRep AI Staff Copilot SaaS (v1.7 milestone)
-**Domain:** Batch actions (AI-09) and auto-escalation-to-GM (AI-10) on top of an existing AI room-readiness / asset-risk alerting system
+**Project:** PatelRep — v2.0 "Web UI/UX Redesign"
+**Domain:** Full visual-identity + navigation/IA + workflow redesign of an existing, mature Next.js App Router B2B ops SaaS (16 sections, 6 roles, floor staff on phones + managers on desktop)
 **Researched:** 2026-08-13
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This is not a greenfield build. It is a two-feature extension milestone bolted onto code that shipped in v1.6 (Phase 27). AI-09 lets a supervisor select multiple HIGH-risk rooms (or asset-failure predictions) and reassign/acknowledge them in one action instead of one row at a time. AI-10 auto-escalates a HIGH-risk prediction to the GM if it sits un-actioned past a time threshold. Every researcher independently converged on the same conclusion: no new libraries, services, or infrastructure are needed. Both features are direct extensions of patterns already proven in this exact codebase: BulkArchiveModal.tsx and POST /work-orders/bulk-archive for batch selection and fan-out, and the escalation_level tiered-ladder (work_orders/tasks, migration 041, check_escalations in internal.py) for escalation dedup.
+This milestone is a **presentation- and IA-layer redesign of already-built features with zero implied backend/API change.** All four research tracks independently converged on the same reality: `apps/web` already *is* a design system. It ships a complete CSS-variable token layer (`--paper/--ink/--accent` + full semantic status ramps), light+dark WCAG-AA sets, 4 switchable accent themes, 3 density modes, Radix + CVA + tailwind-merge primitives, and framer-motion micro-interactions. The redesign therefore does **not** need a new component-system dependency (no shadcn install, no Tailwind v4, no second animation/icon/component library) — it needs *net-new additive tokens*, a handful of *same-family Radix primitives* added per-surface, and Next.js built-in routing patterns for the IA work.
 
-The recommended approach: AI-09 adds new batch endpoints in housekeeping.py (and optionally assets.py) that loop over the existing single-item reassign_at_risk_room/escalate_at_risk_room/acknowledge_at_risk_room coroutines rather than reimplementing their guard logic, paired with new checkbox-selection UI on PredictionPanel.tsx (no prior multi-select pattern exists in this codebase to reuse, so this is genuinely new frontend surface). AI-10 requires one net-new schema element: an escalation_level counter plus a first-seen-HIGH timestamp (high_risk_since) on room_readiness_predictions and failure_predictions, plus a new cron job that mirrors escalations.check's tiered-notification pattern rather than folding into the detection crons (predictions.run, ai.failure-predictions).
+**The single most important cross-cutting constraint — flagged by all four researchers — is that the Room-Board exclusion is NOT clean at the file level.** The three "untouchable" surfaces (`RoomStatusBoard`, `RoomDetailDrawer`, `EngineeringRoomBoard`) are built on top of shared primitives that ARE in scope: `Button`/`IconButton`, `ui/primitives` (`StatusDot`/`Pill`), `RoomCard` (which lives in `components/housekeeping/` and looks like fair game but is the shared visual unit of BOTH boards), `LogFoundItemModal`, and the global CSS token layer every surface reads. **Redefining any existing token value or repainting any existing shared-primitive variant silently re-skins the excluded boards without anyone editing an "excluded" file.** This shapes the entire recommended approach: an **additive-only strategy** (never mutate existing token *values* or existing primitive APIs; add new tokens and new variants alongside), with a **foundation/tokens phase first** that owns a frozen-primitive list, pre-redesign baseline screenshots, and a dedicated **Room-Board regression gate** that every subsequent shared-primitive-touching phase re-runs.
 
-The dominant risk in both features is regression of discipline the codebase already earned the hard way: the single-item endpoints re-read live state before writing (batch code must not read-once-act-on-N-stale-snapshot); the work-order/task ladder already solved notification spam with a persisted watermark (a new escalation path must reuse that idiom, not is_acknowledged, which is a human-suppression signal, not a dedup counter); and the is_acknowledged column already required an explicit preserve-on-upsert and reset-on-resolve test pair (migration 095). Any new escalation column needs the identical two-part test coverage or it will silently misbehave on the second HIGH episode. A secondary, non-technical risk is migration deployment drift: this project has twice (v1.2, v1.3) shipped a merged migration that was never applied to production, caught only by manual schema audits. AI-10's new columns are exactly the small, easy-to-miss kind of change that has slipped through before.
+The other key risks are all downstream of shipping incrementally across a live, RBAC'd, i18n-gated, dark-mode app: i18n key/parity drift as new copy lands (the CI gate only proves "no raw literal," not EN/ES parity), dark-mode WCAG-AA contrast regressions on new fg/bg pairings, RBAC/role-nav regressions from IA restructuring (must be verified across all 6 roles, not just GM), scope creep from "redesign" into behavior/workflow change, and weeks of jarring half-old/half-new production state. Each is mitigable with per-phase gates plus a rollout strategy (backward-compatible tokens and/or feature flag, sections batched into coherent slices, shell/nav changes late).
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new packages, services, or infrastructure. All required tooling (fastapi, apscheduler, supabase, pydantic, @tanstack/react-query, react, zod) is already pinned in apps/api/requirements.txt / apps/web/package.json. Confidence is HIGH because the finding is direct code inspection, not a general recommendation. The project's own zero-added-dependency convention (CLAUDE.md "Services layer depth") makes this the expected outcome, not a surprising one.
+The foundation already is a shadcn-equivalent architecture, so the guiding principle is **extend, don't replace.** Adopting shadcn/ui as a dependency would introduce a competing token vocabulary (`--background/--primary/--muted/--ring` in oklch, where shadcn's `--accent` means "muted hover bg" vs. this repo's primary terracotta action) that collides with the existing hex `--paper/--ink/--accent` system and would put the excluded Room Board at risk — use it as a *recipe reference only*, re-tokenized. Tailwind stays on 3.4.19 (v4 is a breaking CSS-first rewrite touching every file incl. the excluded board and CI gates, for zero visual-identity payoff — defer to its own milestone). See [STACK.md](STACK.md).
 
-Core patterns to reuse (not "technologies" in the traditional sense):
-- useState<Set<string>> selection state plus useMutation fan-out: exact shape already proven in BulkArchiveModal.tsx
-- SanitizedBaseModel bulk request Pydantic model, capped min_length=1, max_length=200: exact shape already proven in BulkArchiveWorkOrdersRequest (apps/api/models/requests.py:786)
-- escalation_level SMALLINT NOT NULL DEFAULT 0 CHECK (BETWEEN 0 AND N) watermark column plus a .lt("escalation_level", N) cron guard: exact shape already proven in migration 041_escalation_level.sql
+**Core technologies:**
+- **Keep hand-rolled Radix + CVA + Tailwind primitives** — the system to redesign *on top of*; a swap forks the design system the Room Board depends on
+- **CSS custom properties in `globals.css`** (native) — extend the existing `:root`/`.theme-dark`/`.accent-*` blocks with *new* token names; no Style Dictionary/token pipeline warranted for one web app
+- **motion (framer-motion) 13.1.0** — already the animation engine; bump patch, optional `motion/react` import rename; do NOT add a second animation library
+- **Additive same-family Radix primitives** (navigation-menu, tooltip, popover, scroll-area, collapsible, accordion, separator, avatar) — unstyled, no token coupling, added only on the surface that needs them
+- **Next.js App Router built-ins** (route groups, parallel routes `@slot`, intercepting routes, `loading`/`error`/`template`) for IA — no new dependency; do NOT retrofit the excluded Room Board with intercepting routes
 
 ### Expected Features
 
-Must have (table stakes):
-- Multi-select checkboxes scoped only to actionable (HIGH-risk) rows; MEDIUM rows stay read-only, matching today's canAct gating
-- Select-all shortcut, scoped to the currently-rendered list, not paginated or hotel-wide (HIGH-risk lists at a 50-150 room property are inherently small)
-- Contextual action bar appearing once at least one row is selected, showing count and available actions
-- Confirm-before-commit step scaled to N items ("Reassign 4 rooms?"), preserving the safety bar the single-item flow already sets
-- Per-item outcome after a batch runs (e.g. "3 reassigned, 1 escalated, no capacity"), not a single pass/fail toast
-- Deselect / clear-selection escape hatch
-- GM notification on escalation must not be silent; that is the entire point of the feature
-- Escalation must stop firing once a room is reassigned, acknowledged, or drops below HIGH, else it is a false alarm
-- Escalation must be idempotent; no repeat GM notification every 30-min cron cycle
+The redesign's real opportunity is **shell + IA evolution, not greenfield** — the app already has a grouped role-gated sidebar, single-source-of-truth RBAC nav (`getAllowedHrefs`/`getAllowedNavItems`), mobile bottom-tab for floor roles, per-role dashboard homes, command palette, breadcrumbs, and density/theme prefs. See [FEATURES.md](FEATURES.md).
 
-Should have (competitive differentiators):
-- Select-all-HIGH-on-this-floor quick filter, targeting the actual deferral trigger (shift-change tap-fatigue is location-scoped, not property-wide)
-- Batch actions reuse the exact single-item endpoints per-row, preserving today's outcome semantics (e.g. reassign's no-capacity fallback) rather than a second business-logic path
-- Escalation timer anchored to first-classified-HIGH (a domain-specific signal already computed once in predictions.py but currently discarded), not a generic overdue clock
+**Must have (table stakes — mostly evolve, not rebuild):**
+- Stable role-gated primary nav (sidebar desktop / bottom-tab floor) — hard dependency: every route stays routed through `getAllowedHrefs`
+- Per-role dashboard "home" landing — mostly built; **gap: no first-class GM home** (the data-densest persona currently borrows a supervisor view)
+- Global command palette, breadcrumbs, empty/loading/error states (`StateBlock`), responsive floor-vs-manager split, toast confirmations — all exist; ensure every redesigned section honors them
 
-Defer (v2+, explicitly out of scope):
-- Unbounded select-all-across-the-whole-hotel; solves a pagination-scale problem this domain does not have
-- Per-item customization inside one batch flow (defeats the purpose of batching; route back to single-row confirm instead)
-- Full transactional undo/rollback after a batch commits; disproportionate for a same-shift, small-blast-radius, already-confirmed action, and the single-item flow does not have undo either
-- Escalation as an ownership/assignment transfer to the GM; GMs do not clean rooms, escalation should notify and flag state, not reassign
-- Escalating MEDIUM-risk predictions; scope creep beyond every existing risk_level HIGH action gate
-- Configurable per-hotel escalation thresholds; start with one fixed threshold, add configurability only if GMs ask
+**Should have (competitive differentiators):**
+- **Persistent notification inbox in the shell header** — the one clear gap; `notifications.py` exists but there's no reviewable "what happened while I was on the floor" surface; must scope to `hotel_id` + user
+- **Command palette → record search** (room #, WO#, guest, SOP — not just nav jump), role-filtered through `getAllowedHrefs`
+- **Collapsible/icon-rail sidebar** (persist state in `uiPreferencesStore`), density-aware section layouts, floor "one primary action" home, contextual sub-nav moved into content area (boundary care: the "Room Board" tab is one of these)
+
+**Defer / avoid (anti-features given the floor-first filter):**
+- Drag-drop customizable dashboard widgets, truly global app-wide date/property filter, multi-level mega-menu, badges/toasts on passive events, replacing floor bottom-tab with a hamburger, onboarding tours over the new nav
 
 ### Architecture Approach
 
-Both features stay inside existing domain files: no new router files, no new services/ modules, per the project's flat-architecture convention (services/ reserved for logic shared across 2+ domains, and there is no cross-domain sharing here). AI-09 adds batch-reassign/batch-acknowledge routes to housekeeping.py (and batch-acknowledge to assets.py for asset-failure predictions) that await the existing single-item route coroutines in a loop, mirroring the precedent that reassign_at_risk_room already calls create_assignments directly today. AI-10 adds a new, separate cron job (not folded into predictions.run/ai.failure-predictions, which are detection engines with a different lifecycle) that mirrors escalations.check exactly: new escalation_level and high_risk_since columns, a gated .lt() tier check, and _notify_role for GM notification (the more complete notifications+notification_deliveries pattern, not notify_supervisors_high_risk, which fires once on initial HIGH crossing and has no dedup of its own).
+**Zero `apps/api` change is implied** — all targets are React components, CSS tokens, and layout; server data keeps flowing through existing React Query hooks; RBAC/nav is client config (`navigation.ts`) + client guard (`Providers.tsx`, **not** an edge `middleware.ts` — that file does not exist in the app, which simplifies route-group work). The recommended strategy is **additive tokens + parallel variants: freeze existing token values and shared-primitive APIs as an invariant contract, build the new visual system additively, migrate per-route.** No route-group restructuring is required — the 16 sections are already discrete routes under `(dashboard)/`. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Major components:
-1. Batch endpoints (housekeeping.py, assets.py): accept an ID array, loop the existing single-item action functions, return a per-item result list plus aggregate counts
-2. Escalation cron (internal.py check_prediction_escalations, new job id in scheduler.py): reads risk_level HIGH, is_acknowledged FALSE, escalation_level below N, and high_risk_since older than the threshold, then notifies GM via _notify_role
-3. Schema (supabase/migrations/096, next sequential number): escalation_level and high_risk_since on room_readiness_predictions; same two columns on failure_predictions (which is delete-then-insert per run, so the timestamp must be carried forward across re-runs unless the row is newly crossing HIGH)
-4. Frontend selection UI (PredictionPanel.tsx, engineering/predictions/page.tsx): genuinely new checkbox and bulk-action-bar UI; no existing multi-select pattern in this codebase to extend
+**Major components:**
+1. **Design-token layer** (`globals.css` `:root` ⇄ `tailwind.config.ts` aliases) — the primary danger surface AND the highest-leverage lever; add new tokens, never mutate existing values
+2. **Shared primitive layer** (`Button`/`IconButton`, `primitives` StatusDot/Pill, `RoomCard`, `LogFoundItemModal`, Card/Badge/Input) — the frozen contract; restyle via *new* variants only
+3. **Shell / nav / IA** (`DashboardShell`, `Sidebar`, `Header`, `PageHeader`, `Breadcrumbs`, `CommandPalette` + `navigation.ts` RBAC source of truth) — wraps all sections; foundational, must stabilize before section work
+4. **16 leaf sections** — independent routes, parallelizable behind a stable shell; split into Engineering (contains an excluded board) and Housekeeping (the mixed page — do LAST)
 
 ### Critical Pitfalls
 
-1. Batch-read-then-batch-act on a stale snapshot. Batch handlers must re-validate each item's live state (room_status/risk_level) at the moment of write, not against a request-start bulk read. Avoid by calling the same per-item guard logic the single-item endpoints already use, ideally by invoking the single-item coroutines directly inside the loop.
-2. No defined partial-failure contract. This project's only existing multi-item write (create_assignments) already gets this wrong: one try/except around the whole loop leads to an opaque 500 with no per-item breakdown. Batch endpoints must wrap each item in its own try/except and return a per-item result list (succeeded/skipped/error), not an aggregate pass/fail.
-3. Escalation reintroduces GM-notification spam. is_acknowledged is a human-suppression boolean, not a dedup counter, and notify_supervisors_high_risk has zero dedup logic of its own. AI-10 must add its own tiered escalation_level column and gate on escalation_level below N, mirroring 041_escalation_level.sql, not reuse is_acknowledged as the gate.
-4. New escalation columns silently reset, or fail to reset, on the 30-min upsert cycle. Migration 095's is_acknowledged needed two separate, tested behaviors: preserved-on-upsert-while-HIGH and reset-when-risk-drops-below-HIGH. A new escalation_level/high_risk_since column needs the identical characterization-test pair, or a room that flickers HIGH to clean to HIGH again silently inherits a stale tier and never re-escalates.
-5. Migration deployment gap. This project has twice (v1.2, v1.3) shipped a merged, code-complete migration that was never applied to production, caught only by manual schema audits. AI-10's new columns must be confirmed against live production schema (not just git log) before the phase is marked done, and CLAUDE.md's migration table (currently stale at 041 of 99 files) should be updated as part of this phase.
+1. **Partial-exclusion breakage via shared primitives** ("the excluded surface breaks and no one edited it") — enforce a frozen-primitive list, capture pre-redesign baseline screenshots (light+dark, ≥2 roles) of all 3 excluded surfaces, prefer additive variants over mutation, and gate every frozen-primitive change behind a Room-Board pixel-diff.
+2. **i18n gate regressions** — the CI `no-literal-string` rule proves no raw literals, NOT EN/ES key parity. Add keys to BOTH locales *first* in each section phase; add a locale-parity check to the verify gate; treat IA label renames as a copy task that deletes orphaned keys.
+3. **Dark-mode WCAG-AA contrast regressions** — contrast is a fg/bg-*pair* property that inverts under dark mode. Build a contrast matrix as a foundation deliverable, automate a dark-mode axe/contrast check, design dark tokens independently (don't auto-derive), re-run for any new pairing.
+4. **RBAC/role-nav regression from IA restructuring** — moving nav items can drop/misattach role conditions. Keep server `require_role` authoritative (nav hiding is never the security boundary); produce a role×nav visibility matrix (6 roles × every item) from the old app, re-verify against the new nav logged in as each of the 6 roles.
+5. **Scope creep — "redesign" silently becomes behavior/workflow change** — write a bright-line rule (allowed: layout/style/component-swap/nav-placement/copy/states; NOT: what an action does, what's fetched, payloads, step order). Enforce a "same inputs → same outputs" network-diff per section.
+6. **Half-old/half-new production confusion** — a foundation/token change is globally visible the instant it merges while sections land over weeks. Sequence backward-compatible tokens and/or a feature flag, batch sections into coherent slices, land always-visible shell/nav late.
+
+See [PITFALLS.md](PITFALLS.md).
 
 ## Implications for Roadmap
 
-AI-09 and AI-10 are independent (confirmed by both ARCHITECTURE.md and FEATURES.md): they touch different code paths (AI-09 touches route handlers and selection UI only, no schema; AI-10 touches prediction-engine stamping, a new cron, and a new migration) and neither blocks the other. The one coordination point if built in parallel: both may want to claim the next migration number. AI-10 should claim 096 since its schema change is a hard prerequisite for its own cron logic; AI-09 needs no migration at all.
+The hard constraint drives the order: **do the token/primitive foundation first and prove the boards are unaffected before touching any section.** All four researchers converged on this same phase-1-foundation-with-a-regression-gate shape.
 
-### Phase 1: Batch Actions (AI-09)
-Rationale: No schema dependency, lower risk, and establishes the per-item result-list contract that both this feature and AI-10's future UI surfacing can reuse. Recommended to build first or in parallel, not blocked by anything.
-Delivers: batch-reassign/batch-acknowledge endpoints (room-readiness) and batch-acknowledge (asset-failure); checkbox multi-select and bulk-action bar on PredictionPanel.tsx and engineering/predictions/page.tsx.
-Addresses: all FEATURES.md table-stakes items for batch (multi-select scoped to actionable rows, select-all, action bar, confirm step, per-item outcome, deselect).
-Avoids: Pitfalls 1, 2, 6, 7 (stale-snapshot writes, opaque partial failure, silent cross-tenant ID drop, lost confirm discipline in new UI).
+### Phase 1: Additive Foundation & Regression Harness
+**Rationale:** Every primitive already reads from `var(--…)`, and the excluded boards read the same tokens + shared primitives. This phase must land — and be proven safe — before anything else, or the exclusion is violated invisibly.
+**Delivers:** New design tokens (refreshed palette values as *new* names, motion/elevation/z-index scales) in `globals.css`; new additive shared-primitive variants (e.g. `Button` v2) leaving existing variants untouched; the **frozen-primitive list** (`Button`, `IconButton`, `primitives`, `RoomCard`, `LogFoundItemModal` + board-consumed tokens); pre-redesign **baseline screenshots** of all 3 excluded surfaces (light+dark, ≥2 roles); the **dark-mode contrast matrix + automated check** added to the verify gate; the **EN/ES key-parity check** added to the gate; the **role×nav baseline matrix**; and the **rollout strategy** (backward-compatible tokens vs. feature flag + section batching).
+**Addresses:** foundational styling for every downstream feature.
+**Avoids:** Pitfalls 1, 3 (and sets up 2, 4, 6). **Exit gate: Room-Board regression check proves the excluded surfaces are pixel-identical.**
 
-### Phase 2: Escalation to GM (AI-10)
-Rationale: Depends on a schema change (escalation_level, high_risk_since) that is a hard prerequisite for its own cron logic; naturally sequenced after or parallel to Phase 1 once migration numbering is coordinated.
-Delivers: new migration adding tiered escalation columns to room_readiness_predictions and failure_predictions; prediction-engine changes to stamp/carry-forward high_risk_since; new check_prediction_escalations cron job registered in scheduler.py; GM notification via _notify_role; UI surfacing of escalation state (e.g. "Escalated to GM 12 min ago").
-Addresses: FEATURES.md escalation table-stakes (non-silent GM notification, escalation stops on action, idempotent notification) and the differentiator (timer anchored to first-classified-HIGH).
-Avoids: Pitfalls 3, 4, 5 (notification spam, column reset/preserve gap, migration deployment drift).
+### Phase 2: Shell & Navigation Redesign
+**Rationale:** The shell wraps all 16 sections and the Room Board; it's the highest-leverage visual change and carries the highest RBAC risk. Isolate it so nav/RBAC risk is reviewable, and (per Pitfall 6) consider landing it behind the flag or late so the always-visible chrome doesn't get "ahead" of the sections.
+**Delivers:** Redesigned `DashboardShell`, `Sidebar` (+ collapsible rail persisted in `uiPreferencesStore`), `Header`, `PageHeader`, `Breadcrumbs`, `CommandPalette`, `MobileFloorNav` using Phase-1 tokens/variants; **notification inbox** in the header (tenant/role-scoped); command-palette record-search evolution.
+**Uses:** Additive Radix primitives (navigation-menu, tooltip, popover, collapsible) added here as needed; Next.js route-group/parallel-route patterns if role-composed dashboards are pursued.
+**Implements:** Shell / nav / IA component; keeps `getAllowedHrefs` authoritative.
+**Avoids:** Pitfall 4 (role×nav re-verified across all 6 roles) + re-runs the Room-Board gate (shell wraps the board).
+
+### Phase 3: Independent Low-Risk Sections (batched, parallelizable)
+**Rationale:** Any section that does NOT render an excluded board/`RoomCard` is a self-contained route that can modernize freely once the shell is stable. Batch into coherent slices (Pitfall 6) rather than 16 arbitrary one-at-a-time ships.
+**Delivers:** Redesigned internal layouts for `tasks`, `sop`, `logbook`, `reports`, `management-roi`, `guest-requests`, `lost-found`, `safety`, `evidence`, `programs`, `scheduling`, `staff`, `settings/*`, `ai`, and the role dashboard homes — **prioritizing a first-class GM home** (the current gap). Each honors density + PageHeader/StateBlock/Breadcrumb contracts and redesigns empty/loading/error, not just the happy path.
+**Addresses:** most FEATURES.md section-level and differentiator work.
+**Avoids:** Pitfalls 2, 3, 5 per section (keys-in-both-locales-first, new-pairing contrast re-check, same-inputs/same-outputs network diff).
+
+### Phase 4: Engineering Section (contains an excluded board)
+**Rationale:** `/engineering/*` mixes redesignable chrome with the untouchable `EngineeringRoomBoard`; sequence after the token/variant system is proven.
+**Delivers:** Redesigned section chrome (PageHeader, tabs, work-orders/assets/pm-schedules/predictions pages) with `EngineeringRoomBoard` left as-is and confirmed rendering identically inside the new chrome.
+**Avoids:** Pitfall 1 (Room-Board regression re-check).
+
+### Phase 5: Housekeeping Section (the mixed page — do LAST)
+**Rationale:** `housekeeping/page.tsx` has the tightest constraint — it renders both `RoomStatusBoard` and `RoomDetailDrawer` (two of three Realtime surfaces) inside redesignable chrome. Doing it last means the token/variant system is fully proven first.
+**Delivers:** Redesigned surrounding chrome (PageHeader, SyncBadge, HousekeeperBar, date/shift controls, housekeeper "my rooms" list) only; the `<Suspense><RoomStatusBoard/></Suspense>` block and the drawer left verbatim.
+**Avoids:** Pitfall 1. **Gate:** board view, my-rooms view, and drawer unchanged; Realtime still live (watch the sync badge).
+
+### Phase 6: Final QA
+**Rationale:** Cross-cutting verification that per-phase gates can't fully cover.
+**Delivers:** Full 6-role nav walkthrough vs. the role×nav matrix, full ES walkthrough of all 16 sections, dark-mode axe sweep, cross-section visual-consistency check, and a final pixel-diff of the 3 excluded surfaces vs. the original Phase-1 baseline.
 
 ### Phase Ordering Rationale
 
-- AI-09 has zero schema dependency and the lowest risk profile: sequencing it first (or in parallel) means the per-item result-list UI/response contract exists before AI-10 needs to surface its own escalation state in the same panel.
-- AI-10's schema change is self-contained but must claim its migration number before or independently of any other in-flight migration work, given this project's documented history of numbering collisions (020/0201, dual 039 files).
-- Both phases should each include their own test-writing sub-step per PITFALLS.md's explicit test mapping (concurrent-mutation test for P1, partial-failure test for P2, 3x-consecutive-cron-run test for P3, preserve+reset characterization test pair for P4, live-schema verification for P5): these are not optional follow-ups, they are the phase's definition of done per the pitfalls research.
+- **Dependency-driven:** tokens → shared primitives → shell → sections is the strict dependency chain; the token layer is read by everything (incl. the excluded boards), so it must be additive-first and proven before any leaf work.
+- **Risk-isolated:** RBAC risk (Phase 2), the two board-adjacent sections (Phases 4-5), and behavior-scope risk (bright-line rule, all section phases) are each isolated so a single class of regression is reviewable in one place.
+- **Rollout-aware:** shell/nav lands behind a flag or late, sections ship in coherent batched slices, so daily hotel staff never see a half-broken workflow (Pitfall 6).
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- AI-10 (Escalation phase): the escalation threshold/tier design is explicitly flagged as unresolved by FEATURES.md: single-tier vs. the WO ladder's 3-tier (30/90/150 min) model, and the exact minute threshold, is a product/roadmap decision that research could not settle. Flag for explicit decision during phase planning, not implementation-time guessing.
-- AI-10 vs AI-09 endpoint naming: STACK.md's illustrative examples use bulk-reassign/bulk-acknowledge naming while ARCHITECTURE.md's integration design uses batch-reassign/batch-acknowledge. Both are internally consistent but disagree with each other; resolve to one convention during phase planning (recommend batch- per ARCHITECTURE.md's more detailed endpoint design, but either is uncontroversial as long as it is picked once).
+Phases likely needing deeper research during planning (`/gsd:research-phase`):
+- **Phase 2 (Shell & Nav):** Next.js `next@16.3.0-preview.10` route-group/parallel/intercepting-route APIs are a preview build; `AGENTS.md` warns APIs differ from training data — verify against `node_modules/next/dist/docs/` before relying on them. The notification-inbox surface (net-new, tenant/role scoping, optimistic read/archive) also warrants a design pass.
+- **Phase 1 (Foundation):** the dark-mode contrast matrix + automated tooling choice (axe/Lighthouse CI in dark mode) and the rollout strategy (feature flag vs. backward-compatible tokens) are decisions worth a focused pass.
 
-Phases with standard patterns (skip research-phase):
-- AI-09 (Batch-actions phase): fully grounded in two existing in-repo precedents (BulkArchiveModal.tsx, BulkArchiveWorkOrdersRequest) with no external unknowns; standard pattern, safe to proceed straight to implementation planning.
+Phases with standard patterns (can skip research-phase):
+- **Phase 3 (independent sections):** self-contained route restyles against an established primitive/token contract — well-understood, repetitive.
+- **Phases 4-5 (Engineering/Housekeeping chrome):** same restyle pattern as Phase 3 plus the already-defined Room-Board regression gate; no new research, just discipline.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Direct code inspection of this repository; no new dependencies means no external library research risk |
-| Features | HIGH internal / MEDIUM-HIGH external | Internal grounding is a full read of the actual panel/router/cron code; external validation drew on SaaS bulk-action and incident-escalation-policy guides (PagerDuty, Opsgenie, AlertOps) as secondary confirmation, not primary source |
-| Architecture | HIGH | Every file/function/table name verified by direct read on 2026-08-13, not inferred from prior phase docs |
-| Pitfalls | HIGH | Grounded in actual v1.6 code plus this project's own documented migration/upsert incident history and existing characterization tests |
+| Stack | HIGH | Installable versions verified via local `npm view` (authoritative for this env); existing token/primitive system read from `package.json`, `tailwind.config.ts`, `globals.css`, `Button.tsx`, `DashboardShell.tsx`. One MEDIUM caveat: Next.js preview-build routing APIs. |
+| Features | HIGH (internal) / MEDIUM (external) | Full read of shell/nav/dashboard source; external B2B-SaaS nav/notification pattern guidance is multi-source consensus, not a single authoritative doc. |
+| Architecture | HIGH | Every integration point + all 3 excluded files + `RoomCard` + shared imports read from source; confirmed no `middleware.ts` and no API change implied. |
+| Pitfalls | HIGH | Grounded in the actual repo — excluded surfaces' imports, the CSS-variable token layer, the i18n eslint rule, and role-gated Sidebar all inspected directly. |
 
-Overall confidence: HIGH
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- AI-10 threshold/tier design: no single answer from research; FEATURES.md explicitly flags this as a product decision requiring either a conservative default or a roadmap-level call, not something research can settle. Resolve during phase planning.
-- Endpoint naming inconsistency (bulk- vs batch-) between STACK.md and ARCHITECTURE.md: cosmetic but should be fixed to one convention before implementation starts.
-- Whether AI-09 extends to asset-failure batch actions beyond batch-acknowledge: ARCHITECTURE.md recommends scoping AI-09's first phase to batch-reassign plus batch-acknowledge (room-readiness) and batch-acknowledge only (asset-failure), explicitly deferring batch create-work-order as higher-risk; confirm this scope during requirements/roadmap definition rather than assuming it by default.
+- **Next.js preview-build routing APIs:** route groups / parallel / intercepting routes must be confirmed against `node_modules/next/dist/docs/` (not training data) before Phase 2 relies on them. Handle in Phase 2 planning.
+- **Rollout mechanism (feature flag vs. backward-compatible tokens):** researchers named both as viable; the roadmapper/Phase 1 must pick one explicitly, since it changes how much old/new mixing production tolerates.
+- **GM dashboard composition:** there is no dedicated `GMDashboard` component today (GM composes from shared strips) — the first-class GM home is net-new UI, so budget design time in Phase 3 rather than treating it as a restyle.
+- **Contrast tooling choice:** the automated dark-mode contrast/axe check is recommended but the specific tool/CI wiring is unspecified — decide in Phase 1.
+- **Exact phase count:** the 6-phase shape is the research-implied ordering; the precise split (e.g., batching of the ~15 independent sections) is the roadmapper's call.
 
 ## Sources
 
-### Primary (HIGH confidence, direct repository inspection, 2026-08-13)
-- apps/web/components/engineering/BulkArchiveModal.tsx: batch-selection UI precedent
-- apps/api/routers/work_orders.py lines 518-563: bulk endpoint plus shared-helper backend precedent
-- apps/api/routers/housekeeping.py lines 1274-1362 and 828-937: single-item actions and the only existing multi-item write endpoint (create_assignments)
-- apps/api/routers/assets.py lines 69-160+: asset-failure prediction endpoints
-- apps/api/routers/internal.py lines 461-589: check_escalations tiered-ladder cron precedent
-- apps/api/services/ai/predictions.py lines 197-467, apps/api/services/ai/failure_predictions.py lines 312-573: prediction engines and notification helpers
-- apps/api/core/scheduler.py lines 26-101: cron registration/cadence, build_scheduler fail-fast on handler/schedule mismatch
-- supabase/migrations/041_escalation_level.sql, 095_room_readiness_acknowledgement.sql, 008_assets_pm.sql: schema precedents
-- apps/api/tests/test_room_readiness_actions.py lines 42-138: upsert-preserve and reset-on-resolve characterization tests
-- apps/web/components/housekeeping/PredictionPanel.tsx, apps/web/app/(dashboard)/engineering/predictions/page.tsx: frontend integration points
-- Repo migration count (99 files) vs. CLAUDE.md's migration table (documents only through 041): direct evidence of doc-drift risk
+### Primary (HIGH confidence)
+- Local repository inspection — `apps/web/package.json`, `tailwind.config.ts`, `app/globals.css`, `components/ui/Button.tsx`, `components/ui/primitives.tsx`, `components/shared/{DashboardShell,Sidebar,Header,PageHeader,Providers,MobileFloorNav,CommandPalette,Breadcrumbs}.tsx`, `components/housekeeping/{RoomStatusBoard,RoomDetailDrawer,RoomCard}.tsx`, `components/engineering/EngineeringRoomBoard.tsx`, `lib/utils/navigation.ts`, `eslint.config.mjs`
+- Local npm registry via `npm view` (2026-08-13) — authoritative for installable versions (motion 13.1.0, Radix primitives, lucide-react 1.31.0, and the deliberately-avoided shadcn 4.18.0 / tailwind 4.3.3)
+- Project policy docs — CLAUDE.md Non-Regression, Self-Verification, Current Scope (web-only), Realtime-scope note (the 3 realtime surfaces)
+- https://ui.shadcn.com/docs/theming — verified shadcn token names substantiate the token-collision argument
+- https://motion.dev/docs/react-quick-start — verified `framer-motion` now published as `motion` (`motion/react`, same API)
 
-### Secondary (MEDIUM confidence, external validation)
-- Bulk action UX: 8 design guidelines, Eleken (https://www.eleken.co/blog-posts/bulk-actions-ux)
-- Table multi-select pattern, Helios Design System, HashiCorp (https://helios.hashicorp.design/patterns/table-multi-select)
-- Bulk editing pattern, eBay Playbook Design System (https://playbook.ebay.com/design-system/patterns/bulk-edit)
-- Best Practices for Alerting Using PagerDuty, DrDroid (https://drdroid.io/engineering-tools/best-practices-for-alerting-using-pagerduty)
-- How to set alert policies, Opsgenie/Atlassian docs (https://docs.opsgenie.com/docs/alert-policies)
-- Alert Escalation: How It Works and Best Practices, AlertOps (https://alertops.com/blogs/alert-escalation/)
-
-### Tertiary (LOW/MEDIUM confidence, needs validation)
-- Project memory re: v1.2/v1.3 unapplied-migration incidents: sourced from project memory/milestone history, not re-verified against a specific commit this session
+### Secondary (MEDIUM confidence)
+- Next.js App Router routing patterns (route groups / parallel / intercepting) — built-in but preview build; verify in `node_modules/next/dist/docs/`
+- B2B SaaS nav/notification/mobile-nav pattern guides (The Higher Pitch, ProCreator, DesignPixil, SuprSend, SaaSUI, Onething Design, Smashing Magazine) — multi-source consensus on IA/notification/bottom-tab patterns
+- Established design-system/token-migration + WCAG-AA-as-a-fg/bg-pair-property practice — well-understood domain knowledge
 
 ---
-Research completed: 2026-08-13
-Ready for roadmap: yes
+*Research completed: 2026-08-13*
+*Ready for roadmap: yes*

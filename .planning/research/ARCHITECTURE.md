@@ -1,143 +1,205 @@
 # Architecture Research
 
-**Domain:** Integration of batch-action (AI-09) and auto-escalation (AI-10) capabilities into PatelRep's existing AI prediction/alerting system
+**Domain:** UI/UX redesign integration for an existing Next.js App Router SaaS (PatelRep v2.0 "Web UI/UX Redesign")
 **Researched:** 2026-08-13
-**Confidence:** HIGH — every file/function/table name below was read directly from the current codebase, not inferred from prior phase docs.
+**Confidence:** HIGH (all integration points read from source, not assumed)
 
-## Verified Current State (read from source, not assumed)
+## Executive Answer
 
-### Room-readiness (housekeeping)
+This is a **presentation + IA-layer redesign with zero implied backend/API change.** The existing app is well-structured for it: 16 dashboard sections are already independent routes under a single `(dashboard)` route group, all fed by one shell (`DashboardShell` → `Sidebar` + `Header`), and all styled through **one semantic design-token layer** (`app/globals.css` `:root` custom properties, aliased into Tailwind via `tailwind.config.ts`).
 
-| Piece | Real name | Location |
-|---|---|---|
-| Router | `housekeeping.py` | `apps/api/routers/housekeeping.py` |
-| Single-room actions | `reassign_at_risk_room`, `escalate_at_risk_room`, `acknowledge_at_risk_room` | `housekeeping.py:1274-1362`, mounted at `POST /housekeeping/room-readiness/{room_id}/reassign\|escalate\|acknowledge` |
-| Role gate | `require_role("gm", "housekeeping_supervisor")` on all three | same file |
-| Prediction engine | `run_room_predictions(hotel_id)` | `apps/api/services/ai/predictions.py:271` |
-| Cron entry point | `run_all_hotel_predictions()` → called by `routers/internal.py::run_predictions` → cron job id `predictions.run` | `predictions.py:467`, `core/scheduler.py:26` |
-| GM/supervisor notify helper | `notify_supervisors_high_risk(hotel_id, room_number, room_id, predicted_ready_at_str)` | `predictions.py:197` — inserts into `notifications` only, **not** `notification_deliveries` |
-| Table | `room_readiness_predictions` | columns used: `room_id, tenant_id, housekeeper_id, predicted_ready_at, confidence_score, risk_level, checkin_time, minutes_to_checkin, rooms_remaining_for_hk, avg_speed_rooms_per_hr, risk_factors, last_calculated_at, is_acknowledged, acknowledged_at, acknowledged_by` — ack columns added in migration `095_room_readiness_acknowledgement.sql`. **No `escalation_level` or "first seen HIGH" timestamp column exists today.** |
-| Frontend panel | `PredictionPanel.tsx` → `PredictionRow` (per-item, inline confirm) | `apps/web/components/housekeeping/PredictionPanel.tsx` |
-| Frontend API client | `housekeepingApi.reassignAtRiskRoom / escalateAtRiskRoom / acknowledgeAtRiskRoom` (all single `roomId` arg) | `apps/web/lib/api/housekeeping.ts:126-141` |
+That single token layer is also the **primary danger surface.** The two board components in the hard-exclusion set (`RoomStatusBoard.tsx`, `EngineeringRoomBoard.tsx`) and their shared child `RoomCard.tsx` consume the semantic tokens *directly and pervasively* (`bg-surface`, `text-ink`, `border-line`, `--ai`, `--alert`, `--r-lg`, etc.). **Redefining the value of any existing token silently re-skins all three excluded components** — violating the "rendered output must not change" constraint. The safe strategy is therefore an **additive token/variant system**: never mutate existing token *values* or existing shared-primitive APIs; introduce new tokens and new component variants alongside, and migrate route-by-route.
 
-**Important existing precedent for Q1:** `reassign_at_risk_room` does **not** call a shared internal helper — it directly `await`s another route coroutine (`create_assignments`) from within itself (`housekeeping.py:1318`). FastAPI route handlers in this codebase are plain async functions that are already called directly from other route handlers in the same router file. There is no `services/housekeeping_room_readiness.py` extraction layer for this feature.
+One correction to the brief: **there is no `middleware.ts` in the web app** (`apps/web/**/middleware.ts` resolves only inside `node_modules`). Route guarding is done **client-side in `components/shared/Providers.tsx`** (`router.replace('/login')` / `router.replace('/onboarding')`). This *simplifies* the redesign — route-group restructuring will not collide with an edge middleware — but means RBAC nav visibility lives entirely in `lib/utils/navigation.ts` (client config), which is the file to guard when routes change.
 
-### Asset failure (engineering)
+## Standard Architecture (as-built, in scope)
 
-| Piece | Real name | Location |
-|---|---|---|
-| Router | `assets.py` | `apps/api/routers/assets.py` |
-| Endpoints | `GET /failure-predictions` (active unacked, top 10 by risk), `GET /failure-predictions/history` (all, paginated 50, filterable by `acknowledged`/`risk_min`), `POST /failure-predictions/{prediction_id}/acknowledge`, `POST /failure-predictions/{prediction_id}/create-work-order` | `assets.py:69-160+` |
-| Role gate | `require_role("gm", "engineer")` on acknowledge + create-work-order | same file |
-| Prediction engine | `run_asset_failure_predictions(hotel_id)` (per-hotel, calls Claude via `_analyze_asset`), `run_single_asset_prediction` (on-demand single-asset) | `apps/api/services/ai/failure_predictions.py:380, 573` |
-| Cron entry point | `run_all_hotels_failure_predictions()` → `routers/internal.py::run_failure_predictions` → cron job id `ai.failure-predictions` (nightly, `hour:0`) | `failure_predictions.py:530`, `core/scheduler.py:39` |
-| GM/engineer notify helper | `notify_engineers_asset_risk_high(hotel_id, asset_id, asset_name, risk_score, predicted_failure_window, recommendation)` | `failure_predictions.py:312` — notifies `engineer`, `chief_engineer`, `gm` roles, inserts into `notifications` only |
-| Table | `failure_predictions` (migration `008_assets_pm.sql:101`) | columns: `id, tenant_id, asset_id, risk_score, predicted_failure_window, failure_indicators, estimated_repair_cost, estimated_replace_cost, recommendation, ai_reasoning, generated_at, is_acknowledged, acknowledged_by, acknowledged_at`. **No `escalation_level` or HIGH-since timestamp.** Row model differs from room-readiness: on every prediction run, the existing unacknowledged row is **deleted and a fresh row inserted** (`failure_predictions.py:464-470`), not upserted-in-place. This matters for AI-10 — a naive "time since row created" check would reset every re-run even if underlying risk is unchanged, unless the delete/insert is made conditional on risk actually changing, or an escalation timestamp is carried forward across the delete/insert. |
-| Frontend page | `apps/web/app/(dashboard)/engineering/predictions/page.tsx` → `PredictionCard`, one card per prediction, `useMutation` per action (acknowledge / create-work-order / authorize AI recommendation) | |
-| Frontend API client | `engineeringApi.acknowledgeFailurePrediction(predictionId)`, `createWorkOrderFromPrediction(predictionId)`, `getFailurePredictionHistory(params)` | `apps/web/lib/api/engineering.ts:257,304,307` |
-
-**Key difference from room-readiness:** there is no "reassign" concept for an asset — the closest analog action is `create-work-order`. AI-09 batch semantics therefore differ per domain (see below).
-
-### Existing escalation-ladder precedent (closest prior art for AI-10)
-
-`apps/api/routers/internal.py::check_escalations` (`POST /v1/internal/escalations/check`, cron job id `escalations.check`, `*/30 * * * *`):
-
-- Reads `work_orders.escalation_level` and `tasks.escalation_level` (both `INT`, added by migration `041` per project CLAUDE.md gotcha notes — confirmed in use at `internal.py:502-588`).
-- 3-tier ladder purely on **time since `due_at`** (30 / 90 / 150 min cutoffs computed fresh every run from `now`), not on a "first crossed HIGH" timestamp — because `due_at` is a fixed target set once at creation, unlike `risk_level`, which is recomputed every 30 min and can flip back down.
-- Tier 3 auto-escalates the entity itself (work order → `status="escalated"` via `transition_work_order_with_audit` RPC) and notifies GM.
-- Notification helper used here is **`_notify_role(hotel_id, target_role, notif_type, title, body, data)`** (`internal.py:433`) — inserts into **both** `notifications` and `notification_deliveries` (channel `in_app`, status `delivered`). This is a **different, more complete** pattern than `notify_supervisors_high_risk` / `notify_engineers_asset_risk_high`, which only insert into `notifications`.
-- Also registered independently in `CRON_SCHEDULE` (`core/scheduler.py:28`) as its own job id, separate from `predictions.run` and `ai.failure-predictions` — escalation-ladder logic is a **separate cron job**, not folded into the detection/prediction jobs.
-
-## Integration Design
-
-### AI-09 — Batch actions
-
-**Endpoint shape:** new routes, following the existing precedent of calling single-item route coroutines directly (no service-layer extraction — this stays single-domain business logic per the project's services-layer convention: *"only extract to services/ when logic is shared across 2+ domains"*):
-
-- `POST /housekeeping/room-readiness/batch-reassign` — body `{"room_ids": [...]}`
-- `POST /housekeeping/room-readiness/batch-acknowledge` — body `{"room_ids": [...]}`
-- `POST /engineering/failure-predictions/batch-acknowledge` — body `{"prediction_ids": [...]}` (add to `assets.py`, same router that already owns `/failure-predictions/*`)
-
-Each batch handler loops the ids and `await`s the corresponding existing single-item coroutine (`reassign_at_risk_room`, `acknowledge_at_risk_room`, `acknowledge_failure_prediction`) exactly the way `reassign_at_risk_room` already calls `create_assignments` today. Wrap each iteration in `try/except HTTPException` so one room's 404/409 (e.g. room no longer DIRTY, prediction already gone) doesn't abort the rest of the batch — there is no existing batch-endpoint precedent anywhere else in the codebase to follow for partial-failure shape, so return a per-item result list plus aggregate counts, e.g.:
-
-```json
-{"data": {"results": [{"room_id": "...", "action": "reassigned", "housekeeper_id": "..."}, {"room_id": "...", "error": "Room is no longer awaiting cleaning"}], "succeeded": 4, "failed": 1}}
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  app/(dashboard)/layout.tsx  →  DashboardShell  (SHELL / NAV / IA)    │
+│  ┌────────────┐  ┌────────────────────────────────────────────────┐  │
+│  │  Sidebar   │  │  Header                                         │  │
+│  │ (nav, RBAC)│  ├────────────────────────────────────────────────┤  │
+│  │            │  │  <main> → PageTransition → {route page}         │  │
+│  │            │  │     ┌──────────────────────────────────────┐    │  │
+│  │            │  │     │  PageHeader (title/tabs/actions)      │    │  │
+│  │            │  │     │  ...section content...                │    │  │
+│  │            │  │     └──────────────────────────────────────┘    │  │
+│  └────────────┘  └────────────────────────────────────────────────┘  │
+│  Overlays mounted once by shell: AICopilotBubble, CommandPalette,     │
+│  MobileFloorNav, TweaksPanel, FeedbackButton, Toaster                 │
+├──────────────────────────────────────────────────────────────────────┤
+│  SHARED PRIMITIVE LAYER  components/ui/*  +  components/shared/*       │
+│  Button/IconButton · primitives(StatusDot,Pill,Stat,Bar…) · Card ·    │
+│  Badge · Input · EmptyState · StateBlock · Skeleton · Toast           │
+├──────────────────────────────────────────────────────────────────────┤
+│  DESIGN-TOKEN LAYER  app/globals.css :root  ⇄  tailwind.config.ts     │
+│  --paper --surface --ink --line --accent --ai --alert --r-lg …        │
+│  (+ .theme-dark, .accent-*, .density-* variants)                      │
+├──────────────────────────────────────────────────────────────────────┤
+│  CLIENT STATE  Zustand: auth · hotel · housekeeping · engineering ·   │
+│                uiPreferences        SERVER DATA  TanStack React Query  │
+│  ROUTE GUARD  components/shared/Providers.tsx (client redirect)       │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Does AI-09 apply to both domains?** Room-readiness has 3 single-item actions (reassign/escalate/acknowledge); asset failure has 2 (acknowledge/create-work-order). Batch **acknowledge** is the one action that is symmetric, low-risk, and clearly valuable in both domains (clearing noisy MEDIUM/LOW-risk backlogs). Batch **reassign** only makes sense for room-readiness (assets have no "reassign"). Batch **create-work-order** for assets is higher-risk (creates N real work orders with parts/cost implications in one click) — recommend scoping AI-09's first phase to `batch-reassign` + `batch-acknowledge` (room-readiness) and `batch-acknowledge` (asset-failure) only; leave batch-create-work-order and batch-escalate out unless the roadmap/requirements phase explicitly calls for them.
+## The Hard-Exclusion Dependency Trace (read from source)
 
-**Role gates:** batch endpoints reuse the exact same `require_role(...)` as their single-item counterparts — `("gm", "housekeeping_supervisor")` for room-readiness, `("gm", "engineer")` for asset-failure.
+These are the exact imports of the three untouchable files. **Everything listed under "shared" is now a handle-with-extreme-care surface** — a change flowing into it changes the excluded output.
 
-**Frontend:** `PredictionPanel.tsx` and `engineering/predictions/page.tsx` currently render one row/card per item with no selection state or bulk toolbar — this is new UI, not a modification of an existing bulk pattern. Add checkbox selection + a bulk-action bar to both.
+### `components/housekeeping/RoomStatusBoard.tsx`
+| Imports (shared/reusable) | Kind |
+|---|---|
+| `Button, IconButton` from `components/ui/Button` | shared primitive |
+| `StatusDot` from `components/ui/primitives` | shared primitive |
+| `RoomCard` from `components/housekeeping/RoomCard` | shared child component |
+| `RoomDetailDrawer` (also excluded) | excluded child |
+| Zustand `useHousekeepingStore`, `useAuthStore` | client state |
+| Semantic token classes used inline | `bg-surface` `bg-surface-2` `bg-surface-3` `text-ink` `text-ink2` `text-ink3` `bg-ink` `text-paper` `border-line` `border-line-2` `--ai` `--ai-soft` `--ai-line` `--alert` `--alert-soft` `--alert-line` `--r-lg` `--r-md` |
 
-### AI-10 — Auto-escalation to GM
+### `components/engineering/EngineeringRoomBoard.tsx`
+| Imports (shared/reusable) | Kind |
+|---|---|
+| `StatusDot` from `components/ui/primitives` | shared primitive |
+| `Button` from `components/ui/Button` | shared primitive |
+| `RoomCard`, `RoomDetailDrawer` | shared/excluded children |
+| `normalizeHousekeepingBoardRoom` (lib util) | pure util |
+| Semantic token classes used inline | `bg-surface` `bg-ink` `text-paper` `border-line` `border-line-2` `text-ink2` `text-ink3` `--ai*` `--alert` |
 
-**Schema:** add `escalation_level INT NOT NULL DEFAULT 0` to both `room_readiness_predictions` and `failure_predictions`, mirroring `work_orders.escalation_level` / `tasks.escalation_level`. Also add a `high_risk_since TIMESTAMPTZ` (or `risk_score_high_since` for assets) column — **required** because unlike `work_orders.due_at` (a fixed target), `risk_level`/`risk_score` are recomputed every run and the existing upsert (room-readiness) / delete-insert (asset-failure) logic already resets `last_calculated_at` every cycle regardless of whether the room/asset has been HIGH for 5 minutes or 5 hours. Without a dedicated "first seen HIGH and unacknowledged" timestamp, there's no way to measure how long an alert has gone un-actioned.
+### `components/housekeeping/RoomDetailDrawer.tsx`
+| Imports (shared/reusable) | Kind |
+|---|---|
+| `Button` from `components/ui/Button` | shared primitive |
+| `LogFoundItemModal` from `components/shared/LogFoundItemModal` | shared component |
+| `useRole`, `useModalFocusTrap` (hooks), `useAuthStore` | hooks/state |
+| **Styling note** | Uses **hard-coded Tailwind palette** (`stone-*`, `rose-*`, `violet-*`, `teal-*`, `amber-*`, `blue-*`, `orange-*`) almost everywhere — **largely insulated from token redefinition.** Its only token-layer exposure is via `Button`. |
 
-Both prediction engines already contain the exact code path where this timestamp should be stamped:
-- `predictions.py:447` — `if risk_level == "HIGH" and previous_risk != "HIGH" and not was_acknowledged:` (this is where `notify_supervisors_high_risk` currently fires) → also set `high_risk_since = now_utc` here, and add it to `upsert_payload`.
-- `failure_predictions.py:491` — `if previous_score < 70 <= risk_score:` (where `notify_engineers_asset_risk_high` currently fires) → same treatment, added to the `prediction` dict before insert. Because this table is delete-then-insert rather than upserted, the new row must carry forward `high_risk_since` from the row being deleted when the asset is *still* HIGH across a re-run (not newly crossing), otherwise every 24h re-run at midnight would reset the clock. Recommend reading the outgoing row's `high_risk_since` before the delete and reusing it unless this is a fresh crossing.
+### Transitive: `components/housekeeping/RoomCard.tsx` (child of BOTH boards)
+Imports `Pill` from `primitives` and `Button`; consumes semantic tokens heavily (`--alert` `--progress` `--info` `--ready` `--caution` `--blocked` `--ai` `--line` `bg-surface` `text-ink*` `--r-lg`). **RoomCard is effectively part of the exclusion boundary** even though it wasn't named — both boards render it, so its visual output is protected too.
 
-**Cron job:** do **not** fold this into `predictions.run` or `ai.failure-predictions` — those jobs are the *detection* engines (recompute risk from live state) and already correctly clear acknowledgement when risk drops below HIGH. Escalation is a distinct concern with a distinct trigger (elapsed time while un-acknowledged), exactly as `escalations.check` is already split out from work-order/task creation. Add a **new cron job**, following the `escalations.check` pattern exactly:
+### The complete "must-not-alter-output" shared set
+`Button` · `IconButton` · `StatusDot` · `Pill` · `RoomCard` · `LogFoundItemModal` · **and the values of every CSS token those consume**. Hooks (`useRole`, `useModalFocusTrap`) and utils (`normalizeHousekeepingBoardRoom`, `cleanType`, `roomStatus`) are logic-only — safe to leave alone; not a visual surface.
 
-- New coroutine `check_prediction_escalations` in `routers/internal.py` (guarded by `verify_cron(x_cron_secret)` like every other internal job), reading rows where `risk_level = 'HIGH' AND is_acknowledged = FALSE AND escalation_level < N AND high_risk_since < now - threshold`.
-- New job id, e.g. `predictions.escalation-check`, registered in `CRON_SCHEDULE` (`core/scheduler.py:26`) at `*/30` (same cadence as `escalations.check`), and added to the `_job_handlers()` map (`core/scheduler.py:64`). Note `build_scheduler()` raises `RuntimeError` on any mismatch between `CRON_SCHEDULE` keys and handler keys (`scheduler.py:101`) — both must be updated together or the app fails to boot.
+## Recommended Integration Strategy: Additive Tokens + Parallel Variants
 
-**GM notification path:** reuse `internal.py::_notify_role` (the notifications + notification_deliveries pattern), not `notify_supervisors_high_risk` / `notify_engineers_asset_risk_high` — those two already fire once on the *initial* HIGH crossing; escalation needs a **distinct notification type** (e.g. `room_risk_escalated_gm`, `asset_risk_escalated_gm`) so GMs can tell "new alert" apart from "reminder: still un-actioned," and `_notify_role` is the pattern already used for the equivalent WO/task GM-escalation reminders.
+**Chosen strategy (one, concrete):** *Freeze the existing token values and shared-primitive APIs as an invariant contract; build the new visual system additively; migrate per-route.*
 
-## New vs Modified — summary table
+Rules:
+1. **Never change the *value* of an existing token** in `globals.css` `:root` (`--surface`, `--ink`, `--line`, `--accent`, `--ai`, `--alert`, `--r-lg`, …) or its Tailwind alias in `tailwind.config.ts`. Add *new* tokens (e.g. `--surface-elevated`, `--radius-2xl`, a new type scale) for the redesign. Existing tokens keep their current hex → excluded components render byte-identical.
+2. **Never change existing shared-primitive variant behavior.** `Button`'s `primary|dark|outline|secondary|ghost|destructive|ai` variants and `Pill`/`StatusDot` tones are consumed by the boards. To restyle buttons in the redesign, **add a new variant** (e.g. `variant="v2"`) or a new `ButtonV2` — do not repaint the existing variants.
+3. **Redesign at the composition level, not the primitive level.** New pages/sections use new layout components + new tokens + (optionally) new variants. The old primitives keep working underneath.
+4. **Verify the invariant, don't trust it.** After any shell/token/primitive change, load `/housekeeping` (GM/supervisor), `/engineering/work-orders`'s room board, and the room-detail drawer, and confirm no visual/behavior diff. This is the required non-regression gate for every phase that touches shared code.
 
-| File | New or Modified | What |
+Why this over alternatives:
+- *"Just edit the tokens for a fresh look"* — **rejected.** The boards read tokens directly; this is exactly what the exclusion forbids.
+- *"Fork RoomStatusBoard/RoomCard into v2 copies"* — unnecessary and risky; these are two of three Realtime surfaces (subscription + optimistic-merge logic in `RoomStatusBoard.tsx` lines 366-450). Duplicating that logic invites drift. Keep them as-is behind frozen primitives.
+- *Additive layer* — lowest blast radius, lets 15 of 16 sections modernize freely while the board pages stay pixel-stable.
+
+## Nav / IA / Route-Group Restructuring
+
+**No route-group restructuring is required, and none is recommended.** The 16 sections are already discrete routes under `app/(dashboard)/`. The nav/IA redesign is almost entirely **shell work**:
+
+| Redesign target | File | Notes |
 |---|---|---|
-| `apps/api/routers/housekeeping.py` | Modified | Add `batch-reassign`, `batch-acknowledge` routes |
-| `apps/api/routers/assets.py` | Modified | Add `failure-predictions/batch-acknowledge` route |
-| `apps/api/services/ai/predictions.py` | Modified | Stamp `high_risk_since` on HIGH crossing in `run_room_predictions` |
-| `apps/api/services/ai/failure_predictions.py` | Modified | Stamp/carry-forward `high_risk_since` in `run_asset_failure_predictions` / `run_single_asset_prediction` |
-| `apps/api/routers/internal.py` | Modified | New `check_prediction_escalations` coroutine + `POST /internal/predictions/escalations/check` (or similar), using `_notify_role` |
-| `apps/api/core/scheduler.py` | Modified | New `CRON_SCHEDULE` entry + `_job_handlers()` entry |
-| `supabase/migrations/096_*.sql` (next free number) | New | `escalation_level`, `high_risk_since` on `room_readiness_predictions`; same two columns on `failure_predictions` |
-| `apps/web/components/housekeeping/PredictionPanel.tsx` | Modified | Multi-select + bulk action bar |
-| `apps/web/app/(dashboard)/engineering/predictions/page.tsx` | Modified | Multi-select + bulk acknowledge bar |
-| `apps/web/lib/api/housekeeping.ts` | Modified | Add `batchReassignAtRiskRooms`, `batchAcknowledgeAtRiskRooms` |
-| `apps/web/lib/api/engineering.ts` | Modified | Add `batchAcknowledgeFailurePredictions` |
+| Nav grouping, active state, hotel switcher, identity | `components/shared/Sidebar.tsx` | Reads RBAC via `getAllowedNavItems` — keep that call intact |
+| Top bar, search, breadcrumbs, mobile menu toggle | `components/shared/Header.tsx` | — |
+| Shell composition, density/theme/accent classes, overlay mounts | `components/shared/DashboardShell.tsx` | Applies `theme-dark` / `accent-*` / `density-*` from `uiPreferencesStore` |
+| Nav taxonomy (Operations/Intelligence/Organization groups), labels, RBAC | `lib/utils/navigation.ts` | **Single source of truth** — Sidebar, CommandPalette, Breadcrumbs all read it |
+| Per-page title/tabs/actions | `components/shared/PageHeader.tsx` | Used by most sections; changing it touches many pages (verify each) |
 
-No new router files, no new services/ modules — everything fits inside the existing domain files per the project's flat-architecture convention.
+**Interaction with route guards:** Because guarding is client-side in `Providers.tsx` (not edge middleware), adding/renaming/reorganizing routes needs **no middleware change**. Two things must stay in sync if routes change:
+- `lib/utils/navigation.ts` (`ALL_NAV_ITEMS`, `NAV_BY_ROLE`, `OPERATIONS_HREFS`/`INTELLIGENCE_HREFS`/`PEOPLE_HREFS`, `NAV_LABEL_KEYS`) — controls both visibility and RBAC.
+- `Providers.tsx` `isPublicRoute()` allowlist — controls which paths escape the login redirect.
 
-## Build Order
+If the redesign introduces new nav *groupings* only (no new URLs), `navigation.ts` is the only file to edit and RBAC is unaffected.
 
-**AI-09 and AI-10 are independent** — same pattern as v1.6's phase structure (25/26/27 ran on largely separate concerns). They touch different code paths:
-- AI-09 touches only route handlers + frontend selection UI.
-- AI-10 touches the prediction engines (new column stamping), a new cron job, and a new migration.
+## Suggested Incremental Build Order (maps to roadmap phases)
 
-They can be built as **parallel phases**. The one coordination point: both phases eventually want a migration file — if run in parallel worktrees, assign migration numbers sequentially to avoid the numbering collisions already documented in this project's history (e.g. `020`/`0201`, dual `039` files). Recommend AI-10 claims `096_*` first since its schema change is a hard prerequisite for its own cron logic, while AI-09 needs no migration at all (batch endpoints operate on existing columns only).
+Ordering is driven by the hard constraint: **do the token/primitive foundation first and prove the boards are unaffected before touching any section.**
 
-## Anti-Patterns To Avoid
+**Phase A — Additive foundation (shared, highest care).**
+Add new design tokens to `globals.css` (new names only) + Tailwind aliases; add new shared component variants (`Button` v2 etc.) *without altering existing ones*. Establish the non-regression harness: a screenshot/behavior check of the 3 excluded surfaces. **Gate:** boards render identically. Nothing else proceeds until this passes.
 
-### Folding escalation-check into the detection cron
-**What people might do:** add the "has this been HIGH too long" check directly inside `run_room_predictions`/`run_asset_failure_predictions`.
-**Why it's wrong:** conflates two different lifecycles — risk detection (recomputed fresh every run) and escalation (must persist across runs, survive risk staying flat). The `escalations.check` job is already split out from work-order creation for exactly this reason; follow that precedent.
+**Phase B — Shell & navigation.**
+Redesign `DashboardShell`, `Sidebar`, `Header`, `PageHeader`, `Breadcrumbs`, `CommandPalette` using the Phase-A tokens/variants. Highest-leverage visual change; touches every route via the shell. **Gate:** re-verify the 3 excluded surfaces (shell wraps them) + RBAC nav visibility per role.
 
-### Extracting a shared `services/ai/room_actions.py` for batch/single dedup
-**What people might do:** refactor `reassign_at_risk_room` etc. into a services-layer helper "to avoid duplication" between single and batch paths.
-**Why it's wrong:** contradicts this project's explicit convention (`services/` reserved for logic shared across 2+ *domains*, not for DRYing up single-domain route handlers) and there's no duplication problem to solve — the codebase's own pattern is calling route coroutines directly from other route coroutines within the same file, already proven by `reassign_at_risk_room → create_assignments`.
+**Phase C — Independent low-risk sections (parallelizable, no excluded components).**
+Any section that does *not* render `RoomStatusBoard`/`EngineeringRoomBoard`/`RoomDetailDrawer`/`RoomCard`: `tasks`, `sop`, `logbook`, `reports`, `management-roi`, `guest-requests`, `lost-found`, `safety`, `evidence`, `programs`, `scheduling`, `staff`, `settings/*`, `ai`, `dashboard` (role views). These can be split across multiple phases/agents freely — each is a self-contained route.
+
+**Phase D — Engineering section (contains an excluded board).**
+`/engineering/*` — redesign the section chrome (`PageHeader`, tabs, `work-orders`/`assets`/`pm-schedules`/`predictions` pages) but **leave `EngineeringRoomBoard` untouched** and confirm it still renders identically inside the new chrome.
+
+**Phase E — Housekeeping section (the mixed page, most care) — do LAST.**
+`app/(dashboard)/housekeeping/page.tsx` mixes redesignable chrome (`PageHeader`, `SyncBadge`, `HousekeeperBar`, date/shift controls, the housekeeper "my rooms" list) **with the excluded `RoomStatusBoard` and `RoomDetailDrawer`** rendered inside `SupervisorHousekeepingPage`. Redesign only the surrounding chrome; the `<Suspense><RoomStatusBoard/></Suspense>` block and the drawer must be left as-is. Sequencing it last means the token/variant system is fully proven before touching the page with the tightest constraint. **Gate:** GM/supervisor board view, housekeeper my-rooms view, and the drawer all unchanged in behavior; Realtime still live (watch the sync badge).
+
+## Data Flow — No Backend/API Change Implied
+
+**Confirmed: this milestone requires zero `apps/api` change.** Verification:
+- All redesign targets are React components, CSS tokens, and layout — presentation only.
+- Server data continues to flow through the existing React Query hooks (`housekeepingApi.getBoard`, `staffApi.list`, etc.); the redesign does not alter query keys, endpoints, or payloads.
+- The three Realtime surfaces keep their existing Supabase subscription + optimistic-merge logic verbatim (it lives inside the excluded/frozen components and the housekeeping page's `HousekeeperMyRoomsView`).
+- RBAC/nav is client config (`navigation.ts`) + client guard (`Providers.tsx`), not an API contract.
+
+**Flag:** the *only* way this redesign would leak into the backend is if someone "improves" the boards' data shape or adds a new data-backed nav feature (e.g., unread badges from a new endpoint). That is out of scope — keep it out. If a proposed nav enhancement needs new server data, stop and re-scope: `apps/api` is excluded this milestone.
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Re-theming by editing existing token values
+**What people do:** "New look = change `--surface`/`--ink`/`--accent` in `globals.css`."
+**Why it's wrong:** Those tokens are read directly by `RoomStatusBoard`, `EngineeringRoomBoard`, and `RoomCard`; changing values re-skins the excluded surfaces, breaking the hard exclusion.
+**Do this instead:** Add new tokens; apply them only in redesigned components.
+
+### Anti-Pattern 2: Repainting shared `Button`/`Pill`/`StatusDot` variants in place
+**What people do:** Edit `VARIANTS.primary` or a `Pill` tone to match the new design.
+**Why it's wrong:** Every excluded component and the whole app consume those variants; in-place edits are global and hit the boards.
+**Do this instead:** Add a new variant/tone (or a v2 primitive) and adopt it only in new UI.
+
+### Anti-Pattern 3: Forking the board components to "modernize" them
+**What people do:** Copy `RoomStatusBoard`/`RoomCard` into redesigned versions.
+**Why it's wrong:** They carry Realtime subscription + optimistic cache-merge logic; duplication causes silent data-staleness drift on a live production surface.
+**Do this instead:** Leave them frozen behind stable primitives; redesign only their surrounding page chrome.
+
+### Anti-Pattern 4: Assuming an edge `middleware.ts` guards routes
+**What people do:** Plan route/route-group changes around Next.js middleware.
+**Why it's wrong:** No `middleware.ts` exists in the app; guarding is client-side in `Providers.tsx`. Planning around a non-existent file wastes a phase.
+**Do this instead:** Treat `navigation.ts` (RBAC/visibility) and `Providers.tsx` `isPublicRoute()` (public allowlist) as the guard surfaces.
+
+## Integration Points
+
+### Internal Boundaries
+| Boundary | Communication | Notes |
+|---|---|---|
+| Shell ↔ sections | `layout.tsx` → `DashboardShell` → `{children}` | Redesign the shell once; every section inherits it |
+| Sidebar/CommandPalette/Breadcrumbs ↔ RBAC | `lib/utils/navigation.ts` `getAllowedNavItems`/`getAllowedHrefs` | Single source of truth; keep intact when adding routes |
+| Components ↔ theme | CSS custom properties in `globals.css` ⇄ `tailwind.config.ts` aliases | The frozen contract protecting the excluded surfaces |
+| Excluded boards ↔ server | React Query hooks + Supabase Realtime channels | Do not touch; presentation redesign only |
+| Shell ↔ user prefs | `uiPreferencesStore` (`density`/`theme`/`accent` classes on shell root) | Existing dark-mode + accent-swap system already token-based; extend additively |
+
+### External Services
+| Service | Integration Pattern | Notes |
+|---|---|---|
+| Supabase Realtime | `postgres_changes` channels inside the 3 excluded surfaces + HK my-rooms | Out of scope; must remain live after redesign |
+| FastAPI (`apps/api`) | React Query clients in `lib/api/*` | **No change this milestone** |
+
+## Confidence Assessment
+
+| Area | Confidence | Reason |
+|---|---|---|
+| Excluded-component dependency trace | HIGH | Read all 3 files + `RoomCard` + every shared import directly |
+| Token layer as danger surface | HIGH | Read `globals.css` + `tailwind.config.ts`; confirmed boards use aliases/vars inline |
+| No middleware / client-side guard | HIGH | `middleware.ts` absent from app source (Glob); redirects found in `Providers.tsx` |
+| No API change implied | HIGH | All targets are presentation; data hooks unchanged |
+| Build-order safety | MEDIUM-HIGH | Order is sound; exact phase count is the roadmapper's call |
 
 ## Sources
 
-All findings verified by direct file reads on 2026-08-13 (not training-data assumptions):
-- `apps/api/routers/housekeeping.py`
-- `apps/api/routers/assets.py`
-- `apps/api/routers/internal.py`
-- `apps/api/services/ai/predictions.py`
-- `apps/api/services/ai/failure_predictions.py`
-- `apps/api/core/scheduler.py`
-- `apps/api/main.py`
-- `supabase/migrations/008_assets_pm.sql`
-- `supabase/migrations/095_room_readiness_acknowledgement.sql`
-- `apps/web/components/housekeeping/PredictionPanel.tsx`
-- `apps/web/lib/api/housekeeping.ts`
-- `apps/web/app/(dashboard)/engineering/predictions/page.tsx`
-- `apps/web/lib/api/engineering.ts`
+- `apps/web/components/housekeeping/RoomStatusBoard.tsx`, `RoomDetailDrawer.tsx`, `RoomCard.tsx`
+- `apps/web/components/engineering/EngineeringRoomBoard.tsx`
+- `apps/web/components/ui/Button.tsx`, `components/ui/primitives.tsx`
+- `apps/web/components/shared/DashboardShell.tsx`, `Sidebar.tsx`, `PageHeader.tsx`, `Providers.tsx`
+- `apps/web/app/(dashboard)/layout.tsx`, `app/(dashboard)/housekeeping/page.tsx`, `app/(dashboard)/engineering/page.tsx`
+- `apps/web/app/globals.css`, `tailwind.config.ts`, `lib/utils/navigation.ts`, `lib/hooks/useAuth.ts`
 
 ---
-*Architecture research for: PatelRep v1.7 (AI-09 batch actions, AI-10 auto-escalation)*
+*Architecture research for: Next.js App Router UI/UX redesign integration*
 *Researched: 2026-08-13*

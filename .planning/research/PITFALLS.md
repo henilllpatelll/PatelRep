@@ -1,162 +1,166 @@
 # Pitfalls Research
 
-**Domain:** Batch actions (AI-09) + escalation-to-GM (AI-10) added on top of PatelRep's existing single-item room-readiness alerting system (v1.6, Phase 27)
+**Domain:** Full UI/UX redesign (visual identity + IA/navigation + interaction patterns) of a live, production, multi-role B2B ops SaaS — Next.js 14 App Router, RBAC across 6 roles, CI-enforced i18n gate, WCAG AA dark mode, with one major surface (Housekeeping Room Status Board + Room Detail Drawer + Engineering Room Board) explicitly EXCLUDED but transitively dependent on in-scope shared primitives.
 **Researched:** 2026-08-13
-**Confidence:** HIGH — grounded in the actual v1.6 code (`routers/housekeeping.py` reassign/escalate/acknowledge, `routers/internal.py` work-order/task escalation ladder, `services/ai/predictions.py`, migration 095, `tests/test_room_readiness_actions.py`) and this project's own documented migration/upsert incident history, not generic advice.
+**Confidence:** HIGH (grounded in the actual repo: excluded surfaces' imports, the CSS-variable token layer, the i18n eslint rule, and role-gated Sidebar were all inspected directly)
 
-> **Scope note.** This is a *subsequent* milestone bolting two new capabilities onto code that shipped in Phase 27 (v1.6). The risk surface is almost entirely about **reusing (or failing to reuse) three patterns Phase 27 already proved out**: (a) re-reading live state instead of trusting a cached prediction row, (b) the `escalation_level` tiered-ladder dedup already built for work orders/tasks in `internal.py`, and (c) the upsert-preserves-omitted-columns discipline validated by a dedicated characterization test for `is_acknowledged`. Every critical pitfall below is a way one of those three could be silently dropped when the code is generalized to "many rooms at once" and "a GM tier."
+---
+
+## The single most important finding (read first)
+
+The Room-Board exclusion is **not** clean. The three "untouched" surfaces are built ON TOP of components that ARE in scope. Verified imports:
+
+| Excluded surface | Imports (all IN SCOPE for redesign) |
+|---|---|
+| `components/housekeeping/RoomStatusBoard.tsx` | `ui/Button` (Button, IconButton), `ui/primitives` (StatusDot), `housekeeping/RoomCard` |
+| `components/housekeeping/RoomDetailDrawer.tsx` | `ui/Button`, `shared/LogFoundItemModal` |
+| `components/engineering/EngineeringRoomBoard.tsx` | `ui/Button`, `ui/primitives` (StatusDot), `housekeeping/RoomCard` |
+
+On top of that, **every** surface renders through the CSS-variable token layer in `app/globals.css` (`--paper`, `--surface`, `--ink`, and the status ramps `--ready`/`--caution`/`--alert`/`--info`/`--progress`/`--blocked`/`--ai`, each with `-soft`/`-line` variants) split across `:root` and `.dark`. Redesigning tokens or any of those four shared components (`Button`, `primitives`, `RoomCard`, `LogFoundItemModal`) changes the excluded surfaces **underneath them, invisibly**, without anyone editing an "excluded" file.
+
+`RoomCard` is the sharpest trap: it lives in `components/housekeeping/` (looks like fair game for a housekeeping redesign) but is the shared visual unit for BOTH excluded boards. It must be treated as a frozen, excluded primitive despite its folder.
+
+**Roadmap consequence:** tokens/foundation MUST be its own first phase, and that phase (plus every phase that touches `Button`, `primitives`, `RoomCard`, or `LogFoundItemModal`) MUST carry a dedicated Room-Board regression-check gate. This is stated explicitly again in the phase mapping at the bottom.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Batch action reads room/prediction state once, then acts on N rooms against that one stale snapshot
+### Pitfall 1: Partial-exclusion breakage via shared primitives ("the excluded surface breaks and no one edited it")
 
 **What goes wrong:**
-The existing single-item endpoints re-read live state as their *first* step and guard on it: `reassign_at_risk_room` re-reads `room_status.status` and 409s if it's not `{DIRTY, IN_PROGRESS, PICKUP}` (`housekeeping.py:1281-1292`); `escalate_at_risk_room` re-reads `risk_level` via `_fetch_room_prediction_or_404` and 409s if it's not `HIGH` (`housekeeping.py:1328-1332`). A batch version handling `room_ids: [r1..r10]` will be tempted to do **one bulk `SELECT ... in_(room_ids)`** up front, then loop and act on the in-memory list — which is fine for the *read*, but only if each item's action-time write is still individually re-validated against a fresh read, not against the batch snapshot taken at request start. Ten rooms take non-trivial wall-clock time to process (each reassign candidate-scoring loop does 2+ round trips per housekeeper via `count_rooms_ahead`); a room can flip CLEAN or get manually reassigned by someone else mid-batch, and item 8 acting on the item-1-era snapshot silently reassigns an already-clean room.
+A phase redesigns `Button`, `StatusDot`/`primitives`, `RoomCard`, `LogFoundItemModal`, or the token layer. The diff touches zero files inside the excluded surfaces, so it reads as "safe." But the Room Status Board, Room Detail Drawer, and Engineering Room Board render through those exact primitives — so their buttons resize, their status dots recolor, their room tiles reflow, or their spacing shifts. The one surface that was contractually supposed to stay pixel-identical is now visibly (and possibly functionally — e.g., a changed `IconButton` hit-target on the realtime board) altered.
 
 **Why it happens:**
-"Batch-read-then-batch-act" looks like an obvious perf win (1 query instead of N), and the single-item code's re-read discipline is easy to lose when the loop body gets refactored to iterate a pre-fetched list instead of calling the existing single-item function per item.
+"Excluded" is enforced at the file/route level ("don't edit `housekeeping/page.tsx`"), but dependency risk is transitive, not file-local. Reviewers check the changed files, not the render output of unchanged consumers. `RoomCard` living under `housekeeping/` actively misleads — it looks like an in-scope housekeeping component.
 
 **How to avoid:**
-- The batch endpoint should **call the same per-item guard logic the single-item endpoints already use** (ideally by literally invoking `reassign_at_risk_room`/`escalate_at_risk_room`/`acknowledge_at_risk_room` per `room_id` inside the loop, not reimplementing the guard), so each item gets its own fresh `room_status`/`risk_level` read at the moment it's actually acted on — not a batch-start snapshot.
-- Bulk-read is fine for building the **candidate list to show the user before they confirm** (e.g. "10 rooms currently HIGH risk"); it must not be the source of truth for the write.
-- Explicitly test: kick off a batch reassign for 3 rooms, have a concurrent single-item action change room 2's status before the batch reaches it — room 2 must be skipped/409'd in the batch result, not force-reassigned.
+- Produce an explicit **frozen-primitive list** in the foundation phase: `ui/Button`, `ui/primitives`, `housekeeping/RoomCard`, `shared/LogFoundItemModal`, and the token names the boards consume. Any change to these is a Room-Board-impacting change by definition and triggers the regression gate — no exceptions.
+- For primitives that MUST evolve for the new design (Button will), use a **dual-verification rule**: the change is only "done" after a live Playwright/manual pass on `/housekeeping` (both board + drawer) AND the Engineering room board, screenshot-compared against a pre-redesign baseline.
+- Prefer **additive variants over mutation**: add a new Button variant/prop for redesigned surfaces and leave the default that the boards use unchanged, rather than restyling the default. This lets the token/foundation phase move without touching the excluded render path at all.
+- Capture **baseline screenshots of all three excluded surfaces (light + dark, at least 2 roles)** BEFORE any foundation work begins. Without a baseline you cannot prove "unchanged."
 
 **Warning signs:**
-- Batch handler does one `SELECT ... .in_("room_id", room_ids)` and then loops purely on that in-memory result without a per-item DB read before the write.
-- No 409-equivalent entry appears in the per-item result list even though a room changed state mid-batch in manual testing.
+- A PR/phase diff touches only shared components but its own Non-Regression checklist doesn't list the Room Boards as dependents.
+- Someone says "RoomCard is just a housekeeping component, it's fine to restyle."
+- Foundation phase completes with no baseline screenshots of the excluded surfaces captured.
 
-**Phase to address:** Batch-actions phase (AI-09) — backend endpoint design, before any UI wiring.
+**Phase to address:** **Foundation/tokens phase owns the freeze list + baseline capture.** Every per-section phase that imports a frozen primitive re-runs the Room-Board check. Final QA does a last pixel-diff of the three excluded surfaces against the original baseline.
 
 ---
 
-### Pitfall 2: Batch action has no defined partial-failure contract — this project's only existing batch precedent already gets this wrong
+### Pitfall 2: i18n gate regressions from new nav labels, empty states, and restructured copy
 
 **What goes wrong:**
-`create_assignments` (`housekeeping.py:828-937`) is the **only existing multi-item write endpoint** in this codebase and is the closest precedent for AI-09. It validates all items up front (`_ensure_tenant_row`/`_ensure_housekeeper` in a loop, `housekeeping.py:836-838` — good, all-or-nothing on validation), then does a **single atomic `upsert()` for the `room_assignments` rows** (`housekeeping.py:886-898`, wrapped in try/except → 409 or 500) — but that's followed by **two more non-atomic per-room loops**: `room_status` updates (`housekeeping.py:900-927`) and fire-and-forget push notifications (`housekeeping.py:930-937`). If the `room_status` update for room 6 of 10 throws (e.g. a Supabase transient error), rooms 1-5 already have both `room_assignments` and `room_status` written correctly, rooms 7-10 never run, and the caller gets a single 500 with **no indication which rooms succeeded**. There is no per-item result list anywhere in this endpoint today. A batch reassign/escalate/acknowledge endpoint copying this shape inherits the exact same gap, except now the failure mode is worse because these actions are explicitly framed to the user as "act on N flagged rooms" — an opaque 500 after item 6 fails leaves the supervisor unable to tell which of the 10 rooms actually got reassigned.
+The redesign introduces new user-visible strings everywhere: restructured nav/IA labels, new section headers, new empty states, new tooltips, new drawer/modal copy. Each raw string trips `i18next/no-literal-string` and either (a) redlines CI so the phase can't merge, or (b) worse, gets "fixed" by wrapping in `t('some.key')` where the key doesn't exist in the ES locale — so CI passes but Spanish users see raw `missingKey` fallbacks or English bleed-through. IA restructuring also **orphans** old keys (nav sections that no longer exist) and **splits/renames** keys, so ES and EN drift out of parity.
 
 **Why it happens:**
-The Supabase Python SDK has no multi-statement transaction primitive available to router code in this project (confirmed: no `BEGIN`/`COMMIT` usage anywhere in `routers/`), so "all-or-nothing" is only achievable within a single `upsert()`/`insert()` call, not across the multiple distinct writes one "action" requires (assignment + room_status mirror + notification, or prediction update + notification). Batch just multiplies this per-item instead of once.
+The i18n gate only proves "no raw literal in JSX" — it does not prove "the key exists in every locale" or "the translation is correct." Redesign copy is written in English in the component first; translation is treated as a cleanup afterthought, so there's a window where keys exist in EN only. IA changes delete/rename keys without a matching locale-file edit.
 
 **How to avoid:**
-- **Decide explicitly, before implementation: best-effort with a per-item result list**, not all-or-nothing across items — this matches the domain (a supervisor wants "8 succeeded, 2 need manual attention," not the whole batch rolled back because one room changed status). Return `{"data": {"results": [{"room_id": ..., "action": "reassigned"|"escalated"|"skipped", "reason": ...}, ...]}}` mirroring the single-item response shape per item.
-- Wrap each item's action in its own try/except inside the loop so one room's failure doesn't abort the remaining items (the existing `create_assignments` room_status loop does **not** do this today — don't copy that gap forward).
-- Cap batch size (e.g. 25-50 rooms) so partial-failure blast radius and request latency stay bounded — there's no precedent for unbounded batch size in this codebase.
+- **Keys before components, both locales together.** In each per-section phase, add the new/renamed keys to BOTH `en` and `es` locale files as the first step, then build the component against them. Never let a component merge with an EN-only key.
+- Add (or confirm) a **locale-parity check** to the phase-verify gate: EN and ES key sets must be identical (no missing, no orphaned). The existing `no-literal-string` rule does NOT do this — it's a separate check and should be run per section phase, not deferred to milestone audit.
+- Treat **IA/nav label changes as a copy task with a translation deliverable**, not a styling task. When a nav group is renamed or merged, the old keys are deleted and new keys added to both locales in the same phase.
+- Watch **dynamic/interpolated strings** (counts, room numbers, names in empty states like "No rooms for {{floor}}") — pluralization differs EN vs ES and is the most common silent bug.
 
 **Warning signs:**
-- Batch endpoint wraps the whole loop in one try/except that returns 500 on any single-item failure.
-- Response shape has no per-item breakdown, only a single aggregate success/failure.
-- No test exercises "item 3 of 5 fails, verify 1/2/4/5 still succeeded and the response says so."
+- CI green but a manual pass in ES shows English text or a raw key string.
+- Locale files edited in only one language within a phase diff.
+- New empty-state or nav copy added directly as JSX text and later "wrapped."
 
-**Phase to address:** Batch-actions phase (AI-09) — this is the core design decision of that phase, not an edge case to patch in later.
+**Phase to address:** **Every per-section phase owns its own strings (keys added to both locales first).** Foundation phase owns adding the locale-parity check to the verify gate. Final QA does a full ES walkthrough of all 16 sections.
 
 ---
 
-### Pitfall 3: Escalation-to-GM reintroduces the exact spam risk the work-order/task ladder was built to prevent, because room-readiness has no tiered counter today
+### Pitfall 3: Dark-mode WCAG AA contrast silently regresses under the new token system
 
 **What goes wrong:**
-This codebase already solved "notify → notify harder → auto-act" exactly once, for work orders and tasks: `check_escalations` in `internal.py:481-589` uses a **persisted `escalation_level` SMALLINT (0-3)** column (migration `041_escalation_level.sql`) with `.lt("escalation_level", N)` guards before every tier transition, so a `*/30` cron re-run never re-notifies a tier that's already fired (`internal.py:506,522,535,552,571,580`). Room readiness has **no equivalent counter** — it only has a boolean `is_acknowledged` (migration `095_room_readiness_acknowledgement.sql`) that a *human* sets by clicking Acknowledge, and `notify_supervisors_high_risk` (`predictions.py:197-260`) has **zero dedup logic of its own** — it unconditionally inserts a notification for every supervisor/GM every time it's called (its only caller-side protection today is the cron's `previous_risk != "HIGH"` transition check, plus the fact that a human manually clicking Escalate is expected to want to notify again). If AI-10 adds a new "auto-escalate to GM after room stays HIGH+unacknowledged for N minutes" cron tier and either (a) reuses `is_acknowledged` as the dedup gate, or (b) calls `notify_supervisors_high_risk` directly from the new cron without its own persisted marker, the GM gets re-notified every `*/30` cron cycle for as long as the room stays HIGH and unacknowledged — the identical alert-fatigue failure mode `escalation_level` was built to prevent for work orders, reintroduced for rooms because the two subsystems don't share a mechanism.
+The old token set passed WCAG AA in dark mode. The redesign introduces new tokens or new `-soft`/`-line`/`-ink` pairings (e.g., a new accent, a restyled Badge that puts `--ink-3` text on `--surface-2`, or a status pill using `--caution` text on `--caution-soft`). Individually each token looks fine in light mode, but a specific text-on-surface pairing in `.dark` drops below 4.5:1 (or 3:1 for large text/UI). Because the app has ~8 semantic status ramps each with 3 variants across `:root` AND `.dark`, the combinatorial surface is large and no one checks every pairing. It ships looking "designed" but fails accessibility for exactly the low-light night-shift housekeeper/engineer usage this app targets.
 
 **Why it happens:**
-`escalation_level` and `is_acknowledged` solve adjacent but different problems (system-driven tiered dedup vs. human-driven suppression) and a developer building AI-10 by pattern-matching "how do we escalate something in this codebase" is equally likely to find either one first — `is_acknowledged` is literally in the same table the new feature touches, making it the path of least resistance even though it's the wrong primitive for auto-escalation dedup.
+Contrast is a property of a **foreground/background pair**, not a single color, and dark mode inverts the relationships so a pairing that's safe in light can fail in dark. Designers pick colors for aesthetics in light mode first; dark values are derived, not independently verified. QA "looks at it" rather than measuring, and the human eye tolerates 3:1 as "readable."
 
 **How to avoid:**
-- Add a **tiered `escalation_level` column to `room_readiness_predictions`**, mirroring `041_escalation_level.sql` exactly (`SMALLINT NOT NULL DEFAULT 0 CHECK (escalation_level BETWEEN 0 AND 2)` — GM tier only needs 0=none/1=supervisor-notified(existing)/2=GM-notified), and gate the new GM-tier cron on `.lt("escalation_level", 2)` the same way `internal.py` gates its tiers.
-- Keep `is_acknowledged` as the separate human-suppression signal it already is — acknowledging should still suppress the GM-escalation cron from firing (an acknowledged room shouldn't auto-escalate to the GM), but acknowledging is not the same event as "GM already notified."
-- If time-in-HIGH is the trigger condition (matching the ladder's due_at-based minutes-overdue model), the room needs a timestamp to measure from — `last_calculated_at` is refreshed every cron regardless of risk level, so it's the wrong anchor; use the timestamp the row first went `HIGH` (does not exist yet — needs its own column, e.g. `high_since`), not `last_calculated_at`.
+- Build a **contrast matrix as a foundation deliverable**: every text token (`--ink`, `--ink-2/3/4`, `--accent-ink`) against every surface it's allowed to sit on (`--paper`, `--surface`, `--surface-2/3`, each status `-soft`), computed for BOTH `:root` and `.dark`. Any pair below AA is either fixed or explicitly banned (documented "never put ink-4 on surface-3").
+- Automate it: a small script or axe/Lighthouse CI run in dark mode as part of the foundation phase-verify gate, so contrast is proven by tooling, not eyeballs. Contrast is deterministic — it should never reach manual QA as an open question.
+- **Design dark tokens independently, don't auto-derive.** Verify status pills (the highest-density colored text in this app) in dark mode specifically.
+- Re-run the contrast check in any per-section phase that introduces a NEW pairing (new component variant putting an existing text token on a new surface).
 
 **Warning signs:**
-- New escalation cron code calls `notify_supervisors_high_risk` (or a GM-only variant) without first checking a persisted "already notified at this tier" column.
-- GM-escalation dedup logic reads `is_acknowledged` as its only gate.
-- No new column analogous to `escalation_level` appears in the migration for this feature.
-- Manual test: leave a room HIGH and unacknowledged across 3 consecutive `*/30` cron runs — GM should get exactly one notification, not three.
+- New tokens added to `:root` without a matching, independently-chosen `.dark` value.
+- Contrast checked "by looking at it" instead of a measured ratio.
+- A restyled Badge/pill/StatusDot with no dark-mode contrast note in its phase.
 
-**Phase to address:** Escalation phase (AI-10) — this is the core design decision of that phase.
+**Phase to address:** **Foundation/tokens phase owns the contrast matrix + automated dark-mode check in the verify gate.** Per-section phases re-run it whenever they add a new fg/bg pairing. Final QA does a dark-mode axe sweep across all sections.
 
 ---
 
-### Pitfall 4: New escalation-state column(s) silently reset every `*/30` cron cycle unless `run_room_predictions` is taught to preserve them — exactly like `is_acknowledged` had to be
+### Pitfall 4: RBAC/role-nav regression from IA restructuring (wrong role sees/loses a nav item)
 
 **What goes wrong:**
-`room_readiness_predictions` rows are rewritten via `upsert(on_conflict="room_id")` every `*/30` cron run. When `is_acknowledged`/`acknowledged_at`/`acknowledged_by` were added (migration 095), the upsert *payload* built by `run_room_predictions` only ever set `risk_level`, `predicted_ready_at`, etc. — it never listed the ack columns — which only works because the FakeDB/Postgres upsert semantics **preserve omitted columns on conflict**, a behavior load-bearing enough that this project wrote a dedicated characterization test for it before trusting it (`test_upsert_preserves_omitted_ack_columns_on_conflict`, `test_room_readiness_actions.py:42-57`). Crucially, `run_room_predictions` was *also* explicitly coded to **actively clear** `is_acknowledged` when risk drops below HIGH (`test_run_room_predictions_clears_ack_when_risk_drops_below_high`, `test_room_readiness_actions.py:114-138`) — omission-preservation and explicit-reset are two different, both-necessary behaviors that had to each be written and tested. A new `escalation_level`/`high_since` column added for AI-10 needs the **identical two-part treatment**: (a) confirm via a characterization test that omitting it from the upsert payload preserves it across cron runs, and (b) explicitly decide and code whether it resets when risk drops below HIGH (almost certainly yes, mirroring `is_acknowledged`) — if the second half is skipped, a room that flickers HIGH → cleaned → HIGH again inherits a stale `escalation_level=2` from its first HIGH episode and the GM-tier cron silently never fires for the second, genuinely new episode (same "worse than spam — silent non-alert" failure mode already flagged for `previous_risk` staleness in the prior Phase-27 pitfalls research).
+IA restructuring merges, splits, renames, or reorders nav groups. The `Sidebar` currently role-gates items (verified: ~22 role/guard references). When nav items are moved into new groups or a new "hub"/landing structure, the role condition attached to an item gets dropped, loosened, or attached to the wrong new container — so a `housekeeper` suddenly sees a `gm`-only Management ROI or Billing link, or a `front_desk` loses a link they need. Because the redesign's visible goal is "looks different," the reviewer's eye is on layout/color, not on "does each of 6 roles see exactly the right set." The route guard may still block the page server-side, but a visible-then-403 nav item is a real UX/trust regression, and if the guard was ALSO relying on nav-level hiding, it's a genuine exposure.
 
 **Why it happens:**
-It's easy to assume "we already proved upsert preserves columns" covers *any* new column added later — but that characterization test only proves the *preservation* half. The *reset-on-resolve* half is separate application logic that has to be written per-column and is easy to forget when adding a second escalation-related column to a table that already has one.
+Role conditions are per-item logic that's easy to lose when items are physically relocated in JSX during a restructure. Redesign QA is usually done as a single logged-in user (often GM/admin, who sees everything), so under-exposure and over-exposure to OTHER roles is invisible in the test session. "It's just navigation" hides that nav IS the access-surface for 6 distinct roles.
 
 **How to avoid:**
-- Write a new characterization test (or extend the existing one) asserting the upsert preserves the new escalation column(s) across a cron cycle where risk stays HIGH.
-- Write a companion test asserting `run_room_predictions` **resets** the new column(s) to 0/NULL when risk drops below HIGH, mirroring `test_run_room_predictions_clears_ack_when_risk_drops_below_high` exactly.
-- Decide reset semantics explicitly and document the decision in the migration's `COMMENT ON COLUMN` (migration 095 does this — reuse that convention).
+- **Never rely on nav hiding for security** — confirm every route still has its server-side `require_role` guard independent of what the sidebar shows. IA restructuring must not become the access-control layer.
+- Produce a **role × nav-item visibility matrix** (6 roles × every nav item) as an artifact, captured from the OLD app first (baseline), then re-verified against the redesigned nav. This is the acceptance test for any IA phase.
+- **Test the IA redesign logged in as each of the 6 roles**, not just GM. Use the existing test-account approach per role; a GM-only walkthrough structurally cannot catch this class of bug.
+- When moving an item, move its role condition WITH it in the same commit; treat an un-gated nav item as a build-breaking omission during review.
 
 **Warning signs:**
-- Migration adds a column but no corresponding test exercises a full cron cycle with it populated.
-- `run_room_predictions`'s upsert payload-building code is not touched at all when the new column is added (a sign the reset-on-resolve logic was never written, only the column).
-- Manual test: escalate a room to GM tier, wait for it to clear (cleaned), let it go HIGH again — GM should be notified again; if it isn't, the column didn't reset.
+- IA/nav phase verified only as one role (especially an admin/GM superset role).
+- A nav item's role guard appears in the "before" diff but not the "after."
+- New nav container/group added with no role condition on it.
 
-**Phase to address:** Escalation phase (AI-10) — prediction-engine change, verified alongside the notification-dedup work in Pitfall 3.
+**Phase to address:** **The IA/navigation-restructure phase owns the role×nav matrix and per-role walkthrough.** Foundation phase should establish the baseline matrix from the current app before any nav changes. Final QA re-verifies all 6 roles.
 
 ---
 
-### Pitfall 5: New migration ships in the repo but the deployment-gap discipline this project has already been burned by twice (v1.2, v1.3) isn't automatically inherited by a new feature
+### Pitfall 5: Scope creep — "redesign" silently becomes behavior/workflow change
 
 **What goes wrong:**
-This project's migration history already shows drift between "the file exists in the repo" and "the column exists in production": 99 migration files exist in `supabase/migrations/` today, but `CLAUDE.md`'s own "Key migrations" reference table only documents through migration 041 — 58 more migrations (042-095, including the `is_acknowledged` columns this exact feature will build on) postdate the last time that doc was updated. Two prior milestones (v1.2, v1.3, per project memory) shipped code-complete, tested migrations that were **never actually applied to production**, caught only by milestone-level audits querying live schema state — not by CI, not by code review. AI-10's new `escalation_level`/`high_since` column(s) on `room_readiness_predictions` are exactly the kind of small, easy-to-miss `ALTER TABLE ... ADD COLUMN` that slipped through before. If the escalation cron ships and reads/writes a column that's present in staging (where migrations ran) but not yet applied in production, the cron either 500s outright or — worse, if the Supabase client fails open on an unrecognized column in a partial update — silently no-ops the escalation write while reporting success.
+Mid-redesign of a section, someone notices the workflow is clunky and "while we're in here" changes what a button does, reorders a multi-step flow, changes a default, alters what data a page fetches, or "improves" an interaction into a genuinely different behavior. Across 16 feature sections this compounds: the milestone was scoped as visual+IA-only (no data/routing/RBAC behavior change), but ships as a partial, inconsistent feature-change milestone. Regressions appear in places no one thought to test because the change was framed as "just redesign." It also blows phase estimates and makes the "did we break anything?" question unanswerable, because you can no longer diff behavior against the old app — behavior itself moved.
 
 **Why it happens:**
-Migrations in this repo are applied by whatever manual/CI process runs `supabase migration up` (or equivalent) against Railway's Postgres, decoupled from the code deploy that ships the router changes depending on the new column. Nothing in the deploy pipeline currently blocks a code deploy that references a column from a migration that hasn't run yet.
+Redesign and re-thinking-the-workflow feel like the same activity when you're staring at a page. IA restructuring is legitimately in scope, and "IA" shades imperceptibly into "workflow," so there's no bright line. The temptation is strongest in operational screens where the old workflow has visible friction.
 
 **How to avoid:**
-- Before considering the escalation-phase work "done," **query the live production schema directly** (e.g. via Supabase MCP `list_tables` or `information_schema.columns`) to confirm the new column(s) exist — don't infer it from "the migration file is in `git log`" or "it worked locally."
-- Add the new migration to `CLAUDE.md`'s "Key migrations" table as part of this phase's PR, closing part of the existing doc-drift gap rather than adding to it.
-- Sequence the deploy so the migration is confirmed-applied to production **before** the router/cron code that depends on the new column is deployed, not simultaneously.
+- Write a **bright-line scope rule into every per-section phase**: allowed = layout, visual styling, component swap, nav placement, copy, empty/loading states. NOT allowed = changing what an action does, what's fetched, mutation payloads, route behavior, role behavior, or step order that changes outcomes. Anything in the second list is a separate follow-up ticket, not this milestone.
+- Adopt a **"same inputs, same outputs" invariant per section**: after redesign, the same user action produces the same API call and same result as before. Make that an explicit phase-verify check (watch the network tab: the redesigned page should fire the same requests as the old one).
+- Keep IA changes to **placement/grouping/labeling only** — moving where a thing lives in the nav or on the page, not changing what it does when used.
+- Park every "while we're here" idea in a backlog list, don't action it in the redesign phase.
 
 **Warning signs:**
-- The escalation cron starts throwing column-not-found errors in production only, not in local/staging tests.
-- `git log supabase/migrations/` shows the new file committed, but nobody has confirmed it ran against the Railway Postgres instance.
-- `CLAUDE.md`'s migration table still says "041" after this phase ships.
+- A "redesign" phase diff touches `lib/api/` clients, mutation payloads, route handlers, or store logic.
+- Network requests on a redesigned page differ from the old page for the same action.
+- Phase discussion includes "let's also fix how X works."
 
-**Phase to address:** Escalation phase (AI-10) — deployment/release step, verified before marking the phase complete, not a coding concern.
+**Phase to address:** **Every per-section phase owns the scope bright-line and the same-inputs/same-outputs check.** Roadmap/foundation phase owns writing the bright-line rule once and referencing it in all section phases. Milestone audit confirms no behavior drift.
 
 ---
 
-### Pitfall 6: Batch endpoint validates tenant scope for the request as a whole but not for every individual `room_id` in the array
+### Pitfall 6: Long-running half-old/half-new state confuses live production users
 
 **What goes wrong:**
-Every existing per-item action calls `_ensure_tenant_row("rooms", room_id, current_user.hotel_id, "Room")` (`housekeeping.py:1279, 1327, 1352`) — a single-row tenant-scoped existence check per call. A batch endpoint accepting `room_ids: list[str]` will naturally want to replace N individual existence checks with one bulk query — e.g. `supabase.table("rooms").select("id").in_("id", room_ids).eq("tenant_id", hotel_id)` — which is fine **only if the handler then verifies every requested `room_id` actually came back in that filtered result**, i.e. `len(returned_ids) == len(room_ids)` or explicitly diffs the two sets. If the code instead just fetches the tenant-filtered subset and silently iterates only over what came back, a room ID belonging to a different hotel (typo, stale client cache, or a malicious/curious user editing a request body) is **silently dropped instead of rejected** — which is a correctness bug more than a security hole here (RLS still blocks the actual read/write), but it produces a batch result that doesn't match what the caller thinks it requested and can mask the fact that a room ID was wrong.
+Because this ships incrementally across many phases (not big-bang), production spends weeks in a mixed state: some sections redesigned, some old. Users hit an app where the sidebar/shell is new but a section is old (or vice versa), spacing/typography/component styles differ section-to-section, and — worst — a shared primitive got its new look in the foundation phase, so EVERY old-but-not-yet-redesigned section suddenly looks subtly broken (mismatched buttons/cards) even though those sections weren't touched. On a tool that hotel staff use every shift, "the app looks half-broken" reads as an outage and generates support noise.
 
 **Why it happens:**
-Bulk `.in_()` + `.eq("tenant_id", ...)` is the natural, idiomatic way to fetch N rows scoped to a tenant in one query, and the "does every requested ID appear in the result" check is an easy step to drop because the query already "does the filtering" — it just filters silently instead of loudly.
+Incremental rollout of a token/foundation change is globally visible the moment it merges, but per-section polish lands over weeks — so the foundation change "gets ahead" of the sections. Teams underestimate how jarring intra-app inconsistency is for daily power users (vs. first-time visitors who don't have an old mental model).
 
 **How to avoid:**
-- After the bulk tenant-scoped fetch, diff `set(requested_room_ids) - set(returned_room_ids)` and surface any missing ID as an explicit per-item `"not_found"` result (reusing the per-item result list from Pitfall 2), not a silent drop.
-- Keep `require_role("gm", "housekeeping_supervisor")` on the batch endpoint exactly as the single-item endpoints already have it — no new RBAC decision needed here, just don't lose the existing one when refactoring to a batch shape.
+- **Sequence foundation to be visually backward-compatible, or gate it.** Two viable strategies: (a) the token/primitive redesign is built so old sections still look coherent (evolve tokens conservatively, add new variants rather than restyling defaults every section uses), OR (b) put the full redesign behind a **per-tenant/per-user feature flag** so production users don't see the mixed state until a section is fully done — internal QA sees it, users flip when a coherent slice is ready.
+- **Batch sections into coherent shippable slices** (e.g., all housekeeping-adjacent sections together) rather than shipping one arbitrary section at a time, so any given user's primary workflow is either all-old or all-new, not split mid-flow.
+- **Communicate** a visible "new look rolling out" note if a mixed state is unavoidable, so staff read it as intentional, not as breakage.
+- Order the roadmap so the **shell/nav (always-visible) changes land near the end** or behind the flag — changing the global chrome first maximizes the half-broken window.
 
 **Warning signs:**
-- Batch endpoint's tenant-scoped query result length isn't compared against the input `room_ids` length anywhere.
-- No test sends a `room_ids` array containing an ID from a second tenant fixture and asserts it's reported, not just omitted.
+- Foundation/token phase merges to production and old sections immediately look "off."
+- No feature flag and no batching strategy in the roadmap — sections listed as 16 independent ship-it phases.
+- Support tickets about the app "looking broken" after a foundation deploy.
 
-**Phase to address:** Batch-actions phase (AI-09) — same phase as Pitfall 1/2, same endpoint.
-
----
-
-### Pitfall 7: Frontend has no existing multi-select pattern to reuse — batch UI risks losing the per-item confirm-before-act discipline `PredictionPanel` already has
-
-**What goes wrong:**
-`PredictionPanel.tsx` (`components/housekeeping/PredictionPanel.tsx:64-221`) is built entirely around **one room, one inline confirm-then-act flow** (`mode: 'confirm-reassign' | 'confirm-escalate' | 'confirm-acknowledge'`, a cancel button, a loading state, a result note) — there is no multi-select checkbox, "select all," or batch-confirm pattern anywhere in this codebase to extend. Building AI-09's batch UI from scratch risks two opposite failure modes: (a) losing the confirm step entirely for speed ("select 10 rooms, one Reassign All button, no per-room review"), which removes the safety net that made single-item actions safe to add in the first place, since reassignment is a workload-affecting action reviewed as "supervisory" per this codebase's RBAC decisions; or (b) building a batch UI that still requires per-item confirmation, which defeats the point of batching. Neither extreme has been decided yet, and there's no prior pattern in this repo (mobile or web) to copy for "confirm N items at once, show per-item results."
-
-**Why it happens:**
-Every other bulk-ish flow in this app (task-sheet import, PDF-based room assignment) is a background/import operation, not an interactive multi-select-then-confirm UI — so there's genuinely no local precedent, unlike the backend where `create_assignments` at least exists as *a* batch pattern to critique.
-
-**How to avoid:**
-- Decide explicitly (product/UX call, not an implementation detail): one confirm step for the whole batch selection, showing the room list being acted on before the single confirm click — mirroring the existing inline-confirm affordance's intent (visible list + one deliberate confirm) rather than either silent-bulk-action or N separate confirms.
-- Surface the per-item result list (Pitfall 2) after the batch completes, using the same success/escalated/skipped states the single-item flow already renders (`reassignedTo`, `escalatedNoCapacity`, `already_acknowledged` — `PredictionPanel.tsx:98-110`) per row, not just an aggregate toast.
-
-**Warning signs:**
-- Batch UI ships with no visible list of what's about to be acted on before the confirm click.
-- Batch UI shows only a single aggregate success/failure toast with no per-room breakdown, despite the backend actually returning per-item results (Pitfall 2).
-
-**Phase to address:** Batch-actions phase (AI-09) — UI sub-phase, after the backend result-list contract (Pitfall 2) is settled, since the UI design depends on that shape.
+**Phase to address:** **Roadmap/foundation phase owns the rollout strategy (flag vs. backward-compatible tokens, and section batching).** Each per-section phase respects the batching. Final QA verifies cross-section visual consistency once all slices are in.
 
 ---
 
@@ -164,96 +168,91 @@ Every other bulk-ish flow in this app (task-sheet import, PDF-based room assignm
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Batch-read room/prediction state once, act on all items from that snapshot | Fewer DB round trips | Stale-state actions on later items in a slow batch (Pitfall 1) | Never for the write path; fine for the pre-confirm preview list only |
-| Wrap the whole batch loop in one try/except → single 500 on any failure | Less code | Opaque partial state, caller can't tell what succeeded (Pitfall 2) — this is what `create_assignments` already does, don't propagate it | Never — always per-item try/except + result list |
-| Gate GM-escalation dedup on `is_acknowledged` instead of a new tiered counter | Reuses an existing column, no migration needed | Re-notifies GM every cron cycle while unacknowledged — the exact spam bug `escalation_level` was built to prevent (Pitfall 3) | Never |
-| Add new escalation column without a preserve/reset characterization test pair | Faster to ship | Silent stale-tier bug on re-degrade, worse than spam (Pitfall 4) | Never — this project already paid for this lesson once (migration 095) |
-| Bulk tenant-scoped fetch without diffing requested vs. returned IDs | Simpler query | Silently drops out-of-tenant/bad IDs instead of reporting them (Pitfall 6) | Never — cheap to add the diff |
-| Ship batch UI with a single aggregate result toast | Faster to build | Supervisor can't tell which rooms need manual follow-up (Pitfall 7) | MVP-only if the per-item backend result is at least logged/inspectable elsewhere |
+| Restyle the DEFAULT `Button`/`RoomCard`/`primitives` in place instead of adding new variants | Less code, one component to maintain | Silently mutates the excluded Room Boards; every old section shifts mid-rollout | Never — these are the frozen shared primitives; use additive variants |
+| Wrap redesign copy in `t()` keys now, translate ES "later" | Unblocks CI immediately | ES users get raw keys/English in production; keys drift out of parity | Never — add both locales in the same phase |
+| Verify dark-mode contrast "by eye" | Fast, no tooling setup | AA failures ship; night-shift users can't read status pills | Only for a throwaway prototype, never for a phase that ships |
+| Test IA/nav changes as GM/admin only | One login, fast | Under/over-exposure to the other 5 roles ships invisibly | Never for nav/RBAC-adjacent changes |
+| Ship sections one-at-a-time with no batching/flag | Simple phase list | Weeks of half-old/half-new confusion for daily users | Only with backward-compatible tokens so old sections stay coherent |
+| Skip pre-redesign baseline screenshots of excluded surfaces | Saves an hour up front | Can't prove the Room Boards are unchanged; regressions undetectable | Never — baseline is the whole enforcement mechanism for the exclusion |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| `*/30` room-readiness cron vs. new `escalation_level`/`high_since` column | Column gets clobbered to default on every upsert because the field wasn't accounted for in preserve/reset logic | Explicit preserve-on-upsert + reset-below-HIGH tests, mirroring `is_acknowledged` (Pitfall 4) |
-| Existing `internal.py` escalation ladder (`work_orders`/`tasks`) vs. new room-readiness GM tier | Two independent, drifting implementations of "tiered escalation" in the same codebase | Mirror the `escalation_level SMALLINT 0-N CHECK` + `.lt("escalation_level", N)` pattern exactly (Pitfall 3) |
-| `notify_supervisors_high_risk` vs. new GM-tier notification | Calling it directly from a new cron without a persisted dedup gate, assuming it dedups itself (it doesn't — it's unconditional) | Gate the call site, not the helper; add the tier check before calling |
-| Supabase SDK (no multi-statement transactions) vs. multi-write batch actions | Assuming "batch endpoint" implies atomic all-or-nothing across items | Explicit best-effort + per-item result list contract (Pitfall 2), decided up front |
-| Migration deploy pipeline vs. code deploy | Assuming a merged migration file means the column exists in production | Verify live schema (Supabase `information_schema.columns` or MCP `list_tables`) before/as part of marking the phase done (Pitfall 5) |
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Batch endpoint silently drops out-of-tenant `room_id`s instead of rejecting/reporting | Masks a caller sending IDs it shouldn't have (typo, stale cache, or probing); RLS already blocks the actual data leak, but the app-layer signal is lost | Diff requested vs. returned tenant-scoped IDs, report mismatches explicitly (Pitfall 6) |
-| New GM-escalation notification payload copies `data: {"room_id": ...}` pattern from `predictions.py:248` without re-checking destination authorization | Same deep-link-trusts-notification risk already flagged for the readiness/failure-prediction parity work — applies again to any new GM-facing deep link | Destination route re-enforces `tenant_id` + role independent of arriving via notification |
-| Batch action endpoint reuses `require_role("gm", "housekeeping_supervisor")` correctly but a new *separate* GM-only escalation-acknowledgement endpoint (if AI-10 adds one) forgets the gate | Recurring pattern in this codebase (`.wolf/buglog.json`: `get_current_user` vs `require_role` mixups) | Explicit RBAC-matrix test coverage for every new route, including new AI-10 endpoints, not just the batch ones |
+| Supabase Realtime surfaces (the 3 excluded boards) | Assuming "no realtime code changed = board unaffected" | Realtime data is fine; the RISK is the shared visual primitives/tokens the board renders through — verify the rendered board, not the subscription |
+| `eslint-plugin-i18next` gate | Treating green CI as "i18n done" | Gate only proves no raw literals; add a separate EN/ES key-parity check per phase |
+| CSS-variable token layer (`:root`/`.dark`) | Editing `:root` tokens without the matching `.dark` value | Every token change is a paired light+dark change with a contrast re-check |
+| Route guards (`require_role`) vs. sidebar nav | Letting nav visibility act as access control during IA restructure | Keep server-side `require_role` authoritative; nav hiding is UX only, never the security boundary |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Per-room `count_rooms_ahead` scoring loop (existing single-item reassign logic) run serially inside a batch of N rooms | Batch reassign of 10-20 rooms takes multiple seconds, increasing the staleness window from Pitfall 1 | Consider precomputing housekeeper loads once per batch request rather than recomputing per room per candidate; but must still re-validate each room's live status before writing (don't trade Pitfall 1 for speed) | Large batches (near the cap suggested in Pitfall 2) on a full-occupancy day |
-| Per-item notification INSERT in a batch escalate loop | N supervisors × M rooms individual inserts | Batch-insert notifications in one call the way `notify_supervisors_high_risk` already batches per-room (`predictions.py:238-260`) — extend that batching across rooms in one batch-escalate call, not one insert call per room | Batches near the size cap with many supervisors |
-| No index on new `escalation_level`/`high_since` columns | Slow GM-escalation cron query as `room_readiness_predictions` grows | Add a partial index mirroring `idx_work_orders_escalation` (`041_escalation_level.sql:24-26`) — `(tenant_id, escalation_level, high_since) WHERE risk_level = 'HIGH'` | Grows with hotel count × room count over time |
+| Heavier redesigned components on the realtime Room Boards | Board jank/re-render lag during live updates | Keep frozen primitives lightweight; profile the board if a shared primitive gains animation/shadow/layout cost | High-churn hotels with frequent room-status updates |
+| New global CSS/animations (PageTransition, shadows, blur) applied app-wide | Sluggish nav on low-end staff phones/tablets | Scope expensive effects; test on a representative low-end device, not a dev laptop | Field devices, not the dev machine |
+| Large icon/font/token bundle added in foundation | Slower first paint across every section at once | Audit bundle delta in the foundation phase; subset fonts/icons | Immediately on foundation deploy (global) |
+
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| IA restructure drops a nav item's role gate | Wrong role sees a link to a restricted section (trust/exposure) | Role×nav matrix verified per role; server `require_role` remains authoritative |
+| Redesign relies on nav-level hiding to "protect" a route | If server guard was ever loosened, restructure exposes the route | Confirm every route's server-side guard independent of nav during the IA phase |
+| New copy/empty-states leak tenant or role-specific data into shared components | Cross-tenant/role info bleed via a "generic" redesigned component | Keep tenant/role scoping in the data layer; redesigned components stay presentational |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Batch action with no visible per-item preview before confirm | Supervisor bulk-reassigns a room they didn't mean to include | Show the selected-room list in the confirm step, mirroring the existing inline-confirm pattern (Pitfall 7) |
-| Batch result shown as one aggregate toast | Supervisor can't tell which of 10 rooms actually succeeded, has to re-check the board manually | Per-item result list rendered per row (Pitfall 2 + 7) |
-| GM gets re-notified every 30 min for the same unresolved room | Alert fatigue, GM mutes notifications, misses genuinely new escalations | Tiered `escalation_level` dedup (Pitfall 3) |
-| Escalating to GM has no visible "already escalated to GM" state in the UI | Supervisor doesn't know whether clicking Escalate again does anything new | Surface `escalation_level` in the panel (e.g. "Escalated to GM 12 min ago") so the action's effect is legible, matching the existing "already_acknowledged" idempotent-response pattern (`PredictionPanel.tsx:108-110`) |
+| Redesigning the always-visible shell/nav first | Every user's mental model breaks before any section is polished | Land shell/nav late or behind a flag; redesign leaf sections first |
+| Half-old/half-new sections in the same workflow | Daily staff perceive an outage | Batch sections into coherent slices; flag until a slice is complete |
+| New empty/loading/error states missed on redesigned sections | Blank or ugly screens exactly when things go wrong | Every section phase explicitly redesigns empty/loading/error, not just the happy path |
+| Muscle-memory breakage from moved actions | Power users (housekeepers/engineers doing this every shift) slow down | Preserve action placement where possible; if IA moves it, that's a deliberate, communicated change |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Batch reassign/escalate/acknowledge:** Often does a batch-read-then-batch-act — verify each item re-reads live `room_status`/`risk_level` at write time, not from a request-start snapshot (Pitfall 1).
-- [ ] **Batch endpoint response:** Often returns a single aggregate result — verify it's a per-item list with explicit success/skipped/not_found/error per `room_id` (Pitfall 2).
-- [ ] **GM-escalation cron:** Often reuses `is_acknowledged` or calls `notify_supervisors_high_risk` directly — verify it gates on a new tiered `escalation_level`-style counter, not a boolean or an unconditional call (Pitfall 3).
-- [ ] **New escalation column(s):** Often ships with only a migration, no cron-cycle test — verify both a preserve-on-upsert-while-HIGH test AND a reset-when-below-HIGH test exist (Pitfall 4).
-- [ ] **Migration deploy:** Often assumed-applied because the file is merged — verify against live production schema before closing the phase, and update `CLAUDE.md`'s migration table (Pitfall 5).
-- [ ] **Batch tenant scoping:** Often filters silently — verify requested vs. returned `room_id` sets are diffed and mismatches are reported, not dropped (Pitfall 6).
-- [ ] **Batch UI:** Often ships as one-button-no-preview or defeats the point with N confirms — verify a single confirm with a visible item list, then per-item results after (Pitfall 7).
-- [ ] **RBAC on any new AI-10 endpoint:** Often uses `get_current_user` instead of `require_role` — grep for the mismatch, add to the RBAC-matrix test.
+- [ ] **Excluded Room Boards:** Often missing a post-change render check — verify all 3 (Housekeeping board + drawer, Engineering board) look/behave pixel-identical to baseline in light AND dark, after ANY frozen-primitive or token change.
+- [ ] **New copy:** Often missing the ES translation — verify every new key exists in BOTH `en` and `es`, and walk the section in Spanish.
+- [ ] **Dark mode:** Often missing measured contrast — verify every new fg/bg pairing hits AA (4.5:1 text / 3:1 UI) in `.dark`, by tool not by eye.
+- [ ] **RBAC nav:** Often missing per-role verification — verify all 6 roles see exactly the right nav set after IA changes, not just GM.
+- [ ] **Behavior invariant:** Often missing a network-diff — verify the redesigned page fires the same API calls / same outcomes as the old page for the same action.
+- [ ] **Empty/loading/error:** Often only the happy path is redesigned — verify empty, loading, and error states got the new treatment too.
+- [ ] **Orphaned i18n keys:** Often missing cleanup after IA rename — verify no dangling keys and EN/ES parity holds.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Batch action acted on stale state (P1) | LOW–MEDIUM | Because reassign/acknowledge are idempotent-ish and escalate just notifies, worst case is a spurious reassignment on an already-clean room — manually re-run correct assignment; add the per-item re-read guard and redeploy |
-| Opaque partial batch failure already shipped (P2) | LOW | Add per-tenant/per-item try/except + result list; for the specific failed batch, cross-check `room_assignments`/`room_readiness_predictions` directly against the requested `room_ids` to determine actual state |
-| GM-escalation spam already shipped (P3) | LOW | Add persisted `escalation_level` gate; historical spam can't be unsent, but a fast follow-up stops it immediately |
-| Stale `escalation_level` blocks a real re-escalation (P4) | LOW | Add the reset-on-resolve logic; one-time backfill: reset `escalation_level` to 0 for any room currently below HIGH |
-| Migration not applied in production discovered late (P5) | MEDIUM | Apply the migration directly against production via Supabase MCP/CLI, then verify with `information_schema.columns` before re-enabling the dependent cron/endpoint |
-| Cross-tenant room ID silently dropped from a batch (P6) | LOW | Add the diff-and-report check; audit logs for any batch requests that returned fewer results than requested `room_ids` |
+| Excluded Room Board broken by a shared-primitive change | MEDIUM | Revert the primitive to additive-variant approach; restore default the board uses; re-verify against baseline |
+| ES i18n regression shipped | LOW | Add missing keys to `es`, redeploy; add key-parity check to gate so it can't recur |
+| Dark-mode AA failure shipped | LOW-MEDIUM | Fix the failing token pairing (paired light+dark), re-run contrast tool; add automated check to foundation gate |
+| Wrong role sees/loses nav item | MEDIUM | Restore the role condition on the moved item; confirm server guard; re-run role×nav matrix for all 6 roles |
+| Scope crept into behavior change | HIGH | Hard to unwind once merged — split the behavior change into its own ticket, revert behavior to old app, keep only the visual/IA delta |
+| Half-old/half-new confusion in prod | MEDIUM | Introduce a feature flag retroactively or fast-track the remaining sections in a batch; post a "new look rolling out" notice |
 
 ## Pitfall-to-Phase Mapping
 
+**Recommended phase ordering this research implies:**
+1. **Foundation/tokens phase FIRST and standalone** — owns: freeze list (`Button`, `primitives`, `RoomCard`, `LogFoundItemModal` + board tokens), baseline screenshots of all 3 excluded surfaces (light+dark, ≥2 roles), the dark-mode contrast matrix + automated check, the EN/ES key-parity check added to the gate, the role×nav baseline matrix, and the rollout strategy (flag vs. backward-compatible tokens + section batching). It must exit with a **Room-Board regression gate** proving the excluded surfaces are unchanged.
+2. **IA/navigation-restructure phase** — owns the role×nav re-verification across all 6 roles; keep it separate from cosmetic section work so RBAC risk is isolated and reviewable.
+3. **Per-section phases (the 16 sections, batched into coherent slices)** — each owns its own strings-in-both-locales-first, its same-inputs/same-outputs behavior check, its dark-mode contrast re-check for new pairings, and a Room-Board regression re-check IF it touches a frozen primitive.
+4. **Final QA phase** — owns full 6-role walkthrough, full ES walkthrough, dark-mode axe sweep, cross-section visual-consistency check, and final pixel-diff of the 3 excluded surfaces vs. the original baseline.
+
 | Pitfall | Prevention Phase | Verification |
-|---------|-------------------|---------------|
-| P1 Batch-read-then-batch-act staleness | Batch-actions phase (AI-09) | Concurrent test: mutate room state mid-batch, verify the batch result reflects the fresh state at write time, not request-start |
-| P2 Undefined partial-failure semantics | Batch-actions phase (AI-09) | Test: force item 3 of 5 to fail, verify items 1/2/4/5 still succeed and the response lists all 5 outcomes individually |
-| P3 GM-escalation spam | Escalation phase (AI-10) | Run the escalation cron 3× consecutively on an unchanged unacknowledged-HIGH room; exactly 1 GM notification, not 3 |
-| P4 Escalation column reset/preserve gap | Escalation phase (AI-10) | Two characterization tests: preserve-while-HIGH, reset-when-below-HIGH — both green before merge |
-| P5 Migration deployment gap | Escalation phase (AI-10) | Query live production `information_schema.columns` for the new column(s) before marking the phase complete; update `CLAUDE.md` migration table |
-| P6 Cross-tenant ID silently dropped | Batch-actions phase (AI-09) | Test: batch request includes one `room_id` from a second-tenant fixture, verify it's reported as `not_found`/rejected, not silently omitted |
-| P7 No batch UI precedent → lost confirm discipline | Batch-actions phase (AI-09), UI sub-phase | Manual QA: batch UI shows selected-room list pre-confirm and per-room results post-batch |
+|---------|------------------|--------------|
+| 1. Partial-exclusion breakage | Foundation (freeze list + baseline) + every phase touching a frozen primitive | Pixel-diff all 3 excluded surfaces (light+dark) vs. pre-redesign baseline |
+| 2. i18n gate regression | Every per-section phase (keys first, both locales); Foundation adds parity check | EN/ES key parity + manual ES walkthrough of the section |
+| 3. Dark-mode AA regression | Foundation (contrast matrix + automated check); per-section for new pairings | Automated dark-mode contrast/axe run, ratios recorded |
+| 4. RBAC/role-nav regression | IA/navigation-restructure phase; Foundation captures baseline matrix | Per-role (all 6) nav walkthrough vs. role×nav matrix; server guards confirmed |
+| 5. Scope creep into behavior | Every per-section phase (bright-line rule); Roadmap writes it once | Network-diff: redesigned page fires same API calls / outcomes as old |
+| 6. Half-old/half-new rollout | Roadmap/Foundation (flag + batching strategy) | Sections shipped in coherent slices; cross-section consistency check in Final QA |
 
 ## Sources
 
-- `apps/api/routers/housekeeping.py:1275-1362` — existing `reassign_at_risk_room`/`escalate_at_risk_room`/`acknowledge_at_risk_room`: live-state re-read + 409 guards, the pattern batch actions must not lose (HIGH confidence, primary source).
-- `apps/api/routers/housekeeping.py:828-937` — `create_assignments`: this project's only existing multi-item write endpoint; validates all-or-nothing, writes non-atomically across 3 phases, no per-item result — the concrete cautionary precedent for Pitfall 2 (HIGH confidence, primary source).
-- `apps/api/routers/internal.py:461-589` — `check_escalations`: the proven 3-tier `escalation_level` ladder for work orders/tasks, the pattern AI-10 should mirror rather than reinvent (HIGH confidence, primary source).
-- `apps/api/services/ai/predictions.py:197-260` — `notify_supervisors_high_risk`: confirmed to have no dedup of its own; all dedup today is caller-side (HIGH confidence, primary source).
-- `supabase/migrations/041_escalation_level.sql` — exact schema/index pattern for tiered escalation columns (HIGH confidence, primary source).
-- `supabase/migrations/095_room_readiness_acknowledgement.sql` — most recent precedent for adding columns to the upsert-based prediction table, with `COMMENT ON COLUMN` documentation convention (HIGH confidence, primary source).
-- `apps/api/tests/test_room_readiness_actions.py:42-57, 87-138` — the upsert-preserves-omitted-columns characterization test and the ack-reset-on-resolve test; the exact template Pitfall 4's new tests should follow (HIGH confidence, primary source).
-- `apps/web/components/housekeeping/PredictionPanel.tsx:64-221` — confirms no multi-select/batch UI pattern exists yet in this codebase (HIGH confidence, primary source).
-- Repo migration count (`ls supabase/migrations/` → 99 files) vs. `CLAUDE.md`'s "Key migrations" table (documents only through 041) — direct evidence of the doc-drift risk described in Pitfall 5 (HIGH confidence, verified this session).
-- Project memory: v1.2/v1.3 code-complete-but-unapplied-migration incidents, caught only by live-schema audits (MEDIUM confidence — sourced from project memory/milestone history, not re-verified against a specific commit this session).
-- `.planning/research/PITFALLS.md` (prior Phase-27 research, 2026-08-12) — background on the `is_acknowledged`/upsert design this milestone builds directly on top of (HIGH confidence, same repo, prior research pass).
+- Direct repository inspection (HIGH): imports of `RoomStatusBoard.tsx`, `RoomDetailDrawer.tsx`, `EngineeringRoomBoard.tsx`; the `:root`/`.dark` CSS-variable token layer in `app/globals.css`; `i18next/no-literal-string` rule in `eslint.config.mjs`; role-gating in `components/shared/Sidebar.tsx`; `darkMode: ['class']` in `tailwind.config.ts`.
+- Project policy documents (HIGH): CLAUDE.md Non-Regression Policy, Self-Verification Policy, Current Scope (web-only, no web unit suite by convention), Realtime-scope note identifying the 3 realtime surfaces.
+- Established practice for design-system/token migrations and WCAG AA contrast being a fg/bg-pair property that inverts under dark mode (MEDIUM — well-understood domain knowledge, not a single citable source).
 
 ---
-*Pitfalls research for: batch actions (AI-09) + escalation-to-GM (AI-10) on PatelRep's v1.6 room-readiness alerting system*
+*Pitfalls research for: full UI/UX redesign of a live, RBAC'd, i18n-gated, dark-mode-verified multi-role ops SaaS with a hard partial-exclusion*
 *Researched: 2026-08-13*
