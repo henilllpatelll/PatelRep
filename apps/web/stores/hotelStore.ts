@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-interface Hotel {
+export interface Hotel {
   id: string
   name: string
   timezone: string
