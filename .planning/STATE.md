@@ -4,7 +4,7 @@ milestone: v2.0
 milestone_name: Web UI/UX Redesign
 status: context_gathered
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Phase 30 Plan 05 executed and closed (frozen-file guard + dark-mode contrast gate). Proceeding to Plan 30-06.
+last_activity: 2026-08-14 -- Phase 30 Plan 06 executed and closed (CI wiring for all four gates). Phase 30 fully code-complete.
 progress:
   total_phases: 8
   completed_phases: 0
@@ -18,9 +18,9 @@ progress:
 ## Current Position
 
 Phase: 30 of 37 (Additive Foundation & Regression Harness)
-Plan: 30-05 CLOSED, next: 30-06
+Plan: 30-06 CLOSED — all 6 plans in Phase 30 now complete; phase-level verify/close is a separate remaining step
 Status: Executing — proceeding autonomously (user delegation, no check-in until phase closed)
-Last activity: 2026-08-14 — Phase 30 Plan 05 closed (frozen-file guard + dark-mode contrast gate, FOUND-02/FOUND-04). See 30-05 entry below.
+Last activity: 2026-08-14 — Phase 30 Plan 06 closed (CI wiring: frozen-guard, contrast, i18n-parity, room-board-regression jobs added to ci.yml as hard gates, FOUND-02/03/04/05 CI enforcement complete). See 30-06 entry below.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -33,6 +33,8 @@ v2.0 phase map (all Not started):
 - Phase 35: Engineering Section Chrome — ENG-01
 - Phase 36: Housekeeping Section Chrome — HSK-01
 - Phase 37: Final QA & Rollout — QA-01..03
+
+**30-06 CLOSED (2026-08-14, commit `a7dcb0bb`):** CI wiring for all four Phase 30 gates (FOUND-02/03/04/05 enforcement), autonomous, wave 4, depends_on 30-01/30-03/30-04/30-05, exclusively owns `.github/workflows/ci.yml`. Added `frozen-guard`, `contrast`, and `i18n-parity` jobs mirroring `lint-web`'s shape (checkout, setup-node v7 node 22, `cd apps/web && npm ci`, then the check), all hard gates (no `continue-on-error`), running with no `needs:` since they're pure static analysis; `i18n-parity` additionally wires the two previously-orphaned `verify:i18n-gate`/`check:floor-copy` scripts as extra steps, finally exercising them in CI for the first time. Added `room-board-regression` mirroring `test-web-public-smoke`'s shape (`needs: build-web`, Chromium install, `npx playwright test --config=playwright.regression.config.ts`), reading `REGRESSION_GM_EMAIL/PASSWORD`, `REGRESSION_SUP_EMAIL/PASSWORD`, and `PLAYWRIGHT_BASE_URL` from `${{ secrets.* }}` — no hardcoded credentials; `apps/web/e2e/global-setup.ts` already throws loudly (not a silent skip) if any fixture credential is missing, satisfying the plan's fail-loud requirement without extra CI-side logic. `pr-comment`'s `needs:` array and status table extended to include all four new gates. Both plan tasks were implemented and committed together (single commit) since they touch only one file and Task 2 mechanically depends on Task 1's new job names. Locally re-ran all five wired check scripts (`check:frozen-files`, `check:contrast`, `check:i18n-parity`, `verify:i18n-gate`, `check:floor-copy`) before committing — all passed clean. **Human follow-up required:** the four `REGRESSION_*` secrets + `PLAYWRIGHT_BASE_URL` must be configured as GitHub repo secrets (Settings → Secrets and variables → Actions) by a repo admin before `room-board-regression` can pass in CI — currently only exists locally in the gitignored `apps/web/.env.regression` from Plan 30-01's `seed:regression-fixture` script; until configured, the job will fail loudly on every PR/push (correct behavior — not a false-positive pass). No deviations — plan executed exactly as written. Phase 30 (all 6 plans) is now code-complete; phase-level verify/close is a separate remaining step. See `30-06-SUMMARY.md`.
 
 **30-05 CLOSED (2026-08-14, commits `ed01773f`/`bd278ebe`/`9d9ce3c6`):** Frozen-file guard + dark-mode WCAG AA contrast gate (FOUND-02 enforcement, FOUND-04), autonomous, wave 3, depends_on 30-04. `apps/web/scripts/check-frozen-files.mjs` mirrors `check_bare_role_comparisons.py`'s scan→allowlist→exit-1 shape: recomputes sha256 for the 7 frozen files (allowlistable via new `apps/web/frozen-files-allowlist.json`, empty initially) and separately re-parses live room-status CSS/Tailwind values against `frozen-files.json`'s value-freeze (no allowlist parameter exists for that path at all — non-allowlistable by construction, not just by convention). A `--self-test` flag proves both detection paths in-memory; live tamper-and-revert (git-diff-confirmed clean afterward) additionally proved the real exit-1/messaging behavior on both a frozen-file hash and a room-status value. `apps/web/scripts/check-contrast.mjs` is a ~230-line pure-Node WCAG relative-luminance matrix: enforces (exit 1) only the 5 new-token pairings from 30-04 (`--brand-ink`/`--brand`, `--ink`/`--ink-2` on `--surface-raised` and `--surface-overlay`) in both modes, and separately records the 6 frozen room-status text-on-soft pairings report-only (derived live from `frozen-files.json`, never fails, never triggers tuning) — explicitly verified a genuinely-below-AA report-only row (`PICKUP` light, 4.09:1) still exits 0. Found and fixed a real AA failure in the process: 30-04's proposed dark `--brand` (`#e08a63`) only reached 2.63:1 against white `--brand-ink`; retuned to `#bd5230` (4.76:1, same terracotta hue) — a safe additive-token tune, re-confirmed the frozen-file guard still passes clean after. Both gates wired as `npm run check:frozen-files` / `npm run check:contrast` in `apps/web/package.json`. `npm run build` and `npm run type-check` both clean after the `globals.css` change. Ready for CI wiring in Plan 30-06. See `30-05-SUMMARY.md`.
 
@@ -484,6 +486,7 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 29 P01 | 27min | 1 tasks | 1 files |
 | Phase 30 P03 | 15min | 2 tasks | 2 files |
 | Phase 30 P05 | 50m | 3 tasks | 6 files |
+| Phase 30 P06 | 20min | 2 tasks | 1 files |
 
 ## Session
 
