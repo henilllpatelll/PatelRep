@@ -49,6 +49,17 @@ Gate this phase's work behind `RedesignGate` (Phase 30's mechanism) with section
 ### Room-Board regression gate
 Must re-pass after this phase (`npm run test:e2e:regression` from `apps/web`) since the shell wraps `RoomStatusBoard`/`RoomDetailDrawer`/`EngineeringRoomBoard`. This is success criterion 6 from ROADMAP.md and should be the last verification step before this phase closes, mirroring Phase 30's own re-proof pattern after 30-04's token work.
 
+### Addendum (2026-08-14, post-research): resolving research's 2 open scoping questions
+
+Research flagged two decisions for the orchestrator before planning. Resolved:
+
+**(a) Palette navigation target — resolved per entity, verified against source, not assumed:**
+- **Rooms:** `RoomStatusBoard.tsx` (frozen, but read-only reuse is fine) ALREADY reads `?room={id}` via `useSearchParams()` (confirmed at `RoomStatusBoard.tsx:212,336` — this is the exact mechanism v1.6 Phase 26 built for the AI Risk Alerts panel's deep link) and opens the detail drawer for that room. The command palette can link straight to `/housekeeping?room={room_id}` for a room result with ZERO new code in any frozen file — pure reuse of existing, already-shipped behavior.
+- **Work Orders / Guest Requests / SOPs:** no existing `[id]` detail route or query-param convention. Adopt the same `?focus=<id>`-style scroll-into-view-and-highlight pattern v1.6 Phase 26 already established for `PredictionsPageContent` (`?asset=`) — a proven, in-codebase precedent, not a new pattern. Each list page (none frozen) gains this handling for its own entity type.
+
+**(b) WO/Guest `ilike` query-param additions — land in Phase 31, not deferred:**
+NAV-04 explicitly requires all 4 entity types (rooms, work orders, guests, SOPs) to be searchable. No later phase in the roadmap (32: dashboard homes, 33/34: section redesigns, 35/36: board-adjacent chrome, 37: QA) would naturally pick up "finish command palette search" if deferred here — deferring would leave NAV-04 permanently half-met. The two minimal additive query params (`q` → `.ilike("title", ...)` on `work_orders.py`'s and `guest_requests.py`'s existing list endpoints) are small, precedented (v1.6 Phase 26's one-line `asset_risks` select fix for the same "roadmap framing undersold what's needed" reason), and scoped exactly to what the palette needs — not a general search endpoint. Include them in this phase's plans.
+
 ### Claude's Discretion (everything not explicitly locked above)
 The user has delegated all remaining decisions for this milestone ("continue" after Phase 30 closed, following the earlier "you decide everything from now on... do not come back to me until the phase is completed and closed" instruction). Exact component structure, exact new i18n keys, exact tooltip/collapse animation timing (use Phase 30's `--motion-*`/`--ease-*` tokens), and any remaining implementation-level judgment calls should be made using this project's established conventions and documented with rationale in the phase's own artifacts, same as Phase 30.
 
