@@ -161,7 +161,10 @@
     --surface-raised:  #211e1a;
     --surface-overlay: #262320;
 
-    --brand:      #e08a63;
+    /* --brand darkened from the original #e08a63 proposal: white --brand-ink text on
+       #e08a63 only hit 2.63:1 (fails WCAG AA 4.5:1). #bd5230 keeps the terracotta hue
+       and reaches 4.76:1 — proven by scripts/check-contrast.mjs, additive new token. */
+    --brand:      #bd5230;
     --brand-soft: #2e1e16;
     --brand-line: #5e3c2a;
   }
