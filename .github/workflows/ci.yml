@@ -104,6 +104,79 @@ jobs:
           APP_URL: "http://localhost:3000"
           API_URL: "http://localhost:8000"
 
+  frozen-guard:
+    name: Frozen-File Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Check frozen files
+        run: cd apps/web && npm run check:frozen-files
+
+  contrast:
+    name: Dark-Mode Contrast Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Check contrast
+        run: cd apps/web && npm run check:contrast
+
+  i18n-parity:
+    name: EN/ES i18n Parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Check i18n key parity
+        run: cd apps/web && npm run check:i18n-parity
+      - name: Verify i18n gate
+        run: cd apps/web && npm run verify:i18n-gate
+      - name: Check floor-copy i18n
+        run: cd apps/web && npm run check:floor-copy
+
+  room-board-regression:
+    name: Room-Board Pixel-Diff Regression
+    runs-on: ubuntu-latest
+    needs: build-web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Install Chromium
+        run: cd apps/web && npx playwright install --with-deps chromium
+      # FOUND-03 exit gate: diffs the 3 excluded Room Board surfaces against
+      # the committed baseline for the never-operated regression fixture
+      # tenant. Requires REGRESSION_GM_EMAIL, REGRESSION_GM_PASSWORD,
+      # REGRESSION_SUP_EMAIL, REGRESSION_SUP_PASSWORD, and PLAYWRIGHT_BASE_URL
+      # configured as repo secrets — globalSetup fails loudly (not a silent
+      # skip) if any fixture credential is missing.
+      - name: Run Room-Board regression
+        run: cd apps/web && npx playwright test --config=playwright.regression.config.ts
+        env:
+          REGRESSION_GM_EMAIL: ${{ secrets.REGRESSION_GM_EMAIL }}
+          REGRESSION_GM_PASSWORD: ${{ secrets.REGRESSION_GM_PASSWORD }}
+          REGRESSION_SUP_EMAIL: ${{ secrets.REGRESSION_SUP_EMAIL }}
+          REGRESSION_SUP_PASSWORD: ${{ secrets.REGRESSION_SUP_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -130,7 +203,7 @@ jobs:
     name: PR Status
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [lint-api, lint-web, build-web, test-web-public-smoke, test-api, security]
+    needs: [lint-api, lint-web, build-web, test-web-public-smoke, test-api, security, frozen-guard, contrast, i18n-parity, room-board-regression]
     permissions:
       pull-requests: write
     steps:
@@ -153,6 +226,10 @@ jobs:
               '| Web build | ✅ |',
               '| API smoke tests | ✅ |',
               '| Security scan | ✅ |',
+              '| Frozen-file guard | ✅ |',
+              '| Dark-mode contrast | ✅ |',
+              '| EN/ES i18n parity | ✅ |',
+              '| Room-Board regression | ✅ |',
             ].join('\n');
             if (bot) {
               await github.rest.issues.updateComment({
