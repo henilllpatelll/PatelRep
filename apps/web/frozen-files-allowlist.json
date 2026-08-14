@@ -1,0 +1,4 @@
+{
+  "_readme": "Reasoned allowlist for legitimate changes to files listed in apps/web/frozen-files.json's \"files\" section. Each entry: { file, new_hash, reason, approved }. A legitimate future change bumps the hash in frozen-files.json AND adds a matching entry here in the same PR, so a reviewer sees the intent. NOTE: this allowlist mechanism does NOT apply to frozen-files.json's \"room_status_values\" section -- room-status token VALUE changes have no allowlist escape (see FROZEN.md).",
+  "entries": []
+}
