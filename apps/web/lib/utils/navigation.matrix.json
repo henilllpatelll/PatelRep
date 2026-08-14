@@ -1,0 +1,68 @@
+{
+  "gm": [
+    "/dashboard",
+    "/housekeeping",
+    "/engineering",
+    "/programs",
+    "/lost-found",
+    "/guest-requests",
+    "/tasks",
+    "/ai",
+    "/sop",
+    "/evidence",
+    "/safety",
+    "/reports",
+    "/management-roi",
+    "/logbook",
+    "/staff",
+    "/scheduling"
+  ],
+  "housekeeping_supervisor": [
+    "/dashboard",
+    "/housekeeping",
+    "/engineering",
+    "/programs",
+    "/lost-found",
+    "/guest-requests",
+    "/tasks",
+    "/ai",
+    "/sop",
+    "/reports",
+    "/logbook",
+    "/scheduling"
+  ],
+  "housekeeper": [
+    "/dashboard",
+    "/housekeeping",
+    "/guest-requests"
+  ],
+  "engineer": [
+    "/dashboard",
+    "/engineering",
+    "/programs",
+    "/tasks",
+    "/ai",
+    "/sop",
+    "/reports",
+    "/logbook",
+    "/scheduling"
+  ],
+  "chief_engineer": [
+    "/dashboard",
+    "/engineering",
+    "/programs",
+    "/tasks",
+    "/ai",
+    "/sop",
+    "/reports",
+    "/logbook",
+    "/scheduling"
+  ],
+  "front_desk": [
+    "/dashboard",
+    "/housekeeping",
+    "/lost-found",
+    "/tasks",
+    "/logbook"
+  ]
+}
