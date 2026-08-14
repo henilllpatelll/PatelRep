@@ -13,6 +13,7 @@ export interface CreateHotelData {
 
 export interface UpdateHotelData extends Partial<CreateHotelData> {
   front_desk_modules?: string[]
+  web_redesign_sections?: string[]
   average_daily_rate_cents?: number | null
 }
 
@@ -30,6 +31,7 @@ export interface HotelResponse {
       timezone: string
       logo_url?: string
       front_desk_modules?: string[]
+      web_redesign_sections?: string[]
       average_daily_rate_cents?: number | null
       created_at: string
     }

@@ -27,6 +27,7 @@ interface MeResponse {
     timezone: string
     room_count: number
     logo_url?: string
+    web_redesign_sections?: string[]
   }
   hotels?: Array<{
     id: string
@@ -35,6 +36,7 @@ interface MeResponse {
     room_count: number
     logo_url?: string
     front_desk_modules?: string[]
+    web_redesign_sections?: string[]
   }>
   subscription: {
     plan_status: string

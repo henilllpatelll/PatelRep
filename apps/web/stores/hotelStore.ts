@@ -7,6 +7,7 @@ interface Hotel {
   room_count: number
   logo_url?: string
   front_desk_modules?: string[]
+  web_redesign_sections?: string[]
 }
 
 interface Subscription {
