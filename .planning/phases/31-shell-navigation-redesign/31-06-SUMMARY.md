@@ -122,15 +122,38 @@ None requiring a fix — no genuine regression was found. Two sub-steps could no
 
 ## Remaining Work — Explicit Checklist for the Orchestrator
 
-1. **Flag-on regression re-run (Task 1, criterion 6's "both flag states"):** toggle `web_redesign_sections` to include `'shell'` for the regression fixture tenant (`a0000000-0000-4000-a000-000000000001`) via Supabase MCP, re-run `npm run test:e2e:regression` from `apps/web/` (source `.env.regression` first), confirm 12/12 zero-drift, then revert the tenant back to `web_redesign_sections: []`.
-2. **Visual (not just functional) confirmation of the v2-styled shell:** with the flag on for some tenant, eyeball that the brand/focus-ring/z-index token restyle actually renders as intended (this was screenshot-verified per-plan in 31-01/31-02 individually; a final combined look is not yet re-confirmed post-31-04/31-05).
-3. **Notification mark-read/badge click-through:** the regression fixture tenant has zero seeded notifications, so `handleMarkAllRead`/`handleMarkRead`'s live badge-decrement behavior was not click-through verified this session — needs a tenant/account with real notification rows (e.g., the production GM test account referenced in project memory, if the orchestrator judges it acceptable to exercise against real production data).
-4. **Remaining 4 role logins (housekeeper, engineer, chief_engineer, front_desk):** no seeded credentials exist for these in the regression fixture; the 31-05 automated matrix is the authoritative proof for all 6 roles (confirmed passing), but a live per-role click-through for these 4 was not performed this session.
-5. **Guest-request/SOP palette result groups:** not click-through verified (no seeded fixture data); implementation is byte-identical in structure to the verified rooms/work-orders groups.
+1. ~~**Flag-on regression re-run**~~ — **RESOLVED, and it surfaced a real, significant gap.** See "Orchestrator Follow-Up" below.
+2. ~~**Visual confirmation of the v2-styled shell**~~ — **RESOLVED**, live-screenshotted (Sidebar collapsed rail, Header, CommandPalette with real grouped results) against the actual deployed redesign.
+3. ~~**Notification mark-read/badge click-through**~~ — **RESOLVED**, seeded a real notification row for the fixture GM and click-through verified.
+4. **Remaining 4 role logins (housekeeper, engineer, chief_engineer, front_desk):** still not live-logged-in — no seeded credentials exist for these in the regression fixture, and creating privileged users solely to log in was correctly avoided per this plan's own instruction. Accepted as covered by 31-05's automated matrix (all 6 roles, passing), consistent with this plan's own stated acceptance criterion.
+5. **Guest-request/SOP palette result groups:** still not click-through verified (no seeded fixture data for either entity). Accepted as covered by code-identical-implementation reasoning (same `groups.map(...)` render path already verified for rooms/work-orders) — same judgment call this plan itself made, not revisited.
+
+## Orchestrator Follow-Up (2026-08-14, same session)
+
+**Critical discovery: none of Phase 30 or Phase 31's 61 commits had ever been pushed to `origin/main`.** Production (Railway) was still running the pre-v2.0 build this entire time. This means every prior "zero drift" regression-harness pass in this milestone (30-04's re-proof, and this plan's own Task 1 flag-off run) was comparing stale production against itself — trivially true, but not actually testing any local code. Flagged clearly to the user before taking the unilateral, hard-to-reverse step of deploying; user confirmed "push to GitHub now."
+
+Pushed all 61 commits (`7e121373`). Railway's GitHub webhook took ~13 minutes to register and build (not instant — worth knowing for future phases). Confirmed via `railway-agent` that auto-deploy was genuinely enabled and the build was in progress, not stalled.
+
+**Re-ran `test:e2e:regression` against the real deployment — all 12 tests failed.** Investigated via the actual diff images rather than assuming a real regression: the excluded board content itself (room cards, counts, statuses, drawer) was byte-identical in every diff. The only difference was the Sidebar's new collapse-toggle icon and the Header's v2 restyle — both legitimate, in-scope Phase 31 changes to *non-frozen* files that happened to share the same full-viewport screenshot as the board. Phase 30 built the mask list before Phase 31's shell existed, so it only covered board-internal chrome (date-nav, sync badge) — not the shell landmarks around it.
+
+**Fixed the harness** (`apps/web/e2e/room-board-baseline.spec.ts`, commit `39708cb9`): added `aside[aria-label="Main navigation"]` and `header` to the mask list — both pre-existing, stable, semantic selectors (no edit to Sidebar.tsx/Header.tsx needed, and no edit to any frozen file). Re-baselined (`--update-snapshots`) and re-verified:
+- 12/12 zero drift on a clean re-run (flag off)
+- 12/12 zero drift with `web_redesign_sections=['shell']` set live on the fixture tenant (flag on) — genuinely proving the redesigned shell doesn't leak into the wrapped boards, against real deployed code this time
+- Reverted the fixture tenant back to `web_redesign_sections=[]` afterward
+- Pushed the fix (`39708cb9`) so CI's `room-board-regression` job uses the corrected baseline, not the stale one
+
+**This fix is load-bearing for the rest of the milestone**, not just Phase 31: every remaining phase (32-36) will touch shell-adjacent or per-section chrome that shares a viewport with a board-adjacent page, and without this mask expansion every one of them would have produced the same false failure — exactly the "perpetually red → team disables it" failure mode `PITFALLS.md` warned about, arrived at from a different angle (mask scope, not data determinism) than the one Phase 30 originally guarded against.
+
+**Also completed live, against the real deployment, with the fixture GM account:**
+- Sidebar collapse-to-rail: screenshotted, confirmed 64px width persists across a real page reload
+- Command palette room search: screenshotted, `"101"` returns a grouped "Rooms" result (`Room 101 · DIRTY`) with correct v2 styling (focus ring, terracotta accent)
+- Notifications: seeded one real notification row for the fixture GM via direct SQL, confirmed live — badge shows unread count, panel lists it under "Unread," clicking it marks it read (disappears from Unread, remains visible under "All" in muted styling) — exactly the NAV-03 gap-closure this phase was supposed to deliver. Deleted the test row afterward.
+
+**Cost/process note:** all ad-hoc verification scripts and screenshots were written to `apps/web/e2e/.tmp-*` and deleted before each commit — none were accidentally committed. `git status` confirmed clean before every commit in this follow-up.
 
 ## Next Phase Readiness
 
-Phase 31 (NAV-01 through NAV-06) is code-complete and gate-verified with zero regressions found. The 5 remaining-work items above are narrow, well-scoped, and do not block Phase 32 (Role Dashboard Homes) from starting — none of them touch shell/navigation code, only verification breadth. Recommend the orchestrator close out items 1-2 (both require Supabase MCP access this executor lacks) before formally closing Phase 31, and use judgment on whether 3-5 are worth pursuing before moving to Phase 32 or can be accepted as sufficiently covered by the automated matrix + code-identical-implementation reasoning above.
+Phase 31 (NAV-01 through NAV-06) is code-complete, deployed, and genuinely gate-verified against the real production build — including a real regression-harness bug found and fixed in the process, which is now closed out for every remaining phase in the milestone. Items 4-5 above are accepted deferrals per this plan's own stated criteria and do not block Phase 32.
 
 ---
 *Phase: 31-shell-navigation-redesign*
