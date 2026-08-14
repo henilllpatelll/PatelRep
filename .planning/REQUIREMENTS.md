@@ -13,12 +13,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Foundation
 
-- [ ] **FOUND-01**: New design tokens (palette, motion, elevation, z-index) are added additively to `globals.css`; no existing token value is mutated
-- [ ] **FOUND-02**: A frozen-primitive list (`Button`, `IconButton`, `ui/primitives` [`StatusDot`/`Pill`], `RoomCard`, `LogFoundItemModal`, plus every token the excluded boards read) is documented and enforced — existing variants/props on these are only extended, never changed
-- [ ] **FOUND-03**: Pre-redesign baseline screenshots of all 3 excluded surfaces are captured (light + dark, at least 2 roles) before any shared-primitive work begins, and a pixel-diff regression check against that baseline gates every subsequent phase that touches a frozen primitive
-- [ ] **FOUND-04**: An automated dark-mode WCAG AA contrast check is added to the verification gate, covering every new token/variant pairing
-- [ ] **FOUND-05**: An EN/ES i18n key-parity check is added to the verification gate (beyond the existing no-raw-literal CI rule), so new copy can't ship missing a locale
-- [ ] **FOUND-06**: The new visual system ships behind a feature flag so sections can roll out incrementally without exposing a visibly half-broken UI to hotel staff
+- [x] **FOUND-01**: New design tokens (palette, motion, elevation, z-index) are added additively to `globals.css`; no existing token value is mutated
+- [x] **FOUND-02**: A frozen-primitive list (`Button`, `IconButton`, `ui/primitives` [`StatusDot`/`Pill`], `RoomCard`, `LogFoundItemModal`, plus every token the excluded boards read) is documented and enforced — existing variants/props on these are only extended, never changed
+- [x] **FOUND-03**: Pre-redesign baseline screenshots of all 3 excluded surfaces are captured (light + dark, at least 2 roles) before any shared-primitive work begins, and a pixel-diff regression check against that baseline gates every subsequent phase that touches a frozen primitive
+- [x] **FOUND-04**: An automated dark-mode WCAG AA contrast check is added to the verification gate, covering every new token/variant pairing
+- [x] **FOUND-05**: An EN/ES i18n key-parity check is added to the verification gate (beyond the existing no-raw-literal CI rule), so new copy can't ship missing a locale
+- [x] **FOUND-06**: The new visual system ships behind a feature flag so sections can roll out incrementally without exposing a visibly half-broken UI to hotel staff
 
 ### Navigation & Shell
 
@@ -79,12 +79,12 @@ None deferred from this milestone's own scoping — the anti-features below were
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 30 | Pending |
-| FOUND-02 | Phase 30 | Pending |
-| FOUND-03 | Phase 30 | Pending |
-| FOUND-04 | Phase 30 | Pending |
-| FOUND-05 | Phase 30 | Pending |
-| FOUND-06 | Phase 30 | Pending |
+| FOUND-01 | Phase 30 | Complete |
+| FOUND-02 | Phase 30 | Complete |
+| FOUND-03 | Phase 30 | Complete |
+| FOUND-04 | Phase 30 | Complete |
+| FOUND-05 | Phase 30 | Complete |
+| FOUND-06 | Phase 30 | Complete |
 | NAV-01 | Phase 31 | Pending |
 | NAV-02 | Phase 31 | Pending |
 | NAV-03 | Phase 31 | Pending |
@@ -108,4 +108,4 @@ None deferred from this milestone's own scoping — the anti-features below were
 
 ---
 *Requirements defined: 2026-08-14*
-*Last updated: 2026-08-14 after roadmap creation — traceability populated, SEC-01 split documented*
+*Last updated: 2026-08-14 after Phase 30 closed — FOUND-01..06 complete (6/6 must-haves independently verified; see `.planning/phases/30-additive-foundation-regression-harness/30-VERIFICATION.md`)*

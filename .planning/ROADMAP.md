@@ -114,7 +114,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 
 **Core ordering constraint (from research):** the Room-Board exclusion is not clean at the file level — `Button`/`IconButton`, `ui/primitives` (`StatusDot`/`Pill`), `RoomCard`, `LogFoundItemModal`, and the global CSS token layer are shared dependencies of the excluded boards *and* in scope for the redesign. The redesign is therefore **additive-only** (never mutate an existing token value or primitive API; add new ones alongside), with a **foundation-first regression gate** that must prove the boards unaffected before any other phase touches a shared primitive. The two board-adjacent chrome phases (Engineering, Housekeeping) run last, after the token/variant system is fully proven.
 
-- [ ] **Phase 30: Additive Foundation & Regression Harness** - New tokens/primitive variants + frozen-primitive list, baseline screenshots, dark-mode/i18n/pixel-diff gates, and a rollout feature flag
+- [x] **Phase 30: Additive Foundation & Regression Harness** - New tokens/primitive variants + frozen-primitive list, baseline screenshots, dark-mode/i18n/pixel-diff gates, and a rollout feature flag (completed 2026-08-14)
 - [ ] **Phase 31: Shell & Navigation Redesign** - Sidebar/header/breadcrumbs/command palette + collapsible rail, notification inbox, record-search, RBAC nav re-verified across 6 roles
 - [ ] **Phase 32: Role Dashboard Homes** - Purpose-built redesigned dashboard home for each of the 6 roles, including a first-class dedicated GM home
 - [ ] **Phase 33: Core Operational Sections** - Tasks, SOP, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling redesigned incl. empty/loading/error states
@@ -259,7 +259,7 @@ v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 
 | 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 3/3 | Complete | 2026-08-12 |
 | 28. Batch Actions | v1.7 | 4/4 | Complete | 2026-08-13 |
 | 29. Escalation to GM | v1.7 | 4/4 | Complete | 2026-08-13 |
-| 30. Additive Foundation & Regression Harness | v2.0 | 0/TBD | Not started | - |
+| 30. Additive Foundation & Regression Harness | v2.0 | Complete    | 2026-08-14 | - |
 | 31. Shell & Navigation Redesign | v2.0 | 0/TBD | Not started | - |
 | 32. Role Dashboard Homes | v2.0 | 0/TBD | Not started | - |
 | 33. Core Operational Sections | v2.0 | 0/TBD | Not started | - |

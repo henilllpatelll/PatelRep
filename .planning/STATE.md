@@ -2,37 +2,39 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Web UI/UX Redesign
-status: context_gathered
+status: phase_complete
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Phase 30 Plan 06 executed and closed (CI wiring for all four gates). Phase 30 fully code-complete.
+last_activity: 2026-08-14 -- Phase 30 (Additive Foundation & Regression Harness) CLOSED. 6/6 plans complete, phase-goal verification PASSED (6/6 must-haves, independently re-checked by gsd-verifier), migration 097 applied live, GitHub Actions CI secrets configured. Next: Phase 31 (Shell & Navigation Redesign), not yet started.
 progress:
   total_phases: 8
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 6
+  completed_plans: 6
+  percent: 13
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 30 of 37 (Additive Foundation & Regression Harness)
-Plan: 30-06 CLOSED — all 6 plans in Phase 30 now complete; phase-level verify/close is a separate remaining step
-Status: Executing — proceeding autonomously (user delegation, no check-in until phase closed)
-Last activity: 2026-08-14 — Phase 30 Plan 06 closed (CI wiring: frozen-guard, contrast, i18n-parity, room-board-regression jobs added to ci.yml as hard gates, FOUND-02/03/04/05 CI enforcement complete). See 30-06 entry below.
+Phase: 31 of 37 (Shell & Navigation Redesign) — not yet started
+Plan: — (Phase 30 fully closed; Phase 31 awaiting /gsd-discuss-phase or /gsd-plan-phase)
+Status: Phase 30 closed. Proceeding autonomously (user delegation was scoped to Phase 30 only — "do not come back to me until the phase is completed and closed" — that condition is now met)
+Last activity: 2026-08-14 — Phase 30 verified PASSED and marked complete in ROADMAP.md/REQUIREMENTS.md. See 30-VERIFICATION entry below.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 13% (1/8 phases)
 
-v2.0 phase map (all Not started):
-- Phase 30: Additive Foundation & Regression Harness — FOUND-01..06 (exit gate: excluded Room Boards pixel-identical)
-- Phase 31: Shell & Navigation Redesign — NAV-01..06
+v2.0 phase map:
+- Phase 30: Additive Foundation & Regression Harness — FOUND-01..06 (exit gate: excluded Room Boards pixel-identical) — CLOSED 2026-08-14, verification PASSED 6/6
+- Phase 31: Shell & Navigation Redesign — NAV-01..06 — Not started
 - Phase 32: Role Dashboard Homes — HOME-01, HOME-02
 - Phase 33: Core Operational Sections — SEC-01a
 - Phase 34: Management & Admin Sections — SEC-01b
 - Phase 35: Engineering Section Chrome — ENG-01
 - Phase 36: Housekeeping Section Chrome — HSK-01
 - Phase 37: Final QA & Rollout — QA-01..03
+
+**Phase 30 verification PASSED (2026-08-14):** `gsd-verifier` independently re-checked all 6 must-haves against the live codebase rather than trusting SUMMARYs — `git diff` across every Phase 30 commit confirmed zero removed/modified lines in `globals.css`/`tailwind.config.ts` (additive only); recomputed sha256 for all 7 frozen files, all matched; confirmed `check-frozen-files.mjs`'s room-status value check takes no allowlist parameter (genuinely non-allowlistable, not just documented as such); ran all 3 gate scripts live (frozen-files, contrast, i18n-parity) — all exit 0; confirmed the 4 new `ci.yml` jobs are hard gates (no `continue-on-error`); confirmed via `git log` that none of the 3 excluded board files were touched by any Phase 30 commit; ran `redesignFlag.test.mjs` (4/4 pass); full type-check clean. Full report: `30-VERIFICATION.md`. The orchestrator additionally: applied migration 097 live and verified schema state directly via `execute_sql`, ran the Playwright regression suite twice (capture + zero-drift re-confirm, 12/12 both times), visually spot-checked one baseline snapshot (masks cover chrome only, room content stays in the diff), caught and fixed a real gitignore gap (`e2e/.auth/` wasn't actually ignored — root-level pattern was anchored wrong, could have leaked session tokens into git history), and configured the 5 GitHub Actions secrets (`REGRESSION_GM_EMAIL/PASSWORD`, `REGRESSION_SUP_EMAIL/PASSWORD`, `PLAYWRIGHT_BASE_URL`) so `room-board-regression` is fully armed in CI, closing 30-06's flagged human follow-up same-session. ROADMAP.md and REQUIREMENTS.md traceability updated to reflect FOUND-01..06 complete.
 
 **30-06 CLOSED (2026-08-14, commit `a7dcb0bb`):** CI wiring for all four Phase 30 gates (FOUND-02/03/04/05 enforcement), autonomous, wave 4, depends_on 30-01/30-03/30-04/30-05, exclusively owns `.github/workflows/ci.yml`. Added `frozen-guard`, `contrast`, and `i18n-parity` jobs mirroring `lint-web`'s shape (checkout, setup-node v7 node 22, `cd apps/web && npm ci`, then the check), all hard gates (no `continue-on-error`), running with no `needs:` since they're pure static analysis; `i18n-parity` additionally wires the two previously-orphaned `verify:i18n-gate`/`check:floor-copy` scripts as extra steps, finally exercising them in CI for the first time. Added `room-board-regression` mirroring `test-web-public-smoke`'s shape (`needs: build-web`, Chromium install, `npx playwright test --config=playwright.regression.config.ts`), reading `REGRESSION_GM_EMAIL/PASSWORD`, `REGRESSION_SUP_EMAIL/PASSWORD`, and `PLAYWRIGHT_BASE_URL` from `${{ secrets.* }}` — no hardcoded credentials; `apps/web/e2e/global-setup.ts` already throws loudly (not a silent skip) if any fixture credential is missing, satisfying the plan's fail-loud requirement without extra CI-side logic. `pr-comment`'s `needs:` array and status table extended to include all four new gates. Both plan tasks were implemented and committed together (single commit) since they touch only one file and Task 2 mechanically depends on Task 1's new job names. Locally re-ran all five wired check scripts (`check:frozen-files`, `check:contrast`, `check:i18n-parity`, `verify:i18n-gate`, `check:floor-copy`) before committing — all passed clean. **Human follow-up required:** the four `REGRESSION_*` secrets + `PLAYWRIGHT_BASE_URL` must be configured as GitHub repo secrets (Settings → Secrets and variables → Actions) by a repo admin before `room-board-regression` can pass in CI — currently only exists locally in the gitignored `apps/web/.env.regression` from Plan 30-01's `seed:regression-fixture` script; until configured, the job will fail loudly on every PR/push (correct behavior — not a false-positive pass). No deviations — plan executed exactly as written. Phase 30 (all 6 plans) is now code-complete; phase-level verify/close is a separate remaining step. See `30-06-SUMMARY.md`.
 
