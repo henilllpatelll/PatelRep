@@ -24,28 +24,38 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
   const { t, i18n } = useTranslation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsTab, setNotificationsTab] = useState<'unread' | 'all'>('unread')
   const [searchFocused, setSearchFocused] = useState(false)
   const [dateShiftLabel, setDateShiftLabel] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
 
-  const { data: notificationsData, refetch: refetchNotifications } = useQuery({
-    queryKey: ['notifications-unread'],
+  // Badge always reflects the unread-only count, independent of which tab the panel shows
+  const { data: unreadNotificationsData } = useQuery({
+    queryKey: ['notifications', 'unread'],
     queryFn: () => notificationsApi.list({ is_read: false, limit: 20 }),
     refetchInterval: 60_000,
     staleTime: 30_000,
   })
+  const unreadCount: number = ((unreadNotificationsData as any)?.data ?? []).length
+
+  // GET /notifications' `is_read` param name is misleading: false/absent -> unread-only,
+  // true -> full read+unread history (still hotel_id + user_id scoped server-side)
+  const { data: notificationsData } = useQuery({
+    queryKey: ['notifications', notificationsTab],
+    queryFn: () => notificationsApi.list({ is_read: notificationsTab === 'all', limit: 20 }),
+    staleTime: 30_000,
+  })
   const notifications: Notification[] = (notificationsData as any)?.data ?? []
-  const unreadCount = notifications.length
 
   const handleMarkAllRead = async () => {
     await notificationsApi.markAllRead()
-    queryClient.invalidateQueries({ queryKey: ['notifications-unread'] })
+    queryClient.invalidateQueries({ queryKey: ['notifications'] })
   }
 
   const handleMarkRead = async (id: string) => {
     await notificationsApi.markRead(id)
-    refetchNotifications()
+    queryClient.invalidateQueries({ queryKey: ['notifications'] })
   }
 
   const fullName: string =
@@ -219,20 +229,40 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
         {notificationsOpen && (
           <div className="absolute right-0 mt-1.5 w-80 bg-surface border border-line rounded-xl shadow-pop z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-line-2">
-              <p className="text-[13px] font-semibold text-ink">Notifications</p>
+              <p className="text-[13px] font-semibold text-ink">{t('header.notifications')}</p>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
                   className="flex items-center gap-1 text-[11px] text-ink3 hover:text-ink transition-colors"
                 >
                   <CheckCheck size={12} />
-                  Mark all read
+                  {t('header.markAllRead')}
                 </button>
               )}
             </div>
+            <div className="flex items-center gap-1 px-3 py-1.5 border-b border-line-2">
+              <button
+                onClick={() => setNotificationsTab('unread')}
+                className={cn(
+                  'px-2 py-1 rounded-md text-[11px] font-medium transition-colors',
+                  notificationsTab === 'unread' ? 'bg-surface-2 text-ink' : 'text-ink3 hover:text-ink'
+                )}
+              >
+                {t('header.notificationsUnread')}
+              </button>
+              <button
+                onClick={() => setNotificationsTab('all')}
+                className={cn(
+                  'px-2 py-1 rounded-md text-[11px] font-medium transition-colors',
+                  notificationsTab === 'all' ? 'bg-surface-2 text-ink' : 'text-ink3 hover:text-ink'
+                )}
+              >
+                {t('header.notificationsAll')}
+              </button>
+            </div>
             <div className="max-h-[360px] overflow-y-auto">
               {notifications.length === 0 ? (
-                <p className="px-4 py-6 text-center text-[13px] text-ink3">No new notifications</p>
+                <p className="px-4 py-6 text-center text-[13px] text-ink3">{t('header.noNotifications')}</p>
               ) : (
                 notifications.map((n) => (
                   <button
@@ -240,12 +270,14 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
                     onClick={() => handleMarkRead(n.id)}
                     className="w-full text-left flex gap-3 px-4 py-3 border-b border-line-2 last:border-0 hover:bg-surface-2 transition-colors"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                    <span className={cn('w-1.5 h-1.5 rounded-full mt-1.5 shrink-0', n.is_read ? 'bg-transparent' : 'bg-accent')} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12.5px] font-medium text-ink leading-snug">{n.title}</p>
+                      <p className={cn('text-[12.5px] leading-snug', n.is_read ? 'font-normal text-ink3' : 'font-medium text-ink')}>
+                        {n.title}
+                      </p>
                       {n.body && <p className="text-[11.5px] text-ink3 mt-0.5 line-clamp-2">{n.body}</p>}
                       <p className="text-[10.5px] text-ink4 mt-1 font-mono">
-                        {new Date(n.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        {new Date(n.created_at).toLocaleTimeString(i18n.language === 'es' ? 'es-US' : 'en-US', { hour: 'numeric', minute: '2-digit' })}
                       </p>
                     </div>
                   </button>
