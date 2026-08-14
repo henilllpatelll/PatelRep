@@ -10,6 +10,7 @@
 - ✅ **v1.5 RBAC Enforcement Tooling** — Phases 23-24 (shipped 2026-08-11). Full details: `.planning/milestones/v1.5-ROADMAP.md`
 - ✅ **v1.6 AI Copilot Proactive Intelligence** — Phases 25-27 (shipped 2026-08-12). Full details: `.planning/milestones/v1.6-ROADMAP.md`
 - ✅ **v1.7 AI Copilot Batch Actions & Escalation** — Phases 28-29 (shipped 2026-08-14). Full details: `.planning/milestones/v1.7-ROADMAP.md`
+- 📋 **v2.0 Web UI/UX Redesign** — Phases 30-37 (planned)
 
 ## Phases
 
@@ -107,7 +108,118 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 
 </details>
 
+### 📋 v2.0 Web UI/UX Redesign (Planned)
+
+**Milestone Goal:** Complete visual-identity + navigation/IA + workflow redesign of `apps/web` across every dashboard section, executed additively so the excluded Housekeeping Room Status Board (`RoomStatusBoard.tsx`/`RoomDetailDrawer.tsx`) and Engineering Room Board (`EngineeringRoomBoard.tsx`) stay pixel-identical and functionally untouched. `apps/api` and `apps/mobile` are out of scope.
+
+**Core ordering constraint (from research):** the Room-Board exclusion is not clean at the file level — `Button`/`IconButton`, `ui/primitives` (`StatusDot`/`Pill`), `RoomCard`, `LogFoundItemModal`, and the global CSS token layer are shared dependencies of the excluded boards *and* in scope for the redesign. The redesign is therefore **additive-only** (never mutate an existing token value or primitive API; add new ones alongside), with a **foundation-first regression gate** that must prove the boards unaffected before any other phase touches a shared primitive. The two board-adjacent chrome phases (Engineering, Housekeeping) run last, after the token/variant system is fully proven.
+
+- [ ] **Phase 30: Additive Foundation & Regression Harness** - New tokens/primitive variants + frozen-primitive list, baseline screenshots, dark-mode/i18n/pixel-diff gates, and a rollout feature flag
+- [ ] **Phase 31: Shell & Navigation Redesign** - Sidebar/header/breadcrumbs/command palette + collapsible rail, notification inbox, record-search, RBAC nav re-verified across 6 roles
+- [ ] **Phase 32: Role Dashboard Homes** - Purpose-built redesigned dashboard home for each of the 6 roles, including a first-class dedicated GM home
+- [ ] **Phase 33: Core Operational Sections** - Tasks, SOP, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling redesigned incl. empty/loading/error states
+- [ ] **Phase 34: Management & Admin Sections** - Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration redesigned incl. empty/loading/error states
+- [ ] **Phase 35: Engineering Section Chrome** - Engineering chrome (PageHeader/tabs/pages) redesigned; `EngineeringRoomBoard` renders unchanged inside it
+- [ ] **Phase 36: Housekeeping Section Chrome** - Housekeeping chrome (PageHeader/sync badge/date-shift controls/my-rooms) redesigned; `RoomStatusBoard`/`RoomDetailDrawer` unchanged, Realtime stays live
+- [ ] **Phase 37: Final QA & Rollout** - 6-role nav walkthrough, full Spanish-locale walkthrough, final excluded-surface pixel-diff, flag flip-on
+
+## Phase Details
+
+### Phase 30: Additive Foundation & Regression Harness
+**Goal**: The new visual system's foundation — additive tokens, extended primitive variants, and every safety gate — is in place and proven not to alter the excluded Room Boards.
+**Depends on**: Nothing (first phase of v2.0)
+**Requirements**: FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06
+**Success Criteria** (what must be TRUE):
+  1. New design tokens (palette, motion, elevation, z-index) exist in `globals.css` added additively; every pre-existing token value is byte-unchanged (FOUND-01)
+  2. A documented frozen-primitive list exists (`Button`, `IconButton`, `ui/primitives` [`StatusDot`/`Pill`], `RoomCard`, `LogFoundItemModal`, plus every token the excluded boards read), and those primitives expose only new/extended variants — no existing variant or prop is mutated (FOUND-02)
+  3. Baseline light+dark screenshots of all 3 excluded surfaces (≥2 roles) are captured, and a pixel-diff check against that baseline passes with zero drift as the phase exit gate (FOUND-03)
+  4. The verification gate now includes an automated dark-mode WCAG AA contrast check over every new token/variant pairing (FOUND-04) and an EN/ES i18n key-parity check beyond the existing no-raw-literal rule (FOUND-05)
+  5. The new visual system is gated behind a feature flag that can be toggled per-section without exposing a half-broken UI to hotel staff (FOUND-06)
+**Plans**: TBD
+
+### Phase 31: Shell & Navigation Redesign
+**Goal**: The app shell — sidebar, header, breadcrumbs, command palette, notification inbox — is redesigned on the Phase-30 foundation, with RBAC nav visibility provably unchanged across all 6 roles.
+**Depends on**: Phase 30
+**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04, NAV-05, NAV-06
+**Success Criteria** (what must be TRUE):
+  1. Sidebar, header, breadcrumbs, and command palette render in the new token/variant system, still driven entirely by the existing `getAllowedHrefs`/`getAllowedNavItems` RBAC source of truth (NAV-01)
+  2. The sidebar collapses to an icon rail and the collapsed/expanded choice persists per-user across sessions via `uiPreferencesStore` (NAV-02)
+  3. A `hotel_id` + user-scoped notification inbox is reachable from the shell header and lets a user review what happened while they were away (NAV-03)
+  4. Command palette search returns rooms, work orders, guests, and SOPs — not just nav destinations — filtered to what the current role is allowed to see (NAV-04)
+  5. A 6-role × nav-item visibility matrix captured from the old app re-verifies identically against the redesigned nav, confirmed logged in as each of the 6 roles, and a user can reach every role-relevant section without hunting (NAV-05, NAV-06)
+  6. The Room-Board regression gate re-passes (the shell wraps the boards)
+**Plans**: TBD
+
+### Phase 32: Role Dashboard Homes
+**Goal**: Each of the 6 roles lands on a purpose-built dashboard home appropriate to their information needs, including a first-class dedicated GM home.
+**Depends on**: Phase 31
+**Requirements**: HOME-01, HOME-02
+**Success Criteria** (what must be TRUE):
+  1. Each of the 6 roles (housekeeper, engineer, housekeeping_supervisor, chief_engineer, front_desk, gm) sees a redesigned dashboard home matched to their information needs (HOME-01)
+  2. The GM has a dedicated, first-class dashboard home component, no longer composed from the borrowed supervisor view (HOME-02)
+  3. Every dashboard home honors the density / PageHeader / StateBlock contracts and redesigns its empty/loading/error states, not just the happy path
+  4. Dashboard homes render behind the Phase-30 feature flag and pass the dark-mode contrast and EN/ES key-parity gates
+**Plans**: TBD
+
+### Phase 33: Core Operational Sections
+**Goal**: The floor/operational non-board sections are redesigned on the new system, including all non-happy-path states, with zero behavior change.
+**Depends on**: Phase 31
+**Requirements**: SEC-01 (batch a — Tasks, SOP Library, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling)
+**Success Criteria** (what must be TRUE):
+  1. Tasks, SOP Library, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, and Scheduling render in the new visual system
+  2. Each section's empty, loading, and error states are redesigned, not just the happy path
+  3. Each section passes the same-inputs→same-outputs network diff (no behavior/data/RBAC change), the dark-mode contrast check, and EN/ES key-parity
+  4. `LogFoundItemModal` (a frozen shared primitive) is unchanged in behavior and the Room-Board regression gate still passes
+**Plans**: TBD
+
+### Phase 34: Management & Admin Sections
+**Goal**: The management, settings, and admin non-board sections are redesigned on the new system, including all non-happy-path states, with zero behavior change.
+**Depends on**: Phase 31
+**Requirements**: SEC-01 (batch b — Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration)
+**Success Criteria** (what must be TRUE):
+  1. Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, and Opera Integration render in the new visual system
+  2. Each section's empty, loading, and error states are redesigned, not just the happy path
+  3. Each section passes the same-inputs→same-outputs network diff, the dark-mode contrast check, and EN/ES key-parity
+  4. No API/behavior change ships; billing and Opera flows behave identically pre- and post-redesign
+**Plans**: TBD
+
+### Phase 35: Engineering Section Chrome
+**Goal**: The Engineering section's surrounding chrome is redesigned while `EngineeringRoomBoard` renders unchanged inside the new chrome.
+**Depends on**: Phase 30 (proven token/variant system); Phase 31 (shell)
+**Requirements**: ENG-01
+**Success Criteria** (what must be TRUE):
+  1. Engineering PageHeader, tabs, and the work-orders / assets / PM-schedules / predictions pages render in the new visual system
+  2. `EngineeringRoomBoard` renders visually and functionally identical inside the new chrome — the Room-Board pixel-diff against the Phase-30 baseline passes
+  3. Empty, loading, and error states across the Engineering pages are redesigned
+  4. The section passes the dark-mode contrast check, EN/ES key-parity, and the same-inputs→same-outputs network diff
+**Plans**: TBD
+
+### Phase 36: Housekeeping Section Chrome
+**Goal**: The Housekeeping section's surrounding chrome is redesigned while `RoomStatusBoard`/`RoomDetailDrawer` render unchanged and Realtime sync stays live.
+**Depends on**: Phase 30 (proven token/variant system); Phase 31 (shell)
+**Requirements**: HSK-01
+**Success Criteria** (what must be TRUE):
+  1. Housekeeping PageHeader, sync badge, date/shift controls, and the housekeeper "my rooms" list render in the new visual system
+  2. `RoomStatusBoard` and `RoomDetailDrawer` render visually and functionally identical inside the new chrome — the Room-Board pixel-diff against the Phase-30 baseline passes
+  3. Supabase Realtime sync stays live (the sync badge confirms an active subscription) throughout and after the redesign
+  4. The section passes the dark-mode contrast check, EN/ES key-parity, and the same-inputs→same-outputs network diff
+**Plans**: TBD
+
+### Phase 37: Final QA & Rollout
+**Goal**: Cross-cutting pre-ship verification that per-phase gates cannot fully cover, followed by flag flip-on.
+**Depends on**: Phases 30-36
+**Requirements**: QA-01, QA-02, QA-03
+**Success Criteria** (what must be TRUE):
+  1. A full 6-role navigation walkthrough passes against the NAV-05 role×nav matrix, logged in as each role (QA-01)
+  2. A full Spanish-locale walkthrough of every redesigned section and dashboard passes with no missing or raw copy (QA-02)
+  3. A final pixel-diff of all 3 excluded surfaces against the Phase-30 baseline confirms zero visual/functional drift (QA-03)
+  4. The feature flag is flipped on for all sections with no half-old/half-new state remaining
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 36 → 37
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
@@ -139,5 +251,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 | 25. Failure-Prediction Proactive Push + Dedup | v1.6 | 1/1 | Complete | 2026-08-12 |
 | 26. Deep-Linked Alert Surfaces | v1.6 | 2/2 | Complete | 2026-08-12 |
 | 27. Room-Readiness One-Click Reassign / Escalate / Acknowledge | v1.6 | 3/3 | Complete | 2026-08-12 |
-| 28. Batch Actions | v1.7 | Complete    | 2026-08-13 | - |
-| 29. Escalation to GM | v1.7 | Complete    | 2026-08-13 | - |
+| 28. Batch Actions | v1.7 | 4/4 | Complete | 2026-08-13 |
+| 29. Escalation to GM | v1.7 | 4/4 | Complete | 2026-08-13 |
+| 30. Additive Foundation & Regression Harness | v2.0 | 0/TBD | Not started | - |
+| 31. Shell & Navigation Redesign | v2.0 | 0/TBD | Not started | - |
+| 32. Role Dashboard Homes | v2.0 | 0/TBD | Not started | - |
+| 33. Core Operational Sections | v2.0 | 0/TBD | Not started | - |
+| 34. Management & Admin Sections | v2.0 | 0/TBD | Not started | - |
+| 35. Engineering Section Chrome | v2.0 | 0/TBD | Not started | - |
+| 36. Housekeeping Section Chrome | v2.0 | 0/TBD | Not started | - |
+| 37. Final QA & Rollout | v2.0 | 0/TBD | Not started | - |

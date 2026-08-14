@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Web UI/UX Redesign
-status: planning
+status: roadmap_ready
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Milestone v2.0 (Web UI/UX Redesign) started via /gsd-new-milestone. Goal confirmed: full visual + navigation/IA + workflow redesign of apps/web, Housekeeping RoomStatusBoard/RoomDetailDrawer and Engineering RoomBoard explicitly excluded. apps/api and apps/mobile out of scope. Aesthetic direction to be researched, not predetermined. Defining requirements next.
+last_activity: 2026-08-14 -- Roadmap created for v2.0 (8 phases, 30-37). 20/20 requirements mapped, no orphans (SEC-01 split into SEC-01a/SEC-01b across Phases 33-34). Phase 30 (Additive Foundation & Regression Harness) ready to plan.
 progress:
-  total_phases: 0
+  total_phases: 8
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,10 +17,22 @@ progress:
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-14 — Milestone v2.0 (Web UI/UX Redesign) started
+Phase: 30 of 37 (Additive Foundation & Regression Harness)
+Plan: — (roadmap created, ready to plan)
+Status: Ready to plan
+Last activity: 2026-08-14 — Roadmap created for v2.0 (8 phases, 30-37); 20/20 requirements mapped
+
+Progress: [░░░░░░░░░░] 0%
+
+v2.0 phase map (all Not started):
+- Phase 30: Additive Foundation & Regression Harness — FOUND-01..06 (exit gate: excluded Room Boards pixel-identical)
+- Phase 31: Shell & Navigation Redesign — NAV-01..06
+- Phase 32: Role Dashboard Homes — HOME-01, HOME-02
+- Phase 33: Core Operational Sections — SEC-01a
+- Phase 34: Management & Admin Sections — SEC-01b
+- Phase 35: Engineering Section Chrome — ENG-01
+- Phase 36: Housekeeping Section Chrome — HSK-01
+- Phase 37: Final QA & Rollout — QA-01..03
 
 <details>
 <summary>v1.7 AI Copilot Batch Actions & Escalation — full session log (archived, click to expand)</summary>
@@ -55,7 +67,7 @@ Continues phase numbering from v1.6's last phase (27) — v1.7 starts at Phase 2
 See: .planning/PROJECT.md (updated 2026-08-14)
 
 **Core value:** Save a housekeeper or engineer time on the floor without weakening the hotel's ability to prove what occurred.
-**Current focus:** Next milestone not yet scoped — run `/gsd-new-milestone`.
+**Current focus:** Phase 30 — Additive Foundation & Regression Harness (v2.0 Web UI/UX Redesign).
 
 ## Previous milestones
 

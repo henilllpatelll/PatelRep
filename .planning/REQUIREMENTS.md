@@ -38,6 +38,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [ ] **SEC-01**: All non-board dashboard sections (Tasks, SOP Library, Logbook, Reports, Management ROI, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration) are redesigned with the new visual system, including empty/loading/error states, not just the happy path
 
+  **Roadmap split (2026-08-14):** SEC-01 spans 19 independent sections, too large for one coherent phase. For roadmap execution it is split into two sub-batches, each mapped to exactly one phase; SEC-01 is satisfied only when both are complete:
+  - **SEC-01a** → Phase 33 (Core Operational Sections): Tasks, SOP Library, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling
+  - **SEC-01b** → Phase 34 (Management & Admin Sections): Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration
+
 ### Board-Adjacent (chrome only)
 
 - [ ] **ENG-01**: The Engineering section's surrounding chrome (PageHeader, tabs, work-orders/assets/PM-schedules/predictions pages) is redesigned; `EngineeringRoomBoard` renders unchanged inside the new chrome
@@ -73,36 +77,35 @@ None deferred from this milestone's own scoping — the anti-features below were
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | TBD | Pending |
-| FOUND-02 | TBD | Pending |
-| FOUND-03 | TBD | Pending |
-| FOUND-04 | TBD | Pending |
-| FOUND-05 | TBD | Pending |
-| FOUND-06 | TBD | Pending |
-| NAV-01 | TBD | Pending |
-| NAV-02 | TBD | Pending |
-| NAV-03 | TBD | Pending |
-| NAV-04 | TBD | Pending |
-| NAV-05 | TBD | Pending |
-| NAV-06 | TBD | Pending |
-| HOME-01 | TBD | Pending |
-| HOME-02 | TBD | Pending |
-| SEC-01 | TBD | Pending |
-| ENG-01 | TBD | Pending |
-| HSK-01 | TBD | Pending |
-| QA-01 | TBD | Pending |
-| QA-02 | TBD | Pending |
-| QA-03 | TBD | Pending |
+| FOUND-01 | Phase 30 | Pending |
+| FOUND-02 | Phase 30 | Pending |
+| FOUND-03 | Phase 30 | Pending |
+| FOUND-04 | Phase 30 | Pending |
+| FOUND-05 | Phase 30 | Pending |
+| FOUND-06 | Phase 30 | Pending |
+| NAV-01 | Phase 31 | Pending |
+| NAV-02 | Phase 31 | Pending |
+| NAV-03 | Phase 31 | Pending |
+| NAV-04 | Phase 31 | Pending |
+| NAV-05 | Phase 31 | Pending |
+| NAV-06 | Phase 31 | Pending |
+| HOME-01 | Phase 32 | Pending |
+| HOME-02 | Phase 32 | Pending |
+| SEC-01 (SEC-01a) | Phase 33 | Pending |
+| SEC-01 (SEC-01b) | Phase 34 | Pending |
+| ENG-01 | Phase 35 | Pending |
+| HSK-01 | Phase 36 | Pending |
+| QA-01 | Phase 37 | Pending |
+| QA-02 | Phase 37 | Pending |
+| QA-03 | Phase 37 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️ (roadmap not yet created)
+- Mapped to phases: 20 (SEC-01 split into SEC-01a/SEC-01b across Phases 33-34; both required for SEC-01 completion)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-14*
-*Last updated: 2026-08-14 after initial definition*
+*Last updated: 2026-08-14 after roadmap creation — traceability populated, SEC-01 split documented*
