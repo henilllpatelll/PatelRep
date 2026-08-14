@@ -26,6 +26,7 @@ key-files:
     - apps/web/e2e/global-setup.ts
     - apps/web/playwright.regression.config.ts
     - apps/web/e2e/room-board-baseline.spec.ts
+    - "apps/web/e2e/room-board-baseline.spec.ts-snapshots/*.png (12 baseline screenshots, orchestrator-captured)"
   modified:
     - apps/api/scripts/cleanup_test_data.py
     - apps/web/.gitignore
@@ -52,13 +53,13 @@ completed: 2026-08-14
 
 # Phase 30 Plan 01: Regression Pixel-Diff Harness Summary
 
-**Cron-inert Playwright pixel-diff harness (seed script + authenticated globalSetup + maxDiffPixelRatio:0 config + 12-assertion spec) for the 3 excluded Room Board surfaces — snapshot capture itself is NOT yet run (requires live DB write access this sandboxed executor doesn't have).**
+**Cron-inert Playwright pixel-diff harness (seed script + authenticated globalSetup + maxDiffPixelRatio:0 config + 12-assertion spec) for the 3 excluded Room Board surfaces, with the fixture seeded and all 12 baseline snapshots captured and re-verified at zero drift.**
 
 ## Performance
 
-- **Duration:** ~70 min
-- **Tasks:** 3 (all code-complete; live execution deferred to the orchestrator)
-- **Files modified:** 7 (4 created, 3 modified)
+- **Duration:** ~70 min (code) + ~15 min (orchestrator live execution: migration apply, seed, 2x Playwright runs)
+- **Tasks:** 3 code tasks (all complete) + orchestrator live-execution follow-up (complete)
+- **Files modified:** 8 (5 created incl. 12 snapshot PNGs as one artifact set, 3 modified)
 
 ## Accomplishments
 
@@ -75,14 +76,14 @@ Each task was committed atomically:
 
 1. **Task 1: Seed script + cleanup_test_data.py PRESERVE entry** — `70a6b7a0` (feat)
 2. **Task 2: globalSetup + regression config** — `3ec095da` (feat)
-3. **Task 3: Baseline spec (12 assertions, no snapshots yet)** — `74d2d302` (feat)
-
-_No plan-metadata commit yet — deferred until the orchestrator captures the baseline and this plan is fully closed._
+3. **Task 3: Baseline spec (12 assertions)** — `74d2d302` (feat)
+4. **Orchestrator: gitignore fix for `e2e/.auth/`** — `c86d198f` (fix) — the root `.gitignore`'s `e2e/.auth/` pattern is anchored to repo root (mid-string slash), so it never actually matched `apps/web/e2e/.auth/`; caught before the snapshot commit could pull Playwright's per-role storageState (session tokens) into git history. Corrects this SUMMARY's original (incorrect) claim that no new gitignore entry was needed.
+5. **Orchestrator: baseline snapshots captured and committed** — `26856b47` (test) — migration 097 applied live, fixture seeded, `--update-snapshots` run (12/12 passed), re-run without the flag to confirm zero drift (12/12 passed again), one snapshot visually spot-checked.
 
 ## Files Created/Modified
 
 - `apps/web/e2e/fixtures/seed-regression-tenant.mjs` — idempotent Supabase-service-role seed: tenant, room type, 2 fixture users (auth + profile + role), 7 rooms covering every status, 1 cron-inert work order. Generates+persists fixture credentials to a new gitignored `.env.regression` on first run.
-- `apps/web/e2e/global-setup.ts` — Playwright `globalSetup`; logs in as `gm` and `supervisor`, writes `e2e/.auth/gm.json` / `e2e/.auth/supervisor.json` (already covered by the repo-root `.gitignore`'s `e2e/.auth/` pattern — no new gitignore entry needed there).
+- `apps/web/e2e/global-setup.ts` — Playwright `globalSetup`; logs in as `gm` and `supervisor`, writes `e2e/.auth/gm.json` / `e2e/.auth/supervisor.json`. **Correction:** the repo-root `.gitignore`'s `e2e/.auth/` pattern does NOT cover this (it's anchored to repo root, only matches `./e2e/.auth/`) — the orchestrator added `e2e/.auth/` to `apps/web/.gitignore` (relative to that file, correctly matches `apps/web/e2e/.auth/`) before committing the snapshots, catching this ahead of any credential leak into git history.
 - `apps/web/playwright.regression.config.ts` — regression config mirroring `playwright.phase1.config.ts`'s structure.
 - `apps/web/e2e/room-board-baseline.spec.ts` — capture matrix + `chromeMasks()` helper + `gotoWithTheme()` dark-mode helper.
 - `apps/api/scripts/cleanup_test_data.py` — `PRESERVE` set gains the fixture UUID.
@@ -130,15 +131,17 @@ One additional implementation-level decision not in frontmatter: `reducedMotion`
 
 ## Issues Encountered
 
-**Cannot execute the seed script or capture snapshots — no Supabase MCP / live DB access in this sandboxed executor.** This matches the project's long-standing pattern for seed/migration scripts requiring live writes (see prior phase SUMMARYs: 06-02, 21-01, 27-01, 29-01, and this same phase's 30-02-SUMMARY.md). Per this task's explicit instructions, the orchestrator (who has live Supabase MCP access this session) will:
+**Executor had no Supabase MCP / live DB access** (matches the project's long-standing pattern — see 06-02, 21-01, 27-01, 29-01, 30-02-SUMMARY.md). The orchestrator (live Supabase MCP access this session) completed the deferred live steps:
 
-1. Run `node apps/web/e2e/fixtures/seed-regression-tenant.mjs` (from `apps/web`) against the live Supabase project. This generates `apps/web/.env.regression` on first run (gitignored) with the two fixture-role credentials.
-2. Verify via a direct query: the fixture tenant + 7 rooms with expected statuses + `checkin_time NULL`/`dnd_flag FALSE` on every room + the 1 work order (`due_at` far-future, `escalation_level 0`) + 2 fixture users all exist; no real tenant rows changed; the fixture UUID is not in `DELETE_ALLOWLIST`.
-3. Run `npx playwright test --config=playwright.regression.config.ts --update-snapshots` (from `apps/web`, with `REGRESSION_GM_EMAIL/PASSWORD`, `REGRESSION_SUP_EMAIL/PASSWORD` from `.env.regression`, and `PLAYWRIGHT_BASE_URL` pointed at the deployed web URL backed by this Supabase project) to generate and commit the 12 baseline PNGs under `e2e/room-board-baseline.spec.ts-snapshots/`.
-4. Re-run the same command without `--update-snapshots` to confirm zero drift on the same (untouched) tree.
-5. Inspect one committed snapshot to confirm masks cover only chrome (date-nav, sync badge) and that room cards / counts / status colors remain fully visible in the diff.
+1. ✅ Applied migration 097 (`tenants.web_redesign_sections`, from plan 30-02) live; verified column exists with correct type/nullability/default via `information_schema.columns`.
+2. ✅ Ran `node e2e/fixtures/seed-regression-tenant.mjs` from `apps/web` — succeeded, generated `.env.regression`.
+3. ✅ Verified via direct SQL query: all 7 rooms present with expected statuses, `checkin_time NULL` + `dnd_flag FALSE` on every room; the work order has `due_at=2099-01-01`, `escalation_level=0`, `assigned_to=NULL`; tenant `is_test=FALSE`.
+4. ✅ Found and fixed a real gap before it could leak credentials: the root `.gitignore`'s `e2e/.auth/` pattern didn't actually match `apps/web/e2e/.auth/` (mid-string-slash patterns anchor to the `.gitignore`'s own directory) — added a correctly-scoped entry to `apps/web/.gitignore` and confirmed via `git check-ignore -v` before staging anything.
+5. ✅ Ran `npx playwright test --config=playwright.regression.config.ts --update-snapshots` — 12/12 passed, wrote all 12 baseline PNGs.
+6. ✅ Re-ran without `--update-snapshots` on the same, untouched tree — 12/12 passed again, confirming genuine `maxDiffPixelRatio: 0` determinism.
+7. ✅ Visually inspected `housekeeping-board-gm-light-win32.png` — confirmed only the date-nav chrome is masked (magenta boxes); all 7 room cards, their status pill colors, and counts are fully visible and unmasked, exactly as designed.
 
-What I verified locally without live access:
+What was verified locally before live execution (unchanged from original write-up):
 - `npx tsc --noEmit -p tsconfig.json` — clean.
 - `npx eslint e2e/fixtures/seed-regression-tenant.mjs e2e/global-setup.ts e2e/room-board-baseline.spec.ts playwright.regression.config.ts` — clean (exit 0).
 - `node --check e2e/fixtures/seed-regression-tenant.mjs` — valid syntax.
@@ -150,14 +153,19 @@ None — no external service configuration required. (The Supabase project and R
 
 ## Next Phase Readiness
 
-- The harness's code (seed script, auth setup, config, spec) is complete, type-checked, linted, and verified to discover the correct test matrix — ready for the orchestrator to run live.
-- **Blocker for phase exit:** the actual baseline PNGs (`e2e/room-board-baseline.spec.ts-snapshots/`, ≥12 files) do not exist yet — Task 3's `<done>` criterion ("≥12 baseline PNGs committed... clean re-run passes at maxDiffPixelRatio 0") is not yet satisfied. This plan cannot be marked fully complete until the orchestrator runs steps 1-5 above and commits the resulting snapshot directory (a follow-up commit, since these are generated binary artifacts this executor cannot produce).
-- Phase 30's other plans (tokens, frozen-file guard, feature flag) can proceed in parallel — this baseline only needs to exist *before* any token/primitive change lands, per FOUND-03's own requirement, which is still satisfied as long as the orchestrator captures it before Wave 2+ begins altering tokens.
+- The harness is fully complete: code (seed script, auth setup, config, spec), the fixture tenant (seeded, verified cron-inert live), and all 12 baseline PNGs (captured, re-verified at zero drift, committed).
+- FOUND-03 is satisfied: baseline exists *before* Wave 2 (plan 30-04, tokens) begins, per the requirement's own ordering constraint.
+- Plans 31-36 re-run `npm run test:e2e:regression` (from `apps/web`, with `.env.regression` sourced) against this same baseline to prove the excluded boards never drift as the redesign proceeds. Plan 30-06 wires this into CI as a real job — will need the four `REGRESSION_*` secrets configured (see repo-admin follow-up).
 
 ---
 *Phase: 30-additive-foundation-regression-harness*
-*Completed: 2026-08-14 (code); snapshot capture pending live execution*
+*Completed: 2026-08-14*
 
 ## Self-Check: PASSED
 
-All 5 created files found on disk; all 3 task commit hashes (`70a6b7a0`, `3ec095da`, `74d2d302`) found in `git log --oneline --all`.
+- FOUND: all 4 code files + 12 baseline snapshot PNGs on disk
+- FOUND: all 5 commits in `git log --oneline --all` (`70a6b7a0`, `3ec095da`, `74d2d302`, `c86d198f`, `26856b47`)
+- VERIFIED: migration 097 live with correct schema
+- VERIFIED: fixture tenant + 7 rooms + 1 work order + 2 users seeded and confirmed cron-inert via direct SQL query
+- VERIFIED: `--update-snapshots` run 12/12 passed; immediate re-run without the flag 12/12 passed (genuine zero-drift determinism, not a fluke)
+- VERIFIED: one snapshot visually inspected — masks cover chrome only, room content stays in the diff
