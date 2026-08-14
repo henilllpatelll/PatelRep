@@ -41,15 +41,22 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-(None currently — next milestone requirements TBD via `/gsd-new-milestone`.)
+(Requirements being scoped for v2.0 — see Current Milestone below. Will populate with REQ-IDs once `.planning/REQUIREMENTS.md` is drafted.)
 
-## Current Milestone
+## Current Milestone: v2.0 Web UI/UX Redesign
 
-None in progress — v1.7 shipped 2026-08-14. Next milestone not yet scoped.
+**Goal:** Complete UX/UI redesign of `apps/web` — new visual identity, navigation/information architecture, and workflow/interaction patterns across every dashboard section — while the Housekeeping Room Status Board (`RoomStatusBoard.tsx`/`RoomDetailDrawer.tsx`) and the Engineering Room Board (`EngineeringRoomBoard.tsx`) are explicitly excluded and left untouched.
+
+**Target features:**
+- New visual identity/design system for `apps/web` (aesthetic direction to be researched and proposed, not predetermined)
+- Redesigned navigation and information architecture across dashboard sections
+- Reworked workflow/interaction patterns where they improve the floor/manager experience
+- Housekeeping RoomStatusBoard/RoomDetailDrawer and Engineering RoomBoard stay functionally and visually untouched (hard exclusion)
+- `apps/api` and `apps/mobile` out of scope (mirrors the prior UI Refresh Plan's scoping)
 
 ## Next Milestone Goals
 
-TBD — scoped via next `/gsd-new-milestone` run. v2 backlog already seeded (see Out of Scope): AI-15 (batch create-work-order), AI-16 (floor-scoped select-all quick filter), AI-17 (multi-tier escalation ladder), AI-18 (per-hotel configurable escalation threshold) — all deferred pending evidence of real need.
+TBD — scoped via the milestone after this one. v2 AI backlog still seeded (see Out of Scope): AI-15 (batch create-work-order), AI-16 (floor-scoped select-all quick filter), AI-17 (multi-tier escalation ladder), AI-18 (per-hotel configurable escalation threshold) — all deferred pending evidence of real need, unaffected by this UI/UX redesign milestone.
 
 ### Out of Scope
 
@@ -176,4 +183,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-14 — milestone v1.7 (AI Copilot Batch Actions & Escalation) shipped and archived. Next milestone not yet scoped.*
+*Last updated: 2026-08-14 — milestone v2.0 (Web UI/UX Redesign) started. Requirements not yet defined.*

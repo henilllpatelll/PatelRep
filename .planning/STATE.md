@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
+milestone: v2.0
+milestone_name: Web UI/UX Redesign
 status: planning
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Milestone v1.7 (AI Copilot Batch Actions & Escalation) SHIPPED and archived. Milestone audit passed (6/6 requirements, clean cross-phase integration, 0 tech debt). Archived to .planning/milestones/v1.7-{ROADMAP,REQUIREMENTS,MILESTONE-AUDIT}.md, MILESTONES.md entry added, ROADMAP.md collapsed to a one-line shipped summary, REQUIREMENTS.md deleted (fresh one created at next /gsd-new-milestone), PROJECT.md given a full evolution review (AI-09..AI-14 moved to Validated, new Key Decisions logged, Current State section updated). Next milestone not yet scoped.
+last_activity: 2026-08-14 -- Milestone v2.0 (Web UI/UX Redesign) started via /gsd-new-milestone. Goal confirmed: full visual + navigation/IA + workflow redesign of apps/web, Housekeeping RoomStatusBoard/RoomDetailDrawer and Engineering RoomBoard explicitly excluded. apps/api and apps/mobile out of scope. Aesthetic direction to be researched, not predetermined. Defining requirements next.
 progress:
   total_phases: 0
   completed_phases: 0
@@ -17,7 +17,10 @@ progress:
 
 ## Current Position
 
-No active phase. Milestone v1.7 shipped 2026-08-14 (tag `v1.7`). Next milestone not yet scoped — run `/gsd-new-milestone` to start questioning → research → requirements → roadmap for the next milestone.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-08-14 — Milestone v2.0 (Web UI/UX Redesign) started
 
 <details>
 <summary>v1.7 AI Copilot Batch Actions & Escalation — full session log (archived, click to expand)</summary>
