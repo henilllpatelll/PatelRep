@@ -67,6 +67,15 @@ const es = {
     settings: 'Configuracion',
     signOut: 'Salir',
   },
+  palette: {
+    groupNav: 'Ir a',
+    groupRooms: 'Cuartos',
+    groupWorkOrders: 'Ordenes de Trabajo',
+    groupGuests: 'Solicitudes de Huespedes',
+    groupSops: 'SOPs',
+    searching: 'Buscando...',
+    noResults: 'Sin resultados',
+  },
   nav: {
     dashboard: 'Panel',
     housekeeping: 'Limpieza',

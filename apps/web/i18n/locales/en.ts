@@ -67,6 +67,15 @@ const en = {
     settings: 'Settings',
     signOut: 'Sign Out',
   },
+  palette: {
+    groupNav: 'Go to',
+    groupRooms: 'Rooms',
+    groupWorkOrders: 'Work Orders',
+    groupGuests: 'Guest Requests',
+    groupSops: 'SOPs',
+    searching: 'Searching...',
+    noResults: 'No matches',
+  },
   nav: {
     dashboard: 'Dashboard',
     housekeeping: 'Housekeeping',
