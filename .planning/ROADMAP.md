@@ -135,7 +135,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   3. Baseline light+dark screenshots of all 3 excluded surfaces (≥2 roles) are captured, and a pixel-diff check against that baseline passes with zero drift as the phase exit gate (FOUND-03)
   4. The verification gate now includes an automated dark-mode WCAG AA contrast check over every new token/variant pairing (FOUND-04) and an EN/ES i18n key-parity check beyond the existing no-raw-literal rule (FOUND-05)
   5. The new visual system is gated behind a feature flag that can be toggled per-section without exposing a half-broken UI to hotel staff (FOUND-06)
-**Plans**: TBD
+**Plans**: 6 plans (4 waves)
+- [ ] 30-01-PLAN.md — Regression baseline harness: authenticated Playwright pixel-diff of the 3 excluded boards, light+dark, >=2 roles (FOUND-03)
+- [ ] 30-02-PLAN.md — Per-section feature-flag mechanism: tenants.web_redesign_sections text[] via /auth/me + RedesignGate (FOUND-06)
+- [ ] 30-03-PLAN.md — EN/ES i18n key-parity gate script (FOUND-05)
+- [ ] 30-04-PLAN.md — Additive design tokens + frozen-primitive manifest/doc, room-status value freeze (FOUND-01, FOUND-02 docs)
+- [ ] 30-05-PLAN.md — Frozen-file guard + dark-mode WCAG AA contrast gate (FOUND-02 enforcement, FOUND-04)
+- [ ] 30-06-PLAN.md — Wire all four gates into CI + Room-Board regression exit gate
 
 ### Phase 31: Shell & Navigation Redesign
 **Goal**: The app shell — sidebar, header, breadcrumbs, command palette, notification inbox — is redesigned on the Phase-30 foundation, with RBAC nav visibility provably unchanged across all 6 roles.
