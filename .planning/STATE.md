@@ -4,7 +4,7 @@ milestone: v2.0
 milestone_name: Web UI/UX Redesign
 status: context_gathered
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Phase 30 context gathered via /gsd-discuss-phase. User delegated all remaining Phase 30 decisions and instructed autonomous plan->execute->verify->close with no check-in until the phase is done. Proceeding to /gsd-plan-phase 30.
+last_activity: 2026-08-14 -- Phase 30 Plan 05 executed and closed (frozen-file guard + dark-mode contrast gate). Proceeding to Plan 30-06.
 progress:
   total_phases: 8
   completed_phases: 0
@@ -18,9 +18,9 @@ progress:
 ## Current Position
 
 Phase: 30 of 37 (Additive Foundation & Regression Harness)
-Plan: — (context gathered, ready to plan)
-Status: Context gathered — proceeding autonomously (user delegation, no check-in until phase closed)
-Last activity: 2026-08-14 — Phase 30 context captured (.planning/phases/30-additive-foundation-regression-harness/30-CONTEXT.md): room-status badge colors frozen app-wide (narrower than full frozen-primitive list), per-tenant per-section feature flag, CI-enforced frozen-primitive guard + pixel-diff. All remaining phase-level decisions delegated to Claude.
+Plan: 30-05 CLOSED, next: 30-06
+Status: Executing — proceeding autonomously (user delegation, no check-in until phase closed)
+Last activity: 2026-08-14 — Phase 30 Plan 05 closed (frozen-file guard + dark-mode contrast gate, FOUND-02/FOUND-04). See 30-05 entry below.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -33,6 +33,8 @@ v2.0 phase map (all Not started):
 - Phase 35: Engineering Section Chrome — ENG-01
 - Phase 36: Housekeeping Section Chrome — HSK-01
 - Phase 37: Final QA & Rollout — QA-01..03
+
+**30-05 CLOSED (2026-08-14, commits `ed01773f`/`bd278ebe`/`9d9ce3c6`):** Frozen-file guard + dark-mode WCAG AA contrast gate (FOUND-02 enforcement, FOUND-04), autonomous, wave 3, depends_on 30-04. `apps/web/scripts/check-frozen-files.mjs` mirrors `check_bare_role_comparisons.py`'s scan→allowlist→exit-1 shape: recomputes sha256 for the 7 frozen files (allowlistable via new `apps/web/frozen-files-allowlist.json`, empty initially) and separately re-parses live room-status CSS/Tailwind values against `frozen-files.json`'s value-freeze (no allowlist parameter exists for that path at all — non-allowlistable by construction, not just by convention). A `--self-test` flag proves both detection paths in-memory; live tamper-and-revert (git-diff-confirmed clean afterward) additionally proved the real exit-1/messaging behavior on both a frozen-file hash and a room-status value. `apps/web/scripts/check-contrast.mjs` is a ~230-line pure-Node WCAG relative-luminance matrix: enforces (exit 1) only the 5 new-token pairings from 30-04 (`--brand-ink`/`--brand`, `--ink`/`--ink-2` on `--surface-raised` and `--surface-overlay`) in both modes, and separately records the 6 frozen room-status text-on-soft pairings report-only (derived live from `frozen-files.json`, never fails, never triggers tuning) — explicitly verified a genuinely-below-AA report-only row (`PICKUP` light, 4.09:1) still exits 0. Found and fixed a real AA failure in the process: 30-04's proposed dark `--brand` (`#e08a63`) only reached 2.63:1 against white `--brand-ink`; retuned to `#bd5230` (4.76:1, same terracotta hue) — a safe additive-token tune, re-confirmed the frozen-file guard still passes clean after. Both gates wired as `npm run check:frozen-files` / `npm run check:contrast` in `apps/web/package.json`. `npm run build` and `npm run type-check` both clean after the `globals.css` change. Ready for CI wiring in Plan 30-06. See `30-05-SUMMARY.md`.
 
 **30-04 CLOSED (2026-08-14, commits `c77664c8`/`0b1a0a6f`/`128c9317`):** Additive design-token foundation + frozen-primitive manifest (FOUND-01, FOUND-02 documentation half), autonomous, wave 2, depends_on 30-01. Landed 20 new additive tokens (`--motion-*`, `--ease-*`, `--z-*` 9-step stack, `--surface-raised`/`--surface-overlay`/`--shadow-xs`, `--brand*` v2 ramp, `--focus-ring`) in `apps/web/app/globals.css` `:root`+`.theme-dark` plus matching new Tailwind aliases — `git diff --word-diff` confirmed every pre-existing token/alias byte-unchanged, `npm run build` green. Authored `apps/web/frozen-files.json` (sha256 for the 7 frozen primitive/board files, independently re-verified fresh; a distinctly-tagged `room_status_values` value-freeze with no allowlist escape, cross-checked against a live parse of `globals.css`) and `.planning/phases/30-additive-foundation-regression-harness/FROZEN.md` (human-readable frozen list, room-status hard-constraint table, double-duty-token warning for Phases 31-36). **Zero-drift proof required a methodology correction (Rule 3):** a plain `next dev` re-run of the 30-01 baseline loaded fixture data fine but isn't CSP-equivalent to the baseline's Railway-production capture conditions (`next.config.mjs`'s CSP `connect-src` only allow-lists `localhost:*` when `NODE_ENV=development`) and showed small (0.01 ratio) diffs on 2/3 board surfaces, most plausibly a Turbopack-dev-vs-production-build rendering artifact rather than a token regression — not accepted as proof. Built a temporary gitignored `apps/web/.env.production.local` pointing `NEXT_PUBLIC_API_URL` at the real deployed production API (already CSP-allow-listed), ran `next build` + a local standalone `server.js`, and re-ran the regression suite against that: **12/12 passed at `maxDiffPixelRatio: 0`**, the valid zero-drift proof. Temp env file and build artifacts deleted afterward; no deploy occurred, no tracked file affected by the correction. Dark-mode AA contrast for the new brand/surface tokens is intentionally NOT yet verified — that's Plan 30-05's job. See `30-04-SUMMARY.md`.
 
@@ -481,6 +483,7 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 23 P01 | 25min | 3 tasks | 3 files |
 | Phase 29 P01 | 27min | 1 tasks | 1 files |
 | Phase 30 P03 | 15min | 2 tasks | 2 files |
+| Phase 30 P05 | 50m | 3 tasks | 6 files |
 
 ## Session
 
