@@ -20,7 +20,10 @@ from core.database import supabase
 
 # ─── Constants (transcribed from .planning/phases/21-dev-qa-test-data-hygiene/21-ALLOWLIST.md) ───
 
-PRESERVE = {"23264962-aa09-4e4f-a49d-fc345cc91414"}  # active QA fixture — never delete
+PRESERVE = {
+    "23264962-aa09-4e4f-a49d-fc345cc91414",  # active QA fixture — never delete
+    "a0000000-0000-4000-a000-000000000001",  # FOUND-03 regression pixel-diff fixture — never delete (30-01)
+}
 
 DELETE_ALLOWLIST = {
     "100b4516-44f1-408b-bc9b-c820514bdfca",  # Patel Test Hotel
