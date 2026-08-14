@@ -95,6 +95,8 @@ const en = {
     hotelOperationsAI: 'Hotel Operations AI',
     managementRoi: 'Management ROI',
     floorNavigation: 'Floor navigation',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
     general: 'General',
     departments: 'Departments',
     frontDesk: 'Front Desk',

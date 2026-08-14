@@ -95,6 +95,8 @@ const es = {
     hotelOperationsAI: 'IA Operativa Hotelera',
     managementRoi: 'ROI Gerencial',
     floorNavigation: 'Navegacion de piso',
+    collapseSidebar: 'Contraer barra lateral',
+    expandSidebar: 'Expandir barra lateral',
     general: 'General',
     departments: 'Departamentos',
     frontDesk: 'Recepcion',
