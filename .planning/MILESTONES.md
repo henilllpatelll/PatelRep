@@ -177,3 +177,27 @@
 
 ---
 
+
+## v1.7 AI Copilot Batch Actions & Escalation (Shipped: 2026-08-14)
+
+**Delivered:** Closed the two items deliberately deferred at v1.6 close — supervisors/GMs and engineers/GMs can now act on multiple HIGH-risk predictions in one confirming action instead of one row at a time, and a HIGH-risk prediction nobody acts on for 60 minutes automatically and reliably escalates to the GM instead of silently sitting un-actioned.
+
+**Phases completed:** 28-29 (2 phases, 8 plans, 6/6 requirements — AI-09 through AI-14)
+
+**Key accomplishments:**
+- Batch reassign/acknowledge for room-readiness predictions and batch-acknowledge for asset-failure predictions, all built as thin per-item best-effort loops over Phase 27's existing single-item endpoints (not a second business-logic path), returning a per-item outcome list rather than a single aggregate pass/fail (Phase 28, AI-09/AI-10/AI-11) — including a real scope correction found during Phase 28's own research: AI-11's actor list corrected from "Engineer/chief_engineer/GM" to "Engineer/GM" to match the real single-item endpoint's actual RBAC gate
+- New single-tier escalation cron notifies the GM exactly once per continuous HIGH-risk episode left un-actioned past 60 minutes, for both room-readiness and asset-failure predictions — a persisted `escalation_level`/`high_risk_since` watermark (mirroring the existing work-order/task escalation-ladder pattern) survives every 30-minute prediction-regeneration cycle, including the trickier delete-then-insert rewrite `failure_predictions` uses (Phase 29, AI-12/AI-13/AI-14)
+- Escalation correctly stops the instant a human acts (reassign/escalate/acknowledge for rooms, acknowledge/create-work-order for assets) or risk genuinely drops below HIGH, and only resumes counting on a genuine fresh re-entry into HIGH — Phase 29's own plan-checker caught and fixed a real design bug before execution where the original carry-forward logic would have misread a work-order-triggered watermark reset as a fresh HIGH crossing and wrongly re-escalated an asset whose risk never actually dropped
+- Both phases were built to compose cleanly with zero mutual code changes: Phase 28's batch endpoints call the same single-item coroutines Phase 29 later modified to add escalation resets, so Phase 29's watermark-reset logic landed inside those coroutines once and was inherited by the batch paths automatically — confirmed by an independent milestone-level integration check re-running Phase 28's own test suite against Phase 29's code
+- Entire milestone (both phases, discuss through phase-gate verification and milestone audit) ran autonomously in a single session per explicit user delegation, with independent verification at every stage rather than trusting agent-reported summaries — full backend suite re-run multiple times, live Supabase schema changes applied and verified directly, cross-phase wiring re-checked at the milestone level
+
+**Stats:**
+- 2 phases, 8 plans, 1 new Postgres migration (096, applied and live-verified), 1 new cron job, 4 new/modified API endpoints, 637-test backend suite with 0 regressions (3 pre-existing unrelated failures unchanged)
+- 2026-08-13 → 2026-08-13 (single-session milestone)
+
+**Git range:** `881993b2` → `HEAD` (tag `v1.7`)
+
+**What's next:** TBD via `/gsd-new-milestone` — v2 backlog already seeded: AI-15 (batch create-work-order), AI-16 (floor-scoped select-all), AI-17 (multi-tier escalation ladder), AI-18 (per-hotel configurable threshold), all deferred pending evidence of real need.
+
+---
+
