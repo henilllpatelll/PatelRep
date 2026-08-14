@@ -534,7 +534,7 @@ async def test_work_orders_list_returns_empty_for_hotel_a(monkeypatch):
 
     result = await wo_router.list_work_orders(
         status=None, category=None, priority=None, assigned_to=None,
-        page=1, per_page=20, archived=False, current_user=USER_A,
+        room_id=None, q=None, page=1, per_page=20, archived=False, current_user=USER_A,
     )
 
     assert result["data"] == []
@@ -926,7 +926,7 @@ async def test_guest_requests_list_returns_empty_for_hotel_a(monkeypatch):
     monkeypatch.setattr(gr_router, "supabase", db)
 
     result = await gr_router.list_guest_requests(
-        status=None, room_id=None, page=1, per_page=20, current_user=USER_A,
+        status=None, room_id=None, q=None, page=1, per_page=20, current_user=USER_A,
     )
 
     assert result["data"] == []

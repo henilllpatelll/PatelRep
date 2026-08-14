@@ -185,6 +185,7 @@ async def list_work_orders(
     priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
     room_id: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     archived: bool = Query(False),
@@ -196,7 +197,7 @@ async def list_work_orders(
         fetch_up_to = page * per_page  # enough rows to slice the requested page
 
         def _base():
-            q = (
+            query = (
                 supabase.table("work_orders")
                 .select("*, rooms(room_number), assets(name)")
                 .eq("tenant_id", current_user.hotel_id)
@@ -204,18 +205,20 @@ async def list_work_orders(
                 .range(0, fetch_up_to - 1)
             )
             if archived:
-                q = q.not_.is_("archived_at", "null")
+                query = query.not_.is_("archived_at", "null")
             else:
-                q = q.is_("archived_at", "null")
+                query = query.is_("archived_at", "null")
             if status:
-                q = q.eq("status", status)
+                query = query.eq("status", status)
             if category:
-                q = q.eq("category", category)
+                query = query.eq("category", category)
             if priority:
-                q = q.eq("priority", priority)
+                query = query.eq("priority", priority)
             if room_id:
-                q = q.eq("room_id", room_id)
-            return q
+                query = query.eq("room_id", room_id)
+            if q:
+                query = query.ilike("title", f"%{q}%")
+            return query
 
         r_mine = _base().eq("assigned_to", current_user.user_id).execute()
         r_open = _base().is_("assigned_to", "null").execute()
@@ -256,6 +259,8 @@ async def list_work_orders(
         query = query.eq("assigned_to", assigned_to)
     if room_id:
         query = query.eq("room_id", room_id)
+    if q:
+        query = query.ilike("title", f"%{q}%")
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}

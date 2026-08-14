@@ -509,6 +509,7 @@ async def upsert_accessible_room_feature(
 async def list_guest_requests(
     status: Optional[str] = Query(None),
     room_id: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
     page: int = Query(1),
     per_page: int = Query(20),
     current_user: CurrentUser = Depends(get_current_user)
@@ -524,6 +525,8 @@ async def list_guest_requests(
         query = query.eq("status", status)
     if room_id:
         query = query.eq("room_id", room_id)
+    if q:
+        query = query.ilike("title", f"%{q}%")
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
