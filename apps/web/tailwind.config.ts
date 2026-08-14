@@ -64,6 +64,16 @@ const config: Config = {
         'ai-soft': 'var(--ai-soft)',
         'ai-line': 'var(--ai-line)',
 
+        // v2 brand ramp (additive — existing accent stays frozen)
+        brand:        'var(--brand)',
+        'brand-ink':  'var(--brand-ink)',
+        'brand-soft': 'var(--brand-soft)',
+        'brand-line': 'var(--brand-line)',
+
+        // elevation / surface tint (additive)
+        'surface-raised':  'var(--surface-raised)',
+        'surface-overlay': 'var(--surface-overlay)',
+
         // legacy compat — used by older components
         bg:       'var(--paper)',
         surface2Old: 'var(--surface-2)',
@@ -100,12 +110,34 @@ const config: Config = {
         'card-hover':'var(--shadow-lg)',
         pop:         'var(--shadow-pop)',
         sidebar:     'var(--shadow-md)',
+        xs:          'var(--shadow-xs)',
       },
       borderRadius: {
         sm: 'var(--r-sm)',
         md: 'var(--r-md)',
         lg: 'var(--r-lg)',
         xl: 'var(--r-xl)',
+      },
+      zIndex: {
+        base:     'var(--z-base)',
+        dropdown: 'var(--z-dropdown)',
+        sticky:   'var(--z-sticky)',
+        header:   'var(--z-header)',
+        drawer:   'var(--z-drawer)',
+        modal:    'var(--z-modal)',
+        popover:  'var(--z-popover)',
+        toast:    'var(--z-toast)',
+        tooltip:  'var(--z-tooltip)',
+      },
+      transitionDuration: {
+        fast: 'var(--motion-fast)',
+        base: 'var(--motion-base)',
+        slow: 'var(--motion-slow)',
+      },
+      transitionTimingFunction: {
+        standard:   'var(--ease-standard)',
+        emphasized: 'var(--ease-emphasized)',
+        exit:       'var(--ease-exit)',
       },
     },
   },

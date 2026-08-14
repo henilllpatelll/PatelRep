@@ -74,6 +74,37 @@
     --color-bg:        var(--paper);
     --color-surface:   var(--surface);
     --color-surface-2: var(--surface-2);
+
+    /* Motion — functional, floor-appropriate; prefers-reduced-motion already handled globally */
+    --motion-fast: 120ms;
+    --motion-base: 180ms;
+    --motion-slow: 260ms;
+    --ease-standard:   cubic-bezier(0.2, 0, 0, 1);
+    --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
+    --ease-exit:       cubic-bezier(0.4, 0, 1, 1);
+
+    /* Z-index scale */
+    --z-base: 0;
+    --z-dropdown: 1000;
+    --z-sticky: 1100;
+    --z-header: 1200;
+    --z-drawer: 1300;
+    --z-modal: 1400;
+    --z-popover: 1500;
+    --z-toast: 1600;
+    --z-tooltip: 1700;
+
+    /* Elevation / surface tint (does NOT touch --surface-2/3) */
+    --surface-raised:  #ffffff;
+    --surface-overlay: #fbf9f4;
+    --shadow-xs: 0 1px 1px rgba(26,24,21,0.03);
+
+    /* v2 brand ramp + focus (existing --accent/--ink stay frozen) */
+    --brand:      #b8431c;
+    --brand-ink:  #ffffff;
+    --brand-soft: #fbe9df;
+    --brand-line: #f0c8b3;
+    --focus-ring: color-mix(in srgb, var(--brand) 45%, transparent);
   }
 
   .theme-dark {
@@ -125,6 +156,14 @@
     --shadow-md:  0 2px 6px rgba(0,0,0,0.5);
     --shadow-lg:  0 10px 30px rgba(0,0,0,0.6);
     --shadow-pop: 0 18px 40px rgba(0,0,0,0.7);
+
+    /* v2 brand ramp + elevation — dark-mode hand-picked values (not auto-derived) */
+    --surface-raised:  #211e1a;
+    --surface-overlay: #262320;
+
+    --brand:      #e08a63;
+    --brand-soft: #2e1e16;
+    --brand-line: #5e3c2a;
   }
 
   html, body {
