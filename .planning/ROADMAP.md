@@ -114,7 +114,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 
 **Core ordering constraint (from research):** the Room-Board exclusion is not clean at the file level — `Button`/`IconButton`, `ui/primitives` (`StatusDot`/`Pill`), `RoomCard`, `LogFoundItemModal`, and the global CSS token layer are shared dependencies of the excluded boards *and* in scope for the redesign. The redesign is therefore **additive-only** (never mutate an existing token value or primitive API; add new ones alongside), with a **foundation-first regression gate** that must prove the boards unaffected before any other phase touches a shared primitive. The two board-adjacent chrome phases (Engineering, Housekeeping) run last, after the token/variant system is fully proven.
 
-- [x] **Phase 30: Additive Foundation & Regression Harness** - New tokens/primitive variants + frozen-primitive list, baseline screenshots, dark-mode/i18n/pixel-diff gates, and a rollout feature flag (completed 2026-08-14)
+- [x] **Phase 30: Additive Foundation & Regression Harness** - New tokens/primitive variants + frozen-primitive list, baseline screenshots, dark-mode/i18n/pixel-diff gates, and a rollout feature flag (completed 2026-08-14)
 - [ ] **Phase 31: Shell & Navigation Redesign** - Sidebar/header/breadcrumbs/command palette + collapsible rail, notification inbox, record-search, RBAC nav re-verified across 6 roles
 - [ ] **Phase 32: Role Dashboard Homes** - Purpose-built redesigned dashboard home for each of the 6 roles, including a first-class dedicated GM home
 - [ ] **Phase 33: Core Operational Sections** - Tasks, SOP, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling redesigned incl. empty/loading/error states
@@ -154,7 +154,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   4. Command palette search returns rooms, work orders, guests, and SOPs — not just nav destinations — filtered to what the current role is allowed to see (NAV-04)
   5. A 6-role × nav-item visibility matrix captured from the old app re-verifies identically against the redesigned nav, confirmed logged in as each of the 6 roles, and a user can reach every role-relevant section without hunting (NAV-05, NAV-06)
   6. The Room-Board regression gate re-passes (the shell wraps the boards)
-**Plans**: TBD
+**Plans**: 6 plans (4 waves)
+- [ ] 31-01-PLAN.md — Shell foundation: sidebarCollapsed store + flag threading + collapsible icon-rail Sidebar + Breadcrumbs/MobileFloorNav restyle (NAV-01/02)
+- [ ] 31-02-PLAN.md — Header restyle + notification inbox Unread/All history toggle + i18n cleanup (NAV-01/03)
+- [ ] 31-03-PLAN.md — Palette-search backend: WO/guest q ilike param + ?focus= deep-links + client q forwarding (NAV-04 backend)
+- [ ] 31-04-PLAN.md — Command palette grouped, role-gated record search (rooms/WO/guests/SOPs) + restyle (NAV-01/04)
+- [ ] 31-05-PLAN.md — Automated 6-role × nav visibility matrix (node:test) + CI wiring (NAV-05/06)
+- [ ] 31-06-PLAN.md — Full gate suite + Room-Board regression re-pass + live per-role self-verification (criteria 5/6)
 
 ### Phase 32: Role Dashboard Homes
 **Goal**: Each of the 6 roles lands on a purpose-built dashboard home appropriate to their information needs, including a first-class dedicated GM home.
@@ -260,7 +266,7 @@ v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 
 | 28. Batch Actions | v1.7 | 4/4 | Complete | 2026-08-13 |
 | 29. Escalation to GM | v1.7 | 4/4 | Complete | 2026-08-13 |
 | 30. Additive Foundation & Regression Harness | v2.0 | Complete    | 2026-08-14 | - |
-| 31. Shell & Navigation Redesign | v2.0 | 0/TBD | Not started | - |
+| 31. Shell & Navigation Redesign | v2.0 | 0/6 | Not started | - |
 | 32. Role Dashboard Homes | v2.0 | 0/TBD | Not started | - |
 | 33. Core Operational Sections | v2.0 | 0/TBD | Not started | - |
 | 34. Management & Admin Sections | v2.0 | 0/TBD | Not started | - |
