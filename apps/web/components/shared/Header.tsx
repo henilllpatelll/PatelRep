@@ -153,7 +153,10 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
   }, [i18n.language, t])
 
   return (
-    <header className="h-14 flex items-center justify-between px-4 md:px-5 bg-paper border-b border-line sticky top-0 z-50 shrink-0 gap-3">
+    <header className={cn(
+      'h-14 flex items-center justify-between px-4 md:px-5 bg-paper border-b border-line sticky top-0 shrink-0 gap-3',
+      redesigned ? 'z-header' : 'z-50'
+    )}>
       {/* Hamburger — mobile only */}
       <button
         onClick={onMenuToggle}
@@ -165,8 +168,13 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
 
       {/* Search */}
       <div className={cn(
-        'hidden md:flex items-center gap-2 bg-surface border border-line rounded-[9px] px-3 py-2 transition-all duration-150 flex-1 max-w-[480px]',
-        searchFocused ? 'border-accent ring-2 ring-[var(--accent-soft)]' : 'hover:border-ink4'
+        'hidden md:flex items-center gap-2 bg-surface border border-line rounded-[9px] px-3 py-2 flex-1 max-w-[480px]',
+        redesigned ? 'transition-all duration-fast' : 'transition-all duration-150',
+        searchFocused
+          ? redesigned
+            ? 'border-brand ring-2 ring-[var(--focus-ring)]'
+            : 'border-accent ring-2 ring-[var(--accent-soft)]'
+          : 'hover:border-ink4'
       )}>
         <Search size={13} className="text-ink3 shrink-0" />
         <input
@@ -213,7 +221,10 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
       <div className="relative" ref={notificationsRef}>
         <button
           onClick={() => setNotificationsOpen((prev) => !prev)}
-          className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0"
+          className={cn(
+            'relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0',
+            redesigned && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+          )}
           aria-label={t('header.notifications')}
           aria-haspopup="true"
           aria-expanded={notificationsOpen}
@@ -292,7 +303,10 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen((prev) => !prev)}
-          className="flex min-h-[32px] min-w-[32px] items-center justify-center gap-1.5 rounded-lg hover:bg-surface-2 transition-colors px-1"
+          className={cn(
+            'flex min-h-[32px] min-w-[32px] items-center justify-center gap-1.5 rounded-lg hover:bg-surface-2 transition-colors px-1',
+            redesigned && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+          )}
           aria-haspopup="true"
           aria-expanded={dropdownOpen}
           aria-label={t('header.userMenuFor', { name: fullName })}
@@ -302,7 +316,11 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
           </div>
           <ChevronDown
             size={11}
-            className={cn('text-ink3 transition-transform duration-150 shrink-0 hidden md:block', dropdownOpen && 'rotate-180')}
+            className={cn(
+              'text-ink3 shrink-0 hidden md:block',
+              redesigned ? 'transition-transform duration-fast' : 'transition-transform duration-150',
+              dropdownOpen && 'rotate-180'
+            )}
           />
         </button>
 
