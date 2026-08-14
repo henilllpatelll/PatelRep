@@ -35,7 +35,25 @@ const FIXTURE_ROOM_NUMBERS = {
   ooo: '107',
 } as const
 
-/** Locators for residual live chrome — never room content (cards/counts/status colors). */
+/**
+ * Locators for residual live chrome — never room content (cards/counts/status colors).
+ *
+ * PHASE 31 FIX: full-page screenshots capture the shell (Sidebar/Header) around
+ * the board, not just the board itself — the 7 frozen files have no stable
+ * selector we're allowed to add (they're frozen; adding a data-testid would be
+ * an edit), so the harness can't crop to just the board's bounding box. Phase 30
+ * built this mask list before Phase 31's shell redesign existed, so it only
+ * covered board-internal chrome (date-nav, sync badge). Phase 31 legitimately
+ * redesigned the Sidebar (collapse toggle, v2 tokens) and Header (v2 tokens,
+ * notification tabs) — neither is frozen, so their appearance is SUPPOSED to
+ * change, but that change was showing up as a false "regression" because it
+ * shared the viewport with the board. Fix: mask the two shell landmarks
+ * entirely by their stable ARIA/semantic selectors (present since before this
+ * milestone, not added by any phase) — <aside aria-label="Main navigation">
+ * and <header> — so only the actual page-content area (where the board lives)
+ * is diffed. This must hold for every future phase (32-36) that touches shell
+ * or per-section chrome around a board-adjacent page.
+ */
 function chromeMasks(page: Page) {
   return [
     // Housekeeping board date-nav: the standalone "Aug 14" span between the
@@ -51,6 +69,11 @@ function chromeMasks(page: Page) {
     // this fixture (they should not — checkin_time is NULL for every
     // fixture room, so no room_readiness_predictions row is ever created).
     page.locator('[title*="risk" i]'),
+    // Shell landmarks (Sidebar + Header) — explicitly redesignable across
+    // Phases 31-36, never part of the frozen board contract. Masked wholesale
+    // rather than diffed, since their content/styling is expected to evolve.
+    page.locator('aside[aria-label="Main navigation"]'),
+    page.locator('header'),
   ]
 }
 
