@@ -1,0 +1,57 @@
+{
+  "_readme": "Machine-readable freeze manifest for Phase 30 (Additive Foundation & Regression Harness). Consumed by the CI frozen-file guard built in plan 30-05. Two independent freeze classes below: 'files' (NAME-freeze, sha256 of full byte contents — a legitimate change requires bumping the hash here AND adding a reasoned entry to frozen-files-allowlist.json) and 'room_status_values' (VALUE-freeze — see its own '_note', NO allowlist escape, a mismatch is always a hard CI failure). globals.css and tailwind.config.ts are NOT file-hash-frozen (they are additively extended every phase); only the specific room-status token VALUES inside them are frozen and re-parsed live by the guard.",
+  "files": {
+    "apps/web/components/ui/Button.tsx": "219c522bc5f73f8eb2de8424b193451661e2c341057ca866cbf7e61cb7b529fa",
+    "apps/web/components/ui/primitives.tsx": "4cfe35f0c6e94c56f0fda5083a2c2106f1686116155e93b79dcf3896a7725d91",
+    "apps/web/components/housekeeping/RoomCard.tsx": "640e17ee123caaa0b74dd826c64cb7032d37fb797cbcc43f10095015228ce623",
+    "apps/web/components/shared/LogFoundItemModal.tsx": "649c9516cb9961483fa0e6cebf1b783cce3a8e5670f26b801ed9ef26130a656c",
+    "apps/web/components/housekeeping/RoomStatusBoard.tsx": "890bb386585502b9ef392ddb1b9de8e33074392b6e1704d7b45b7c369c2dde6e",
+    "apps/web/components/housekeeping/RoomDetailDrawer.tsx": "928e0d40b845c58c87bd3d8451f905b63abae23c3d5a37fbbbd4c978a17868af",
+    "apps/web/components/engineering/EngineeringRoomBoard.tsx": "762c8adc4e89c82b420d1de71f3eedb5cf80f6c277ff70b6a77ef0a0bc4e168c"
+  },
+  "room_status_values": {
+    "_tag": "room-status",
+    "_note": "HARD CONSTRAINT — no allowlist escape. These encode room cleanliness state (dirty/clean/inspected/occupied/in_progress/pickup/ooo), staff are trained on these exact colors, and per 30-CONTEXT.md they must never change, in :root or .theme-dark, anywhere they render. A mismatch here is always a hard CI failure — it is never resolved via frozen-files-allowlist.json. Note the double-duty warning: --alert/--info/--caution/--ready/--progress/--blocked also serve as generic chrome tokens elsewhere; a new generic semantic color must use a NEW token name (e.g. --danger-v2), never retint one of these.",
+    "tokens": {
+      "DIRTY_OCCUPIED": {
+        "css_vars": ["--alert", "--alert-soft", "--alert-line"],
+        "light": { "--alert": "#a6263c", "--alert-soft": "#f5d8de", "--alert-line": "#e8a8b3" },
+        "dark":  { "--alert": "#d96479", "--alert-soft": "#2e1620", "--alert-line": "#5a2a38" }
+      },
+      "CLEAN": {
+        "css_vars": ["--info", "--info-soft", "--info-line"],
+        "light": { "--info": "#265d8a", "--info-soft": "#d8e6f0", "--info-line": "#a8c2d8" },
+        "dark":  { "--info": "#5b9bd5", "--info-soft": "#182a3d", "--info-line": "#34557a" }
+      },
+      "INSPECTED": {
+        "css_vars": ["--ready", "--ready-soft", "--ready-line"],
+        "light": { "--ready": "#0c6e63", "--ready-soft": "#d6eae5", "--ready-line": "#a4cfc7" },
+        "dark":  { "--ready": "#4ab8a8", "--ready-soft": "#14302d", "--ready-line": "#2d5550" }
+      },
+      "IN_PROGRESS": {
+        "css_vars": ["--progress", "--progress-soft", "--progress-line"],
+        "light": { "--progress": "#7c3aed", "--progress-soft": "#ede9fe", "--progress-line": "#c4b5fd" },
+        "dark":  { "--progress": "#a78bfa", "--progress-soft": "#2e2348", "--progress-line": "#5b4a86" }
+      },
+      "PICKUP": {
+        "css_vars": ["--caution", "--caution-soft", "--caution-line"],
+        "light": { "--caution": "#a16207", "--caution-soft": "#f5e9cf", "--caution-line": "#e0c890" },
+        "dark":  { "--caution": "#d4a64a", "--caution-soft": "#322811", "--caution-line": "#5a4920" }
+      },
+      "OOO": {
+        "css_vars": ["--blocked", "--blocked-soft", "--blocked-line"],
+        "light": { "--blocked": "#57534e", "--blocked-soft": "#f5f5f4", "--blocked-line": "#d6d3d1" },
+        "dark":  { "--blocked": "#d6d3d1", "--blocked-soft": "#292524", "--blocked-line": "#57534e" }
+      }
+    },
+    "tailwind_hardcoded_hex": {
+      "_note": "apps/web/tailwind.config.ts colors.status.* — static hex duplicates of the same trained room-status meanings, won't move with a token refresh but still frozen at value. colors.risk.* is explicitly NOT room-status and is un-frozen.",
+      "inspected": "#0c6e63",
+      "clean": "#265d8a",
+      "in-progress": "#7c3aed",
+      "dirty": "#a6263c",
+      "oos": "#b8431c",
+      "vip": "#a16207"
+    }
+  }
+}
