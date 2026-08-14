@@ -14,9 +14,10 @@ import { notificationsApi, type Notification } from '@/lib/api/notifications'
 
 interface HeaderProps {
   onMenuToggle?: () => void
+  redesigned?: boolean
 }
 
-export function Header({ onMenuToggle }: HeaderProps) {
+export function Header({ onMenuToggle, redesigned }: HeaderProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, signOut } = useAuth()

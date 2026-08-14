@@ -32,9 +32,10 @@ const ROLE_LABELS: Record<UserRole, string> = {
 interface SidebarProps {
   mobileOpen?: boolean
   onMobileClose?: () => void
+  redesigned?: boolean
 }
 
-export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useTranslation()

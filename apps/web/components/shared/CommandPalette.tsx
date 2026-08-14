@@ -15,7 +15,7 @@ import { getAllowedNavItems, NAV_LABEL_KEYS } from '@/lib/utils/navigation'
  * reuses the exact allow-list from lib/utils/navigation.ts so it can never
  * show a route the Sidebar would hide.
  */
-export function CommandPalette() {
+export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   const router = useRouter()
   const { t } = useTranslation()
   const { role } = useRole()
