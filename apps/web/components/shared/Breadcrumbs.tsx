@@ -8,12 +8,16 @@ import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
 import { ALL_NAV_ITEMS, SETTINGS_NAV_ITEM, NAV_LABEL_KEYS } from '@/lib/utils/navigation'
 import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 /** Renders in the PageHeader `eyebrow` slot on sub-routes (e.g. Engineering → Work Orders). */
 export function Breadcrumbs({ className }: { className?: string }) {
   const pathname = usePathname()
   const { t } = useTranslation()
   const { role } = useRole()
+  const hotel = useHotelStore((s) => s.hotel)
+  const redesigned = isSectionRedesigned('shell', hotel)
 
   const segments = pathname.split('/').filter(Boolean)
   if (segments.length < 2) return null
@@ -34,7 +38,14 @@ export function Breadcrumbs({ className }: { className?: string }) {
       aria-label="Breadcrumb"
       className={cn('flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3', className)}
     >
-      <Link href={parentHref} className="transition-colors hover:text-ink2">
+      <Link
+        href={parentHref}
+        className={cn(
+          redesigned
+            ? 'transition-colors duration-base ease-standard hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm'
+            : 'transition-colors hover:text-ink2'
+        )}
+      >
         {parentLabel}
       </Link>
       <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />

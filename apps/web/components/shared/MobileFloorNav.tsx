@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
 import { NAV_LABEL_KEYS } from '@/lib/utils/navigation'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 interface FloorNavItem { href: string; label: string; icon: React.ElementType }
 
@@ -41,6 +43,8 @@ export function MobileFloorNav() {
   const pathname = usePathname()
   const { role } = useRole()
   const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const redesigned = isSectionRedesigned('shell', hotel)
 
   if (!isFloorRole(role)) return null
   const items = FLOOR_NAV[role]
@@ -60,7 +64,8 @@ export function MobileFloorNav() {
             aria-current={active ? 'page' : undefined}
             className={cn(
               'flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors',
-              active ? 'text-accent' : 'text-ink3'
+              redesigned && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+              active ? (redesigned ? 'text-brand' : 'text-accent') : 'text-ink3'
             )}
           >
             <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
