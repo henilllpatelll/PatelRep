@@ -11,7 +11,8 @@
     "test:e2e:phase1": "playwright test --config=playwright.phase1.config.ts",
     "test:e2e:phase4": "playwright test --config=playwright.phase4.config.ts",
     "check:floor-copy": "node scripts/check-programs-i18n.mjs",
-    "verify:i18n-gate": "node scripts/verify-i18n-gate.mjs"
+    "verify:i18n-gate": "node scripts/verify-i18n-gate.mjs",
+    "check:i18n-parity": "node scripts/check-i18n-parity.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
