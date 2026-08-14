@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Upload, Trash2, FileText, AlertCircle, Loader2, X, Search, MessageSquare, Plus,
 } from 'lucide-react'
@@ -344,7 +345,9 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   )
 }
 
-export default function SOPLibraryPage() {
+function SOPLibraryPageContent() {
+  const searchParams = useSearchParams()
+  const appliedFocusRef = useRef<string | null>(null)
   const [documents, setDocuments] = useState<SOPDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -375,6 +378,18 @@ export default function SOPLibraryPage() {
 
   useEffect(() => { fetchDocuments() }, [])
   useEffect(() => { setReferenceTime(Date.now()) }, [])
+
+  // Deep link: open a specific SOP's detail panel (?focus=<id>)
+  useEffect(() => {
+    const focusId = searchParams.get('focus')
+    if (!focusId || appliedFocusRef.current === focusId || documents.length === 0) return
+    const target = documents.find((d) => d.id === focusId)
+    if (!target) return // graceful no-op: deleted/stale/cross-tenant id
+    appliedFocusRef.current = focusId
+    setActiveCategory('All')
+    setSearch('')
+    setSelectedDoc(target)
+  }, [searchParams, documents])
 
   useEffect(() => {
     const hasInProgress = documents.some((d) => d.indexing_status === 'pending' || d.indexing_status === 'processing')
@@ -525,5 +540,13 @@ export default function SOPLibraryPage() {
       {notice && <NoticeDialog title={notice.title} message={notice.message} onClose={() => setNotice(null)} />}
       <UploadModal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} onSuccess={handleUploadSuccess} />
     </div>
+  )
+}
+
+export default function SOPLibraryPage() {
+  return (
+    <Suspense>
+      <SOPLibraryPageContent />
+    </Suspense>
   )
 }

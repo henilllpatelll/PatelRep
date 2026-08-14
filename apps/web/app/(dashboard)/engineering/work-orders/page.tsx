@@ -2,8 +2,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { AlertCircle, Plus, Sparkles, Loader2, Archive } from 'lucide-react'
@@ -233,13 +234,15 @@ function sortWOs(wos: WorkOrder[], aiTriageActive = false): WorkOrder[] {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function WorkOrdersPage() {
+function WorkOrdersPageContent() {
   const { t } = useTranslation()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
   const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const appliedFocusRef = useRef<string | null>(null)
 
   const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board' | 'archived'>('work-orders')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -306,6 +309,29 @@ export default function WorkOrdersPage() {
 
   const emergencyCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'emergency').length
   const urgentCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'urgent').length
+
+  // ── Deep link: open the detail drawer for a specific work order ────────────
+
+  const allWOs = useMemo(
+    () => [
+      ...(openQ.data?.data ?? []),
+      ...(escalatedQ.data?.data ?? []),
+      ...(progressQ.data?.data ?? []),
+      ...(holdQ.data?.data ?? []),
+      ...(completedQ.data?.data ?? []),
+    ],
+    [openQ.data, escalatedQ.data, progressQ.data, holdQ.data, completedQ.data]
+  )
+
+  useEffect(() => {
+    const focusId = searchParams.get('focus')
+    if (!focusId || appliedFocusRef.current === focusId) return
+    const target = allWOs.find((wo) => wo.id === focusId)
+    if (!target) return // graceful no-op: deleted/stale/cross-tenant id, or outside the loaded lanes
+    appliedFocusRef.current = focusId
+    setSelectedWO(target)
+    setDrawerOpen(true)
+  }, [searchParams, allWOs])
 
   const handleAITriage = async () => {
     const openOrders = Object.values(columnData).flat().filter((wo) => wo.status !== 'completed')
@@ -484,5 +510,13 @@ export default function WorkOrdersPage() {
         onUpdate={handleDrawerUpdate}
       />
     </div>
+  )
+}
+
+export default function WorkOrdersPage() {
+  return (
+    <Suspense>
+      <WorkOrdersPageContent />
+    </Suspense>
   )
 }

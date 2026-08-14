@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { Plus, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
@@ -159,6 +160,8 @@ export function GuestRequestsPage() {
   const [drawerRequest, setDrawerRequest] = useState<GuestRequest | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const appliedFocusRef = useRef<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -201,6 +204,17 @@ export function GuestRequestsPage() {
     const fresh = allRequests.find(r => r.id === drawerRequest.id)
     if (fresh && fresh !== drawerRequest) setDrawerRequest(fresh)
   }, [allRequests, drawerRequest])
+
+  // Deep link: open the drawer for a specific request (?focus=<id>)
+  useEffect(() => {
+    const focusId = searchParams.get('focus')
+    if (!focusId || appliedFocusRef.current === focusId) return
+    const target = allRequests.find(r => r.id === focusId)
+    if (!target) return // graceful no-op: deleted/stale/cross-tenant id
+    appliedFocusRef.current = focusId
+    setActiveTab('active')
+    setDrawerRequest(target)
+  }, [searchParams, allRequests])
 
   return (
     <div className="flex flex-col h-full">
