@@ -171,7 +171,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   2. The GM has a dedicated, first-class dashboard home component, no longer composed from the borrowed supervisor view (HOME-02)
   3. Every dashboard home honors the density / PageHeader / StateBlock contracts and redesigns its empty/loading/error states, not just the happy path
   4. Dashboard homes render behind the Phase-30 feature flag and pass the dark-mode contrast and EN/ES key-parity gates
-**Plans**: TBD
+**Plans**: 6 plans (3 waves)
+- [ ] 32-01-PLAN.md — Dashboard i18n foundation: full dashboard.* key set (empty/gm/section) in en+es, parity gate green (unblocks parallel wave 2)
+- [ ] 32-02-PLAN.md — GM dedicated home (HOME-02): extract inline GMDashboard → own file + portfolio-snapshot redesign + states
+- [ ] 32-03-PLAN.md — Housekeeper + Engineer homes v2 restyle + skeleton/empty/error states (HOME-01)
+- [ ] 32-04-PLAN.md — Supervisor + Chief Engineer homes v2 restyle + states (HOME-01)
+- [ ] 32-05-PLAN.md — Front Desk home v2 restyle (all sections) + per-section states (HOME-01)
+- [ ] 32-06-PLAN.md — Full gate suite + Room-Board regression re-pass + live 6-role flag-on/off self-verification
 
 ### Phase 33: Core Operational Sections
 **Goal**: The floor/operational non-board sections are redesigned on the new system, including all non-happy-path states, with zero behavior change.
