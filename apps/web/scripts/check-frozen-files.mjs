@@ -34,6 +34,14 @@ function sha256(buf) {
   return createHash('sha256').update(buf).digest('hex');
 }
 
+// Git stores/checks out these files as LF (core.autocrlf normalizes on
+// commit); a Windows working tree with autocrlf=true smudges them to CRLF
+// on checkout. Normalize before hashing so the guard's result is identical
+// on Windows and the Linux CI runner, matching what's actually committed.
+function sha256Text(buf) {
+  return sha256(Buffer.from(buf.toString('utf8').replace(/\r\n/g, '\n')));
+}
+
 function loadJson(p) {
   return JSON.parse(readFileSync(p, 'utf8'));
 }
@@ -111,7 +119,7 @@ function checkFrozenFiles(manifest, allowlist) {
       violations.push({ kind: 'missing-file', file: relPath, expectedHash });
       continue;
     }
-    const actualHash = sha256(readFileSync(absPath));
+    const actualHash = sha256Text(readFileSync(absPath));
     if (actualHash === expectedHash) continue;
     if (isFileHashAllowed(relPath, actualHash, allowlist)) continue;
     violations.push({ kind: 'file-hash', file: relPath, expectedHash, actualHash });
