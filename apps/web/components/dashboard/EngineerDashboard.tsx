@@ -2,9 +2,13 @@
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
 import { Stat, Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 
 type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
@@ -36,8 +40,24 @@ function SkeletonRow() {
   )
 }
 
+function SkeletonRowV2() {
+  return (
+    <div className="animate-pulse flex items-center gap-3 px-4 py-3 border-t border-line-2">
+      <div className="w-10 h-10 rounded-[10px] bg-surface-2 border border-line-2 shrink-0" />
+      <div className="flex-1">
+        <div className="h-3 bg-surface-2 rounded w-3/4 mb-1.5" />
+        <div className="h-2 bg-surface-2 rounded w-1/2" />
+      </div>
+      <div className="h-5 bg-surface-2 rounded-full w-14" />
+    </div>
+  )
+}
+
 export function EngineerDashboard() {
+  const { t } = useTranslation()
   const user = useAuthStore(s => s.user)
+  const hotel = useHotelStore(s => s.hotel)
+  const v2 = isSectionRedesigned('dashboard', hotel)
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -45,7 +65,7 @@ export function EngineerDashboard() {
     'Engineer'
   const firstName = fullName.includes('@') ? fullName.split('@')[0] : fullName.split(' ')[0] || fullName
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-work-orders', user?.id],
     queryFn: () => engineeringApi.listWorkOrders({ assigned_to: user?.id, per_page: 20 }),
     enabled: !!user?.id,
@@ -63,6 +83,89 @@ export function EngineerDashboard() {
     ...activeWOs.filter(wo => wo.priority !== 'urgent' && wo.status === 'in_progress'),
     ...activeWOs.filter(wo => wo.priority !== 'urgent' && wo.status === 'open'),
   ]
+
+  if (v2) {
+    return (
+      <div className="flex flex-col gap-5">
+        <DashboardGreeting
+          name={firstName}
+          subtitle={
+            urgentWOs.length > 0
+              ? `${activeWOs.length} open work orders, ${urgentWOs.length} high priority.`
+              : activeWOs.length > 0
+              ? `${activeWOs.length} open work orders. All clear on urgent items.`
+              : 'No open work orders. Good shift.'
+          }
+        />
+
+        {/* Stat strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Stat label="Open WOs" value={activeWOs.length} delta={urgentWOs.length > 0 ? `${urgentWOs.length} urgent` : undefined} deltaTone={urgentWOs.length > 0 ? 'alert' : 'ready'} />
+          <Stat label="Urgent" value={urgentWOs.length} deltaTone={urgentWOs.length > 0 ? 'alert' : 'ready'} />
+          <Stat label="Completed today" value={completedToday} deltaTone="ready" />
+          <Stat label="PM due" value="—" deltaTone="caution" />
+        </div>
+
+        {/* Work order list */}
+        <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+          <div className="px-4 pt-3.5">
+            <SectionLabel
+              hint="Open"
+              action={
+                <Link
+                  href="/engineering"
+                  className="text-[11px] font-medium text-ink3 hover:text-brand transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm"
+                >
+                  View board
+                </Link>
+              }
+            >
+              Work orders
+            </SectionLabel>
+          </div>
+          {isLoading ? (
+            [...Array(4)].map((_, i) => <SkeletonRowV2 key={i} />)
+          ) : isError ? (
+            <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetch() }} />
+          ) : sortedWOs.length === 0 ? (
+            <StateBlock status="empty" empty={{ title: t('dashboard.empty.engineerNoWorkOrders') }} />
+          ) : (
+            sortedWOs.map(wo => {
+              const tone = PRIORITY_TONE[wo.priority] ?? 'neutral'
+              const loc = wo.rooms?.room_number ? `R-${wo.rooms.room_number}` : wo.location_text ?? '—'
+              return (
+                <Link
+                  key={wo.id}
+                  href="/engineering"
+                  className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]"
+                >
+                  <Mono className="text-[11px] text-ink3 shrink-0">WO-{wo.work_order_number}</Mono>
+                  <Pill tone={tone} size="sm">{wo.priority}</Pill>
+                  <span className="text-[13px] text-ink flex-1 min-w-0 truncate">{wo.title}</span>
+                  <Mono className="text-[11px] text-ink3 shrink-0">{loc}</Mono>
+                  <span className="text-[11px] text-ink3 w-9 text-right shrink-0 capitalize">
+                    {STATUS_LABEL[wo.status] ?? wo.status}
+                  </span>
+                </Link>
+              )
+            })
+          )}
+        </div>
+
+        {urgentWOs.length > 0 && (
+          <div className="bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-[var(--r-lg)] px-4 py-3.5 flex items-start gap-3 transition-colors duration-base ease-standard">
+            <span className="w-4 h-4 rounded-full bg-[var(--alert)] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5">!</span>
+            <div>
+              <p className="text-[13px] font-semibold text-[var(--alert)]">
+                {urgentWOs.length} urgent {urgentWOs.length === 1 ? 'job needs' : 'jobs need'} your attention
+              </p>
+              <p className="text-[11.5px] text-[var(--alert)] mt-0.5 opacity-80">SLA timers may be running on urgent work orders.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-5">
