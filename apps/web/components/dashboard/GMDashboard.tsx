@@ -2,10 +2,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { LogOut, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import Link from 'next/link'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
-import { Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { hotelsApi } from '@/lib/api/hotels'
+import { reportsApi } from '@/lib/api/reports'
+import { guestRequestsApi } from '@/lib/api/guest_requests'
+import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { Pill, SectionLabel, Mono, Stat } from '@/components/ui/primitives'
 import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 import { ROIMetricsStrip } from '@/components/dashboard/ROIMetricsStrip'
 import { AIRiskAlertsPanel } from '@/components/dashboard/AIRiskAlertsPanel'
@@ -15,11 +22,34 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StateBlock } from '@/components/ui/StateBlock'
 
+function getHotelIdFromSession(accessToken: string | undefined): string {
+  if (!accessToken) return ''
+  try {
+    return JSON.parse(atob(accessToken.split('.')[1]))?.hotel_id ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function SnapshotSkeleton({ rows = 1 }: { rows?: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {[...Array(rows * 2)].map((_, i) => (
+        <div key={i} className="h-20 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
+      ))}
+    </div>
+  )
+}
+
 export function GMDashboard() {
-  const { hotel } = useHotelStore()
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('dashboard', hotel)
   const storedFullName = useAuthStore((state) => state.fullName)
   const user = useAuthStore((state) => state.user)
+  const session = useAuthStore((state) => state.session)
   const queryClient = useQueryClient()
+  const hotelId = getHotelIdFromSession(session?.access_token)
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0] || 'there'
@@ -27,6 +57,7 @@ export function GMDashboard() {
 
   const today = format(new Date(), 'yyyy-MM-dd')
 
+  // Legacy board data + mutations — always called (rules of hooks), only rendered when !v2
   const { data: boardData, isLoading: boardLoading } = useQuery({
     queryKey: ['housekeeping-board-gm', today],
     queryFn: () => housekeepingApi.getBoard(today, undefined, false),
@@ -48,6 +79,218 @@ export function GMDashboard() {
     mutationFn: (roomId: string) => housekeepingApi.markCheckIn(roomId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['housekeeping-board-gm'] }),
   })
+
+  // v2 portfolio-snapshot data — always called (rules of hooks), only rendered when v2
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    isError: statsError,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ['hotel-stats', hotelId],
+    queryFn: () => hotelsApi.getStats(hotelId),
+    enabled: !!hotelId,
+    refetchInterval: 120_000,
+  })
+
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    isError: summaryError,
+    refetch: refetchSummary,
+  } = useQuery({
+    queryKey: ['daily-summary', hotelId],
+    queryFn: () => reportsApi.getDailySummary(),
+    enabled: !!hotelId,
+    refetchInterval: 120_000,
+  })
+
+  const {
+    data: guestRequestsData,
+    isLoading: guestRequestsLoading,
+    isError: guestRequestsError,
+    refetch: refetchGuestRequests,
+  } = useQuery({
+    queryKey: ['gm-open-guest-requests'],
+    queryFn: () => guestRequestsApi.listRequests({ status: 'open' }),
+    refetchInterval: 120_000,
+  })
+
+  const {
+    data: workOrdersData,
+    isLoading: workOrdersLoading,
+    isError: workOrdersError,
+    refetch: refetchWorkOrders,
+  } = useQuery({
+    queryKey: ['gm-all-work-orders'],
+    queryFn: () => engineeringApi.listWorkOrders({ per_page: 100 }),
+    refetchInterval: 120_000,
+  })
+
+  const {
+    data: aiUsageData,
+    isLoading: aiUsageLoading,
+    isError: aiUsageError,
+    refetch: refetchAiUsage,
+  } = useQuery({
+    queryKey: ['gm-ai-usage'],
+    queryFn: () => reportsApi.getAIUsage(),
+    refetchInterval: 300_000,
+  })
+
+  const stats = statsData?.data
+  const breakdown = summaryData?.data?.room_status_breakdown ?? {}
+  const roomsReady = breakdown.CLEAN ?? 0
+  const roomsDirty = breakdown.DIRTY ?? 0
+  const roomsPickup = breakdown.PICKUP ?? 0
+  const roomsInspected = breakdown.INSPECTED ?? 0
+
+  const allWorkOrders: WorkOrder[] = workOrdersData?.data ?? []
+  const openWorkOrdersList = allWorkOrders.filter((wo) => wo.status === 'open' || wo.status === 'in_progress')
+  const urgentWorkOrders = openWorkOrdersList.filter((wo) => wo.priority === 'urgent')
+  const openWorkOrdersCount = summaryData?.data?.open_work_orders ?? stats?.open_work_orders ?? openWorkOrdersList.length
+
+  const activeGuestRequests = guestRequestsData?.data?.length ?? 0
+  const staffOnShift = stats?.active_staff ?? 0
+  const openTasks = stats?.open_tasks ?? 0
+  const aiUsage = aiUsageData?.data
+
+  const roomsCardState = summaryLoading ? 'loading' : summaryError ? 'error' : !summaryData?.data ? 'empty' : null
+  const workOrdersCardState = workOrdersLoading ? 'loading' : workOrdersError ? 'error' : null
+  const guestRequestsCardState = guestRequestsLoading ? 'loading' : guestRequestsError ? 'error' : null
+  const staffCardState = statsLoading ? 'loading' : statsError ? 'error' : !stats ? 'empty' : null
+  const creditCardState = aiUsageLoading ? 'loading' : aiUsageError ? 'error' : !aiUsage ? 'empty' : null
+
+  if (v2) {
+    return (
+      <div className="space-y-5">
+        <DashboardGreeting name={firstName} subtitle={hotel?.name} />
+
+        <div>
+          <SectionLabel>{t('dashboard.gm.snapshotTitle')}</SectionLabel>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Housekeeping */}
+            <Card hover={false} className="p-4">
+              <SectionLabel className="mb-3">{t('nav.housekeeping')}</SectionLabel>
+              {roomsCardState === 'loading' ? (
+                <SnapshotSkeleton rows={2} />
+              ) : roomsCardState === 'error' ? (
+                <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchSummary() }} />
+              ) : roomsCardState === 'empty' ? (
+                <StateBlock status="empty" empty={{ title: t('dashboard.empty.gmNoData') }} />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat label={t('dashboard.gm.roomsReady')} value={roomsReady} deltaTone="info" />
+                  <Stat label={t('dashboard.gm.roomsDirty')} value={roomsDirty} deltaTone={roomsDirty > 0 ? 'alert' : 'ready'} />
+                  <Stat label={t('dashboard.gm.roomsPickup')} value={roomsPickup} deltaTone={roomsPickup > 0 ? 'caution' : 'ready'} />
+                  <Stat label={t('dashboard.gm.roomsInspected')} value={roomsInspected} deltaTone="ready" />
+                </div>
+              )}
+            </Card>
+
+            {/* Engineering */}
+            <Card hover={false} className="p-4">
+              <SectionLabel className="mb-3">{t('nav.engineering')}</SectionLabel>
+              {workOrdersCardState === 'loading' ? (
+                <SnapshotSkeleton rows={1} />
+              ) : workOrdersCardState === 'error' ? (
+                <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchWorkOrders() }} />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat label={t('dashboard.gm.openWorkOrders')} value={openWorkOrdersCount} />
+                  <Stat
+                    label={t('dashboard.gm.urgentWorkOrders')}
+                    value={urgentWorkOrders.length}
+                    deltaTone={urgentWorkOrders.length > 0 ? 'alert' : 'ready'}
+                  />
+                </div>
+              )}
+              <Link
+                href="/engineering/work-orders"
+                className="mt-3 inline-block text-[11px] font-medium text-ink3 hover:text-brand transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm"
+              >
+                {t('dashboard.gm.viewAllWorkOrders')}
+              </Link>
+            </Card>
+
+            {/* Guest requests */}
+            <Card hover={false} className="p-4">
+              <SectionLabel className="mb-3">{t('nav.guestRequests')}</SectionLabel>
+              {guestRequestsCardState === 'loading' ? (
+                <SnapshotSkeleton rows={1} />
+              ) : guestRequestsCardState === 'error' ? (
+                <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchGuestRequests() }} />
+              ) : (
+                <Stat
+                  label={t('dashboard.gm.activeGuestRequests')}
+                  value={activeGuestRequests}
+                  deltaTone={activeGuestRequests > 0 ? 'caution' : 'ready'}
+                />
+              )}
+              <Link
+                href="/guest-requests"
+                className="mt-3 inline-block text-[11px] font-medium text-ink3 hover:text-brand transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm"
+              >
+                {t('dashboard.gm.viewGuestRequests')}
+              </Link>
+            </Card>
+
+            {/* Staffing */}
+            <Card hover={false} className="p-4">
+              <SectionLabel className="mb-3">{t('nav.staff')}</SectionLabel>
+              {staffCardState === 'loading' ? (
+                <SnapshotSkeleton rows={1} />
+              ) : staffCardState === 'error' ? (
+                <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchStats() }} />
+              ) : staffCardState === 'empty' ? (
+                <StateBlock status="empty" empty={{ title: t('dashboard.empty.gmNoData') }} />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat label={t('dashboard.gm.staffOnShift')} value={staffOnShift} />
+                  <Stat label={t('dashboard.gm.openTasks')} value={openTasks} />
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel>{t('dashboard.gm.alertsTitle')}</SectionLabel>
+          <AIRiskAlertsPanel />
+        </div>
+
+        <Card hover={false} className="p-4 max-w-md">
+          <SectionLabel className="mb-3">{t('dashboard.gm.creditUsageTitle')}</SectionLabel>
+          {creditCardState === 'loading' ? (
+            <SnapshotSkeleton rows={1} />
+          ) : creditCardState === 'error' ? (
+            <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchAiUsage() }} />
+          ) : creditCardState === 'empty' ? (
+            <StateBlock status="empty" empty={{ title: t('dashboard.empty.gmNoData') }} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label={t('dashboard.gm.creditsUsed')} value={aiUsage!.total_credits_used} />
+              <Stat label={t('dashboard.gm.interactions')} value={aiUsage!.total_interactions} />
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-3">
+            <Link
+              href="/settings/billing"
+              className="text-[11px] font-medium text-ink3 hover:text-brand transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm"
+            >
+              {t('dashboard.gm.viewBilling')}
+            </Link>
+            <Link
+              href="/management-roi"
+              className="text-[11px] font-medium text-ink3 hover:text-brand transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm"
+            >
+              {t('dashboard.gm.viewManagementRoi')}
+            </Link>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
