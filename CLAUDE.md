@@ -191,13 +191,13 @@ account.
 
 | Service | URL |
 |---|---|
-| API (Railway) | https://stellar-integrity-production-f507.up.railway.app |
-| Web (Railway) | https://patelrep-production-0ad1.up.railway.app |
+| API (Railway) | https://stellar-integrity-production-30cf.up.railway.app |
+| Web (Railway) | https://patelrep-production-4e7f.up.railway.app |
 | GitHub | https://github.com/henilllpatelll/PatelRep |
 
-Railway project: `0369313e-cca1-4907-9887-d7699b883f76` · env: `7a43c126-3802-4279-9ee7-7929c889ddc9`
-API service (`stellar-integrity`): `2f1812b8-7f8f-4d24-a6e4-631d34205254` · web service (`PatelRep`): `e791035c-a89d-4f19-a2d2-d61cc0f418ce`
-Railway account: prishap110113@gmail.com (Prisha Patel) — new trial account opened 2026-07-15
+Railway project: `a33b4a39-aedb-4605-92f6-cee34e68a1d0` (`abundant-tranquility`) · env: `6823550b-ac60-407e-bc99-3ab4f2a31990`
+API service (`stellar-integrity`): `aa1e4bac-c181-4295-b6f3-3af10cf7517b` · web service (`PatelRep`): `b35304f7-baf2-4050-935e-df4ed2059cbf`
+Railway account: henilpatel08@gmail.com (Henill Patel) — new account opened 2026-08-16, after the June and July 2026 trial accounts hit trial caps and went down
 
 ### Env vars (by tier)
 **API (Railway):** `SUPABASE_URL` `SUPABASE_SERVICE_ROLE_KEY` `SUPABASE_JWT_SECRET` `OPENAI_API_KEY` `ANTHROPIC_API_KEY` `STRIPE_SECRET_KEY` `STRIPE_WEBHOOK_SECRET` `CRON_SECRET` `APP_ENV` `APP_URL`

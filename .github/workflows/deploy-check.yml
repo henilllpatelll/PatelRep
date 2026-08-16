@@ -33,8 +33,8 @@ jobs:
       - name: Verify public web and API/database readiness
         run: node scripts/public-smoke.mjs
         env:
-          PUBLIC_WEB_URL: https://patelrep-production-0ad1.up.railway.app
-          PUBLIC_API_URL: https://stellar-integrity-production-f507.up.railway.app
+          PUBLIC_WEB_URL: https://patelrep-production-4e7f.up.railway.app
+          PUBLIC_API_URL: https://stellar-integrity-production-30cf.up.railway.app
 
   check-api:
     name: API health
@@ -43,7 +43,7 @@ jobs:
       - name: Poll API /health (up to 5 min)
         run: |
           for i in $(seq 1 10); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://stellar-integrity-production-f507.up.railway.app/health || echo "000")
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://stellar-integrity-production-30cf.up.railway.app/health || echo "000")
             echo "Attempt $i — HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "API is healthy"
@@ -60,7 +60,7 @@ jobs:
       - name: Poll web app (up to 3 min)
         run: |
           for i in $(seq 1 6); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -L https://patelrep-production-0ad1.up.railway.app || echo "000")
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -L https://patelrep-production-4e7f.up.railway.app || echo "000")
             echo "Attempt $i — HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "Web is healthy"
