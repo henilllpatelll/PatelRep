@@ -4,7 +4,10 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Megaphone, Send, X, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { reportsApi } from '@/lib/api/reports'
 import { aiApi } from '@/lib/api/ai'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -16,8 +19,10 @@ import { LiveOpsGrid } from './LiveOpsGrid'
 import {
   Pill, Bar, Stat, SectionLabel, AILabel, Mono, StatusDot,
 } from '@/components/ui/primitives'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { DashboardGreeting } from './DashboardGreeting'
 import { Button, IconButton } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 
 // ── BroadcastModal ────────────────────────────────────────────────────────────
 
@@ -158,7 +163,8 @@ interface HKRow {
   risk?: boolean
 }
 
-function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
+function StaffProgress({ assignmentsData, v2 }: { assignmentsData: unknown; v2?: boolean }) {
+  const { t } = useTranslation()
   const rows: HKRow[] = (assignmentsData as any)?.data ?? []
   const [shiftPct, setShiftPct] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -175,17 +181,23 @@ function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
   }, [])
 
   return (
-    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+    <div className={cn('bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card', v2 && 'transition-shadow duration-base ease-standard')}>
       <div className="px-4 pt-3.5">
         <SectionLabel
           hint={`${rows.length} on shift`}
           action={
-            <Link href="/staff" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+            <Link
+              href="/staff"
+              className={cn(
+                'text-[11px] font-medium text-ink3 hover:text-ink transition-colors',
+                v2 && 'duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm'
+              )}
+            >
               All staff
             </Link>
           }
         >
-          Floor team
+          {v2 ? t('dashboard.section.teamOverview') : 'Floor team'}
         </SectionLabel>
       </div>
       <div className="pb-2">
@@ -235,19 +247,26 @@ function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
 
 type PillTone = 'caution' | 'alert' | 'pickup' | 'info' | 'ready' | 'accent' | 'ai' | 'neutral' | 'dirty' | 'progress' | 'clean' | 'inspected' | 'ooo'
 
-function PredictionsWidget({ risks }: { risks: any[] }) {
+function PredictionsWidget({ risks, v2, isError, onRetry }: { risks: any[]; v2?: boolean; isError?: boolean; onRetry?: () => void }) {
+  const { t } = useTranslation()
   return (
-    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+    <div className={cn('bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card', v2 && 'transition-shadow duration-base ease-standard')}>
       <div className="px-4 pt-3.5">
         <SectionLabel
           hint="Next 24h"
           action={<AILabel>Predictions</AILabel>}
         >
-          What needs attention
+          {v2 ? t('dashboard.section.atRiskRooms') : 'What needs attention'}
         </SectionLabel>
       </div>
-      {risks.length === 0 ? (
-        <p className="text-[12px] text-ink3 px-4 pb-4">No risk flags right now</p>
+      {v2 && isError ? (
+        <StateBlock status="error" error={{ message: t('common.error'), onRetry }} className="pb-4" />
+      ) : risks.length === 0 ? (
+        v2 ? (
+          <StateBlock status="empty" empty={{ title: t('dashboard.empty.supervisorNoAlerts') }} className="pb-4" />
+        ) : (
+          <p className="text-[12px] text-ink3 px-4 pb-4">No risk flags right now</p>
+        )
       ) : (
         risks.slice(0, 5).map((r: any, i: number) => {
           const room = r.rooms?.room_number ?? r.room_number ?? '—'
@@ -398,7 +417,8 @@ function RoomGridMini({ boardData }: { boardData: unknown }) {
 
 // ── ActivityFeed ──────────────────────────────────────────────────────────────
 
-function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; tasks: Task[]; risks: any[] }) {
+function ActivityFeed({ requests, tasks, risks, v2, isError, onRetry }: { requests: GuestRequest[]; tasks: Task[]; risks: any[]; v2?: boolean; isError?: boolean; onRetry?: () => void }) {
+  const { t } = useTranslation()
   type FeedTone = 'ready' | 'ai' | 'accent' | 'alert' | 'neutral'
   interface FeedItem { t: string; who: string; what: string; tgt: string; tone: FeedTone }
 
@@ -429,12 +449,18 @@ function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; ta
   }
 
   return (
-    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+    <div className={cn('bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card', v2 && 'transition-shadow duration-base ease-standard')}>
       <div className="px-4 pt-3.5 pb-3">
         <SectionLabel
           hint="Last hour"
           action={
-            <Link href="/logbook" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+            <Link
+              href="/logbook"
+              className={cn(
+                'text-[11px] font-medium text-ink3 hover:text-ink transition-colors',
+                v2 && 'duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm'
+              )}
+            >
               View all
             </Link>
           }
@@ -443,8 +469,14 @@ function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; ta
         </SectionLabel>
       </div>
       <div className="px-4 pb-3.5">
-        {sorted.length === 0 ? (
-          <p className="text-[12px] text-ink3 py-2">No recent activity</p>
+        {v2 && isError ? (
+          <StateBlock status="error" error={{ message: t('common.error'), onRetry }} />
+        ) : sorted.length === 0 ? (
+          v2 ? (
+            <StateBlock status="empty" empty={{ title: t('dashboard.empty.supervisorNoRequests') }} />
+          ) : (
+            <p className="text-[12px] text-ink3 py-2">No recent activity</p>
+          )
         ) : (
           sorted.map((e, i) => {
             const tc = toneClasses[e.tone]
@@ -473,6 +505,9 @@ function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; ta
 // ── SupervisorDashboard ───────────────────────────────────────────────────────
 
 export function SupervisorDashboard() {
+  const { t } = useTranslation()
+  const hotel = useHotelStore(s => s.hotel)
+  const v2 = isSectionRedesigned('dashboard', hotel)
   const storedFullName = useAuthStore(s => s.fullName)
   const user = useAuthStore(s => s.user)
   const [broadcastOpen, setBroadcastOpen] = useState(false)
@@ -481,25 +516,25 @@ export function SupervisorDashboard() {
     ? storedFullName.split(' ')[0] || 'Supervisor'
     : (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || 'Supervisor'
 
-  const { data: summaryData } = useQuery({
+  const { data: summaryData, isError: summaryError, refetch: refetchSummary } = useQuery({
     queryKey: ['daily-summary'],
     queryFn: () => reportsApi.getDailySummary(),
     refetchInterval: 60_000,
   })
 
-  const { data: alertsData } = useQuery({
+  const { data: alertsData, isError: alertsError, refetch: refetchAlerts } = useQuery({
     queryKey: ['ai-risk-alerts'],
     queryFn: () => aiApi.getRiskAlerts(),
     refetchInterval: 120_000,
   })
 
-  const { data: requestsData } = useQuery({
+  const { data: requestsData, isError: requestsError, refetch: refetchRequests } = useQuery({
     queryKey: ['guest-requests-open'],
     queryFn: () => guestRequestsApi.listRequests({ status: 'open', per_page: 6 }),
     refetchInterval: 60_000,
   })
 
-  const { data: tasksData } = useQuery({
+  const { data: tasksData, isError: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', { status: 'open' }],
     queryFn: () => tasksApi.list({ status: 'open', per_page: 6 }),
     refetchInterval: 60_000,
@@ -514,7 +549,7 @@ export function SupervisorDashboard() {
     refetchInterval: 10_000,
   })
 
-  const { data: boardData, isLoading: boardLoading } = useQuery({
+  const { data: boardData, isLoading: boardLoading, isError: boardError, refetch: refetchBoard } = useQuery({
     queryKey: ['housekeeping-board', todayISO],
     queryFn: () => housekeepingApi.getBoard(todayISO, undefined, false),
     staleTime: 0,
@@ -535,6 +570,7 @@ export function SupervisorDashboard() {
     inspectedPct,
   } = getSupervisorHousekeepingMetrics(boardData, breakdown)
 
+  if (!v2) {
   return (
     <div className="flex flex-col gap-5">
       {/* Greeting */}
@@ -648,6 +684,156 @@ export function SupervisorDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-5">
         <RoomGridMini boardData={boardData} />
         <ActivityFeed requests={openRequests} tasks={openTasks} risks={hkRisks} />
+      </div>
+    </div>
+  )
+  }
+
+  // ── v2 branch ──────────────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Greeting */}
+      <div className="flex items-end justify-between gap-6">
+        <div>
+          <DashboardGreeting
+            name={firstName}
+            subtitle={
+              hkRisks.length > 0
+                ? `${hkRisks.length} room${hkRisks.length > 1 ? 's' : ''} flagged. ${cleanPending > 0 ? `${cleanPending} ready for inspection.` : 'Inspections up to date.'}`
+                : cleanPending > 0
+                ? `${cleanPending} room${cleanPending > 1 ? 's' : ''} ready for inspection. Housekeeping on track.`
+                : 'All rooms accounted for. Good start to the shift.'
+            }
+          />
+        </div>
+        <div className="flex gap-2 pb-1 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBroadcastOpen(true)}
+            className="gap-1.5 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+          >
+            <Megaphone size={13} />
+            Broadcast
+          </Button>
+          <Link
+            href="/tasks"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand text-brand-ink text-[12px] font-semibold rounded-[var(--r-md)] transition-colors duration-fast ease-standard hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+          >
+            New task
+          </Link>
+        </div>
+      </div>
+      {broadcastOpen && <BroadcastModal onClose={() => setBroadcastOpen(false)} />}
+
+      {/* Morning briefing */}
+      {summaryError ? (
+        <div className="bg-surface border border-line rounded-[var(--r-xl)] shadow-card">
+          <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchSummary() }} />
+        </div>
+      ) : summary && (
+        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] overflow-hidden bg-surface border border-line rounded-[var(--r-xl)] min-h-[200px] shadow-card transition-shadow duration-base ease-standard">
+          <div className="p-6 flex flex-col gap-3.5">
+            <div className="flex items-center gap-2.5">
+              <AILabel confidence={91}>Morning briefing</AILabel>
+              <span className="text-[11px] font-mono text-ink3">
+                Generated {format(new Date(), 'h:mm a')} · Sonnet 3.5
+              </span>
+            </div>
+            <p className="font-display italic text-[20px] leading-[1.35] text-ink tracking-[-0.2px] flex-1">
+              {hkRisks.length > 0
+                ? <>
+                    <span className="not-italic font-sans font-medium bg-[var(--caution-soft)] px-1.5 py-px rounded">{hkRisks.length} rooms flagged</span>
+                    {' '}at risk. {cleanPending > 0 ? `${cleanPending} rooms clean and waiting for inspection.` : 'Inspections up to date.'}
+                  </>
+                : cleanPending > 0
+                ? `${cleanPending} room${cleanPending > 1 ? 's' : ''} ready for inspection. Housekeeping on track.`
+                : 'All rooms accounted for. Good start to the shift.'
+              }
+            </p>
+            <div className="flex items-center gap-2 mt-auto">
+              <Link
+                href="/housekeeping"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand text-brand-ink text-[12px] font-semibold rounded-[var(--r-md)] transition-colors duration-fast ease-standard hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+              >
+                View board
+              </Link>
+            </div>
+          </div>
+          <div className="bg-ink text-paper p-6 flex flex-col gap-2.5 relative overflow-hidden">
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'radial-gradient(circle at 80% 20%, var(--brand) 0%, transparent 50%)', opacity: 0.25 }}
+            />
+            <p className="text-[10px] uppercase tracking-[1.4px] opacity-60 relative">Right now</p>
+            <div className="flex flex-col gap-2.5 relative">
+              {[
+                { label: 'Total rooms', value: totalRooms },
+                { label: 'Assigned',    value: assignedTotal },
+                { label: 'To inspect',  value: cleanPending },
+                { label: 'Inspected',   value: `${inspectedPct}%` },
+              ].map(({ label, value }, i) => (
+                <div key={label} className={`flex items-baseline gap-2.5 ${i < 3 ? 'border-b border-white/10 pb-2.5' : ''}`}>
+                  <span className="text-[11px] opacity-60 flex-1 uppercase tracking-[0.5px]">{label}</span>
+                  <span className="font-mono text-[17px] font-medium">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stat strip */}
+      {boardError ? (
+        <StateBlock
+          status="error"
+          error={{ message: t('common.error'), onRetry: () => refetchBoard() }}
+          className="bg-surface border border-line rounded-[var(--r-lg)]"
+        />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {boardLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-surface border border-line rounded-[var(--r-lg)] p-[14px_16px] flex flex-col gap-2 min-h-[96px] animate-pulse"
+              >
+                <div className="h-2.5 w-16 bg-surface-3 rounded" />
+                <div className="h-6 w-10 bg-surface-3 rounded mt-1" />
+                <div className="h-3 w-12 bg-surface-3 rounded mt-auto" />
+              </div>
+            ))
+          ) : (
+            <>
+              <Stat label="Total Rooms" value={totalRooms} />
+              <Stat label="Assigned" value={assignedTotal} deltaTone={assignedTotal > 0 ? 'caution' : 'ready'} />
+              <Stat label="To Inspect" value={cleanPending} deltaTone={cleanPending > 0 ? 'info' : 'ready'} />
+              <Stat label="Inspected" value={`${inspectedPct}%`} deltaTone="ready" />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Live ops strip */}
+      <LiveOpsGrid />
+
+      {/* Staff progress + Predictions */}
+      <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-5">
+        <StaffProgress assignmentsData={assignmentsData} v2 />
+        <PredictionsWidget risks={hkRisks} v2 isError={alertsError} onRetry={() => refetchAlerts()} />
+      </div>
+
+      {/* Room grid + Activity feed */}
+      <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-5">
+        <RoomGridMini boardData={boardData} />
+        <ActivityFeed
+          requests={openRequests}
+          tasks={openTasks}
+          risks={hkRisks}
+          v2
+          isError={requestsError || tasksError}
+          onRetry={() => { refetchRequests(); refetchTasks() }}
+        />
       </div>
     </div>
   )
