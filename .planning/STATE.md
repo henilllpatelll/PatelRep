@@ -4,35 +4,37 @@ milestone: v2.0
 milestone_name: Web UI/UX Redesign
 status: phase_complete
 last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-14 -- Phase 31 (Shell & Navigation Redesign) CLOSED. 6/6 plans complete, phase-goal verification PASSED (6/6 must-haves, independently re-checked by gsd-verifier). Orchestrator follow-up this session: discovered no v2.0 work had ever been deployed, pushed all 61+ commits to origin/main, found and fixed a real Room-Board regression-harness mask gap (Sidebar/Header weren't masked, causing false failures), re-verified zero drift flag-off AND flag-on against the real deployment, and live-verified notifications/collapse/record-search against production. Next: Phase 32 (Role Dashboard Homes), not yet started.
+last_activity: 2026-08-16 -- Phase 32 (Role Dashboard Homes) plan 32-01 (i18n Foundation) CLOSED. Added dashboard.empty.*/gm.*/section.* key set (36 keys) to en.ts + es.ts with real Spanish, check:i18n-parity (1468 keys)/verify:i18n-gate/type-check all green. en.ts/es.ts now frozen for the rest of Phase 32 — unblocks 32-02..32-05 wave-2 parallel execution.
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 12
-  completed_plans: 12
-  percent: 25
+  total_plans: 13
+  completed_plans: 13
+  percent: 26
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 32 of 37 (Role Dashboard Homes) — not yet started
-Plan: — (Phase 31 fully closed; Phase 32 awaiting /gsd-discuss-phase or /gsd-plan-phase)
-Status: Phase 31 closed. Proceeding autonomously (user said "continue" after Phase 30 closed, applies through this milestone)
-Last activity: 2026-08-14 — Phase 31 verified PASSED and marked complete in ROADMAP.md/REQUIREMENTS.md. See 31-VERIFICATION entry below.
+Phase: 32 of 37 (Role Dashboard Homes) — in progress
+Plan: 32-01 of N complete (i18n Foundation CLOSED); wave 2 (32-02..32-05) not yet started
+Status: Phase 32 plan 1/N closed. Proceeding autonomously (user said "continue" after Phase 30 closed, applies through this milestone)
+Last activity: 2026-08-16 — Plan 32-01 (i18n Foundation) executed and closed. See 32-01 entry below.
 
-Progress: [██░░░░░░░░] 25% (2/8 phases)
+Progress: [██░░░░░░░░] 26% (2/8 phases, plan-level progress within Phase 32 tracked separately)
 
 v2.0 phase map:
 - Phase 30: Additive Foundation & Regression Harness — FOUND-01..06 (exit gate: excluded Room Boards pixel-identical) — CLOSED 2026-08-14, verification PASSED 6/6
 - Phase 31: Shell & Navigation Redesign — NAV-01..06 — CLOSED 2026-08-14, verification PASSED 6/6 (found+fixed a real regression-harness mask gap along the way, load-bearing for Phases 32-36)
-- Phase 32: Role Dashboard Homes — HOME-01, HOME-02 — Not started
+- Phase 32: Role Dashboard Homes — HOME-01, HOME-02 — In progress (32-01 CLOSED, wave 2 not started)
 - Phase 33: Core Operational Sections — SEC-01a
 - Phase 34: Management & Admin Sections — SEC-01b
 - Phase 35: Engineering Section Chrome — ENG-01
 - Phase 36: Housekeeping Section Chrome — HSK-01
 - Phase 37: Final QA & Rollout — QA-01..03
+
+**32-01 CLOSED (2026-08-16, commits `d5e89cd7`/`79624846`):** i18n foundation for the six redesigned dashboard homes, autonomous, wave 1, `depends_on: []`. Added `dashboard.empty.*` (12 keys, role-specific empty-state copy for `StateBlock status='empty'`), `dashboard.gm.*` (19 keys, GM portfolio-snapshot labels/card titles/drill-down links), and `dashboard.section.*` (5 keys, shared section headings) to the existing `dashboard:` block in both `en.ts` and `es.ts`, with real natural Spanish (not placeholders) for every new key; pre-existing `dashboard.greeting.*` left byte-unchanged. This plan is the SOLE owner of `en.ts`/`es.ts` for all of Phase 32 — the four wave-2 home plans (32-02..32-05) must consume these keys read-only and must not edit either locale file, avoiding merge collisions during their parallel execution. `npm run check:i18n-parity` (1468 keys, up from 1432), `npm run verify:i18n-gate`, and `npm run type-check` all green after both tasks. Section-flag key confirmed as `'dashboard'` for downstream `isSectionRedesigned('dashboard', hotel)` toggling. No deviations — plan executed exactly as written. See `32-01-SUMMARY.md`.
 
 **31-06 CLOSED (2026-08-14, verification-only, no commits — `files_modified: []`):** Phase 31 close-out gate: full standing web gate suite + Phase-30 Room-Board regression re-pass + live browser self-verification, autonomous, wave 4, depends_on 31-01..31-05. All 10 standing gates green (`type-check`, `lint`, `build`, `check:frozen-files` — zero frozen-hash/room-status drift across all 5 prior plans combined — `check:i18n-parity` 1432 keys, `check:contrast` 10 enforced pairings all WCAG AA, `verify:i18n-gate`, `check:floor-copy`, `test:unit` 18/18 including both 31-05 RBAC matrix invariants). `test:e2e:regression` re-ran 12/12 at zero pixel drift against production, flag-off state (the regression fixture tenant's permanent `web_redesign_sections: []`) — the flag-ON re-run needs live Supabase MCP write access this executor session lacked, deferred to the orchestrator. Live browser self-verification used ad-hoc Playwright scripts (the project's own installed `@playwright/test`, no MCP browser tool available) against already-running local dev servers: confirmed NAV-02 collapse/persist/expand/mobile-full-width, NAV-03 notification tab toggle (no seeded notifications to test mark-read data-mutation specifically), NAV-04 command palette room search (navigates to correct `?room=<uuid>` deep link) and work-order search (finds seeded fixture WO by title) both for GM and housekeeping_supervisor accounts, NAV-01 zero console errors on 3 adjacent routes. Key finding enabling this: grepped `Sidebar.tsx`/`Header.tsx`/`CommandPalette.tsx` and confirmed the `redesigned` prop only ever gates styling (colors/z-index/transitions/focus-rings), never functionality — so golden-path *behavior* was genuinely live-verified even without flag-on access; only the v2 *visual* polish itself (separately proven WCAG-AA by `check:contrast`) remains unconfirmed by eye this session. Two apparent live-check failures (palette room click, palette WO search) were investigated with an isolated debug script rather than accepted at face value — both were test-script locator artifacts (ambiguous `[role="dialog"]` match against a still-open `RoomDetailDrawer`), not product bugs; re-verified clean in isolation. Remaining work flagged precisely for the orchestrator: (1) flag-on regression re-run, (2) visual (not just functional) confirmation of the combined v2 restyle, (3) notification mark-read click-through (fixture tenant has zero seeded notifications), (4) live login for the 4 roles the regression fixture doesn't seed (housekeeper/engineer/chief_engineer/front_desk — 31-05's matrix is the authoritative proof for all 6), (5) guest-request/SOP palette groups (no seeded fixture data, byte-identical implementation to the verified rooms/work-orders groups). See `31-06-SUMMARY.md`.
 
