@@ -31,8 +31,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Dashboard Homes
 
-- [ ] **HOME-01**: Each of the 6 roles (housekeeper, engineer, housekeeping_supervisor, chief_engineer, front_desk, gm) has a redesigned, purpose-built dashboard home appropriate to their information needs
-- [ ] **HOME-02**: GM gets a first-class, dedicated dashboard home component (replacing the current borrowed-supervisor-view composition)
+- [x] **HOME-01**: Each of the 6 roles (housekeeper, engineer, housekeeping_supervisor, chief_engineer, front_desk, gm) has a redesigned, purpose-built dashboard home appropriate to their information needs
+- [x] **HOME-02**: GM gets a first-class, dedicated dashboard home component (replacing the current borrowed-supervisor-view composition)
 
 ### Sections
 
@@ -91,8 +91,8 @@ None deferred from this milestone's own scoping — the anti-features below were
 | NAV-04 | Phase 31 | Complete |
 | NAV-05 | Phase 31 | Complete |
 | NAV-06 | Phase 31 | Complete |
-| HOME-01 | Phase 32 | Pending |
-| HOME-02 | Phase 32 | Pending |
+| HOME-01 | Phase 32 | Complete |
+| HOME-02 | Phase 32 | Complete |
 | SEC-01 (SEC-01a) | Phase 33 | Pending |
 | SEC-01 (SEC-01b) | Phase 34 | Pending |
 | ENG-01 | Phase 35 | Pending |
