@@ -19,7 +19,7 @@ function buildCSP() {
     'wss://*.supabase.co',
     'https://patelrep-production.up.railway.app',
     'https://patelrep-web-production.up.railway.app',
-    'https://stellar-integrity-production-f507.up.railway.app',
+    'https://stellar-integrity-production-30cf.up.railway.app',
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ]
 
