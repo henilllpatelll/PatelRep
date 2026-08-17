@@ -50,19 +50,23 @@ const REQUEST_STATUS_TONE: Record<string, 'alert' | 'caution' | 'ready' | 'neutr
   escalated: 'alert',
 }
 
-function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
+function LateCheckoutRow({ req, onApprove, onDeny, resolving, v2 }: {
   req: LateCheckoutRequest
   onApprove: (id: string, confirmedTime: string) => void
   onDeny: (id: string) => void
   resolving: boolean
+  v2?: boolean
 }) {
   const [mode, setMode] = useState<'idle' | 'approving' | 'denying'>('idle')
   const [confirmedTime, setConfirmedTime] = useState(req.requested_time)
+  const motion = v2 ? 'duration-base ease-standard' : ''
+  const iconRadius = v2 ? 'rounded-[var(--r-md)]' : 'rounded-lg'
+  const panelRadius = v2 ? 'rounded-[var(--r-md)]' : 'rounded-lg'
 
   return (
     <div className="flex flex-col gap-2 px-4 py-3 border-t border-line-2">
       <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-lg bg-surface-2 border border-line flex items-center justify-center shrink-0">
+        <div className={`w-7 h-7 ${iconRadius} bg-surface-2 border border-line flex items-center justify-center shrink-0`}>
           <Clock className="w-3.5 h-3.5 text-ink3" />
         </div>
         <div className="flex-1 min-w-0">
@@ -73,10 +77,10 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
         </div>
         {mode === 'idle' && (
           <div className="flex gap-1.5 shrink-0">
-            <Button variant="secondary" size="sm" onClick={() => setMode('approving')} className="border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)] hover:bg-[var(--ready)] hover:text-white">
+            <Button variant="secondary" size="sm" onClick={() => setMode('approving')} className={`border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)] hover:bg-[var(--ready)] hover:text-white ${motion}`}>
               Approve
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setMode('denying')} className="bg-surface-2 border border-line text-ink3 hover:bg-[var(--alert-soft)] hover:text-[var(--alert)] hover:border-[var(--alert-line)]">
+            <Button variant="ghost" size="sm" onClick={() => setMode('denying')} className={`bg-surface-2 border border-line text-ink3 hover:bg-[var(--alert-soft)] hover:text-[var(--alert)] hover:border-[var(--alert-line)] ${motion}`}>
               Deny
             </Button>
           </div>
@@ -84,7 +88,7 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
       </div>
 
       {mode === 'approving' && (
-        <div className="flex items-center gap-2 ml-10 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg px-3 py-2">
+        <div className={`flex items-center gap-2 ml-10 bg-[var(--ready-soft)] border border-[var(--ready-line)] ${panelRadius} px-3 py-2`}>
           <span className="text-[11.5px] text-[var(--ready)] font-medium shrink-0">Confirm time:</span>
           <input
             value={confirmedTime}
@@ -92,22 +96,22 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
             placeholder="e.g. 1:00 PM"
             className="flex-1 text-[12px] bg-transparent border-none outline-none text-ink font-medium"
           />
-          <Button variant="primary" size="sm" loading={resolving} disabled={!confirmedTime.trim()} onClick={() => onApprove(req.id, confirmedTime)} className="gap-1 bg-[var(--ready)]">
+          <Button variant="primary" size="sm" loading={resolving} disabled={!confirmedTime.trim()} onClick={() => onApprove(req.id, confirmedTime)} className={`gap-1 bg-[var(--ready)] ${motion}`}>
             <Check size={11} />
             Confirm
           </Button>
-          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className="text-ink3 hover:text-ink2"><X size={14} /></IconButton>
+          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className={`text-ink3 hover:text-ink2 ${motion}`}><X size={14} /></IconButton>
         </div>
       )}
 
       {mode === 'denying' && (
-        <div className="flex items-center gap-2 ml-10 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
+        <div className={`flex items-center gap-2 ml-10 bg-[var(--alert-soft)] border border-[var(--alert-line)] ${panelRadius} px-3 py-2`}>
           <span className="text-[11.5px] text-[var(--alert)] font-medium">Deny late checkout for room {req.room_number}?</span>
-          <Button variant="primary" size="sm" loading={resolving} onClick={() => onDeny(req.id)} className="ml-auto gap-1 bg-[var(--alert)] shrink-0">
+          <Button variant="primary" size="sm" loading={resolving} onClick={() => onDeny(req.id)} className={`ml-auto gap-1 bg-[var(--alert)] shrink-0 ${motion}`}>
             <X size={11} />
             Deny
           </Button>
-          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className="text-ink3 hover:text-ink2 shrink-0"><X size={14} /></IconButton>
+          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className={`text-ink3 hover:text-ink2 shrink-0 ${motion}`}><X size={14} /></IconButton>
         </div>
       )}
     </div>
@@ -128,15 +132,19 @@ function SkeletonRow({ v2 }: { v2?: boolean } = {}) {
   )
 }
 
-function GuestRequestRow({ req }: { req: GuestRequest }) {
+function GuestRequestRow({ req, v2 }: { req: GuestRequest; v2?: boolean }) {
   const tone = REQUEST_STATUS_TONE[req.status] ?? 'neutral'
   const statusLabel = ['acknowledged', 'dispatched', 'arrived', 'guest_contacted'].includes(req.status) ? 'Active' : req.status
   return (
     <Link
       href="/guest-requests"
-      className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors"
+      className={
+        v2
+          ? 'flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors duration-base ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]'
+          : 'flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors'
+      }
     >
-      <div className="w-7 h-7 rounded-lg bg-surface-2 border border-line flex items-center justify-center shrink-0">
+      <div className={`w-7 h-7 ${v2 ? 'rounded-[var(--r-md)]' : 'rounded-lg'} bg-surface-2 border border-line flex items-center justify-center shrink-0`}>
         <Bell className="w-3.5 h-3.5 text-ink3" />
       </div>
       <div className="flex-1 min-w-0">
@@ -184,13 +192,13 @@ export function FrontDeskDashboard() {
     refetchInterval: 60_000,
   })
 
-  const { data: requestsData, isLoading: requestsLoading } = useQuery({
+  const { data: requestsData, isLoading: requestsLoading, isError: requestsIsError, refetch: refetchRequests } = useQuery({
     queryKey: ['guest-requests-open'],
     queryFn: () => guestRequestsApi.listRequests({ status: 'open', per_page: 8 }),
     refetchInterval: 60_000,
   })
 
-  const { data: activeRequestsData } = useQuery({
+  const { data: activeRequestsData, isError: activeRequestsIsError, refetch: refetchActiveRequests } = useQuery({
     queryKey: ['guest-requests-active'],
     queryFn: async () => {
       const response = await guestRequestsApi.listRequests({ per_page: 100 })
@@ -202,7 +210,7 @@ export function FrontDeskDashboard() {
     refetchInterval: 60_000,
   })
 
-  const { data: lateCheckoutsData, isLoading: lateCheckoutsLoading } = useQuery({
+  const { data: lateCheckoutsData, isLoading: lateCheckoutsLoading, isError: lateCheckoutsIsError, refetch: refetchLateCheckouts } = useQuery({
     queryKey: ['late-checkout-requests-pending'],
     queryFn: () => lateCheckoutApi.list({ status: 'pending' }),
     refetchInterval: 30_000,
@@ -387,7 +395,10 @@ export function FrontDeskDashboard() {
               <SectionLabel
                 hint={allRequests.length > 0 ? `${allRequests.length} open` : undefined}
                 action={
-                  <Link href="/guest-requests" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+                  <Link
+                    href="/guest-requests"
+                    className="text-[11px] font-medium text-ink3 hover:text-brand transition-colors duration-base ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm"
+                  >
                     All requests
                   </Link>
                 }
@@ -396,14 +407,16 @@ export function FrontDeskDashboard() {
               </SectionLabel>
             </div>
             {requestsLoading ? (
-              [...Array(3)].map((_, i) => <SkeletonRow key={i} />)
+              [...Array(3)].map((_, i) => <SkeletonRow key={i} v2 />)
+            ) : requestsIsError || activeRequestsIsError ? (
+              <StateBlock
+                status="error"
+                error={{ message: t('common.error'), onRetry: () => { refetchRequests(); refetchActiveRequests() } }}
+              />
             ) : allRequests.length === 0 ? (
-              <div className="py-8 flex flex-col items-center gap-2">
-                <CheckCircle2 className="w-8 h-8 text-[var(--ready-line)]" />
-                <p className="text-[13px] text-ink3">No open guest requests</p>
-              </div>
+              <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoRequests') }} />
             ) : (
-              allRequests.map(r => <GuestRequestRow key={r.id} req={r} />)
+              allRequests.map(r => <GuestRequestRow key={r.id} req={r} v2 />)
             )}
           </div>
         </div>
@@ -416,12 +429,11 @@ export function FrontDeskDashboard() {
             </SectionLabel>
           </div>
           {lateCheckoutsLoading ? (
-            [...Array(2)].map((_, i) => <SkeletonRow key={i} />)
+            [...Array(2)].map((_, i) => <SkeletonRow key={i} v2 />)
+          ) : lateCheckoutsIsError ? (
+            <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchLateCheckouts() }} />
           ) : pendingLateCheckouts.length === 0 ? (
-            <div className="py-8 flex flex-col items-center gap-2">
-              <CheckCircle2 className="w-8 h-8 text-[var(--ready-line)]" />
-              <p className="text-[13px] text-ink3">No pending late checkouts</p>
-            </div>
+            <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoLateCheckouts') }} />
           ) : (
             pendingLateCheckouts.map(req => (
               <LateCheckoutRow
@@ -430,6 +442,7 @@ export function FrontDeskDashboard() {
                 resolving={resolvingId === req.id}
                 onApprove={(id, confirmedTime) => resolveRequest({ id, status: 'approved', confirmed_time: confirmedTime })}
                 onDeny={(id) => resolveRequest({ id, status: 'denied' })}
+                v2
               />
             ))
           )}
