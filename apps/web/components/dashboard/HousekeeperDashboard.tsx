@@ -119,7 +119,7 @@ export function HousekeeperDashboard() {
                   </Link>
                 }
               >
-                {t('dashboard.section.myQueue')}
+                <span data-i18n-skip="true">{t('dashboard.section.myQueue')}</span>
               </SectionLabel>
             </div>
             {isLoadingRooms ? (
@@ -134,7 +134,9 @@ export function HousekeeperDashboard() {
                 error={{ message: t('common.error'), onRetry: () => { refetchMyRooms(); refetchBoard() } }}
               />
             ) : rooms.length === 0 ? (
-              <StateBlock status="empty" empty={{ title: t('dashboard.empty.housekeeperNoRooms') }} />
+              <div data-i18n-skip="true">
+                <StateBlock status="empty" empty={{ title: t('dashboard.empty.housekeeperNoRooms') }} />
+              </div>
             ) : (
               <div>
                 {rooms.map((room: any, i: number) => {
@@ -182,7 +184,7 @@ export function HousekeeperDashboard() {
           <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
             <div className="px-4 pt-3.5">
               <SectionLabel hint="Next 24h" action={<AILabel>Predictions</AILabel>}>
-                {t('dashboard.section.headsUp')}
+                <span data-i18n-skip="true">{t('dashboard.section.headsUp')}</span>
               </SectionLabel>
             </div>
             {hkRisks.length === 0 ? (
@@ -206,12 +208,14 @@ export function HousekeeperDashboard() {
               })
             )}
             <div className="px-4 pt-3 border-t border-line-2">
-              <SectionLabel>{t('dashboard.section.myTasks')}</SectionLabel>
+              <SectionLabel><span data-i18n-skip="true">{t('dashboard.section.myTasks')}</span></SectionLabel>
             </div>
             {tasksError ? (
               <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchTasks() }} />
             ) : tasks.length === 0 ? (
-              <StateBlock status="empty" empty={{ title: t('dashboard.empty.housekeeperNoTasks') }} />
+              <div data-i18n-skip="true">
+                <StateBlock status="empty" empty={{ title: t('dashboard.empty.housekeeperNoTasks') }} />
+              </div>
             ) : (
               tasks.map(t2 => (
                 <Link

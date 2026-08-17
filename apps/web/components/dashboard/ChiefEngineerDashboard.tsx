@@ -412,10 +412,12 @@ export function ChiefEngineerDashboard() {
         ) : woLoading ? (
           [...Array(4)].map((_, i) => <SkeletonRow key={i} v2 />)
         ) : sortedWOs.length === 0 ? (
-          <StateBlock
-            status="empty"
-            empty={{ icon: <CheckCircle2 className="w-5 h-5" />, title: t('dashboard.empty.chiefNoWorkOrders') }}
-          />
+          <div data-i18n-skip="true">
+            <StateBlock
+              status="empty"
+              empty={{ icon: <CheckCircle2 className="w-5 h-5" />, title: t('dashboard.empty.chiefNoWorkOrders') }}
+            />
+          </div>
         ) : (
           sortedWOs.slice(0, 8).map(wo => {
             const tone = PRIORITY_TONE[wo.priority] ?? 'neutral'
@@ -546,7 +548,9 @@ export function ChiefEngineerDashboard() {
             <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchPredictions() }} />
           </div>
         ) : highRiskAssets.length === 0 ? (
-          <StateBlock status="empty" empty={{ icon: <Zap className="w-5 h-5" />, title: t('dashboard.empty.chiefNoAssets') }} />
+          <div data-i18n-skip="true">
+            <StateBlock status="empty" empty={{ icon: <Zap className="w-5 h-5" />, title: t('dashboard.empty.chiefNoAssets') }} />
+          </div>
         ) : (
           <div className="px-4 pb-3">
             <div className="bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3.5 mb-3">

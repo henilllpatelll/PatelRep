@@ -182,7 +182,7 @@ function StaffProgress({ assignmentsData, v2 }: { assignmentsData: unknown; v2?:
 
   return (
     <div className={cn('bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card', v2 && 'transition-shadow duration-base ease-standard')}>
-      <div className="px-4 pt-3.5">
+      <div className="px-4 pt-3.5" data-i18n-skip={v2 ? 'true' : undefined}>
         <SectionLabel
           hint={`${rows.length} on shift`}
           action={
@@ -251,7 +251,7 @@ function PredictionsWidget({ risks, v2, isError, onRetry }: { risks: any[]; v2?:
   const { t } = useTranslation()
   return (
     <div className={cn('bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card', v2 && 'transition-shadow duration-base ease-standard')}>
-      <div className="px-4 pt-3.5">
+      <div className="px-4 pt-3.5" data-i18n-skip={v2 ? 'true' : undefined}>
         <SectionLabel
           hint="Next 24h"
           action={<AILabel>Predictions</AILabel>}
@@ -263,7 +263,9 @@ function PredictionsWidget({ risks, v2, isError, onRetry }: { risks: any[]; v2?:
         <StateBlock status="error" error={{ message: t('common.error'), onRetry }} className="pb-4" />
       ) : risks.length === 0 ? (
         v2 ? (
-          <StateBlock status="empty" empty={{ title: t('dashboard.empty.supervisorNoAlerts') }} className="pb-4" />
+          <div data-i18n-skip="true">
+            <StateBlock status="empty" empty={{ title: t('dashboard.empty.supervisorNoAlerts') }} className="pb-4" />
+          </div>
         ) : (
           <p className="text-[12px] text-ink3 px-4 pb-4">No risk flags right now</p>
         )
@@ -473,7 +475,9 @@ function ActivityFeed({ requests, tasks, risks, v2, isError, onRetry }: { reques
           <StateBlock status="error" error={{ message: t('common.error'), onRetry }} />
         ) : sorted.length === 0 ? (
           v2 ? (
-            <StateBlock status="empty" empty={{ title: t('dashboard.empty.supervisorNoRequests') }} />
+            <div data-i18n-skip="true">
+              <StateBlock status="empty" empty={{ title: t('dashboard.empty.supervisorNoRequests') }} />
+            </div>
           ) : (
             <p className="text-[12px] text-ink3 py-2">No recent activity</p>
           )

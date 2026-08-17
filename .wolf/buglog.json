@@ -2,6 +2,25 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-962",
+      "timestamp": "2026-08-17T00:00:00.000Z",
+      "error_message": "32-06 close-out live ES verification: several new dashboard.gm.*/dashboard.section.*/dashboard.empty.* strings rendered as garbled EN/ES word hybrids in Spanish locale (e.g. 'IA CREDIT USO' instead of 'Uso de creditos de IA', 'View all Ordenes' instead of 'Ver todas las ordenes de trabajo', 'No Solicitudes need attention' instead of the correct dashboard.empty.frontDeskNoRequests value) across GMDashboard, FrontDeskDashboard, SupervisorDashboard, ChiefEngineerDashboard (live-verified) and HousekeeperDashboard/EngineerDashboard (code-fixed, web-unreachable — housekeeper/engineer are MOBILE_ONLY_ROLES).",
+      "file": "apps/web/i18n/domTranslations.ts (root cause, untouched), apps/web/components/dashboard/GMDashboard.tsx, FrontDeskDashboard.tsx, SupervisorDashboard.tsx, ChiefEngineerDashboard.tsx, HousekeeperDashboard.tsx, EngineerDashboard.tsx (fix)",
+      "root_cause": "domTranslations.ts is a legacy, page-wide MutationObserver-based DOM text translator (installDomTranslator) predating react-i18next's dashboard.* key system, used as a brute-force safety net for hardcoded strings that were never wired to t(). Its getSourceText() heuristic reverse-translates the CURRENT (already-correct, i18next-produced) Spanish text back to a presumed English source via a flattened en/es reverse-map, then re-translates that presumed source through a cruder word-level PHRASE_TRANSLATIONS/GLOSSARY_TRANSLATIONS dictionary. For newly-added Phase 32 dashboard.* string pairs (32-01) that don't have an exact reverse-map hit avoiding the round-trip, this mangles already-correct i18next output into a hybrid (some words translated via glossary regex, most left in English) BEFORE it ever reaches the DOM as final text. Confirmed via direct pixel/innerText comparison, disabling Chromium's own translate features (ruled out), and reading domTranslations.ts source; not caused by Phase 32's i18n key authoring (es.ts values are all correct) — the interaction bug lives entirely in the pre-existing legacy translator.",
+      "fix": "Did not touch domTranslations.ts (page-wide legacy system, out of scope / too broad a blast radius for a Phase 32 fix). Used the project's own pre-existing 'data-i18n-skip=\"true\"' escape hatch (already used elsewhere, e.g. WorkOrderCard.tsx) on the specific wrapping elements around each new dashboard.gm.*/dashboard.section.*/dashboard.empty.* usage in all 6 dashboard home components, telling the legacy DOM translator to leave that already-correctly-translated i18next content alone. Scoped narrowly per element (not a blanket wrap on each component's whole v2 root) to avoid also disabling the legacy translator for shared/reused children that still rely on it for their OWN hardcoded strings (e.g. AIRiskAlertsPanel's 'AI Risk Alerts' heading, and Front Desk's 'Full board' link) — verified this distinction live after an initial too-broad GMDashboard fix attempt regressed AIRiskAlertsPanel's Spanish heading, then corrected to per-section skip. Live-reverified in browser after the fix: all previously-garbled dashboard.* strings now render their correct es.ts Spanish values across GM/front_desk/supervisor/chief_engineer, zero console errors, AIRiskAlertsPanel's legacy translation still intact. Full gate suite (type-check, check:frozen-files, check:contrast, check:i18n-parity, verify:i18n-gate, build) green after the fix.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "dashboard",
+        "domTranslations",
+        "phase-32",
+        "data-i18n-skip"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T00:00:00.000Z"
+    },
+    {
       "id": "bug-823",
       "timestamp": "2026-08-11T00:00:00.000Z",
       "error_message": "v1.4 milestone audit (cross-phase integration check): chief_engineer users, now creatable since migration 092 (Phase 20), get 403 on GET /hotels/{hotel_id} and /hotels/{hotel_id}/stats, and land on a broken '/dashboard' with 'No dashboard available for your role.' despite a fully-built but unused ChiefEngineerDashboard.tsx component.",
@@ -14077,6 +14096,1814 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-12T02:55:50.213Z"
+    },
+    {
+      "id": "bug-849",
+      "timestamp": "2026-08-12T08:32:52.093Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 11→16 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T08:32:52.093Z"
+    },
+    {
+      "id": "bug-850",
+      "timestamp": "2026-08-12T10:12:21.373Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/services/ai/failure_predictions.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 34→103 lines (3 removed) | Also: \"Hotel %s complete: analyzed=%d, high_risk=%d, upd; hotel_id, analyzed, high_risk, updated,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-12T10:12:31.117Z"
+    },
+    {
+      "id": "bug-851",
+      "timestamp": "2026-08-12T10:20:59.022Z",
+      "error_message": "Wrong reference: Pending should be Complete",
+      "file": ".planning/REQUIREMENTS.md",
+      "root_cause": "Used \"Pending\" instead of \"Complete\"",
+      "fix": "Changed Pending → Complete",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T10:20:59.023Z"
+    },
+    {
+      "id": "bug-852",
+      "timestamp": "2026-08-12T21:07:12.983Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "Had \"name, failure_risk_score\"",
+      "fix": "Changed to \"id, name, failure_risk_score\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T21:07:12.983Z"
+    },
+    {
+      "id": "bug-853",
+      "timestamp": "2026-08-12T21:07:42.741Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_ai_copilot_rbac.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T21:07:42.741Z"
+    },
+    {
+      "id": "bug-854",
+      "timestamp": "2026-08-12T21:11:20.231Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "No early return/throw for edge case: !roomId || allRooms.length === 0",
+      "fix": "Added guard clause: if (!roomId || allRooms.length === 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T21:11:20.231Z"
+    },
+    {
+      "id": "bug-855",
+      "timestamp": "2026-08-12T21:12:28.236Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T21:12:28.236Z"
+    },
+    {
+      "id": "bug-856",
+      "timestamp": "2026-08-12T21:31:07.238Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/REQUIREMENTS.md",
+      "root_cause": "Had 's detail (not a generic housekeeping list link)\n-",
+      "fix": "Changed to 's detail (not a generic housekeeping list link)\n-",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T21:31:07.238Z"
+    },
+    {
+      "id": "bug-857",
+      "timestamp": "2026-08-12T21:56:49.605Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/27-room-readiness-one-click-reassign-escalate-acknowledge/27-02-PLAN.md",
+      "root_cause": "Had `housekeeping_router.count_rooms_ahead`",
+      "fix": "Changed to `user_roles`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T21:56:49.605Z"
+    },
+    {
+      "id": "bug-858",
+      "timestamp": "2026-08-12T22:03:08.693Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/test_room_readiness_actions.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 16→44 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:03:08.693Z"
+    },
+    {
+      "id": "bug-859",
+      "timestamp": "2026-08-12T22:03:15.859Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/tests/smoke/fake_supabase.py",
+      "root_cause": "Was returning: SimpleNamespace(data=matched[0] if matched else No",
+      "fix": "Now returns: SimpleNamespace(data=matched[0] if matched else No",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:03:15.859Z"
+    },
+    {
+      "id": "bug-860",
+      "timestamp": "2026-08-12T22:04:42.911Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/services/ai/predictions.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 37→52 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:04:42.911Z"
+    },
+    {
+      "id": "bug-861",
+      "timestamp": "2026-08-12T22:05:12.464Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:05:12.464Z"
+    },
+    {
+      "id": "bug-862",
+      "timestamp": "2026-08-12T22:10:40.266Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/housekeeping.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:10:40.266Z"
+    },
+    {
+      "id": "bug-863",
+      "timestamp": "2026-08-12T22:11:28.405Z",
+      "error_message": "Missing error handling in PredictionRow",
+      "file": "apps/web/components/housekeeping/PredictionPanel.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:11:28.405Z"
+    },
+    {
+      "id": "bug-864",
+      "timestamp": "2026-08-12T22:29:12.662Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/REQUIREMENTS.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:29:12.662Z"
+    },
+    {
+      "id": "bug-865",
+      "timestamp": "2026-08-12T22:31:47.998Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/MILESTONES.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:31:47.998Z"
+    },
+    {
+      "id": "bug-866",
+      "timestamp": "2026-08-12T22:32:58.671Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "66 lines replaced/restructured",
+      "fix": "Rewrote 82→16 lines (66 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:32:58.671Z"
+    },
+    {
+      "id": "bug-867",
+      "timestamp": "2026-08-12T22:33:58.686Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 27→30 lines (8 removed) | Also: The stack is FastAPI with direct Supabase SDK quer; ## Current State (as of v1.5, 2026-08-11)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-12T22:34:29.105Z"
+    },
+    {
+      "id": "bug-868",
+      "timestamp": "2026-08-12T22:34:50.320Z",
+      "error_message": "Wrong reference: started should be shipped",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "Used \"started\" instead of \"shipped\"",
+      "fix": "Changed started → shipped",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:34:50.320Z"
+    },
+    {
+      "id": "bug-869",
+      "timestamp": "2026-08-12T22:35:45.205Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→14 lines (2 removed) | Also: ## Previous milestones; - v1.5 \"RBAC Enforcement Tooling\" shipped and arch",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-12T22:36:32.560Z"
+    },
+    {
+      "id": "bug-870",
+      "timestamp": "2026-08-12T22:36:17.819Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/STATE.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-12T22:36:17.819Z"
+    },
+    {
+      "id": "bug-871",
+      "timestamp": "2026-08-13T07:05:23.556Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:05:23.556Z"
+    },
+    {
+      "id": "bug-872",
+      "timestamp": "2026-08-13T07:10:51.770Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/test_room_readiness_batch_actions.py",
+      "root_cause": "Had \"DEBUG\"",
+      "fix": "Changed to \"succeeded\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:10:51.770Z"
+    },
+    {
+      "id": "bug-873",
+      "timestamp": "2026-08-13T07:13:36.213Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 21→23 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:13:36.213Z"
+    },
+    {
+      "id": "bug-874",
+      "timestamp": "2026-08-13T07:14:51.083Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:14:51.083Z"
+    },
+    {
+      "id": "bug-875",
+      "timestamp": "2026-08-13T07:16:52.523Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/PredictionPanel.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:16:52.523Z"
+    },
+    {
+      "id": "bug-876",
+      "timestamp": "2026-08-13T07:20:47.576Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/d54b8745-6c21-494e-b7e4-ee2a6d97bbd9/scratchpad/verify-panel.js",
+      "root_cause": "Had 'playwright'",
+      "fix": "Changed to 'C:\\\\Users\\\\Henil\\\\projects\\\\PatelRep\\\\node_module",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:20:47.576Z"
+    },
+    {
+      "id": "bug-877",
+      "timestamp": "2026-08-13T07:24:08.861Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 25→27 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T07:24:08.861Z"
+    },
+    {
+      "id": "bug-878",
+      "timestamp": "2026-08-13T13:43:21.504Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/engineering.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T13:43:21.504Z"
+    },
+    {
+      "id": "bug-879",
+      "timestamp": "2026-08-13T13:46:05.694Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: {/* Batch action bar */}; {selected.size > 0 && (",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-13T13:47:19.064Z"
+    },
+    {
+      "id": "bug-880",
+      "timestamp": "2026-08-13T13:46:31.051Z",
+      "error_message": "CSS fix: mutationFn, onSuccess",
+      "file": "apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "mutationFn: (id: string) => engineeringApi.acknowledgeFailurePrediction(id), → (ids: string[]) => engineeringApi.batchAcknowledgeFailurePredictions(ids),; onSuccess: () => { → (res) => {",
+      "fix": "Changed mutationFn: (id: string) => engineeringApi.acknowledgeFailurePrediction(id), → (ids: string[]) => engineeringApi.batchAcknowledgeFailurePredictions(ids),; onSuccess: () => { → (res) => {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T13:46:31.051Z"
+    },
+    {
+      "id": "bug-881",
+      "timestamp": "2026-08-13T13:47:31.924Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "Had 'engineering.predictionsPage.showLess'",
+      "fix": "Changed to 'common.cancel'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-13T13:51:01.429Z"
+    },
+    {
+      "id": "bug-882",
+      "timestamp": "2026-08-13T13:54:06.819Z",
+      "error_message": "Significant refactor of ",
+      "file": "verify-28-04-tmp.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→12 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T13:54:06.819Z"
+    },
+    {
+      "id": "bug-883",
+      "timestamp": "2026-08-13T13:56:44.728Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T13:56:44.728Z"
+    },
+    {
+      "id": "bug-884",
+      "timestamp": "2026-08-13T14:04:30.538Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/REQUIREMENTS.md",
+      "root_cause": "Had ` only — `",
+      "fix": "Changed to ` only; `",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T14:04:30.538Z"
+    },
+    {
+      "id": "bug-885",
+      "timestamp": "2026-08-13T14:04:39.639Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "Had \"Engineer/chief_engineer/GM\"",
+      "fix": "Changed to \"Engineer/chief_engineer/GM, HIGH-risk only\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T14:04:39.639Z"
+    },
+    {
+      "id": "bug-886",
+      "timestamp": "2026-08-13T15:02:37.962Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/29-escalation-to-gm/29-CONTEXT.md",
+      "root_cause": "Had `risk_level = '",
+      "fix": "Changed to `room_readiness_predictions`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:02:37.962Z"
+    },
+    {
+      "id": "bug-887",
+      "timestamp": "2026-08-13T15:10:01.646Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/29-escalation-to-gm/29-03-PLAN.md",
+      "root_cause": "Had `settings.cron_secret`",
+      "fix": "Changed to `test_lost_found_retention.py`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:10:01.646Z"
+    },
+    {
+      "id": "bug-888",
+      "timestamp": "2026-08-13T15:20:48.575Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/29-escalation-to-gm/29-02-PLAN.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 31→44 lines (4 removed) | Also: Call the helper in `run_asset_failure_predictions`; watermark = _carry_forward_escalation_watermark(ho | Also: Cases (input -> output) for `_carry_forward_escala; - No previous row (`prev_row={}`), `risk_score=85`",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-13T15:21:10.435Z"
+    },
+    {
+      "id": "bug-889",
+      "timestamp": "2026-08-13T15:21:41.121Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/29-escalation-to-gm/29-02-PLAN.md",
+      "root_cause": "Had `was_high`",
+      "fix": "Changed to `previous_score`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:21:41.121Z"
+    },
+    {
+      "id": "bug-890",
+      "timestamp": "2026-08-13T15:31:33.535Z",
+      "error_message": "Significant refactor of ",
+      "file": "supabase/config.toml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "toml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:31:33.535Z"
+    },
+    {
+      "id": "bug-891",
+      "timestamp": "2026-08-13T15:35:22.349Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:35:22.349Z"
+    },
+    {
+      "id": "bug-892",
+      "timestamp": "2026-08-13T15:35:43.585Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had \"2026-08-13T04:20:00Z\"",
+      "fix": "Changed to \"2026-08-13T15:32:36Z\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-13T15:38:16.119Z"
+    },
+    {
+      "id": "bug-893",
+      "timestamp": "2026-08-13T15:37:12.908Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/29-escalation-to-gm/29-01-SUMMARY.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 11→11 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:37:12.908Z"
+    },
+    {
+      "id": "bug-894",
+      "timestamp": "2026-08-13T15:40:03.022Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_failure_prediction_notifications.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:40:03.022Z"
+    },
+    {
+      "id": "bug-895",
+      "timestamp": "2026-08-13T15:40:33.958Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-13T15:40:33.958Z"
+    },
+    {
+      "id": "bug-896",
+      "timestamp": "2026-08-13T15:45:51.809Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had \"2026-08-13T15:32:36Z\"",
+      "fix": "Changed to \"2026-08-13T16:10:00Z\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-13T15:46:43.024Z"
+    },
+    {
+      "id": "bug-897",
+      "timestamp": "2026-08-13T15:49:32.894Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_room_readiness_actions.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call | Also: async def test_reassign_no_capacity_resets_escalation_waterm; db = FakeDB(_base_rows()) | Also: async def test_escalate_resets_escalation_watermark(monkeypa; db = FakeDB(_base_rows(risk_level=\"HIGH\"))",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-13T15:49:45.942Z"
+    },
+    {
+      "id": "bug-898",
+      "timestamp": "2026-08-13T15:53:10.093Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had \"2026-08-13T16:25:00Z\"",
+      "fix": "Changed to \"2026-08-13T17:10:00Z\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-13T15:53:35.602Z"
+    },
+    {
+      "id": "bug-899",
+      "timestamp": "2026-08-14T00:12:11.930Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/MILESTONES.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→22 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T00:12:11.930Z"
+    },
+    {
+      "id": "bug-900",
+      "timestamp": "2026-08-14T00:12:31.234Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/MILESTONES.md",
+      "root_cause": "Had `4e5c92f9`",
+      "fix": "Changed to `881993b2`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T00:12:31.234Z"
+    },
+    {
+      "id": "bug-901",
+      "timestamp": "2026-08-14T00:13:01.529Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 18→15 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T00:13:01.529Z"
+    },
+    {
+      "id": "bug-902",
+      "timestamp": "2026-08-14T00:14:49.534Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "31 lines replaced/restructured",
+      "fix": "Rewrote 38→11 lines (31 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T00:14:49.534Z"
+    },
+    {
+      "id": "bug-903",
+      "timestamp": "2026-08-14T00:16:16.926Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 23→48 lines (14 removed) | Also: **28-04 CLOSED (2026-08-13, commits `127f4a51`/`07; **28-03 CLOSED (2026-08-13, commits `fca289e9`/`97",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-14T00:17:58.700Z"
+    },
+    {
+      "id": "bug-904",
+      "timestamp": "2026-08-14T00:38:16.301Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/PROJECT.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 11→18 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T00:38:16.301Z"
+    },
+    {
+      "id": "bug-905",
+      "timestamp": "2026-08-14T07:13:21.052Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T07:13:21.052Z"
+    },
+    {
+      "id": "bug-906",
+      "timestamp": "2026-08-14T08:00:24.844Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/auth.py",
+      "root_cause": "Had \"id, name, timezone, room_count, logo_url, front_d",
+      "fix": "Changed to \"id, name, timezone, room_count, logo_url, front_d",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T08:00:24.844Z"
+    },
+    {
+      "id": "bug-907",
+      "timestamp": "2026-08-14T12:47:59.020Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→18 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T12:47:59.020Z"
+    },
+    {
+      "id": "bug-908",
+      "timestamp": "2026-08-14T12:50:37.411Z",
+      "error_message": "Type error",
+      "file": "apps/web/playwright.regression.config.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T12:50:37.411Z"
+    },
+    {
+      "id": "bug-909",
+      "timestamp": "2026-08-14T13:03:48.445Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/30-additive-foundation-regression-harness/30-01-SUMMARY.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:03:48.445Z"
+    },
+    {
+      "id": "bug-910",
+      "timestamp": "2026-08-14T13:03:55.801Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/phases/30-additive-foundation-regression-harness/30-01-SUMMARY.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:03:55.801Z"
+    },
+    {
+      "id": "bug-911",
+      "timestamp": "2026-08-14T13:33:50.687Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/scripts/check-frozen-files.mjs",
+      "root_cause": "Had 'status'",
+      "fix": "Changed to 'status\\\\s*:'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:33:50.687Z"
+    },
+    {
+      "id": "bug-912",
+      "timestamp": "2026-08-14T13:34:15.196Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"219c522bc5f73f8eb2de8424b193451661e2c341057ca866c",
+      "fix": "Changed to \"0000000000000000000000000000000000000000000000000",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-14T13:34:22.931Z"
+    },
+    {
+      "id": "bug-913",
+      "timestamp": "2026-08-14T13:34:30.374Z",
+      "error_message": "Wrong reference: a6263c should be ff0000",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "Used \"a6263c\" instead of \"ff0000\"",
+      "fix": "Changed a6263c → ff0000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-14T13:34:37.943Z"
+    },
+    {
+      "id": "bug-914",
+      "timestamp": "2026-08-14T13:35:12.005Z",
+      "error_message": "CSS fix: --brand",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "--brand: #e08a63 → #bd5230",
+      "fix": "Changed --brand: #e08a63 → #bd5230",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:35:12.005Z"
+    },
+    {
+      "id": "bug-915",
+      "timestamp": "2026-08-14T13:36:01.881Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/scripts/check-contrast.mjs",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:36:01.881Z"
+    },
+    {
+      "id": "bug-916",
+      "timestamp": "2026-08-14T13:40:09.816Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (3 removed) | Also: Plan: 30-05 CLOSED, next: 30-06; Last activity: 2026-08-14 — Phase 30 Plan 05 close",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-14T13:43:52.370Z"
+    },
+    {
+      "id": "bug-917",
+      "timestamp": "2026-08-14T13:40:22.318Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `c77664c8`",
+      "fix": "Changed to `ed01773f`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-14T13:44:04.989Z"
+    },
+    {
+      "id": "bug-918",
+      "timestamp": "2026-08-14T13:45:15.147Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/30-additive-foundation-regression-harness/30-06-SUMMARY.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 11→11 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:45:15.148Z"
+    },
+    {
+      "id": "bug-919",
+      "timestamp": "2026-08-14T13:51:21.713Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `a7dcb0bb`",
+      "fix": "Changed to `gsd-verifier`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T13:51:21.713Z"
+    },
+    {
+      "id": "bug-920",
+      "timestamp": "2026-08-14T14:37:53.574Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T14:37:53.574Z"
+    },
+    {
+      "id": "bug-921",
+      "timestamp": "2026-08-14T17:39:24.409Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/shared/CommandPalette.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:39:24.409Z"
+    },
+    {
+      "id": "bug-922",
+      "timestamp": "2026-08-14T17:39:41.716Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/shared/DashboardShell.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:39:41.716Z"
+    },
+    {
+      "id": "bug-923",
+      "timestamp": "2026-08-14T17:42:05.462Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:42:05.462Z"
+    },
+    {
+      "id": "bug-924",
+      "timestamp": "2026-08-14T17:43:02.311Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/app/(dashboard)/sop/page.tsx",
+      "root_cause": "No early return/throw for edge case: !focusId || appliedFocusRef.current === focusId || documents",
+      "fix": "Added guard clause: if (!focusId || appliedFocusRef.current === )",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:43:02.311Z"
+    },
+    {
+      "id": "bug-925",
+      "timestamp": "2026-08-14T17:48:19.904Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/shared/Breadcrumbs.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:48:19.904Z"
+    },
+    {
+      "id": "bug-926",
+      "timestamp": "2026-08-14T17:52:16.105Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:52:16.105Z"
+    },
+    {
+      "id": "bug-927",
+      "timestamp": "2026-08-14T17:52:32.800Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `45a72a89`",
+      "fix": "Changed to `ea75c097`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:52:32.800Z"
+    },
+    {
+      "id": "bug-928",
+      "timestamp": "2026-08-14T17:56:10.066Z",
+      "error_message": "CSS fix: data, queryKey, queryFn",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "data: notificationsData, refetch: refetchNotifications → notificationsData; queryKey: ['notifications-unread'] → ['notifications']; queryFn: () => notificationsApi.list({ is_read: false, limit: 20 → () => notificationsApi.list({ is_read: notificationsTab === 'all', limit: 20",
+      "fix": "Changed data: notificationsData, refetch: refetchNotifications → notificationsData; queryKey: ['notifications-unread'] → ['notifications']; queryFn: () => notificationsApi.list({ is_read: false, limit: 20 → () => notificationsApi.list({ is_read: notificationsTab === 'all', limit: 20",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-08-14T17:57:32.446Z"
+    },
+    {
+      "id": "bug-929",
+      "timestamp": "2026-08-14T17:57:19.815Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:57:19.815Z"
+    },
+    {
+      "id": "bug-930",
+      "timestamp": "2026-08-14T17:57:58.350Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"tsx --test lib/utils/*.test.ts\"",
+      "fix": "Changed to \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:57:58.350Z"
+    },
+    {
+      "id": "bug-931",
+      "timestamp": "2026-08-14T17:59:41.436Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `45a72a89`",
+      "fix": "Changed to `de28c4dd`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T17:59:41.436Z"
+    },
+    {
+      "id": "bug-932",
+      "timestamp": "2026-08-14T18:06:44.256Z",
+      "error_message": "CSS fix: placeholder, hover",
+      "file": "apps/web/components/shared/CommandPalette.tsx",
+      "root_cause": "placeholder: text-ink4\" → text-ink4',; hover: bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40\" → bg-surface-2 hover:text-ink focus-visible:outline-none',",
+      "fix": "Changed placeholder: text-ink4\" → text-ink4',; hover: bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40\" → bg-surface-2 hover:text-ink focus-visible:outline-none',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-14T18:06:58.672Z"
+    },
+    {
+      "id": "bug-933",
+      "timestamp": "2026-08-14T18:11:22.842Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `ea75c097`",
+      "fix": "Changed to `6e308a11`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:11:22.842Z"
+    },
+    {
+      "id": "bug-934",
+      "timestamp": "2026-08-14T18:19:41.407Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/e2e/.live-verify-tmp.mjs",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 13→34 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:19:41.407Z"
+    },
+    {
+      "id": "bug-935",
+      "timestamp": "2026-08-14T18:21:29.895Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/e2e/.debug-palette.mjs",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:21:29.895Z"
+    },
+    {
+      "id": "bug-936",
+      "timestamp": "2026-08-14T18:21:32.420Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/e2e/.debug-palette.mjs",
+      "root_cause": "Had ').innerHTML().catch(() => '",
+      "fix": "Changed to ').last().innerHTML().catch(() => '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:21:32.420Z"
+    },
+    {
+      "id": "bug-937",
+      "timestamp": "2026-08-14T18:24:23.169Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:24:23.169Z"
+    },
+    {
+      "id": "bug-938",
+      "timestamp": "2026-08-14T18:24:38.036Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `6e308a11`",
+      "fix": "Changed to `files_modified: []`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:24:38.036Z"
+    },
+    {
+      "id": "bug-939",
+      "timestamp": "2026-08-14T18:42:47.131Z",
+      "error_message": "Type error",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:42:47.131Z"
+    },
+    {
+      "id": "bug-940",
+      "timestamp": "2026-08-14T18:49:03.891Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/31-shell-navigation-redesign/31-06-SUMMARY.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 15→38 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-14T18:49:03.891Z"
+    },
+    {
+      "id": "bug-941",
+      "timestamp": "2026-08-16T14:29:37.667Z",
+      "error_message": "Wrong reference: sha256 should be sha256Text",
+      "file": "apps/web/scripts/check-frozen-files.mjs",
+      "root_cause": "Used \"sha256\" instead of \"sha256Text\"",
+      "fix": "Changed sha256 → sha256Text",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T14:29:37.667Z"
+    },
+    {
+      "id": "bug-942",
+      "timestamp": "2026-08-16T19:01:17.037Z",
+      "error_message": "Wrong reference: f507 should be 30cf",
+      "file": ".github/workflows/deploy-check.yml",
+      "root_cause": "Used \"f507\" instead of \"30cf\"",
+      "fix": "Changed f507 → 30cf",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-16T19:01:18.157Z"
+    },
+    {
+      "id": "bug-943",
+      "timestamp": "2026-08-16T19:01:41.539Z",
+      "error_message": "Wrong reference: henilllpatel08 should be henilpatel08",
+      "file": "CLAUDE.md",
+      "root_cause": "Used \"henilllpatel08\" instead of \"henilpatel08\"",
+      "fix": "Changed henilllpatel08 → henilpatel08",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T19:01:41.539Z"
+    },
+    {
+      "id": "bug-944",
+      "timestamp": "2026-08-16T19:50:07.873Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/32-role-dashboard-homes/32-01-PLAN.md",
+      "root_cause": "Had \"Ver ROI de gestión\"",
+      "fix": "Changed to \"Uso de créditos de IA\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-16T19:50:58.647Z"
+    },
+    {
+      "id": "bug-945",
+      "timestamp": "2026-08-16T19:50:21.263Z",
+      "error_message": "Wrong reference: guestRequests should be guest_requests",
+      "file": ".planning/phases/32-role-dashboard-homes/32-02-PLAN.md",
+      "root_cause": "Used \"guestRequests\" instead of \"guest_requests\"",
+      "fix": "Changed guestRequests → guest_requests",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T19:50:21.263Z"
+    },
+    {
+      "id": "bug-946",
+      "timestamp": "2026-08-16T19:51:13.997Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/32-role-dashboard-homes/32-02-PLAN.md",
+      "root_cause": "Had `<ROIMetricsStrip />`",
+      "fix": "Changed to \"financial/credit usage\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-08-16T19:52:02.134Z"
+    },
+    {
+      "id": "bug-947",
+      "timestamp": "2026-08-16T20:00:01.782Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "113 lines replaced/restructured",
+      "fix": "Rewrote 134→11 lines (113 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:00:01.782Z"
+    },
+    {
+      "id": "bug-948",
+      "timestamp": "2026-08-16T20:02:52.034Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "hover: text-ink transition-colors\"> → text-ink transition-colors',",
+      "fix": "Changed hover: text-ink transition-colors\"> → text-ink transition-colors',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-16T20:03:35.551Z"
+    },
+    {
+      "id": "bug-949",
+      "timestamp": "2026-08-16T20:03:06.546Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 14→21 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:03:06.546Z"
+    },
+    {
+      "id": "bug-950",
+      "timestamp": "2026-08-16T20:04:06.188Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 12→13 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:04:06.188Z"
+    },
+    {
+      "id": "bug-951",
+      "timestamp": "2026-08-16T20:04:20.368Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "data: statsData → statsData, isError: statsIsError, refetch: refetchStats",
+      "fix": "Changed data: statsData → statsData, isError: statsIsError, refetch: refetchStats",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-08-16T20:08:20.515Z"
+    },
+    {
+      "id": "bug-952",
+      "timestamp": "2026-08-16T20:05:08.016Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:05:08.016Z"
+    },
+    {
+      "id": "bug-953",
+      "timestamp": "2026-08-16T20:05:37.052Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/ChiefEngineerDashboard.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 23→29 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:05:37.052Z"
+    },
+    {
+      "id": "bug-954",
+      "timestamp": "2026-08-16T20:06:05.168Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/dashboard/ChiefEngineerDashboard.tsx",
+      "root_cause": "data: maintData → maintData, isError: maintError, refetch: refetchMaint",
+      "fix": "Changed data: maintData → maintData, isError: maintError, refetch: refetchMaint",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:06:05.168Z"
+    },
+    {
+      "id": "bug-955",
+      "timestamp": "2026-08-16T20:07:20.094Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/ChiefEngineerDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:07:20.094Z"
+    },
+    {
+      "id": "bug-956",
+      "timestamp": "2026-08-16T20:07:34.251Z",
+      "error_message": "Missing guard clause",
+      "file": ".planning/STATE.md",
+      "root_cause": "No early return/throw for edge case: v2",
+      "fix": "Added guard clause: if (v2)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:07:34.251Z"
+    },
+    {
+      "id": "bug-957",
+      "timestamp": "2026-08-16T20:07:45.749Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Had `flex-1 text-[12px] bg-transparent border-none out",
+      "fix": "Changed to \"flex-1 text-[12px] bg-transparent border-none out",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-16T20:07:45.749Z"
+    },
+    {
+      "id": "bug-958",
+      "timestamp": "2026-08-17T02:11:21.643Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 24→24 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T02:11:21.643Z"
+    },
+    {
+      "id": "bug-959",
+      "timestamp": "2026-08-17T03:11:49.164Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Had `${rows.length} on shift`",
+      "fix": "Changed to 'true'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T03:11:49.164Z"
+    },
+    {
+      "id": "bug-960",
+      "timestamp": "2026-08-17T03:13:17.149Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "Had 'dashboard.section.headsUp'",
+      "fix": "Changed to \"true\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T03:13:17.149Z"
+    },
+    {
+      "id": "bug-961",
+      "timestamp": "2026-08-17T03:20:10.737Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/next.config.mjs",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 10→3 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T03:20:10.737Z"
     }
   ]
 }

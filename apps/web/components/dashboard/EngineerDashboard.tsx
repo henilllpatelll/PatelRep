@@ -128,7 +128,9 @@ export function EngineerDashboard() {
           ) : isError ? (
             <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetch() }} />
           ) : sortedWOs.length === 0 ? (
-            <StateBlock status="empty" empty={{ title: t('dashboard.empty.engineerNoWorkOrders') }} />
+            <div data-i18n-skip="true">
+              <StateBlock status="empty" empty={{ title: t('dashboard.empty.engineerNoWorkOrders') }} />
+            </div>
           ) : (
             sortedWOs.map(wo => {
               const tone = PRIORITY_TONE[wo.priority] ?? 'neutral'

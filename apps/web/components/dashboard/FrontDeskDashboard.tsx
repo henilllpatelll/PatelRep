@@ -414,7 +414,9 @@ export function FrontDeskDashboard() {
                 error={{ message: t('common.error'), onRetry: () => { refetchRequests(); refetchActiveRequests() } }}
               />
             ) : allRequests.length === 0 ? (
-              <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoRequests') }} />
+              <div data-i18n-skip="true">
+                <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoRequests') }} />
+              </div>
             ) : (
               allRequests.map(r => <GuestRequestRow key={r.id} req={r} v2 />)
             )}
@@ -433,7 +435,9 @@ export function FrontDeskDashboard() {
           ) : lateCheckoutsIsError ? (
             <StateBlock status="error" error={{ message: t('common.error'), onRetry: () => refetchLateCheckouts() }} />
           ) : pendingLateCheckouts.length === 0 ? (
-            <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoLateCheckouts') }} />
+            <div data-i18n-skip="true">
+              <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoLateCheckouts') }} />
+            </div>
           ) : (
             pendingLateCheckouts.map(req => (
               <LateCheckoutRow
@@ -469,7 +473,9 @@ export function FrontDeskDashboard() {
               <SkeletonRow v2 />
             </div>
           ) : arrivalsReady.length === 0 && departingRooms.length === 0 ? (
-            <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoArrivals') }} />
+            <div data-i18n-skip="true">
+              <StateBlock status="empty" empty={{ title: t('dashboard.empty.frontDeskNoArrivals') }} />
+            </div>
           ) : (
             <>
               {departingRooms.length > 0 && (

@@ -166,7 +166,7 @@ export function GMDashboard() {
       <div className="space-y-5">
         <DashboardGreeting name={firstName} subtitle={hotel?.name} />
 
-        <div>
+        <div data-i18n-skip="true">
           <SectionLabel>{t('dashboard.gm.snapshotTitle')}</SectionLabel>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {/* Housekeeping */}
@@ -255,11 +255,13 @@ export function GMDashboard() {
         </div>
 
         <div>
-          <SectionLabel>{t('dashboard.gm.alertsTitle')}</SectionLabel>
+          <div data-i18n-skip="true">
+            <SectionLabel>{t('dashboard.gm.alertsTitle')}</SectionLabel>
+          </div>
           <AIRiskAlertsPanel />
         </div>
 
-        <Card hover={false} className="p-4 max-w-md">
+        <Card hover={false} className="p-4 max-w-md" data-i18n-skip="true">
           <SectionLabel className="mb-3">{t('dashboard.gm.creditUsageTitle')}</SectionLabel>
           {creditCardState === 'loading' ? (
             <SnapshotSkeleton rows={1} />
