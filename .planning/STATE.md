@@ -3,36 +3,38 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Web UI/UX Redesign
 status: phase_complete
-last_updated: "2026-08-14T00:00:00Z"
-last_activity: 2026-08-16 -- Phase 32 (Role Dashboard Homes) wave 2 CLOSED (32-02..32-05, all 6 roles now HOME-01/HOME-02 complete). Only 32-06 (close-out gate suite + regression re-pass + live verification) remains before Phase 32 can be marked complete.
+last_updated: "2026-08-16T00:00:00Z"
+last_activity: 2026-08-16 -- Phase 32 (Role Dashboard Homes) CLOSED (all 6 plans, 32-01..32-06). Close-out verification (32-06) found and fixed a real Spanish-locale i18n defect (legacy DOM translator mangling new dashboard.* strings) and ran the Room-Board regression harness flag-off AND flag-on (a first for this milestone's close-out plans). Phase 33 (Core Operational Sections) is next.
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 17
-  completed_plans: 17
-  percent: 26
+  completed_phases: 3
+  total_plans: 18
+  completed_plans: 18
+  percent: 30
 ---
 
 # GSD State
 
 ## Current Position
 
-Phase: 32 of 37 (Role Dashboard Homes) — in progress
-Plan: 32-01..32-05 of 6 complete (wave 1 + wave 2 CLOSED); wave 3 (32-06 close-out) not yet started
-Status: Phase 32 waves 1-2 closed (5/6 plans). Proceeding autonomously (user said "continue" after Phase 30 closed, applies through this milestone; user additionally said "you decide everything ... do not come back to me until the phase is completed and closed" for Phase 32 specifically)
-Last activity: 2026-08-16 — Plans 32-02/32-03/32-04/32-05 (wave 2, all parallel) executed and closed; all 6 roles now have redesigned dashboard homes (HOME-01) and the GM has a dedicated first-class home (HOME-02). See entries below. 32-04 and 32-05's executor subagents each hit an account-level session/usage limit partway through their second task — both had already committed their first task cleanly; the orchestrating session verified the remaining in-progress diffs against each plan's must_haves and the full gate suite (all green), then completed the commits and SUMMARY.md/STATE.md updates directly rather than re-running a fresh executor over already-correct work.
+Phase: 33 of 37 (Core Operational Sections) — not yet started
+Plan: Phase 32 fully closed (6/6 plans, 32-01..32-06); Phase 33 has no plans generated yet
+Status: Phase 32 CLOSED. Proceeding autonomously (user said "continue" after Phase 30 closed, applies through this milestone; user additionally said "you decide everything ... do not come back to me until the phase is completed and closed" for Phase 32 specifically — that phase is now done)
+Last activity: 2026-08-16 — Plan 32-06 (close-out verification, wave 3) executed and closed: full standing gate suite green, Room-Board regression re-passed at true zero-drift on the 2 boards it protects for BOTH flag-off and flag-on (flag-on regression was deferred by every prior Phase 31/32 close-out plan for lack of write access — this session had it via direct service-role Supabase access), and live browser verification of all 4 web-reachable role homes (GM/Front Desk/Supervisor/Chief Engineer) found a real defect: a pre-existing, page-wide legacy DOM text translator (`domTranslations.ts`, predates react-i18next) was mangling several new `dashboard.*` Spanish strings by reverse-translating already-correct i18next output back through a cruder word-level glossary. Fixed via the project's own existing `data-i18n-skip="true"` escape hatch, scoped narrowly across all 6 dashboard home components (commit `6d6fdbb2`) — not by touching the broader legacy translator itself. Housekeeper/Engineer homes were code-verified only (both are `MOBILE_ONLY_ROLES`, architecturally unreachable via any web route, unrelated to Phase 32). Also discovered and flagged (not fixed, outside this plan's authority) a live production infra issue: the deployed web app's `NEXT_PUBLIC_API_URL` and `next.config.mjs`'s CSP allowlist both still reference a dead pre-migration Railway API domain, breaking every authenticated page on the actually-deployed production site — needs a Railway env-var update + redeploy, flagged for the user. See `32-06-SUMMARY.md`.
 
-Progress: [██░░░░░░░░] 26% (2/8 phases, plan-level progress within Phase 32 tracked separately)
+Progress: [███░░░░░░░] 30% (3/8 phases in this milestone; Phase 32 is the 3rd complete)
 
 v2.0 phase map:
 - Phase 30: Additive Foundation & Regression Harness — FOUND-01..06 (exit gate: excluded Room Boards pixel-identical) — CLOSED 2026-08-14, verification PASSED 6/6
 - Phase 31: Shell & Navigation Redesign — NAV-01..06 — CLOSED 2026-08-14, verification PASSED 6/6 (found+fixed a real regression-harness mask gap along the way, load-bearing for Phases 32-36)
-- Phase 32: Role Dashboard Homes — HOME-01, HOME-02 — In progress (32-01..32-05 CLOSED, 32-06 close-out not started)
+- Phase 32: Role Dashboard Homes — HOME-01, HOME-02 — CLOSED 2026-08-16, all 6 plans (32-01..32-06) complete, close-out verification found+fixed a real ES-locale i18n defect
 - Phase 33: Core Operational Sections — SEC-01a
 - Phase 34: Management & Admin Sections — SEC-01b
 - Phase 35: Engineering Section Chrome — ENG-01
 - Phase 36: Housekeeping Section Chrome — HSK-01
 - Phase 37: Final QA & Rollout — QA-01..03
+
+**32-06 CLOSED (2026-08-16, commit `6d6fdbb2`):** Phase 32 close-out verification, autonomous, wave 3, depends_on 32-02/32-03/32-04/32-05, verification-only (`files_modified: []` per plan, un-emptied for one in-scope Rule-1 bug fix found live). Task 1: full standing gate suite green (`type-check`, `check:frozen-files` 7/7 unchanged, `check:contrast` 10 pairings both modes, `check:i18n-parity` 1468 keys, `verify:i18n-gate`, `build`), then the Phase-30 Room-Board regression harness re-ran at true zero pixel-drift on the 2 boards it actually protects (housekeeping RoomStatusBoard + EngineeringRoomBoard, 8/8 across both fixture roles × both themes) for **both flag-off and flag-on** — every prior Phase 31/32 close-out plan (31-06, 32-02, 32-03, 32-04, 32-05) deferred the flag-on run for lack of Supabase write access; this session had direct service-role access (`@supabase/supabase-js` with the key from `apps/api/.env`, functionally equivalent to the missing MCP tool) and ran it clean, then restored the fixture tenant's flag to its permanent CI-baseline `[]` afterward. The remaining 4/12 regression failures (`RoomDetailDrawer`, both roles × both themes) are a deterministic 3-pixel/0.01% sub-pixel font-AA diff on a static unrelated label, present identically in both flag states — confirmed via raw pixel inspection to be pre-existing environment/Chromium rendering noise on a frozen, Phase-32-untouched file, not a regression. Task 2 live-verified 4 of 6 role homes (GM, Front Desk, Housekeeping Supervisor, Chief Engineer — logged in via Supabase magic-link + `/auth/callback?token_hash=` against a real local production-parity build, no passwords needed/mutated) in a real browser: flag-on/flag-off toggle correctly, GM's dedicated portfolio-snapshot layout confirmed (HOME-02, old departures/ready-rooms columns genuinely gone), skeleton-not-spinner loading + `StateBlock` empty states (2 genuine empties on Front Desk) + a forced `StateBlock` error+retry all confirmed, light+dark and EN+ES confirmed, zero console errors/forbidden API calls. Housekeeper/Engineer were code-traced only — both are `MOBILE_ONLY_ROLES` (`lib/utils/routeGuard.ts`, pre-existing, unrelated to Phase 32) and the web app force-redirects them to `/login?mobileOnly=1` at every route, so no real web click-through is architecturally possible for those two roles today. **Found and fixed a real defect during Task 2's live ES verification** (Rule 1, un-emptying `files_modified` for the fix): several new `dashboard.gm.*`/`dashboard.section.*`/`dashboard.empty.*` strings rendered as garbled English/Spanish hybrids (e.g. "IA CREDIT USO" instead of "Uso de créditos de IA") — root-caused to a pre-existing, page-wide `MutationObserver`-based DOM text translator (`i18n/domTranslations.ts`, predates react-i18next's `dashboard.*` key system) that reverse-translates already-correct i18next output back through a cruder word-level glossary; `es.ts`'s actual translated values were all correct, confirmed by direct source inspection — the bug lived entirely in the legacy translator's interaction with new keys, not in 32-01's authoring. Fixed via the codebase's own pre-existing `data-i18n-skip="true"` opt-out (already used elsewhere, e.g. `WorkOrderCard.tsx`), applied narrowly per-element across all 6 dashboard home components (not the whole `domTranslations.ts` system, out of scope/too broad) — an initial broader wrap on `GMDashboard.tsx`'s whole v2 root was caught live regressing `AIRiskAlertsPanel`'s own still-legacy-translated heading, then corrected to exclude that reused child. Live-reverified post-fix: every previously-garbled string now correct, zero regressions, full gate suite re-ran green. **Also discovered (not fixed, flagged for the user/orchestrator):** the actually-deployed production web app is currently broken for every authenticated page — its build-time `NEXT_PUBLIC_API_URL` and `next.config.mjs`'s hardcoded CSP `connect-src` allowlist both still reference a dead pre-migration Railway API domain (`stellar-integrity-production-f507`, 404) instead of the current live one (`stellar-integrity-production-30cf`, confirmed healthy) — most plausibly stemming from today's (2026-08-16) Railway account migration noted in project memory. This predates and is unrelated to any Phase 32 code (no plan touches `next.config.mjs` or Railway env vars); worked around locally via a temporary, fully-reverted CSP patch (confirmed byte-identical to HEAD via `git diff --exit-code` before finishing) rather than touching production. Fixing this for real needs a Railway env-var update + redeploy, outside a verification-only plan's authority without explicit confirmation. See `32-06-SUMMARY.md`.
 
 **32-01 CLOSED (2026-08-16, commits `d5e89cd7`/`79624846`):** i18n foundation for the six redesigned dashboard homes, autonomous, wave 1, `depends_on: []`. Added `dashboard.empty.*` (12 keys, role-specific empty-state copy for `StateBlock status='empty'`), `dashboard.gm.*` (19 keys, GM portfolio-snapshot labels/card titles/drill-down links), and `dashboard.section.*` (5 keys, shared section headings) to the existing `dashboard:` block in both `en.ts` and `es.ts`, with real natural Spanish (not placeholders) for every new key; pre-existing `dashboard.greeting.*` left byte-unchanged. This plan is the SOLE owner of `en.ts`/`es.ts` for all of Phase 32 — the four wave-2 home plans (32-02..32-05) must consume these keys read-only and must not edit either locale file, avoiding merge collisions during their parallel execution. `npm run check:i18n-parity` (1468 keys, up from 1432), `npm run verify:i18n-gate`, and `npm run type-check` all green after both tasks. Section-flag key confirmed as `'dashboard'` for downstream `isSectionRedesigned('dashboard', hotel)` toggling. No deviations — plan executed exactly as written. See `32-01-SUMMARY.md`.
 
@@ -512,11 +514,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 30 P05 | 50m | 3 tasks | 6 files |
 | Phase 30 P06 | 20min | 2 tasks | 1 files |
 | Phase 31 P06 | 55min | 2 tasks | 0 files |
+| Phase 32 P06 | 180 | 2 tasks | 7 files |
 
 ## Session
 
-Last session: 2026-08-11T23:05:45Z
-Stopped At: Completed 23-01-PLAN.md (AST-based RBAC route×role matrix generator + CI drift guard). Phase 23 is complete (1/1 plans). Next: /gsd:plan-phase 24.
+Last session: 2026-08-16T00:00:00Z
+Stopped At: Completed 32-06-PLAN.md (Phase 32 close-out verification: full gate suite + Room-Board regression re-pass flag-off/flag-on + live browser verification of 4 web-reachable role homes; found and fixed a real ES-locale i18n defect). Phase 32 is complete (6/6 plans, all closed). Next: /gsd:plan-phase 33.
 
 **Phase 22 handoff (2026-08-06T03:24:18Z):** Completed 22-06-PLAN.md and Phase 22 re-verification (MOBILE-03 exact direct dependency; matching finished EAS Android artifact; Doctor, dependency tree, TypeScript, Jest, and audit green). Phase 22 is passed 4/4 with no gaps; milestone v1.4 is ready for completion/audit.
 
