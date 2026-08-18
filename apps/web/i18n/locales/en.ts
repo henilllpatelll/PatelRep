@@ -63,6 +63,7 @@ const en = {
     noNotifications: 'No notifications',
     notificationsUnread: 'Unread',
     notificationsAll: 'All',
+    notificationsLoadError: "Couldn't load notifications.",
     userMenuFor: 'User menu for {{name}}',
     settings: 'Settings',
     signOut: 'Sign Out',
@@ -1528,6 +1529,48 @@ const en = {
     staff: { empty: 'No staff found for the selected department.' },
     shifts: { empty: 'No shifts defined yet. Create your first shift below.' },
     byShiftEmpty: 'No active shifts found.',
+  },
+  reports: {
+    pageTitle: 'Reports',
+    pageSubtitle: 'Operational analytics and performance metrics',
+    noAccess: 'You do not have access to reports.',
+    dailySummary: { loadError: 'Failed to load daily summary. Please try again.', empty: { title: 'No summary yet', body: "Check back once today's data is in." } },
+    staffPerformance: { loadError: 'Failed to load staff performance data.', empty: { title: 'No staff performance data yet', body: 'Assign tasks and mark them complete to generate staff performance data.' } },
+    maintenance: { loadError: 'Failed to load maintenance data.', empty: { title: 'No maintenance data', body: 'No work orders in this range.' } },
+    guestRecovery: { loadError: 'Failed to load guest recovery data.', empty: { title: 'No guest recovery data', body: 'No incidents in this range.' } },
+    aiUsage: { loadError: 'Failed to load AI usage data.', empty: { title: 'No AI usage data yet', body: 'Use the AI Copilot to create tasks or query SOPs — usage will appear here.' } },
+  },
+  managementRoi: {
+    pageTitle: 'Management ROI',
+    pageSubtitle: 'Time saved, quality, response, and revenue protected — trends and exceptions, not totals alone',
+    noAccess: 'Management ROI is available to the general manager.',
+    loadErrorFor: 'Failed to load {{noun}}. Please try again.',
+    empty: { title: 'Not enough data yet', body: 'Metrics populate as guest requests, work orders, and inspections are recorded over time.' },
+  },
+  staff: {
+    invitations: { loadError: "Couldn't load pending invitations." },
+    editModal: { schedulesLoadError: "Couldn't load schedule overrides.", rolesLoadError: "Couldn't load custom roles." },
+  },
+  settings: {
+    pageTitle: 'Hotel Profile',
+    loadError: "Couldn't load your hotel's profile.",
+  },
+  aiCopilot: {
+    creditUsage: { loading: 'Loading usage…' },
+  },
+  billing: {
+    subscriptionLoadError: "Couldn't load your subscription.",
+    creditsLoadError: "Couldn't load your credit usage.",
+    invoicesLoadError: "Couldn't load your invoices.",
+    invoicesEmpty: 'No invoices yet.',
+  },
+  guestFeedback: {
+    loadError: 'Feedback could not load.',
+    empty: { title: 'No feedback yet', body: 'New staff reports will appear here.' },
+  },
+  integrations: {
+    loadError: 'Failed to load Opera status.',
+    conflicts: { loadError: "Couldn't load sync conflicts.", empty: 'No sync conflicts.' },
   },
 }
 
