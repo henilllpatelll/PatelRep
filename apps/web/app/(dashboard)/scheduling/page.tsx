@@ -25,6 +25,7 @@ import {
   ChevronUp,
   Pencil,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   schedulingApi,
   type Shift,
@@ -38,6 +39,7 @@ import { getInitials, getDisplayName } from '@/lib/utils/avatar'
 import { logbookApi } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Button, IconButton } from '@/components/ui/Button'
@@ -103,7 +105,8 @@ function relativeHoursAgo(isoString: string | null): string | null {
 
 // â”€â”€â”€ TodayRoster â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function TodayRoster() {
+function TodayRoster({ v2 }: { v2: boolean }) {
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState(false)
 
   const rosterQuery = useQuery({
@@ -157,8 +160,11 @@ function TodayRoster() {
           ) : (
             <StateBlock
               status={rosterQuery.isError ? 'error' : roster.length === 0 ? 'empty' : null}
-              error={{ message: 'Failed to load roster.', onRetry: () => rosterQuery.refetch() }}
-              empty={{ title: 'No staff scheduled for today yet.' }}
+              error={{
+                message: v2 ? t('scheduling.roster.loadError') : 'Failed to load roster.',
+                onRetry: () => rosterQuery.refetch(),
+              }}
+              empty={{ title: v2 ? t('scheduling.roster.empty') : 'No staff scheduled for today yet.' }}
             >
             <div className="px-5 py-3 flex flex-wrap gap-3">
               {roster.map((entry) => {
@@ -660,9 +666,11 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
 interface ShiftManagementProps {
   shifts: Shift[]
   isLoading: boolean
+  v2: boolean
 }
 
-function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
+function ShiftManagement({ shifts, isLoading, v2 }: ShiftManagementProps) {
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editShift, setEditShift] = useState<Shift | null>(null)
@@ -702,7 +710,10 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
           ) : (
             <>
               {shifts.length === 0 ? (
-                <EmptyState title="No shifts defined yet. Create your first shift below." className="py-4" />
+                <EmptyState
+                  title={v2 ? t('scheduling.shifts.empty') : 'No shifts defined yet. Create your first shift below.'}
+                  className="py-4"
+                />
               ) : (
                 <div className="divide-y divide-white/30">
                   {shifts.map((shift) => {
@@ -789,6 +800,7 @@ interface WeekCalendarProps {
   isError: boolean
   onRefetch: () => void
   onCellClick: (staffMember: StaffMember, day: Date, existingAssignment?: ShiftAssignment) => void
+  v2: boolean
 }
 
 function WeekCalendar({
@@ -801,7 +813,9 @@ function WeekCalendar({
   isError,
   onRefetch,
   onCellClick,
+  v2,
 }: WeekCalendarProps) {
+  const { t } = useTranslation()
   const [viewMode, setViewMode] = useState<'by-staff' | 'by-shift'>('by-staff')
   const weekDays = getWeekDays(weekStart)
 
@@ -893,7 +907,9 @@ function WeekCalendar({
           </div>
         ) : isError ? (
           <div className="px-5 py-10 text-center">
-            <p className="text-sm font-medium text-[var(--alert)]">Failed to load schedule.</p>
+            <p className="text-sm font-medium text-[var(--alert)]">
+              {v2 ? t('scheduling.assignments.loadError') : 'Failed to load schedule.'}
+            </p>
             <button onClick={onRefetch} className="mt-2 min-h-[44px] px-3 text-sm text-[var(--caution)]">
               Try again
             </button>
@@ -922,7 +938,7 @@ function WeekCalendar({
                   </div>
                   {dayAssignments.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-sm text-gray-400">
-                      No shifts assigned.
+                      {v2 ? t('scheduling.assignments.empty') : 'No shifts assigned.'}
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -990,7 +1006,9 @@ function WeekCalendar({
           </div>
         ) : isError ? (
           <div className="px-5 py-10 text-center">
-            <p className="text-sm text-[var(--alert)] font-medium">Failed to load schedule.</p>
+            <p className="text-sm text-[var(--alert)] font-medium">
+              {v2 ? t('scheduling.assignments.loadError') : 'Failed to load schedule.'}
+            </p>
             <button
               onClick={onRefetch}
               className="mt-2 text-sm text-[var(--caution)] hover:underline"
@@ -1029,7 +1047,10 @@ function WeekCalendar({
               {filteredStaff.length === 0 ? (
                 <tr>
                   <td colSpan={8}>
-                    <EmptyState title="No staff found for the selected department." className="py-10" />
+                    <EmptyState
+                      title={v2 ? t('scheduling.staff.empty') : 'No staff found for the selected department.'}
+                      className="py-10"
+                    />
                   </td>
                 </tr>
               ) : (
@@ -1138,7 +1159,10 @@ function WeekCalendar({
               {byShiftRows.length === 0 ? (
                 <tr>
                   <td colSpan={8}>
-                    <EmptyState title="No active shifts found." className="py-10" />
+                    <EmptyState
+                      title={v2 ? t('scheduling.byShiftEmpty') : 'No active shifts found.'}
+                      className="py-10"
+                    />
                   </td>
                 </tr>
               ) : (
@@ -1219,9 +1243,11 @@ function WeekCalendar({
 // â”€â”€â”€ SchedulingPage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function SchedulingPage() {
+  const { t } = useTranslation()
   const { isSupervisor, canManageStaff } = useRole()
   const queryClient = useQueryClient()
   const { hotel } = useHotelStore()
+  const v2 = isSectionRedesigned('scheduling', hotel)
 
   // â”€â”€ Local state
   const [weekStart, setWeekStart] = useState<Date>(() =>
@@ -1294,8 +1320,8 @@ export default function SchedulingPage() {
     <div className="space-y-5">
       <PageHeader
         eyebrow="Organization"
-        title="Staff Scheduling"
-        subtitle="Manage shift assignments and view weekly coverage"
+        title={v2 ? t('scheduling.pageTitle') : 'Staff Scheduling'}
+        subtitle={v2 ? t('scheduling.pageSubtitle') : 'Manage shift assignments and view weekly coverage'}
         actions={isSupervisor && (
           <Button
             variant="primary"
@@ -1312,7 +1338,7 @@ export default function SchedulingPage() {
       />
 
       {/* â”€â”€ Today's Roster */}
-      <TodayRoster />
+      <TodayRoster v2={v2} />
 
       {/* â”€â”€ Department filter tabs */}
       <div className="flex items-center gap-1 flex-wrap">
@@ -1361,11 +1387,12 @@ export default function SchedulingPage() {
           staffQuery.refetch()
         }}
         onCellClick={handleCellClick}
+        v2={v2}
       />
 
       {/* â”€â”€ Shift Management (GM / supervisor only) */}
       {isSupervisor && (
-        <ShiftManagement shifts={shifts} isLoading={shiftsQuery.isLoading} />
+        <ShiftManagement shifts={shifts} isLoading={shiftsQuery.isLoading} v2={v2} />
       )}
 
       {/* â”€â”€ Assign Shift Modal */}
