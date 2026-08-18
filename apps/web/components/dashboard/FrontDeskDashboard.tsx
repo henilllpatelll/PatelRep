@@ -100,7 +100,7 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving, v2 }: {
             <Check size={11} />
             Confirm
           </Button>
-          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className={`text-ink3 hover:text-ink2 ${motion}`}><X size={14} /></IconButton>
+          <IconButton variant="ghost" size="sm" disabled={resolving} onClick={() => setMode('idle')} aria-label="Cancel" className={`text-ink3 hover:text-ink2 ${motion}`}><X size={14} /></IconButton>
         </div>
       )}
 
@@ -111,7 +111,7 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving, v2 }: {
             <X size={11} />
             Deny
           </Button>
-          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className={`text-ink3 hover:text-ink2 shrink-0 ${motion}`}><X size={14} /></IconButton>
+          <IconButton variant="ghost" size="sm" disabled={resolving} onClick={() => setMode('idle')} aria-label="Cancel" className={`text-ink3 hover:text-ink2 shrink-0 ${motion}`}><X size={14} /></IconButton>
         </div>
       )}
     </div>
