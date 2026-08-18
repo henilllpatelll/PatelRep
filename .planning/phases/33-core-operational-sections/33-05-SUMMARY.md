@@ -111,3 +111,16 @@ Safety and Programs are both fully flag-threaded and StateBlock-wired, joining t
 ---
 *Phase: 33-core-operational-sections*
 *Completed: 2026-08-18*
+
+## Self-Check: PASSED
+- FOUND: apps/web/app/(dashboard)/safety/page.tsx
+- FOUND: apps/web/components/safety/ComplianceDashboard.tsx
+- FOUND: apps/web/components/safety/IncidentReview.tsx
+- FOUND: apps/web/components/safety/SafetyInformation.tsx
+- FOUND: apps/web/components/safety/SafetyPrograms.tsx
+- FOUND: apps/web/app/(dashboard)/programs/page.tsx
+- FOUND: apps/web/components/programs/HousekeepingDepthPanels.tsx
+- FOUND: apps/web/components/programs/DeepCleanAreasPanel.tsx
+- FOUND: apps/web/components/programs/InspectionDepthPanel.tsx
+- FOUND commit 288f2879 (Task 1)
+- FOUND commit 3281d0e4 (Task 2)
