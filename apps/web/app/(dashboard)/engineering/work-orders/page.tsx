@@ -13,6 +13,8 @@ import { aiApi } from '@/lib/api/ai'
 import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { createClient } from '@/lib/supabase/client'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
@@ -240,6 +242,8 @@ function WorkOrdersPageContent() {
   const user = useAuthStore((s) => s.user)
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const appliedFocusRef = useRef<string | null>(null)
@@ -386,6 +390,7 @@ function WorkOrdersPageContent() {
           eyebrow="Engineering"
           title={t('engineering.workOrdersPage.heading')}
           subtitle={isEngineer ? t('engineering.workOrdersPage.subtitleEngineer') : t('engineering.workOrdersPage.subtitleAll')}
+          dataI18nSkip={v2}
           tabs={[
             { label: t('engineering.workOrdersPage.tabWorkOrders'), active: activeTab === 'work-orders', onClick: () => setActiveTab('work-orders') },
             { label: t('engineering.workOrdersPage.tabRoomBoard'), active: activeTab === 'room-board', onClick: () => setActiveTab('room-board') },
