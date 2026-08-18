@@ -15,9 +15,12 @@ import {
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import { logbookApi, LogbookEntry } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
@@ -25,6 +28,8 @@ import { Pill, Mono, SectionLabel, AILabel } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -207,6 +212,23 @@ function SkeletonCard() {
         <div className="h-3 bg-gray-100 rounded w-full" />
         <div className="h-3 bg-gray-100 rounded w-5/6" />
         <div className="h-3 bg-gray-100 rounded w-3/4" />
+      </div>
+    </div>
+  )
+}
+
+function SkeletonCardV2() {
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Skeleton variant="text" className="h-3 w-16" />
+        <Skeleton variant="text" className="h-3 w-24" />
+        <Skeleton variant="text" className="h-5 w-20" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton variant="text" className="w-full" />
+        <Skeleton variant="text" className="w-5/6" />
+        <Skeleton variant="text" className="w-3/4" />
       </div>
     </div>
   )
@@ -601,6 +623,9 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
 // â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function LogbookPage() {
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('logbook', hotel)
   const [today, setToday] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
@@ -641,7 +666,9 @@ export default function LogbookPage() {
   const {
     data: entries,
     isLoading,
+    isError,
     error: fetchError,
+    refetch,
   } = useQuery({
     queryKey: ['logbook-entries', selectedDate, selectedDeptId],
     queryFn: () =>
@@ -740,8 +767,8 @@ export default function LogbookPage() {
     <div className="space-y-6 max-w-4xl">
       <PageHeader
         eyebrow="Organization"
-        title="Shift Logbook"
-        subtitle="Record and review shift notes across all departments"
+        title={v2 ? t('logbook.pageTitle') : 'Shift Logbook'}
+        subtitle={v2 ? t('logbook.pageSubtitle') : 'Record and review shift notes across all departments'}
         actions={
           <Button variant="primary" onClick={() => setShowCreateModal(true)} className="gap-2 shrink-0">
             <Plus size={15} />
@@ -821,7 +848,33 @@ export default function LogbookPage() {
       )}
 
       {/* Content area */}
-      {isLoading ? (
+      {v2 ? (
+        isLoading ? (
+          <div className="space-y-3">
+            <SkeletonCardV2 />
+            <SkeletonCardV2 />
+            <SkeletonCardV2 />
+          </div>
+        ) : (
+          <StateBlock
+            status={isError ? 'error' : !entries || entries.length === 0 ? 'empty' : null}
+            error={{ message: t('logbook.loadError'), onRetry: () => refetch() }}
+            empty={{ title: t('logbook.empty.title', { date: formatDisplayDate(selectedDate) }), body: t('logbook.empty.body') }}
+          >
+            <div className="space-y-3">
+              {(entries ?? []).map((entry) => (
+                <EntryCard
+                  key={entry.id}
+                  entry={entry}
+                  canEdit={isGM || isSupervisor || entry.author_id === currentUserId}
+                  onEdit={setEditTarget}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+            </div>
+          </StateBlock>
+        )
+      ) : isLoading ? (
         <div className="space-y-3">
           <SkeletonCard />
           <SkeletonCard />
