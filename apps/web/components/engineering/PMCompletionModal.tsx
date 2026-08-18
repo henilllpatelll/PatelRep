@@ -26,6 +26,9 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 // ─── Local (form-only) types ────────────────────────────────────────────────
 // LocalItem mirrors PMChecklistItemInput but tracks an unset result ('') so the
@@ -103,6 +106,8 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
   const { t } = useTranslation()
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
   const [templateId, setTemplateId] = useState<string>('')
   const [items, setItems] = useState<LocalItem[]>(() => defaultItems(t('programs.pmCompletion.generalCompletionCheck')))
@@ -120,7 +125,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
   const [error, setError] = useState<string | null>(null)
   const [uploadingGeneral, setUploadingGeneral] = useState<'photo' | 'certificate' | null>(null)
 
-  const { data: overviewData } = useQuery({
+  const { data: overviewData, isLoading: overviewLoading } = useQuery({
     queryKey: ['program-overview-for-pm-completion'],
     queryFn: () => programsApi.overview(),
     enabled: isOpen,
@@ -131,7 +136,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
     [overviewData],
   )
 
-  const { data: staffData } = useQuery({
+  const { data: staffData, isLoading: staffLoading } = useQuery({
     queryKey: ['staff-for-pm-verifier'],
     queryFn: () => staffApi.list(),
     enabled: isOpen,
@@ -339,16 +344,20 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 {t('programs.pmCompletion.templateLabel')} <span className="text-gray-400 font-normal">{t('programs.pmCompletion.optionalTag')}</span>
               </label>
-              <select
-                value={templateId}
-                onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
-              >
-                <option value="">{t('programs.pmCompletion.noTemplate')}</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
-                ))}
-              </select>
+              {v2 && overviewLoading ? (
+                <Skeleton className="h-9" />
+              ) : (
+                <select
+                  value={templateId}
+                  onChange={(e) => handleTemplateChange(e.target.value)}
+                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
+                >
+                  <option value="">{t('programs.pmCompletion.noTemplate')}</option>
+                  {templates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Checklist items */}
@@ -427,16 +436,20 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 {t('programs.pmCompletion.verifierLabel')} <span className="text-gray-400 font-normal">{t('programs.pmCompletion.verifierHint')}</span>
               </label>
-              <select
-                value={verifierId}
-                onChange={(e) => setVerifierId(e.target.value)}
-                className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
-              >
-                <option value="">{t('programs.pmCompletion.noVerifier')}</option>
-                {verifierOptions.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>{m.full_name} ({m.role})</option>
-                ))}
-              </select>
+              {v2 && staffLoading ? (
+                <Skeleton className="h-9" />
+              ) : (
+                <select
+                  value={verifierId}
+                  onChange={(e) => setVerifierId(e.target.value)}
+                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
+                >
+                  <option value="">{t('programs.pmCompletion.noVerifier')}</option>
+                  {verifierOptions.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>{m.full_name} ({m.role})</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Measurements + meter readings */}
