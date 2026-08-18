@@ -771,9 +771,9 @@ function PredictionsPageContent() {
           <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
             <ShieldCheck size={24} className="text-[var(--ready)]" />
           </div>
-          <p className="text-base font-semibold text-gray-800">{t('engineering.predictionsPage.emptyHeading')}</p>
+          <p className={`text-base font-semibold ${v2 ? 'text-ink' : 'text-gray-800'}`}>{t('engineering.predictionsPage.emptyHeading')}</p>
           {filtersActive ? (
-            <p className="text-sm text-gray-500 mt-1 max-w-xs">
+            <p className={`text-sm mt-1 max-w-xs ${v2 ? 'text-ink3' : 'text-gray-500'}`}>
               {t('engineering.predictionsPage.emptyFilteredText')}{' '}
               <button
                 onClick={() => {
@@ -788,7 +788,7 @@ function PredictionsPageContent() {
             </p>
           ) : (
             <>
-              <p className="text-sm text-gray-500 mt-1 max-w-xs">
+              <p className={`text-sm mt-1 max-w-xs ${v2 ? 'text-ink3' : 'text-gray-500'}`}>
                 {t('engineering.predictionsPage.emptyHelp')}
               </p>
               <a
