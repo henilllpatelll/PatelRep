@@ -12,10 +12,13 @@ import {
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { Pill, AILabel, Mono } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { Button, IconButton } from '@/components/ui/Button'
 
 function getTaskTypeOptions(t: TFunction): Array<{ value: TaskType; label: string }> {
@@ -127,6 +130,7 @@ function TaskRow({
   onEdit,
   onDelete,
   updating,
+  v2,
 }: {
   task: Task
   isOverdue: boolean
@@ -135,6 +139,7 @@ function TaskRow({
   onEdit: (task: Task) => void
   onDelete: (task: Task) => void
   updating: boolean
+  v2?: boolean
 }) {
   const { t } = useTranslation()
   const isDone = task.status === 'completed' || task.status === 'cancelled'
@@ -143,7 +148,7 @@ function TaskRow({
     <div
       role="button"
       tabIndex={0}
-      className={`relative flex items-center gap-[11px] px-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : ''}`}
+      className={`relative flex items-center gap-[11px] px-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]' : ''} ${isDone ? 'opacity-50' : ''}`}
       onClick={() => onOpen(task)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(task) } }}
     >
@@ -154,7 +159,7 @@ function TaskRow({
         role="checkbox"
         aria-checked={isDone}
         tabIndex={-1}
-        className="w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-[var(--line)] shrink-0 flex items-center justify-center hover:border-[var(--accent)] transition-colors"
+        className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-[var(--line)] shrink-0 flex items-center justify-center hover:border-[var(--accent)] transition-colors ${v2 ? 'duration-fast ease-standard' : ''}`}
         onClick={(e) => {
           e.stopPropagation()
           if (task.status === 'open') onStatusChange(task.id, 'in_progress')
@@ -521,6 +526,8 @@ function TasksPageContent() {
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('tasks', hotel)
   const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>((searchParams.get('tab') as 'all' | TaskStatus) || 'all')
   const [typeFilter, setTypeFilter] = useState<TaskType | ''>('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
@@ -550,7 +557,7 @@ function TasksPageContent() {
     per_page: 100,
   }
 
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isError, refetch } = useQuery({
     queryKey: ['tasks', filters],
     queryFn: () => tasksApi.list(filters),
   })
@@ -633,7 +640,7 @@ function TasksPageContent() {
             <button
               key={tab.value}
               onClick={() => handleTabChange(tab.value)}
-              className={`flex-shrink-0 whitespace-nowrap px-3.5 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              className={`flex-shrink-0 whitespace-nowrap px-3.5 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${v2 ? 'duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-t-sm' : ''} ${
                 statusFilter === tab.value
                   ? 'border-[var(--accent)] text-[var(--accent)]'
                   : 'border-transparent text-ink3 hover:text-ink2'
@@ -648,7 +655,7 @@ function TasksPageContent() {
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as TaskType | '')}
             aria-label={t('tasks.filterTypeAria')}
-            className="border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none"
+            className={`border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none ${v2 ? 'transition-colors duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : ''}`}
           >
             <option value="">{t('tasks.allTypesOption')}</option>
             {taskTypeOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -657,7 +664,7 @@ function TasksPageContent() {
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
             aria-label={t('tasks.filterPriorityAria')}
-            className="border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none"
+            className={`border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none ${v2 ? 'transition-colors duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : ''}`}
           >
             <option value="">{t('tasks.allPrioritiesOption')}</option>
             {priorityOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -669,20 +676,42 @@ function TasksPageContent() {
       {isLoading ? (
         <div className="space-y-1">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-[42px] bg-surface-2 rounded-lg animate-pulse" />
+            <div key={i} className={v2 ? 'h-[42px] bg-surface-2 border border-line-2 rounded-[var(--r-md)] animate-pulse' : 'h-[42px] bg-surface-2 rounded-lg animate-pulse'} />
           ))}
         </div>
-      ) : sortedTasks.length === 0 ? (
-        <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] p-12 text-center">
-          <ClipboardList size={36} className="mx-auto text-ink4 mb-3" />
-          <p className="text-ink2 font-medium">{t('tasks.empty.title')}</p>
-          <p className="text-sm text-ink3 mt-1">{t('tasks.empty.subtitle')}</p>
-          <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4 gap-1.5 mx-auto">
-            <Plus size={14} />{t('tasks.empty.button')}
-          </Button>
+      ) : v2 && isError ? (
+        <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+          <StateBlock status="error" error={{ message: t('tasks.loadError'), onRetry: () => refetch() }} />
         </div>
+      ) : sortedTasks.length === 0 ? (
+        v2 ? (
+          <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+            <StateBlock
+              status="empty"
+              empty={{
+                icon: <ClipboardList size={20} />,
+                title: t('tasks.empty.title'),
+                body: t('tasks.empty.subtitle'),
+                action: (
+                  <Button variant="primary" onClick={() => setShowCreate(true)} className="gap-1.5">
+                    <Plus size={14} />{t('tasks.empty.button')}
+                  </Button>
+                ),
+              }}
+            />
+          </div>
+        ) : (
+          <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] p-12 text-center">
+            <ClipboardList size={36} className="mx-auto text-ink4 mb-3" />
+            <p className="text-ink2 font-medium">{t('tasks.empty.title')}</p>
+            <p className="text-sm text-ink3 mt-1">{t('tasks.empty.subtitle')}</p>
+            <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4 gap-1.5 mx-auto">
+              <Plus size={14} />{t('tasks.empty.button')}
+            </Button>
+          </div>
+        )
       ) : (
-        <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">
+        <div className={v2 ? 'bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card' : 'bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden'}>
           {sortedTasks.map((task) => (
             <TaskRow
               key={task.id}
@@ -693,6 +722,7 @@ function TasksPageContent() {
               onEdit={(task) => { setDrawerEditMode(true); setSelectedTask(task) }}
               onDelete={setDeleteTarget}
               updating={updating}
+              v2={v2}
             />
           ))}
         </div>
