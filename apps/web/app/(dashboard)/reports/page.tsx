@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart2,
   Users,
@@ -19,10 +20,13 @@ import {
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { Card } from '@/components/ui/Card'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -147,14 +151,19 @@ function SkeletonBlock({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-gray-100 ${className}`} />
 }
 
+function SkeletonBlockV2({ className = '' }: { className?: string }) {
+  return <Skeleton variant="card" className={className} />
+}
+
 // ── Tab: Daily Summary ────────────────────────────────────────────────────────
 
-function DailySummaryTab() {
+function DailySummaryTab({ redesigned }: { redesigned?: boolean }) {
+  const { t } = useTranslation()
   const [selectedDate, setSelectedDate] = useState<string>(
     toLocalDateStr(new Date())
   )
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'daily', selectedDate],
     queryFn: () => reportsApi.getDailySummary(selectedDate),
   })
@@ -177,9 +186,16 @@ function DailySummaryTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
-          Failed to load daily summary. Please try again.
-        </div>
+        redesigned ? (
+          <StateBlock
+            status="error"
+            error={{ message: t('reports.dailySummary.loadError'), onRetry: () => refetch() }}
+          />
+        ) : (
+          <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
+            Failed to load daily summary. Please try again.
+          </div>
+        )
       )}
 
       {/* Room status breakdown */}
@@ -189,9 +205,13 @@ function DailySummaryTab() {
         </h3>
         {isLoading ? (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <SkeletonBlock key={i} className="h-20" />
-            ))}
+            {Array.from({ length: 6 }).map((_, i) =>
+              redesigned ? (
+                <SkeletonBlockV2 key={i} className="h-20" />
+              ) : (
+                <SkeletonBlock key={i} className="h-20" />
+              )
+            )}
           </div>
         ) : summary && Object.keys(summary.room_status_breakdown).length > 0 ? (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -205,6 +225,11 @@ function DailySummaryTab() {
               </div>
             ))}
           </div>
+        ) : redesigned ? (
+          <StateBlock
+            status="empty"
+            empty={{ title: t('reports.dailySummary.empty.title'), body: t('reports.dailySummary.empty.body') }}
+          />
         ) : (
           <p className="text-sm text-gray-500">No room data available.</p>
         )}
@@ -216,10 +241,17 @@ function DailySummaryTab() {
       {/* Task + WO stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {isLoading ? (
-          <>
-            <SkeletonBlock className="h-28" />
-            <SkeletonBlock className="h-28" />
-          </>
+          redesigned ? (
+            <>
+              <SkeletonBlockV2 className="h-28" />
+              <SkeletonBlockV2 className="h-28" />
+            </>
+          ) : (
+            <>
+              <SkeletonBlock className="h-28" />
+              <SkeletonBlock className="h-28" />
+            </>
+          )
         ) : summary ? (
           <>
             <div className="flex flex-col items-center justify-center bg-surface border border-line rounded-[var(--r-lg)] p-6">
@@ -263,11 +295,12 @@ function DailySummaryTab() {
 
 // ── Tab: Staff Performance ────────────────────────────────────────────────────
 
-function StaffPerformanceTab() {
+function StaffPerformanceTab({ redesigned }: { redesigned?: boolean }) {
+  const { t } = useTranslation()
   const [range, setRange] = useState<DateRange>('30d')
   const params = getDateRange(range)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'staff', range],
     queryFn: () => reportsApi.getStaffPerformance(params),
   })
@@ -289,16 +322,27 @@ function StaffPerformanceTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
-          Failed to load staff performance data.
-        </div>
+        redesigned ? (
+          <StateBlock
+            status="error"
+            error={{ message: t('reports.staffPerformance.loadError'), onRetry: () => refetch() }}
+          />
+        ) : (
+          <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
+            Failed to load staff performance data.
+          </div>
+        )
       )}
 
       {isLoading ? (
         <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-12" />
-          ))}
+          {Array.from({ length: 5 }).map((_, i) =>
+            redesigned ? (
+              <SkeletonBlockV2 key={i} className="h-12" />
+            ) : (
+              <SkeletonBlock key={i} className="h-12" />
+            )
+          )}
         </div>
       ) : report && report.metrics.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-line">
@@ -341,8 +385,8 @@ function StaffPerformanceTab() {
         !isLoading && (
           <EmptyState
             icon={<Users className="w-5 h-5" />}
-            title="No staff performance data yet"
-            body="Assign tasks and mark them complete to generate staff performance data."
+            title={redesigned ? t('reports.staffPerformance.empty.title') : 'No staff performance data yet'}
+            body={redesigned ? t('reports.staffPerformance.empty.body') : 'Assign tasks and mark them complete to generate staff performance data.'}
             className="rounded-xl border border-dashed border-gray-300"
           />
         )
@@ -353,12 +397,13 @@ function StaffPerformanceTab() {
 
 // ── Tab: Maintenance ──────────────────────────────────────────────────────────
 
-function MaintenanceTab() {
+function MaintenanceTab({ redesigned }: { redesigned?: boolean }) {
+  const { t } = useTranslation()
   const [range, setRange] = useState<DateRange>('30d')
   const [showMoreMetrics, setShowMoreMetrics] = useState(false)
   const params = getDateRange(range)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'maintenance', range],
     queryFn: () => reportsApi.getMaintenance(params),
   })
@@ -384,17 +429,28 @@ function MaintenanceTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
-          Failed to load maintenance data.
-        </div>
+        redesigned ? (
+          <StateBlock
+            status="error"
+            error={{ message: t('reports.maintenance.loadError'), onRetry: () => refetch() }}
+          />
+        ) : (
+          <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
+            Failed to load maintenance data.
+          </div>
+        )
       )}
 
       {/* KPI Grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-28" />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) =>
+            redesigned ? (
+              <SkeletonBlockV2 key={i} className="h-28" />
+            ) : (
+              <SkeletonBlock key={i} className="h-28" />
+            )
+          )}
         </div>
       ) : report ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -478,7 +534,14 @@ function MaintenanceTab() {
           <Card hover={false} className="p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Category</h4>
             {Object.keys(report.by_category).length === 0 ? (
-              <p className="text-sm text-gray-400">No data.</p>
+              redesigned ? (
+                <StateBlock
+                  status="empty"
+                  empty={{ title: t('reports.maintenance.empty.title'), body: t('reports.maintenance.empty.body') }}
+                />
+              ) : (
+                <p className="text-sm text-gray-400">No data.</p>
+              )
             ) : (
               <div className="space-y-3">
                 {Object.entries(report.by_category)
@@ -529,10 +592,11 @@ function MaintenanceTab() {
 
 // ── Tab: AI Usage ─────────────────────────────────────────────────────────────
 
-function GuestRecoveryTab() {
+function GuestRecoveryTab({ redesigned }: { redesigned?: boolean }) {
+  const { t } = useTranslation()
   const [range, setRange] = useState<DateRange>('30d')
   const params = getDateRange(range)
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'guest-recovery', range],
     queryFn: () => reportsApi.getGuestRecovery(params),
   })
@@ -547,9 +611,18 @@ function GuestRecoveryTab() {
         </div>
         <DateRangeSelector value={range} onChange={setRange} />
       </div>
-      {isError && <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">Failed to load guest recovery data.</div>}
+      {isError && (
+        redesigned ? (
+          <StateBlock
+            status="error"
+            error={{ message: t('reports.guestRecovery.loadError'), onRetry: () => refetch() }}
+          />
+        ) : (
+          <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">Failed to load guest recovery data.</div>
+        )
+      )}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{Array.from({ length: 5 }).map((_, index) => <SkeletonBlock key={index} className="h-28" />)}</div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{Array.from({ length: 5 }).map((_, index) => redesigned ? <SkeletonBlockV2 key={index} className="h-28" /> : <SkeletonBlock key={index} className="h-28" />)}</div>
       ) : report ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -564,7 +637,12 @@ function GuestRecoveryTab() {
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(report.by_category).length ? Object.entries(report.by_category).map(([category, count]) => (
                 <span key={category} className="rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700">{formatType(category)}: <strong>{count}</strong></span>
-              )) : <p className="text-sm text-gray-400">No guest requests in this period.</p>}
+              )) : redesigned ? (
+                <StateBlock
+                  status="empty"
+                  empty={{ title: t('reports.guestRecovery.empty.title'), body: t('reports.guestRecovery.empty.body') }}
+                />
+              ) : <p className="text-sm text-gray-400">No guest requests in this period.</p>}
             </div>
           </Card>
         </>
@@ -573,11 +651,12 @@ function GuestRecoveryTab() {
   )
 }
 
-function AIUsageTab() {
+function AIUsageTab({ redesigned }: { redesigned?: boolean }) {
+  const { t } = useTranslation()
   const [range, setRange] = useState<DateRange>('30d')
   const params = getDateRange(range)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'ai', range],
     queryFn: () => reportsApi.getAIUsage(params),
   })
@@ -605,17 +684,28 @@ function AIUsageTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
-          Failed to load AI usage data.
-        </div>
+        redesigned ? (
+          <StateBlock
+            status="error"
+            error={{ message: t('reports.aiUsage.loadError'), onRetry: () => refetch() }}
+          />
+        ) : (
+          <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
+            Failed to load AI usage data.
+          </div>
+        )
       )}
 
       {/* Summary cards */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-28" />
-          ))}
+          {Array.from({ length: 3 }).map((_, i) =>
+            redesigned ? (
+              <SkeletonBlockV2 key={i} className="h-28" />
+            ) : (
+              <SkeletonBlock key={i} className="h-28" />
+            )
+          )}
         </div>
       ) : report ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -643,9 +733,13 @@ function AIUsageTab() {
       {/* Breakdown table */}
       {isLoading ? (
         <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-10" />
-          ))}
+          {Array.from({ length: 4 }).map((_, i) =>
+            redesigned ? (
+              <SkeletonBlockV2 key={i} className="h-10" />
+            ) : (
+              <SkeletonBlock key={i} className="h-10" />
+            )
+          )}
         </div>
       ) : report && sortedBreakdown.length > 0 ? (
         <div className="rounded-xl border border-line overflow-hidden">
@@ -680,8 +774,8 @@ function AIUsageTab() {
         !isLoading && (
           <EmptyState
             icon={<Zap className="w-5 h-5" />}
-            title="No AI usage data yet"
-            body="Use the AI Copilot to create tasks or query SOPs — usage will appear here."
+            title={redesigned ? t('reports.aiUsage.empty.title') : 'No AI usage data yet'}
+            body={redesigned ? t('reports.aiUsage.empty.body') : 'Use the AI Copilot to create tasks or query SOPs — usage will appear here.'}
             className="rounded-xl border border-dashed border-gray-300"
           />
         )
@@ -693,8 +787,11 @@ function AIUsageTab() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const { t } = useTranslation()
   const { role, isGM, isSupervisor } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('reports', hotel)
   const [activeTab, setActiveTab] = useState<TabId>('daily')
 
   // Build visible tabs based on role
@@ -729,7 +826,16 @@ export default function ReportsPage() {
   const currentTab = visibleTabIds.includes(activeTab) ? activeTab : (tabs[0]?.id ?? 'daily')
 
   if (isAuthLoading || !role) {
-    return (
+    return v2 ? (
+      <div className="space-y-4">
+        <Skeleton variant="text" className="h-9 w-64" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="card" className="h-28" />
+          ))}
+        </div>
+      </div>
+    ) : (
       <div className="flex h-full items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
       </div>
@@ -739,7 +845,7 @@ export default function ReportsPage() {
   if (tabs.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-gray-500">You do not have access to reports.</p>
+        <p className="text-sm text-gray-500">{v2 ? t('reports.noAccess') : 'You do not have access to reports.'}</p>
       </div>
     )
   }
@@ -748,8 +854,9 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Intelligence"
-        title="Reports"
-        subtitle="Operational analytics and performance metrics"
+        title={v2 ? t('reports.pageTitle') : 'Reports'}
+        subtitle={v2 ? t('reports.pageSubtitle') : 'Operational analytics and performance metrics'}
+        dataI18nSkip={v2}
         tabs={tabs.map((tab) => ({
           label: tab.label,
           active: currentTab === tab.id,
@@ -759,11 +866,11 @@ export default function ReportsPage() {
 
       {/* Tab content */}
       <div>
-        {currentTab === 'daily' && <DailySummaryTab />}
-        {currentTab === 'staff' && <StaffPerformanceTab />}
-        {currentTab === 'maintenance' && <MaintenanceTab />}
-        {currentTab === 'guest-recovery' && <GuestRecoveryTab />}
-        {currentTab === 'ai' && <AIUsageTab />}
+        {currentTab === 'daily' && <DailySummaryTab redesigned={v2} />}
+        {currentTab === 'staff' && <StaffPerformanceTab redesigned={v2} />}
+        {currentTab === 'maintenance' && <MaintenanceTab redesigned={v2} />}
+        {currentTab === 'guest-recovery' && <GuestRecoveryTab redesigned={v2} />}
+        {currentTab === 'ai' && <AIUsageTab redesigned={v2} />}
       </div>
     </div>
   )
