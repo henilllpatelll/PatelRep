@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   Clock,
   CheckCircle2,
@@ -16,10 +17,14 @@ import { managementRoiApi } from '@/lib/api/managementRoi'
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Stat, Pill } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -83,15 +88,19 @@ function DateRangeSelector({
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
-function StatSkeleton() {
-  return <div className="min-h-[96px] animate-pulse rounded-[var(--r-lg)] bg-gray-100" />
+function StatSkeleton({ v2 = false }: { v2?: boolean }) {
+  return v2 ? (
+    <Skeleton variant="card" className="min-h-[96px] h-auto" />
+  ) : (
+    <div className="min-h-[96px] animate-pulse rounded-[var(--r-lg)] bg-gray-100" />
+  )
 }
 
-function SkeletonGrid({ count }: { count: number }) {
+function SkeletonGrid({ count, v2 = false }: { count: number; v2?: boolean }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
-        <StatSkeleton key={i} />
+        <StatSkeleton key={i} v2={v2} />
       ))}
     </div>
   )
@@ -104,12 +113,14 @@ function Section({
   icon,
   loading,
   statCount,
+  v2 = false,
   children,
 }: {
   title: string
   icon: React.ReactNode
   loading: boolean
   statCount: number
+  v2?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -118,7 +129,7 @@ function Section({
         {icon}
         {title}
       </h2>
-      {loading ? <SkeletonGrid count={statCount} /> : (
+      {loading ? <SkeletonGrid count={statCount} v2={v2} /> : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
       )}
     </section>
@@ -128,8 +139,11 @@ function Section({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ManagementRoiPage() {
+  const { t } = useTranslation()
   const { isGM } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('managementRoi', hotel)
   const [range, setRange] = useState<DateRange>('30d')
   const { start_date, end_date } = getDateRange(range)
 
@@ -180,7 +194,12 @@ export default function ManagementRoiPage() {
   })
 
   if (isAuthLoading) {
-    return (
+    return v2 ? (
+      <div className="space-y-4">
+        <Skeleton variant="text" className="h-9 w-64" />
+        <SkeletonGrid count={4} v2 />
+      </div>
+    ) : (
       <div className="flex h-full items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
       </div>
@@ -192,7 +211,7 @@ export default function ManagementRoiPage() {
       <div className="flex h-full items-center justify-center p-6">
         <div className="max-w-md rounded-[var(--r-lg)] border border-line bg-surface p-6 text-center">
           <p className="text-[20px] font-semibold text-ink">
-            Management ROI is available to the general manager.
+            {v2 ? t('managementRoi.noAccess') : 'Management ROI is available to the general manager.'}
           </p>
           <p className="mt-2 text-sm text-ink3">
             Ask your GM for access to hotel-wide ROI reporting.
@@ -217,16 +236,16 @@ export default function ManagementRoiPage() {
   const responseLoading = guestRecoveryQuery.isLoading || maintenanceQuery.isLoading
   const revenueLoading = downtimeRevenueQuery.isLoading || trainingReadinessQuery.isLoading
 
-  const errors: { isError: boolean; noun: string }[] = [
-    { isError: housekeepingEfficiencyQuery.isError, noun: 'housekeeping efficiency' },
-    { isError: inspectionTrendsQuery.isError, noun: 'inspection trends' },
-    { isError: repeatFailuresQuery.isError, noun: 'repeat failures' },
-    { isError: downtimeRevenueQuery.isError, noun: 'downtime and revenue' },
-    { isError: pmComplianceQuery.isError, noun: 'PM compliance' },
-    { isError: trainingReadinessQuery.isError, noun: 'training readiness' },
-    { isError: forecastQuery.isError, noun: 'the 7-day forecast' },
-    { isError: guestRecoveryQuery.isError, noun: 'guest recovery' },
-    { isError: maintenanceQuery.isError, noun: 'maintenance' },
+  const errors: { isError: boolean; noun: string; refetch: () => void }[] = [
+    { isError: housekeepingEfficiencyQuery.isError, noun: 'housekeeping efficiency', refetch: () => housekeepingEfficiencyQuery.refetch() },
+    { isError: inspectionTrendsQuery.isError, noun: 'inspection trends', refetch: () => inspectionTrendsQuery.refetch() },
+    { isError: repeatFailuresQuery.isError, noun: 'repeat failures', refetch: () => repeatFailuresQuery.refetch() },
+    { isError: downtimeRevenueQuery.isError, noun: 'downtime and revenue', refetch: () => downtimeRevenueQuery.refetch() },
+    { isError: pmComplianceQuery.isError, noun: 'PM compliance', refetch: () => pmComplianceQuery.refetch() },
+    { isError: trainingReadinessQuery.isError, noun: 'training readiness', refetch: () => trainingReadinessQuery.refetch() },
+    { isError: forecastQuery.isError, noun: 'the 7-day forecast', refetch: () => forecastQuery.refetch() },
+    { isError: guestRecoveryQuery.isError, noun: 'guest recovery', refetch: () => guestRecoveryQuery.refetch() },
+    { isError: maintenanceQuery.isError, noun: 'maintenance', refetch: () => maintenanceQuery.refetch() },
   ].filter((e) => e.isError)
 
   const allResolved =
@@ -250,29 +269,38 @@ export default function ManagementRoiPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Intelligence"
-        title="Management ROI"
-        subtitle="Time saved, quality, response, and revenue protected — trends and exceptions, not totals alone"
+        title={v2 ? t('managementRoi.pageTitle') : 'Management ROI'}
+        subtitle={v2 ? t('managementRoi.pageSubtitle') : 'Time saved, quality, response, and revenue protected — trends and exceptions, not totals alone'}
+        dataI18nSkip={v2}
         actions={<DateRangeSelector value={range} onChange={setRange} />}
       />
 
       {errors.length > 0 && (
         <div className="space-y-2">
-          {errors.map((e) => (
-            <div
-              key={e.noun}
-              className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]"
-            >
-              Failed to load {e.noun}. Please try again.
-            </div>
-          ))}
+          {errors.map((e) =>
+            v2 ? (
+              <StateBlock
+                key={e.noun}
+                status="error"
+                error={{ message: t('managementRoi.loadErrorFor', { noun: e.noun }), onRetry: e.refetch }}
+              />
+            ) : (
+              <div
+                key={e.noun}
+                className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]"
+              >
+                Failed to load {e.noun}. Please try again.
+              </div>
+            )
+          )}
         </div>
       )}
 
       {isEmpty ? (
         <EmptyState
           icon={<Gauge className="w-5 h-5" />}
-          title="Not enough data yet"
-          body="Metrics populate as guest requests, work orders, and inspections are recorded over time."
+          title={v2 ? t('managementRoi.empty.title') : 'Not enough data yet'}
+          body={v2 ? t('managementRoi.empty.body') : 'Metrics populate as guest requests, work orders, and inspections are recorded over time.'}
           className="rounded-xl border border-dashed border-gray-300 py-16"
         />
       ) : (
@@ -283,6 +311,7 @@ export default function ManagementRoiPage() {
             icon={<Clock className="h-4 w-4 text-[var(--ready)]" />}
             loading={timeSavedLoading}
             statCount={4}
+            v2={v2}
           >
             <Stat
               label="Minutes / Occupied Room"
@@ -314,6 +343,7 @@ export default function ManagementRoiPage() {
             icon={<CheckCircle2 className="h-4 w-4 text-[var(--info)]" />}
             loading={qualityLoading}
             statCount={4}
+            v2={v2}
           >
             <Stat
               label="Inspection Pass Rate"
@@ -342,6 +372,7 @@ export default function ManagementRoiPage() {
             icon={<MessageSquare className="h-4 w-4 text-[var(--caution)]" />}
             loading={responseLoading}
             statCount={4}
+            v2={v2}
           >
             <Stat
               label="Verified Resolution Rate"
@@ -372,6 +403,7 @@ export default function ManagementRoiPage() {
             icon={<DollarSign className="h-4 w-4 text-[var(--accent)]" />}
             loading={revenueLoading}
             statCount={3}
+            v2={v2}
           >
             <Stat
               label="Room Downtime"
