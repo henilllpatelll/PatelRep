@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { Plus, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
@@ -12,6 +13,10 @@ import { Pill } from '@/components/ui/primitives'
 import { GuestRequestDrawer } from '@/components/guest-requests/GuestRequestDrawer'
 import { NewRequestModal } from '@/components/guest-requests/NewRequestModal'
 import { HistoryTab } from '@/components/guest-requests/HistoryTab'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -21,6 +26,14 @@ function timeAgo(iso: string): string {
   const h = Math.floor(diff / 60)
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
+}
+
+function timeAgoV2(iso: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (diff < 60) return t('guestRequests.timeAgo.minutes', { count: diff })
+  const h = Math.floor(diff / 60)
+  if (h < 24) return t('guestRequests.timeAgo.hours', { count: h })
+  return t('guestRequests.timeAgo.days', { count: Math.floor(h / 24) })
 }
 
 function isSlaBreached(request: GuestRequest): boolean {
@@ -61,6 +74,13 @@ const COLUMNS = [
   },
 ]
 
+// v2 kanban column labels are keyed by 'verify' rather than 'resolved_today' in the locale file.
+const COLUMN_I18N_KEY: Record<typeof COLUMNS[number]['key'], 'open' | 'acknowledged' | 'verify'> = {
+  open: 'open',
+  acknowledged: 'acknowledged',
+  resolved_today: 'verify',
+}
+
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 interface CardProps {
@@ -68,6 +88,7 @@ interface CardProps {
   onAdvance: (id: string, status: Exclude<GuestRequest['status'], 'open'>) => void
   onCardClick: (r: GuestRequest) => void
   isUpdating: boolean
+  v2: boolean
 }
 
 function GuestRequestCard({
@@ -75,7 +96,9 @@ function GuestRequestCard({
   onAdvance,
   onCardClick,
   isUpdating,
+  v2,
 }: CardProps) {
+  const { t } = useTranslation()
   const isUrgent = (request as any).priority === 'urgent'
   const slaBreached = isSlaBreached(request)
   const roomNum = request.rooms?.room_number ?? '—'
@@ -90,7 +113,7 @@ function GuestRequestCard({
     >
       {isUrgent && (
         <div className="mb-2">
-          <Pill tone="alert" size="sm">URGENT</Pill>
+          <Pill tone="alert" size="sm">{v2 ? t('guestRequests.urgent') : 'URGENT'}</Pill>
         </div>
       )}
 
@@ -102,7 +125,10 @@ function GuestRequestCard({
 
       <p className={cn('mt-1.5 text-[11px] flex items-center gap-0.5', slaBreached ? 'text-[var(--alert)] font-medium' : 'text-ink3')}>
         <Clock size={10} className="shrink-0" />
-        <span>{timeAgo(request.created_at)}{slaBreached ? ' · SLA overdue' : ''}</span>
+        <span>
+          {v2 ? timeAgoV2(request.created_at, t) : timeAgo(request.created_at)}
+          {slaBreached ? ` · ${v2 ? t('guestRequests.slaOverdue') : 'SLA overdue'}` : ''}
+        </span>
       </p>
 
       {request.status !== 'verified' && request.status !== 'cancelled' && (
@@ -114,7 +140,7 @@ function GuestRequestCard({
               disabled={isUpdating}
               onClick={() => onAdvance(request.id, 'acknowledged')}
             >
-              Acknowledge
+              {v2 ? t('guestRequests.actionAcknowledge') : 'Acknowledge'}
             </Button>
           )}
           {request.status === 'acknowledged' && (
@@ -124,27 +150,27 @@ function GuestRequestCard({
               disabled={isUpdating}
               onClick={() => onAdvance(request.id, 'dispatched')}
             >
-              Dispatch
+              {v2 ? t('guestRequests.actionDispatch') : 'Dispatch'}
             </Button>
           )}
           {request.status === 'dispatched' && (
             <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'arrived')}>
-              Arrived
+              {v2 ? t('guestRequests.actionArrived') : 'Arrived'}
             </Button>
           )}
           {request.status === 'arrived' && (
             <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'guest_contacted')}>
-              Contacted
+              {v2 ? t('guestRequests.actionContacted') : 'Contacted'}
             </Button>
           )}
           {request.status === 'guest_contacted' && (
             <Button variant="primary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'resolved')}>
-              Resolve
+              {v2 ? t('guestRequests.actionResolve') : 'Resolve'}
             </Button>
           )}
           {request.status === 'resolved' && (
             <Button variant="primary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'verified')}>
-              Verify
+              {v2 ? t('guestRequests.actionVerify') : 'Verify'}
             </Button>
           )}
         </div>
@@ -156,6 +182,9 @@ function GuestRequestCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function GuestRequestsPage() {
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('guestRequests', hotel)
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
   const [drawerRequest, setDrawerRequest] = useState<GuestRequest | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -165,7 +194,7 @@ export function GuestRequestsPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['guest-requests-kanban'],
     queryFn: () => guestRequestsApi.listRequests({ per_page: 200 }),
     refetchInterval: 30_000,
@@ -215,6 +244,96 @@ export function GuestRequestsPage() {
     setActiveTab('active')
     setDrawerRequest(target)
   }, [searchParams, allRequests])
+
+  if (v2) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="px-6 pt-4 bg-surface shrink-0">
+          <PageHeader
+            title={t('guestRequests.pageTitle')}
+            subtitle={t('guestRequests.pageSubtitle')}
+            tabs={[
+              { label: t('guestRequests.tabActive'), active: activeTab === 'active', onClick: () => setActiveTab('active') },
+              { label: t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history') },
+            ]}
+            actions={
+              <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+                <Plus size={16} />
+                {t('guestRequests.newRequestButton')}
+              </Button>
+            }
+          />
+        </div>
+
+        {/* Content */}
+        {activeTab === 'active' ? (
+          <div className="flex-1 overflow-hidden p-5">
+            {isLoading ? (
+              <div className="grid grid-cols-3 gap-4 h-full">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="bg-surface-2 border border-line-2 rounded-[var(--r-lg)] animate-pulse" />
+                ))}
+              </div>
+            ) : isError ? (
+              <StateBlock status="error" error={{ message: t('guestRequests.loadError'), onRetry: () => refetch() }} />
+            ) : (
+              <div className="grid grid-cols-3 gap-4 h-full min-h-0">
+                {columns.map(col => (
+                  <div key={col.key} data-testid={`gr-column-${col.key}`} className="flex flex-col rounded-[var(--r-lg)] border border-line overflow-hidden">
+                    <div className={cn('flex items-center justify-between px-3.5 py-2.5 shrink-0', col.headerClass)}>
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.08em]">
+                        {t(`guestRequests.columns.${COLUMN_I18N_KEY[col.key]}`)}
+                      </span>
+                      <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center', col.countClass)}>
+                        {col.requests.length}
+                      </span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-surface-2">
+                      {col.requests.length === 0 ? (
+                        <StateBlock status="empty" empty={{ title: t('guestRequests.empty.title') }} />
+                      ) : (
+                        col.requests.map(request => (
+                          <GuestRequestCard
+                            key={request.id}
+                            request={request}
+                            onAdvance={handleAdvance}
+                            onCardClick={r => {
+                              setDrawerRequest(r)
+                            }}
+                            isUpdating={updateMutation.isPending}
+                            v2
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 overflow-auto p-6">
+            <HistoryTab />
+          </div>
+        )}
+
+        <GuestRequestDrawer
+          request={drawerRequest}
+          isOpen={!!drawerRequest}
+          onClose={() => setDrawerRequest(null)}
+          onNoteAdded={() => queryClient.invalidateQueries({ queryKey: ['guest-requests-kanban'] })}
+          onAdvance={handleAdvance}
+          isUpdating={updateMutation.isPending}
+        />
+
+        <NewRequestModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['guest-requests-kanban'] })}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -282,6 +401,7 @@ export function GuestRequestsPage() {
                             setDrawerRequest(r)
                           }}
                           isUpdating={updateMutation.isPending}
+                          v2={false}
                         />
                       ))
                     )}
