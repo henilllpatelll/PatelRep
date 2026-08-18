@@ -31,6 +31,8 @@ import {
 } from '@/lib/api/engineering'
 import { tasksApi } from '@/lib/api/tasks'
 import { useRole } from '@/lib/hooks/useRole'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill, AILabel, SectionLabel } from '@/components/ui/primitives'
 
@@ -114,6 +116,8 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const { t } = useTranslation()
   const { role, isGM } = useRole()
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
   const drawerRef = useRef<HTMLDivElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
@@ -154,7 +158,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   })
 
   // Fetch full WO detail (includes comments and photos) when open
-  const { data: woDetail, isLoading: detailLoading, refetch: refetchDetail } = useQuery({
+  const { data: woDetail, isLoading: detailLoading, isError: detailError, refetch: refetchDetail } = useQuery({
     queryKey: ['work-order-detail', wo?.id],
     queryFn: () => engineeringApi.getWorkOrder(wo!.id),
     enabled: !!wo?.id && isOpen,
@@ -437,6 +441,23 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
         {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto divide-y divide-line">
+
+          {/* Partial-load-error notice — non-blocking, fullWo fallback keeps the drawer usable */}
+          {v2 && detailError && !detailLoading && (
+            <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--alert-soft)] border-b border-[var(--alert-line)]/40">
+              <p className="flex items-center gap-1.5 text-xs text-[var(--alert)]">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {t('engineering.workOrderDetail.loadError')}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetchDetail()}
+                className="text-xs font-medium text-[var(--alert)] underline shrink-0"
+              >
+                {t('common.retry')}
+              </button>
+            </div>
+          )}
 
           {/* Inline edit — chief/GM only */}
           {isEditing && (isChief || isGM) && (
