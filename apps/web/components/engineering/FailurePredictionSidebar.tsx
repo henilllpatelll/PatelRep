@@ -6,8 +6,11 @@ import type { TFunction } from 'i18next'
 import { CheckCircle, Plus } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -199,8 +202,10 @@ export function FailurePredictionSidebar() {
   const { isGM, role } = useRole()
   const canAcknowledge = isGM || role === 'engineer'
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
-  const { data: predictions, isLoading } = useQuery({
+  const { data: predictions, isLoading, isError, refetch } = useQuery({
     queryKey: ['failure-predictions'],
     queryFn: () => engineeringApi.getFailurePredictions(),
     select: (res) => res.data as FailurePrediction[],
@@ -240,7 +245,13 @@ export function FailurePredictionSidebar() {
       </div>
 
       {/* Content */}
-      {isLoading ? (
+      {v2 && isError ? (
+        <StateBlock
+          status="error"
+          error={{ message: t('engineering.failurePrediction.loadError'), onRetry: () => refetch() }}
+          className="py-6"
+        />
+      ) : isLoading ? (
         <div className="space-y-3">
           <SkeletonItem />
           <SkeletonItem />
