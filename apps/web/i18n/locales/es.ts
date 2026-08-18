@@ -1044,6 +1044,7 @@ const es = {
       hkNotePlaceholder: 'p. ej. Limpieza profunda necesaria — reparación completa, escombros en el baño',
       priorityLabel: 'Prioridad',
       hkTaskError: 'No se pudo crear la tarea. Intente de nuevo.',
+      loadError: 'No se pudieron cargar todos los detalles. Mostrando información básica.',
       photosHeading: 'Fotos',
       previewAlt: 'Vista previa',
       removePhoto: 'Eliminar foto',
@@ -1151,6 +1152,7 @@ const es = {
       noHighRisk: 'No hay activos de alto riesgo',
       allNormal: 'Todos los activos están dentro de niveles de riesgo normales.',
       footerNote: 'Predicciones actualizadas cada noche por IA',
+      loadError: 'No se pudieron cargar las predicciones de fallas.',
     },
     assetsPage: {
       heading: 'Registro de activos',
@@ -1244,6 +1246,7 @@ const es = {
     predictionsPage: {
       heading: 'Predicciones de falla de activos',
       subtitle: 'Análisis de riesgo de falla con IA — actualizado cada noche',
+      loadError: 'No se pudieron cargar las predicciones.',
       freshAnalysisHint: 'Para ejecutar un nuevo análisis,',
       freshAnalysisHint2: 'abra un activo desde el Registro de activos.',
       workOrderCreated: 'Orden de trabajo creada exitosamente',
