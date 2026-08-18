@@ -225,7 +225,14 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   2. `EngineeringRoomBoard` renders visually and functionally identical inside the new chrome — the Room-Board pixel-diff against the Phase-30 baseline passes
   3. Empty, loading, and error states across the Engineering pages are redesigned
   4. The section passes the dark-mode contrast check, EN/ES key-parity, and the same-inputs→same-outputs network diff
-**Plans**: TBD
+**Plans**: 7 plans (3 waves)
+- [ ] 35-01-PLAN.md — i18n foundation: 3 new leaf keys (predictionsPage.loadError, failurePrediction.loadError, workOrderDetail.loadError) additively inside existing namespaces
+- [ ] 35-02-PLAN.md — Work Orders main chrome: PageHeader/tab-bar restyle, per-column Kanban Skeleton/StateBlock (5 columns), ArchivedWorkOrdersPanel state conversion; EngineeringRoomBoard untouched
+- [ ] 35-03-PLAN.md — Work Orders sidebar/modals gap-closing: FailurePredictionSidebar, WorkOrderDetailDrawer, CreateWorkOrderModal, BulkArchiveModal
+- [ ] 35-04-PLAN.md — Assets v2 restyle: table Skeleton/StateBlock (existing keys), rich empty-state typography, AssetDetailModal spinner→skeleton
+- [ ] 35-05-PLAN.md — PM Schedules v2 restyle + PMCompletionModal gap-closing (reuses existing programs.pmSchedules.* namespace, no migration)
+- [ ] 35-06-PLAN.md — Predictions v2 restyle: adds isError/refetch (previously absent), new StateBlock error, rich empty-state typography
+- [ ] 35-07-PLAN.md — chromeMasks() extension (required precondition) + full gate suite + Room-Board regression re-pass + live 4-page flag-on/off self-verification
 
 ### Phase 36: Housekeeping Section Chrome
 **Goal**: The Housekeeping section's surrounding chrome is redesigned while `RoomStatusBoard`/`RoomDetailDrawer` render unchanged and Realtime sync stays live.
