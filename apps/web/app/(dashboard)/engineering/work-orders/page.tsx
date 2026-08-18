@@ -8,6 +8,8 @@ import { useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { AlertCircle, Plus, Sparkles, Loader2, Archive } from 'lucide-react'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { ApiClientError } from '@/lib/api/client'
@@ -148,6 +150,9 @@ function KanbanColumn({
   onAdd,
   onCardClick,
   isLoading,
+  isError,
+  onRetry,
+  v2,
 }: {
   label: string
   tone: PillTone
@@ -157,6 +162,9 @@ function KanbanColumn({
   onAdd: () => void
   onCardClick: (wo: WorkOrder) => void
   isLoading: boolean
+  isError: boolean
+  onRetry: () => void
+  v2: boolean
 }) {
   const { t } = useTranslation()
   return (
@@ -185,7 +193,35 @@ function KanbanColumn({
 
       {/* Column body */}
       <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
-        {isLoading ? (
+        {v2 ? (
+          isLoading ? (
+            <>
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} variant="card" className="h-[88px]" />
+              ))}
+            </>
+          ) : isError ? (
+            <StateBlock
+              status="error"
+              error={{ message: t('engineering.workOrderList.loadError'), onRetry }}
+              className="py-6"
+            />
+          ) : workOrders.length === 0 ? (
+            <StateBlock
+              status="empty"
+              empty={{ title: t('engineering.workOrdersPage.emptyColumn', { label: label.toLowerCase() }) }}
+              className="py-6"
+            />
+          ) : (
+            workOrders.map((wo) => (
+              <WorkOrderCard
+                key={wo.id}
+                wo={wo}
+                onClick={() => onCardClick(wo)}
+              />
+            ))
+          )
+        ) : isLoading ? (
           <>
             {[1, 2, 3].map((i) => (
               <div
@@ -309,6 +345,22 @@ function WorkOrdersPageContent() {
     in_progress: progressQ.isLoading,
     on_hold:     holdQ.isLoading,
     completed:   completedQ.isLoading,
+  }
+
+  const columnError: Record<KanbanStatus, boolean> = {
+    open:        openQ.isError,
+    escalated:   escalatedQ.isError,
+    in_progress: progressQ.isError,
+    on_hold:     holdQ.isError,
+    completed:   completedQ.isError,
+  }
+
+  const columnRefetch: Record<KanbanStatus, () => void> = {
+    open:        () => openQ.refetch(),
+    escalated:   () => escalatedQ.refetch(),
+    in_progress: () => progressQ.refetch(),
+    on_hold:     () => holdQ.refetch(),
+    completed:   () => completedQ.refetch(),
   }
 
   const emergencyCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'emergency').length
@@ -477,6 +529,9 @@ function WorkOrdersPageContent() {
                     onAdd={() => setShowCreateModal(true)}
                     onCardClick={handleCardClick}
                     isLoading={columnLoading[status]}
+                    isError={columnError[status]}
+                    onRetry={columnRefetch[status]}
+                    v2={v2}
                   />
                 ))}
               </div>
