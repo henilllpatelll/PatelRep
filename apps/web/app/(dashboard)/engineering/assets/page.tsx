@@ -16,10 +16,14 @@ import {
 } from 'lucide-react'
 import { engineeringApi, Asset, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -66,7 +70,23 @@ function formatCurrency(value?: number): string {
 
 // ─── Skeleton row ─────────────────────────────────────────────────────────────
 
-function SkeletonRow() {
+function SkeletonRow({ v2 }: { v2: boolean }) {
+  if (v2) {
+    return (
+      <tr className="animate-pulse border-b border-[var(--caution-line)]">
+        <td className="px-4 py-3">
+          <Skeleton variant="text" className="h-4 w-3/4 mb-1.5" />
+          <Skeleton variant="text" className="h-3 w-1/3" />
+        </td>
+        <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-20" /></td>
+        <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-24" /></td>
+        <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-28" /></td>
+        <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-24" /></td>
+        <td className="px-4 py-3"><Skeleton variant="text" className="h-5 w-16" /></td>
+        <td className="px-4 py-3"><Skeleton variant="text" className="h-7 w-14" /></td>
+      </tr>
+    )
+  }
   return (
     <tr className="animate-pulse border-b border-[var(--caution-line)]">
       <td className="px-4 py-3">
@@ -796,6 +816,8 @@ export default function AssetRegisterPage() {
   const { isGM, role } = useRole()
   const canEdit = isGM || role === 'engineer'
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
   const RISK_FILTERS = getRiskFilters(t)
 
@@ -851,6 +873,7 @@ export default function AssetRegisterPage() {
         eyebrow="Engineering"
         title={t('engineering.assetsPage.heading')}
         subtitle={t('engineering.assetsPage.subtitle')}
+        dataI18nSkip={v2}
         actions={canEdit && (
           <Button
             variant="primary"
@@ -920,17 +943,27 @@ export default function AssetRegisterPage() {
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <Card className="p-0 overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center p-6">
-            <AlertTriangle size={28} className="text-red-400 mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">{t('engineering.assetsPage.loadError')}</p>
-            <Button
-              variant="primary"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['assets'] })}
-              className="mt-2"
-            >
-              {t('engineering.assetsPage.retry')}
-            </Button>
-          </div>
+          v2 ? (
+            <StateBlock
+              status="error"
+              error={{
+                message: t('engineering.assetsPage.loadError'),
+                onRetry: () => queryClient.invalidateQueries({ queryKey: ['assets'] }),
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center p-6">
+              <AlertTriangle size={28} className="text-red-400 mb-3" />
+              <p className="text-sm font-medium text-gray-700 mb-1">{t('engineering.assetsPage.loadError')}</p>
+              <Button
+                variant="primary"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['assets'] })}
+                className="mt-2"
+              >
+                {t('engineering.assetsPage.retry')}
+              </Button>
+            </div>
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -959,7 +992,7 @@ export default function AssetRegisterPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} v2={v2} />)
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-14 text-sm text-gray-400">
