@@ -188,7 +188,14 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   2. Each section's empty, loading, and error states are redesigned, not just the happy path
   3. Each section passes the same-inputs→same-outputs network diff (no behavior/data/RBAC change), the dark-mode contrast check, and EN/ES key-parity
   4. `LogFoundItemModal` (a frozen shared primitive) is unchanged in behavior and the Room-Board regression gate still passes
-**Plans**: TBD
+**Plans**: 7 plans (3 waves)
+- [ ] 33-01-PLAN.md — i18n foundation: 4 new namespaces (sop/logbook/lostFound/scheduling) + extend 5 existing in en+es, parity gate green (unblocks parallel wave 2)
+- [ ] 33-02-PLAN.md — Tasks + Evidence v2 restyle + states (Tasks gains a real error state; Evidence is the StateBlock reference impl)
+- [ ] 33-03-PLAN.md — SOP + Logbook v2 restyle: delete local Skeleton/EmptyState shadows, wire shared StateBlock + states + i18n
+- [ ] 33-04-PLAN.md — Guest Requests (net-new PageHeader) + Lost & Found (frozen LogFoundItemModal untouched) v2 restyle + states
+- [ ] 33-05-PLAN.md — Safety + Programs v2 restyle: flag-thread parent→sub-panels, StateBlock states, MANAGER_TABS i18n
+- [ ] 33-06-PLAN.md — Scheduling v2 restyle: convert hidden object-literal-prop strings to i18n, per-region StateBlock states
+- [ ] 33-07-PLAN.md — Full gate suite + Room-Board regression re-pass + live 9-section flag-on/off self-verification
 
 ### Phase 34: Management & Admin Sections
 **Goal**: The management, settings, and admin non-board sections are redesigned on the new system, including all non-happy-path states, with zero behavior change.
@@ -274,8 +281,9 @@ v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 
 | 30. Additive Foundation & Regression Harness | v2.0 | Complete    | 2026-08-14 | - |
 | 31. Shell & Navigation Redesign | v2.0 | Complete    | 2026-08-14 | - |
 | 32. Role Dashboard Homes | v2.0 | Complete    | 2026-08-17 | - |
-| 33. Core Operational Sections | v2.0 | 0/TBD | Not started | - |
+| 33. Core Operational Sections | v2.0 | 0/7 | Not started | - |
 | 34. Management & Admin Sections | v2.0 | 0/TBD | Not started | - |
 | 35. Engineering Section Chrome | v2.0 | 0/TBD | Not started | - |
 | 36. Housekeeping Section Chrome | v2.0 | 0/TBD | Not started | - |
 | 37. Final QA & Rollout | v2.0 | 0/TBD | Not started | - |
+</content>
