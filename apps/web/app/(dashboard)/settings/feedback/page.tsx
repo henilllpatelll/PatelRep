@@ -1,9 +1,12 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertCircle, CheckCircle2, Clock3, MessageSquareWarning } from 'lucide-react'
 import { feedbackApi, type FeedbackSubmission } from '@/lib/api/feedback'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { StateBlock } from '@/components/ui/StateBlock'
@@ -66,7 +69,10 @@ function FeedbackRow({ item }: { item: FeedbackSubmission }) {
 }
 
 export default function FeedbackSettingsPage() {
-  const { data, isLoading, isError } = useQuery({
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('guestFeedback', hotel)
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['feedback-submissions'],
     queryFn: () => feedbackApi.list(),
   })
@@ -83,11 +89,11 @@ export default function FeedbackSettingsPage() {
       <StateBlock
         status={isLoading ? 'loading' : isError ? 'error' : feedback.length === 0 ? 'empty' : null}
         loadingLabel="Loading feedback…"
-        error={{ message: 'Feedback could not load.' }}
+        error={v2 ? { message: t('guestFeedback.loadError'), onRetry: () => refetch() } : { message: 'Feedback could not load.' }}
         empty={{
           icon: <MessageSquareWarning size={20} />,
-          title: 'No feedback yet',
-          body: 'New staff reports will appear here.',
+          title: v2 ? t('guestFeedback.empty.title') : 'No feedback yet',
+          body: v2 ? t('guestFeedback.empty.body') : 'New staff reports will appear here.',
         }}
       >
         <div className="space-y-3">
