@@ -22,6 +22,11 @@ import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -538,6 +543,8 @@ export default function PMSchedulesPage() {
   const { isGM, role } = useRole()
   const canEdit = isGM || role === 'engineer' || role === 'chief_engineer'
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [completingSchedule, setCompletingSchedule] = useState<PMSchedule | null>(null)
@@ -610,6 +617,7 @@ export default function PMSchedulesPage() {
         eyebrow="Engineering"
         title={t('programs.pmSchedules.title')}
         subtitle={t('programs.pmSchedules.subtitle')}
+        dataI18nSkip={v2}
         actions={canEdit && (
           <Button
             variant="primary"
@@ -657,44 +665,76 @@ export default function PMSchedulesPage() {
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <Card className="p-0 overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center p-6">
-            <AlertTriangle size={28} className="text-red-400 mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">{t('programs.pmSchedules.failedToLoad')}</p>
-            <Button
-              variant="primary"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })}
-              className="mt-2"
-            >
-              {t('programs.pmSchedules.retry')}
-            </Button>
-          </div>
+          v2 ? (
+            <StateBlock
+              status="error"
+              error={{
+                message: t('programs.pmSchedules.failedToLoad'),
+                onRetry: () => queryClient.invalidateQueries({ queryKey: ['pm-schedules'] }),
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center p-6">
+              <AlertTriangle size={28} className="text-red-400 mb-3" />
+              <p className="text-sm font-medium text-gray-700 mb-1">{t('programs.pmSchedules.failedToLoad')}</p>
+              <Button
+                variant="primary"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })}
+                className="mt-2"
+              >
+                {t('programs.pmSchedules.retry')}
+              </Button>
+            </div>
+          )
         ) : (
           <>
           <div className="md:hidden">
             {isLoading ? (
-              <div className="p-4 space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100" />
-                ))}
-              </div>
+              v2 ? (
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} variant="card" className="h-32" />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100" />
+                  ))}
+                </div>
+              )
             ) : schedules.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 px-4 py-14 text-center">
-                <div className="w-12 h-12 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center">
-                  <Calendar size={22} className="text-gray-300" />
+              v2 ? (
+                <EmptyState
+                  icon={<Calendar size={22} />}
+                  title={t('programs.pmSchedules.noSchedules')}
+                  body={t('programs.pmSchedules.noSchedulesHelp')}
+                  action={canEdit ? (
+                    <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                      <Plus size={14} />
+                      {t('programs.pmSchedules.createSchedule')}
+                    </Button>
+                  ) : undefined}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3 px-4 py-14 text-center">
+                  <div className="w-12 h-12 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center">
+                    <Calendar size={22} className="text-gray-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{t('programs.pmSchedules.noSchedules')}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {t('programs.pmSchedules.noSchedulesHelp')}
+                    </p>
+                  </div>
+                  {canEdit && (
+                    <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                      <Plus size={14} />
+                      {t('programs.pmSchedules.createSchedule')}
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{t('programs.pmSchedules.noSchedules')}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {t('programs.pmSchedules.noSchedulesHelp')}
-                  </p>
-                </div>
-                {canEdit && (
-                  <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                    <Plus size={14} />
-                    {t('programs.pmSchedules.createSchedule')}
-                  </Button>
-                )}
-              </div>
+              )
             ) : (
               schedules.map((schedule) => {
                 const status = getScheduleStatus(schedule.next_due_at, t)
@@ -754,38 +794,71 @@ export default function PMSchedulesPage() {
                 ) : schedules.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center py-14">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center">
-                          <Calendar size={22} className="text-gray-300" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">{t('programs.pmSchedules.noSchedules')}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {t('programs.pmSchedules.noSchedulesHelp')}
-                          </p>
-                        </div>
-                        <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-                          {[
-                            t('programs.pmSchedules.exampleHvac'),
-                            t('programs.pmSchedules.examplePool'),
-                            t('programs.pmSchedules.exampleElevator'),
-                          ].map((item) => (
-                            <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
-                              <p className="text-sm font-semibold text-ink">{item}</p>
-                              <p className="mt-1 text-xs text-ink3">{t('programs.pmSchedules.commonPMSchedule')}</p>
+                      {v2 ? (
+                        <EmptyState
+                          icon={<Calendar size={22} />}
+                          title={t('programs.pmSchedules.noSchedules')}
+                          body={t('programs.pmSchedules.noSchedulesHelp')}
+                          action={
+                            <div className="flex flex-col items-center gap-3">
+                              <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                                {[
+                                  t('programs.pmSchedules.exampleHvac'),
+                                  t('programs.pmSchedules.examplePool'),
+                                  t('programs.pmSchedules.exampleElevator'),
+                                ].map((item) => (
+                                  <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
+                                    <p className="text-sm font-semibold text-ink">{item}</p>
+                                    <p className="mt-1 text-xs text-ink3">{t('programs.pmSchedules.commonPMSchedule')}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              {canEdit && (
+                                <Button
+                                  variant="primary"
+                                  onClick={() => setShowCreateModal(true)}
+                                >
+                                  <Plus size={14} />
+                                  {t('programs.pmSchedules.createSchedule')}
+                                </Button>
+                              )}
                             </div>
-                          ))}
+                          }
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-12 h-12 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center">
+                            <Calendar size={22} className="text-gray-300" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">{t('programs.pmSchedules.noSchedules')}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {t('programs.pmSchedules.noSchedulesHelp')}
+                            </p>
+                          </div>
+                          <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                            {[
+                              t('programs.pmSchedules.exampleHvac'),
+                              t('programs.pmSchedules.examplePool'),
+                              t('programs.pmSchedules.exampleElevator'),
+                            ].map((item) => (
+                              <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
+                                <p className="text-sm font-semibold text-ink">{item}</p>
+                                <p className="mt-1 text-xs text-ink3">{t('programs.pmSchedules.commonPMSchedule')}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {canEdit && (
+                            <Button
+                              variant="primary"
+                              onClick={() => setShowCreateModal(true)}
+                            >
+                              <Plus size={14} />
+                              {t('programs.pmSchedules.createSchedule')}
+                            </Button>
+                          )}
                         </div>
-                        {canEdit && (
-                          <Button
-                            variant="primary"
-                            onClick={() => setShowCreateModal(true)}
-                          >
-                            <Plus size={14} />
-                            {t('programs.pmSchedules.createSchedule')}
-                          </Button>
-                        )}
-                      </div>
+                      )}
                     </td>
                   </tr>
                 ) : (
