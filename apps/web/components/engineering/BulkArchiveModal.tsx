@@ -6,8 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { X, Loader2, Archive, AlertCircle } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { ApiClientError } from '@/lib/api/client'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 interface Props {
   isOpen: boolean
@@ -22,8 +26,10 @@ export function BulkArchiveModal({ isOpen, onClose, onArchived }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [ageInput, setAgeInput] = useState('30')
   const [error, setError] = useState<string | null>(null)
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
-  const { data } = useQuery({
+  const { data, isLoading: candidatesLoading, isError: candidatesError, refetch: refetchCandidates } = useQuery({
     queryKey: ['work-orders', 'bulk-archive-candidates'],
     queryFn: () => engineeringApi.listWorkOrders({ per_page: 100 }),
     enabled: isOpen,
@@ -121,7 +127,15 @@ export function BulkArchiveModal({ isOpen, onClose, onArchived }: Props) {
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
             <div>
               <p className="text-sm text-ink2 mb-2">{t('engineering.workOrdersPage.archiveModalSelectPrompt')}</p>
-              {candidates.length === 0 ? (
+              {v2 && candidatesLoading ? (
+                <div className="space-y-1.5">
+                  <Skeleton variant="text" className="h-10 w-full" />
+                  <Skeleton variant="text" className="h-10 w-full" />
+                  <Skeleton variant="text" className="h-10 w-full" />
+                </div>
+              ) : v2 && candidatesError ? (
+                <StateBlock status="error" error={{ onRetry: () => refetchCandidates() }} className="py-3" />
+              ) : candidates.length === 0 ? (
                 <p className="text-sm text-ink3">{t('engineering.workOrdersPage.archiveModalNoneAvailable')}</p>
               ) : (
                 <div className="space-y-1.5 max-h-64 overflow-y-auto border border-line rounded-[var(--r-md)] p-2">

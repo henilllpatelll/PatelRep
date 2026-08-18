@@ -7,8 +7,12 @@ import type { TFunction } from 'i18next'
 import { X, Loader2, Sparkles, ClipboardList, ImagePlus } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { roomsApi } from '@/lib/api/rooms'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 interface Props {
   isOpen: boolean
@@ -44,6 +48,8 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const CATEGORIES = useMemo(() => getCategories(t), [t])
   const PRIORITIES = useMemo(() => getPriorities(t), [t])
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('general')
@@ -57,7 +63,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
-  const { data: roomsData } = useQuery({
+  const { data: roomsData, isLoading: roomsLoading, isError: roomsError, refetch: refetchRooms } = useQuery({
     queryKey: ['rooms-picker'],
     queryFn: () => roomsApi.list(),
     staleTime: 300_000,
@@ -225,20 +231,26 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                 <label className="block text-sm font-medium text-ink2 mb-1">
                   {t('engineering.workOrderCard.room')} <span className="text-[var(--alert)]">*</span>
                 </label>
-                <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors"
-                >
-                  <option value="">{t('engineering.createWorkOrder.noSpecificRoom')}</option>
-                  {roomsList.map((r: any) => (
-                    <option key={r.room_id} value={r.room_id}>
-                      {r.rooms?.floor != null
-                        ? t('engineering.createWorkOrder.roomOptionFloor', { number: r.rooms?.room_number, floor: r.rooms.floor })
-                        : t('engineering.createWorkOrder.roomOption', { number: r.rooms?.room_number })}
-                    </option>
-                  ))}
-                </select>
+                {v2 && roomsLoading ? (
+                  <Skeleton variant="text" className="h-9 w-full" />
+                ) : v2 && roomsError ? (
+                  <StateBlock status="error" error={{ onRetry: () => refetchRooms() }} className="py-3" />
+                ) : (
+                  <select
+                    value={selectedRoomId}
+                    onChange={(e) => setSelectedRoomId(e.target.value)}
+                    className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors"
+                  >
+                    <option value="">{t('engineering.createWorkOrder.noSpecificRoom')}</option>
+                    {roomsList.map((r: any) => (
+                      <option key={r.room_id} value={r.room_id}>
+                        {r.rooms?.floor != null
+                          ? t('engineering.createWorkOrder.roomOptionFloor', { number: r.rooms?.room_number, floor: r.rooms.floor })
+                          : t('engineering.createWorkOrder.roomOption', { number: r.rooms?.room_number })}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-ink2 mb-1">
