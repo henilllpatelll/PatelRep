@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, GraduationCap, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { safetyApi, type TrainingStatusRow } from '@/lib/api/safety'
@@ -10,18 +11,20 @@ const STATUS_STYLE: Record<string, string> = { compliant: 'bg-success-soft text-
 const STATUS_LABEL: Record<string, string> = { compliant: 'Compliant', due_soon: 'Due soon', overdue: 'Overdue', not_applicable: 'Not applicable' }
 const COVERAGE_ROLES = ['housekeeper', 'housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk', 'gm']
 
-export function ComplianceDashboard() {
+export function ComplianceDashboard({ redesigned }: { redesigned?: boolean }) {
+  const { t } = useTranslation()
   const [rows, setRows] = useState<TrainingStatusRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [covered, setCovered] = useState<string[]>([])
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setLoadError(false)
     try { const response = await safetyApi.listTrainingStatus(); setRows(response.data) }
-    catch { setError('Unable to load training compliance.') }
+    catch { setError('Unable to load training compliance.'); setLoadError(true) }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
@@ -74,7 +77,7 @@ export function ComplianceDashboard() {
         </div>
       </div>
 
-      {error ? <p className="mx-4 mt-3 rounded-lg bg-alert-soft p-2 text-sm text-alert">{error}</p> : null}
+      {error && !(redesigned && loadError) ? <p className="mx-4 mt-3 rounded-lg bg-alert-soft p-2 text-sm text-alert">{error}</p> : null}
 
       {showForm ? (
         <form className="grid gap-3 border-b border-line p-4 sm:grid-cols-2" onSubmit={(event) => void submitCourse(event)}>
@@ -106,8 +109,9 @@ export function ComplianceDashboard() {
       </div>
 
       <StateBlock
-        status={loading ? 'loading' : rows.length === 0 ? 'empty' : null}
-        empty={{ title: 'No training requirements yet. Add a course to begin.' }}
+        status={loading ? 'loading' : redesigned && loadError ? 'error' : rows.length === 0 ? 'empty' : null}
+        empty={{ title: redesigned ? t('safety.compliance.empty') : 'No training requirements yet. Add a course to begin.' }}
+        error={{ message: t('safety.compliance.loadError'), onRetry: () => void load() }}
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">

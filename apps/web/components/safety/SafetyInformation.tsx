@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BookText, FlaskConical, Phone, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { safetyApi, type ChemicalItem, type EmergencyContact, type SafetyProcedure } from '@/lib/api/safety'
 
-export function SafetyInformation() {
+export function SafetyInformation({ redesigned }: { redesigned?: boolean }) {
   const { t } = useTranslation()
   const [chemicals, setChemicals] = useState<ChemicalItem[]>([])
   const [procedures, setProcedures] = useState<SafetyProcedure[]>([])
@@ -60,6 +61,8 @@ export function SafetyInformation() {
               </li>
             ))}
           </ul>
+        ) : redesigned ? (
+          <StateBlock status="empty" empty={{ title: t('safety.noChemicals') }} />
         ) : (
           <p className="p-5 text-sm text-ink3">{t('safety.noChemicals')}</p>
         )}
@@ -76,6 +79,8 @@ export function SafetyInformation() {
               </li>
             ))}
           </ul>
+        ) : redesigned ? (
+          <StateBlock status="empty" empty={{ title: t('safety.noProcedures') }} />
         ) : (
           <p className="text-sm text-ink3">{t('safety.noProcedures')}</p>
         )}
@@ -96,6 +101,8 @@ export function SafetyInformation() {
               </li>
             ))}
           </ul>
+        ) : redesigned ? (
+          <StateBlock status="empty" empty={{ title: t('safety.noContacts') }} />
         ) : (
           <p className="text-sm text-ink3">{t('safety.noContacts')}</p>
         )}
