@@ -1044,6 +1044,7 @@ const en = {
       hkNotePlaceholder: 'e.g. Deep clean needed — repair complete, debris in bathroom',
       priorityLabel: 'Priority',
       hkTaskError: 'Failed to create task. Please try again.',
+      loadError: "Couldn't load full details — showing basic info.",
       photosHeading: 'Photos',
       previewAlt: 'Preview',
       removePhoto: 'Remove photo',
@@ -1151,6 +1152,7 @@ const en = {
       noHighRisk: 'No high-risk assets',
       allNormal: 'All assets are within normal risk levels.',
       footerNote: 'Predictions updated nightly by AI',
+      loadError: 'Failed to load failure predictions.',
     },
     assetsPage: {
       heading: 'Asset Register',
@@ -1244,6 +1246,7 @@ const en = {
     predictionsPage: {
       heading: 'Asset Failure Predictions',
       subtitle: 'AI-powered failure risk analysis — updated nightly',
+      loadError: 'Failed to load predictions.',
       freshAnalysisHint: 'To run a fresh analysis,',
       freshAnalysisHint2: 'open an asset from the Asset Register.',
       workOrderCreated: 'Work order created successfully',
