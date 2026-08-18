@@ -11,6 +11,8 @@ import type { UserRole } from '@/stores/authStore'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
 import { notificationsApi, type Notification } from '@/lib/api/notifications'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -41,7 +43,12 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
 
   // GET /notifications' `is_read` param name is misleading: false/absent -> unread-only,
   // true -> full read+unread history (still hotel_id + user_id scoped server-side)
-  const { data: notificationsData } = useQuery({
+  const {
+    data: notificationsData,
+    isLoading: notificationsLoading,
+    isError: notificationsIsError,
+    refetch: refetchNotifications,
+  } = useQuery({
     queryKey: ['notifications', notificationsTab],
     queryFn: () => notificationsApi.list({ is_read: notificationsTab === 'all', limit: 20 }),
     staleTime: 30_000,
@@ -272,7 +279,25 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
               </button>
             </div>
             <div className="max-h-[360px] overflow-y-auto">
-              {notifications.length === 0 ? (
+              {redesigned && notificationsLoading ? (
+                <div className="animate-pulse">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex gap-3 px-4 py-3 border-b border-line-2 last:border-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-surface-3 mt-1.5 shrink-0" />
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <Skeleton className="h-3 w-3/4" />
+                        <Skeleton className="h-2.5 w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : redesigned && notificationsIsError ? (
+                <StateBlock
+                  status="error"
+                  className="py-8"
+                  error={{ message: t('header.notificationsLoadError'), onRetry: () => refetchNotifications() }}
+                />
+              ) : notifications.length === 0 ? (
                 <p className="px-4 py-6 text-center text-[13px] text-ink3">{t('header.noNotifications')}</p>
               ) : (
                 notifications.map((n) => (
