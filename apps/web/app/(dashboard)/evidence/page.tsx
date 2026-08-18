@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 
@@ -70,6 +72,8 @@ const STATE_STYLE: Record<EvidenceException['state'], string> = {
 export default function EvidenceDashboardPage() {
   const { t } = useTranslation()
   const role = useAuthStore((state) => state.role)
+  const hotel = useHotelStore((state) => state.hotel)
+  const v2 = isSectionRedesigned('evidence', hotel)
   const [exceptions, setExceptions] = useState<EvidenceException[]>([])
   const [applicability, setApplicability] = useState<PropertyApplicability>(EMPTY_APPLICABILITY)
   const [draft, setDraft] = useState<PropertyApplicability>(EMPTY_APPLICABILITY)
@@ -429,7 +433,7 @@ export default function EvidenceDashboardPage() {
           <div className="grid gap-3 sm:grid-cols-3">{(['effective_date', 'review_date', 'expiration_date'] as const).map((field) => <label key={field} className="text-sm text-ink2">{t(`evidence.${field}`)}<input type="date" value={documentDraft[field] ?? ''} onChange={(event) => setDocumentDraft((current) => ({ ...current, [field]: event.target.value }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label>)}</div>
           <Button data-testid="create-controlled-document" disabled={documentSaving || !documentDraft.title} onClick={() => void createDocument()}><Save size={15} /> {documentSaving ? t('evidence.saving') : t('evidence.createDocument')}</Button>
         </div> : null}
-        <ul className="mt-4 divide-y divide-line">{documents.length ? documents.map((document) => <li key={document.id}><button type="button" onClick={() => void selectDocument(document.id)} className="flex w-full items-center justify-between gap-3 px-1 py-3 text-left"><span><span className="block text-sm font-medium text-ink">{document.title}</span><span className="text-xs text-ink3">{t('evidence.version', { count: document.version_number })} · {t(`evidence.documentStates.${document.approval_state}`)}</span></span><span className="text-xs text-ink3">{t(`evidence.retentionClasses.${document.retention_class}`)}</span></button></li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noDocuments')}</li>}</ul>
+        <ul className="mt-4 divide-y divide-line">{documents.length ? documents.map((document) => <li key={document.id}><button type="button" onClick={() => void selectDocument(document.id)} className={`flex w-full items-center justify-between gap-3 px-1 py-3 text-left transition-colors ${v2 ? 'duration-fast ease-standard hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)] rounded-[var(--r-md)]' : ''}`}><span><span className="block text-sm font-medium text-ink">{document.title}</span><span className="text-xs text-ink3">{t('evidence.version', { count: document.version_number })} · {t(`evidence.documentStates.${document.approval_state}`)}</span></span><span className="text-xs text-ink3">{t(`evidence.retentionClasses.${document.retention_class}`)}</span></button></li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noDocuments')}</li>}</ul>
       </Card>
 
       <Card hover={false} className="p-4">
@@ -463,7 +467,7 @@ export default function EvidenceDashboardPage() {
       <Card hover={false} className="p-4">
         <div className="mb-3 flex items-center gap-2"><FileText size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.evidenceRecords')}</h2></div>
         {selectedEvidence ? <div className="mb-3 rounded border border-line bg-surface-2 p-3"><p className="font-medium text-ink">{selectedEvidence.label}</p><p className="mt-1 text-xs text-ink3">{t(`evidence.evidenceTypes.${selectedEvidence.evidence_type}`)}</p>{selectedEvidence.file_name ? <Button className="mt-3" variant="secondary" onClick={() => void viewEvidenceAttachment(selectedEvidence)}><Eye size={15} /> {t('evidence.viewSecureFile')}</Button> : <p className="mt-2 text-xs text-ink3">{t('evidence.noAttachment')}</p>}</div> : null}
-        <ul className="divide-y divide-line">{records.length ? records.map((record) => <li key={record.id} className="flex items-center justify-between gap-3 py-3"><button type="button" onClick={() => setSelectedEvidence(record)} className="min-w-0 text-left"><span className="block truncate text-sm font-medium text-ink">{record.label}</span><span className="text-xs text-ink3">{t(`evidence.evidenceTypes.${record.evidence_type}`)}</span></button>{record.file_name ? <Button variant="secondary" className="shrink-0" onClick={() => void viewEvidenceAttachment(record)} title={t('evidence.viewSecureFile')}><Eye size={15} /></Button> : null}</li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noEvidenceRecords')}</li>}</ul>
+        <ul className="divide-y divide-line">{records.length ? records.map((record) => <li key={record.id} className="flex items-center justify-between gap-3 py-3"><button type="button" onClick={() => setSelectedEvidence(record)} className={`min-w-0 text-left transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-sm' : ''}`}><span className="block truncate text-sm font-medium text-ink">{record.label}</span><span className="text-xs text-ink3">{t(`evidence.evidenceTypes.${record.evidence_type}`)}</span></button>{record.file_name ? <Button variant="secondary" className="shrink-0" onClick={() => void viewEvidenceAttachment(record)} title={t('evidence.viewSecureFile')}><Eye size={15} /></Button> : null}</li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noEvidenceRecords')}</li>}</ul>
       </Card>
     </section>
     )}
@@ -515,7 +519,7 @@ export default function EvidenceDashboardPage() {
         error={{ message: error ?? undefined, onRetry: () => void load() }}
         empty={{ title: t('evidence.noExceptions') }}
       >
-        <ul className="divide-y divide-line">{visibleExceptions.map((item) => <li key={`${item.kind}-${item.reference_id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <ul className="divide-y divide-line">{visibleExceptions.map((item) => <li key={`${item.kind}-${item.reference_id}`} className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors ${v2 ? 'duration-fast ease-standard hover:bg-surface-2' : ''}`}>
           <div><p className="text-sm font-medium text-ink">{item.label}</p><p className="text-xs text-ink3">{t(`evidence.exceptionKinds.${item.kind}`)} · {t(`evidence.lifecycleStates.${item.lifecycle_state}`)}{item.owner_id ? ` · ${item.owner_id}` : ''}</p></div>
           <div className="flex items-center gap-2"><span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATE_STYLE[item.state]}`}>{t(`evidence.states.${item.state}`)}</span>{canManageApplicability ? <Button data-testid={`exception-drilldown-${item.reference_id}`} className="px-2.5 py-1.5 text-xs" variant="secondary" onClick={() => openException(item)}>{t('evidence.manageException')}</Button> : null}</div>
         </li>)}</ul>
