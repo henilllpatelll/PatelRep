@@ -206,7 +206,15 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   2. Each section's empty, loading, and error states are redesigned, not just the happy path
   3. Each section passes the same-inputs→same-outputs network diff, the dark-mode contrast check, and EN/ES key-parity
   4. No API/behavior change ships; billing and Opera flows behave identically pre- and post-redesign
-**Plans**: TBD
+**Plans**: 8 plans (3 waves)
+- [ ] 34-01-PLAN.md — i18n foundation: 8 new namespaces (reports/managementRoi/staff/settings/aiCopilot/billing/guestFeedback/integrations) + header extension
+- [ ] 34-02-PLAN.md — Reports + Management ROI v2 restyle: flag-thread parent->5 tabs (Reports), stacked per-query errors (Management ROI), skeleton auth-loading
+- [ ] 34-03-PLAN.md — Staff v2 restyle + gap-closing: invitationsQuery error state, EditStaffModal schedulesQuery/customRolesQuery loading+error
+- [ ] 34-04-PLAN.md — Settings-general + Billing + Guest Feedback v2 restyle + states (settings/layout.tsx shell untouched)
+- [ ] 34-05-PLAN.md — Opera Integration v2 restyle: migrate raw statusQuery loading/error to shared Skeleton/StateBlock, connect/disconnect state machine preserved
+- [ ] 34-06-PLAN.md — AI Copilot v2 restyle: chat shell chrome, CreditUsageCard loading skeleton, chat-error-as-message pattern preserved
+- [ ] 34-07-PLAN.md — Notifications (Header.tsx, piggyback shell flag) + Late Checkout (FrontDeskDashboard.tsx, piggyback dashboard flag) states
+- [ ] 34-08-PLAN.md — Full gate suite + Room-Board regression re-pass + live 10-section flag-on/off self-verification
 
 ### Phase 35: Engineering Section Chrome
 **Goal**: The Engineering section's surrounding chrome is redesigned while `EngineeringRoomBoard` renders unchanged inside the new chrome.
