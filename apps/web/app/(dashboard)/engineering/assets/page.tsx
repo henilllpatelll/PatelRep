@@ -134,9 +134,10 @@ interface AssetDetailModalProps {
   assetId: string
   onClose: () => void
   canEdit: boolean
+  v2: boolean
 }
 
-function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) {
+function AssetDetailModal({ assetId, onClose, canEdit, v2 }: AssetDetailModalProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [editMode, setEditMode] = useState(false)
@@ -241,9 +242,26 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 size={24} className="animate-spin text-gray-400" />
-            </div>
+            v2 ? (
+              <div className="p-6 space-y-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Skeleton variant="text" className="h-6 w-24 rounded-full" />
+                  <Skeleton variant="text" className="h-6 w-20 rounded-full" />
+                </div>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="space-y-1.5">
+                      <Skeleton variant="text" className="h-3 w-16" />
+                      <Skeleton variant="text" className="h-4 w-28" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 size={24} className="animate-spin text-gray-400" />
+              </div>
+            )
           ) : !data ? (
             <div className="p-6 text-center text-sm text-gray-500">{t('engineering.assetsPage.loadDetailError')}</div>
           ) : (
@@ -998,8 +1016,10 @@ export default function AssetRegisterPage() {
                     <td colSpan={7} className="text-center py-14 text-sm text-gray-400">
                       {assets.length === 0 ? (
                         <div className="mx-auto max-w-2xl">
-                          <p className="text-sm font-semibold text-gray-700">{t('engineering.assetsPage.emptyHeading')}</p>
-                          <p className="mt-1 text-xs text-gray-400">
+                          <p className={v2 ? 'text-[14px] font-medium text-ink' : 'text-sm font-semibold text-gray-700'}>
+                            {t('engineering.assetsPage.emptyHeading')}
+                          </p>
+                          <p className={v2 ? 'mt-1 text-[13px] leading-relaxed text-ink3' : 'mt-1 text-xs text-gray-400'}>
                             {t('engineering.assetsPage.emptyHelp')}
                           </p>
                           <div className="mt-5 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
@@ -1140,6 +1160,7 @@ export default function AssetRegisterPage() {
           assetId={selectedAssetId}
           onClose={() => setSelectedAssetId(null)}
           canEdit={canEdit}
+          v2={v2}
         />
       )}
 
