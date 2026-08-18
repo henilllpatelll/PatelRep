@@ -93,7 +93,7 @@ None deferred from this milestone's own scoping — the anti-features below were
 | NAV-06 | Phase 31 | Complete |
 | HOME-01 | Phase 32 | Complete |
 | HOME-02 | Phase 32 | Complete |
-| SEC-01 (SEC-01a) | Phase 33 | Pending |
+| SEC-01 (SEC-01a) | Phase 33 | Complete |
 | SEC-01 (SEC-01b) | Phase 34 | Pending |
 | ENG-01 | Phase 35 | Pending |
 | HSK-01 | Phase 36 | Pending |

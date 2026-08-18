@@ -117,7 +117,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 - [x] **Phase 30: Additive Foundation & Regression Harness** - New tokens/primitive variants + frozen-primitive list, baseline screenshots, dark-mode/i18n/pixel-diff gates, and a rollout feature flag (completed 2026-08-14)
 - [x] **Phase 31: Shell & Navigation Redesign** - Sidebar/header/breadcrumbs/command palette + collapsible rail, notification inbox, record-search, RBAC nav re-verified across 6 roles (completed 2026-08-14)
 - [x] **Phase 32: Role Dashboard Homes** - Purpose-built redesigned dashboard home for each of the 6 roles, including a first-class dedicated GM home (completed 2026-08-17)
-- [ ] **Phase 33: Core Operational Sections** - Tasks, SOP, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling redesigned incl. empty/loading/error states
+- [x] **Phase 33: Core Operational Sections** - Tasks, SOP, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling redesigned incl. empty/loading/error states (completed 2026-08-18)
 - [ ] **Phase 34: Management & Admin Sections** - Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration redesigned incl. empty/loading/error states
 - [ ] **Phase 35: Engineering Section Chrome** - Engineering chrome (PageHeader/tabs/pages) redesigned; `EngineeringRoomBoard` renders unchanged inside it
 - [ ] **Phase 36: Housekeeping Section Chrome** - Housekeeping chrome (PageHeader/sync badge/date-shift controls/my-rooms) redesigned; `RoomStatusBoard`/`RoomDetailDrawer` unchanged, Realtime stays live
@@ -281,7 +281,7 @@ v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 
 | 30. Additive Foundation & Regression Harness | v2.0 | Complete    | 2026-08-14 | - |
 | 31. Shell & Navigation Redesign | v2.0 | Complete    | 2026-08-14 | - |
 | 32. Role Dashboard Homes | v2.0 | Complete    | 2026-08-17 | - |
-| 33. Core Operational Sections | v2.0 | 0/7 | Not started | - |
+| 33. Core Operational Sections | v2.0 | Complete    | 2026-08-18 | - |
 | 34. Management & Admin Sections | v2.0 | 0/TBD | Not started | - |
 | 35. Engineering Section Chrome | v2.0 | 0/TBD | Not started | - |
 | 36. Housekeeping Section Chrome | v2.0 | 0/TBD | Not started | - |
