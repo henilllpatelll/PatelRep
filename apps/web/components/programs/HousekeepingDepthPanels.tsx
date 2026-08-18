@@ -19,6 +19,7 @@ import { AlertTriangle, Droplets, PackageCheck, ShieldAlert } from 'lucide-react
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { useRole } from '@/lib/hooks/useRole'
 import { programsApi, type SupplyPar } from '@/lib/api/programs'
 import { DeepCleanAreasPanel } from '@/components/programs/DeepCleanAreasPanel'
@@ -32,7 +33,7 @@ function toggleValue(values: string[], value: string): string[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value]
 }
 
-export function HousekeepingDepthPanels() {
+export function HousekeepingDepthPanels({ redesigned }: { redesigned?: boolean }) {
   const { t } = useTranslation()
   const ESCALATION_ROLE_OPTIONS: Array<{ value: 'housekeeping_supervisor' | 'front_desk' | 'gm'; label: string }> = [
     { value: 'housekeeping_supervisor', label: t('programs.dndPolicy.roleSupervisor') },
@@ -107,7 +108,7 @@ export function HousekeepingDepthPanels() {
 
   return (
     <div className="space-y-4" data-i18n-skip="true">
-      <DeepCleanAreasPanel />
+      <DeepCleanAreasPanel redesigned={redesigned} />
 
       {/* DND welfare policy + stayover rule */}
       <section className="grid gap-4 lg:grid-cols-2">
@@ -205,7 +206,11 @@ export function HousekeepingDepthPanels() {
               </div>
             ))}
             {!data?.supply_alerts?.length && !overview.isLoading ? (
-              <p className="text-sm text-ink3">{t('programs.parShortages.noShortages')}</p>
+              redesigned ? (
+                <StateBlock status="empty" empty={{ title: t('programs.parShortages.noShortages') }} />
+              ) : (
+                <p className="text-sm text-ink3">{t('programs.parShortages.noShortages')}</p>
+              )
             ) : null}
           </div>
         </Card>
@@ -239,7 +244,7 @@ export function HousekeepingDepthPanels() {
         </Card>
       </section>
 
-      <InspectionDepthPanel />
+      <InspectionDepthPanel redesigned={redesigned} />
     </div>
   )
 }

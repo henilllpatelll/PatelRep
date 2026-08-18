@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { useRole } from '@/lib/hooks/useRole'
 import { roomsApi } from '@/lib/api/rooms'
 import { programsApi } from '@/lib/api/programs'
@@ -19,7 +20,7 @@ import { programsApi } from '@/lib/api/programs'
 // Query dedupes the network call across every component that reads it.
 const OVERVIEW_KEY = ['operational-programs']
 
-export function InspectionDepthPanel() {
+export function InspectionDepthPanel({ redesigned }: { redesigned?: boolean }) {
   const { t } = useTranslation()
   const { isSupervisor, canViewEngineering } = useRole()
   const isManager = isSupervisor || canViewEngineering
@@ -96,7 +97,11 @@ export function InspectionDepthPanel() {
             </div>
           ))}
           {!data?.inspection_sampling_rules?.length && !overview.isLoading ? (
-            <p className="text-sm text-ink3">{t('programs.sampling.noRules')}</p>
+            redesigned ? (
+              <StateBlock status="empty" empty={{ title: t('programs.sampling.noRules') }} />
+            ) : (
+              <p className="text-sm text-ink3">{t('programs.sampling.noRules')}</p>
+            )
           ) : null}
         </div>
         {canConfigurePolicy ? (

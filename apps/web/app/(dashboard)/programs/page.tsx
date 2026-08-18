@@ -7,8 +7,11 @@ import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { HousekeepingDepthPanels } from '@/components/programs/HousekeepingDepthPanels'
 import { programsApi } from '@/lib/api/programs'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 function ProgramMetric({ label, value, icon: Icon, tone = 'default' }: { label: string; value: number; icon: typeof Sparkles; tone?: 'default' | 'alert' }) {
   return (
@@ -25,6 +28,8 @@ function ProgramMetric({ label, value, icon: Icon, tone = 'default' }: { label: 
 export default function ProgramsPage() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('programs', hotel)
 
   const overview = useQuery({ queryKey: ['operational-programs'], queryFn: programsApi.overview })
   const data = overview.data?.data
@@ -48,7 +53,13 @@ export default function ProgramsPage() {
         }
       />
 
-      {overview.isError ? <Card className="border-alert-line bg-alert-soft p-4 text-alert">{t('programs.loadError')}</Card> : null}
+      {overview.isError ? (
+        v2 ? (
+          <StateBlock status="error" error={{ message: t('programs.loadError'), onRetry: () => overview.refetch() }} />
+        ) : (
+          <Card className="border-alert-line bg-alert-soft p-4 text-alert">{t('programs.loadError')}</Card>
+        )
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-3">
         <ProgramMetric label={t('programs.templates')} value={data?.templates.length ?? 0} icon={ClipboardCheck} />
@@ -79,7 +90,7 @@ export default function ProgramsPage() {
         </Card>
       </section>
 
-      <HousekeepingDepthPanels />
+      <HousekeepingDepthPanels redesigned={v2} />
     </main>
   )
 }

@@ -12,6 +12,7 @@ import { CalendarClock, CheckCircle2, ClipboardList, Sparkles } from 'lucide-rea
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { useRole } from '@/lib/hooks/useRole'
 import { roomsApi } from '@/lib/api/rooms'
 import { programsApi } from '@/lib/api/programs'
@@ -25,7 +26,7 @@ interface RoomOption {
   room_number: string
 }
 
-export function DeepCleanAreasPanel() {
+export function DeepCleanAreasPanel({ redesigned }: { redesigned?: boolean }) {
   const { t } = useTranslation()
   const { isSupervisor, canViewEngineering } = useRole()
   // Union of gm/housekeeping_supervisor/engineer/chief_engineer -- exactly
@@ -133,7 +134,11 @@ export function DeepCleanAreasPanel() {
             </div>
           ))}
           {!data?.deep_clean_schedules?.length && !overview.isLoading ? (
-            <p className="text-sm text-ink3">{t('programs.deepClean.noSchedules')}</p>
+            redesigned ? (
+              <StateBlock status="empty" empty={{ title: t('programs.deepClean.noSchedules') }} />
+            ) : (
+              <p className="text-sm text-ink3">{t('programs.deepClean.noSchedules')}</p>
+            )
           ) : null}
         </div>
         <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={submitDeepClean}>
@@ -209,7 +214,11 @@ export function DeepCleanAreasPanel() {
             </div>
           ))}
           {!data?.public_areas?.length && !overview.isLoading ? (
-            <p className="text-sm text-ink3">{t('programs.deepClean.noPublicAreas')}</p>
+            redesigned ? (
+              <StateBlock status="empty" empty={{ title: t('programs.deepClean.noPublicAreas') }} />
+            ) : (
+              <p className="text-sm text-ink3">{t('programs.deepClean.noPublicAreas')}</p>
+            )
           ) : null}
         </div>
         <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={submitPublicArea}>
