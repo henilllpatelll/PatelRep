@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { FileText, Send, ChevronRight, MessageSquare, History, Settings } from 'lucide-react'
 import {
@@ -22,6 +23,7 @@ import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
 import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
 import {
   AssignmentCard,
   GuestRequestCard,
@@ -203,12 +205,26 @@ const QUICK_ACTIONS: Record<string, string[]> = {
 }
 const DEFAULT_ACTIONS = ['At-risk rooms today', 'Open work orders', 'Create task']
 
-function CreditUsageCard() {
-  const { data } = useQuery({
+function CreditUsageCard({ v2 }: { v2: boolean }) {
+  const { t } = useTranslation()
+  const { data, isLoading } = useQuery({
     queryKey: ['ai-risk-alerts'],
     queryFn: () => aiApi.getRiskAlerts().then((r) => r.data),
     refetchInterval: 60_000,
   })
+
+  if (v2 && isLoading) {
+    return (
+      <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4" aria-busy="true" aria-live="polite">
+        <span className="sr-only">{t('aiCopilot.creditUsage.loading')}</span>
+        <Skeleton variant="text" className="w-24 h-3 mb-2" />
+        <Skeleton variant="text" className="w-32 h-6 mb-2" />
+        <Skeleton variant="text" className="h-[5px] w-full mb-2" />
+        <Skeleton variant="text" className="w-full h-3" />
+      </div>
+    )
+  }
+
   return (
     <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4">
       <SectionLabel hint="This week">Credit usage</SectionLabel>
@@ -477,7 +493,7 @@ export default function AICopilotPage() {
           </div>
         </div>
 
-        {isSupervisor && <CreditUsageCard />}
+        {isSupervisor && <CreditUsageCard v2={v2} />}
 
         <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden">
           <div className="px-4 py-3 border-b border-line-2">
