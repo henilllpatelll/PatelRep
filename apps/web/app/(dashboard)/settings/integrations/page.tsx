@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Link2,
@@ -21,8 +22,12 @@ import {
 import { integrationsApi, type OperaConnectRequest } from '@/lib/api/integrations'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,11 +49,15 @@ function FieldLabel({ children, htmlFor, required }: { children: React.ReactNode
   )
 }
 
-function CredentialInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function CredentialInput({ v2, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { v2?: boolean }) {
   return (
     <input
       {...props}
-      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-300 transition-colors placeholder:text-gray-400"
+      className={
+        v2
+          ? 'w-full px-3 py-2 text-sm border border-line rounded-[var(--r-md)] bg-surface transition-colors duration-fast ease-standard focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] placeholder:text-ink3'
+          : 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-300 transition-colors placeholder:text-gray-400'
+      }
     />
   )
 }
@@ -59,10 +68,12 @@ function ConfirmDisconnectDialog({
   onConfirm,
   onCancel,
   loading,
+  v2,
 }: {
   onConfirm: () => void
   onCancel: () => void
   loading: boolean
+  v2?: boolean
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   useModalFocusTrap(dialogRef, true, loading ? undefined : onCancel)
@@ -70,17 +81,28 @@ function ConfirmDisconnectDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={!loading ? onCancel : undefined} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="disconnect-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="disconnect-title"
+        tabIndex={-1}
+        className={
+          v2
+            ? 'relative bg-surface/[0.88] backdrop-blur-2xl border border-line rounded-[var(--r-lg)] shadow-xl p-6 w-full max-w-sm space-y-4'
+            : 'relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl p-6 w-full max-w-sm space-y-4'
+        }
+      >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+          <div className={v2 ? 'w-10 h-10 rounded-full bg-alert-soft flex items-center justify-center shrink-0' : 'w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0'}>
             <AlertTriangle size={18} className="text-[var(--alert)]" />
           </div>
           <div>
-            <h3 id="disconnect-title" className="text-base font-semibold text-gray-900">Disconnect Opera Cloud</h3>
-            <p className="text-sm text-gray-500">This will stop all syncing immediately.</p>
+            <h3 id="disconnect-title" className={v2 ? 'text-base font-semibold text-ink' : 'text-base font-semibold text-gray-900'}>Disconnect Opera Cloud</h3>
+            <p className={v2 ? 'text-sm text-ink3' : 'text-sm text-gray-500'}>This will stop all syncing immediately.</p>
           </div>
         </div>
-        <p className="text-sm text-gray-700">
+        <p className={v2 ? 'text-sm text-ink2' : 'text-sm text-gray-700'}>
           Are you sure you want to disconnect Opera Cloud? Automatic checkout detection, VIP flags,
           and real-time room sync will stop until you reconnect.
         </p>
@@ -104,7 +126,10 @@ function ConfirmDisconnectDialog({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('integrations', hotel)
 
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
   const [successBanner, setSuccessBanner] = useState<string | null>(null)
@@ -214,11 +239,19 @@ export default function IntegrationsPage() {
       <PageHeader
         title="Integrations"
         subtitle="Connect external systems to power your hotel operations."
+        dataI18nSkip={v2}
       />
 
       {/* Success banner */}
       {successBanner && (
-        <div role="alert" className="flex items-center gap-3 bg-[var(--ready-soft)] border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
+        <div
+          role="alert"
+          className={
+            v2
+              ? 'flex items-center gap-3 bg-ready-soft border border-ready-line text-ready rounded-[var(--r-md)] px-4 py-3 text-sm font-medium'
+              : 'flex items-center gap-3 bg-[var(--ready-soft)] border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium'
+          }
+        >
           <CheckCircle2 size={16} className="text-[var(--ready)] shrink-0" />
           {successBanner}
         </div>
@@ -226,7 +259,14 @@ export default function IntegrationsPage() {
 
       {/* Error banner */}
       {errorBanner && (
-        <div role="alert" className="flex items-center gap-3 bg-[var(--alert-soft)] border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-medium">
+        <div
+          role="alert"
+          className={
+            v2
+              ? 'flex items-center gap-3 bg-alert-soft border border-alert-line text-alert rounded-[var(--r-md)] px-4 py-3 text-sm font-medium'
+              : 'flex items-center gap-3 bg-[var(--alert-soft)] border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-medium'
+          }
+        >
           <AlertTriangle size={16} className="text-[var(--alert)] shrink-0" />
           {errorBanner}
         </div>
@@ -285,42 +325,95 @@ export default function IntegrationsPage() {
             </div>
 
             {syncResult && (
-              <div className="flex items-center gap-2 text-sm text-green-700 bg-[var(--ready-soft)] border border-green-200 rounded-lg px-4 py-2.5">
+              <div
+                className={
+                  v2
+                    ? 'flex items-center gap-2 text-sm text-ready bg-ready-soft border border-ready-line rounded-[var(--r-md)] px-4 py-2.5'
+                    : 'flex items-center gap-2 text-sm text-green-700 bg-[var(--ready-soft)] border border-green-200 rounded-lg px-4 py-2.5'
+                }
+              >
                 <CheckCircle2 size={14} className="shrink-0 text-[var(--ready)]" />
                 Synced {syncResult.count} reservation{syncResult.count !== 1 ? 's' : ''} — {relativeTime(syncResult.at)}
               </div>
             )}
 
             {testResult && (
-              <div className={`flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${testResult.ok ? 'text-green-700 bg-[var(--ready-soft)] border-green-200' : 'text-red-700 bg-[var(--alert-soft)] border-red-200'}`}>
+              <div
+                className={
+                  v2
+                    ? `flex items-center gap-2 text-sm rounded-[var(--r-md)] px-4 py-2.5 border ${testResult.ok ? 'text-ready bg-ready-soft border-ready-line' : 'text-alert bg-alert-soft border-alert-line'}`
+                    : `flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${testResult.ok ? 'text-green-700 bg-[var(--ready-soft)] border-green-200' : 'text-red-700 bg-[var(--alert-soft)] border-red-200'}`
+                }
+              >
                 {testResult.ok ? <CheckCircle2 size={14} className="shrink-0 text-[var(--ready)]" /> : <XCircle size={14} className="shrink-0 text-[var(--alert)]" />}
                 {testResult.message}
               </div>
             )}
 
-            {(conflictsQuery.data?.length ?? 0) > 0 && (
-              <div className="rounded-lg border border-red-200 bg-[var(--alert-soft)] p-4 space-y-3" aria-live="polite">
-                <div className="flex items-center gap-2 text-sm font-semibold text-red-800">
-                  <AlertTriangle size={16} />
-                  {conflictsQuery.data?.length} source-of-truth conflict{conflictsQuery.data?.length === 1 ? '' : 's'} need review
-                </div>
-                {conflictsQuery.data?.map((conflict) => (
-                  <div key={conflict.id} className="rounded-md bg-surface border border-red-100 p-3 text-sm text-gray-700">
-                    <p className="font-medium">Opera reservation {conflict.external_id}</p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      PatelRep: {conflict.local_snapshot?.guest_name || 'No guest'} · Opera: {conflict.remote_snapshot?.guest_name || 'No guest'}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button className="text-xs" variant="ghost" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'local_wins' })}>
-                        Keep PatelRep value
-                      </Button>
-                      <Button className="text-xs" variant="primary" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'remote_wins' })}>
-                        Use Opera value
-                      </Button>
+            {v2 ? (
+              (conflictsQuery.isLoading || conflictsQuery.isError || (conflictsQuery.data?.length ?? 0) > 0) && (
+                <div className="rounded-[var(--r-lg)] border border-alert-line bg-alert-soft p-4 space-y-3" aria-live="polite">
+                  {conflictsQuery.isLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton variant="text" className="w-1/2" />
+                      <Skeleton variant="text" className="w-full" />
                     </div>
+                  ) : conflictsQuery.isError ? (
+                    <StateBlock
+                      status="error"
+                      error={{ message: t('integrations.conflicts.loadError'), onRetry: () => conflictsQuery.refetch() }}
+                    />
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-alert">
+                        <AlertTriangle size={16} />
+                        {conflictsQuery.data?.length} source-of-truth conflict{conflictsQuery.data?.length === 1 ? '' : 's'} need review
+                      </div>
+                      {conflictsQuery.data?.map((conflict) => (
+                        <div key={conflict.id} className="rounded-[var(--r-md)] bg-surface border border-line p-3 text-sm text-ink2">
+                          <p className="font-medium">Opera reservation {conflict.external_id}</p>
+                          <p className="mt-1 text-xs text-ink3">
+                            PatelRep: {conflict.local_snapshot?.guest_name || 'No guest'} · Opera: {conflict.remote_snapshot?.guest_name || 'No guest'}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button className="text-xs" variant="ghost" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'local_wins' })}>
+                              Keep PatelRep value
+                            </Button>
+                            <Button className="text-xs" variant="primary" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'remote_wins' })}>
+                              Use Opera value
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )
+            ) : (
+              (conflictsQuery.data?.length ?? 0) > 0 && (
+                <div className="rounded-lg border border-red-200 bg-[var(--alert-soft)] p-4 space-y-3" aria-live="polite">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-red-800">
+                    <AlertTriangle size={16} />
+                    {conflictsQuery.data?.length} source-of-truth conflict{conflictsQuery.data?.length === 1 ? '' : 's'} need review
                   </div>
-                ))}
-              </div>
+                  {conflictsQuery.data?.map((conflict) => (
+                    <div key={conflict.id} className="rounded-md bg-surface border border-red-100 p-3 text-sm text-gray-700">
+                      <p className="font-medium">Opera reservation {conflict.external_id}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        PatelRep: {conflict.local_snapshot?.guest_name || 'No guest'} · Opera: {conflict.remote_snapshot?.guest_name || 'No guest'}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button className="text-xs" variant="ghost" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'local_wins' })}>
+                          Keep PatelRep value
+                        </Button>
+                        <Button className="text-xs" variant="primary" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'remote_wins' })}>
+                          Use Opera value
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -371,6 +464,7 @@ export default function IntegrationsPage() {
                 <div>
                   <FieldLabel htmlFor="opera-ohip-base-url" required>OHIP Base URL</FieldLabel>
                   <CredentialInput
+                    v2={v2}
                     id="opera-ohip-base-url"
                     type="url"
                     placeholder="https://hospitality.oracle.com"
@@ -382,6 +476,7 @@ export default function IntegrationsPage() {
                 <div>
                   <FieldLabel htmlFor="opera-hotel-code" required>Opera Hotel Code</FieldLabel>
                   <CredentialInput
+                    v2={v2}
                     id="opera-hotel-code"
                     type="text"
                     placeholder="SAND01"
@@ -399,7 +494,11 @@ export default function IntegrationsPage() {
                   onClick={() => setShowAdvanced(v => !v)}
                   aria-expanded={showAdvanced}
                   aria-controls="opera-advanced-credentials"
-                  className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                  className={
+                    v2
+                      ? 'flex items-center gap-1.5 text-xs font-medium text-ink3 hover:text-ink2 transition-colors duration-fast ease-standard rounded-[var(--r-sm)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
+                      : 'flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors'
+                  }
                 >
                   {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   Integration user credentials (optional — for password grant)
@@ -410,6 +509,7 @@ export default function IntegrationsPage() {
                     <div>
                       <FieldLabel htmlFor="opera-integration-username">Username</FieldLabel>
                       <CredentialInput
+                        v2={v2}
                         id="opera-integration-username"
                         type="text"
                         placeholder="integration_user"
@@ -422,6 +522,7 @@ export default function IntegrationsPage() {
                     <div>
                       <FieldLabel htmlFor="opera-integration-password">Password</FieldLabel>
                       <CredentialInput
+                        v2={v2}
                         id="opera-integration-password"
                         type="password"
                         placeholder="••••••••"
@@ -454,22 +555,37 @@ export default function IntegrationsPage() {
 
         {/* Skeleton while loading */}
         {statusQuery.isLoading && (
-          <div className="space-y-3 animate-pulse">
-            <div className="h-4 bg-gray-100 rounded w-3/4" />
-            <div className="h-4 bg-gray-100 rounded w-1/2" />
-            <div className="h-4 bg-gray-100 rounded w-2/3" />
-          </div>
+          v2 ? (
+            <div className="space-y-3">
+              <Skeleton variant="text" className="w-3/4" />
+              <Skeleton variant="text" className="w-1/2" />
+              <Skeleton variant="text" className="w-2/3" />
+            </div>
+          ) : (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-4 bg-gray-100 rounded w-3/4" />
+              <div className="h-4 bg-gray-100 rounded w-1/2" />
+              <div className="h-4 bg-gray-100 rounded w-2/3" />
+            </div>
+          )
         )}
 
         {/* Status fetch error */}
         {statusQuery.isError && (
-          <div className="flex items-center gap-2 text-sm text-[var(--alert)]">
-            <AlertTriangle size={14} className="shrink-0" />
-            {(statusQuery.error as any)?.message || 'Failed to load Opera status.'}{' '}
-            <button onClick={() => statusQuery.refetch()} className="underline hover:no-underline">
-              Retry
-            </button>
-          </div>
+          v2 ? (
+            <StateBlock
+              status="error"
+              error={{ message: t('integrations.loadError'), onRetry: () => statusQuery.refetch() }}
+            />
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-[var(--alert)]">
+              <AlertTriangle size={14} className="shrink-0" />
+              {(statusQuery.error as any)?.message || 'Failed to load Opera status.'}{' '}
+              <button onClick={() => statusQuery.refetch()} className="underline hover:no-underline">
+                Retry
+              </button>
+            </div>
+          )
         )}
       </Card>
 
@@ -498,6 +614,7 @@ export default function IntegrationsPage() {
       {/* Disconnect confirm dialog */}
       {showDisconnectConfirm && (
         <ConfirmDisconnectDialog
+          v2={v2}
           loading={disconnectMutation.isPending}
           onCancel={() => setShowDisconnectConfirm(false)}
           onConfirm={() => disconnectMutation.mutate()}
