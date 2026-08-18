@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import {
   UserPlus,
   X,
@@ -29,7 +30,10 @@ import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -680,6 +684,9 @@ function EditStaffModal({
 export default function StaffPage() {
   const { canManageStaff, isGM } = useRole()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('staff', hotel)
 
   // â”€â”€ All hooks must be called unconditionally before any early returns â”€â”€â”€â”€â”€â”€â”€
 
@@ -840,7 +847,7 @@ export default function StaffPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
-            className="appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
+            className={`appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'}`}
           >
             <option value="all">All Roles</option>
             {ROLE_OPTIONS.map(({ value, label }) => (
@@ -862,7 +869,7 @@ export default function StaffPage() {
             onChange={(e) =>
               setStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
             }
-            className="appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
+            className={`appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'}`}
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -884,7 +891,7 @@ export default function StaffPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name or email…"
-            className="pl-9 pr-4 py-2 text-sm border border-line rounded-lg bg-surface w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 hover:border-[var(--caution-line)] transition-colors"
+            className={`pl-9 pr-4 py-2 text-sm border border-line rounded-lg bg-surface w-64 focus:outline-none hover:border-[var(--caution-line)] transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'}`}
           />
         </div>
       </div>
@@ -915,7 +922,7 @@ export default function StaffPage() {
             </thead>
             <tbody className="divide-y divide-line-2">
               {filteredStaff.map((member) => (
-                <tr key={member.id} className="hover:bg-surface-2 transition-colors">
+                <tr key={member.id} className={`hover:bg-surface-2 transition-colors ${v2 ? 'duration-fast ease-standard' : ''}`}>
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
                       <Avatar name={getDisplayName(member.full_name)} role={member.role} />
@@ -966,7 +973,11 @@ export default function StaffPage() {
           <h2 className="text-[13px] font-semibold text-ink-2">Pending Invitations</h2>
 
           <Card className="overflow-hidden p-0">
-            <StateBlock status={invitationsQuery.isLoading ? 'loading' : null} loadingLabel="Loading invitations…">
+            <StateBlock
+              status={invitationsQuery.isLoading ? 'loading' : invitationsQuery.isError ? 'error' : null}
+              loadingLabel="Loading invitations…"
+              error={{ message: t('staff.invitations.loadError'), onRetry: () => invitationsQuery.refetch() }}
+            >
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-line bg-surface-2">
@@ -988,7 +999,7 @@ export default function StaffPage() {
                 </thead>
                 <tbody className="divide-y divide-line">
                   {invitations.map((inv: StaffInvitation) => (
-                    <tr key={inv.id} className="hover:bg-surface-2 transition-colors group">
+                    <tr key={inv.id} className={`hover:bg-surface-2 transition-colors group ${v2 ? 'duration-fast ease-standard' : ''}`}>
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-surface-3 border border-line flex items-center justify-center">
@@ -1058,6 +1069,7 @@ export default function StaffPage() {
           staff={editStaff}
           onClose={() => setEditStaff(null)}
           onSuccess={() => setEditStaff(null)}
+          v2={v2}
         />
       )}
 

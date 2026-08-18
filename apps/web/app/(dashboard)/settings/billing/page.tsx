@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   CreditCard,
   TrendingUp,
@@ -14,8 +15,12 @@ import { format } from 'date-fns'
 import { billingApi, Subscription, CreditUsage, Invoice } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,15 +105,29 @@ function SkeletonCard({ rows = 4 }: { rows?: number }) {
   )
 }
 
+function SkeletonCardV2({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-6 space-y-4">
+      <Skeleton className="h-5 w-1/3" />
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className={i % 2 === 0 ? 'h-4 w-2/3' : 'h-4 w-1/2'} />
+      ))}
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsBillingPage() {
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('billing', hotel)
   const { isGM, role } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
   const [portalError, setPortalError] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
-  const { data: subData, isLoading: subLoading } = useQuery({
+  const { data: subData, isLoading: subLoading, isError: subIsError, refetch: subRefetch } = useQuery({
     queryKey: ['billing-subscription'],
     queryFn: () => billingApi.getSubscription(),
     select: (res) => res.data as Subscription,
@@ -117,7 +136,7 @@ export default function SettingsBillingPage() {
     staleTime: 5 * 60_000,
   })
 
-  const { data: creditData, isLoading: creditLoading } = useQuery({
+  const { data: creditData, isLoading: creditLoading, isError: creditIsError, refetch: creditRefetch } = useQuery({
     queryKey: ['billing-credits'],
     queryFn: () => billingApi.getCredits(),
     select: (res) => res.data as CreditUsage,
@@ -126,7 +145,7 @@ export default function SettingsBillingPage() {
     staleTime: 5 * 60_000,
   })
 
-  const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
+  const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesIsError, refetch: invoicesRefetch } = useQuery({
     queryKey: ['billing-invoices'],
     queryFn: () => billingApi.listInvoices(),
     select: (res) => res.data as Invoice[],
@@ -157,7 +176,13 @@ export default function SettingsBillingPage() {
 
   // Auth loading guard — role is null until fetchProfile() resolves
   if (isAuthLoading || !role) {
-    return (
+    return v2 ? (
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <Skeleton className="h-8 w-1/3" />
+        <SkeletonCardV2 rows={5} />
+        <SkeletonCardV2 rows={5} />
+      </div>
+    ) : (
       <div className="flex items-center justify-center h-64">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-amber-500" />
       </div>
@@ -195,6 +220,7 @@ export default function SettingsBillingPage() {
       <PageHeader
         title="Billing & Usage"
         subtitle="Manage your subscription and monitor AI credit consumption"
+        dataI18nSkip={v2}
       />
 
       {/* ── Trial Upgrade CTA ── */}
@@ -258,7 +284,9 @@ export default function SettingsBillingPage() {
 
       {/* ── Section 1: Subscription Status ── */}
       {subLoading ? (
-        <SkeletonCard rows={5} />
+        v2 ? <SkeletonCardV2 rows={5} /> : <SkeletonCard rows={5} />
+      ) : v2 && subIsError ? (
+        <StateBlock status="error" error={{ message: t('billing.subscriptionLoadError'), onRetry: () => subRefetch() }} />
       ) : (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
@@ -325,7 +353,9 @@ export default function SettingsBillingPage() {
 
       {/* ── Section 2: AI Credit Usage ── */}
       {creditLoading ? (
-        <SkeletonCard rows={5} />
+        v2 ? <SkeletonCardV2 rows={5} /> : <SkeletonCard rows={5} />
+      ) : v2 && creditIsError ? (
+        <StateBlock status="error" error={{ message: t('billing.creditsLoadError'), onRetry: () => creditRefetch() }} />
       ) : creditData ? (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
@@ -445,7 +475,9 @@ export default function SettingsBillingPage() {
 
       {/* ── Section 3: Invoices ── */}
       {invoicesLoading ? (
-        <SkeletonCard rows={4} />
+        v2 ? <SkeletonCardV2 rows={4} /> : <SkeletonCard rows={4} />
+      ) : v2 && invoicesIsError ? (
+        <StateBlock status="error" error={{ message: t('billing.invoicesLoadError'), onRetry: () => invoicesRefetch() }} />
       ) : invoicesData && invoicesData.length > 0 ? (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
@@ -503,6 +535,8 @@ export default function SettingsBillingPage() {
             </table>
           </div>
         </Card>
+      ) : v2 ? (
+        <StateBlock status="empty" empty={{ icon: <Receipt size={20} />, title: t('billing.invoicesEmpty') }} />
       ) : null}
 
       {/* ── Section 4: Pricing Details (static) ── */}
