@@ -63,6 +63,7 @@ const es = {
     noNotifications: 'Sin notificaciones',
     notificationsUnread: 'No leidas',
     notificationsAll: 'Todas',
+    notificationsLoadError: 'No se pudieron cargar las notificaciones.',
     userMenuFor: 'Menu de usuario para {{name}}',
     settings: 'Configuracion',
     signOut: 'Salir',
@@ -1528,6 +1529,48 @@ const es = {
     staff: { empty: 'No se encontró personal para el departamento seleccionado.' },
     shifts: { empty: 'Aún no hay turnos definidos. Cree su primer turno a continuación.' },
     byShiftEmpty: 'No se encontraron turnos activos.',
+  },
+  reports: {
+    pageTitle: 'Reportes',
+    pageSubtitle: 'Análisis operativo y métricas de rendimiento',
+    noAccess: 'No tiene acceso a los reportes.',
+    dailySummary: { loadError: 'No se pudo cargar el resumen diario. Intente de nuevo.', empty: { title: 'Aún no hay resumen', body: 'Vuelva a revisar cuando los datos de hoy estén disponibles.' } },
+    staffPerformance: { loadError: 'No se pudo cargar el rendimiento del personal.', empty: { title: 'Aún no hay datos de rendimiento', body: 'Asigne tareas y márquelas como completas para generar datos de rendimiento del personal.' } },
+    maintenance: { loadError: 'No se pudieron cargar los datos de mantenimiento.', empty: { title: 'No hay datos de mantenimiento', body: 'No hay órdenes de trabajo en este período.' } },
+    guestRecovery: { loadError: 'No se pudieron cargar los datos de recuperación de huéspedes.', empty: { title: 'No hay datos de recuperación de huéspedes', body: 'No hay incidentes en este período.' } },
+    aiUsage: { loadError: 'No se pudieron cargar los datos de uso de IA.', empty: { title: 'Aún no hay uso de IA', body: 'Use el Copiloto IA para crear tareas o consultar POE — el uso aparecerá aquí.' } },
+  },
+  managementRoi: {
+    pageTitle: 'ROI de Gestión',
+    pageSubtitle: 'Tiempo ahorrado, calidad, respuesta e ingresos protegidos — tendencias y excepciones, no solo totales',
+    noAccess: 'El ROI de Gestión está disponible solo para el Gerente General.',
+    loadErrorFor: 'No se pudo cargar {{noun}}. Intente de nuevo.',
+    empty: { title: 'Aún no hay suficientes datos', body: 'Las métricas se completan a medida que se registran solicitudes de huéspedes, órdenes de trabajo e inspecciones a lo largo del tiempo.' },
+  },
+  staff: {
+    invitations: { loadError: 'No se pudieron cargar las invitaciones pendientes.' },
+    editModal: { schedulesLoadError: 'No se pudieron cargar las anulaciones de horario.', rolesLoadError: 'No se pudieron cargar los roles personalizados.' },
+  },
+  settings: {
+    pageTitle: 'Perfil del Hotel',
+    loadError: 'No se pudo cargar el perfil de su hotel.',
+  },
+  aiCopilot: {
+    creditUsage: { loading: 'Cargando uso…' },
+  },
+  billing: {
+    subscriptionLoadError: 'No se pudo cargar su suscripción.',
+    creditsLoadError: 'No se pudo cargar el uso de sus créditos.',
+    invoicesLoadError: 'No se pudieron cargar sus facturas.',
+    invoicesEmpty: 'Aún no hay facturas.',
+  },
+  guestFeedback: {
+    loadError: 'No se pudieron cargar los comentarios.',
+    empty: { title: 'Aún no hay comentarios', body: 'Los nuevos reportes del personal aparecerán aquí.' },
+  },
+  integrations: {
+    loadError: 'No se pudo cargar el estado de la conexión con Opera.',
+    conflicts: { loadError: 'No se pudieron cargar los conflictos de sincronización.', empty: 'No hay conflictos de sincronización.' },
   },
 }
 
