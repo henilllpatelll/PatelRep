@@ -19,9 +19,12 @@ import {
 import { engineeringApi, FailurePrediction, BatchAcknowledgePredictionResult } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -380,6 +383,8 @@ function PredictionsPageContent() {
   const canAuthorize = isGM || role === 'chief_engineer'
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('engineering', hotel)
 
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
@@ -398,7 +403,7 @@ function PredictionsPageContent() {
 
   // ── Queries & mutations ────────────────────────────────────────────────────
 
-  const { data: predictions, isLoading } = useQuery({
+  const { data: predictions, isLoading, isError, refetch } = useQuery({
     queryKey: ['failure-predictions-history'],
     queryFn: () => engineeringApi.getFailurePredictionHistory(),
     select: (res) => res.data as FailurePrediction[],
@@ -542,6 +547,7 @@ function PredictionsPageContent() {
         eyebrow="Engineering"
         title={t('engineering.predictionsPage.heading')}
         subtitle={t('engineering.predictionsPage.subtitle')}
+        dataI18nSkip={v2}
         actions={canManage && (
           <p className="text-xs text-gray-400 text-right leading-tight shrink-0">
             {t('engineering.predictionsPage.freshAnalysisHint')}
@@ -749,7 +755,12 @@ function PredictionsPageContent() {
       )}
 
       {/* Predictions list */}
-      {isLoading ? (
+      {v2 && isError ? (
+        <StateBlock
+          status="error"
+          error={{ message: t('engineering.predictionsPage.loadError'), onRetry: () => refetch() }}
+        />
+      ) : isLoading ? (
         <div className="space-y-4">
           <SkeletonCard />
           <SkeletonCard />
