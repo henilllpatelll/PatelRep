@@ -453,6 +453,7 @@ function SOPLibraryPageContent() {
           eyebrow="Intelligence"
           title={v2 ? t('sop.pageTitle') : 'SOP Library'}
           subtitle={v2 ? t('sop.pageSubtitle') : undefined}
+          dataI18nSkip={v2}
           actions={
             <>
               <Button variant="ai" size="sm" onClick={() => setShowQueryModal(true)} className="gap-1.5">

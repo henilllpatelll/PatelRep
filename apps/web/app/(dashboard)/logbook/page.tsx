@@ -769,6 +769,7 @@ export default function LogbookPage() {
         eyebrow="Organization"
         title={v2 ? t('logbook.pageTitle') : 'Shift Logbook'}
         subtitle={v2 ? t('logbook.pageSubtitle') : 'Record and review shift notes across all departments'}
+        dataI18nSkip={v2}
         actions={
           <Button variant="primary" onClick={() => setShowCreateModal(true)} className="gap-2 shrink-0">
             <Plus size={15} />

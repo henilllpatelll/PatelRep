@@ -2,6 +2,25 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-963",
+      "timestamp": "2026-08-18T00:00:00.000Z",
+      "error_message": "33-07 close-out live ES verification: several brand-new Phase-33 PageHeader title/subtitle/tab strings rendered as garbled EN/ES hybrids in Spanish locale (e.g. Guest Requests tab 'Active Solicitudes' instead of 'Solicitudes Activas'; SOP subtitle 'Buscar and manage your hotel's standard operating procedures' instead of the fully-Spanish string; Logbook title 'Shift Bitacora' instead of 'Bitacora de Turno'; Lost & Found subtitle 'Track and manage Encontrados items' instead of the fully-Spanish string) across sop/page.tsx, logbook/page.tsx, lost-found/page.tsx, and GuestRequestsPage.tsx — the same defect class as bug-962, recurring because Phase 33 added four brand-new i18next namespaces (sop/logbook/lostFound + guestRequests kanban chrome) whose compound-phrase title/subtitle/tab strings are new to the legacy translator's dictionary. Confirmed NOT present in Safety or Scheduling (their new copy happened to be single common words with exact dictionary/regex matches, or the page doesn't route its header through PageHeader) and confirmed PRE-EXISTING/out-of-scope on Evidence and Programs (both pages' PageHeader title/subtitle predate Phase 33 entirely — Programs' header traces to Phase 4 commit 6ba1065a, untouched by 33-05 beyond StateBlock wiring).",
+      "file": "apps/web/i18n/domTranslations.ts (root cause, untouched), apps/web/components/shared/PageHeader.tsx (fix: new opt-in prop), apps/web/app/(dashboard)/sop/page.tsx, apps/web/app/(dashboard)/logbook/page.tsx, apps/web/app/(dashboard)/lost-found/page.tsx, apps/web/components/guest-requests/GuestRequestsPage.tsx (fix: pass the new prop)",
+      "root_cause": "Same mechanism as bug-962: domTranslations.ts's getSourceText() reverse-translates the CURRENT (already-correct) Spanish text back to a presumed English original via a flattened en/es reverse-map, then re-forward-translates that presumed original through PHRASE_TRANSLATIONS/GLOSSARY_TRANSLATIONS before the MutationObserver re-processes a newly-mounted node. When the recovered English original is an exact dictionary hit, translatePhrase() returns cleanly; when it's a brand-new compound phrase (e.g. 'Active Requests', 'Search and manage your hotel's standard operating procedures') that only PARTIALLY matches individual-word glossary regexes (translateWithGlossary uses word-boundary regex replace, not exact-phrase matching), the result is a half-translated hybrid. Root-caused via direct reading of domTranslations.ts's translatePhrase/translateWithGlossary/hasTranslation and confirming the affected en.ts/es.ts key pairs (sop.pageSubtitle, logbook.pageTitle/pageSubtitle, lostFound.pageSubtitle, guestRequests.tabActive) are all correct at the i18next layer.",
+      "fix": "Did not touch domTranslations.ts (same out-of-scope reasoning as bug-962). Extended the SHARED PageHeader.tsx component with an additive, default-off 'dataI18nSkip' prop (title/subtitle) and a per-tab 'dataI18nSkip' field on the Tab interface, rendering data-i18n-skip=\"true\" on the h1/p/tab-span wrapper only when the caller opts in — every other PageHeader caller (including Programs' pre-existing unconditional header and SOP's own static CATEGORIES tabs, deliberately left unskipped) is byte-behaviorally unchanged. Set dataI18nSkip={v2} at the 4 in-scope v2-branch call sites (sop, logbook, lostFound) and unconditionally-true at GuestRequestsPage (whose whole PageHeader block only renders in the v2 branch), plus per-tab dataI18nSkip:true on GuestRequests' two new Active/History tabs only (not SOP's legacy category tabs, which must keep relying on the legacy translator and were confirmed still correctly translated after the fix). Live-reverified in browser: SOP/Logbook/Lost & Found/Guest Requests headers and GuestRequests tabs all render fully-correct Spanish post-fix; SOP's category tabs (Todos/Limpieza/Mantenimiento/HR/Emergencia/General) remain correctly translated (no regression). Full gate suite (type-check, check:frozen-files, check:contrast, check:i18n-parity, verify:i18n-gate, build) green after the fix.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "PageHeader",
+        "domTranslations",
+        "phase-33",
+        "data-i18n-skip"
+      ],
+      "related_bugs": ["bug-962"],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T00:00:00.000Z"
+    },
+    {
       "id": "bug-962",
       "timestamp": "2026-08-17T00:00:00.000Z",
       "error_message": "32-06 close-out live ES verification: several new dashboard.gm.*/dashboard.section.*/dashboard.empty.* strings rendered as garbled EN/ES word hybrids in Spanish locale (e.g. 'IA CREDIT USO' instead of 'Uso de creditos de IA', 'View all Ordenes' instead of 'Ver todas las ordenes de trabajo', 'No Solicitudes need attention' instead of the correct dashboard.empty.frontDeskNoRequests value) across GMDashboard, FrontDeskDashboard, SupervisorDashboard, ChiefEngineerDashboard (live-verified) and HousekeeperDashboard/EngineerDashboard (code-fixed, web-unreachable — housekeeper/engineer are MOBILE_ONLY_ROLES).",
@@ -15936,6 +15955,438 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-17T03:25:17.890Z"
+    },
+    {
+      "id": "bug-965",
+      "timestamp": "2026-08-17T03:27:53.106Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/next.config.mjs",
+      "root_cause": "Had 'https://stellar-integrity-production-f507.up.rail",
+      "fix": "Changed to 'https://stellar-integrity-production-30cf.up.rail",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T03:27:53.106Z"
+    },
+    {
+      "id": "bug-966",
+      "timestamp": "2026-08-18T00:45:27.184Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had \"2026-08-16T00:00:00Z\"",
+      "fix": "Changed to \"2026-08-17T00:00:00Z\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T00:45:27.184Z"
+    },
+    {
+      "id": "bug-967",
+      "timestamp": "2026-08-18T00:45:37.896Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→6 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T00:45:37.896Z"
+    },
+    {
+      "id": "bug-968",
+      "timestamp": "2026-08-18T01:42:43.272Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→6 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T01:42:43.272Z"
+    },
+    {
+      "id": "bug-969",
+      "timestamp": "2026-08-18T01:45:10.634Z",
+      "error_message": "CSS fix: last, hover",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "last: border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : '' → border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]' : ''; hover: border-[var(--accent)] transition-colors\" → border-[var(--accent)] transition-colors ${v2 ? 'duration-fast ease-standard' : ''",
+      "fix": "Changed last: border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : '' → border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]' : ''; hover: border-[var(--accent)] transition-colors\" → border-[var(--accent)] transition-colors ${v2 ? 'duration-fast ease-standard' : ''",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 6,
+      "last_seen": "2026-08-18T01:48:56.083Z"
+    },
+    {
+      "id": "bug-970",
+      "timestamp": "2026-08-18T01:45:40.279Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 32→55 lines (2 removed) | Also: {loading ? (; <EmptyState onUpload={() => setShowUploadModal(tru",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T01:47:23.657Z"
+    },
+    {
+      "id": "bug-971",
+      "timestamp": "2026-08-18T01:46:18.625Z",
+      "error_message": "CSS fix: iso",
+      "file": "apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "iso: string): string { → string, t: (key: string, opts?: Record<string, unknown>) => string): string {",
+      "fix": "Changed iso: string): string { → string, t: (key: string, opts?: Record<string, unknown>) => string): string {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T01:46:18.625Z"
+    },
+    {
+      "id": "bug-972",
+      "timestamp": "2026-08-18T01:46:25.259Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: function StaffSafety({ redesigned }: { redesigned?: boolean ",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T01:48:35.398Z"
+    },
+    {
+      "id": "bug-973",
+      "timestamp": "2026-08-18T01:47:24.908Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/evidence/page.tsx",
+      "root_cause": "Had \"flex w-full items-center justify-between gap-3 px",
+      "fix": "Changed to `flex w-full items-center justify-between gap-3 px",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-18T01:47:49.083Z"
+    },
+    {
+      "id": "bug-974",
+      "timestamp": "2026-08-18T06:14:08.831Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (2 removed) | Also: title=\"Shift Logbook\"; subtitle=\"Record and review shift notes across all | Also: title=\"Lost & Found\"; subtitle={items ? `${items.length} item${items.len",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-18T06:15:31.000Z"
+    },
+    {
+      "id": "bug-975",
+      "timestamp": "2026-08-18T06:15:22.808Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:15:22.808Z"
+    },
+    {
+      "id": "bug-976",
+      "timestamp": "2026-08-18T06:15:26.923Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "data: items, isLoading → items, isLoading, isError, refetch",
+      "fix": "Changed data: items, isLoading → items, isLoading, isError, refetch",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:15:26.923Z"
+    },
+    {
+      "id": "bug-977",
+      "timestamp": "2026-08-18T06:15:46.416Z",
+      "error_message": "CSS fix: title",
+      "file": "apps/web/components/safety/ComplianceDashboard.tsx",
+      "root_cause": "title: 'No training requirements yet. Add a course to begin.' → redesigned ? t('safety.compliance.empty') : 'No training requirements yet. Add a course to begin.'",
+      "fix": "Changed title: 'No training requirements yet. Add a course to begin.' → redesigned ? t('safety.compliance.empty') : 'No training requirements yet. Add a course to begin.'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:15:46.416Z"
+    },
+    {
+      "id": "bug-978",
+      "timestamp": "2026-08-18T06:15:55.088Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `6d6fdbb2`",
+      "fix": "Changed to `bf267fbe`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T06:18:29.415Z"
+    },
+    {
+      "id": "bug-979",
+      "timestamp": "2026-08-18T06:16:00.255Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/safety/IncidentReview.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→12 lines (4 removed) | Also: <div className=\"grid gap-0 md:grid-cols-[1fr_1.3fr; <ul className=\"divide-y divide-line border-line md",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T06:16:27.918Z"
+    },
+    {
+      "id": "bug-980",
+      "timestamp": "2026-08-18T06:16:15.783Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/safety/IncidentReview.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:16:15.783Z"
+    },
+    {
+      "id": "bug-981",
+      "timestamp": "2026-08-18T06:19:06.039Z",
+      "error_message": "Wrong reference: main should be redesigned",
+      "file": "apps/web/app/(dashboard)/programs/page.tsx",
+      "root_cause": "Used \"main\" instead of \"redesigned\"",
+      "fix": "Changed main → redesigned",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:19:06.039Z"
+    },
+    {
+      "id": "bug-982",
+      "timestamp": "2026-08-18T06:19:15.720Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/programs/HousekeepingDepthPanels.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:19:15.720Z"
+    },
+    {
+      "id": "bug-983",
+      "timestamp": "2026-08-18T06:19:32.983Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/programs/DeepCleanAreasPanel.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:19:32.983Z"
+    },
+    {
+      "id": "bug-984",
+      "timestamp": "2026-08-18T06:19:51.881Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/programs/InspectionDepthPanel.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:19:51.881Z"
+    },
+    {
+      "id": "bug-985",
+      "timestamp": "2026-08-18T06:24:13.737Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `6d6fdbb2`",
+      "fix": "Changed to `288f2879`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T06:24:15.417Z"
+    },
+    {
+      "id": "bug-986",
+      "timestamp": "2026-08-18T06:32:19.227Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/flip_flag_tmp.mjs",
+      "root_cause": "Had 'apps'",
+      "fix": "Changed to '..'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:32:19.227Z"
+    },
+    {
+      "id": "bug-987",
+      "timestamp": "2026-08-18T06:36:25.035Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/verify_tmp.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:36:25.035Z"
+    },
+    {
+      "id": "bug-988",
+      "timestamp": "2026-08-18T06:37:59.210Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/verify_tmp.mjs",
+      "root_cause": "Had 'http://127.0.0.1:3001'",
+      "fix": "Changed to 'http://localhost:3001'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:37:59.210Z"
+    },
+    {
+      "id": "bug-989",
+      "timestamp": "2026-08-18T06:45:59.782Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/shared/PageHeader.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <span data-i18n-skip={dataI18nSkip ? 'true' : undefined}>{ta",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T06:46:07.914Z"
+    },
+    {
+      "id": "bug-990",
+      "timestamp": "2026-08-18T06:46:04.460Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/shared/PageHeader.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:46:04.460Z"
+    },
+    {
+      "id": "bug-991",
+      "timestamp": "2026-08-18T06:46:48.247Z",
+      "error_message": "CSS fix: label",
+      "file": "apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "label: t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history') → t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history'), dataI18nSkip: true",
+      "fix": "Changed label: t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history') → t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history'), dataI18nSkip: true",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T06:46:48.247Z"
     }
   ]
 }

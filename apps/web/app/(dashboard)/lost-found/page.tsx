@@ -438,6 +438,7 @@ export default function LostFoundPage() {
         eyebrow="Operations"
         title={v2 ? t('lostFound.pageTitle') : 'Lost & Found'}
         subtitle={v2 ? t('lostFound.pageSubtitle') : (items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items')}
+        dataI18nSkip={v2}
         actions={canCreate && (
           <Button variant="primary" onClick={() => setShowLogModal(true)} className="shrink-0">
             <Plus className="w-4 h-4" />

@@ -10,6 +10,8 @@ interface Tab {
   count?: number
   active?: boolean
   onClick?: () => void
+  /** Per-tab override — see PageHeaderProps.dataI18nSkip. Independent of the page-level prop since some callers (e.g. static category tabs) must keep relying on the legacy translator while their new title/subtitle must not. */
+  dataI18nSkip?: boolean
 }
 
 interface PageHeaderProps {
@@ -20,9 +22,18 @@ interface PageHeaderProps {
   actions?: ReactNode
   tabs?: Tab[]
   className?: string
+  /**
+   * Opt-in escape hatch for callers whose title/subtitle/tab labels come from
+   * react-i18next content the legacy page-wide DOM translator (domTranslations.ts,
+   * predates react-i18next) doesn't recognize as a whole phrase — it partially
+   * glossary-matches individual words in the recovered "original" and re-mangles
+   * already-correct Spanish into English/Spanish hybrids. Defaults to off so every
+   * other PageHeader caller keeps relying on the legacy translator unchanged.
+   */
+  dataI18nSkip?: boolean
 }
 
-export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, className }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, className, dataI18nSkip }: PageHeaderProps) {
   const pathname = usePathname()
   const isSubRoute = pathname.split('/').filter(Boolean).length >= 2
 
@@ -41,11 +52,19 @@ export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, clas
               </p>
             )
           )}
-          <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.1] text-ink">
+          <h1
+            className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.1] text-ink"
+            data-i18n-skip={dataI18nSkip ? 'true' : undefined}
+          >
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-2 text-[14px] text-ink2 max-w-[640px] leading-[1.45]">{subtitle}</p>
+            <p
+              className="mt-2 text-[14px] text-ink2 max-w-[640px] leading-[1.45]"
+              data-i18n-skip={dataI18nSkip ? 'true' : undefined}
+            >
+              {subtitle}
+            </p>
           )}
           {meta && (
             <div className="flex items-center gap-3.5 mt-3">{meta}</div>
@@ -69,7 +88,7 @@ export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, clas
                   : 'font-medium text-ink3 border-transparent hover:text-ink2'
               )}
             >
-              {tab.label}
+              <span data-i18n-skip={tab.dataI18nSkip ? 'true' : undefined}>{tab.label}</span>
               {tab.count != null && (
                 <span className={cn(
                   'text-[10px] font-mono px-1.5 py-px rounded-full',

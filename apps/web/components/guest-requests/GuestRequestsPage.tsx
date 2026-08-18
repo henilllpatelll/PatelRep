@@ -252,9 +252,10 @@ export function GuestRequestsPage() {
           <PageHeader
             title={t('guestRequests.pageTitle')}
             subtitle={t('guestRequests.pageSubtitle')}
+            dataI18nSkip
             tabs={[
-              { label: t('guestRequests.tabActive'), active: activeTab === 'active', onClick: () => setActiveTab('active') },
-              { label: t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history') },
+              { label: t('guestRequests.tabActive'), active: activeTab === 'active', onClick: () => setActiveTab('active'), dataI18nSkip: true },
+              { label: t('guestRequests.tabHistory'), active: activeTab === 'history', onClick: () => setActiveTab('history'), dataI18nSkip: true },
             ]}
             actions={
               <Button variant="primary" onClick={() => setIsModalOpen(true)}>
