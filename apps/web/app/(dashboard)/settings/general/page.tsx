@@ -5,12 +5,16 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { hotelsApi } from '@/lib/api/hotels'
 import type { UpdateHotelData } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -69,15 +73,40 @@ function FormField({
   )
 }
 
+// ─── v2 skeleton ──────────────────────────────────────────────────────────────
+
+function HotelProfileSkeleton() {
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-6 space-y-5">
+      <Skeleton className="h-5 w-1/3" />
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-9 w-full" />
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+        <Skeleton className="h-9 col-span-3" />
+        <Skeleton className="h-9 col-span-1" />
+        <Skeleton className="h-9 col-span-2" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-9 w-full" />
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function GeneralSettingsPage() {
   const { hotel, setHotel } = useHotelStore()
+  const { t } = useTranslation()
+  const v2 = isSectionRedesigned('settings', hotel)
   const toast = useToast()
   const [saving, setSaving] = useState(false)
   const hydratedRef = useRef(false)
 
-  const { data: fullHotel } = useQuery({
+  const { data: fullHotel, isLoading, isError, refetch } = useQuery({
     queryKey: ['hotel-full', hotel?.id],
     queryFn: () => hotelsApi.get(hotel!.id),
     enabled: !!hotel?.id,
@@ -159,9 +188,15 @@ export default function GeneralSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {v2 && isError && (
+        <StateBlock status="error" error={{ message: t('settings.loadError'), onRetry: () => refetch() }} />
+      )}
+      {v2 && isLoading && !hydratedRef.current ? (
+        <HotelProfileSkeleton />
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card className="p-6 space-y-5">
-          <h2 className="text-base font-semibold text-stone-900">Hotel Profile</h2>
+          <h2 className="text-base font-semibold text-stone-900">{v2 ? t('settings.pageTitle') : 'Hotel Profile'}</h2>
 
           <FormField id="settings-hotel-name" label="Hotel Name" error={errors.name?.message}>
             <Input
@@ -315,6 +350,7 @@ export default function GeneralSettingsPage() {
           </Button>
         </div>
       </form>
+      )}
     </div>
   )
 }
