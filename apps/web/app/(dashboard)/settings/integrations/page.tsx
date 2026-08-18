@@ -237,8 +237,8 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <PageHeader
-        title="Integrations"
-        subtitle="Connect external systems to power your hotel operations."
+        title={v2 ? t('integrations.pageTitle') : 'Integrations'}
+        subtitle={v2 ? t('integrations.pageSubtitle') : 'Connect external systems to power your hotel operations.'}
         dataI18nSkip={v2}
       />
 

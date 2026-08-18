@@ -244,6 +244,7 @@ function CreditUsageCard({ v2 }: { v2: boolean }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AICopilotPage() {
+  const { t } = useTranslation()
   const INITIAL: ChatMsg = {
     id: genId(), role: 'ai',
     content: "Hi! I'm your AI Copilot. Ask anything about your hotel — rooms, staff, work orders, history. Grounded on your data, citing sources.",
@@ -369,7 +370,7 @@ export default function AICopilotPage() {
       <div className="flex-1 flex flex-col min-w-0 p-5">
         <PageHeader
           eyebrow="Intelligence"
-          title="Copilot"
+          title={v2 ? t('aiCopilot.pageTitle') : 'Copilot'}
           className="mb-4 shrink-0"
           dataI18nSkip={v2}
           actions={

@@ -1556,9 +1556,12 @@ const en = {
     loadError: "Couldn't load your hotel's profile.",
   },
   aiCopilot: {
+    pageTitle: 'Copilot',
     creditUsage: { loading: 'Loading usage…' },
   },
   billing: {
+    pageTitle: 'Billing & Usage',
+    pageSubtitle: 'Manage your subscription and monitor AI credit consumption',
     subscriptionLoadError: "Couldn't load your subscription.",
     creditsLoadError: "Couldn't load your credit usage.",
     invoicesLoadError: "Couldn't load your invoices.",
@@ -1569,6 +1572,8 @@ const en = {
     empty: { title: 'No feedback yet', body: 'New staff reports will appear here.' },
   },
   integrations: {
+    pageTitle: 'Integrations',
+    pageSubtitle: 'Connect external systems to power your hotel operations.',
     loadError: 'Failed to load Opera status.',
     conflicts: { loadError: "Couldn't load sync conflicts.", empty: 'No sync conflicts.' },
   },

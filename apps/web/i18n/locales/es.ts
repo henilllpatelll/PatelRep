@@ -1556,9 +1556,12 @@ const es = {
     loadError: 'No se pudo cargar el perfil de su hotel.',
   },
   aiCopilot: {
+    pageTitle: 'Copiloto',
     creditUsage: { loading: 'Cargando uso…' },
   },
   billing: {
+    pageTitle: 'Facturación y Uso',
+    pageSubtitle: 'Administra tu suscripción y supervisa el consumo de créditos de IA',
     subscriptionLoadError: 'No se pudo cargar su suscripción.',
     creditsLoadError: 'No se pudo cargar el uso de sus créditos.',
     invoicesLoadError: 'No se pudieron cargar sus facturas.',
@@ -1569,6 +1572,8 @@ const es = {
     empty: { title: 'Aún no hay comentarios', body: 'Los nuevos reportes del personal aparecerán aquí.' },
   },
   integrations: {
+    pageTitle: 'Integraciones',
+    pageSubtitle: 'Conecta sistemas externos para potenciar las operaciones de tu hotel.',
     loadError: 'No se pudo cargar el estado de la conexión con Opera.',
     conflicts: { loadError: 'No se pudieron cargar los conflictos de sincronización.', empty: 'No hay conflictos de sincronización.' },
   },

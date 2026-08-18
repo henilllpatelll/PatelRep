@@ -2,6 +2,29 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-964",
+      "timestamp": "2026-08-18T21:51:45.820Z",
+      "error_message": "34-08 close-out live ES verification: AI Copilot page title (\"Copilot\"), Billing page title/subtitle (\"Billing & Usage\" / \"Manage your subscription and monitor AI credit consumption\"), and Opera Integration page title/subtitle (\"Integrations\" / \"Connect external systems to power your hotel operations.\") all stayed permanently in ENGLISH after a real user toggles the app language to Spanish via the LanguageToggle button (no page reload) — a regression from the pre-v2 legacy-translator behavior, which at least partially translated these same hardcoded strings.",
+      "file": "apps/web/app/(dashboard)/ai/page.tsx, apps/web/app/(dashboard)/settings/billing/page.tsx, apps/web/app/(dashboard)/settings/integrations/page.tsx, apps/web/i18n/locales/en.ts, apps/web/i18n/locales/es.ts",
+      "root_cause": "These 3 PageHeader call sites (added/touched by 34-03/34-04/34-05/34-06) kept title/subtitle as HARDCODED English literal props (never wired to i18next t()) while also being given dataI18nSkip={v2} per the bug-962/963 Pitfall-1 precedent. dataI18nSkip correctly renders data-i18n-skip=\"true\" on the h1/p once v2 (an async, hotel-store-derived flag) resolves — but LanguageSync.tsx only re-runs translateDom()/re-installs the MutationObserver when the LANGUAGE itself changes (useEffect deps: [language]), not when an unrelated v2 flag deep in a child component resolves later. Root cause A (component-mount race): on a hard reload while the persisted language is already es, translateDom() fires once on mount BEFORE the async v2/data-i18n-skip resolves, permanently hybrid-mangling the hardcoded literal into the WeakMap-cached textOriginals with no later re-check (React bails out of touching the text node again since the JSX literal itself never changes). Root cause B (the more common real-world path, confirmed live): once v2 IS already resolved (data-i18n-skip=\"true\" present) BEFORE the user ever toggles language, dataI18nSkip correctly and permanently blocks the legacy translator from ever touching this node — but since these 3 strings were never given a real i18next translation to replace it, blocking the legacy (imperfect but partially-working) translator left them with literally NO translation at all, worse than doing nothing.",
+      "fix": "Added real i18next keys (aiCopilot.pageTitle; billing.pageTitle/pageSubtitle; integrations.pageTitle/pageSubtitle) to both en.ts and es.ts (1570 -> 1575 keys, parity-gate green), and wired all 3 PageHeader call sites to v2 ? t('...') : '<original literal>' matching the exact pattern already used correctly by Reports/Management ROI (34-02) — dataI18nSkip={v2} now legitimately protects real i18next content instead of blocking translation of un-translated literals. Live-reverified round-trip (EN -> toggle to ES -> toggle back to EN) on all 3 pages via the real LanguageToggle button (no reload): AI Copilot title, Billing title+subtitle, and Integrations title+subtitle all now render fully-correct Spanish and revert cleanly to English. type-check, check:i18n-parity (1575 keys), check:frozen-files, check:contrast, and build all green after the fix.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "PageHeader",
+        "domTranslations",
+        "phase-34",
+        "data-i18n-skip",
+        "hardcoded-literal"
+      ],
+      "related_bugs": [
+        "bug-962",
+        "bug-963"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:51:45.820Z"
+    },
+    {
       "id": "bug-963",
       "timestamp": "2026-08-18T00:00:00.000Z",
       "error_message": "33-07 close-out live ES verification: several brand-new Phase-33 PageHeader title/subtitle/tab strings rendered as garbled EN/ES hybrids in Spanish locale (e.g. Guest Requests tab 'Active Solicitudes' instead of 'Solicitudes Activas'; SOP subtitle 'Buscar and manage your hotel's standard operating procedures' instead of the fully-Spanish string; Logbook title 'Shift Bitacora' instead of 'Bitacora de Turno'; Lost & Found subtitle 'Track and manage Encontrados items' instead of the fully-Spanish string) across sop/page.tsx, logbook/page.tsx, lost-found/page.tsx, and GuestRequestsPage.tsx — the same defect class as bug-962, recurring because Phase 33 added four brand-new i18next namespaces (sop/logbook/lostFound + guestRequests kanban chrome) whose compound-phrase title/subtitle/tab strings are new to the legacy translator's dictionary. Confirmed NOT present in Safety or Scheduling (their new copy happened to be single common words with exact dictionary/regex matches, or the page doesn't route its header through PageHeader) and confirmed PRE-EXISTING/out-of-scope on Evidence and Programs (both pages' PageHeader title/subtitle predate Phase 33 entirely — Programs' header traces to Phase 4 commit 6ba1065a, untouched by 33-05 beyond StateBlock wiring).",
@@ -16,7 +39,9 @@
         "phase-33",
         "data-i18n-skip"
       ],
-      "related_bugs": ["bug-962"],
+      "related_bugs": [
+        "bug-962"
+      ],
       "occurrences": 1,
       "last_seen": "2026-08-18T00:00:00.000Z"
     },
@@ -16387,6 +16412,230 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-18T06:46:48.247Z"
+    },
+    {
+      "id": "bug-993",
+      "timestamp": "2026-08-18T07:16:26.024Z",
+      "error_message": "Wrong reference: Pending should be Complete",
+      "file": ".planning/REQUIREMENTS.md",
+      "root_cause": "Used \"Pending\" instead of \"Complete\"",
+      "fix": "Changed Pending → Complete",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T07:16:26.024Z"
+    },
+    {
+      "id": "bug-994",
+      "timestamp": "2026-08-18T21:10:38.584Z",
+      "error_message": "Type error",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:10:38.584Z"
+    },
+    {
+      "id": "bug-995",
+      "timestamp": "2026-08-18T21:14:49.321Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:14:49.321Z"
+    },
+    {
+      "id": "bug-996",
+      "timestamp": "2026-08-18T21:17:14.361Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "hover: border-[var(--caution-line)] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors\" → border-[var(--caution-line)] focus:outline-none transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'",
+      "fix": "Changed hover: border-[var(--caution-line)] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors\" → border-[var(--caution-line)] focus:outline-none transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 10,
+      "last_seen": "2026-08-18T21:23:01.564Z"
+    },
+    {
+      "id": "bug-997",
+      "timestamp": "2026-08-18T21:17:31.387Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Had \"hover:bg-surface-2 transition-colors\"",
+      "fix": "Changed to `hover:bg-surface-2 transition-colors ${v2 ? '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T21:17:33.251Z"
+    },
+    {
+      "id": "bug-998",
+      "timestamp": "2026-08-18T21:17:37.824Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "data: notificationsData → notificationsData,",
+      "fix": "Changed data: notificationsData → notificationsData,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:17:37.824Z"
+    },
+    {
+      "id": "bug-999",
+      "timestamp": "2026-08-18T21:18:22.978Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/reports/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 13→24 lines (2 removed) | Also: {Array.from({ length: 6 }).map((_, i) => (; ))} | Also: {isError && <div className=\"rounded-lg border bord; <div className=\"grid grid-cols-2 gap-4 sm:grid-col | Also: function CreditUsageCard() {; const { data } = useQuery({ | Also: function AIUsageTab() {; const { data, isLoading, isError } = useQuery({ | Also: {Array.from({ length: 3 }).map((_, i) => (; ))} | Also: {Array.from({ length: 4 }).map((_, i) => (; ))} | Also: <div role=\"alert\" className=\"flex items-center gap; <div role=\"alert\" className=\"flex items-center gap | Also: <p className=\"text-sm text-gray-500\">You do not ha; title=\"Reports\" | Also: <div className=\"flex items-center gap-2 text-sm te; <div className={`flex items-center gap-2 text-sm r | Also: title=\"Management ROI\"; subtitle=\"Time saved, quality, response, and reven | Also: function CreditUsageCard({ v2 }: { v2: boolean }) ; const { t } = useTranslation()",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 13,
+      "last_seen": "2026-08-18T21:25:14.508Z"
+    },
+    {
+      "id": "bug-1000",
+      "timestamp": "2026-08-18T21:19:10.224Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/ai/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:19:10.224Z"
+    },
+    {
+      "id": "bug-1001",
+      "timestamp": "2026-08-18T21:23:39.039Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/ai/page.tsx",
+      "root_cause": "Had 'react-i18next'",
+      "fix": "Changed to 'date-fns'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T21:25:08.823Z"
+    },
+    {
+      "id": "bug-1002",
+      "timestamp": "2026-08-18T21:24:09.222Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/34-management-admin-sections/34-05-SUMMARY.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→7 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:24:09.222Z"
+    },
+    {
+      "id": "bug-1003",
+      "timestamp": "2026-08-18T21:25:42.900Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/STATE.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: **34-06 CLOSED (2026-08-18, commits `ad0c94b4`/`e27773e0`):*",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T21:30:04.498Z"
+    },
+    {
+      "id": "bug-1004",
+      "timestamp": "2026-08-18T21:27:47.820Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `8c3b4e4e`",
+      "fix": "Changed to `2e209376`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:27:47.820Z"
+    },
+    {
+      "id": "bug-1005",
+      "timestamp": "2026-08-18T21:38:39.914Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/next.config.mjs",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T21:38:39.914Z"
+    },
+    {
+      "id": "bug-1006",
+      "timestamp": "2026-08-18T21:50:20.392Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/settings/billing/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→5 lines (2 removed) | Also: title=\"Integrations\"; subtitle=\"Connect external systems to power your h",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T21:50:27.325Z"
     }
   ]
 }

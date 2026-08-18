@@ -218,8 +218,8 @@ export default function SettingsBillingPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <PageHeader
-        title="Billing & Usage"
-        subtitle="Manage your subscription and monitor AI credit consumption"
+        title={v2 ? t('billing.pageTitle') : 'Billing & Usage'}
+        subtitle={v2 ? t('billing.pageSubtitle') : 'Manage your subscription and monitor AI credit consumption'}
         dataI18nSkip={v2}
       />
 
