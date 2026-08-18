@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import {
   lostFoundApi,
   isDispositionDue,
@@ -28,7 +29,10 @@ import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { cn } from '@/lib/utils'
 
 const STATUS_TONE: Record<LostFoundStatus, 'info' | 'ready' | 'ai' | 'neutral'> = {
@@ -60,6 +64,22 @@ function SkeletonCard() {
         <div className="h-7 w-24 bg-gray-200 rounded-lg" />
       </div>
     </Card>
+  )
+}
+
+function SkeletonCardV2() {
+  return (
+    <div className="rounded-[var(--r-lg)] border border-line-2 bg-surface-2 p-4 animate-pulse">
+      <div className="flex items-center justify-between mb-2">
+        <div className="h-5 w-20 rounded-full bg-surface-3" />
+        <div className="h-3 w-24 rounded bg-surface-3" />
+      </div>
+      <div className="h-4 w-3/4 rounded bg-surface-3 mb-2" />
+      <div className="h-3 w-1/2 rounded bg-surface-3 mb-3" />
+      <div className="flex gap-2 pt-2 border-t border-line-2">
+        <div className="h-7 w-24 rounded-lg bg-surface-3" />
+      </div>
+    </div>
   )
 }
 
@@ -316,6 +336,9 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
 // -- Main Page ---------------------------------------------------------------
 
 export default function LostFoundPage() {
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('lostFound', hotel)
   const { isGM, role } = useRole()
   const queryClient = useQueryClient()
 
@@ -340,7 +363,7 @@ export default function LostFoundPage() {
   const [dispositionError, setDispositionError] = useState<string | null>(null)
   const dispositionDialogRef = useRef<HTMLFormElement>(null)
 
-  const { data: items, isLoading } = useQuery({
+  const { data: items, isLoading, isError, refetch } = useQuery({
     queryKey: ['lost-found', dispositionDueOnly],
     queryFn: () =>
       lostFoundApi.listItems({ per_page: 100, disposition_due: dispositionDueOnly }),
@@ -413,8 +436,8 @@ export default function LostFoundPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Operations"
-        title="Lost & Found"
-        subtitle={items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items'}
+        title={v2 ? t('lostFound.pageTitle') : 'Lost & Found'}
+        subtitle={v2 ? t('lostFound.pageSubtitle') : (items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items')}
         actions={canCreate && (
           <Button variant="primary" onClick={() => setShowLogModal(true)} className="shrink-0">
             <Plus className="w-4 h-4" />
@@ -452,23 +475,51 @@ export default function LostFoundPage() {
       <SectionLabel>Items</SectionLabel>
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
+          {v2 ? (
+            <>
+              <SkeletonCardV2 />
+              <SkeletonCardV2 />
+              <SkeletonCardV2 />
+            </>
+          ) : (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          )}
         </div>
+      ) : v2 && isError ? (
+        <StateBlock status="error" error={{ message: t('lostFound.loadError'), onRetry: () => refetch() }} />
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<Package className="w-5 h-5" />}
-          title={dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
-          body={
-            dispositionDueOnly
-              ? 'Items flagged after their 90-day retention period passes will show up here for manager review.'
-              : search
-              ? `No items match "${search}"`
-              : 'No lost & found items logged yet.'
-          }
-          className="py-16"
-        />
+        v2 ? (
+          <StateBlock
+            status="empty"
+            empty={{
+              icon: <Package className="w-5 h-5" />,
+              title: dispositionDueOnly ? t('lostFound.dispositionDueEmpty.title') : t('lostFound.empty.title'),
+              body: dispositionDueOnly
+                ? t('lostFound.dispositionDueEmpty.body')
+                : search
+                ? t('lostFound.noMatch', { search })
+                : t('lostFound.empty.body'),
+              className: 'py-16',
+            }}
+          />
+        ) : (
+          <EmptyState
+            icon={<Package className="w-5 h-5" />}
+            title={dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
+            body={
+              dispositionDueOnly
+                ? 'Items flagged after their 90-day retention period passes will show up here for manager review.'
+                : search
+                ? `No items match "${search}"`
+                : 'No lost & found items logged yet.'
+            }
+            className="py-16"
+          />
+        )
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => (
