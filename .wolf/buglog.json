@@ -2,6 +2,31 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-965",
+      "timestamp": "2026-08-18T22:02:25.013Z",
+      "error_message": "34-08 close-out live ES verification: forcing a query failure on Billing (subscription) and Opera Integration (statusQuery, live via the real 403 pilot-gate) produced StateBlock error MESSAGES that render as EN/ES hybrids (e.g. \"Couldn't load your Suscripcion.\" instead of \"No se pudo cargar su suscripcion.\"; \"Failed to load Opera Estado.\" instead of \"No se pudo cargar el estado de la conexion con Opera.\") even though the underlying en.ts/es.ts keys (billing.subscriptionLoadError, integrations.loadError) are both fully correct. NOT FIXED this session - flagged for a dedicated future hardening pass. Broader/systemic than bug-962/963/964: this is not limited to PageHeader chrome, it affects ANY i18next-driven StateBlock error message (or any other conditionally/late-mounted i18next text) app-wide, across every phase (30-36), not just Phase 34.",
+      "file": "apps/web/i18n/domTranslations.ts (root cause, untouched - out of scope), apps/web/components/ui/StateBlock.tsx (would need a parallel dataI18nSkip-style escape hatch to fix, NOT added this session), confirmed reproducing on apps/web/app/(dashboard)/settings/billing/page.tsx and apps/web/app/(dashboard)/settings/integrations/page.tsx - likely reproduces on every other Phase 30-36 StateBlock error message too (not individually confirmed beyond these 2, for time-budget reasons)",
+      "root_cause": "domTranslations.ts's MutationObserver watches childList/characterData mutations on the WHOLE document.body subtree continuously (not just at initial mount). Any i18next text node that is inserted into the DOM AFTER the current language is already es (true for essentially every StateBlock error message, since those only mount once a useQuery settles into isError - always some time after initial page load) gets processed by translateTextNode(). getSourceText() first calls translateToEnglish(current), which does an EXACT match against REVERSE_TRANSLATIONS - a reverse dictionary built from BOTH the small hardcoded PHRASE_TRANSLATIONS map AND (critically) every single en.ts/es.ts key pair via flattenDictionaryPairs(en, es). Since the StateBlock error text IS a real, already-correct es.ts value that exactly matches its own en.ts/es.ts key pair, the reverse lookup succeeds and recovers the ENGLISH original. The translator then re-forward-translates that recovered English original via the cruder word-level PHRASE_TRANSLATIONS/GLOSSARY_TRANSLATIONS glossary (not the real es.ts value), producing a hybrid whenever the English original is a multi-word phrase that only partially glossary-matches (e.g. \"Couldn't load your subscription.\" only matches on the single glossary word \"Subscription\"/\"subscription\"). This is the SAME underlying mechanism as bug-962/963/964 but a NEW manifestation: it does not require a hard-reload race or a hardcoded-literal gap - it happens on ANY correctly-i18next-translated text that mounts into the DOM later than the initial synchronous render pass, which describes almost every conditionally-rendered UI state (loading->error transitions, modals, async content) across the whole app, not just PageHeader.",
+      "fix": "NOT fixed this session - explicitly deferred, matching 33-07's established precedent of flagging (not expanding scope to fix) broader instances of this same defect mechanism discovered outside a close-out plan's specific check boundary (the 34-08 plan's own success criteria explicitly scope the domTranslations.ts check to PageHeader title/subtitle/tab, not StateBlock body copy). A proper fix would require either (a) a global architectural hardening of domTranslations.ts itself (e.g. skip any node whose exact current text has an exact reverse-dictionary hit, since that already proves it is correctly-translated i18next content, not stale legacy DOM text needing recovery), or (b) systematically threading a StateBlock-level dataI18nSkip prop through every call site across Phases 30-36 (a much larger, multi-phase undertaking exceeding a single close-out plan's reasonable scope). Recommends option (a) as the more scalable fix - it would resolve this defect class globally without requiring per-call-site opt-in threading across dozens of files.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "StateBlock",
+        "domTranslations",
+        "phase-34",
+        "systemic",
+        "deferred",
+        "not-fixed"
+      ],
+      "related_bugs": [
+        "bug-962",
+        "bug-963",
+        "bug-964"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-08-18T22:02:25.013Z"
+    },
+    {
       "id": "bug-964",
       "timestamp": "2026-08-18T21:51:45.820Z",
       "error_message": "34-08 close-out live ES verification: AI Copilot page title (\"Copilot\"), Billing page title/subtitle (\"Billing & Usage\" / \"Manage your subscription and monitor AI credit consumption\"), and Opera Integration page title/subtitle (\"Integrations\" / \"Connect external systems to power your hotel operations.\") all stayed permanently in ENGLISH after a real user toggles the app language to Spanish via the LanguageToggle button (no page reload) — a regression from the pre-v2 legacy-translator behavior, which at least partially translated these same hardcoded strings.",
