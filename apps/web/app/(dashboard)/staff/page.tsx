@@ -457,11 +457,14 @@ function EditStaffModal({
   staff,
   onClose,
   onSuccess,
+  v2,
 }: {
   staff: StaffMember
   onClose: () => void
   onSuccess: () => void
+  v2: boolean
 }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const dialogRef = useRef<HTMLDivElement>(null)
   const [role, setRole] = useState<UserRole>(staff.role)
@@ -562,7 +565,24 @@ function EditStaffModal({
           </div>
 
           {/* Custom Role */}
-          {(customRolesQuery.data ?? []).length > 0 && (
+          {v2 && customRolesQuery.isLoading ? (
+            <div className="space-y-1.5 border-t border-white/60 pt-4">
+              <Skeleton className="h-3.5 w-24 rounded-md" />
+              <Skeleton className="h-9 w-full rounded-lg" />
+            </div>
+          ) : v2 && customRolesQuery.isError ? (
+            <div className="border-t border-white/60 pt-4">
+              <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg">
+                <span className="flex items-center gap-1.5 text-xs text-[var(--alert)]">
+                  <AlertTriangle size={13} className="shrink-0" />
+                  {t('staff.editModal.rolesLoadError')}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => customRolesQuery.refetch()} className="h-7 px-2 text-xs shrink-0">
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : (customRolesQuery.data ?? []).length > 0 && (
             <div className="space-y-1.5 border-t border-white/60 pt-4">
               <label className="block text-sm font-medium text-gray-700">Custom Role</label>
               <p className="text-xs text-gray-500">Override this staff member's sidebar with a custom permission set.</p>
@@ -594,7 +614,22 @@ function EditStaffModal({
               </p>
 
               {/* Existing schedules */}
-              {schedulesQuery.isLoading ? (
+              {v2 && schedulesQuery.isLoading ? (
+                <div className="space-y-1.5">
+                  <Skeleton className="h-8 w-full rounded-lg" />
+                  <Skeleton className="h-8 w-full rounded-lg" />
+                </div>
+              ) : v2 && schedulesQuery.isError ? (
+                <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg">
+                  <span className="flex items-center gap-1.5 text-xs text-[var(--alert)]">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    {t('staff.editModal.schedulesLoadError')}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={() => schedulesQuery.refetch()} className="h-7 px-2 text-xs shrink-0">
+                    Retry
+                  </Button>
+                </div>
+              ) : schedulesQuery.isLoading ? (
                 <p className="text-xs text-gray-400">Loading…</p>
               ) : (schedulesQuery.data ?? []).length === 0 ? (
                 <p className="text-xs text-gray-400 italic">No schedule overrides set.</p>

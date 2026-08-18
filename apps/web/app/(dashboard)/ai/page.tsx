@@ -18,6 +18,8 @@ import {
 import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
 import { Button } from '@/components/ui/Button'
 import {
@@ -239,6 +241,8 @@ export default function AICopilotPage() {
   const queryClient = useQueryClient()
   const { role, isSupervisor } = useRole()
   const user = useAuthStore((s) => s.user)
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('aiCopilot', hotel)
 
   const historyKey = user?.id ? `copilot-page-${user.id}-${format(new Date(), 'yyyy-MM-dd')}` : null
 
@@ -351,6 +355,7 @@ export default function AICopilotPage() {
           eyebrow="Intelligence"
           title="Copilot"
           className="mb-4 shrink-0"
+          dataI18nSkip={v2}
           actions={
             <>
               <Button variant="outline" size="sm" className="gap-1.5">
@@ -363,7 +368,11 @@ export default function AICopilotPage() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto space-y-5 pr-1" aria-live="polite" aria-label="AI Copilot conversation">
+        <div
+          className={`flex-1 overflow-y-auto space-y-5 pr-1 ${v2 ? 'rounded-[var(--r-lg)] border border-line bg-surface p-3 transition-colors duration-fast ease-standard' : ''}`}
+          aria-live="polite"
+          aria-label="AI Copilot conversation"
+        >
           {messages.map((msg, idx) =>
             msg.role === 'user' ? (
               <div key={msg.id} className="flex justify-end">
@@ -410,7 +419,7 @@ export default function AICopilotPage() {
         </div>
 
         <div className="shrink-0 mt-3">
-          <div className="bg-surface border border-line rounded-[14px] shadow-sm p-3">
+          <div className={`bg-surface border border-line rounded-[14px] shadow-sm p-3 ${v2 ? 'transition-colors duration-fast ease-standard' : ''}`}>
             <div className="flex items-start gap-2 mb-2.5">
               <MessageSquare size={14} className="text-ink3 mt-0.5 shrink-0" />
               <textarea
@@ -421,7 +430,7 @@ export default function AICopilotPage() {
                 placeholder="What needs attention right now?"
                 aria-label="Message the AI Copilot"
                 rows={2}
-                className="flex-1 w-full resize-none bg-transparent border-none outline-none text-[14px] text-ink placeholder:text-ink3 leading-snug"
+                className={`flex-1 w-full resize-none bg-transparent border-none outline-none text-[14px] text-ink placeholder:text-ink3 leading-snug ${v2 ? 'transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-0 rounded-md' : ''}`}
                 disabled={loading}
               />
               <span className="font-mono text-[10px] text-ink3 bg-surface-2 px-1.5 py-0.5 rounded border border-line shrink-0 mt-0.5">⌘ ⏎</span>
