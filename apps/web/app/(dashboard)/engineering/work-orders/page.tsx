@@ -539,7 +539,7 @@ function WorkOrdersPageContent() {
         ) : activeTab === 'room-board' ? (
           <EngineeringRoomBoard />
         ) : (
-          <ArchivedWorkOrdersPanel />
+          <ArchivedWorkOrdersPanel redesigned={v2} />
         )}
 
         {/* Modals */}

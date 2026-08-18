@@ -8,15 +8,18 @@ import { engineeringApi } from '@/lib/api/engineering'
 import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { EmptyState } from '@/components/ui/EmptyState'
 
-export function ArchivedWorkOrdersPanel() {
+export function ArchivedWorkOrdersPanel({ redesigned = false }: { redesigned?: boolean }) {
   const { t } = useTranslation()
   const { role } = useRole()
   const canManage = role === 'engineer' || role === 'gm'
   const queryClient = useQueryClient()
   const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['work-orders', 'archived'],
     queryFn: () => engineeringApi.listWorkOrders({ archived: true, per_page: 100 }),
   })
@@ -41,6 +44,15 @@ export function ArchivedWorkOrdersPanel() {
   const workOrders = data?.data ?? []
 
   if (isLoading) {
+    if (redesigned) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="card" className="h-16" />
+          ))}
+        </div>
+      )
+    }
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
@@ -50,7 +62,24 @@ export function ArchivedWorkOrdersPanel() {
     )
   }
 
+  if (redesigned && isError) {
+    return (
+      <StateBlock
+        status="error"
+        error={{ message: t('engineering.workOrderList.loadError'), onRetry: () => refetch() }}
+      />
+    )
+  }
+
   if (workOrders.length === 0) {
+    if (redesigned) {
+      return (
+        <EmptyState
+          icon={<ClipboardList className="w-10 h-10" />}
+          title={t('engineering.workOrdersPage.archivedPanelEmpty')}
+        />
+      )
+    }
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <ClipboardList className="w-10 h-10 text-gray-300 mb-3" />
