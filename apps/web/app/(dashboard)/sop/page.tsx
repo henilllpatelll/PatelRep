@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import {
   Upload, Trash2, FileText, AlertCircle, Loader2, X, Search, MessageSquare, Plus,
 } from 'lucide-react'
@@ -11,6 +12,10 @@ import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { AILabel, Mono, Pill } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 const CATEGORIES = ['All', 'Housekeeping', 'Engineering', 'HR', 'Emergency', 'General'] as const
 type FilterCategory = (typeof CATEGORIES)[number]
@@ -73,7 +78,21 @@ function SkeletonCard() {
   )
 }
 
-function EmptyState({ onUpload }: { onUpload: () => void }) {
+function SkeletonCardV2() {
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4">
+      <Skeleton variant="text" className="w-3/4 mb-3" />
+      <Skeleton variant="text" className="h-3 w-1/3 mb-4" />
+      <Skeleton variant="text" className="h-3 w-full mb-2" />
+      <div className="flex items-center justify-between">
+        <Skeleton variant="text" className="h-5 w-16" />
+        <Skeleton variant="text" className="h-3 w-20" />
+      </div>
+    </div>
+  )
+}
+
+function SOPEmptyStateLegacy({ onUpload }: { onUpload: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 text-center">
       <div className="w-16 h-16 rounded-[var(--r-lg)] bg-surface-3 flex items-center justify-center mb-4">
@@ -346,6 +365,9 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 }
 
 function SOPLibraryPageContent() {
+  const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('sop', hotel)
   const searchParams = useSearchParams()
   const appliedFocusRef = useRef<string | null>(null)
   const [documents, setDocuments] = useState<SOPDocument[]>([])
@@ -429,7 +451,8 @@ function SOPLibraryPageContent() {
         <PageHeader
           className="px-5 pt-4 shrink-0"
           eyebrow="Intelligence"
-          title="SOP Library"
+          title={v2 ? t('sop.pageTitle') : 'SOP Library'}
+          subtitle={v2 ? t('sop.pageSubtitle') : undefined}
           actions={
             <>
               <Button variant="ai" size="sm" onClick={() => setShowQueryModal(true)} className="gap-1.5">
@@ -461,7 +484,38 @@ function SOPLibraryPageContent() {
             <Mono className="text-[10px] text-ink3 bg-surface-2 px-1.5 py-px rounded border border-line">⌘K</Mono>
           </div>
 
-          {loading ? (
+          {v2 ? (
+            loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => <SkeletonCardV2 key={i} />)}
+              </div>
+            ) : (
+              <StateBlock
+                status={fetchError ? 'error' : documents.length === 0 ? 'empty' : null}
+                error={{ message: t('sop.loadError'), onRetry: () => fetchDocuments() }}
+                empty={{ title: t('sop.empty.title'), body: t('sop.empty.body') }}
+              >
+                {filteredDocuments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <FileText size={28} className="text-ink4 mb-3" />
+                    <p className="text-sm font-medium text-ink3">{t('sop.noMatch')}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {filteredDocuments.map((doc) => (
+                      <DocumentCard key={doc.id} doc={doc}
+                        onDeleteRequest={setDeleteTarget}
+                        onOpen={(target) => setSelectedDoc(prev => prev?.id === target.id ? null : target)}
+                        deleting={deletingId === doc.id}
+                        isSelected={selectedDoc?.id === doc.id}
+                        referenceTime={referenceTime}
+                      />
+                    ))}
+                  </div>
+                )}
+              </StateBlock>
+            )
+          ) : loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
@@ -475,7 +529,7 @@ function SOPLibraryPageContent() {
               </div>
             </div>
           ) : filteredDocuments.length === 0 && documents.length === 0 ? (
-            <EmptyState onUpload={() => setShowUploadModal(true)} />
+            <SOPEmptyStateLegacy onUpload={() => setShowUploadModal(true)} />
           ) : filteredDocuments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <FileText size={28} className="text-ink4 mb-3" />
