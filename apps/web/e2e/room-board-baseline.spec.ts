@@ -74,6 +74,18 @@ function chromeMasks(page: Page) {
     // rather than diffed, since their content/styling is expected to evolve.
     page.locator('aside[aria-label="Main navigation"]'),
     page.locator('header'),
+    // PHASE 35 FIX: Phase 35 is the first phase (30-36) to intentionally
+    // restyle in-page chrome (PageHeader + tab bar) that shares a full-page
+    // regression screenshot with a frozen board — here, EngineeringRoomBoard
+    // on /engineering/work-orders. Without masking it, the harness would show
+    // a false-positive "regression" on this phase's own correct, in-scope
+    // chrome change. Masked via a stable, purely-additive
+    // data-testid="page-header" added to the shared, non-frozen
+    // PageHeader.tsx, so the diff stays scoped to the frozen board's own
+    // content. This mask is reusable as-is for Phase 36's Housekeeping
+    // chrome close-out too, since /housekeeping renders the same PageHeader
+    // above RoomStatusBoard/RoomDetailDrawer.
+    page.locator('[data-testid="page-header"]'),
   ]
 }
 

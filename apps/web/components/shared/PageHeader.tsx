@@ -38,7 +38,7 @@ export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, clas
   const isSubRoute = pathname.split('/').filter(Boolean).length >= 2
 
   return (
-    <div className={cn('pb-0', className)}>
+    <div className={cn('pb-0', className)} data-testid="page-header">
       <div className="flex justify-between items-end gap-6">
         <div className="flex-1 min-w-0">
           {isSubRoute ? (
