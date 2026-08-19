@@ -27,6 +27,11 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/primitives'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // -- Shift options -------------------------------------------------------------
 
@@ -72,7 +77,7 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
 
 // -- Housekeeper chip bar (mobile assign mode) --------------------------------
 
-function HousekeeperBar() {
+function HousekeeperBar({ v2 }: { v2: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const {
@@ -89,7 +94,7 @@ function HousekeeperBar() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['staff-list'],
     queryFn: () => staffApi.list(),
   })
@@ -178,11 +183,24 @@ function HousekeeperBar() {
       </div>
 
       {isLoading ? (
-        <div className="flex gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="w-24 h-9 bg-surface-3 rounded-lg animate-pulse shrink-0" />
-          ))}
-        </div>
+        v2 ? (
+          <div className="flex gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="w-24 h-9 shrink-0" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="w-24 h-9 bg-surface-3 rounded-lg animate-pulse shrink-0" />
+            ))}
+          </div>
+        )
+      ) : v2 && isError ? (
+        <StateBlock
+          status="error"
+          error={{ message: t('housekeeping.page.assignBar.loadError'), onRetry: refetch }}
+        />
       ) : housekeepers.length === 0 ? (
         <p className="text-xs text-ink3">
           {t('housekeeping.page.assignBar.noStaff')}{' '}
@@ -241,11 +259,13 @@ function HousekeeperRoomItem({
   onAction,
   onUndo,
   onOpenDetail,
+  v2,
 }: {
   room: any
   onAction: (roomId: string, status: string) => Promise<void>
   onUndo: (roomId: string) => Promise<void>
   onOpenDetail: (room: any) => void
+  v2?: boolean
 }) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
@@ -387,11 +407,11 @@ function HousekeeperRoomItem({
         </div>
         {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${v2 ? 'font-normal' : 'font-medium'} ${cfg.pillClass}`}>
             {cfg.label}
           </span>
           {cleanTypeLabel && (
-            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3'}`}>
+            <span className={`inline-flex items-center gap-0.5 ${v2 ? 'text-xs font-normal' : 'text-[10px] font-semibold'} ${CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3'}`}>
               {room.clean_type === 'DEP' && <LogOut className="h-2.5 w-2.5" />}
               {cleanTypeLabel}
             </span>
@@ -462,7 +482,7 @@ function getHotelIdFromToken(token: string | undefined): string {
   try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
 }
 
-function HousekeeperMyRoomsView() {
+function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
   const { t } = useTranslation()
   const { user, session } = useAuth()
   const hotelId = getHotelIdFromToken(session?.access_token)
@@ -624,7 +644,7 @@ function HousekeeperMyRoomsView() {
 
 // -- Supervisor / GM board view -----------------------------------------------
 
-function SupervisorHousekeepingPage() {
+function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { canAssignRooms } = useRole()
@@ -739,7 +759,7 @@ function SupervisorHousekeepingPage() {
       )}
 
       {/* Housekeeper chip bar (assign mode) */}
-      {assignmentMode && canAssignRooms && <HousekeeperBar />}
+      {assignmentMode && canAssignRooms && <HousekeeperBar v2={v2} />}
 
       {/* Main layout */}
       <div className="flex gap-4 items-start">
@@ -764,28 +784,44 @@ export default function HousekeepingPage() {
   const { t } = useTranslation()
   const { role } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('housekeeping', hotel)
 
   if (isAuthLoading || !role) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-56 rounded-lg bg-surface-3 animate-pulse" />
-        <div className="h-24 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
-        <div className="h-72 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
+        {v2 ? (
+          <>
+            <Skeleton className="h-8 w-56" />
+            <Skeleton variant="card" className="h-24" />
+            <Skeleton variant="card" className="h-72" />
+          </>
+        ) : (
+          <>
+            <div className="h-8 w-56 rounded-lg bg-surface-3 animate-pulse" />
+            <div className="h-24 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
+            <div className="h-72 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
+          </>
+        )}
       </div>
     )
   }
 
   if (role === 'housekeeper') {
-    return <HousekeeperMyRoomsView />
+    return <HousekeeperMyRoomsView v2={v2} />
   }
 
   if (role !== 'gm' && role !== 'housekeeping_supervisor' && role !== 'front_desk') {
-    return (
+    return v2 ? (
+      <div className="flex items-center justify-center h-64">
+        <EmptyState title={t('housekeeping.page.noAccess')} />
+      </div>
+    ) : (
       <div className="flex items-center justify-center h-64">
         <p className="text-sm text-ink3">{t('housekeeping.page.noAccess')}</p>
       </div>
     )
   }
 
-  return <SupervisorHousekeepingPage />
+  return <SupervisorHousekeepingPage v2={v2} />
 }
