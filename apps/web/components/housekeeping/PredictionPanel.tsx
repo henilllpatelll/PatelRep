@@ -11,6 +11,8 @@ import {
   BatchReassignResult,
   BatchAcknowledgeResult,
 } from '@/lib/api/housekeeping'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { AILabel, Mono, Pill } from '@/components/ui/primitives'
@@ -75,12 +77,14 @@ function PredictionRow({
   onActionComplete,
   isSelected,
   onToggleSelect,
+  v2,
 }: {
   prediction: RoomPrediction
   canAssignRooms: boolean
   onActionComplete: () => void
   isSelected: boolean
   onToggleSelect: (roomId: string) => void
+  v2: boolean
 }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<ActionMode>('idle')
@@ -147,7 +151,7 @@ function PredictionRow({
             <Pill tone={riskTone} size="sm">
               {prediction.risk_level ?? 'LOW'}
             </Pill>
-            <span className="ml-auto text-[11px] font-mono text-ink-3 whitespace-nowrap">
+            <span className={v2 ? 'ml-auto text-xs font-mono text-ink-3 whitespace-nowrap' : 'ml-auto text-[11px] font-mono text-ink-3 whitespace-nowrap'}>
               {formatETA(prediction.predicted_ready_at, t)}
             </span>
           </div>
@@ -156,13 +160,13 @@ function PredictionRow({
             {prediction.risk_factors.map((factor) => (
               <span
                 key={factor}
-                className="px-1.5 py-px rounded-full text-[10.5px] bg-surface-3 text-ink-2 border border-line"
+                className={v2 ? 'px-1.5 py-px rounded-full text-xs bg-surface-3 text-ink-2 border border-line' : 'px-1.5 py-px rounded-full text-[10.5px] bg-surface-3 text-ink-2 border border-line'}
               >
                 {prettifyRiskFactor(factor, t)}
               </span>
             ))}
             {prediction.confidence_score !== null && (
-              <span className="text-[11px] font-mono text-[var(--ai)] ml-auto whitespace-nowrap font-semibold">
+              <span className={v2 ? 'text-xs font-mono text-[var(--ai)] ml-auto whitespace-nowrap font-semibold' : 'text-[11px] font-mono text-[var(--ai)] ml-auto whitespace-nowrap font-semibold'}>
                 {Math.round(prediction.confidence_score * 100)}%
               </span>
             )}
@@ -204,7 +208,7 @@ function PredictionRow({
 
       {canAct && mode === 'confirm-reassign' && (
         <div className="flex items-center gap-2 bg-surface-2 border border-line rounded-lg px-3 py-2">
-          <span className="text-[11.5px] text-ink2 font-medium flex-1">
+          <span className={v2 ? 'text-xs text-ink2 flex-1' : 'text-[11.5px] text-ink2 font-medium flex-1'}>
             {t('housekeeping.predictionPanel.confirmReassign')}
           </span>
           <Button variant="primary" size="sm" loading={pending} onClick={() => runAction('reassign')} className="gap-1 shrink-0">
@@ -217,7 +221,7 @@ function PredictionRow({
 
       {canAct && mode === 'confirm-escalate' && (
         <div className="flex items-center gap-2 bg-surface-2 border border-line rounded-lg px-3 py-2">
-          <span className="text-[11.5px] text-ink2 font-medium flex-1">
+          <span className={v2 ? 'text-xs text-ink2 flex-1' : 'text-[11.5px] text-ink2 font-medium flex-1'}>
             {t('housekeeping.predictionPanel.confirmEscalate')}
           </span>
           <Button variant="primary" size="sm" loading={pending} onClick={() => runAction('escalate')} className="gap-1 shrink-0">
@@ -230,7 +234,7 @@ function PredictionRow({
 
       {canAct && mode === 'confirm-acknowledge' && (
         <div className="flex items-center gap-2 bg-surface-2 border border-line rounded-lg px-3 py-2">
-          <span className="text-[11.5px] text-ink2 font-medium flex-1">
+          <span className={v2 ? 'text-xs text-ink2 flex-1' : 'text-[11.5px] text-ink2 font-medium flex-1'}>
             {t('housekeeping.predictionPanel.confirmAcknowledge')}
           </span>
           <Button variant="primary" size="sm" loading={pending} onClick={() => runAction('acknowledge')} className="gap-1 shrink-0">
@@ -242,7 +246,7 @@ function PredictionRow({
       )}
 
       {resultNote && (
-        <div className="flex items-center gap-2 text-[11.5px] text-ink3 ml-0">
+        <div className={v2 ? 'flex items-center gap-2 text-xs text-ink3 ml-0' : 'flex items-center gap-2 text-[11.5px] text-ink3 ml-0'}>
           <span>{resultNote}</span>
           <button
             type="button"
@@ -302,6 +306,8 @@ type BatchResultData = {
 
 export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActionComplete }: PredictionPanelProps) {
   const { t } = useTranslation()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('housekeeping', hotel)
   const [isExpanded, setIsExpanded] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [batchMode, setBatchMode] = useState<BatchMode>('idle')
@@ -382,7 +388,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
               <Pill tone="caution" size="sm">{t('housekeeping.predictionPanel.mediumCount', { count: mediumCount })}</Pill>
             )}
             {highCount === 0 && mediumCount === 0 && !isLoading && (
-              <span className="text-[11px] font-mono text-[var(--ai)] opacity-70">{t('housekeeping.predictionPanel.allClear')}</span>
+              <span className={v2 ? 'text-xs font-mono text-[var(--ai)] opacity-70' : 'text-[11px] font-mono text-[var(--ai)] opacity-70'}>{t('housekeeping.predictionPanel.allClear')}</span>
             )}
           </div>
         </div>
@@ -413,7 +419,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
                   <button
                     type="button"
                     onClick={handleSelectAllToggle}
-                    className="text-[11.5px] text-ink3 hover:text-ink2 underline underline-offset-2"
+                    className={v2 ? 'text-xs text-ink3 hover:text-ink2 underline underline-offset-2' : 'text-[11.5px] text-ink3 hover:text-ink2 underline underline-offset-2'}
                   >
                     {t(
                       allSelected
@@ -446,7 +452,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
 
               {batchMode === 'confirm-reassign' && (
                 <div className="flex items-center gap-2 w-full">
-                  <span className="text-[11.5px] text-ink2 font-medium flex-1">
+                  <span className={v2 ? 'text-xs text-ink2 flex-1' : 'text-[11.5px] text-ink2 font-medium flex-1'}>
                     {t('housekeeping.predictionPanel.confirmBatchReassign', { count: selected.size })}
                   </span>
                   <Button
@@ -473,7 +479,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
 
               {batchMode === 'confirm-acknowledge' && (
                 <div className="flex items-center gap-2 w-full">
-                  <span className="text-[11.5px] text-ink2 font-medium flex-1">
+                  <span className={v2 ? 'text-xs text-ink2 flex-1' : 'text-[11.5px] text-ink2 font-medium flex-1'}>
                     {t('housekeeping.predictionPanel.confirmBatchAcknowledge', { count: selected.size })}
                   </span>
                   <Button
@@ -503,7 +509,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
           {batchResult && (
             <div className="px-4 py-3 border-b border-line bg-surface-2 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[11.5px] font-semibold text-ink2">
+                <span className={v2 ? 'text-xs font-semibold text-ink2' : 'text-[11.5px] font-semibold text-ink2'}>
                   {t('housekeeping.predictionPanel.batchResultSummary', {
                     succeeded: batchResult.succeeded,
                     failed: batchResult.failed,
@@ -520,7 +526,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
               </div>
               <ul className="space-y-1">
                 {batchResult.results.map((result) => (
-                  <li key={result.room_id} className="text-[11px] text-ink3 font-mono">
+                  <li key={result.room_id} className={v2 ? 'text-xs text-ink3 font-mono' : 'text-[11px] text-ink3 font-mono'}>
                     {t('housekeeping.predictionPanel.room')} {roomLabelFor(result.room_id, predictions)} —{' '}
                     {describeBatchResult(result, t)}
                   </li>
@@ -553,6 +559,7 @@ export function PredictionPanel({ predictions, isLoading, canAssignRooms, onActi
                 onActionComplete={handleActionComplete}
                 isSelected={selected.has(prediction.room_id)}
                 onToggleSelect={toggleSelected}
+                v2={v2}
               />
             ))
           )}
