@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { ApiClientError } from '@/lib/api/client'
 import { Card } from '@/components/ui/Card'
@@ -14,6 +16,8 @@ export function AssignmentSidebar() {
   const { t } = useTranslation()
   const toast = useToast()
   const { selectedDate, selectedShift, rooms, buildingFilter } = useHousekeepingStore()
+  const hotel = useHotelStore((s) => s.hotel)
+  const v2 = isSectionRedesigned('housekeeping', hotel)
   const [aiLoading, setAiLoading] = useState(false)
 
   const scopedRooms = buildingFilter != null
@@ -65,12 +69,12 @@ export function AssignmentSidebar() {
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-3 py-2">
-          <p className="text-[11px] font-medium text-ink3">{t('housekeeping.assignmentSidebar.unassigned')}</p>
-          <p className="mt-1 font-mono text-lg font-semibold text-ink">{unassignedCount}</p>
+          <p className={v2 ? 'text-xs text-ink3' : 'text-[11px] font-medium text-ink3'}>{t('housekeeping.assignmentSidebar.unassigned')}</p>
+          <p className={v2 ? 'mt-1 font-mono text-xl font-semibold text-ink' : 'mt-1 font-mono text-lg font-semibold text-ink'}>{unassignedCount}</p>
         </div>
         <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-3 py-2">
-          <p className="text-[11px] font-medium text-ink3">{t('housekeeping.assignmentSidebar.needsWork')}</p>
-          <p className="mt-1 font-mono text-lg font-semibold text-ink">{dirtyCount}</p>
+          <p className={v2 ? 'text-xs text-ink3' : 'text-[11px] font-medium text-ink3'}>{t('housekeeping.assignmentSidebar.needsWork')}</p>
+          <p className={v2 ? 'mt-1 font-mono text-xl font-semibold text-ink' : 'mt-1 font-mono text-lg font-semibold text-ink'}>{dirtyCount}</p>
         </div>
       </div>
 
