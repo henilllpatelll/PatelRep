@@ -243,7 +243,13 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
   2. `RoomStatusBoard` and `RoomDetailDrawer` render visually and functionally identical inside the new chrome — the Room-Board pixel-diff against the Phase-30 baseline passes
   3. Supabase Realtime sync stays live (the sync badge confirms an active subscription) throughout and after the redesign
   4. The section passes the dark-mode contrast check, EN/ES key-parity, and the same-inputs→same-outputs network diff
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 36-01-PLAN.md — i18n: add the 2 new loadError keys (housekeeping.page.myRooms/assignBar) to en.ts/es.ts
+- [ ] 36-02-PLAN.md — Restyle housekeeping/page.tsx (role router, SyncBadge, HousekeeperBar, HousekeeperRoomItem, both views) + close 2 error gaps
+- [ ] 36-03-PLAN.md — Restyle AssignmentSidebar.tsx + PredictionPanel.tsx typography/color to v2 scale
+- [ ] 36-04-PLAN.md — Close-out: standing gates, Room-Board regression re-pass, live flag-on/off + light/dark + EN/ES + Realtime-live verification
 
 ### Phase 37: Final QA & Rollout
 **Goal**: Cross-cutting pre-ship verification that per-phase gates cannot fully cover, followed by flag flip-on.
