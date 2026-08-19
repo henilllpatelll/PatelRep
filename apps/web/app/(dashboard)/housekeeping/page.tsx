@@ -492,7 +492,7 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
 
-  const { data: boardData, isLoading } = useQuery({
+  const { data: boardData, isLoading, isError, refetch } = useQuery({
     queryKey: ['housekeeping-board', today],
     queryFn: () => housekeepingApi.getBoard(today, undefined, false),
     refetchInterval: 10_000,
@@ -599,17 +599,48 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">
-      <PageHeader title={t('housekeeping.page.myRooms.heading')} subtitle={format(new Date(), 'EEEE, MMMM d')} />
+      <PageHeader
+        title={t('housekeeping.page.myRooms.heading')}
+        subtitle={format(new Date(), 'EEEE, MMMM d')}
+        dataI18nSkip={v2}
+      />
 
       {myRooms.length > 0 && (
         <Card hover={false} className="flex gap-5 px-4 py-3 text-sm">
-          <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
-          <span><strong className="font-display text-[var(--progress)]">{inProgressCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
-          <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
+          <span><strong className={v2 ? 'text-xl font-display font-semibold text-[var(--alert)]' : 'font-display text-[var(--alert)]'}>{todoCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
+          <span><strong className={v2 ? 'text-xl font-display font-semibold text-[var(--progress)]' : 'font-display text-[var(--progress)]'}>{inProgressCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
+          <span><strong className={v2 ? 'text-xl font-display font-semibold text-[var(--ready)]' : 'font-display text-[var(--ready)]'}>{doneCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
         </Card>
       )}
 
-      {isLoading ? (
+      {v2 ? (
+        isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="card" className="h-20" />
+            ))}
+          </div>
+        ) : (
+          <StateBlock
+            status={(isError && !boardData) ? 'error' : myRooms.length === 0 ? 'empty' : null}
+            error={{ message: t('housekeeping.page.myRooms.loadError'), onRetry: refetch }}
+            empty={{ title: t('housekeeping.page.myRooms.emptyTitle'), body: t('housekeeping.page.myRooms.emptySubtitle') }}
+          >
+            <div className="space-y-2">
+              {myRooms.map((room: any) => (
+                <HousekeeperRoomItem
+                  key={room.room_id}
+                  room={room}
+                  onAction={handleAction}
+                  onUndo={handleUndo}
+                  onOpenDetail={setSelectedRoom}
+                  v2={v2}
+                />
+              ))}
+            </div>
+          </StateBlock>
+        )
+      ) : isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-20 bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
@@ -705,6 +736,7 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
         eyebrow={t('housekeeping.page.board.eyebrow')}
         title={t('housekeeping.page.board.title')}
         meta={<SyncBadge lastSyncedAt={lastSyncedAt} />}
+        dataI18nSkip={v2}
         actions={
           <>
             {/* Date navigation */}
@@ -730,7 +762,7 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
             <select
               value={selectedShift ?? ''}
               onChange={(e) => setSelectedShift(e.target.value || null)}
-              className="px-2.5 py-2 rounded-lg border border-line text-xs text-ink2 bg-surface hover:border-line-2 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
+              className={`px-2.5 py-2 rounded-lg border border-line text-xs text-ink2 bg-surface hover:border-line-2 transition-colors ${v2 ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:outline-none focus:ring-2 focus:ring-amber-400'}`}
             >
               {SHIFTS.map((s) => (
                 <option key={s.value} value={s.value}>{t(`housekeeping.page.shifts.${s.key}`)}</option>
