@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T00:57:11.262Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T01:05:24.729Z
 > Files: 361 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
@@ -1706,7 +1706,7 @@
 
 ## apps/web/app/(dashboard)/settings/general/
 
-- `page.tsx` — hotelProfileSchema — renders form (~3797 tok)
+- `page.tsx` — hotelProfileSchema — renders form (~3792 tok)
 
 ## apps/web/app/(dashboard)/settings/guest-requests/
 

@@ -16880,6 +16880,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-19T00:57:04.256Z"
+    },
+    {
+      "id": "bug-1022",
+      "timestamp": "2026-08-19T01:05:03.665Z",
+      "error_message": "Wrong reference: hydratedRef should be hydrated",
+      "file": "apps/web/app/(dashboard)/settings/general/page.tsx",
+      "root_cause": "Used \"hydratedRef\" instead of \"hydrated\"",
+      "fix": "Changed hydratedRef → hydrated",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T01:05:03.665Z"
+    },
+    {
+      "id": "bug-1023",
+      "timestamp": "2026-08-19T01:05:20.998Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/components/safety/IncidentReview.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T01:05:20.998Z"
+    },
+    {
+      "id": "bug-1024",
+      "timestamp": "2026-08-19T01:05:24.747Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/safety/IncidentReview.tsx",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 15→3 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T01:05:24.747Z"
     }
   ]
 }
