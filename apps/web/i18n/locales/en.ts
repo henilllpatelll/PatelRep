@@ -751,6 +751,7 @@ const en = {
         save: 'Save',
         noStaff: 'No housekeeper staff found.',
         addStaff: 'Add staff',
+        loadError: "Couldn't load staff. Try again.",
       },
       roomItem: {
         roomLabel: 'Room {{number}}',
@@ -784,6 +785,7 @@ const en = {
         done: 'done',
         emptyTitle: 'No rooms assigned to you today.',
         emptySubtitle: 'Check with your supervisor.',
+        loadError: "Couldn't load your rooms. Try again.",
       },
       board: {
         eyebrow: 'Housekeeping',
