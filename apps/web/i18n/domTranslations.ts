@@ -664,6 +664,23 @@ const REVERSE_TRANSLATIONS: Record<string, string> = {
   ...Object.fromEntries(flattenDictionaryPairs(en, es).map(([english, spanish]) => [spanish, english])),
 }
 
+// bug-965: the reverse direction above already does a full-dictionary lookup
+// across every en.ts/es.ts key pair (not just the small curated phrase/glossary
+// maps). The forward direction previously only had the small dictionaries,
+// so a round-trip (Spanish DOM text -> recovered English original -> re-translated
+// forward) would recover the exact English original via REVERSE_TRANSLATIONS but
+// then re-forward-translate it through the SMALL dictionary, producing EN/ES
+// hybrids for any English phrase that only partially glossary-matches. Mirror
+// REVERSE_TRANSLATIONS's own construction so the round-trip is lossless.
+const FULL_PHRASE_TRANSLATIONS: Record<string, string> = {
+  ...PHRASE_TRANSLATIONS,
+  ...Object.fromEntries(flattenDictionaryPairs(en, es)),
+}
+const FULL_ATTRIBUTE_TRANSLATIONS: Record<string, string> = {
+  ...ATTRIBUTE_TRANSLATIONS,
+  ...Object.fromEntries(flattenDictionaryPairs(en, es)),
+}
+
 function shouldSkipNode(node: Node): boolean {
   const parent = node.parentElement
   return !parent || Boolean(parent.closest(TEXT_SKIP_SELECTOR))
@@ -727,12 +744,12 @@ function translateTextNode(node: Text, language: AppLanguage) {
   if (shouldSkipNode(node)) return
 
   const current = node.nodeValue ?? ''
-  const original = getSourceText(current, textOriginals.get(node), PHRASE_TRANSLATIONS)
+  const original = getSourceText(current, textOriginals.get(node), FULL_PHRASE_TRANSLATIONS)
   textOriginals.set(node, original)
 
-  if (language === 'es' && !hasTranslation(original, PHRASE_TRANSLATIONS)) return
+  if (language === 'es' && !hasTranslation(original, FULL_PHRASE_TRANSLATIONS)) return
 
-  const nextValue = language === 'es' ? translatePhrase(original, PHRASE_TRANSLATIONS) : translateToEnglish(original)
+  const nextValue = language === 'es' ? translatePhrase(original, FULL_PHRASE_TRANSLATIONS) : translateToEnglish(original)
   if (current !== nextValue) node.nodeValue = nextValue
 }
 
@@ -750,12 +767,12 @@ function translateAttributes(element: Element, language: AppLanguage) {
       attrOriginals.set(element, originals)
     }
 
-    const original = getSourceText(current, originals.get(attribute), ATTRIBUTE_TRANSLATIONS)
+    const original = getSourceText(current, originals.get(attribute), FULL_ATTRIBUTE_TRANSLATIONS)
     originals.set(attribute, original)
 
-    if (language === 'es' && !hasTranslation(original, ATTRIBUTE_TRANSLATIONS)) continue
+    if (language === 'es' && !hasTranslation(original, FULL_ATTRIBUTE_TRANSLATIONS)) continue
 
-    const nextValue = language === 'es' ? translatePhrase(original, ATTRIBUTE_TRANSLATIONS) : translateToEnglish(original)
+    const nextValue = language === 'es' ? translatePhrase(original, FULL_ATTRIBUTE_TRANSLATIONS) : translateToEnglish(original)
     if (element.getAttribute(attribute) !== nextValue) element.setAttribute(attribute, nextValue)
   }
 }
