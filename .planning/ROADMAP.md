@@ -121,7 +121,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 - [x] **Phase 34: Management & Admin Sections** - Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration redesigned incl. empty/loading/error states (completed 2026-08-18)
 - [x] **Phase 35: Engineering Section Chrome** - Engineering chrome (PageHeader/tabs/pages) redesigned; `EngineeringRoomBoard` renders unchanged inside it (completed 2026-08-19)
 - [x] **Phase 36: Housekeeping Section Chrome** - Housekeeping chrome (PageHeader/sync badge/date-shift controls/my-rooms) redesigned; `RoomStatusBoard`/`RoomDetailDrawer` unchanged, Realtime stays live (completed 2026-08-19)
-- [ ] **Phase 37: Final QA & Rollout** - 6-role nav walkthrough, full Spanish-locale walkthrough, final excluded-surface pixel-diff, flag flip-on
+- [x] **Phase 37: Final QA & Rollout** - 6-role nav walkthrough, full Spanish-locale walkthrough, final excluded-surface pixel-diff, flag flip-on (completed 2026-08-19)
 
 ## Phase Details
 
@@ -263,11 +263,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 37-01-PLAN.md — Fix bug-965 (domTranslations.ts full-dictionary forward lookup) + commit permanent i18n regression spec
-- [ ] 37-02-PLAN.md — QA-01: automated NAV-05 matrix re-run + live 6-role walkthrough (all 21 flags on simultaneously)
-- [ ] 37-03-PLAN.md — QA-02: full Spanish-locale walkthrough of every redesigned section, confirms bug-965 fix holds app-wide
-- [ ] 37-04-PLAN.md — QA-03: Room-Board regression re-run (baseline + all-21-flags-on simulation)
-- [ ] 37-05-PLAN.md — Stage + dry-run-verify production flip-on migration (098); checkpoint before real tenant/push (non-autonomous)
+- [x] 37-01-PLAN.md — Fix bug-965 (domTranslations.ts full-dictionary forward lookup) + commit permanent i18n regression spec
+- [x] 37-02-PLAN.md — QA-01: automated NAV-05 matrix re-run + live 6-role walkthrough (all 21 flags on simultaneously)
+- [x] 37-03-PLAN.md — QA-02: full Spanish-locale walkthrough of every redesigned section, confirms bug-965 fix holds app-wide; found + fixed bug-1062
+- [x] 37-04-PLAN.md — QA-03: Room-Board regression re-run (baseline + all-21-flags-on simulation)
+- [x] 37-05-PLAN.md — Migration 098 staged, dry-run-verified, and (per user go-ahead) applied for real to all 11 tenants; branch pushed and deployed to production
 
 ## Progress
 
@@ -313,5 +313,5 @@ v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 
 | 34. Management & Admin Sections | v2.0 | Complete    | 2026-08-18 | - |
 | 35. Engineering Section Chrome | 6/7 | Complete    | 2026-08-19 | - |
 | 36. Housekeeping Section Chrome | v2.0 | 4/4 | Complete | 2026-08-19 |
-| 37. Final QA & Rollout | v2.0 | 0/TBD | Not started | - |
+| 37. Final QA & Rollout | v2.0 | 5/5 | Complete | 2026-08-19 |
 </content>

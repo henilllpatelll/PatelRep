@@ -206,3 +206,23 @@ Two genuinely open questions this checkpoint should resolve alongside the go/no-
 ### Resume signal
 
 Reply "apply-now" (and optionally answer the two open questions) to proceed with the real push+migration, or "stage-only" to leave everything exactly as staged. This plan takes no further action either way until the user responds — it does not push or apply automatically.
+
+---
+
+## CHECKPOINT RESOLVED — 2026-08-19
+
+**User decision:** "Ship now" (Option A) + "Include everyone" (open question 1 resolved: the migration's unconditional shape, covering all 11 tenants including the 9 `is_test=true` tenants and the regression fixture, was kept as-authored).
+
+**What actually happened, in order (by the orchestrator, after this plan's checkpoint):**
+1. Pushed the full branch (33 commits) to `origin/main` — pre-push lint/type-check passed.
+2. Discovered Railway's web service auto-deploy is gated on the GitHub Actions "CI" workflow passing, which uncovered and required fixing 3 unrelated, pre-existing production issues before the deploy/migration could proceed:
+   - CI's `playwright install --with-deps chromium` step hung indefinitely (6h, hit GitHub's hard cap) on a stuck `apt-get`/Ubuntu-mirror fetch — fixed by dropping `--with-deps` (`ubuntu-latest` already ships the needed libs).
+   - The web service's `NEXT_PUBLIC_API_URL` env var was pointed at a stale, wrong Railway host (`stellar-integrity-production-f507`, superseded by `-30cf` since the 2026-08-16 account migration) — every API call was silently CSP-blocked in production. Fixed directly on Railway (env var + redeploy); confirmed live via a direct Playwright repro against the real production URL before and after.
+   - The Room-Board regression harness had never successfully run on Linux CI at all (every prior phase used a local Windows workaround) — no `-linux.png` baselines existed. Generated them via a pinned `mcr.microsoft.com/playwright` Docker container, then discovered bare `ubuntu-latest` runners have real (~1%, reproducible, non-flaky) host-level rendering variance between different runner instances — fixed by pinning the CI job itself to the same Docker container image (matches Playwright's own recommended CI pattern), which resolved it deterministically.
+3. Manually deployed the web service via `railway up` once (bypassing the CI-gate chicken-and-egg on the very first push), then let subsequent pushes auto-deploy normally once CI was fixed.
+4. Applied `supabase/migrations/098_flip_web_redesign_sections_on.sql` for real via `npx supabase@2.115.0 db query --linked` — confirmed via read-back that all 11 tenants (including the real production tenant `23264962-aa09-4e4f-a49d-fc345cc91414`) now have all 21 sections in `web_redesign_sections`.
+5. Live-verified: logged into the real production tenant as its actual GM user, confirmed `[data-testid="page-header"]` (the v2 chrome marker) renders on `/housekeeping`, zero console errors, zero CSP violations.
+
+**Final CI run (`32310186300`) on the exact commit deployed: all jobs green, including Room-Board Pixel-Diff Regression.**
+
+Phase 37 — and with it, the entire v2.0 Web UI/UX Redesign milestone — is now fully shipped. Success Criterion 4 ("The feature flag is flipped on for all sections with no half-old/half-new state remaining") is satisfied for real, not just staged.

@@ -1,10 +1,8 @@
--- Open question deliberately left unresolved by this migration, for the 37-05 checkpoint:
--- Should the 9 is_test=true QA/dev tenants and the 1 regression-fixture system tenant
--- (a0000000-0000-4000-a000-000000000001) be INCLUDED in this unconditional flip (current
--- shape below: yes, since the WHERE clause has no is_test exclusion), or explicitly EXCLUDED
--- (documented alternative: add "AND is_test = false AND id != 'a0000000-0000-4000-a000-000000000001'"
--- to the WHERE clause)? This is a genuine judgment call flagged by both CONTEXT.md and
--- RESEARCH.md as unresolved -- not something to decide silently here.
+-- 37-05 checkpoint resolved by user 2026-08-19: include every tenant (the 9
+-- is_test=true QA/dev tenants and the 1 regression-fixture system tenant too),
+-- not just the one real tenant -- matches Success Criterion 4's literal
+-- wording ("flipped on for all sections with no half-old/half-new state
+-- remaining").
 
 UPDATE public.tenants
 SET web_redesign_sections = ARRAY[

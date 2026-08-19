@@ -49,9 +49,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Final QA
 
-- [ ] **QA-01**: A full 6-role navigation walkthrough is verified against the role×nav matrix (NAV-05) before shipping
-- [ ] **QA-02**: A full Spanish-locale walkthrough of all redesigned sections is verified before shipping
-- [ ] **QA-03**: A final pixel-diff of all 3 excluded surfaces against the Foundation baseline (FOUND-03) confirms zero visual/functional drift before shipping
+- [x] **QA-01**: A full 6-role navigation walkthrough is verified against the role×nav matrix (NAV-05) before shipping
+- [x] **QA-02**: A full Spanish-locale walkthrough of all redesigned sections is verified before shipping
+- [x] **QA-03**: A final pixel-diff of all 3 excluded surfaces against the Foundation baseline (FOUND-03) confirms zero visual/functional drift before shipping
 
 ## v2 Requirements
 
@@ -97,9 +97,9 @@ None deferred from this milestone's own scoping — the anti-features below were
 | SEC-01 (SEC-01b) | Phase 34 | Pending |
 | ENG-01 | Phase 35 | Pending |
 | HSK-01 | Phase 36 | Complete |
-| QA-01 | Phase 37 | Pending |
-| QA-02 | Phase 37 | Pending |
-| QA-03 | Phase 37 | Pending |
+| QA-01 | Phase 37 | Complete |
+| QA-02 | Phase 37 | Complete |
+| QA-03 | Phase 37 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total
