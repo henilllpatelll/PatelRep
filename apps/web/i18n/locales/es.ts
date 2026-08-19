@@ -751,6 +751,7 @@ const es = {
         save: 'Guardar',
         noStaff: 'No se encontró personal de limpieza.',
         addStaff: 'Agregar personal',
+        loadError: 'No se pudo cargar el personal. Intente de nuevo.',
       },
       roomItem: {
         roomLabel: 'Cuarto {{number}}',
@@ -784,6 +785,7 @@ const es = {
         done: 'hechos',
         emptyTitle: 'No hay cuartos asignados a usted hoy.',
         emptySubtitle: 'Consulte con su supervisor.',
+        loadError: 'No se pudieron cargar sus cuartos. Intente de nuevo.',
       },
       board: {
         eyebrow: 'Limpieza',
