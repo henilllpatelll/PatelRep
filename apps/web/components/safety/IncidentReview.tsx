@@ -28,6 +28,18 @@ export function IncidentReview({ redesigned }: { redesigned?: boolean }) {
 
   const selected = incidents.find((incident) => incident.id === selectedId) ?? null
 
+  const appendEvent = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedId) return
+    setSaving(true); setError(null)
+    const form = new FormData(event.currentTarget)
+    try {
+      await safetyApi.appendIncidentEvent(selectedId, { event_type: String(form.get('event_type')), detail: String(form.get('detail')) })
+      event.currentTarget.reset(); await load()
+    } catch { setError('Unable to append the event.') }
+    finally { setSaving(false) }
+  }
+
   const list = (
     <div className="grid gap-0 md:grid-cols-[1fr_1.3fr]">
       <ul className="divide-y divide-line border-line md:border-r">
@@ -77,18 +89,6 @@ export function IncidentReview({ redesigned }: { redesigned?: boolean }) {
       </div>
     </div>
   )
-
-  const appendEvent = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedId) return
-    setSaving(true); setError(null)
-    const form = new FormData(event.currentTarget)
-    try {
-      await safetyApi.appendIncidentEvent(selectedId, { event_type: String(form.get('event_type')), detail: String(form.get('detail')) })
-      event.currentTarget.reset(); await load()
-    } catch { setError('Unable to append the event.') }
-    finally { setSaving(false) }
-  }
 
   return (
     <section className="rounded-[var(--r-lg)] border border-line bg-surface">

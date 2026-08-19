@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -104,7 +104,7 @@ export default function GeneralSettingsPage() {
   const v2 = isSectionRedesigned('settings', hotel)
   const toast = useToast()
   const [saving, setSaving] = useState(false)
-  const hydratedRef = useRef(false)
+  const [hydrated, setHydrated] = useState(false)
 
   const { data: fullHotel, isLoading, isError, refetch } = useQuery({
     queryKey: ['hotel-full', hotel?.id],
@@ -135,7 +135,7 @@ export default function GeneralSettingsPage() {
 
   // One-time hydration guard — prevents form reset wiping user's in-progress edits
   useEffect(() => {
-    if (fullHotel && !hydratedRef.current) {
+    if (fullHotel && !hydrated) {
       reset({
         name: fullHotel.name ?? '',
         address: fullHotel.address ?? '',
@@ -150,9 +150,9 @@ export default function GeneralSettingsPage() {
             ? fullHotel.average_daily_rate_cents / 100
             : undefined,
       })
-      hydratedRef.current = true
+      setHydrated(true)
     }
-  }, [fullHotel, reset])
+  }, [fullHotel, hydrated, reset])
 
   const onSubmit = useCallback(
     async (values: HotelProfileFormValues) => {
@@ -191,7 +191,7 @@ export default function GeneralSettingsPage() {
       {v2 && isError && (
         <StateBlock status="error" error={{ message: t('settings.loadError'), onRetry: () => refetch() }} />
       )}
-      {v2 && isLoading && !hydratedRef.current ? (
+      {v2 && isLoading && !hydrated ? (
         <HotelProfileSkeleton />
       ) : (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
