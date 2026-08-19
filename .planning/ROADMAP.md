@@ -246,10 +246,10 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 **Plans**: 4 plans
 
 Plans:
-- [ ] 36-01-PLAN.md — i18n: add the 2 new loadError keys (housekeeping.page.myRooms/assignBar) to en.ts/es.ts
-- [ ] 36-02-PLAN.md — Restyle housekeeping/page.tsx (role router, SyncBadge, HousekeeperBar, HousekeeperRoomItem, both views) + close 2 error gaps
-- [ ] 36-03-PLAN.md — Restyle AssignmentSidebar.tsx + PredictionPanel.tsx typography/color to v2 scale
-- [ ] 36-04-PLAN.md — Close-out: standing gates, Room-Board regression re-pass, live flag-on/off + light/dark + EN/ES + Realtime-live verification
+- [x] 36-01-PLAN.md — i18n: add the 2 new loadError keys (housekeeping.page.myRooms/assignBar) to en.ts/es.ts
+- [x] 36-02-PLAN.md — Restyle housekeeping/page.tsx (role router, SyncBadge, HousekeeperBar, HousekeeperRoomItem, both views) + close 2 error gaps
+- [x] 36-03-PLAN.md — Restyle AssignmentSidebar.tsx + PredictionPanel.tsx typography/color to v2 scale
+- [x] 36-04-PLAN.md — Close-out: standing gates, Room-Board regression re-pass, live flag-on/off + light/dark + EN/ES + Realtime-live verification
 
 ### Phase 37: Final QA & Rollout
 **Goal**: Cross-cutting pre-ship verification that per-phase gates cannot fully cover, followed by flag flip-on.
@@ -305,6 +305,6 @@ v2.0 phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 
 | 33. Core Operational Sections | v2.0 | Complete    | 2026-08-18 | - |
 | 34. Management & Admin Sections | v2.0 | Complete    | 2026-08-18 | - |
 | 35. Engineering Section Chrome | 6/7 | Complete    | 2026-08-19 | - |
-| 36. Housekeeping Section Chrome | v2.0 | 0/TBD | Not started | - |
+| 36. Housekeeping Section Chrome | v2.0 | 4/4 | Complete | 2026-08-19 |
 | 37. Final QA & Rollout | v2.0 | 0/TBD | Not started | - |
 </content>

@@ -45,7 +45,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Board-Adjacent (chrome only)
 
 - [ ] **ENG-01**: The Engineering section's surrounding chrome (PageHeader, tabs, work-orders/assets/PM-schedules/predictions pages) is redesigned; `EngineeringRoomBoard` renders unchanged inside the new chrome
-- [ ] **HSK-01**: The Housekeeping section's surrounding chrome (PageHeader, sync badge, date/shift controls, housekeeper "my rooms" list) is redesigned; `RoomStatusBoard` and `RoomDetailDrawer` render unchanged inside the new chrome, and Realtime sync remains live
+- [x] **HSK-01**: The Housekeeping section's surrounding chrome (PageHeader, sync badge, date/shift controls, housekeeper "my rooms" list) is redesigned; `RoomStatusBoard` and `RoomDetailDrawer` render unchanged inside the new chrome, and Realtime sync remains live
 
 ### Final QA
 
@@ -96,7 +96,7 @@ None deferred from this milestone's own scoping — the anti-features below were
 | SEC-01 (SEC-01a) | Phase 33 | Complete |
 | SEC-01 (SEC-01b) | Phase 34 | Pending |
 | ENG-01 | Phase 35 | Pending |
-| HSK-01 | Phase 36 | Pending |
+| HSK-01 | Phase 36 | Complete |
 | QA-01 | Phase 37 | Pending |
 | QA-02 | Phase 37 | Pending |
 | QA-03 | Phase 37 | Pending |
