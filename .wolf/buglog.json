@@ -16661,6 +16661,209 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-08-18T21:50:27.325Z"
+    },
+    {
+      "id": "bug-1009",
+      "timestamp": "2026-08-18T22:05:27.281Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 19→21 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T22:05:27.281Z"
+    },
+    {
+      "id": "bug-1010",
+      "timestamp": "2026-08-18T23:21:16.207Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".planning/STATE.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:21:16.207Z"
+    },
+    {
+      "id": "bug-1011",
+      "timestamp": "2026-08-18T23:22:55.704Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "root_cause": "data: predictions, isLoading → predictions, isLoading, isError, refetch",
+      "fix": "Changed data: predictions, isLoading → predictions, isLoading, isError, refetch",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:22:55.704Z"
+    },
+    {
+      "id": "bug-1012",
+      "timestamp": "2026-08-18T23:23:45.734Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "data: predictions, isLoading → predictions, isLoading, isError, refetch",
+      "fix": "Changed data: predictions, isLoading → predictions, isLoading, isError, refetch",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:23:45.734Z"
+    },
+    {
+      "id": "bug-1013",
+      "timestamp": "2026-08-18T23:23:50.768Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "data: woDetail, isLoading: detailLoading, refetch: refetchDetail → woDetail, isLoading: detailLoading, isError: detailError, refetch: refetchDetail",
+      "fix": "Changed data: woDetail, isLoading: detailLoading, refetch: refetchDetail → woDetail, isLoading: detailLoading, isError: detailError, refetch: refetchDetail",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:23:50.768Z"
+    },
+    {
+      "id": "bug-1014",
+      "timestamp": "2026-08-18T23:24:23.530Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/engineering/PMCompletionModal.tsx",
+      "root_cause": "data: staffData → staffData, isLoading: staffLoading",
+      "fix": "Changed data: staffData → staffData, isLoading: staffLoading",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:24:23.530Z"
+    },
+    {
+      "id": "bug-1015",
+      "timestamp": "2026-08-18T23:25:34.355Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "root_cause": "data: roomsData → roomsData, isLoading: roomsLoading, isError: roomsError, refetch: refetchRooms",
+      "fix": "Changed data: roomsData → roomsData, isLoading: roomsLoading, isError: roomsError, refetch: refetchRooms",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:25:34.355Z"
+    },
+    {
+      "id": "bug-1016",
+      "timestamp": "2026-08-18T23:26:09.845Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/engineering/assets/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:26:09.845Z"
+    },
+    {
+      "id": "bug-1017",
+      "timestamp": "2026-08-18T23:31:43.402Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".planning/STATE.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:31:43.402Z"
+    },
+    {
+      "id": "bug-1018",
+      "timestamp": "2026-08-18T23:38:53.247Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `b85a4972`",
+      "fix": "Changed to `3b1b54f9`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T23:38:53.247Z"
+    },
+    {
+      "id": "bug-1021",
+      "timestamp": "2026-08-19T00:51:18.178Z",
+      "error_message": "35-07 close-out live ES verification (Task 3, testing a cold/fresh page navigation with Spanish already persisted in localStorage, distinct from 33-07/34-08's live-toggle-only test method): Engineering Predictions PageHeader subtitle rendered as an EN/ES hybrid — \"IA-powered failure Riesgo analysis — updated nightly\" — instead of the fully-correct es.ts value \"Análisis de riesgo de falla con IA — actualizado cada noche\", DESPITE dataI18nSkip={v2} being correctly wired on PageHeader (confirmed via source read) and v2 being true. Re-tested via a LIVE in-session toggle (load in EN, click the LanguageToggle button) on the exact same subtitle and it rendered correctly with zero mangling — the defect ONLY reproduces on a cold/fresh navigation (or full page reload) while es is already the persisted locale, not on a live toggle. This is a new, more fundamental variant of the bug-962/963/964/965 domTranslations.ts defect class: it affects PageHeader's OWN dataI18nSkip escape hatch (previously assumed fully reliable per 33-07's fix and 34-08's bug-964 fix), not just StateBlock (bug-965) or missing-wiring gaps (bug-964). NOT FIXED this session — systemic, app-wide, out of this narrow close-out plan's scope (would require an SSR/hydration-locale-detection architecture change, Rule-4 territory). This phase's 3 NEW StateBlock strings (engineering.predictionsPage.loadError, engineering.failurePrediction.loadError, engineering.workOrderDetail.loadError) were separately tested via the SAME live-toggle method used by 33-07/34-08 and all 3 rendered CLEAN, zero mangling — the bug-965-class check this plan explicitly asked for passes for this phase's own new content under that established test method.",
+      "file": "apps/web/i18n/domTranslations.ts (root cause, untouched - out of scope), apps/web/components/shared/PageHeader.tsx (data-i18n-skip mechanism confirmed correctly wired but insufficient under this specific race, not modified), reproduced on apps/web/app/(dashboard)/engineering/predictions/page.tsx (subtitle) - very likely reproduces on any PageHeader across Phases 31-36 whenever a user does a fresh/cold navigation while es is already persisted, not individually confirmed beyond Predictions for time-budget reasons",
+      "root_cause": "Hypothesized (not fully root-caused this session, flagged for the future hardening phase to confirm): app i18n language detection reads localStorage client-side only, so SSR/first paint renders the English literal from en.ts as part of a server-computed DOM snapshot before hydration can apply the persisted es locale. React then detects a server/client text mismatch and logs a hydration-mismatch warning (confirmed live in console: \"Hydration failed because the server rendered text didn't match the client... IA Operativa Hotelera / Hotel Operations AI\"), regenerating the affected subtree on the client. installDomTranslator's initial translateDom(document.body, ...) pass and/or its MutationObserver appear to catch the transient English DOM text in the brief window before the data-i18n-skip attribute is present on the regenerated node, applying the same word-level PHRASE_TRANSLATIONS/GLOSSARY_TRANSLATIONS glossary described in bug-965 (AI→IA, risk→Riesgo matched; powered/failure/analysis/updated nightly left English) before React's corrected, properly-skip-tagged Spanish text lands. A live toggle mid-session never hits this because hydration has already completed and data-i18n-skip is already present in the DOM before the language changes.",
+      "fix": "NOT fixed this session - explicitly deferred, matching 33-07/34-08's established precedent of flagging (not expanding scope to fix) instances of this recurring defect mechanism discovered outside a close-out plan's specific, narrow check boundary. A proper fix likely requires an SSR-aware locale detection strategy (e.g. a locale cookie readable during SSR, or delaying first paint until locale is resolved) so the server and first client render agree on language before hydration - a genuine architectural change (Rule 4), well beyond this plan's narrow, additive scope (a single data-testid + one regression-harness mask line). Recommends this be folded into the same future dedicated i18n hardening phase already recommended for bug-965, since the root mechanism (domTranslations.ts translating text it should never see) is shared.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "PageHeader",
+        "domTranslations",
+        "hydration",
+        "phase-35",
+        "systemic",
+        "deferred",
+        "not-fixed"
+      ],
+      "related_bugs": [
+        "bug-962",
+        "bug-963",
+        "bug-964",
+        "bug-965"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:51:18.180Z"
+    },
+    {
+      "id": "bug-1020",
+      "timestamp": "2026-08-19T00:54:05.754Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→9 lines (3 removed) | Also: Phase: 35 of 37 (Engineering Section Chrome) — IN ; Plan: 35-01 of 7 complete (i18n foundation). Wave ",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T00:54:35.903Z"
     }
   ]
 }
