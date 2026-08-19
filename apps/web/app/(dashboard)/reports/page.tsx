@@ -236,7 +236,7 @@ function DailySummaryTab({ redesigned }: { redesigned?: boolean }) {
       </div>
 
       {/* Housekeeping summary note */}
-      <p className="text-sm text-ink3 mt-2">Staff performance and maintenance data populate as tasks are completed and work orders are closed.</p>
+      <p className="text-sm text-ink3 mt-2">{t('reports.summaryNote')}</p>
 
       {/* Task + WO stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -257,7 +257,7 @@ function DailySummaryTab({ redesigned }: { redesigned?: boolean }) {
             <div className="flex flex-col items-center justify-center bg-surface border border-line rounded-[var(--r-lg)] p-6">
               <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
               <p className="text-4xl font-bold text-gray-900">{summary.tasks_completed_today}</p>
-              <p className="mt-1 text-sm text-gray-500">tasks completed today</p>
+              <p className="mt-1 text-sm text-gray-500">{t('reports.tasksCompletedToday')}</p>
             </div>
             <div
               className={`flex flex-col items-center justify-center rounded-[var(--r-lg)] border p-6 ${
@@ -311,10 +311,10 @@ function StaffPerformanceTab({ redesigned }: { redesigned?: boolean }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-700">Staff Performance</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{t('reports.staffPerformanceHeading')}</h3>
           {report && (
             <p className="text-xs text-gray-400 mt-0.5">
-              {report.period.start} — {report.period.end} · {report.total_staff} staff members
+              {report.period.start} — {report.period.end} · {report.total_staff} {t('reports.staffMembersSuffix')}
             </p>
           )}
         </div>

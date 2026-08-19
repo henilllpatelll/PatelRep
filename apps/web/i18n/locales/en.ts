@@ -133,6 +133,10 @@ const en = {
       afternoon: 'Good afternoon',
       evening: 'Good evening',
     },
+    trendCharts: {
+      keepUpGoodWork: 'Keep up the good work!',
+      dataWillAppear: 'Data will appear here soon.',
+    },
     empty: {
       housekeeperNoRooms: 'No rooms assigned yet',
       housekeeperNoTasks: 'No tasks for you right now',
@@ -1539,6 +1543,10 @@ const en = {
     pageTitle: 'Reports',
     pageSubtitle: 'Operational analytics and performance metrics',
     noAccess: 'You do not have access to reports.',
+    summaryNote: 'Staff performance and maintenance data populate as tasks are completed and work orders are closed.',
+    tasksCompletedToday: 'tasks completed today',
+    staffPerformanceHeading: 'Staff Performance',
+    staffMembersSuffix: 'staff members',
     dailySummary: { loadError: 'Failed to load daily summary. Please try again.', empty: { title: 'No summary yet', body: "Check back once today's data is in." } },
     staffPerformance: { loadError: 'Failed to load staff performance data.', empty: { title: 'No staff performance data yet', body: 'Assign tasks and mark them complete to generate staff performance data.' } },
     maintenance: { loadError: 'Failed to load maintenance data.', empty: { title: 'No maintenance data', body: 'No work orders in this range.' } },
@@ -1551,14 +1559,37 @@ const en = {
     noAccess: 'Management ROI is available to the general manager.',
     loadErrorFor: 'Failed to load {{noun}}. Please try again.',
     empty: { title: 'Not enough data yet', body: 'Metrics populate as guest requests, work orders, and inspections are recorded over time.' },
+    pmDeferralsHeading: 'Repeated PM deferrals',
+    pmDeferralsEmpty: 'No repeated PM deferrals in this period.',
+    roomDowntimeHeading: 'Rooms with the most downtime',
+    roomDowntimeEmpty: 'No room downtime recorded in this period.',
+    nouns: {
+      housekeepingEfficiency: 'housekeeping efficiency',
+      inspectionTrends: 'inspection trends',
+      repeatFailures: 'repeat failures',
+      downtimeRevenue: 'downtime and revenue',
+      pmCompliance: 'PM compliance',
+      trainingReadiness: 'training readiness',
+      forecast: 'the 7-day forecast',
+      guestRecovery: 'guest recovery',
+      maintenance: 'maintenance',
+    },
   },
   staff: {
-    invitations: { loadError: "Couldn't load pending invitations." },
+    invitations: { heading: 'Pending Invitations', loading: 'Loading invitations…', loadError: "Couldn't load pending invitations." },
     editModal: { schedulesLoadError: "Couldn't load schedule overrides.", rolesLoadError: "Couldn't load custom roles." },
+    table: {
+      sectionLabel: 'Team Members',
+      loading: 'Loading staff…',
+      loadError: 'Failed to load staff.',
+      emptyFiltered: 'No staff match the current filters.',
+      emptyDefault: 'No staff members yet. Invite your first team member above.',
+    },
   },
   settings: {
     pageTitle: 'Hotel Profile',
     loadError: "Couldn't load your hotel's profile.",
+    adrHint: 'Used to estimate revenue lost to room downtime on the Management ROI dashboard. Leave blank if you would rather not estimate it.',
   },
   aiCopilot: {
     pageTitle: 'Copilot',
@@ -1575,12 +1606,24 @@ const en = {
   guestFeedback: {
     loadError: 'Feedback could not load.',
     empty: { title: 'No feedback yet', body: 'New staff reports will appear here.' },
+    subtitle: 'Staff reports from the floating feedback button.',
   },
   integrations: {
     pageTitle: 'Integrations',
     pageSubtitle: 'Connect external systems to power your hotel operations.',
     loadError: 'Failed to load Opera status.',
     conflicts: { loadError: "Couldn't load sync conflicts.", empty: 'No sync conflicts.' },
+    sopLibrary: {
+      title: 'SOP Library',
+      subtitle: 'Upload PDF documents to power the AI Copilot Q&A',
+      manageLink: 'Manage SOP Library',
+    },
+    opera: {
+      title: 'Opera Cloud (OHIP)',
+      loadingStatus: 'Loading status…',
+      hotelIdLabel: 'Hotel ID:',
+      disconnectedHint: 'Sync reservations, room status, and guest profiles in real-time',
+    },
   },
 }
 

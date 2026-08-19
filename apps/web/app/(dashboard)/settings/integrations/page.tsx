@@ -281,17 +281,17 @@ export default function IntegrationsPage() {
               <Link2 size={18} className="text-white" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Opera Cloud (OHIP)</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t('integrations.opera.title')}</h2>
               {statusQuery.isLoading ? (
-                <p className="text-sm text-gray-400 mt-0.5">Loading status…</p>
+                <p className="text-sm text-gray-400 mt-0.5">{t('integrations.opera.loadingStatus')}</p>
               ) : operaStatus?.connected ? (
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Hotel ID:{' '}
+                  {t('integrations.opera.hotelIdLabel')}{' '}
                   <span className="font-medium text-gray-700">{operaStatus.opera_hotel_id ?? '—'}</span>
                 </p>
               ) : (
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Sync reservations, room status, and guest profiles in real-time
+                  {t('integrations.opera.disconnectedHint')}
                 </p>
               )}
             </div>
@@ -597,15 +597,15 @@ export default function IntegrationsPage() {
               <BookOpen size={18} className="text-white" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-gray-900">SOP Library</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Upload PDF documents to power the AI Copilot Q&amp;A</p>
+              <h2 className="text-base font-semibold text-gray-900">{t('integrations.sopLibrary.title')}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{t('integrations.sopLibrary.subtitle')}</p>
             </div>
           </div>
           <Link
             href="/sop"
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--caution-soft)] border border-[var(--caution-line)] text-[var(--caution)] hover:bg-amber-100 rounded-lg transition-colors shrink-0"
           >
-            Manage SOP Library
+            {t('integrations.sopLibrary.manageLink')}
             <ArrowRight size={14} />
           </Link>
         </div>

@@ -236,16 +236,16 @@ export default function ManagementRoiPage() {
   const responseLoading = guestRecoveryQuery.isLoading || maintenanceQuery.isLoading
   const revenueLoading = downtimeRevenueQuery.isLoading || trainingReadinessQuery.isLoading
 
-  const errors: { isError: boolean; noun: string; refetch: () => void }[] = [
-    { isError: housekeepingEfficiencyQuery.isError, noun: 'housekeeping efficiency', refetch: () => housekeepingEfficiencyQuery.refetch() },
-    { isError: inspectionTrendsQuery.isError, noun: 'inspection trends', refetch: () => inspectionTrendsQuery.refetch() },
-    { isError: repeatFailuresQuery.isError, noun: 'repeat failures', refetch: () => repeatFailuresQuery.refetch() },
-    { isError: downtimeRevenueQuery.isError, noun: 'downtime and revenue', refetch: () => downtimeRevenueQuery.refetch() },
-    { isError: pmComplianceQuery.isError, noun: 'PM compliance', refetch: () => pmComplianceQuery.refetch() },
-    { isError: trainingReadinessQuery.isError, noun: 'training readiness', refetch: () => trainingReadinessQuery.refetch() },
-    { isError: forecastQuery.isError, noun: 'the 7-day forecast', refetch: () => forecastQuery.refetch() },
-    { isError: guestRecoveryQuery.isError, noun: 'guest recovery', refetch: () => guestRecoveryQuery.refetch() },
-    { isError: maintenanceQuery.isError, noun: 'maintenance', refetch: () => maintenanceQuery.refetch() },
+  const errors: { isError: boolean; noun: string; nounKey: string; refetch: () => void }[] = [
+    { isError: housekeepingEfficiencyQuery.isError, noun: 'housekeeping efficiency', nounKey: 'managementRoi.nouns.housekeepingEfficiency', refetch: () => housekeepingEfficiencyQuery.refetch() },
+    { isError: inspectionTrendsQuery.isError, noun: 'inspection trends', nounKey: 'managementRoi.nouns.inspectionTrends', refetch: () => inspectionTrendsQuery.refetch() },
+    { isError: repeatFailuresQuery.isError, noun: 'repeat failures', nounKey: 'managementRoi.nouns.repeatFailures', refetch: () => repeatFailuresQuery.refetch() },
+    { isError: downtimeRevenueQuery.isError, noun: 'downtime and revenue', nounKey: 'managementRoi.nouns.downtimeRevenue', refetch: () => downtimeRevenueQuery.refetch() },
+    { isError: pmComplianceQuery.isError, noun: 'PM compliance', nounKey: 'managementRoi.nouns.pmCompliance', refetch: () => pmComplianceQuery.refetch() },
+    { isError: trainingReadinessQuery.isError, noun: 'training readiness', nounKey: 'managementRoi.nouns.trainingReadiness', refetch: () => trainingReadinessQuery.refetch() },
+    { isError: forecastQuery.isError, noun: 'the 7-day forecast', nounKey: 'managementRoi.nouns.forecast', refetch: () => forecastQuery.refetch() },
+    { isError: guestRecoveryQuery.isError, noun: 'guest recovery', nounKey: 'managementRoi.nouns.guestRecovery', refetch: () => guestRecoveryQuery.refetch() },
+    { isError: maintenanceQuery.isError, noun: 'maintenance', nounKey: 'managementRoi.nouns.maintenance', refetch: () => maintenanceQuery.refetch() },
   ].filter((e) => e.isError)
 
   const allResolved =
@@ -282,7 +282,7 @@ export default function ManagementRoiPage() {
               <StateBlock
                 key={e.noun}
                 status="error"
-                error={{ message: t('managementRoi.loadErrorFor', { noun: e.noun }), onRetry: e.refetch }}
+                error={{ message: t('managementRoi.loadErrorFor', { noun: t(e.nounKey) }), onRetry: e.refetch }}
               />
             ) : (
               <div
@@ -440,7 +440,7 @@ export default function ManagementRoiPage() {
           {/* Exceptions and trends */}
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card hover={false} className="p-5">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Repeated PM deferrals</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('managementRoi.pmDeferralsHeading')}</h3>
               {pmCompliance && pmCompliance.repeated_deferrals.length > 0 ? (
                 <table className="min-w-full divide-y divide-gray-100 text-sm">
                   <thead>
@@ -459,12 +459,12 @@ export default function ManagementRoiPage() {
                   </tbody>
                 </table>
               ) : (
-                <p className="text-sm text-gray-400">No repeated PM deferrals in this period.</p>
+                <p className="text-sm text-gray-400">{t('managementRoi.pmDeferralsEmpty')}</p>
               )}
             </Card>
 
             <Card hover={false} className="p-5">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">Rooms with the most downtime</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('managementRoi.roomDowntimeHeading')}</h3>
               {downtimeRevenue && downtimeRevenue.downtime.rooms.length > 0 ? (
                 <table className="min-w-full divide-y divide-gray-100 text-sm">
                   <thead>
@@ -486,7 +486,7 @@ export default function ManagementRoiPage() {
                   </tbody>
                 </table>
               ) : (
-                <p className="text-sm text-gray-400">No room downtime recorded in this period.</p>
+                <p className="text-sm text-gray-400">{t('managementRoi.roomDowntimeEmpty')}</p>
               )}
             </Card>
           </section>

@@ -932,16 +932,16 @@ export default function StaffPage() {
       </div>
 
       {/* Staff table */}
-      <SectionLabel hint={filteredStaff.length > 0 ? String(filteredStaff.length) : undefined}>Team Members</SectionLabel>
+      <SectionLabel hint={filteredStaff.length > 0 ? String(filteredStaff.length) : undefined}>{t('staff.table.sectionLabel')}</SectionLabel>
       <Card className="overflow-hidden p-0">
         <StateBlock
           status={staffQuery.isLoading ? 'loading' : staffQuery.isError ? 'error' : filteredStaff.length === 0 ? 'empty' : null}
-          loadingLabel="Loading staff…"
-          error={{ message: 'Failed to load staff.', onRetry: () => staffQuery.refetch() }}
+          loadingLabel={t('staff.table.loading')}
+          error={{ message: t('staff.table.loadError'), onRetry: () => staffQuery.refetch() }}
           empty={{
             title: searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
-              ? 'No staff match the current filters.'
-              : 'No staff members yet. Invite your first team member above.',
+              ? t('staff.table.emptyFiltered')
+              : t('staff.table.emptyDefault'),
           }}
         >
           <table className="w-full">
@@ -1005,12 +1005,12 @@ export default function StaffPage() {
       {/* Pending Invitations */}
       {(invitations.length > 0 || invitationsQuery.isLoading) && (
         <div className="space-y-3">
-          <h2 className="text-[13px] font-semibold text-ink-2">Pending Invitations</h2>
+          <h2 className="text-[13px] font-semibold text-ink-2">{t('staff.invitations.heading')}</h2>
 
           <Card className="overflow-hidden p-0">
             <StateBlock
               status={invitationsQuery.isLoading ? 'loading' : invitationsQuery.isError ? 'error' : null}
-              loadingLabel="Loading invitations…"
+              loadingLabel={t('staff.invitations.loading')}
               error={{ message: t('staff.invitations.loadError'), onRetry: () => invitationsQuery.refetch() }}
             >
               <table className="w-full">

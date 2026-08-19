@@ -5,6 +5,7 @@ import { reportsApi } from '@/lib/api/reports'
 import { format, subDays } from 'date-fns'
 import { Card } from '@/components/ui/Card'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 
 function getHotelIdFromSession(accessToken: string | undefined): string {
   if (!accessToken) return ''
@@ -64,6 +65,7 @@ function SLAGauge({ pct }: { pct: number }) {
 }
 
 export function TrendChartsRow() {
+  const { t } = useTranslation()
   const start = thirtyDaysAgo()
   const end = today()
   const session = useAuthStore(s => s.session)
@@ -204,8 +206,8 @@ export function TrendChartsRow() {
             <svg className="w-10 h-10 mb-2 text-ink4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-sm font-medium">Keep up the good work!</p>
-            <p className="text-xs">Data will appear here soon.</p>
+            <p className="text-sm font-medium">{t('dashboard.trendCharts.keepUpGoodWork')}</p>
+            <p className="text-xs">{t('dashboard.trendCharts.dataWillAppear')}</p>
           </div>
         )}
       </Card>

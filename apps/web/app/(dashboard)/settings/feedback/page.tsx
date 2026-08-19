@@ -83,7 +83,7 @@ export default function FeedbackSettingsPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-xl font-display font-normal text-ink">Feedback</h2>
-        <p className="mt-1 text-sm text-ink3">Staff reports from the floating feedback button.</p>
+        <p className="mt-1 text-sm text-ink3">{t('guestFeedback.subtitle')}</p>
       </div>
 
       <StateBlock

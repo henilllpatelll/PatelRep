@@ -133,6 +133,10 @@ const es = {
       afternoon: 'Buenas tardes',
       evening: 'Buenas noches',
     },
+    trendCharts: {
+      keepUpGoodWork: '¡Siga con el buen trabajo!',
+      dataWillAppear: 'Los datos aparecerán aquí pronto.',
+    },
     empty: {
       housekeeperNoRooms: 'Aún no hay habitaciones asignadas',
       housekeeperNoTasks: 'No tienes tareas por ahora',
@@ -1539,6 +1543,10 @@ const es = {
     pageTitle: 'Reportes',
     pageSubtitle: 'Análisis operativo y métricas de rendimiento',
     noAccess: 'No tiene acceso a los reportes.',
+    summaryNote: 'Los datos de rendimiento del personal y mantenimiento se completan a medida que se finalizan las tareas y se cierran las órdenes de trabajo.',
+    tasksCompletedToday: 'tareas completadas hoy',
+    staffPerformanceHeading: 'Rendimiento del Personal',
+    staffMembersSuffix: 'miembros del personal',
     dailySummary: { loadError: 'No se pudo cargar el resumen diario. Intente de nuevo.', empty: { title: 'Aún no hay resumen', body: 'Vuelva a revisar cuando los datos de hoy estén disponibles.' } },
     staffPerformance: { loadError: 'No se pudo cargar el rendimiento del personal.', empty: { title: 'Aún no hay datos de rendimiento', body: 'Asigne tareas y márquelas como completas para generar datos de rendimiento del personal.' } },
     maintenance: { loadError: 'No se pudieron cargar los datos de mantenimiento.', empty: { title: 'No hay datos de mantenimiento', body: 'No hay órdenes de trabajo en este período.' } },
@@ -1551,14 +1559,37 @@ const es = {
     noAccess: 'El ROI de Gestión está disponible solo para el Gerente General.',
     loadErrorFor: 'No se pudo cargar {{noun}}. Intente de nuevo.',
     empty: { title: 'Aún no hay suficientes datos', body: 'Las métricas se completan a medida que se registran solicitudes de huéspedes, órdenes de trabajo e inspecciones a lo largo del tiempo.' },
+    pmDeferralsHeading: 'Aplazamientos repetidos de mantenimiento preventivo',
+    pmDeferralsEmpty: 'No hay aplazamientos repetidos de mantenimiento preventivo en este período.',
+    roomDowntimeHeading: 'Habitaciones con más tiempo de inactividad',
+    roomDowntimeEmpty: 'No se registró tiempo de inactividad de habitaciones en este período.',
+    nouns: {
+      housekeepingEfficiency: 'la eficiencia de limpieza',
+      inspectionTrends: 'las tendencias de inspección',
+      repeatFailures: 'las fallas repetidas',
+      downtimeRevenue: 'el tiempo de inactividad y los ingresos',
+      pmCompliance: 'el cumplimiento de mantenimiento preventivo',
+      trainingReadiness: 'la preparación de capacitación',
+      forecast: 'el pronóstico de 7 días',
+      guestRecovery: 'la recuperación de huéspedes',
+      maintenance: 'el mantenimiento',
+    },
   },
   staff: {
-    invitations: { loadError: 'No se pudieron cargar las invitaciones pendientes.' },
+    invitations: { heading: 'Invitaciones Pendientes', loading: 'Cargando invitaciones…', loadError: 'No se pudieron cargar las invitaciones pendientes.' },
     editModal: { schedulesLoadError: 'No se pudieron cargar las anulaciones de horario.', rolesLoadError: 'No se pudieron cargar los roles personalizados.' },
+    table: {
+      sectionLabel: 'Miembros del Equipo',
+      loading: 'Cargando personal…',
+      loadError: 'No se pudo cargar el personal.',
+      emptyFiltered: 'Ningún miembro del personal coincide con los filtros actuales.',
+      emptyDefault: 'Aún no hay miembros del personal. Invite a su primer miembro del equipo arriba.',
+    },
   },
   settings: {
     pageTitle: 'Perfil del Hotel',
     loadError: 'No se pudo cargar el perfil de su hotel.',
+    adrHint: 'Se usa para estimar los ingresos perdidos por tiempo de inactividad de habitaciones en el panel de ROI de Gestión. Déjelo en blanco si prefiere no estimarlo.',
   },
   aiCopilot: {
     pageTitle: 'Copiloto',
@@ -1575,12 +1606,24 @@ const es = {
   guestFeedback: {
     loadError: 'No se pudieron cargar los comentarios.',
     empty: { title: 'Aún no hay comentarios', body: 'Los nuevos reportes del personal aparecerán aquí.' },
+    subtitle: 'Reportes del personal desde el botón flotante de comentarios.',
   },
   integrations: {
     pageTitle: 'Integraciones',
     pageSubtitle: 'Conecta sistemas externos para potenciar las operaciones de tu hotel.',
     loadError: 'No se pudo cargar el estado de la conexión con Opera.',
     conflicts: { loadError: 'No se pudieron cargar los conflictos de sincronización.', empty: 'No hay conflictos de sincronización.' },
+    sopLibrary: {
+      title: 'Biblioteca de POE',
+      subtitle: 'Suba documentos PDF para potenciar las preguntas y respuestas del Copiloto IA',
+      manageLink: 'Administrar Biblioteca de POE',
+    },
+    opera: {
+      title: 'Opera Cloud (OHIP)',
+      loadingStatus: 'Cargando estado…',
+      hotelIdLabel: 'ID de hotel:',
+      disconnectedHint: 'Sincronice reservas, estado de habitaciones y perfiles de huéspedes en tiempo real',
+    },
   },
 }
 

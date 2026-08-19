@@ -297,7 +297,7 @@ export default function GeneralSettingsPage() {
               />
             </div>
             <p className="text-xs text-ink3">
-              Used to estimate revenue lost to room downtime on the Management ROI dashboard. Leave blank if you would rather not estimate it.
+              {t('settings.adrHint')}
             </p>
           </FormField>
 
