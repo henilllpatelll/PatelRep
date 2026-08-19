@@ -4,27 +4,29 @@
     {
       "id": "bug-965",
       "timestamp": "2026-08-18T22:02:25.013Z",
-      "error_message": "34-08 close-out live ES verification: forcing a query failure on Billing (subscription) and Opera Integration (statusQuery, live via the real 403 pilot-gate) produced StateBlock error MESSAGES that render as EN/ES hybrids (e.g. \"Couldn't load your Suscripcion.\" instead of \"No se pudo cargar su suscripcion.\"; \"Failed to load Opera Estado.\" instead of \"No se pudo cargar el estado de la conexion con Opera.\") even though the underlying en.ts/es.ts keys (billing.subscriptionLoadError, integrations.loadError) are both fully correct. NOT FIXED this session - flagged for a dedicated future hardening pass. Broader/systemic than bug-962/963/964: this is not limited to PageHeader chrome, it affects ANY i18next-driven StateBlock error message (or any other conditionally/late-mounted i18next text) app-wide, across every phase (30-36), not just Phase 34.",
-      "file": "apps/web/i18n/domTranslations.ts (root cause, untouched - out of scope), apps/web/components/ui/StateBlock.tsx (would need a parallel dataI18nSkip-style escape hatch to fix, NOT added this session), confirmed reproducing on apps/web/app/(dashboard)/settings/billing/page.tsx and apps/web/app/(dashboard)/settings/integrations/page.tsx - likely reproduces on every other Phase 30-36 StateBlock error message too (not individually confirmed beyond these 2, for time-budget reasons)",
+      "error_message": "34-08 close-out live ES verification: forcing a query failure on Billing (subscription) and Opera Integration (statusQuery, live via the real 403 pilot-gate) produced StateBlock error MESSAGES that render as EN/ES hybrids (e.g. \"Couldn't load your Suscripcion.\" instead of \"No se pudo cargar su suscripcion.\"; \"Failed to load Opera Estado.\" instead of \"No se pudo cargar el estado de la conexion con Opera.\") even though the underlying en.ts/es.ts keys (billing.subscriptionLoadError, integrations.loadError) are both fully correct. NOT FIXED this session - flagged for a dedicated future hardening pass. Broader/systemic than bug-962/963/964: this is not limited to PageHeader chrome, it affects ANY i18next-driven StateBlock error message (or any other conditionally/late-mounted i18next text) app-wide, across every phase (30-36), not just Phase 34. | 36-04 close-out live ES verification (both live-toggle AND cold-reload-with-es-persisted methods): forcing housekeeping.page.assignBar.loadError (HousekeeperBar staff-list StateBlock error) reproduces the SAME hybrid mangling -- rendered as \"Couldn't load Personal. Intentalo de nuevo.\" instead of the correct es.ts value \"No se pudo cargar el personal. Intente de nuevo.\" -- identically via both test methods (not just live-toggle), confirming this is not method-dependent for this content. housekeeping.page.myRooms.loadError (HousekeeperMyRoomsView) was NOT independently live-tested (housekeeper is a MOBILE_ONLY_ROLE, architecturally unreachable via /login on web per routeGuard.ts -- matching Phase 32's established HousekeeperDashboard/EngineerDashboard precedent of code-trace-only verification) but is expected to reproduce identically since it shares the exact same StateBlock component and the exact same domTranslations.ts mechanism. NOT fixed this session either -- same disposition as 34-08/35-07: StateBlock.tsx has no dataI18nSkip-style escape hatch at all (confirmed via source read), and threading one in now would only patch 2 of the many already-confirmed-affected call sites across Phases 30-36 (Billing, Opera Integration, now Housekeeping), which is exactly the piecemeal, inconsistent-with-precedent scope-creep 34-08 explicitly declined to do.",
+      "file": "apps/web/i18n/domTranslations.ts (root cause, untouched - out of scope), apps/web/components/ui/StateBlock.tsx (would need a parallel dataI18nSkip-style escape hatch to fix, NOT added this session), confirmed reproducing on apps/web/app/(dashboard)/settings/billing/page.tsx and apps/web/app/(dashboard)/settings/integrations/page.tsx - likely reproduces on every other Phase 30-36 StateBlock error message too (not individually confirmed beyond these 2, for time-budget reasons) | confirmed reproducing on apps/web/app/(dashboard)/housekeeping/page.tsx (HousekeeperBar staff-list error, both live-toggle and cold-reload-persisted test methods) -- 3rd Phase (30-36) confirmed instance of this exact StateBlock-mangling manifestation after Phase 34 (Billing/Opera)",
       "root_cause": "domTranslations.ts's MutationObserver watches childList/characterData mutations on the WHOLE document.body subtree continuously (not just at initial mount). Any i18next text node that is inserted into the DOM AFTER the current language is already es (true for essentially every StateBlock error message, since those only mount once a useQuery settles into isError - always some time after initial page load) gets processed by translateTextNode(). getSourceText() first calls translateToEnglish(current), which does an EXACT match against REVERSE_TRANSLATIONS - a reverse dictionary built from BOTH the small hardcoded PHRASE_TRANSLATIONS map AND (critically) every single en.ts/es.ts key pair via flattenDictionaryPairs(en, es). Since the StateBlock error text IS a real, already-correct es.ts value that exactly matches its own en.ts/es.ts key pair, the reverse lookup succeeds and recovers the ENGLISH original. The translator then re-forward-translates that recovered English original via the cruder word-level PHRASE_TRANSLATIONS/GLOSSARY_TRANSLATIONS glossary (not the real es.ts value), producing a hybrid whenever the English original is a multi-word phrase that only partially glossary-matches (e.g. \"Couldn't load your subscription.\" only matches on the single glossary word \"Subscription\"/\"subscription\"). This is the SAME underlying mechanism as bug-962/963/964 but a NEW manifestation: it does not require a hard-reload race or a hardcoded-literal gap - it happens on ANY correctly-i18next-translated text that mounts into the DOM later than the initial synchronous render pass, which describes almost every conditionally-rendered UI state (loading->error transitions, modals, async content) across the whole app, not just PageHeader.",
-      "fix": "NOT fixed this session - explicitly deferred, matching 33-07's established precedent of flagging (not expanding scope to fix) broader instances of this same defect mechanism discovered outside a close-out plan's specific check boundary (the 34-08 plan's own success criteria explicitly scope the domTranslations.ts check to PageHeader title/subtitle/tab, not StateBlock body copy). A proper fix would require either (a) a global architectural hardening of domTranslations.ts itself (e.g. skip any node whose exact current text has an exact reverse-dictionary hit, since that already proves it is correctly-translated i18next content, not stale legacy DOM text needing recovery), or (b) systematically threading a StateBlock-level dataI18nSkip prop through every call site across Phases 30-36 (a much larger, multi-phase undertaking exceeding a single close-out plan's reasonable scope). Recommends option (a) as the more scalable fix - it would resolve this defect class globally without requiring per-call-site opt-in threading across dozens of files.",
+      "fix": "FIXED in Phase 37-01 (bug-965 was the dedicated closing gate CONTEXT.md locked for this defect, after 3 prior deferrals across Phases 34/35/36). Root cause confirmed exactly as previously diagnosed: REVERSE_TRANSLATIONS already did a full-dictionary lookup across every en.ts/es.ts key pair via flattenDictionaryPairs(en, es), but the forward direction (translateTextNode()/translateAttributes()) only had the small curated PHRASE_TRANSLATIONS/ATTRIBUTE_TRANSLATIONS dicts plus the crude GLOSSARY_TRANSLATIONS regex fallback, so a round-trip (Spanish DOM text -> recovered English original via REVERSE_TRANSLATIONS -> re-forward-translated) would drop back to the small dict and produce a hybrid. Fix: added FULL_PHRASE_TRANSLATIONS/FULL_ATTRIBUTE_TRANSLATIONS (mirroring REVERSE_TRANSLATIONS's own construction: small dict spread + flattenDictionaryPairs(en, es) spread) and swapped the 6 forward-direction call sites (3 in translateTextNode, 3 in translateAttributes: getSourceText/hasTranslation/translatePhrase) to use them instead of the small dicts. Zero changes to StateBlock.tsx, PageHeader.tsx, or any of the ~43 isSectionRedesigned call sites — the fix is scoped entirely to apps/web/i18n/domTranslations.ts (~10-line diff: 2 new dict constants + 6 call-site swaps). Verified via a new committed, green Playwright regression spec (apps/web/e2e/i18n-dom-translator.spec.ts, run via `npm run test:e2e:i18n`) that forces HousekeeperBar's staff-list query to fail (mounting a StateBlock error AFTER installDomTranslator's MutationObserver is already live, the exact bug-965 mechanism), toggles to Spanish live, and asserts the exact es.ts string (\"No se pudo cargar el personal. Intente de nuevo.\") renders with zero glossary-hybrid mangling. Negative-controlled: reverting the fix and re-running the spec reproduces the original failure (locator not found waiting for the correct Spanish string), confirming the spec genuinely exercises the fixed code path rather than passing vacuously. Known residual limitation (informational, not blocking, inherited from REVERSE_TRANSLATIONS's own pre-existing construction, not introduced by this fix): a defensive collision check across the full flattened en.ts/es.ts merge found 78 English keys (of 1314 unique, 1580 total pairs) that map to more than one Spanish value elsewhere in the locale tree (e.g. singular/plural or context-dependent variants like \"Location\" -> \"Ubicacion\"/\"Ubicación\"); Object.fromEntries keeps the last-seen Spanish value for such keys in both FULL_PHRASE_TRANSLATIONS and the pre-existing REVERSE_TRANSLATIONS, so a small number of ambiguous English phrases could theoretically translate to a contextually-different (but still real, still Spanish) value than the specific DOM instance's own original context. Out of scope for this plan per 37-RESEARCH.md's own framing of this as a known, non-blocking limitation. bug-1021 (PageHeader cold-reload/SSR-hydration-race variant, Phase 35) is a separate, still-open, legitimately out-of-scope defect - not touched by this fix.",
       "tags": [
         "i18n",
         "es-locale",
         "StateBlock",
         "domTranslations",
         "phase-34",
+        "phase-36",
+        "phase-37",
         "systemic",
-        "deferred",
-        "not-fixed"
+        "fixed"
       ],
       "related_bugs": [
         "bug-962",
         "bug-963",
-        "bug-964"
+        "bug-964",
+        "bug-1021"
       ],
-      "occurrences": 2,
-      "last_seen": "2026-08-18T22:02:25.013Z"
+      "occurrences": 3,
+      "last_seen": "2026-08-19T06:30:00.000Z"
     },
     {
       "id": "bug-964",
@@ -16928,6 +16930,438 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-19T01:05:24.747Z"
+    },
+    {
+      "id": "bug-1025",
+      "timestamp": "2026-08-19T01:41:28.451Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/36-housekeeping-section-chrome/36-03-PLAN.md",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 28→46 lines (10 removed) | Also: Restyle `AssignmentSidebar.tsx` (97 LOC) and `Pred; Purpose: deliver the remaining chrome UI-SPEC gove | Also: <name>Task 1: Restyle AssignmentSidebar.tsx to the; Fix the two confirmed typography violations (36-RE | Also: <name>Task 2: Restyle PredictionPanel.tsx — consol; Systematically walk every `text-[N.5px]`/`text-[Np | Also: - `grep -E \"text-\\[1[01]\\.?5?px\\]\"` returns zero m; - `grep \"font-medium\"` returns zero matches across",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-08-19T01:43:04.348Z"
+    },
+    {
+      "id": "bug-1026",
+      "timestamp": "2026-08-19T01:43:41.852Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/36-housekeeping-section-chrome/36-02-PLAN.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T01:43:41.852Z"
+    },
+    {
+      "id": "bug-1027",
+      "timestamp": "2026-08-19T01:43:52.495Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/phases/36-housekeeping-section-chrome/36-02-PLAN.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T01:43:52.495Z"
+    },
+    {
+      "id": "bug-1028",
+      "timestamp": "2026-08-19T01:43:58.708Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/36-housekeeping-section-chrome/36-02-PLAN.md",
+      "root_cause": "Had `<RoomStatusBoard />`",
+      "fix": "Changed to `<HousekeeperRoomItem`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T01:44:03.655Z"
+    },
+    {
+      "id": "bug-1029",
+      "timestamp": "2026-08-19T05:55:40.076Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/PredictionPanel.tsx",
+      "root_cause": "Had \"flex items-center gap-2 text-[11.5px] text-ink3 m",
+      "fix": "Changed to 'flex items-center gap-2 text-xs text-ink3 ml-0'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-08-19T05:55:57.528Z"
+    },
+    {
+      "id": "bug-1030",
+      "timestamp": "2026-08-19T05:55:49.363Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/PredictionPanel.tsx",
+      "root_cause": "hover: text-ink2 underline underline-offset-2\" → text-ink2 underline underline-offset-2' : 'text-[11.5px] text-ink3 hover:text-ink2 underline underline-offset-2'",
+      "fix": "Changed hover: text-ink2 underline underline-offset-2\" → text-ink2 underline underline-offset-2' : 'text-[11.5px] text-ink3 hover:text-ink2 underline underline-offset-2'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T05:55:49.363Z"
+    },
+    {
+      "id": "bug-1031",
+      "timestamp": "2026-08-19T05:55:58.324Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) | Also: function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-19T05:56:56.505Z"
+    },
+    {
+      "id": "bug-1032",
+      "timestamp": "2026-08-19T05:56:26.411Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 29→45 lines (2 removed) | Also: <PageHeader title={t('housekeeping.page.myRooms.he; <span><strong className=\"font-display text-[var(--",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T05:57:33.146Z"
+    },
+    {
+      "id": "bug-1033",
+      "timestamp": "2026-08-19T05:57:19.853Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "data: boardData, isLoading → boardData, isLoading, isError, refetch",
+      "fix": "Changed data: boardData, isLoading → boardData, isLoading, isError, refetch",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-19T05:57:54.154Z"
+    },
+    {
+      "id": "bug-1034",
+      "timestamp": "2026-08-19T05:58:49.252Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `386291b6`",
+      "fix": "Changed to `97b2911d`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T06:01:03.043Z"
+    },
+    {
+      "id": "bug-1035",
+      "timestamp": "2026-08-19T06:01:12.722Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:01:12.722Z"
+    },
+    {
+      "id": "bug-1036",
+      "timestamp": "2026-08-19T06:12:04.150Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/verify-hk-scratch.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: const hkBarText1 = await page.locator('[data-testid=\"hk-bar\"; console.log('hk-bar full text (live-toggle):', hkBarText1.re | Also: const hkBarText2 = await page.locator('[data-testid=\"hk-bar\"; console.log('hk-bar full text (cold-reload-persisted):', hkB",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-19T06:14:25.982Z"
+    },
+    {
+      "id": "bug-1037",
+      "timestamp": "2026-08-19T06:12:09.883Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/verify-hk-scratch.mjs",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→9 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:12:09.883Z"
+    },
+    {
+      "id": "bug-1038",
+      "timestamp": "2026-08-19T06:17:02.534Z",
+      "error_message": "Wrong reference: arr should be log",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/update-buglog.mjs",
+      "root_cause": "Used \"arr\" instead of \"log\"",
+      "fix": "Changed arr → log",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:17:02.534Z"
+    },
+    {
+      "id": "bug-1039",
+      "timestamp": "2026-08-19T06:20:46.988Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/verify-hk-realtime-scratch.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:20:46.988Z"
+    },
+    {
+      "id": "bug-1040",
+      "timestamp": "2026-08-19T06:25:32.240Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `ec57be5d`",
+      "fix": "Changed to `depends_on: [\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:25:32.240Z"
+    },
+    {
+      "id": "bug-1041",
+      "timestamp": "2026-08-19T06:27:38.178Z",
+      "error_message": "Wrong reference: Pending should be Complete",
+      "file": ".planning/REQUIREMENTS.md",
+      "root_cause": "Used \"Pending\" instead of \"Complete\"",
+      "fix": "Changed Pending → Complete",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:27:38.178Z"
+    },
+    {
+      "id": "bug-1042",
+      "timestamp": "2026-08-19T06:54:20.560Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/37-final-qa-rollout/37-02-PLAN.md",
+      "root_cause": "Had `.claude/projects/.../memory/reference_test_accoun",
+      "fix": "Changed to \"Sonesta ES Suites Fossil Creek\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-08-19T06:54:56.427Z"
+    },
+    {
+      "id": "bug-1043",
+      "timestamp": "2026-08-19T06:55:20.666Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/37-final-qa-rollout/37-02-PLAN.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:55:20.666Z"
+    },
+    {
+      "id": "bug-1044",
+      "timestamp": "2026-08-19T06:55:48.550Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/37-final-qa-rollout/37-03-PLAN.md",
+      "root_cause": "Had `web_redesign_sections`",
+      "fix": "Changed to \"Sonesta ES Suites Fossil Creek\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:55:48.550Z"
+    },
+    {
+      "id": "bug-1045",
+      "timestamp": "2026-08-19T06:56:00.619Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/37-final-qa-rollout/37-03-PLAN.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:56:00.619Z"
+    },
+    {
+      "id": "bug-1046",
+      "timestamp": "2026-08-19T06:56:03.460Z",
+      "error_message": "Wrong reference: verification should be real",
+      "file": ".planning/phases/37-final-qa-rollout/37-03-PLAN.md",
+      "root_cause": "Used \"verification\" instead of \"real\"",
+      "fix": "Changed verification → real",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:56:03.460Z"
+    },
+    {
+      "id": "bug-1047",
+      "timestamp": "2026-08-19T06:56:33.342Z",
+      "error_message": "Wrong reference: verify should be Confirm",
+      "file": ".planning/phases/37-final-qa-rollout/37-05-PLAN.md",
+      "root_cause": "Used \"verify\" instead of \"Confirm\"",
+      "fix": "Changed verify → Confirm",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T06:56:33.342Z"
+    },
+    {
+      "id": "bug-1048",
+      "timestamp": "2026-08-19T07:01:49.906Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/collision-check.mjs",
+      "root_cause": "Had 'C:/Users/Henil/projects/PatelRep/apps/web/i18n/lo",
+      "fix": "Changed to '../../../../../../../../../../projects/PatelRep/a",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T07:01:49.906Z"
+    },
+    {
+      "id": "bug-1049",
+      "timestamp": "2026-08-19T07:05:13.613Z",
+      "error_message": "Type error",
+      "file": "apps/web/e2e/i18n-dom-translator.spec.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T07:05:13.613Z"
+    },
+    {
+      "id": "bug-1050",
+      "timestamp": "2026-08-19T07:05:16.367Z",
+      "error_message": "Wrong reference: 45000 should be 60000",
+      "file": "apps/web/playwright.i18n.config.ts",
+      "root_cause": "Used \"45000\" instead of \"60000\"",
+      "fix": "Changed 45000 → 60000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T07:05:16.367Z"
+    },
+    {
+      "id": "bug-1051",
+      "timestamp": "2026-08-19T07:05:56.060Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `depends_on: [\"",
+      "fix": "Changed to `depends_on: []`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T07:05:56.060Z"
     }
   ]
 }

@@ -11,6 +11,7 @@
     "test:e2e:phase1": "playwright test --config=playwright.phase1.config.ts",
     "test:e2e:phase4": "playwright test --config=playwright.phase4.config.ts",
     "test:e2e:regression": "playwright test --config=playwright.regression.config.ts",
+    "test:e2e:i18n": "playwright test --config=playwright.i18n.config.ts",
     "seed:regression-fixture": "node e2e/fixtures/seed-regression-tenant.mjs",
     "check:floor-copy": "node scripts/check-programs-i18n.mjs",
     "verify:i18n-gate": "node scripts/verify-i18n-gate.mjs",
