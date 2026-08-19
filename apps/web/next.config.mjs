@@ -21,10 +21,6 @@ function buildCSP() {
     'https://patelrep-web-production.up.railway.app',
     'https://stellar-integrity-production-30cf.up.railway.app',
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
-    // TEMPORARY (37-04): allows the local-standalone-build regression harness
-    // to talk to itself over plain HTTP on localhost. Env-gated, reverted
-    // fully before this plan closes — same pattern as every phase since ~32.
-    ...(process.env.REGRESSION_LOCAL_CSP ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ]
 
   const scriptSrc = [
