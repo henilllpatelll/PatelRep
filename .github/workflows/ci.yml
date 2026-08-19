@@ -182,12 +182,23 @@ jobs:
       # configured as repo secrets — globalSetup fails loudly (not a silent
       # skip) if any fixture credential is missing.
       - name: Run Room-Board regression
-        run: cd apps/web && npx playwright test --config=playwright.regression.config.ts
+        run: cd apps/web && npx playwright test --config=playwright.regression.config.ts --update-snapshots
         env:
           REGRESSION_GM_EMAIL: ${{ secrets.REGRESSION_GM_EMAIL }}
           REGRESSION_GM_PASSWORD: ${{ secrets.REGRESSION_GM_PASSWORD }}
           REGRESSION_SUP_EMAIL: ${{ secrets.REGRESSION_SUP_EMAIL }}
           REGRESSION_SUP_PASSWORD: ${{ secrets.REGRESSION_SUP_PASSWORD }}
+      # TEMPORARY (revert after this run): upload the runner-generated -linux.png
+      # baselines so they can be downloaded and committed — this run needs to
+      # produce byte-exact-to-this-runner snapshots, since a local Docker
+      # approximation showed a small (1%) font-rendering diff vs the real
+      # ubuntu-latest GitHub Actions image.
+      - name: Upload generated snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-snapshots
+          path: apps/web/e2e/room-board-baseline.spec.ts-snapshots/*-linux.png
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
 
   security:
