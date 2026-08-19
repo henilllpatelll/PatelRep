@@ -120,7 +120,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.7-ROADMAP.md
 - [x] **Phase 33: Core Operational Sections** - Tasks, SOP, Logbook, Guest Requests, Lost & Found, Safety, Evidence, Programs, Scheduling redesigned incl. empty/loading/error states (completed 2026-08-18)
 - [x] **Phase 34: Management & Admin Sections** - Reports, Management ROI, Staff, Settings, AI Copilot, Billing, Notifications, Guest Feedback, Late Checkout, Opera Integration redesigned incl. empty/loading/error states (completed 2026-08-18)
 - [x] **Phase 35: Engineering Section Chrome** - Engineering chrome (PageHeader/tabs/pages) redesigned; `EngineeringRoomBoard` renders unchanged inside it (completed 2026-08-19)
-- [ ] **Phase 36: Housekeeping Section Chrome** - Housekeeping chrome (PageHeader/sync badge/date-shift controls/my-rooms) redesigned; `RoomStatusBoard`/`RoomDetailDrawer` unchanged, Realtime stays live
+- [x] **Phase 36: Housekeeping Section Chrome** - Housekeeping chrome (PageHeader/sync badge/date-shift controls/my-rooms) redesigned; `RoomStatusBoard`/`RoomDetailDrawer` unchanged, Realtime stays live (completed 2026-08-19)
 - [ ] **Phase 37: Final QA & Rollout** - 6-role nav walkthrough, full Spanish-locale walkthrough, final excluded-surface pixel-diff, flag flip-on
 
 ## Phase Details
