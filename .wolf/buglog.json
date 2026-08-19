@@ -17362,6 +17362,225 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-19T07:05:56.060Z"
+    },
+    {
+      "id": "bug-1052",
+      "timestamp": "2026-08-19T07:50:16.594Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/qa02-walkthrough.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→5 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T07:50:16.594Z"
+    },
+    {
+      "id": "bug-1053",
+      "timestamp": "2026-08-19T07:51:00.563Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/qa02-walkthrough.js",
+      "root_cause": "Had 'button:has(span.font-mono)'",
+      "fix": "Changed to 'button.sm\\\\:inline-flex:has(span.font-mono)'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T07:52:49.369Z"
+    },
+    {
+      "id": "bug-1054",
+      "timestamp": "2026-08-19T07:52:38.779Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/e2e/_qa02-debug.tmp.js",
+      "root_cause": "Had \"button.sm\\:inline-flex:has(span.font-mono)\"",
+      "fix": "Changed to 'button[class*=\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T07:52:38.779Z"
+    },
+    {
+      "id": "bug-1055",
+      "timestamp": "2026-08-19T08:02:16.539Z",
+      "error_message": "CSS fix: message",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "message: 'Failed to load staff.', onRetry: () => staffQuery.refetch() → t('staff.table.loadError'), onRetry: () => staffQuery.refetch()",
+      "fix": "Changed message: 'Failed to load staff.', onRetry: () => staffQuery.refetch() → t('staff.table.loadError'), onRetry: () => staffQuery.refetch()",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:02:16.539Z"
+    },
+    {
+      "id": "bug-1056",
+      "timestamp": "2026-08-19T08:02:47.321Z",
+      "error_message": "Type error",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:02:47.321Z"
+    },
+    {
+      "id": "bug-1057",
+      "timestamp": "2026-08-19T08:04:48.727Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/settings/integrations/page.tsx",
+      "root_cause": "Had \"text-sm text-gray-500 mt-0.5\"",
+      "fix": "Changed to 'integrations.sopLibrary.title'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:04:48.727Z"
+    },
+    {
+      "id": "bug-1058",
+      "timestamp": "2026-08-19T08:17:28.036Z",
+      "error_message": "CSS fix: isError",
+      "file": "apps/web/app/(dashboard)/management-roi/page.tsx",
+      "root_cause": "isError: maintenanceQuery.isError, noun: 'maintenance', refetch: () => maintenanceQuery.refetch() → maintenanceQuery.isError, noun: 'maintenance', nounKey: 'managementRoi.nouns.maintenance', refetch: () => maintenanceQuery.refetch()",
+      "fix": "Changed isError: maintenanceQuery.isError, noun: 'maintenance', refetch: () => maintenanceQuery.refetch() → maintenanceQuery.isError, noun: 'maintenance', nounKey: 'managementRoi.nouns.maintenance', refetch: () => maintenanceQuery.refetch()",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T08:17:31.500Z"
+    },
+    {
+      "id": "bug-1059",
+      "timestamp": "2026-08-19T08:18:09.533Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/TrendChartsRow.tsx",
+      "root_cause": "Had \"text-xs\"",
+      "fix": "Changed to 'dashboard.trendCharts.keepUpGoodWork'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:18:09.533Z"
+    },
+    {
+      "id": "bug-1060",
+      "timestamp": "2026-08-19T08:29:00.085Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had \"Couldn'",
+      "fix": "Changed to 'Pending Invitations'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:29:00.085Z"
+    },
+    {
+      "id": "bug-1061",
+      "timestamp": "2026-08-19T08:29:03.235Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'No se pudieron cargar las invitaciones pendientes",
+      "fix": "Changed to 'Invitaciones Pendientes'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:29:03.235Z"
+    },
+    {
+      "id": "bug-1062",
+      "timestamp": "2026-08-19T08:36:03.649Z",
+      "error_message": "37-03 QA-02 live EN/ES walkthrough (all 21 web_redesign_sections flags on simultaneously, regression-fixture tenant, route-intercept method): found several hardcoded English string literals across redesigned sections that were NEVER wired to react-i18next t() calls at all (a genuinely different root cause than bug-965 -- bug-965 was a forward/reverse dictionary asymmetry inside domTranslations.ts for text that WAS a real i18next key; these strings never went through i18next in the first place, so they always rendered in English regardless of locale, and domTranslations.ts.s word-level GLOSSARY_TRANSLATIONS fallback then partially mangled some of them into EN/ES hybrids when locale=es, e.g. Staff StateBlock error rendered as literally \"Failed to load Personal.\" (hardcoded \"Failed to load staff.\" with only the glossary word staff->Personal swapped), Reports summary note rendered as \"Personal performance and maintenance data populate as Tareas are completed and Ordenes are closed.\", Management ROI showed \"Cuartos with the most downtime\" and forced-error StateBlock interpolation showed \"No se pudo cargar the 7-day forecast.\" (English noun interpolated raw into an otherwise-correct translated sentence), Settings/general showed \"...Perdidos to Cuarto downtime on the Management ROI Panel\", Settings/integrations showed \"Upload PDF documents to power the Copiloto IA Q&A\", Settings/feedback showed \"Personal Reportes from the floating Comentarios button.\", Staff Pending Invitations section showed \"Cargando invitations...\" (hybrid) and untranslated Team Members / Pending Invitations headings, and Dashboard TrendChartsRow (GM dashboard Top Staff widget empty state) showed a fully-untranslated \"Keep up the good work!\" with zero useTranslation import in that component at all.",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx, apps/web/app/(dashboard)/reports/page.tsx, apps/web/app/(dashboard)/management-roi/page.tsx, apps/web/app/(dashboard)/settings/general/page.tsx, apps/web/app/(dashboard)/settings/integrations/page.tsx, apps/web/app/(dashboard)/settings/feedback/page.tsx, apps/web/components/dashboard/TrendChartsRow.tsx, apps/web/i18n/locales/en.ts, apps/web/i18n/locales/es.ts",
+      "root_cause": "These specific strings were authored as raw JSX string literals (or, for the Management ROI StateBlock loadErrorFor interpolation, a raw English noun passed as an i18next interpolation VALUE rather than translated first) instead of react-i18next t() calls referencing a real en.ts/es.ts key pair -- distinct from bug-965.s domTranslations.ts round-trip-lossiness mechanism (already fixed in 37-01). Because these strings never entered the i18next translation pipeline, they always rendered in English regardless of the active locale; domTranslations.ts.s DOM-level MutationObserver then applied its GLOSSARY_TRANSLATIONS word-level regex fallback to some of them when locale=es (since they had no exact match in the full REVERSE_TRANSLATIONS/FULL_PHRASE_TRANSLATIONS dictionary, having never been i18next keys to begin with), producing partial EN/ES hybrids on top of the underlying missing-key gap.",
+      "fix": "FIXED in Phase 37-03 (QA-02 comprehensive live walkthrough). Added real i18next keys for every specific instance found (staff.table.*, staff.invitations.heading/loading, reports.summaryNote/tasksCompletedToday/staffPerformanceHeading/staffMembersSuffix, managementRoi.pmDeferralsHeading/pmDeferralsEmpty/roomDowntimeHeading/roomDowntimeEmpty/nouns.*, settings.adrHint, integrations.sopLibrary.*/opera.*, guestFeedback.subtitle, dashboard.trendCharts.*) to both en.ts and es.ts, wired each call site to t(), and for Management ROI.s loadErrorFor interpolation specifically changed the passed noun from a raw English literal to a translated value (t(e.nounKey)) so the interpolated noun is Spanish when the surrounding sentence is Spanish. Re-verified via a live Playwright walkthrough (route-intercept /v1/auth/me to force all 21 web_redesign_sections flags on for a single browser context, zero DB writes, using the already-known regression-fixture GM credentials) across all 20 routed sections in both EN and live-toggled ES, plus forced StateBlock error states via API route interception -- final full re-run shows zero raw i18next keys and zero hybrid/leftover-English markers across all 20 sections in es and forced-error-es states.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "missing-key",
+        "hardcoded-literal",
+        "staff",
+        "reports",
+        "management-roi",
+        "settings",
+        "integrations",
+        "guest-feedback",
+        "dashboard",
+        "phase-37",
+        "qa-02",
+        "fixed"
+      ],
+      "related_bugs": [
+        "bug-965",
+        "bug-964"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:36:03.649Z"
+    },
+    {
+      "id": "bug-1021",
+      "timestamp": "2026-08-19T08:36:27.646Z",
+      "error_message": "37-03 QA-02 post-37-01-fix re-characterization (per 37-RESEARCH.md Open Question 2, validated not assumed): re-ran Phase 35.s exact bug-1021 repro -- localStorage patelrep-language=es pre-seeded via addInitScript before a cold/fresh navigation, then a high-frequency (requestAnimationFrame, ~16ms resolution) sampler capturing document.body.innerText for 3 seconds starting at first paint -- against the original discovery site (Engineering Predictions PageHeader subtitle) plus 3 additional spot-checks (Management ROI PageHeader subtitle, Staff page, Reports page). RESULT: the transient pre-hydration flash is GONE, not merely improved to a correct-Spanish flash as predicted -- across 170+ samples per page at ~16ms resolution, the very first captured render already showed a clean English render (SSR, since server does not know the persisted locale) that transitioned DIRECTLY to fully-correct Spanish (e.g. Predictions subtitle: \"AI-powered failure risk analysis - updated nightly\" at t+76ms -> \"Analisis de riesgo de falla con IA - actualizado cada noche\" at t+585ms) with ZERO intermediate hybrid state ever captured on any of the 4 sites tested. This is a BETTER outcome than 37-RESEARCH.md.s own prediction (which expected the hybrid to become a flash of correct Spanish, not disappear outright) -- plausibly because the specific hydration-mismatch race window that produced a visible hybrid in Phase 35 depended on that exact glossary-fallback timing bug-965.s fix removed, so the underlying SSR/locale-mismatch correction (React re-rendering the subtree on hydration) now resolves too cleanly/quickly to observably differ from a clean transition at this sampling resolution.",
+      "file": "apps/web/i18n/domTranslations.ts (root cause of the ORIGINAL hybrid, already fixed in 37-01 -- untouched this session), apps/web/components/shared/PageHeader.tsx (unmodified), reproduced/re-tested on apps/web/app/(dashboard)/engineering/predictions/page.tsx, apps/web/app/(dashboard)/management-roi/page.tsx, apps/web/app/(dashboard)/staff/page.tsx, apps/web/app/(dashboard)/reports/page.tsx",
+      "root_cause": "Unchanged from the Phase 35 hypothesis (still not independently re-confirmed this session, consistent with CONTEXT.md.s framing that the SSR/hydration-locale-detection architecture fix remains out of scope for Phase 37): app i18n language detection reads localStorage client-side only, so SSR/first paint renders the English literal before hydration can apply the persisted es locale, and React corrects the mismatch on the client. What CHANGED post-37-01: the corrected/regenerated DOM text (if briefly exposed to domTranslations.ts.s MutationObserver before its own data-i18n-skip attribute lands) now round-trips through the SAME full en.ts/es.ts dictionary the reverse lookup already used, instead of falling back to the small/crude glossary -- eliminating the visible mid-transition hybrid entirely in this session.s samples, not just improving its correctness.",
+      "fix": "NOT fixed this session -- deliberately not fixed, per CONTEXT.md.s locked framing that the SSR/hydration-race root cause is legitimately out of Phase 37.s scope (an architectural timing fix, not the dictionary-completeness gap 37-01 closed). This entry documents the FACTUAL post-37-01-fix observation only (zero hybrid observed across 4 sites, 170+ samples each at ~16ms resolution) -- QA-02.s no missing or raw copy bar is satisfied for this defect class: no persistent hybrid/raw English was observed anywhere in this session.s cold-reload testing. A future dedicated SSR-locale-detection hardening pass remains recommended (unchanged from 35-07/36-04/37-01.s carried-forward notes) but is no longer required to close QA-02, since the specific visible symptom (EN/ES hybrid flash) was not reproduced post-fix.",
+      "tags": [
+        "i18n",
+        "es-locale",
+        "PageHeader",
+        "domTranslations",
+        "hydration",
+        "phase-35",
+        "phase-37",
+        "qa-02",
+        "systemic",
+        "re-characterized",
+        "not-fixed"
+      ],
+      "related_bugs": [
+        "bug-962",
+        "bug-963",
+        "bug-964",
+        "bug-965"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T08:36:27.646Z"
     }
   ]
 }
