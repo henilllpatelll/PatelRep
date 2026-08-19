@@ -260,7 +260,14 @@ Plans:
   2. A full Spanish-locale walkthrough of every redesigned section and dashboard passes with no missing or raw copy (QA-02)
   3. A final pixel-diff of all 3 excluded surfaces against the Phase-30 baseline confirms zero visual/functional drift (QA-03)
   4. The feature flag is flipped on for all sections with no half-old/half-new state remaining
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 37-01-PLAN.md — Fix bug-965 (domTranslations.ts full-dictionary forward lookup) + commit permanent i18n regression spec
+- [ ] 37-02-PLAN.md — QA-01: automated NAV-05 matrix re-run + live 6-role walkthrough (all 21 flags on simultaneously)
+- [ ] 37-03-PLAN.md — QA-02: full Spanish-locale walkthrough of every redesigned section, confirms bug-965 fix holds app-wide
+- [ ] 37-04-PLAN.md — QA-03: Room-Board regression re-run (baseline + all-21-flags-on simulation)
+- [ ] 37-05-PLAN.md — Stage + dry-run-verify production flip-on migration (098); checkpoint before real tenant/push (non-autonomous)
 
 ## Progress
 
