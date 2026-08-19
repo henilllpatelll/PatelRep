@@ -72,7 +72,7 @@ jobs:
       - name: Install dependencies
         run: cd apps/web && npm ci
       - name: Install Chromium
-        run: cd apps/web && npx playwright install --with-deps chromium
+        run: cd apps/web && npx playwright install chromium
       - name: Run login readiness smoke
         run: cd apps/web && npx playwright test --config=playwright.phase0.config.ts
 
@@ -174,7 +174,7 @@ jobs:
       - name: Install dependencies
         run: cd apps/web && npm ci
       - name: Install Chromium
-        run: cd apps/web && npx playwright install --with-deps chromium
+        run: cd apps/web && npx playwright install chromium
       # FOUND-03 exit gate: diffs the 3 excluded Room Board surfaces against
       # the committed baseline for the never-operated regression fixture
       # tenant. Requires REGRESSION_GM_EMAIL, REGRESSION_GM_PASSWORD,
