@@ -65,7 +65,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   const { user } = useAuth()
   const { hotel, hotels, setHotel } = useHotelStore()
   const customRoleModules = useAuthStore((state) => state.customRoleModules)
-  const { sidebarCollapsed, toggleSidebarCollapsed } = useUIPreferencesStore()
+  const { sidebarCollapsed: sidebarCollapsedPref, toggleSidebarCollapsed } = useUIPreferencesStore()
+  const [isHovering, setIsHovering] = useState(false)
+  const sidebarCollapsed = sidebarCollapsedPref && !isHovering
   const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
   const hotelDropdownRef = useRef<HTMLDivElement>(null)
   const [opsOpen, setOpsOpen] = useState(true)
@@ -195,6 +197,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   return (
     <aside
       aria-label="Main navigation"
+      onMouseEnter={() => sidebarCollapsedPref && setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
       className={cn(
         'bg-paper border-r border-line flex flex-col shrink-0',
         'fixed inset-y-0 left-0 z-40 w-[240px] transition-transform duration-300 ease-in-out',
@@ -220,11 +224,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
         <button
           type="button"
           onClick={toggleSidebarCollapsed}
-          aria-label={sidebarCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
-          aria-expanded={!sidebarCollapsed}
+          aria-label={sidebarCollapsedPref ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
+          aria-expanded={!sidebarCollapsedPref}
           className="hidden md:inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-ink3 hover:bg-surface-2 hover:text-ink transition-colors"
         >
-          {sidebarCollapsed ? <PanelLeft className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+          {sidebarCollapsedPref ? <PanelLeft className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
         </button>
       </div>
 

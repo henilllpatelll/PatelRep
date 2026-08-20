@@ -11464,3 +11464,8 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 16:00 | Verified sidebar collapsible sections in browser (GM login, localhost:3000) | apps/web/components/shared/Sidebar.tsx | all toggles/chevrons/tooltips/active-state work, no regressions | ~0 |
+| 16:35 | Edited apps/web/components/shared/Sidebar.tsx | CSS: sidebarCollapsed | ~82 |
+| 16:35 | Edited apps/web/components/shared/Sidebar.tsx | modified t() | ~153 |
+| 16:35 | Edited apps/web/components/shared/Sidebar.tsx | 3→5 lines | ~53 |
+| 16:35 | Session end: 3 writes across 1 files (Sidebar.tsx) | 5 reads | ~7439 tok |
+| 17:30 | Added hover-to-peek behavior to collapsed sidebar (expand on hover, collapse on mouse-leave) | apps/web/components/shared/Sidebar.tsx | verified in browser: peek expands/collapses correctly, toggle button unaffected by hover, no regressions | ~600 |
