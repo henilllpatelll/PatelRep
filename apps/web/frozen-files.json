@@ -2,7 +2,7 @@
   "_readme": "Machine-readable freeze manifest for Phase 30 (Additive Foundation & Regression Harness). Consumed by the CI frozen-file guard built in plan 30-05. Two independent freeze classes below: 'files' (NAME-freeze, sha256 of full byte contents — a legitimate change requires bumping the hash here AND adding a reasoned entry to frozen-files-allowlist.json) and 'room_status_values' (VALUE-freeze — see its own '_note', NO allowlist escape, a mismatch is always a hard CI failure). globals.css and tailwind.config.ts are NOT file-hash-frozen (they are additively extended every phase); only the specific room-status token VALUES inside them are frozen and re-parsed live by the guard.",
   "files": {
     "apps/web/components/ui/Button.tsx": "038ac4b795a612dfc025d3e5b5f6047bb26d1b9f2739584932845419eafa1c7c",
-    "apps/web/components/ui/primitives.tsx": "6f5e11a13d02a8405b8faba15d543d1edb9c5f5f58c6308c9b935a7b948cbafc",
+    "apps/web/components/ui/primitives.tsx": "b0d9a1148b23ead9249b1dca411b73857fa6bcc17ba1fd01ffef5faa314e435a",
     "apps/web/components/housekeeping/RoomCard.tsx": "e3d40fc5c402c281b759a3b6615eff568a04ff01d560cec60936d3f0af072157",
     "apps/web/components/shared/LogFoundItemModal.tsx": "649c9516cb9961483fa0e6cebf1b783cce3a8e5670f26b801ed9ef26130a656c",
     "apps/web/components/housekeeping/RoomStatusBoard.tsx": "d7de5fff5073abac30475c326cd26d36ae4124ef9a16f931fced31d60b2b5e92",

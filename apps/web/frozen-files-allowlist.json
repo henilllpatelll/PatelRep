@@ -1,4 +1,11 @@
 {
   "_readme": "Reasoned allowlist for legitimate changes to files listed in apps/web/frozen-files.json's \"files\" section. Each entry: { file, new_hash, reason, approved }. A legitimate future change bumps the hash in frozen-files.json AND adds a matching entry here in the same PR, so a reviewer sees the intent. NOTE: this allowlist mechanism does NOT apply to frozen-files.json's \"room_status_values\" section -- room-status token VALUE changes have no allowlist escape (see FROZEN.md).",
-  "entries": []
+  "entries": [
+    {
+      "file": "apps/web/components/ui/primitives.tsx",
+      "new_hash": "b0d9a1148b23ead9249b1dca411b73857fa6bcc17ba1fd01ffef5faa314e435a",
+      "reason": "Additive only: added an Avatar primitive (getInitials/getAvatarColor, previously inlined ad hoc in Header/Sidebar) and new StatusDot tone key aliases ('alert', 'info', 'caution') mapping to the same already-frozen --alert/--info/--caution CSS vars previously only reachable via the 'dirty'/'clean'/'pickup' tone keys. No existing exports, prop shapes, or room-status color values changed.",
+      "approved": true
+    }
+  ]
 }
