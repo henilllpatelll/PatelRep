@@ -84,7 +84,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
       - name: Check every deployed frontend has a live API connection
-        run: node scripts/check-deployment-drift.mjs
+        run: npm run check:deployment-drift
+        working-directory: apps/web
         env:
           DEPLOYMENT_TARGETS: >-
             https://patelrep-production-4e7f.up.railway.app,
