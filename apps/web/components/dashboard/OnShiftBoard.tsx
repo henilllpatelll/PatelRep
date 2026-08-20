@@ -40,14 +40,14 @@ export function OnShiftBoard({ tiles, totalOnShift, behindCount, otherDeptCount,
         empty={{ title: t('dashboard.gm.onShiftEmpty') }}
       >
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2.5">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="h-[76px] rounded-[var(--r-md)] bg-surface-3 animate-pulse" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 2xl:grid-cols-3 gap-2.5">
               {tiles.map((tile) => {
                 const pct = tile.assigned > 0 ? (tile.done / tile.assigned) * 100 : 0
                 return (

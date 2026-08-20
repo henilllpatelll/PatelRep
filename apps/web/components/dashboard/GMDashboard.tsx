@@ -66,7 +66,7 @@ export function GMDashboard() {
 
   if (v2) {
     return (
-      <div className="flex flex-col gap-5 max-w-[1240px]">
+      <div className="flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-6">
           <DashboardGreeting
             name={firstName}
