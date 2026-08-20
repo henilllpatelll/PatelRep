@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { ChevronDown, PanelLeft, PanelLeftClose } from 'lucide-react'
+import { ChevronDown, ChevronUp, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -68,6 +68,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   const { sidebarCollapsed, toggleSidebarCollapsed } = useUIPreferencesStore()
   const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
   const hotelDropdownRef = useRef<HTMLDivElement>(null)
+  const [opsOpen, setOpsOpen] = useState(true)
+  const [intelOpen, setIntelOpen] = useState(true)
+  const [peopleOpen, setPeopleOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -297,59 +301,110 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
       <nav className="flex-1 px-3 overflow-y-auto space-y-3">
         {opsItems.length > 0 && (
           <div>
-            <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pt-1 pb-1.5', sidebarCollapsed && 'md:hidden')}>{t('nav.operations')}</p>
-            <div className="space-y-px">{opsItems.map(renderNavItem)}</div>
+            <button
+              onClick={() => setOpsOpen(!opsOpen)}
+              className={cn(
+                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
+                sidebarCollapsed && 'md:hidden'
+              )}
+            >
+              <span>{t('nav.operations')}</span>
+              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', opsOpen && 'rotate-180')} />
+            </button>
+            {opsOpen && (
+              <div className="mt-2 space-y-px">
+                {opsItems.map(renderNavItem)}
+              </div>
+            )}
           </div>
         )}
         {intelItems.length > 0 && (
-          <div>
-            <div className="mx-1 mb-2 border-t border-line-2" />
-            <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5', sidebarCollapsed && 'md:hidden')}>{t('nav.intelligence')}</p>
-            <div className="space-y-px">{intelItems.map(renderNavItem)}</div>
+          <div className="mt-4 pt-3 border-t border-line">
+            <button
+              onClick={() => setIntelOpen(!intelOpen)}
+              className={cn(
+                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
+                sidebarCollapsed && 'md:hidden'
+              )}
+            >
+              <span>{t('nav.intelligence')}</span>
+              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', intelOpen && 'rotate-180')} />
+            </button>
+            {intelOpen && (
+              <div className="mt-2 space-y-px">
+                {intelItems.map(renderNavItem)}
+              </div>
+            )}
           </div>
         )}
         {peopleItems.length > 0 && (
-          <div>
-            <div className="mx-1 mb-2 border-t border-line-2" />
-            <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5', sidebarCollapsed && 'md:hidden')}>{t('nav.organization')}</p>
-            <div className="space-y-px">{peopleItems.map(renderNavItem)}</div>
+          <div className="mt-4 pt-3 border-t border-line">
+            <button
+              onClick={() => setPeopleOpen(!peopleOpen)}
+              className={cn(
+                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
+                sidebarCollapsed && 'md:hidden'
+              )}
+            >
+              <span>{t('nav.organization')}</span>
+              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', peopleOpen && 'rotate-180')} />
+            </button>
+            {peopleOpen && (
+              <div className="mt-2 space-y-px">
+                {peopleItems.map(renderNavItem)}
+              </div>
+            )}
           </div>
         )}
       </nav>
 
       {/* Settings / Billing */}
       {bottomItems.length > 0 && (
-        <div className="px-3 pt-2 pb-1 border-t border-line-2 space-y-px">
-          {bottomItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
-            const link = (
-              <Link
-                href={href}
-                prefetch={false}
-                onClick={onMobileClose}
-                aria-label={sidebarCollapsed ? navLabel(label) : undefined}
-                className={cn(
-                  'group flex items-center gap-2.5 pl-3.5 pr-3 py-[7px] text-[13px] rounded-lg',
-                  linkTransitionClass,
-                  sidebarCollapsed && 'md:justify-center md:px-0',
-                  active ? 'bg-surface font-medium text-ink shadow-[inset_0_0_0_1px_var(--line)]' : 'text-ink2 hover:bg-surface-2 hover:text-ink'
-                )}
-              >
-                <Icon className={cn('w-3.5 h-3.5 shrink-0', active ? activeIconClass : 'text-ink3')} />
-                <span className={cn(sidebarCollapsed && 'md:hidden')}>{navLabel(label)}</span>
-              </Link>
-            )
-            return (
-              <div key={href} className="relative">
-                {active && <span className={cn('absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full', activeBarClass)} />}
-                <CollapsedTooltip collapsed={sidebarCollapsed} label={navLabel(label)}>
-                  {link}
-                </CollapsedTooltip>
+          <div className="mt-4 px-3 pt-2 pb-1 border-t border-line-2 space-y-px">
+            <button
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              className={cn(
+                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
+                sidebarCollapsed && 'md:hidden'
+              )}
+            >
+              <span>{t('nav.settings')}</span>
+              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', settingsOpen && 'rotate-180')} />
+            </button>
+            {settingsOpen && (
+              <div className="mt-2 space-y-px">
+                {bottomItems.map(({ href, label, icon: Icon }) => {
+                  const active = pathname === href
+                  const link = (
+                    <Link
+                      href={href}
+                      prefetch={false}
+                      onClick={onMobileClose}
+                      aria-label={sidebarCollapsed ? navLabel(label) : undefined}
+                      className={cn(
+                        'group flex items-center gap-2.5 pl-3.5 pr-3 py-[7px] text-[13px] rounded-lg',
+                        linkTransitionClass,
+                        sidebarCollapsed && 'md:justify-center md:px-0',
+                        active ? 'bg-surface font-medium text-ink shadow-[inset_0_0_0_1px_var(--line)]' : 'text-ink2 hover:bg-surface-2 hover:text-ink'
+                      )}
+                    >
+                      <Icon className={cn('w-3.5 h-3.5 shrink-0', active ? activeIconClass : 'text-ink3')} />
+                      <span className={cn(sidebarCollapsed && 'md:hidden')}>{navLabel(label)}</span>
+                    </Link>
+                  )
+                  return (
+                    <div key={href} className="relative">
+                      {active && <span className={cn('absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full', activeBarClass)} />}
+                      <CollapsedTooltip collapsed={sidebarCollapsed} label={navLabel(label)}>
+                        {link}
+                      </CollapsedTooltip>
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
       {/* User identity */}
       <div className="px-3 pb-4 pt-2 border-t border-line-2">
