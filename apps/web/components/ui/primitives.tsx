@@ -1,5 +1,24 @@
 import { cn } from '@/lib/utils'
+import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import type { ReactNode } from 'react'
+
+// ── Avatar ───────────────────────────────────────────────────────────────────
+interface AvatarProps {
+  name: string
+  size?: number
+  className?: string
+}
+
+export function Avatar({ name, size = 28, className }: AvatarProps) {
+  return (
+    <div
+      className={cn('rounded-full flex items-center justify-center text-white font-semibold shrink-0', getAvatarColor(name), className)}
+      style={{ width: size, height: size, fontSize: size * 0.42 }}
+    >
+      {getInitials(name)}
+    </div>
+  )
+}
 
 // ── Pill ─────────────────────────────────────────────────────────────────────
 type PillTone =
@@ -69,6 +88,9 @@ const DOT_COLORS: Record<string, string> = {
   blocked:   'var(--blocked)',
   accent:    'var(--accent)',
   ai:        'var(--ai)',
+  alert:     'var(--alert)',
+  info:      'var(--info)',
+  caution:   'var(--caution)',
 }
 
 export function StatusDot({ tone = 'neutral', size = 8 }: { tone?: string; size?: number }) {
