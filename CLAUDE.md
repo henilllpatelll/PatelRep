@@ -193,15 +193,17 @@ account.
 |---|---|
 | API (Railway) | https://stellar-integrity-production-30cf.up.railway.app |
 | Web (Railway) | https://patelrep-production-4e7f.up.railway.app |
+| Web (Vercel, second deployment target) | https://patelrep-web.vercel.app |
 | GitHub | https://github.com/henilllpatelll/PatelRep |
 
 Railway project: `a33b4a39-aedb-4605-92f6-cee34e68a1d0` (`abundant-tranquility`) · env: `6823550b-ac60-407e-bc99-3ab4f2a31990`
 API service (`stellar-integrity`): `aa1e4bac-c181-4295-b6f3-3af10cf7517b` · web service (`PatelRep`): `b35304f7-baf2-4050-935e-df4ed2059cbf`
 Railway account: henilpatel08@gmail.com (Henill Patel) — new account opened 2026-08-16, after the June and July 2026 trial accounts hit trial caps and went down
+Vercel project: `patelrep-web` (`prj_Gk4AXTlZlv32UmVoo7NCwO1sBOj8`), team `henilllpatellls-projects` (`team_ewW3xDsO7FTFL36ze0IDKnrn`). Deploys the same `apps/web` app as Railway's `PatelRep` service, against the same Railway API — **if the Railway API URL ever changes, update `NEXT_PUBLIC_API_URL` on both Railway and Vercel**, or `.github/workflows/deploy-check.yml`'s `deployment-drift-check` job will fail within 15 minutes.
 
 ### Env vars (by tier)
 **API (Railway):** `SUPABASE_URL` `SUPABASE_SERVICE_ROLE_KEY` `SUPABASE_JWT_SECRET` `OPENAI_API_KEY` `ANTHROPIC_API_KEY` `STRIPE_SECRET_KEY` `STRIPE_WEBHOOK_SECRET` `CRON_SECRET` `APP_ENV` `APP_URL`
-**Web (Railway):** `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_API_URL`
+**Web (Railway + Vercel):** `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_API_URL` — set independently on each platform, must be kept in sync manually
 
 ---
 

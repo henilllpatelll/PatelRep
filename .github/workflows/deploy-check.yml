@@ -69,3 +69,23 @@ jobs:
             sleep 30
           done
           echo "::warning::Web health check timed out — Railway deploy may still be in progress"
+
+  deployment-drift-check:
+    name: Deployment API-URL drift check
+    # HTTP 200 on the HTML shell doesn't prove NEXT_PUBLIC_API_URL points at a live backend (bug-1071) — this checks the real client-side health fetch instead.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci
+        working-directory: apps/web
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Check every deployed frontend has a live API connection
+        run: node scripts/check-deployment-drift.mjs
+        env:
+          DEPLOYMENT_TARGETS: >-
+            https://patelrep-production-4e7f.up.railway.app,
+            https://patelrep-web.vercel.app
