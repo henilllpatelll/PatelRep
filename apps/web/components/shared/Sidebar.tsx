@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { ChevronDown, ChevronUp, PanelLeft, PanelLeftClose } from 'lucide-react'
+import { ChevronDown, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -21,6 +21,8 @@ import {
 } from '@/lib/utils/navigation'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
+
+const PRIMARY_HREFS = ['/dashboard', '/housekeeping', '/engineering', '/guest-requests', '/tasks']
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm:                      'roles.gm',
@@ -70,10 +72,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   const sidebarCollapsed = sidebarCollapsedPref && !isHovering
   const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
   const hotelDropdownRef = useRef<HTMLDivElement>(null)
-  const [hoveredSection, setHoveredSection] = useState<'ops' | 'intel' | 'people' | null>(null)
-  const opsOpen    = sidebarCollapsed || hoveredSection === 'ops'
-  const intelOpen  = sidebarCollapsed || hoveredSection === 'intel'
-  const peopleOpen = sidebarCollapsed || hoveredSection === 'people'
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -110,6 +108,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   const opsItems   = visibleNavItems.filter(i => OPERATIONS_HREFS.includes(i.href))
   const intelItems = visibleNavItems.filter(i => INTELLIGENCE_HREFS.includes(i.href))
   const peopleItems = visibleNavItems.filter(i => PEOPLE_HREFS.includes(i.href))
+  const primaryItems = visibleNavItems.filter(i => PRIMARY_HREFS.includes(i.href))
+  const opsTailItems = opsItems.filter(i => !PRIMARY_HREFS.includes(i.href))
 
   useEffect(() => {
     if (!hotelDropdownOpen) return
@@ -190,6 +190,42 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
             })}
           </div>
         )}
+      </div>
+    )
+  }
+
+  const renderTailGroup = (label: string, items: NavItem[]) => {
+    if (items.length === 0) return null
+    return (
+      <div key={label} className="flex pt-3.5 mt-3 border-t border-line">
+        <div className="w-[58px] shrink-0 pt-1.5 pl-1">
+          <p className="m-0 text-[9.5px] font-semibold uppercase tracking-[0.11em] text-ink4 leading-snug">{label}</p>
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col">
+          {items.map(({ href, label: itemLabel, tag }) => {
+            const active = pathname === href || pathname.startsWith(href + '/')
+            return (
+              <Link
+                key={href}
+                href={href}
+                prefetch={false}
+                onClick={onMobileClose}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex items-center gap-2 px-2 py-[5px] rounded-md text-[12.5px] leading-tight',
+                  active ? 'bg-surface font-medium text-ink' : 'text-ink2 hover:bg-surface-3 hover:text-ink'
+                )}
+              >
+                <span className="flex-1">{navLabel(itemLabel)}</span>
+                {tag && (
+                  <span className="text-[8px] font-bold tracking-wide px-1 py-px rounded bg-ai-soft text-ai border border-ai-line">
+                    {tag}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
       </div>
     )
   }
@@ -301,72 +337,23 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
         </div>
       )}
 
-      {/* Nav groups */}
-      <nav className="flex-1 px-3 overflow-y-auto space-y-3">
-        {opsItems.length > 0 && (
-          <div
-            onMouseEnter={() => setHoveredSection('ops')}
-            onMouseLeave={() => setHoveredSection((s) => (s === 'ops' ? null : s))}
-          >
-            <div
-              className={cn(
-                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
-                sidebarCollapsed && 'md:hidden'
-              )}
-            >
-              <span>{t('nav.operations')}</span>
-              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', opsOpen && 'rotate-180')} />
-            </div>
-            {opsOpen && (
-              <div className="mt-2 space-y-px">
-                {opsItems.map(renderNavItem)}
+      {/* Nav */}
+      <nav className="flex-1 px-3 overflow-y-auto">
+        {sidebarCollapsed ? (
+          <div className="space-y-px">
+            {[...primaryItems, ...opsTailItems, ...intelItems, ...peopleItems].map(renderNavItem)}
+          </div>
+        ) : (
+          <>
+            {primaryItems.length > 0 && (
+              <div className="space-y-px">
+                {primaryItems.map(renderNavItem)}
               </div>
             )}
-          </div>
-        )}
-        {intelItems.length > 0 && (
-          <div
-            className="mt-4 pt-3 border-t border-line"
-            onMouseEnter={() => setHoveredSection('intel')}
-            onMouseLeave={() => setHoveredSection((s) => (s === 'intel' ? null : s))}
-          >
-            <div
-              className={cn(
-                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
-                sidebarCollapsed && 'md:hidden'
-              )}
-            >
-              <span>{t('nav.intelligence')}</span>
-              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', intelOpen && 'rotate-180')} />
-            </div>
-            {intelOpen && (
-              <div className="mt-2 space-y-px">
-                {intelItems.map(renderNavItem)}
-              </div>
-            )}
-          </div>
-        )}
-        {peopleItems.length > 0 && (
-          <div
-            className="mt-4 pt-3 border-t border-line"
-            onMouseEnter={() => setHoveredSection('people')}
-            onMouseLeave={() => setHoveredSection((s) => (s === 'people' ? null : s))}
-          >
-            <div
-              className={cn(
-                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
-                sidebarCollapsed && 'md:hidden'
-              )}
-            >
-              <span>{t('nav.organization')}</span>
-              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', peopleOpen && 'rotate-180')} />
-            </div>
-            {peopleOpen && (
-              <div className="mt-2 space-y-px">
-                {peopleItems.map(renderNavItem)}
-              </div>
-            )}
-          </div>
+            {renderTailGroup(t('nav.tailOps'), opsTailItems)}
+            {renderTailGroup(t('nav.tailIntel'), intelItems)}
+            {renderTailGroup(t('nav.tailTeam'), peopleItems)}
+          </>
         )}
       </nav>
 
