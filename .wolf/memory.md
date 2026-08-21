@@ -11469,3 +11469,12 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 16:35 | Edited apps/web/components/shared/Sidebar.tsx | 3→5 lines | ~53 |
 | 16:35 | Session end: 3 writes across 1 files (Sidebar.tsx) | 5 reads | ~7439 tok |
 | 17:30 | Added hover-to-peek behavior to collapsed sidebar (expand on hover, collapse on mouse-leave) | apps/web/components/shared/Sidebar.tsx | verified in browser: peek expands/collapses correctly, toggle button unaffected by hover, no regressions | ~600 |
+| 17:30 | Session end: 3 writes across 1 files (Sidebar.tsx) | 5 reads | ~7439 tok |
+| 07:41 | Session end: 3 writes across 1 files (Sidebar.tsx) | 5 reads | ~7439 tok |
+| 07:42 | Session end: 3 writes across 1 files (Sidebar.tsx) | 5 reads | ~7439 tok |
+| 07:52 | Edited apps/web/components/shared/Sidebar.tsx | 4→4 lines | ~86 |
+| 07:52 | Edited apps/web/components/shared/Sidebar.tsx | CSS: null, null, null | ~757 |
+| 07:52 | Edited apps/web/components/shared/Sidebar.tsx | 14→11 lines | ~137 |
+| 07:52 | Edited apps/web/components/shared/Sidebar.tsx | 7→6 lines | ~28 |
+| 07:53 | Edited apps/web/components/shared/Sidebar.tsx | 4→4 lines | ~47 |
+| 08:00 | Changed Operations/Intelligence/Organization sections from click-toggle to hover show/hide; made Settings section static (no toggle) | apps/web/components/shared/Sidebar.tsx | verified in browser: hover reveals items, mouse-leave collapses, hovering into items keeps section open, icon-only rail mode unaffected, Settings always visible | ~700 |

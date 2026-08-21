@@ -70,10 +70,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   const sidebarCollapsed = sidebarCollapsedPref && !isHovering
   const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
   const hotelDropdownRef = useRef<HTMLDivElement>(null)
-  const [opsOpen, setOpsOpen] = useState(true)
-  const [intelOpen, setIntelOpen] = useState(true)
-  const [peopleOpen, setPeopleOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [hoveredSection, setHoveredSection] = useState<'ops' | 'intel' | 'people' | null>(null)
+  const opsOpen    = sidebarCollapsed || hoveredSection === 'ops'
+  const intelOpen  = sidebarCollapsed || hoveredSection === 'intel'
+  const peopleOpen = sidebarCollapsed || hoveredSection === 'people'
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -304,9 +304,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
       {/* Nav groups */}
       <nav className="flex-1 px-3 overflow-y-auto space-y-3">
         {opsItems.length > 0 && (
-          <div>
-            <button
-              onClick={() => setOpsOpen(!opsOpen)}
+          <div
+            onMouseEnter={() => setHoveredSection('ops')}
+            onMouseLeave={() => setHoveredSection((s) => (s === 'ops' ? null : s))}
+          >
+            <div
               className={cn(
                 'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
                 sidebarCollapsed && 'md:hidden'
@@ -314,7 +316,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
             >
               <span>{t('nav.operations')}</span>
               <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', opsOpen && 'rotate-180')} />
-            </button>
+            </div>
             {opsOpen && (
               <div className="mt-2 space-y-px">
                 {opsItems.map(renderNavItem)}
@@ -323,9 +325,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
           </div>
         )}
         {intelItems.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-line">
-            <button
-              onClick={() => setIntelOpen(!intelOpen)}
+          <div
+            className="mt-4 pt-3 border-t border-line"
+            onMouseEnter={() => setHoveredSection('intel')}
+            onMouseLeave={() => setHoveredSection((s) => (s === 'intel' ? null : s))}
+          >
+            <div
               className={cn(
                 'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
                 sidebarCollapsed && 'md:hidden'
@@ -333,7 +338,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
             >
               <span>{t('nav.intelligence')}</span>
               <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', intelOpen && 'rotate-180')} />
-            </button>
+            </div>
             {intelOpen && (
               <div className="mt-2 space-y-px">
                 {intelItems.map(renderNavItem)}
@@ -342,9 +347,12 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
           </div>
         )}
         {peopleItems.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-line">
-            <button
-              onClick={() => setPeopleOpen(!peopleOpen)}
+          <div
+            className="mt-4 pt-3 border-t border-line"
+            onMouseEnter={() => setHoveredSection('people')}
+            onMouseLeave={() => setHoveredSection((s) => (s === 'people' ? null : s))}
+          >
+            <div
               className={cn(
                 'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
                 sidebarCollapsed && 'md:hidden'
@@ -352,7 +360,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
             >
               <span>{t('nav.organization')}</span>
               <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', peopleOpen && 'rotate-180')} />
-            </button>
+            </div>
             {peopleOpen && (
               <div className="mt-2 space-y-px">
                 {peopleItems.map(renderNavItem)}
@@ -365,19 +373,16 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
       {/* Settings / Billing */}
       {bottomItems.length > 0 && (
           <div className="mt-4 px-3 pt-2 pb-1 border-t border-line-2 space-y-px">
-            <button
-              onClick={() => setSettingsOpen(!settingsOpen)}
+            <div
               className={cn(
-                'flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
+                'px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
                 sidebarCollapsed && 'md:hidden'
               )}
             >
-              <span>{t('nav.settings')}</span>
-              <ChevronDown className={cn('w-3 h-3 shrink-0 transition-transform', settingsOpen && 'rotate-180')} />
-            </button>
-            {settingsOpen && (
-              <div className="mt-2 space-y-px">
-                {bottomItems.map(({ href, label, icon: Icon }) => {
+              {t('nav.settings')}
+            </div>
+            <div className="mt-2 space-y-px">
+              {bottomItems.map(({ href, label, icon: Icon }) => {
                   const active = pathname === href
                   const link = (
                     <Link
@@ -406,7 +411,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
                   )
                 })}
               </div>
-            )}
           </div>
         )}
 
