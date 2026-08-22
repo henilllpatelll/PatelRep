@@ -1016,6 +1016,47 @@ async def delete_assignment(
 
 
 # ---------------------------------------------------------------------------
+# DELETE /housekeeping/room-assignment/{room_id}
+# ---------------------------------------------------------------------------
+# Companion to DELETE /assignments/{assignment_id}: that endpoint requires a
+# room_assignments row for the current board date. The board's "no row for
+# this date" fallback (ROOMSTATUS-01, see get_housekeeping_board) can still
+# surface a room as assigned via the room_status.assigned_to mirror alone
+# (e.g. a stale mirror left over from a prior day, or one set by an import
+# path that never wrote a dated room_assignments row) -- assignment_id is
+# null for those rows, so the assign-mode UI's "Remove" action had nothing to
+# call and the assignment looked stuck/invisible. This clears the mirror
+# directly by room_id instead of by assignment id.
+
+@router.delete("/room-assignment/{room_id}")
+async def remove_room_assignment_mirror(
+    room_id: str,
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    status_result = (
+        supabase.table("room_status")
+        .select("room_id, assigned_to")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_status = status_result.data if status_result else None
+    if not room_status:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    supabase.table("room_status")\
+        .update({"assigned_to": None})\
+        .eq("room_id", room_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    return {"data": {"success": True, "room_id": room_id}}
+
+
+# ---------------------------------------------------------------------------
 # POST /housekeeping/ai-suggest-assignments
 # ---------------------------------------------------------------------------
 

@@ -77,6 +77,7 @@ interface Props {
   assignedToActive?: boolean
   savedAssignmentId?: string | null
   onRemoveSavedAssignment?: (assignmentId: string) => void
+  onRemoveMirroredAssignment?: (roomId: string) => void
   guestRequestCount?: number
   openTaskCount?: number
 }
@@ -105,6 +106,7 @@ export function RoomCard({
   assignedToActive,
   savedAssignmentId,
   onRemoveSavedAssignment,
+  onRemoveMirroredAssignment,
   guestRequestCount = 0,
   openTaskCount = 0,
 }: Props) {
@@ -113,7 +115,11 @@ export function RoomCard({
   const prediction = room.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
   const isPending = !!pendingAssignee
-  const isSavedAssignedToActive = assignmentMode && !!assignedToActive && !!savedAssignmentId && !isPending
+  // savedAssignmentId is null when the board is showing this room via the
+  // room_status.assigned_to mirror fallback (no room_assignments row for
+  // today) -- still a real assignment to the active housekeeper, just not
+  // backed by a deletable row (see removeRoomAssignmentMirror).
+  const isSavedAssignedToActive = assignmentMode && !!assignedToActive && !isPending
   const isAssignmentSelected = assignmentMode && (isPending || isSavedAssignedToActive)
   const isHighRisk = riskLevel === 'HIGH'
 
@@ -337,6 +343,8 @@ export function RoomCard({
               }
               if (savedAssignmentId && onRemoveSavedAssignment) {
                 onRemoveSavedAssignment(savedAssignmentId)
+              } else if (onRemoveMirroredAssignment) {
+                onRemoveMirroredAssignment(room.room_id)
               }
             }}
           >

@@ -1304,6 +1304,67 @@ async def test_delete_assignment_rejects_cross_tenant_assignment(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_remove_room_assignment_mirror_clears_assigned_to(monkeypatch):
+    """Covers the room_status.assigned_to mirror fallback (ROOMSTATUS-01): a room
+    can show as assigned on the board with no room_assignments row for today
+    (assignment_id null), so the assign-mode UI's Remove action has to clear the
+    mirror directly by room_id instead of deleting an assignment row."""
+    room_id = "33333333-3333-4333-8333-333333333333"
+    hk_id = "44444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": hk_id,
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.remove_room_assignment_mirror(
+        room_id,
+        current_user=SUPERVISOR,
+    )
+
+    assert response == {"data": {"success": True, "room_id": room_id}}
+    assert db.rows["room_status"][0]["assigned_to"] is None
+
+
+@pytest.mark.asyncio
+async def test_remove_room_assignment_mirror_rejects_cross_tenant_room(monkeypatch):
+    db = FakeDB({
+        "room_status": [{
+            "room_id": "33333333-3333-4333-8333-333333333333",
+            "tenant_id": "other-hotel",
+            "assigned_to": "44444444-4444-4444-8444-444444444444",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    with pytest.raises(Exception) as exc:
+        await housekeeping_router.remove_room_assignment_mirror(
+            "33333333-3333-4333-8333-333333333333",
+            current_user=SUPERVISOR,
+        )
+
+    assert exc.value.status_code == 404
+    assert db.rows["room_status"][0]["assigned_to"] == "44444444-4444-4444-8444-444444444444"
+
+
+@pytest.mark.asyncio
+async def test_remove_room_assignment_mirror_missing_room_404s(monkeypatch):
+    db = FakeDB({"room_status": []})
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    with pytest.raises(Exception) as exc:
+        await housekeeping_router.remove_room_assignment_mirror(
+            "does-not-exist",
+            current_user=SUPERVISOR,
+        )
+
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_board_history_clean_type_overrides_stale_room_status_clean_type(monkeypatch):
     """History FULL beats stale room_status DEP so the room shows as PICKUP."""
     room_id = "abababab-abab-4aba-8aba-abababababab"

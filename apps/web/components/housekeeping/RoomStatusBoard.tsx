@@ -543,6 +543,35 @@ export function RoomStatusBoard() {
     }
   }, [queryClient, selectedDate, selectedShift, assignmentToRoomId, t])
 
+  // Rooms the board shows as assigned purely via the room_status.assigned_to
+  // mirror (no room_assignments row for today, so assignment_id is null —
+  // see get_housekeeping_board's ROOMSTATUS-01 fallback). No row to delete,
+  // so this clears the mirror directly by room_id instead.
+  const handleRemoveMirroredAssignment = useCallback(async (roomId: string) => {
+    setAssignError(null)
+
+    const clearAssignment = (room: any) => {
+      if (room.room_id !== roomId) return room
+      return { ...room, assigned_to: null }
+    }
+
+    const prevBoardData = queryClient.getQueryData(['housekeeping-board', selectedDate, selectedShift])
+    queryClient.setQueryData(
+      ['housekeeping-board', selectedDate, selectedShift],
+      (old: any) => old?.data ? { ...old, data: old.data.map(clearAssignment) } : old,
+    )
+    setSelectedRoom((prev: any) => prev?.room_id === roomId ? clearAssignment(prev) : prev)
+
+    try {
+      await housekeepingApi.removeRoomAssignmentMirror(roomId)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+    } catch {
+      queryClient.setQueryData(['housekeeping-board', selectedDate, selectedShift], prevBoardData)
+      setAssignError(t('housekeeping.roomStatus.error.removeAssignmentFailed'))
+      setTimeout(() => setAssignError(null), 3000)
+    }
+  }, [queryClient, selectedDate, selectedShift, t])
+
   // -- Tap-to-assign -----------------------------------------------------------
   const handleTapAssign = useCallback((roomId: string) => {
     if (!activeAssigneeId) return
@@ -776,6 +805,7 @@ export function RoomStatusBoard() {
                         assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
                         savedAssignmentId={room.assignment_id ?? null}
                         onRemoveSavedAssignment={handleRemoveSavedAssignment}
+                        onRemoveMirroredAssignment={handleRemoveMirroredAssignment}
                       />
                     )
                   })}

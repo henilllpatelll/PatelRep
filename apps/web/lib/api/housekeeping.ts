@@ -126,6 +126,14 @@ export const housekeepingApi = {
   deleteAssignment: (assignmentId: string) =>
     apiClient.delete(`/housekeeping/assignments/${assignmentId}`),
 
+  /**
+   * Clears a room's assigned_to when the board is showing it via the
+   * room_status mirror fallback (no room_assignments row for today, so
+   * there's no assignment id to pass to deleteAssignment).
+   */
+  removeRoomAssignmentMirror: (roomId: string) =>
+    apiClient.delete(`/housekeeping/room-assignment/${roomId}`),
+
   aiSuggestAssignments: (date: string, shiftId?: string) =>
     apiClient.post(
       '/housekeeping/ai-suggest-assignments',
