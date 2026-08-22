@@ -121,6 +121,11 @@ export function RoomCard({
   // backed by a deletable row (see removeRoomAssignmentMirror).
   const isSavedAssignedToActive = assignmentMode && !!assignedToActive && !isPending
   const isAssignmentSelected = assignmentMode && (isPending || isSavedAssignedToActive)
+  // The save bar's optimistic update fills assignment_id with `optimistic-${roomId}`
+  // until the real id comes back from the server. Removing while it's still this
+  // placeholder has nothing to delete server-side yet -- disable Remove until the
+  // real id lands instead of letting the click silently no-op.
+  const isSavingAssignment = isSavedAssignedToActive && !!savedAssignmentId && savedAssignmentId.startsWith('optimistic-')
   const isHighRisk = riskLevel === 'HIGH'
 
   const assignedName: string | null =
@@ -335,8 +340,10 @@ export function RoomCard({
             variant="ai"
             size="sm"
             className="mt-0.5 w-full"
+            disabled={isSavingAssignment}
             onClick={(e) => {
               e.stopPropagation()
+              if (isSavingAssignment) return
               if (isPending) {
                 if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
                 return
@@ -348,7 +355,7 @@ export function RoomCard({
               }
             }}
           >
-            {t('housekeeping.roomCard.remove')}
+            {isSavingAssignment ? t('housekeeping.roomCard.saving') : t('housekeeping.roomCard.remove')}
           </Button>
         </>
       )}

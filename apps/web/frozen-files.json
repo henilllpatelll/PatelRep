@@ -3,9 +3,9 @@
   "files": {
     "apps/web/components/ui/Button.tsx": "038ac4b795a612dfc025d3e5b5f6047bb26d1b9f2739584932845419eafa1c7c",
     "apps/web/components/ui/primitives.tsx": "b0d9a1148b23ead9249b1dca411b73857fa6bcc17ba1fd01ffef5faa314e435a",
-    "apps/web/components/housekeeping/RoomCard.tsx": "e3d40fc5c402c281b759a3b6615eff568a04ff01d560cec60936d3f0af072157",
+    "apps/web/components/housekeeping/RoomCard.tsx": "0a129f10368cf7f06840564f99bf32db9983a32ef6a483c89b1a8aacb3fb5dc6",
     "apps/web/components/shared/LogFoundItemModal.tsx": "649c9516cb9961483fa0e6cebf1b783cce3a8e5670f26b801ed9ef26130a656c",
-    "apps/web/components/housekeeping/RoomStatusBoard.tsx": "1d43becfc1dde10424370ed3830d8340bb25d467d20ea7451436d9002bd998d4",
+    "apps/web/components/housekeeping/RoomStatusBoard.tsx": "b13eaf3991d20297db0a8cc53ecc3224cca5ac15877258b62ac6a812aad65abc",
     "apps/web/components/housekeeping/RoomDetailDrawer.tsx": "a5f897bfdf09732e53c626fb08ab00270fa13e6b0b04dd1814c8b56c60edbb09",
     "apps/web/components/engineering/EngineeringRoomBoard.tsx": "3239f09f3b8f11abb5b32a02533a5abae867cc2075aec77e81d44500336c258b"
   },

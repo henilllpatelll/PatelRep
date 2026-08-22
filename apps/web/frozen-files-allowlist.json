@@ -12,6 +12,18 @@
       "new_hash": "1d43becfc1dde10424370ed3830d8340bb25d467d20ea7451436d9002bd998d4",
       "reason": "Assign-mode redesign (imported Claude Design 'Assign mode - room board'): added unassigned/staged quick-filter chips next to the existing DEP/FULL/LIGHT chips (assignFilter prop threaded through StatusSummaryBar), and a per-floor bulk-assign button in the floor header (restructured the header from one <button> into a flex row so the new bulk-assign <button> isn't nested inside the collapse-toggle button). No existing exports, room-status color/token values, or non-assign-mode rendering changed.",
       "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "new_hash": "0a129f10368cf7f06840564f99bf32db9983a32ef6a483c89b1a8aacb3fb5dc6",
+      "reason": "Two follow-up fixes to the assign-mode Remove flow, both retroactively added to this allowlist (the hash bump for the first fix was missed at commit time -- this entry covers both): (1) a room assigned only via the room_status.assigned_to mirror (no room_assignments row for today, assignment_id null) now renders as 'Assigned' whenever it belongs to the active housekeeper, instead of silently falling back to looking unassigned -- relaxed isSavedAssignedToActive to not require a backing assignment id, and added an onRemoveMirroredAssignment prop for that no-id case. (2) closed a race window where clicking Remove immediately after Save (while assignment_id is still the `optimistic-${roomId}` placeholder from the save's optimistic cache update) silently no-op'd instead of deleting the just-persisted assignment -- the Remove button is now disabled and shows 'Saving...' until the real id lands. No existing exports, room-status color/token values, or non-assign-mode rendering changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "b13eaf3991d20297db0a8cc53ecc3224cca5ac15877258b62ac6a812aad65abc",
+      "reason": "Companion to the RoomCard.tsx entry above (mirror-assignment fix, hash bump also missed at commit time): added handleRemoveMirroredAssignment (optimistic cache clear of assigned_to + call to the new DELETE /housekeeping/room-assignment/{room_id} endpoint) and wired it as RoomCard's onRemoveMirroredAssignment prop. No existing exports, room-status color/token values, or non-assign-mode rendering changed.",
+      "approved": true
     }
   ]
 }

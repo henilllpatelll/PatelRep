@@ -528,6 +528,7 @@ const en = {
       assignedTapToReassign: '{{name}} · tap to reassign',
       assigned: 'Assigned',
       remove: 'Remove',
+      saving: 'Saving…',
     },
     predictionPanel: {
       predictions: 'Predictions',

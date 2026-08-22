@@ -73,7 +73,32 @@ export function AssignSaveBar() {
       shift_id: null,
       assignments: assignmentsPayload,
       is_ai_suggested: false,
-    }).then(() => {
+    }).then((result: any) => {
+      // Replace the `optimistic-${roomId}` placeholder ids with the real,
+      // deletable assignment ids the server just returned -- synchronously,
+      // not via the invalidateQueries refetch below. That refetch can take a
+      // moment to land, and a Remove click in that window was hitting the
+      // still-optimistic id: handleRemoveSavedAssignment treats any
+      // "optimistic-" id as "nothing to delete server-side yet" and skips
+      // the DELETE call, silently leaving the just-saved assignment intact
+      // on the server while the room card looked unassigned.
+      const savedRows: any[] = result?.data ?? []
+      const realIdByRoomId: Record<string, string> = {}
+      savedRows.forEach((row: any) => {
+        if (row?.room_id && row?.id) realIdByRoomId[row.room_id] = row.id
+      })
+      queryClient.setQueryData(boardKey, (old: any) => {
+        if (!old?.data) return old
+        return {
+          ...old,
+          data: old.data.map((room: any) => {
+            const realId = realIdByRoomId[room.room_id]
+            if (!realId) return room
+            return { ...room, assignment_id: realId }
+          }),
+        }
+      })
+
       toast.success(t('housekeeping.page.assignBar.saved'))
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
