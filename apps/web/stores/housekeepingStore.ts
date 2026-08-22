@@ -23,6 +23,8 @@ export interface HousekeepingStore {
   activeAssigneeName: string | null
   statusFilter: string | null
   cleanTypeFilter: CleanType[]
+  /** Assign-mode-only supplemental filter — layered on top of cleanTypeFilter. */
+  assignFilter: 'all' | 'unassigned' | 'staged'
   showRiskOnly: boolean
   buildingFilter: string | null
   lastSyncedAt: Date | null
@@ -39,6 +41,7 @@ export interface HousekeepingStore {
   setActiveAssignee: (id: string | null, name: string | null) => void
   setStatusFilter: (status: string | null) => void
   setCleanTypeFilter: (cleanTypes: CleanType[]) => void
+  setAssignFilter: (filter: 'all' | 'unassigned' | 'staged') => void
   toggleRiskOnly: () => void
   setBuildingFilter: (building: string | null) => void
   setLastSyncedAt: (date: Date) => void
@@ -63,6 +66,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   activeAssigneeName: null,
   statusFilter: null,
   cleanTypeFilter: [],
+  assignFilter: 'all',
   showRiskOnly: false,
   buildingFilter: null,
   lastSyncedAt: null,
@@ -91,6 +95,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
       // clear filters when switching modes so rooms aren't inadvertently hidden
       statusFilter: !state.assignmentMode ? null : state.statusFilter,
       cleanTypeFilter: state.assignmentMode ? [] : state.cleanTypeFilter,
+      assignFilter: 'all',
     })),
 
   setPendingAssignment: (roomId, housekeeperId, cleanType) =>
@@ -120,6 +125,8 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   setStatusFilter: (status) => set({ statusFilter: status }),
 
   setCleanTypeFilter: (cleanTypes) => set({ cleanTypeFilter: cleanTypes }),
+
+  setAssignFilter: (filter) => set({ assignFilter: filter }),
 
   toggleRiskOnly: () => set((state) => ({ showRiskOnly: !state.showRiskOnly })),
 

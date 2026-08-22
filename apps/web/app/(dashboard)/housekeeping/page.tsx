@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
-import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -11,10 +10,10 @@ import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
+import { RosterSidebar, CreditWeightsCard } from '@/components/housekeeping/RosterSidebar'
+import { AssignSaveBar } from '@/components/housekeeping/AssignSaveBar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
 import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
-import { staffApi } from '@/lib/api/staff'
-import { getInitials, getDisplayName } from '@/lib/utils/avatar'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +21,8 @@ import { useAuthStore } from '@/stores/authStore'
 import {
   getEffectiveRoomStatusForCleanType,
   getCleanTypeShortLabel,
+  getCleanTypeCredits,
+  isOpenHousekeepingRoom,
 } from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -75,179 +76,42 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
   )
 }
 
-// -- Housekeeper chip bar (mobile assign mode) --------------------------------
+// -- Assign mode banner ---------------------------------------------------------
 
-function HousekeeperBar({ v2 }: { v2: boolean }) {
+function AssignModeBanner() {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const {
-    selectedDate,
-    selectedShift,
-    activeAssigneeId,
-    setActiveAssignee,
-    pendingAssignments,
-    pendingAssignmentCleanTypes,
-    clearPendingAssignments,
-    setPendingAssignment,
-  } = useHousekeepingStore()
+  const { rooms, buildingFilter, activeAssigneeName, pendingAssignments, pendingAssignmentCleanTypes } = useHousekeepingStore()
 
-  const [saveSuccess, setSaveSuccess] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['staff-list'],
-    queryFn: () => staffApi.list(),
-  })
-
-  const housekeepers: any[] = (data?.data?.staff ?? [])
-    .filter((s: any) => s.role === 'housekeeper' || s.role === 'housekeeping_supervisor')
-    .map((s: any) => ({ housekeeper_id: s.user_id, name: getDisplayName(s.full_name) }))
-  const pendingCount = Object.keys(pendingAssignments).length
-  const hasPending = pendingCount > 0
-
-  const handleSave = () => {
-    if (!hasPending) return
-
-    const pendingSnapshot = { ...pendingAssignments }
-    const cleanTypeSnapshot = { ...pendingAssignmentCleanTypes }
-    const assignmentsPayload = Object.entries(pendingAssignments)
-      .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
-      .map(([roomId, housekeeperId]) => ({
-        room_id: roomId,
-        housekeeper_id: housekeeperId,
-        ...(pendingAssignmentCleanTypes[roomId]
-          ? { clean_type: pendingAssignmentCleanTypes[roomId] }
-          : {}),
-      }))
-
-    // Optimistic: immediately show assigned rooms as purple in the board
-    const boardKey = ['housekeeping-board', selectedDate, selectedShift]
-    const prevBoardData = queryClient.getQueryData(boardKey)
-    queryClient.setQueryData(boardKey, (old: any) => {
-      if (!old?.data) return old
+  const scopedRooms = buildingFilter != null
+    ? rooms.filter((room: any) => room.rooms?.building === buildingFilter)
+    : rooms
+  const openRooms = scopedRooms.filter(isOpenHousekeepingRoom)
+  const { count: unassignedCount, credits: unassignedCredits } = openRooms.reduce(
+    (acc, room: any) => {
+      const owner = pendingAssignments[room.room_id] ?? room.assigned_to
+      if (owner) return acc
       return {
-        ...old,
-        data: old.data.map((room: any) => {
-          const housekeeperId = pendingSnapshot[room.room_id]
-          if (!housekeeperId) return room
-          return { ...room, assigned_to: housekeeperId, assignment_id: `optimistic-${room.room_id}` }
-        }),
+        count: acc.count + 1,
+        credits: acc.credits + getCleanTypeCredits(pendingAssignmentCleanTypes[room.room_id] ?? room.clean_type),
       }
-    })
-
-    clearPendingAssignments()
-    setSaveSuccess(true)
-    setTimeout(() => setSaveSuccess(false), 2500)
-
-    housekeepingApi.saveAssignments({
-      date: selectedDate,
-      shift_id: null,
-      assignments: assignmentsPayload,
-      is_ai_suggested: false,
-    }).then(() => {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
-      queryClient.invalidateQueries({ queryKey: ['staff-list'] })
-    }).catch((err: any) => {
-      queryClient.setQueryData(boardKey, prevBoardData)
-      Object.entries(pendingSnapshot).forEach(([roomId, housekeeperId]) => {
-        setPendingAssignment(roomId, housekeeperId, cleanTypeSnapshot[roomId as keyof typeof cleanTypeSnapshot])
-      })
-      setSaveSuccess(false)
-      setSaveError(err?.message || t('housekeeping.page.assignBar.saveError'))
-      setTimeout(() => setSaveError(null), 4000)
-    })
-  }
+    },
+    { count: 0, credits: 0 },
+  )
 
   return (
-    <div data-testid="hk-bar" className="rounded-[var(--r-lg)] bg-surface border border-line shadow-sm p-3 space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-ink2">
-          {activeAssigneeId
-            ? <span className="text-[var(--caution)]">{t('housekeeping.page.assignBar.tapToAssign')}</span>
-            : t('housekeeping.page.assignBar.selectHousekeeper')}
-        </p>
-        <div className="flex items-center gap-2">
-          {saveSuccess && (
-            <span className="text-xs text-[var(--ready)] font-medium">{t('housekeeping.page.assignBar.saved')}</span>
-          )}
-          {saveError && (
-            <span className="text-xs text-[var(--alert)] font-medium">{saveError}</span>
-          )}
-          {hasPending && (
-            <Button variant="primary" size="sm" onClick={handleSave} className="gap-1.5">
-              {t('housekeeping.page.assignBar.save')} <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {isLoading ? (
-        v2 ? (
-          <div className="flex gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="w-24 h-9 shrink-0" />
-            ))}
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="w-24 h-9 bg-surface-3 rounded-lg animate-pulse shrink-0" />
-            ))}
-          </div>
-        )
-      ) : v2 && isError ? (
-        <StateBlock
-          status="error"
-          error={{ message: t('housekeeping.page.assignBar.loadError'), onRetry: refetch }}
-        />
-      ) : housekeepers.length === 0 ? (
-        <p className="text-xs text-ink3">
-          {t('housekeeping.page.assignBar.noStaff')}{' '}
-          <Link href="/staff" prefetch={false} className="text-accent underline">{t('housekeeping.page.assignBar.addStaff')}</Link>
-        </p>
-      ) : (
-        <div data-testid="hk-chip-list" className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
-          {housekeepers.map((hk) => {
-            const isActive = activeAssigneeId === hk.housekeeper_id
-            const initials = getInitials(hk.name)
-            const assignedCount = pendingAssignments
-              ? Object.values(pendingAssignments).filter((id) => id === hk.housekeeper_id).length
-              : 0
-
-            return (
-              <button
-                key={hk.housekeeper_id}
-                onClick={() => setActiveAssignee(
-                  isActive ? null : hk.housekeeper_id,
-                  isActive ? null : hk.name,
-                )}
-                className={`flex items-center gap-2 shrink-0 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all select-none ${
-                  isActive
-                    ? 'bg-ink text-paper border-ink'
-                    : 'bg-surface border-line text-ink2 hover:border-line-2'
-                }`}
-              >
-                <span
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                    isActive ? 'bg-white/15 text-paper' : 'bg-[var(--caution-soft)] text-[var(--caution)]'
-                  }`}
-                >
-                  {initials}
-                </span>
-                <span>{hk.name.split(' ')[0]}</span>
-                {assignedCount > 0 && (
-                  <span className={`text-[10px] px-1 py-0.5 rounded-full min-w-[18px] text-center ${
-                    isActive ? 'bg-white/20 text-paper' : 'bg-surface-3 text-ink3'
-                  }`}>
-                    {assignedCount}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
+    <div className="flex flex-wrap items-center gap-3.5 px-3.5 py-2.5 rounded-[var(--r-lg)] bg-surface border border-[var(--accent-line)] shadow-sm">
+      <span className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)] text-accent text-[10px] font-semibold uppercase tracking-[0.1em]">
+        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+        {t('housekeeping.page.board.assignMode')}
+      </span>
+      <p className="text-[13px] text-ink2 flex-1 min-w-[200px]">
+        {activeAssigneeName
+          ? t('housekeeping.page.assignBar.tapToAssignFor', { name: activeAssigneeName.split(' ')[0] })
+          : t('housekeeping.page.assignBar.selectHousekeeper')}
+      </p>
+      <span className="font-mono text-xs text-ink3 shrink-0">
+        {t('housekeeping.page.assignBar.unassignedLabel', { count: unassignedCount, credits: unassignedCredits })}
+      </span>
     </div>
   )
 }
@@ -677,7 +541,6 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
 
 function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
   const { canAssignRooms } = useRole()
   const {
     selectedDate,
@@ -790,22 +653,30 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
         />
       )}
 
-      {/* Housekeeper chip bar (assign mode) */}
-      {assignmentMode && canAssignRooms && <HousekeeperBar v2={v2} />}
+      {/* Assign mode banner */}
+      {assignmentMode && canAssignRooms && <AssignModeBanner />}
 
-      {/* Main layout */}
-      <div className="flex gap-4 items-start">
-        <div className="flex-1 min-w-0">
+      {/* Main layout — roster sits above the board on narrow screens (flex-col) and
+          becomes a sticky right column on lg+ (flex-row + order), as a single
+          instance so the housekeeper picker is always reachable, at any width. */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
+        {assignmentMode && canAssignRooms && (
+          <div className="flex flex-col gap-3.5 w-full lg:w-[300px] lg:shrink-0 lg:sticky lg:top-4 lg:order-2">
+            <RosterSidebar v2={v2} />
+            <div className="hidden lg:contents">
+              <AssignmentSidebar />
+              <CreditWeightsCard />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0 lg:order-1">
           <Suspense>
             <RoomStatusBoard />
           </Suspense>
         </div>
-        {assignmentMode && canAssignRooms && (
-          <div className="hidden lg:block">
-            <AssignmentSidebar />
-          </div>
-        )}
       </div>
+
+      {assignmentMode && canAssignRooms && <AssignSaveBar />}
     </div>
   )
 }

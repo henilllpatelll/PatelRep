@@ -18,6 +18,29 @@ export const CLEAN_TYPE_OPTIONS: Array<{ value: CleanType; label: string; hint: 
   { value: 'LIGHT', label: 'Light Cleaning', hint: 'Stayover pickup' },
 ]
 
+/**
+ * Relative workload weight per clean type, used to balance assign-mode roster
+ * load bars. Not tied to AI usage credits (see middleware/credits.py) — this is
+ * a client-side-only workload unit with no backend field.
+ */
+export const CLEAN_TYPE_CREDITS: Record<CleanType, number> = {
+  DEP: 3,
+  FULL: 2,
+  LIGHT: 1,
+}
+
+export function getCleanTypeCredits(cleanType?: string | null): number {
+  if (!cleanType) return 0
+  return CLEAN_TYPE_CREDITS[cleanType as CleanType] ?? 0
+}
+
+/** Statuses that still need a housekeeper's attention — excludes rooms already inspected, OOO, or handed off for inspection. */
+const OPEN_HOUSEKEEPING_STATUSES = new Set(['DIRTY', 'PICKUP', 'OCCUPIED', 'IN_PROGRESS'])
+
+export function isOpenHousekeepingRoom(room: { status?: string | null } | null | undefined): boolean {
+  return !!room?.status && OPEN_HOUSEKEEPING_STATUSES.has(room.status)
+}
+
 export function getCleanTypeLabel(cleanType?: string | null): string | null {
   if (!cleanType) return null
   return CLEAN_TYPE_LABELS[cleanType as CleanType] ?? cleanType

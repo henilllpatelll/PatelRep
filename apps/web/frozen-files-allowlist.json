@@ -6,6 +6,12 @@
       "new_hash": "b0d9a1148b23ead9249b1dca411b73857fa6bcc17ba1fd01ffef5faa314e435a",
       "reason": "Additive only: added an Avatar primitive (getInitials/getAvatarColor, previously inlined ad hoc in Header/Sidebar) and new StatusDot tone key aliases ('alert', 'info', 'caution') mapping to the same already-frozen --alert/--info/--caution CSS vars previously only reachable via the 'dirty'/'clean'/'pickup' tone keys. No existing exports, prop shapes, or room-status color values changed.",
       "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "1d43becfc1dde10424370ed3830d8340bb25d467d20ea7451436d9002bd998d4",
+      "reason": "Assign-mode redesign (imported Claude Design 'Assign mode - room board'): added unassigned/staged quick-filter chips next to the existing DEP/FULL/LIGHT chips (assignFilter prop threaded through StatusSummaryBar), and a per-floor bulk-assign button in the floor header (restructured the header from one <button> into a flex row so the new bulk-assign <button> isn't nested inside the collapse-toggle button). No existing exports, room-status color/token values, or non-assign-mode rendering changed.",
+      "approved": true
     }
   ]
 }

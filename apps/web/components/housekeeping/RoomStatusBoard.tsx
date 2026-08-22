@@ -19,7 +19,8 @@ import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
 import { Button, IconButton } from '@/components/ui/Button'
-import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
+import { useToast } from '@/components/ui/Toast'
+import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType, isOpenHousekeepingRoom } from '@/lib/utils/cleanType'
 import type { CleanType } from '@/lib/utils/cleanType'
 import { getPendingLateCheckoutByRoom, withPendingLateCheckout } from '@/lib/utils/lateCheckoutRequests'
 import {
@@ -72,6 +73,10 @@ interface SummaryBarProps {
   statusFilter: string | null
   onStatusFilter: (status: string | null) => void
   assignmentMode?: boolean
+  assignFilter?: 'all' | 'unassigned' | 'staged'
+  onAssignFilter?: (filter: 'all' | 'unassigned' | 'staged') => void
+  unassignedCount?: number
+  stagedCount?: number
   showRiskOnly?: boolean
   onToggleRisk?: () => void
   riskCount?: number
@@ -84,6 +89,10 @@ function StatusSummaryBar({
   statusFilter,
   onStatusFilter,
   assignmentMode,
+  assignFilter = 'all',
+  onAssignFilter,
+  unassignedCount = 0,
+  stagedCount = 0,
   showRiskOnly,
   onToggleRisk,
   riskCount,
@@ -93,7 +102,7 @@ function StatusSummaryBar({
   const statusWorkflowChips = getStatusWorkflowChips(t)
   const { cleanTypeCounts, statusCounts } = getHousekeepingBoardFilterCounts(rooms)
   const allActive = assignmentMode
-    ? cleanTypeFilter.length === 0 && statusFilter === null
+    ? cleanTypeFilter.length === 0 && statusFilter === null && assignFilter === 'all'
     : statusFilter === null
 
   const chipClass = (active: boolean) =>
@@ -108,7 +117,7 @@ function StatusSummaryBar({
       <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* All */}
         <button
-          onClick={() => { onCleanTypeFilter([]); onStatusFilter(null) }}
+          onClick={() => { onCleanTypeFilter([]); onStatusFilter(null); onAssignFilter?.('all') }}
           aria-pressed={allActive}
           className={chipClass(allActive)}
         >
@@ -118,28 +127,52 @@ function StatusSummaryBar({
         </button>
 
         {assignmentMode ? (
-          /* Assignment mode: DEP / FULL / LIGHT only */
-          cleanTypeChips.map((chip) => {
-            const count = cleanTypeCounts[chip.key] ?? 0
-            const isActive = cleanTypeFilter.includes(chip.key)
-            return (
-              <button
-                key={chip.key}
-                onClick={() => {
-                  const next = isActive
-                    ? cleanTypeFilter.filter((k) => k !== chip.key)
-                    : [...cleanTypeFilter, chip.key]
-                  onCleanTypeFilter(next)
-                }}
-                aria-pressed={isActive}
-                className={chipClass(isActive)}
-              >
-                <StatusDot tone={chip.dotTone} size={7} />
-                {chip.label}
-                <span className="font-mono font-semibold text-[11px] opacity-70">{count}</span>
-              </button>
-            )
-          })
+          /* Assignment mode: DEP / FULL / LIGHT, plus unassigned / staged */
+          <>
+            {cleanTypeChips.map((chip) => {
+              const count = cleanTypeCounts[chip.key] ?? 0
+              const isActive = cleanTypeFilter.includes(chip.key)
+              return (
+                <button
+                  key={chip.key}
+                  onClick={() => {
+                    const next = isActive
+                      ? cleanTypeFilter.filter((k) => k !== chip.key)
+                      : [...cleanTypeFilter, chip.key]
+                    onCleanTypeFilter(next)
+                  }}
+                  aria-pressed={isActive}
+                  className={chipClass(isActive)}
+                >
+                  <StatusDot tone={chip.dotTone} size={7} />
+                  {chip.label}
+                  <span className="font-mono font-semibold text-[11px] opacity-70">{count}</span>
+                </button>
+              )
+            })}
+            {onAssignFilter && (
+              <>
+                <button
+                  onClick={() => onAssignFilter(assignFilter === 'unassigned' ? 'all' : 'unassigned')}
+                  aria-pressed={assignFilter === 'unassigned'}
+                  className={chipClass(assignFilter === 'unassigned')}
+                >
+                  <StatusDot tone="neutral" size={7} />
+                  {t('housekeeping.roomStatus.filters.unassigned')}
+                  <span className="font-mono font-semibold text-[11px] opacity-70">{unassignedCount}</span>
+                </button>
+                <button
+                  onClick={() => onAssignFilter(assignFilter === 'staged' ? 'all' : 'staged')}
+                  aria-pressed={assignFilter === 'staged'}
+                  className={chipClass(assignFilter === 'staged')}
+                >
+                  <StatusDot tone="accent" size={7} />
+                  {t('housekeeping.roomStatus.filters.staged')}
+                  <span className="font-mono font-semibold text-[11px] opacity-70">{stagedCount}</span>
+                </button>
+              </>
+            )}
+          </>
         ) : (
           <>
             {/* Workflow status chips */}
@@ -220,6 +253,7 @@ export function RoomStatusBoard() {
     pendingAssignmentCleanTypes,
     assignmentMode,
     activeAssigneeId,
+    activeAssigneeName,
     setPendingAssignment,
     removePendingAssignment,
     selectedDate,
@@ -228,12 +262,15 @@ export function RoomStatusBoard() {
     setStatusFilter,
     cleanTypeFilter,
     setCleanTypeFilter,
+    assignFilter,
+    setAssignFilter,
     showRiskOnly,
     toggleRiskOnly,
     predictions,
     buildingFilter,
     setBuildingFilter,
   } = useHousekeepingStore()
+  const toast = useToast()
 
   const displayRooms = useMemo(() =>
     allRooms.map((room: any) => normalizeHousekeepingBoardRoom(room)),
@@ -250,14 +287,25 @@ export function RoomStatusBoard() {
   }, [displayRooms])
 
   const rooms = useMemo(() => {
-    return filterHousekeepingBoardRooms(displayRooms, {
+    const base = filterHousekeepingBoardRooms(displayRooms, {
       statusFilter,
       cleanTypeFilter,
       showRiskOnly,
       predictions,
       buildingFilter,
     })
-  }, [buildingFilter, cleanTypeFilter, displayRooms, predictions, showRiskOnly, statusFilter])
+    if (!assignmentMode || assignFilter === 'all') return base
+    if (assignFilter === 'unassigned') {
+      return base.filter((room: any) => !room.assigned_to && !pendingAssignments[room.room_id])
+    }
+    return base.filter((room: any) => !!pendingAssignments[room.room_id])
+  }, [assignFilter, assignmentMode, buildingFilter, cleanTypeFilter, displayRooms, pendingAssignments, predictions, showRiskOnly, statusFilter])
+
+  const unassignedChipCount = useMemo(
+    () => displayRooms.filter((room: any) => !room.assigned_to && !pendingAssignments[room.room_id]).length,
+    [displayRooms, pendingAssignments],
+  )
+  const stagedChipCount = Object.keys(pendingAssignments).length
 
   const riskCount = useMemo(
     () => displayRooms.filter((r: any) => {
@@ -523,6 +571,26 @@ export function RoomStatusBoard() {
     setCleanTypePrompt(null)
   }, [activeAssigneeId, cleanTypePrompt, setPendingAssignment])
 
+  // -- Floor bulk-assign ---------------------------------------------------
+  const handleAssignFloor = useCallback((floor: number, floorRooms: any[]) => {
+    if (!activeAssigneeId) return
+    let staged = 0
+    floorRooms.forEach((room: any) => {
+      if (!isOpenHousekeepingRoom(room)) return
+      if (roomNeedsAssignmentCleanTypePrompt(room)) return
+      if (pendingAssignments[room.room_id] === activeAssigneeId) return
+      if (!pendingAssignments[room.room_id] && room.assigned_to === activeAssigneeId) return
+      setPendingAssignment(room.room_id, activeAssigneeId)
+      staged += 1
+    })
+    if (staged === 0) return
+    setAssignError(null)
+    toast.info(t('housekeeping.roomStatus.floorAssign.toast', {
+      floor,
+      name: activeAssigneeName?.split(' ')[0] ?? '',
+    }))
+  }, [activeAssigneeId, activeAssigneeName, pendingAssignments, setPendingAssignment, t, toast])
+
   // -- Derived data ------------------------------------------------------------
   const roomAssignedNames = useMemo(() =>
     allRooms.reduce<Record<string, string>>((acc, r: any) => {
@@ -603,6 +671,10 @@ export function RoomStatusBoard() {
         statusFilter={statusFilter}
         onStatusFilter={setStatusFilter}
         assignmentMode={assignmentMode}
+        assignFilter={assignFilter}
+        onAssignFilter={setAssignFilter}
+        unassignedCount={unassignedChipCount}
+        stagedCount={stagedChipCount}
         showRiskOnly={showRiskOnly}
         onToggleRisk={toggleRiskOnly}
         riskCount={riskCount}
@@ -637,25 +709,44 @@ export function RoomStatusBoard() {
             return (
               <div key={floor}>
                 {/* Floor divider header */}
-                <button
-                  type="button"
-                  onClick={() => toggleFloorCollapsed(floor)}
-                  aria-expanded={!isCollapsed}
-                  className="w-full flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2 text-left group"
-                >
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 text-ink3 shrink-0 self-center transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
-                    aria-hidden="true"
-                  />
-                  <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2 group-hover:text-ink transition-colors">
-                    {floor === 0 ? t('housekeeping.roomStatus.floor.ground') : t('housekeeping.roomStatus.floor.numbered', { floor })}
-                  </h3>
-                  <span className="font-mono text-[11px] text-ink3">
-                    {floorRooms.length === 1
-                      ? t('housekeeping.roomStatus.floor.roomCountOne', { count: floorRooms.length })
-                      : t('housekeeping.roomStatus.floor.roomCountOther', { count: floorRooms.length })}
-                  </span>
-                </button>
+                <div className="w-full flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleFloorCollapsed(floor)}
+                    aria-expanded={!isCollapsed}
+                    className="flex items-baseline gap-3 text-left group min-w-0"
+                  >
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 text-ink3 shrink-0 self-center transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                      aria-hidden="true"
+                    />
+                    <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2 group-hover:text-ink transition-colors">
+                      {floor === 0 ? t('housekeeping.roomStatus.floor.ground') : t('housekeeping.roomStatus.floor.numbered', { floor })}
+                    </h3>
+                    <span className="font-mono text-[11px] text-ink3">
+                      {floorRooms.length === 1
+                        ? t('housekeeping.roomStatus.floor.roomCountOne', { count: floorRooms.length })
+                        : t('housekeeping.roomStatus.floor.roomCountOther', { count: floorRooms.length })}
+                    </span>
+                  </button>
+                  <div className="flex-1" />
+                  {assignmentMode && (
+                    <button
+                      type="button"
+                      onClick={() => handleAssignFloor(floor, floorRooms)}
+                      disabled={!activeAssigneeId}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--r-sm)] text-[11.5px] transition-colors ${
+                        activeAssigneeId
+                          ? 'border border-[var(--accent-line)] bg-[var(--accent-soft)] text-accent cursor-pointer hover:bg-[var(--accent-line)]/30'
+                          : 'border border-line bg-surface text-ink4 cursor-default'
+                      }`}
+                    >
+                      {activeAssigneeName
+                        ? t('housekeeping.roomStatus.floorAssign.assignTo', { name: activeAssigneeName.split(' ')[0] })
+                        : t('housekeeping.roomStatus.floorAssign.pickHousekeeper')}
+                    </button>
+                  )}
+                </div>
                 {!isCollapsed && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
                   {floorRooms.map((room) => {
