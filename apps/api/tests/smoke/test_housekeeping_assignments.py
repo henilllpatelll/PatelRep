@@ -1241,7 +1241,10 @@ async def test_delete_assignment_removes_row_and_clears_status_assignee(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_delete_assignment_clears_manual_occupied_clean_type(monkeypatch):
+async def test_delete_assignment_preserves_clean_type_and_status(monkeypatch):
+    """Removing an assignment only unassigns the housekeeper -- the clean type
+    and status describe work that still needs doing (e.g. Pickup/Full) and
+    must survive so the room can be handed to someone else without losing it."""
     assignment_id = "assign-manual-clean"
     room_id = "24242424-2424-4242-8242-242424242424"
     hk_id = "44444444-4444-4444-8444-444444444444"
@@ -1275,8 +1278,8 @@ async def test_delete_assignment_clears_manual_occupied_clean_type(monkeypatch):
     assert response == {"data": {"success": True, "deleted_id": assignment_id}}
     assert db.rows["room_assignments"] == []
     assert db.rows["room_status"][0]["assigned_to"] is None
-    assert db.rows["room_status"][0]["status"] == "OCCUPIED"
-    assert db.rows["room_status"][0]["clean_type"] is None
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
+    assert db.rows["room_status"][0]["clean_type"] == "FULL"
 
 
 @pytest.mark.asyncio

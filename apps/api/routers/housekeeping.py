@@ -397,35 +397,6 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
     return rows
 
 
-def _has_task_sheet_clean_type_marker(
-    room_id: str | None,
-    hotel_id: str,
-    assignment_date: str | None,
-    clean_type: str | None,
-) -> bool:
-    if not room_id or not assignment_date or not clean_type:
-        return False
-    try:
-        target_date = date.fromisoformat(assignment_date)
-    except ValueError:
-        return False
-
-    activity_start, activity_end = _activity_day_window_utc(target_date)
-    history_result = (
-        supabase.table("room_status_history")
-        .select("notes")
-        .eq("tenant_id", hotel_id)
-        .eq("room_id", room_id)
-        .gte("created_at", activity_start)
-        .lt("created_at", activity_end)
-        .execute()
-    )
-    return any(
-        _clean_type_from_task_sheet_note(row.get("notes")) == clean_type
-        for row in (history_result.data or [])
-    )
-
-
 # ---------------------------------------------------------------------------
 # GET /housekeeping/board helpers
 # ---------------------------------------------------------------------------
@@ -957,7 +928,7 @@ async def delete_assignment(
 ):
     assignment_result = (
         supabase.table("room_assignments")
-        .select("id, room_id, assigned_to, assignment_date, clean_type")
+        .select("id, room_id, assigned_to")
         .eq("id", assignment_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -977,36 +948,11 @@ async def delete_assignment(
     if not (delete_result.data if delete_result else None):
         raise HTTPException(status_code=404, detail="Assignment not found")
 
-    status_result = (
-        supabase.table("room_status")
-        .select("room_id, status, fo_status, clean_type")
-        .eq("room_id", assignment.get("room_id"))
-        .eq("tenant_id", current_user.hotel_id)
-        .maybe_single()
-        .execute()
-    )
-    room_status = status_result.data if status_result else None
-    assignment_clean_type = assignment.get("clean_type")
-    clear_manual_clean_type = (
-        room_status
-        and assignment_clean_type
-        and room_status.get("clean_type") == assignment_clean_type
-        and not _has_task_sheet_clean_type_marker(
-            assignment.get("room_id"),
-            current_user.hotel_id,
-            assignment.get("assignment_date"),
-            assignment_clean_type,
-        )
-    )
-
-    status_update = {"assigned_to": None}
-    if clear_manual_clean_type:
-        status_update["clean_type"] = None
-        if room_status.get("status") in {"DIRTY", "PICKUP", "OCCUPIED"}:
-            status_update["status"] = "OCCUPIED" if room_status.get("fo_status") == "OCC" else "DIRTY"
-
+    # Removing an assignment only unassigns the housekeeper -- the room's clean
+    # type and status describe work that still needs doing and must survive
+    # the room being unassigned (e.g. so it can be handed to someone else).
     supabase.table("room_status")\
-        .update(status_update)\
+        .update({"assigned_to": None})\
         .eq("room_id", assignment.get("room_id"))\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("assigned_to", assignment.get("assigned_to"))\
