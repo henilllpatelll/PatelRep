@@ -418,7 +418,12 @@ export function RoomStatusBoard() {
 
     const mergeRoom = (room: any) => {
       if (room.room_id !== row.room_id) return room
-      const nextCleanType = statusRow.clean_type ?? room.clean_type
+      // Postgres Realtime UPDATE payloads always carry the full new row, so
+      // clean_type: null here is a legitimate cleared value (e.g. DELETE
+      // /assignments/{id} reverting a manually-set clean type on remove) --
+      // falling back to the stale local value would re-derive a status like
+      // OCCUPIED from a clean type the backend just cleared.
+      const nextCleanType = statusRow.clean_type
       const nextStatus = getEffectiveRoomStatusForCleanType(
         statusRow.status,
         nextCleanType,
