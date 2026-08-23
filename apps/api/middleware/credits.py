@@ -34,6 +34,11 @@ INTERACTION_MODEL = {
     "failure_prediction": "claude-sonnet",
     "shift_summary": "claude-sonnet",
     "housekeeping_briefing": "claude-sonnet",
+    "housekeeper_shift_recap": "claude-sonnet",
+    "supervisor_briefing": "claude-sonnet",
+    "engineer_briefing": "claude-sonnet",
+    "front_desk_briefing": "claude-sonnet",
+    "gm_briefing": "claude-sonnet",
 }
 
 DOLLARS_PER_CREDIT = 0.02  # $0.02 per AI credit per CLAUDE.md pricing

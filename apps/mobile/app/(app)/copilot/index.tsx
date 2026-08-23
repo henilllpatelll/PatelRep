@@ -12,49 +12,27 @@ import {
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import { darkTheme } from "@/components/shared/tokens";
 import { IconButton } from "@/components/shared/mobileHandoff";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/lib/theme/useToast";
+import { speechModule as _speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
+import {
+  sendCopilotMessage,
+  confirmTask as confirmTaskRequest,
+  confirmWorkOrder as confirmWorkOrderRequest,
+  confirmGuestRequest as confirmGuestRequestRequest,
+  type ChatMessage as Message,
+  type TaskPreview,
+  type WorkOrderPreview,
+  type GuestRequestPreview,
+} from "@/lib/ai/copilotChat";
 
 const HISTORY_KEY = "@patelrep/copilot_history";
 const MAX_HISTORY = 20;
-
-// expo-speech-recognition is a native module — unavailable in Expo Go.
-type SpeechEventHandler = (e: { results: Array<{ transcript: string }> }) => void;
-let _speechModule: { start: (opts: Record<string, unknown>) => void; stop: () => void } | null = null;
-let useSpeechRecognitionEvent: (event: string, handler: SpeechEventHandler | (() => void)) => void = () => {};
-try {
-  const mod = require("expo-speech-recognition");
-  _speechModule = mod.ExpoSpeechRecognitionModule;
-  useSpeechRecognitionEvent = mod.useSpeechRecognitionEvent;
-} catch {
-  // Not available in Expo Go — mic button will be hidden
-}
-
-type TaskPreview = { title: string; task_type: string; priority: string; room_number?: string };
-type WorkOrderPreview = { title: string; category: string; priority: string; room_number?: string };
-type GuestRequestPreview = { request_type: string; description: string; room_number?: string };
-
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  task_preview?: TaskPreview;
-  work_order_preview?: WorkOrderPreview;
-  guest_request_preview?: GuestRequestPreview;
-};
-
-type CopilotResponse = {
-  message: string;
-  intent: string;
-  task_preview?: TaskPreview;
-  work_order_preview?: WorkOrderPreview;
-  guest_request_preview?: GuestRequestPreview;
-};
 
 const QUICK_ACTIONS = [
   { key: "reportIssue", icon: "warning" as const },
@@ -68,6 +46,8 @@ export default function CopilotScreen() {
   const { t } = useTranslation();
   const { user } = useAppStore();
   const toast = useToast();
+  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  const sentPrefillRef = useRef(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -99,6 +79,15 @@ export default function CopilotScreen() {
     AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed)).catch(() => {});
   }, [messages]);
 
+  // Deep-linked from the corner-card overlay's action buttons/chips — send
+  // the tapped label as the opening message exactly once per screen visit.
+  useEffect(() => {
+    if (prefill && !sentPrefillRef.current) {
+      sentPrefillRef.current = true;
+      sendMessage(prefill);
+    }
+  }, [prefill]);
+
   useSpeechRecognitionEvent("result", (event) => {
     const transcript = event.results[0]?.transcript ?? "";
     setInput(transcript);
@@ -122,12 +111,7 @@ export default function CopilotScreen() {
     setLoading(true);
 
     try {
-      // context must be an object — the API validates Optional[dict] and reads
-      // intent_hint from it; a bare string fails validation with a 422.
-      const response = await api.post<CopilotResponse>("/ai/copilot/chat", {
-        message: text,
-        context: { source: "mobile", role: user?.role ?? null },
-      });
+      const response = await sendCopilotMessage(text, user?.role);
 
       const msgId = (Date.now() + 1).toString();
       const assistantMsg: Message = {
@@ -156,7 +140,7 @@ export default function CopilotScreen() {
 
   async function confirmTask(preview: TaskPreview) {
     try {
-      await api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
+      await confirmTaskRequest(preview);
       setPendingTaskMsgId(null);
       toast.success(t("copilot.taskCreated"));
     } catch (err: unknown) {
@@ -166,7 +150,7 @@ export default function CopilotScreen() {
 
   async function confirmWorkOrder(preview: WorkOrderPreview) {
     try {
-      await api.post("/work-orders", { ...preview });
+      await confirmWorkOrderRequest(preview);
       setPendingWOMsgId(null);
       toast.success(t("copilot.workOrderCreated"));
     } catch (err: unknown) {
@@ -176,7 +160,7 @@ export default function CopilotScreen() {
 
   async function confirmGuestRequest(preview: GuestRequestPreview) {
     try {
-      await api.post("/ai/guest-requests/confirm", { ...preview });
+      await confirmGuestRequestRequest(preview);
       setPendingGRMsgId(null);
       toast.success(t("copilot.guestRequestCreated"));
     } catch (err: unknown) {

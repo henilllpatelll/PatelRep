@@ -4,6 +4,7 @@
     "error": "Ocurrió un error",
     "retry": "Reintentar",
     "cancel": "Cancelar",
+    "close": "Cerrar",
     "save": "Guardar",
     "confirm": "Confirmar",
     "back": "Atrás",
@@ -60,6 +61,11 @@
     "minutesLeft": "~{{minutes}}m restantes",
     "finishBy": "terminarías a las {{time}}",
     "openMyRooms": "Abrir Mis cuartos",
+    "emptyBoard": {
+      "waiting": "esperando · última revisión {{time}}",
+      "myRoomsHint": "ver asignaciones",
+      "askAiHint": "haz una pregunta"
+    },
     "signal": {
       "review": "{{count}} en espera de revisión",
       "dnd": "{{count}} con No Molestar",
@@ -68,14 +74,51 @@
     },
     "focus": {
       "kicker": "Empieza aquí",
+      "inProgressKicker": "En curso",
       "estMinutes": "~{{minutes}} min",
-      "reasonInProgress": "Ya estás en este — retómalo donde lo dejaste.",
-      "reasonVip": "Huésped VIP — un cuarto perfecto temprano rinde mucho.",
-      "reasonArrival": "El próximo huésped llega pronto.",
-      "reasonDeparture": "El huésped ya salió — es todo tuyo.",
-      "reasonDefault": "La ruta más rápida de tu lista.",
+      "target": "objetivo {{time}}",
+      "underPace": "{{minutes}}m antes de lo previsto",
+      "overPace": "{{minutes}}m atrasada",
+      "pause": "Pausar",
+      "more": "Más opciones",
       "resume": "Continuar {{room}}",
-      "inProgress": "en curso"
+      "inProgress": "en curso",
+      "floor": "Piso {{floor}}"
+    },
+    "shiftCard": {
+      "title": "Tu turno",
+      "vipAt": "{{time}} VIP"
+    },
+    "needsYou": {
+      "title": "Pendientes",
+      "reviewSubtitle": "Cuartos marcados que esperan revisión de tu supervisora.",
+      "dndSubtitle": "Sáltalos por ahora — se liberarán solos.",
+      "arrivalsSubtitle": "Ya están primero en tu plan de limpieza.",
+      "gotIt": "Entendido"
+    },
+    "holdConfirm": {
+      "title": "¿Cuarto {{room}} limpio?",
+      "subtitle": "Esto lo mueve a Limpio y avisa a tu supervisora que está listo para inspección.",
+      "checklistStatus": "Lista {{done}} de {{total}}",
+      "cta": "Mantén presionado para confirmar…",
+      "confirming": "Confirmando…",
+      "releaseHint": "Suelta para cancelar",
+      "openRoom": "Abrir cuarto para terminar la lista",
+      "nextUp": "Sigue · {{room}}",
+      "nextUpMinutes": "~{{minutes}}m",
+      "startBy": "empieza a las {{time}}"
+    },
+    "endOfShift": {
+      "roomsCleaned": "{{count}} cuartos limpiados",
+      "shiftDuration": "{{duration}} de turno",
+      "clockOut": "Marcar salida",
+      "clockedOut": "Salida registrada. Buen trabajo hoy.",
+      "clockOutFailed": "No se pudo marcar la salida — intenta de nuevo.",
+      "recapKicker": "Resumen del turno",
+      "beforeClockOut": "Antes de marcar salida",
+      "handoff": "Entregar {{room}} · {{title}}",
+      "handoffGeneric": "orden de trabajo abierta",
+      "foundItems": "Objetos perdidos · {{count}} artículo registrado hoy"
     },
     "companion": {
       "kicker": "Contigo",
@@ -751,7 +794,30 @@
     "dismiss": "Ignorar",
     "confirmTask": "¿Crear esta tarea?",
     "confirm": "Sí, Crear",
-    "edit": "Editar"
+    "edit": "Editar",
+    "card": {
+      "badge": "IA",
+      "readLabel": "Leído",
+      "askPlaceholder": "Pregunta sobre tu turno…",
+      "send": "Enviar",
+      "notNow": "Ahora no",
+      "loading": "Pensando…",
+      "unavailable": "El copiloto no está disponible en este momento.",
+      "retry": "Reintentar",
+      "labels": {
+        "housekeeper": "Tu día",
+        "housekeeping_supervisor": "Riesgo en vivo",
+        "engineer": "Patrón encontrado",
+        "front_desk": "Recuperación",
+        "gm": "Resumen semanal"
+      },
+      "housekeeper": {
+        "primary": "Reordenar mi cola",
+        "source": "tus cuartos",
+        "chip1": "¿Qué sigue?",
+        "chip2": "¿Voy a tiempo?"
+      }
+    }
   },
   "notifications": {
     "taskAssigned": "Nueva tarea asignada",
@@ -1061,6 +1127,10 @@
       "sourceAi": "Generado por IA",
       "sourceLocal": "Planificado en el dispositivo",
       "refresh": "Nuevo plan"
+    },
+    "shiftRecap": {
+      "local": "Limpiaste {{count}} cuartos hoy.",
+      "localVip": "Limpiaste {{count}} cuartos hoy, incluyendo {{vip}} suite(s) VIP."
     },
     "insight": {
       "title": "Análisis IA",

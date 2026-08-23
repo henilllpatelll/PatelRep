@@ -270,13 +270,39 @@ export const C = {
   fontFamily: undefined as undefined,
 } as const;
 
+/** Housekeeper-Home-only accent (hold-to-confirm sheet, end-of-shift CTA) — scoped
+ *  to those new components, not part of the cross-role theme.primary/primaryAction
+ *  contract used by every other screen. */
+export const housekeeperAccent = {
+  bg: "#B8431C",
+  bgPressed: "#8F3315",
+  soft: "#F7E4D8",
+  softLine: "#E8B89A",
+} as const;
+
+export const darkHousekeeperAccent = {
+  bg: "#D97A4C",
+  bgPressed: "#C15F31",
+  soft: "rgba(217, 122, 76, 0.18)",
+  softLine: "rgba(217, 122, 76, 0.40)",
+} as const;
+
 export const R = { sm: 8, md: 12, lg: 16, xl: 20 } as const;
 export const S = { page: 18, card: 16, cardGap: 15, sectionGap: 22 } as const;
 
+/** IBM Plex Mono, loaded via useFonts() in app/_layout.tsx. Falls back to the
+ *  platform monospace until the font finishes loading (pre-load frame only —
+ *  the splash screen stays up until fontsLoaded, so this fallback is rarely
+ *  visible in practice). */
 export const monoFont = Platform.select({
-  ios: "Menlo",
-  android: "monospace",
+  ios: "IBMPlexMono_500Medium",
+  android: "IBMPlexMono_500Medium",
   default: "monospace",
 }) as string;
+
+/** Instrument Serif — headline accents only (greeting, focus-card room
+ *  number), per the "Mobile Home - housekeeper" design import. Not a
+ *  general-purpose display font; most text stays on the system sans-serif. */
+export const serifFont = "InstrumentSerif_400Regular";
 
 export const displayFont = undefined;

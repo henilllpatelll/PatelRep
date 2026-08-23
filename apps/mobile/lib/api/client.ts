@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
-export const DEFAULT_API_BASE = "https://stellar-integrity-production-f507.up.railway.app/v1";
+export const DEFAULT_API_BASE = "https://stellar-integrity-production-30cf.up.railway.app/v1";
 export const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_BASE;
 const API_TIMEOUT_MS = 12000;
 const API_TIMEOUT_MESSAGE = "Request timed out. Please try again.";

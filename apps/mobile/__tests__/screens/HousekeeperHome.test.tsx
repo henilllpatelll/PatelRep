@@ -1,6 +1,7 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { ToastProvider } from "@/lib/theme/ToastProvider";
 
 const mockSetMyRooms = jest.fn();
 
@@ -69,30 +70,43 @@ const EN: Record<string, string> = {
   "home.signal.arrivals": "{{count}} arriving soon",
   "home.signal.vip": "{{count}} VIP",
   "home.focus.kicker": "Start here",
+  "home.focus.inProgressKicker": "In progress",
   "home.focus.estMinutes": "~{{minutes}} min",
-  "home.focus.reasonInProgress": "You're already in this one — pick up where you left off.",
-  "home.focus.reasonVip": "VIP guest — a perfect room early goes a long way.",
-  "home.focus.reasonArrival": "The next guest arrives soon.",
-  "home.focus.reasonDeparture": "Guest checked out — it's all yours.",
-  "home.focus.reasonDefault": "Fastest path through your list.",
+  "home.focus.target": "target {{time}}",
+  "home.focus.underPace": "{{minutes}}m under pace",
+  "home.focus.overPace": "{{minutes}}m over pace",
+  "home.focus.pause": "Pause",
+  "home.focus.more": "More options",
   "home.focus.resume": "Resume {{room}}",
   "home.focus.inProgress": "in progress",
-  "home.companion.kicker": "With you",
-  "home.companion.empty": "Nothing on your board yet. Enjoy the calm — your rooms will appear here.",
-  "home.companion.fresh": "One room at a time — that's all today is.",
-  "home.companion.early": "{{done}} done already. You're finding your rhythm.",
-  "home.companion.mid": "{{done}} of {{total}} handled — past the halfway feeling. Steady does it.",
-  "home.companion.late": "Home stretch. Just {{count}} to go — you've got this.",
-  "home.companion.done": "That's a wrap — every room handled. Be proud of today.",
-  "home.companion.tipAttention": "{{count}} room(s) are waiting on review — that's not on you. Flag it and keep moving.",
-  "home.companion.tipDnd": "DND is up on {{count}} room(s). Skip them guilt-free — they'll clear.",
-  "home.companion.tipArrivals": "{{count}} arrival(s) coming up — your plan already puts them first.",
-  "home.companion.tipVip": "{{count}} VIP room(s) still ahead — a little extra polish goes a long way.",
-  "home.companion.tipBreather": "Good moment for water and a breath. The board can wait two minutes.",
+  "home.shiftCard.title": "Your shift",
+  "home.shiftCard.vipAt": "{{time}} VIP",
+  "home.needsYou.title": "Needs you",
+  "home.needsYou.reviewSubtitle": "Flagged rooms waiting on a supervisor look.",
+  "home.needsYou.dndSubtitle": "Skip them for now — they'll clear on their own.",
+  "home.needsYou.arrivalsSubtitle": "Already first in your cleaning plan.",
+  "home.needsYou.gotIt": "Got it",
+  "home.focus.floor": "Floor {{floor}}",
   "home.startWith": "Start with {{room}}",
   "home.askAI": "Ask AI",
   "home.allDone": "All assigned rooms are done.",
   "home.pullToRefresh": "Pull to refresh if your supervisor adds more.",
+  "home.companion.empty": "Nothing on your board yet. Enjoy the calm — your rooms will appear here.",
+  "home.companion.done": "That's a wrap — every room handled. Be proud of today.",
+  "home.holdConfirm.title": "Room {{room}} clean?",
+  "home.holdConfirm.subtitle": "This moves it to Clean and lets your supervisor know it's ready for inspection.",
+  "home.holdConfirm.checklistStatus": "Checklist {{done}} of {{total}}",
+  "home.holdConfirm.cta": "Hold to confirm…",
+  "home.holdConfirm.confirming": "Confirming…",
+  "home.holdConfirm.releaseHint": "Release to cancel",
+  "home.holdConfirm.openRoom": "Open room to finish checklist",
+  "home.endOfShift.roomsCleaned": "{{count}} rooms cleaned",
+  "home.endOfShift.shiftDuration": "{{duration}} on shift",
+  "home.endOfShift.clockOut": "Clock out",
+  "home.endOfShift.clockedOut": "Clocked out. Nice work today.",
+  "home.endOfShift.clockOutFailed": "Couldn't clock out — try again.",
+  "rooms.detail.primary.view": "View",
+  "rooms.detail.primary.markClean": "Mark Clean",
   "ai.briefing.kicker": "AI Shift Briefing",
   "ai.briefing.planLabel": "Suggested order",
   "ai.briefing.startWith": "Start with room {{room}} — it's the fastest path through your list.",
@@ -131,11 +145,29 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
 
+let mockRoomsForRequest = mockRooms;
+const mockEndShift = jest.fn().mockResolvedValue({ data: { id: "shift-1", status: "ended" } });
+
 jest.mock("@/lib/api/client", () => ({
   api: {
-    get: jest.fn().mockResolvedValue({ data: mockRooms }),
-    post: jest.fn().mockRejectedValue(new Error("ai offline")),
+    get: jest.fn((path: string) => {
+      if (path.startsWith("/shifts/current")) return Promise.resolve({ data: null });
+      return Promise.resolve({ data: mockRoomsForRequest });
+    }),
+    post: jest.fn((path: string) => {
+      if (path.startsWith("/shifts/start")) return Promise.resolve({ data: null });
+      if (path.startsWith("/shifts/end")) return mockEndShift();
+      return Promise.reject(new Error("ai offline"));
+    }),
+    patch: jest.fn().mockResolvedValue({ data: {} }),
   },
+}));
+
+const mockListNotifications = jest.fn().mockResolvedValue({ data: [] });
+const mockMarkRead = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/api/notifications", () => ({
+  listNotifications: (...args: unknown[]) => mockListNotifications(...args),
+  markRead: (...args: unknown[]) => mockMarkRead(...args),
 }));
 
 jest.mock("@/lib/offline/db", () => ({
@@ -143,53 +175,82 @@ jest.mock("@/lib/offline/db", () => ({
   upsertRooms: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
+const mockEnqueueAction = jest.fn().mockResolvedValue(undefined);
+const mockRefreshRooms = jest.fn().mockResolvedValue(undefined);
+const mockResetRoomChecklist = jest.fn();
+let mockStoreRooms: typeof mockRooms = mockRooms;
+let mockChecklistProgress: Record<string, Record<string, boolean>> = {};
+
+function mockAppState() {
+  return {
     user: { id: "user-1", full_name: "Maria Vega", role: "housekeeper" },
     isOnline: true,
-    myRooms: mockRooms,
+    myRooms: mockStoreRooms,
     setMyRooms: mockSetMyRooms,
-    refreshRooms: jest.fn(),
-  }),
-}));
+    refreshRooms: mockRefreshRooms,
+    roomChecklistProgress: mockChecklistProgress,
+    setRoomChecklistItem: jest.fn(),
+    resetRoomChecklist: mockResetRoomChecklist,
+    enqueueAction: mockEnqueueAction,
+  };
+}
+
+jest.mock("@/stores/appStore", () => {
+  const useAppStore = (selector?: (state: ReturnType<typeof mockAppState>) => unknown) => {
+    const state = mockAppState();
+    return selector ? selector(state) : state;
+  };
+  useAppStore.getState = () => mockAppState();
+  return { useAppStore };
+});
 
 import HousekeeperHomeScreen from "@/app/(app)/home";
 
 describe("HousekeeperHomeScreen", () => {
-  it("renders the companion hero with shift mosaic, focus card, briefing, and signals — no up-next queue", async () => {
+  beforeEach(() => {
+    mockListNotifications.mockReset().mockResolvedValue({ data: [] });
+    mockMarkRead.mockReset().mockResolvedValue(undefined);
+    mockStoreRooms = mockRooms;
+    mockChecklistProgress = {};
+    mockEndShift.mockClear();
+    mockResetRoomChecklist.mockClear();
+  });
+
+  it("renders the Right Now focus card, shift progress, needs-you signals, and AI briefing — no mosaic, no up-next queue", async () => {
     const { getByText, getByTestId, queryByText, queryByTestId } = render(
       <ThemeProvider>
-        <HousekeeperHomeScreen />
+        <ToastProvider>
+          <HousekeeperHomeScreen />
+        </ToastProvider>
       </ThemeProvider>
     );
 
-    // Time-of-day greeting plus the supportive companion check-in
+    // Time-of-day greeting; the whole-day mosaic is gone (rooms live in My Rooms)
     await waitFor(() => expect(getByText(/Good (morning|afternoon|evening), Maria\./)).toBeTruthy());
-    // 1 of 4 done (101 inspected) → "early" stage message
-    expect(getByText("1 done already. You're finding your rhythm.")).toBeTruthy();
+    expect(queryByTestId("shift-mosaic")).toBeNull();
 
-    // Shift mosaic: one tile per assigned room, sorted by room number
-    expect(getByTestId("shift-mosaic")).toBeTruthy();
-    for (const num of ["101", "108", "112", "115"]) {
-      expect(getByTestId(`mosaic-tile-${num}`)).toBeTruthy();
-    }
-    // Pace line: done count + est minutes left (108 + 112 cleanable, 25m each) + finish time
-    expect(getByText(/1 of 4 rooms done · ~50m left · on track for/)).toBeTruthy();
+    // Shift progress card: 1 of 4 done (101 inspected), est. minutes left
+    expect(getByTestId("shift-progress-card")).toBeTruthy();
+    expect(getByText("1 of 4 rooms done")).toBeTruthy();
+    expect(getByText(/~50m left · on track for/)).toBeTruthy();
 
-    // Signal chips: 115 needs review (high risk)
-    expect(getByTestId("signal-review")).toBeTruthy();
-    expect(getByText("1 waiting on review")).toBeTruthy();
-    expect(queryByTestId("signal-vip")).toBeNull();
-
-    // Focus card recommends the first startable room (112), not the in-progress room (108)
+    // Focus card leads with the room actively being cleaned (108) — matching the
+    // "Right now" design, an in-progress room is never bumped by a startable one
     expect(getByTestId("focus-card")).toBeTruthy();
-    expect(getByText("Start here")).toBeTruthy();
-    expect(getByText("Start with 112")).toBeTruthy();
-    expect(getByText("Fastest path through your list.")).toBeTruthy();
-    expect(getByText("~25 min")).toBeTruthy();
-    // ...while 108 stays reachable through the resume link
-    expect(getByTestId("focus-resume")).toBeTruthy();
-    expect(getByText(/Resume 108/)).toBeTruthy();
+    expect(getByText("In progress")).toBeTruthy();
+    expect(getByText("target 25:00")).toBeTruthy();
+    expect(getByText("Mark Clean")).toBeTruthy();
+    expect(getByTestId("focus-pause")).toBeTruthy();
+    expect(getByTestId("focus-more")).toBeTruthy();
+    // No separate resume link — 108 already is the focus card
+    expect(queryByTestId("focus-resume")).toBeNull();
+
+    // Needs you: 115 needs review (high risk) surfaces as a real, actionable row
+    expect(getByText("Needs you")).toBeTruthy();
+    expect(getByTestId("needs-you-review")).toBeTruthy();
+    expect(getByText("1 waiting on review")).toBeTruthy();
+    expect(queryByTestId("needs-you-dnd")).toBeNull();
+    expect(queryByTestId("needs-you-arrivals")).toBeNull();
 
     // AI briefing card with the on-device plan and explicit-tap AI refresh
     expect(getByTestId("ai-briefing-card")).toBeTruthy();
@@ -199,15 +260,274 @@ describe("HousekeeperHomeScreen", () => {
     expect(getByText("Ask AI")).toBeTruthy();
     expect(getByText(/Planned on device/)).toBeTruthy();
 
-    // Companion tip surfaces the review room as a gentle nudge, not a task
-    expect(getByTestId("companion-tip")).toBeTruthy();
-    expect(getByText(/waiting on review — that's not on you/)).toBeTruthy();
-
     // No Up Next queue and no stat deck — rooms live in My Rooms
     expect(queryByText("Up next")).toBeNull();
     expect(queryByText("Your shift at a glance")).toBeNull();
     expect(queryByTestId("room-card-108")).toBeNull();
     expect(queryByTestId("room-card-112")).toBeNull();
     expect(getByText("Open My Rooms")).toBeTruthy();
+  });
+
+  it("shows a live elapsed timer and pace on the focus card when it is the in-progress room itself", () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-05-26T12:05:00.000Z"));
+    const room = {
+      id: "room-108",
+      room_number: "108",
+      floor: 1,
+      status: "IN_PROGRESS" as const,
+      risk_level: null,
+      dnd_flag: false,
+      guest_name: null,
+      predicted_ready_at: null,
+      vip_flag: false,
+      checkin_time: null,
+      updated_at: "2026-05-26T12:00:00.000Z",
+    };
+    const { FocusCard } = require("@/components/home/CompanionHome");
+
+    const { getByText, getByTestId } = render(
+      <ThemeProvider>
+        <FocusCard
+          entry={{ room, position: 1, estimateMinutes: 25, etaMinutes: 25 }}
+          inProgressRoom={null}
+          t={(key: string, values?: Record<string, unknown>) => {
+            const template = EN[key] ?? key;
+            if (!values) return template;
+            return template.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => String(values[k] ?? `{{${k}}}`));
+          }}
+          onStart={jest.fn()}
+          onResume={jest.fn()}
+        />
+      </ThemeProvider>
+    );
+
+    expect(getByTestId("focus-card")).toBeTruthy();
+    expect(getByText("In progress")).toBeTruthy();
+    expect(getByText("target 25:00")).toBeTruthy();
+    expect(getByText("5:00")).toBeTruthy();
+    expect(getByText("20m under pace")).toBeTruthy();
+    expect(getByText("Mark Clean")).toBeTruthy();
+    // Pause has no backing action yet, so it renders present but disabled — never a dead tap
+    expect(getByTestId("focus-pause").props.accessibilityState.disabled).toBe(true);
+    expect(getByTestId("focus-more")).toBeTruthy();
+
+    jest.useRealTimers();
+  });
+
+  it("shows the room type under the room number, falling back to the floor when no room type is set", () => {
+    const { FocusCard } = require("@/components/home/CompanionHome");
+    const t = (key: string, values?: Record<string, unknown>) => {
+      const template = EN[key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => String(values[k] ?? `{{${k}}}`));
+    };
+    const baseRoom = {
+      id: "room-115",
+      room_number: "115",
+      floor: 2,
+      status: "DIRTY" as const,
+      risk_level: null,
+      dnd_flag: false,
+      guest_name: null,
+      predicted_ready_at: null,
+      vip_flag: true,
+      checkin_time: null,
+    };
+
+    const { getByText, queryByText, rerender } = render(
+      <ThemeProvider>
+        <FocusCard
+          entry={{ room: { ...baseRoom, room_type_code: "11K" }, position: 1, estimateMinutes: 25, etaMinutes: 25 }}
+          inProgressRoom={null}
+          t={t}
+          onStart={jest.fn()}
+          onResume={jest.fn()}
+        />
+      </ThemeProvider>
+    );
+    expect(getByText("11K")).toBeTruthy();
+    expect(queryByText("Floor 2")).toBeNull();
+
+    rerender(
+      <ThemeProvider>
+        <FocusCard
+          entry={{ room: baseRoom, position: 1, estimateMinutes: 25, etaMinutes: 25 }}
+          inProgressRoom={null}
+          t={t}
+          onStart={jest.fn()}
+          onResume={jest.fn()}
+        />
+      </ThemeProvider>
+    );
+    expect(getByText("Floor 2")).toBeTruthy();
+  });
+
+  it("plots real shift-start and VIP-arrival markers on the shift timeline, and falls back to a plain bar without a shift session", () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-05-26T09:00:00.000Z"));
+    const { ShiftProgressCard } = require("@/components/home/CompanionHome");
+    const snapshot = {
+      total: 4,
+      done: 1,
+      remaining: 3,
+      pct: 25,
+      attention: 0,
+      arrivals: 0,
+      dndCount: 0,
+      minutesLeft: 50,
+      finishByLabel: "9:50 AM",
+      stage: "active" as const,
+    };
+    const t = (key: string, values?: Record<string, unknown>) => {
+      const template = EN[key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => String(values[k] ?? `{{${k}}}`));
+    };
+
+    const { getByTestId, getByText, queryByTestId, rerender } = render(
+      <ThemeProvider>
+        <ShiftProgressCard
+          snapshot={snapshot}
+          t={t}
+          shiftStart={new Date("2026-05-26T08:00:00.000Z")}
+          nextVipArrival={new Date("2026-05-26T09:30:00.000Z")}
+        />
+      </ThemeProvider>
+    );
+
+    expect(getByTestId("shift-timeline")).toBeTruthy();
+    expect(getByText(/VIP/)).toBeTruthy();
+
+    rerender(
+      <ThemeProvider>
+        <ShiftProgressCard snapshot={snapshot} t={t} shiftStart={null} nextVipArrival={null} />
+      </ThemeProvider>
+    );
+    expect(queryByTestId("shift-timeline")).toBeNull();
+
+    jest.useRealTimers();
+  });
+
+  it("surfaces an unread supervisor message as a needs-you card and acknowledges it on 'Got it'", async () => {
+    mockListNotifications.mockResolvedValue({
+      data: [
+        {
+          id: "note-1",
+          type: "direct_message",
+          title: "Message from supervisor",
+          body: "Skip the deep clean on 105 — take 115 straight after 108.",
+          data: {},
+          is_read: false,
+          created_at: "2026-05-26T09:12:00.000Z",
+        },
+      ],
+    });
+
+    const { getByText, getByTestId, queryByTestId } = render(
+      <ThemeProvider>
+        <ToastProvider>
+          <HousekeeperHomeScreen />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => expect(getByTestId("needs-you-message")).toBeTruthy());
+    expect(getByText("Message from supervisor")).toBeTruthy();
+    expect(getByText("Skip the deep clean on 105 — take 115 straight after 108.")).toBeTruthy();
+
+    fireEvent.press(getByText("Got it"));
+
+    expect(mockMarkRead).toHaveBeenCalledWith("note-1");
+    await waitFor(() => expect(queryByTestId("needs-you-message")).toBeNull());
+  });
+
+  it("shows the empty-board state instead of the misleading 'all done' copy when nothing is assigned yet", async () => {
+    mockStoreRooms = [];
+
+    const { getByTestId, getByText, queryByTestId, getAllByText } = render(
+      <ThemeProvider>
+        <ToastProvider>
+          <HousekeeperHomeScreen />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => expect(getByTestId("empty-board-state")).toBeTruthy());
+    expect(getByText("Nothing on your board yet. Enjoy the calm — your rooms will appear here.")).toBeTruthy();
+    expect(getByText("Pull to refresh if your supervisor adds more.")).toBeTruthy();
+    expect(queryByTestId("shift-progress-card")).toBeNull();
+    expect(queryByTestId("end-of-shift-state")).toBeNull();
+    // Only one "Open My Rooms" affordance — the empty state's own CTA, not a duplicate bottom button
+    expect(getAllByText("Open My Rooms")).toHaveLength(1);
+  });
+
+  it("shows the end-of-shift state with real stats and clocks out through the shifts API", async () => {
+    mockStoreRooms = [
+      { id: "room-108", room_number: "108", floor: 1, status: "CLEAN", risk_level: null, dnd_flag: false, guest_name: null, predicted_ready_at: null, vip_flag: false, checkin_time: null },
+      { id: "room-101", room_number: "101", floor: 1, status: "INSPECTED", risk_level: null, dnd_flag: false, guest_name: null, predicted_ready_at: null, vip_flag: false, checkin_time: null },
+    ];
+
+    const { getByTestId, getByText, queryByTestId } = render(
+      <ThemeProvider>
+        <ToastProvider>
+          <HousekeeperHomeScreen />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => expect(getByTestId("end-of-shift-state")).toBeTruthy());
+    expect(getByText("That's a wrap — every room handled. Be proud of today.")).toBeTruthy();
+    expect(getByText("2 rooms cleaned")).toBeTruthy();
+    expect(queryByTestId("empty-board-state")).toBeNull();
+
+    fireEvent.press(getByTestId("clock-out-button"));
+
+    await waitFor(() => expect(mockEndShift).toHaveBeenCalled());
+    await waitFor(() => expect(getByText("Clocked out. Nice work today.")).toBeTruthy());
+    expect(queryByTestId("clock-out-button")).toBeNull();
+  });
+
+  it("opens the hold-to-confirm sheet from Mark Clean, gated on the same checklist the room screen tracks", async () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <ThemeProvider>
+        <ToastProvider>
+          <HousekeeperHomeScreen />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => expect(getByText("Mark Clean")).toBeTruthy());
+    fireEvent.press(getByText("Mark Clean"));
+
+    // Checklist untouched this session (room-108 is IN_PROGRESS) — sheet routes to the
+    // detail screen instead of exposing a shortcut around the gate.
+    await waitFor(() => expect(getByTestId("hold-confirm-open-room")).toBeTruthy());
+    expect(getByText("Checklist 0 of 10")).toBeTruthy();
+    expect(queryByTestId("hold-confirm-button")).toBeNull();
+
+    fireEvent.press(getByTestId("hold-confirm-open-room"));
+    const { router } = require("expo-router");
+    expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-108");
+  });
+
+  it("enables the hold-to-confirm button once the room's checklist is fully checked", async () => {
+    const { STAYOVER_CHECKLIST } = require("@/lib/housekeeping/roomWorkflow");
+    mockChecklistProgress = {
+      "room-108": Object.fromEntries(STAYOVER_CHECKLIST.map((key: string) => [key, true])),
+    };
+
+    const { getByTestId, getByText, queryByTestId } = render(
+      <ThemeProvider>
+        <ToastProvider>
+          <HousekeeperHomeScreen />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => expect(getByText("Mark Clean")).toBeTruthy());
+    fireEvent.press(getByText("Mark Clean"));
+
+    await waitFor(() => expect(getByTestId("hold-confirm-button")).toBeTruthy());
+    expect(getByText("Checklist 10 of 10")).toBeTruthy();
+    expect(queryByTestId("hold-confirm-open-room")).toBeNull();
   });
 });

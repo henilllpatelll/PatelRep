@@ -17,6 +17,10 @@ jest.mock("react-i18next", () => ({
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
+const mockUseLocalSearchParams = jest.fn(() => ({} as { prefill?: string }));
+jest.mock("expo-router", () => ({
+  useLocalSearchParams: () => mockUseLocalSearchParams(),
+}));
 jest.mock("expo-speech-recognition", () => ({
   ExpoSpeechRecognitionModule: {
     start: jest.fn(),
@@ -168,5 +172,29 @@ describe.each(previewCases)("CopilotScreen $name confirmation", (previewCase) =>
     } finally {
       alertSpy.mockRestore();
     }
+  });
+});
+
+describe("CopilotScreen prefill deep-link", () => {
+  it("auto-sends the prefill param as the opening message exactly once", async () => {
+    mockUseLocalSearchParams.mockReturnValueOnce({ prefill: "Reassign 313, 314" });
+    mockApiPost.mockResolvedValue({ message: "Done", intent: "general" });
+
+    const screen = renderScreen();
+
+    await waitFor(() =>
+      expect(mockApiPost).toHaveBeenCalledWith("/ai/copilot/chat", {
+        message: "Reassign 313, 314",
+        context: { source: "mobile", role: "housekeeper" },
+      }),
+    );
+    expect(mockApiPost).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Reassign 313, 314")).toBeTruthy();
+  });
+
+  it("does not send anything when there is no prefill param", async () => {
+    renderScreen();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockApiPost).not.toHaveBeenCalled();
   });
 });

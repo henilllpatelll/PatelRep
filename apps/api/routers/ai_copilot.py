@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from middleware.auth import get_current_user, CurrentUser, require_role
 from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import (
-    CopilotChatRequest, HousekeepingBriefingRequest,
+    CopilotChatRequest, HousekeepingBriefingRequest, HousekeeperShiftRecapRequest,
+    SupervisorBriefingRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
     TaskPreview, WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
     AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
     UpdateAIModelRouteRequest,
@@ -17,6 +18,11 @@ from services.ai.guest_request_parser import parse_guest_requests
 from services.ai.assignment_parser import parse_assignments
 from services.ai.sop_rag import query_sop
 from services.ai.housekeeping_briefing import generate_shift_briefing
+from services.ai.housekeeper_shift_recap import generate_shift_recap
+from services.ai.supervisor_briefing import generate_supervisor_briefing
+from services.ai.engineer_briefing import generate_engineer_briefing
+from services.ai.front_desk_briefing import generate_front_desk_briefing
+from services.ai.gm_briefing import generate_gm_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
 from services.policy import check_action_permitted
 from services.ai.governance import (
@@ -543,6 +549,218 @@ async def housekeeping_shift_briefing(
         await log_ai_interaction(
             hotel_id=current_user.hotel_id, user_id=current_user.user_id,
             interaction_type="housekeeping_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
+
+
+@router.post("/housekeeping/shift-summary")
+async def housekeeping_shift_recap(
+    request: HousekeeperShiftRecapRequest,
+    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
+):
+    """AI end-of-shift recap for the housekeeper's completed rooms today.
+
+    The mobile app sends compact completed-room summaries and renders a local
+    heuristic recap when this returns 503, so AI failures must not leak
+    provider detail.
+    """
+    start = time.time()
+    credits = 0
+    try:
+        result = generate_shift_recap(
+            [room.model_dump() for room in request.rooms],
+            request.language,
+        )
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "housekeeper_shift_recap",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="housekeeper_shift_recap", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
+        )
+        return {"data": {**result["recap"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="housekeeper_shift_recap", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI shift recap temporarily unavailable.")
+
+
+@router.post("/supervisor/briefing")
+async def supervisor_shift_briefing(
+    request: SupervisorBriefingRequest,
+    current_user: CurrentUser = Depends(require_role("housekeeping_supervisor")),
+):
+    """AI shift briefing for a housekeeping supervisor's floor(s).
+
+    The mobile app sends compact room + staff-progress summaries; AI failures
+    must not leak provider detail to the client.
+    """
+    start = time.time()
+    credits = 0
+    try:
+        result = generate_supervisor_briefing(
+            [room.model_dump() for room in request.rooms],
+            [member.model_dump() for member in request.staff],
+            request.language,
+        )
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "supervisor_briefing",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="supervisor_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
+        )
+        return {"data": {**result["briefing"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="supervisor_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
+
+
+@router.post("/engineer/briefing")
+async def engineer_shift_briefing(
+    request: EngineerBriefingRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer")),
+):
+    """AI shift briefing for an engineer's open work orders and PM load.
+
+    Mobile treats engineer and chief_engineer as one persona, so both roles
+    are gated onto this endpoint. The mobile app sends compact work-order
+    summaries; AI failures must not leak provider detail to the client.
+    """
+    start = time.time()
+    credits = 0
+    try:
+        result = generate_engineer_briefing(
+            [wo.model_dump() for wo in request.work_orders],
+            request.pm_due_this_week,
+            request.language,
+        )
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "engineer_briefing",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="engineer_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
+        )
+        return {"data": {**result["briefing"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="engineer_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
+
+
+@router.post("/front-desk/briefing")
+async def front_desk_shift_briefing(
+    request: FrontDeskBriefingRequest,
+    current_user: CurrentUser = Depends(require_role("front_desk")),
+):
+    """AI shift briefing for a front desk agent's open guest requests.
+
+    The mobile app sends compact guest-request summaries plus readiness/arrival
+    counts; AI failures must not leak provider detail to the client.
+    """
+    start = time.time()
+    credits = 0
+    try:
+        result = generate_front_desk_briefing(
+            [gr.model_dump() for gr in request.guest_requests],
+            request.ready_room_count,
+            request.arrivals_count,
+            request.vip_arrivals_count,
+            request.language,
+        )
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "front_desk_briefing",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="front_desk_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
+        )
+        return {"data": {**result["briefing"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="front_desk_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
+
+
+@router.get("/gm/briefing")
+async def gm_shift_briefing(
+    language: str = Query(default="en"),
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """AI weekly briefing for a GM, built from the same 7-day operational
+    aggregate as GET /ai/insights. AI failures must not leak provider detail
+    to the client."""
+    start = time.time()
+    credits = 0
+    try:
+        result = generate_gm_briefing(current_user.hotel_id, language)
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "gm_briefing",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="gm_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
+        )
+        return {"data": {**result["briefing"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="gm_briefing", model_used="claude-sonnet-4-6",
             credits_charged=credits, prompt_tokens=0, completion_tokens=0,
             latency_ms=latency, success=False, error_message=str(exc),
         )

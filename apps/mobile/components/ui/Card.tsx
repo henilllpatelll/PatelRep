@@ -6,16 +6,18 @@ interface CardProps {
   children: React.ReactNode;
   dimmed?: boolean;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 /** Card — reusable themed surface (bg/border/radius/shadow), extracted from
  * RoomQueueCard's ad-hoc shell (evening.tsx styles.card / cardDimmed).
  * Colors ONLY via useTheme() — never a static token import here. */
-export function Card({ children, dimmed = false, style }: CardProps) {
+export function Card({ children, dimmed = false, style, testID }: CardProps) {
   const theme = useTheme();
 
   return (
     <View
+      testID={testID}
       style={[
         styles.base,
         {

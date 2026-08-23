@@ -39,6 +39,13 @@ interface AppState {
   incrementDndAttempt: (roomId: string) => number;
   resetDndAttempt: (roomId: string) => void;
 
+  // In-session checklist progress per room (roomId -> checklist item key -> checked).
+  // Session-only, same lifetime as the old per-screen useState it replaces — lets
+  // Home read the same progress the room detail screen writes.
+  roomChecklistProgress: Record<string, Record<string, boolean>>;
+  setRoomChecklistItem: (roomId: string, itemKey: string, checked: boolean) => void;
+  resetRoomChecklist: (roomId: string) => void;
+
   // Notifications badge
   unreadCount: number;
   setUnreadCount: (count: number) => void;
@@ -125,6 +132,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       const counts = { ...state.dndAttemptCounts };
       delete counts[roomId];
       return { dndAttemptCounts: counts };
+    });
+  },
+
+  roomChecklistProgress: {},
+  setRoomChecklistItem: (roomId, itemKey, checked) => {
+    set((state) => ({
+      roomChecklistProgress: {
+        ...state.roomChecklistProgress,
+        [roomId]: { ...state.roomChecklistProgress[roomId], [itemKey]: checked },
+      },
+    }));
+  },
+  resetRoomChecklist: (roomId) => {
+    set((state) => {
+      const progress = { ...state.roomChecklistProgress };
+      delete progress[roomId];
+      return { roomChecklistProgress: progress };
     });
   },
 

@@ -130,6 +130,7 @@ describe("app-wide theme source inventory", () => {
 describe("protected theme exceptions and integration links", () => {
   it("preserves Copilot D-11 dark content while surrounding chrome remains reactive", () => {
     const copilotSource = source("app/(app)/copilot/index.tsx");
+    const bubbleSource = source("components/shared/CopilotBubble.tsx");
     const protectedLayoutSource = source("app/(app)/_layout.tsx");
     const rootSource = source("app/_layout.tsx");
 
@@ -142,6 +143,15 @@ describe("protected theme exceptions and integration links", () => {
     );
     expect(copilotSource).not.toMatch(/\buseTheme\(\)/);
 
+    // The collapsed bubble (design spec 2a) is the same kind of fixed,
+    // always-dark/violet copilot branding as the full chat screen above --
+    // its charcoal/violet palette is a deliberate brand identity, not a
+    // themeable surface, so it also stays outside useTheme().
+    expect(bubbleSource).not.toMatch(/\buseTheme\(\)/);
+    expect(bubbleSource).not.toMatch(
+      /import\s*\{[^}]*\buseTheme\b[^}]*\}/,
+    );
+
     expect(rootSource).toContain(
       "<NavigationThemeProvider value={getNavigationTheme(mode)}>",
     );
@@ -151,9 +161,6 @@ describe("protected theme exceptions and integration links", () => {
     );
     expect(protectedLayoutSource).toContain(
       "backgroundColor: theme.shell.bg",
-    );
-    expect(protectedLayoutSource).toContain(
-      "backgroundColor: theme.ai.primary",
     );
   });
 

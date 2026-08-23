@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#f7f4ee;--surface:#fff;--surface-2:#fbf9f4;--surface-3:#f1ede4;--line:#e6dfd1;--line-2:#efe9dc;--ink:#1a1815;--ink-2:#4a4640;--ink-3:#6e685e;--ink-4:#a8a195;--accent:#b8431c;--r-lg:14px}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--ink)}
+</style>
+</helmet>
+
+<section style="padding:40px;display:flex;flex-direction:column;gap:16px">
+  <div style="display:flex;align-items:baseline;gap:12px">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Turn 1 · wireframes</span>
+    <span style="font-size:13px;color:var(--ink-3)">Manager (GM) dashboard — live readiness, blockers, people, overnight recap. Read-only, click through to detail.</span>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+    <div id="1a" style="width:880px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:6px">1a</span>
+        <span style="font-size:14px;font-weight:600">Briefing first</span>
+        <span style="font-size:12px;color:var(--ink-3)">Recap reads like a note from the night, then the day's numbers.</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="height:9px;width:130px;background:var(--surface-3);border-radius:4px"></div>
+          <div style="height:26px;width:300px;background:var(--surface-3);border-radius:4px"></div>
+        </div>
+
+        <div style="border:1px dashed var(--line);background:var(--surface-2);border-radius:12px;padding:18px;display:flex;gap:20px">
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Overnight recap · AI</div>
+            <div style="height:11px;width:96%;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:11px;width:88%;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:11px;width:64%;background:var(--surface-3);border-radius:4px"></div>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <div style="height:22px;width:120px;background:var(--surface-3);border-radius:6px"></div>
+              <div style="height:22px;width:96px;background:var(--surface-3);border-radius:6px"></div>
+            </div>
+          </div>
+          <div style="width:200px;border-left:1px dashed var(--line);padding-left:18px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Since 11pm</div>
+            <div style="height:10px;width:100%;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:10px;width:80%;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:10px;width:90%;background:var(--surface-3);border-radius:4px"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Arrivals vs. ready — live</div>
+          <div style="border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;align-items:center;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:6px;width:150px">
+              <div style="height:34px;width:80px;background:var(--surface-3);border-radius:4px"></div>
+              <div style="height:9px;width:110px;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div style="height:14px;background:var(--surface-3);border-radius:7px"></div>
+              <div style="display:flex;justify-content:space-between">
+                <div style="height:9px;width:70px;background:var(--surface-3);border-radius:4px"></div>
+                <div style="height:9px;width:70px;background:var(--surface-3);border-radius:4px"></div>
+                <div style="height:9px;width:70px;background:var(--surface-3);border-radius:4px"></div>
+              </div>
+            </div>
+            <div style="width:120px;display:flex;flex-direction:column;gap:6px;border-left:1px solid var(--line-2);padding-left:16px">
+              <div style="height:24px;width:60px;background:var(--surface-3);border-radius:4px"></div>
+              <div style="height:9px;width:90px;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px">
+          <div style="border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Blocking a room (4)</div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="height:20px;width:44px;background:var(--surface-3);border-radius:4px"></div><div style="height:10px;flex:1;background:var(--surface-3);border-radius:4px"></div><div style="height:16px;width:56px;background:var(--surface-3);border-radius:8px"></div></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="height:20px;width:44px;background:var(--surface-3);border-radius:4px"></div><div style="height:10px;flex:1;background:var(--surface-3);border-radius:4px"></div><div style="height:16px;width:56px;background:var(--surface-3);border-radius:8px"></div></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="height:20px;width:44px;background:var(--surface-3);border-radius:4px"></div><div style="height:10px;flex:1;background:var(--surface-3);border-radius:4px"></div><div style="height:16px;width:56px;background:var(--surface-3);border-radius:8px"></div></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="height:20px;width:44px;background:var(--surface-3);border-radius:4px"></div><div style="height:10px;flex:1;background:var(--surface-3);border-radius:4px"></div><div style="height:16px;width:56px;background:var(--surface-3);border-radius:8px"></div></div>
+            <div style="height:9px;width:120px;background:var(--surface-3);border-radius:4px;margin-top:2px"></div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">On shift · pace</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:70%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:55%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:64%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:48%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1b" style="width:880px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:6px">1b</span>
+        <span style="font-size:14px;font-weight:600">The 3pm clock</span>
+        <span style="font-size:12px;color:var(--ink-3)">One question up top: will every arriving guest have a room? Everything else supports it.</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="height:9px;width:130px;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:26px;width:260px;background:var(--surface-3);border-radius:4px"></div>
+          </div>
+          <div style="display:flex;gap:8px"><div style="height:26px;width:110px;background:var(--surface-3);border-radius:8px"></div><div style="height:26px;width:80px;background:var(--surface-3);border-radius:8px"></div></div>
+        </div>
+
+        <div style="border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;gap:28px;align-items:center;background:var(--surface-2)">
+          <div style="width:150px;height:150px;border-radius:50%;border:14px solid var(--surface-3);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="height:30px;width:74px;background:var(--surface-3);border-radius:4px"></div>
+              <div style="height:8px;width:56px;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Ready for arrivals · countdown to 3pm</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="height:24px;width:48px;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:80%;background:var(--surface-3);border-radius:4px"></div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="height:24px;width:48px;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:80%;background:var(--surface-3);border-radius:4px"></div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="height:24px;width:48px;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:80%;background:var(--surface-3);border-radius:4px"></div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="height:24px;width:48px;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:80%;background:var(--surface-3);border-radius:4px"></div></div>
+            </div>
+            <div style="border-top:1px dashed var(--line);padding-top:12px;display:flex;gap:10px;align-items:center">
+              <div style="height:16px;width:26px;background:var(--surface-3);border-radius:4px"></div>
+              <div style="height:10px;flex:1;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">What's holding rooms back</div>
+            <div style="display:flex;gap:10px"><div style="width:3px;background:var(--surface-3);border-radius:2px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:10px;width:70%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:45%;background:var(--surface-3);border-radius:4px"></div></div></div>
+            <div style="display:flex;gap:10px"><div style="width:3px;background:var(--surface-3);border-radius:2px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:10px;width:60%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:50%;background:var(--surface-3);border-radius:4px"></div></div></div>
+            <div style="display:flex;gap:10px"><div style="width:3px;background:var(--surface-3);border-radius:2px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:10px;width:78%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:38%;background:var(--surface-3);border-radius:4px"></div></div></div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Shift board · 9 on floor</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <div style="border:1px dashed var(--line);border-radius:8px;height:56px"></div>
+              <div style="border:1px dashed var(--line);border-radius:8px;height:56px"></div>
+              <div style="border:1px dashed var(--line);border-radius:8px;height:56px"></div>
+              <div style="border:1px dashed var(--line);border-radius:8px;height:56px"></div>
+              <div style="border:1px dashed var(--line);border-radius:8px;height:56px"></div>
+              <div style="border:1px dashed var(--line);border-radius:8px;height:56px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px dashed var(--line);background:var(--surface-2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);white-space:nowrap">Overnight recap · AI</div>
+          <div style="height:10px;flex:1;background:var(--surface-3);border-radius:4px"></div>
+          <div style="height:9px;width:60px;background:var(--surface-3);border-radius:4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1c" style="width:880px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:6px">1c</span>
+        <span style="font-size:14px;font-weight:600">Three lanes</span>
+        <span style="font-size:12px;color:var(--ink-3)">Rooms, blockers, people — three scannable columns, no stat tiles at all.</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-2);padding-bottom:16px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="height:9px;width:120px;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:24px;width:240px;background:var(--surface-3);border-radius:4px"></div>
+          </div>
+          <div style="width:300px;border-left:1px dashed var(--line);padding-left:18px;display:flex;flex-direction:column;gap:7px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Overnight recap · AI</div>
+            <div style="height:9px;width:100%;background:var(--surface-3);border-radius:4px"></div>
+            <div style="height:9px;width:76%;background:var(--surface-3);border-radius:4px"></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Rooms</div>
+              <div style="height:8px;width:40px;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="height:28px;width:70px;background:var(--surface-3);border-radius:4px"></div>
+              <div style="height:8px;background:var(--surface-3);border-radius:4px"></div>
+              <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px">
+                <div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div>
+                <div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div>
+                <div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div><div style="height:16px;background:var(--surface-3);border-radius:3px"></div>
+              </div>
+              <div style="height:8px;width:60%;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">Blockers</div>
+              <div style="height:8px;width:40px;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="height:18px;width:40px;background:var(--surface-3);border-radius:4px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:90%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:50%;background:var(--surface-3);border-radius:4px"></div></div></div>
+              <div style="border-top:1px solid var(--line-2)"></div>
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="height:18px;width:40px;background:var(--surface-3);border-radius:4px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:80%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:44%;background:var(--surface-3);border-radius:4px"></div></div></div>
+              <div style="border-top:1px solid var(--line-2)"></div>
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="height:18px;width:40px;background:var(--surface-3);border-radius:4px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:86%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:56%;background:var(--surface-3);border-radius:4px"></div></div></div>
+              <div style="border-top:1px solid var(--line-2)"></div>
+              <div style="display:flex;gap:10px;align-items:flex-start"><div style="height:18px;width:40px;background:var(--surface-3);border-radius:4px"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:74%;background:var(--surface-3);border-radius:4px"></div><div style="height:8px;width:48%;background:var(--surface-3);border-radius:4px"></div></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">People</div>
+              <div style="height:8px;width:40px;background:var(--surface-3);border-radius:4px"></div>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:60%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div><div style="height:14px;width:34px;background:var(--surface-3);border-radius:7px"></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:52%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div><div style="height:14px;width:34px;background:var(--surface-3);border-radius:7px"></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:66%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div><div style="height:14px;width:34px;background:var(--surface-3);border-radius:7px"></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:58%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div><div style="height:14px;width:34px;background:var(--surface-3);border-radius:7px"></div></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--surface-3)"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:9px;width:48%;background:var(--surface-3);border-radius:4px"></div><div style="height:6px;background:var(--surface-3);border-radius:3px"></div></div><div style="height:14px;width:34px;background:var(--surface-3);border-radius:7px"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

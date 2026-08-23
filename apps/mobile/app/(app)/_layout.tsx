@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Tabs, router, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { useTranslation } from "react-i18next";
@@ -7,6 +8,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
+import { CopilotCard } from "@/components/shared/CopilotCard";
+import { CopilotBubble, BUBBLE_RIGHT_INSET, type CopilotBubbleState } from "@/components/shared/CopilotBubble";
+import { useCopilotBrief } from "@/lib/ai/copilotCard";
+import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { setupPushNotifications } from "@/lib/notifications";
 import { listNotifications } from "@/lib/api/notifications";
@@ -20,16 +25,114 @@ export default function AppLayout() {
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);
+  // cardOpen is the logical intent (drives the X button / bubble tap / voice
+  // result); cardMounted keeps CopilotCard in the tree for the shrink-back-
+  // into-the-bubble animation to finish playing before it actually unmounts.
+  const [cardOpen, setCardOpen] = useState(false);
+  const [cardMounted, setCardMounted] = useState(false);
+  const [briefSeen, setBriefSeen] = useState(true);
+  const [listening, setListening] = useState(false);
+  // 0 = collapsed bubble, 1 = fully expanded card — drives both sides of the
+  // "grows out of the bubble" transition (design spec 1a/2a) from one value.
+  const cardProgress = useSharedValue(0);
   const hideFab = /^\/my-rooms\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
+  const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isLoading]);
+
+  // Leaving the screen entirely (not a user dismiss) resets instantly —
+  // no point animating a card shut on a screen the user is already leaving.
+  useEffect(() => {
+    setCardOpen(false);
+    setCardMounted(false);
+    cardProgress.value = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // A freshly-loaded brief is "unread" until the card is opened to see it.
+  useEffect(() => {
+    if (brief) setBriefSeen(false);
+  }, [brief]);
+
+  useSpeechRecognitionEvent("result", (event) => {
+    setListening(false);
+    const transcript = event.results[0]?.transcript?.trim();
+    if (transcript) {
+      router.push({ pathname: "/(app)/copilot", params: { prefill: transcript } });
+    }
+  });
+  useSpeechRecognitionEvent("error", () => setListening(false));
+
+  // Tap opens the card by expanding out of the bubble; per design, the ONLY
+  // way back is the card's own header close button (closeCard) — no
+  // backdrop-tap, no re-tapping the bubble (it's hidden while the card is
+  // open anyway), no secondary-button dismiss.
+  function openCard() {
+    setCardMounted(true);
+    setCardOpen(true);
+    setBriefSeen(true);
+    cardProgress.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
+  }
+
+  function closeCard() {
+    setCardOpen(false);
+    cardProgress.value = withTiming(
+      0,
+      { duration: 220, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        if (finished) runOnJS(setCardMounted)(false);
+      },
+    );
+  }
+
+  function startVoiceCapture() {
+    if (!speechModule) {
+      openCard();
+      return;
+    }
+    setListening(true);
+    speechModule.start({ lang: "en-US", continuous: false, interimResults: false });
+  }
+
+  function stopVoiceCapture() {
+    if (!listening) return;
+    speechModule?.stop();
+  }
+
+  const bubbleState: CopilotBubbleState = listening
+    ? "listening"
+    : briefLoading
+      ? "thinking"
+      : brief && !briefSeen
+        ? "unread"
+        : "idle";
+
+  const bubbleBottomOffset = insets.bottom + 92;
+
+  // As the card expands, the bubble doesn't just fade/shrink in place — it
+  // drifts toward the literal screen corner too, converging on the same
+  // point the card's transformOrigin scales from (cardOrigin below), so both
+  // halves of the transition read as anchored to one shared spot.
+  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: 1 - cardProgress.value,
+    transform: [
+      { translateX: cardProgress.value * BUBBLE_RIGHT_INSET },
+      { translateY: cardProgress.value * bubbleBottomOffset },
+      { scale: 1 - cardProgress.value * 0.5 },
+    ],
+  }));
+
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: cardProgress.value,
+    transform: [{ scale: 0.15 + cardProgress.value * 0.85 }],
+  }));
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -142,22 +245,34 @@ export default function AppLayout() {
           ))}
         </Tabs>
         {!hideFab ? (
-          <TouchableOpacity
-            accessibilityLabel={t("tabs.copilot")}
-            accessibilityRole="button"
-            style={[
-              styles.fab,
-              {
-                bottom: insets.bottom + 92,
-                backgroundColor: theme.ai.primary,
-                shadowColor: theme.ai.primary,
-              },
-            ]}
-            onPress={() => router.push("/(app)/copilot" as never)}
-            activeOpacity={0.85}
+          <Animated.View
+            style={[StyleSheet.absoluteFill, bubbleAnimatedStyle]}
+            pointerEvents={cardOpen ? "none" : "box-none"}
           >
-            <Ionicons name="sparkles" size={22} color={theme.onAi} />
-          </TouchableOpacity>
+            <CopilotBubble
+              state={bubbleState}
+              bottom={bubbleBottomOffset}
+              accessibilityLabel={t("tabs.copilot")}
+              onPress={openCard}
+              onLongPress={startVoiceCapture}
+              onPressOut={stopVoiceCapture}
+            />
+          </Animated.View>
+        ) : null}
+        {cardMounted && !hideFab ? (
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.cardOrigin, cardAnimatedStyle]}
+            pointerEvents="box-none"
+          >
+            <CopilotCard
+              onClose={closeCard}
+              insetsBottom={insets.bottom}
+              brief={brief}
+              loading={briefLoading}
+              error={briefError}
+              reload={reloadBrief}
+            />
+          </Animated.View>
         ) : null}
       </View>
     </ToastProvider>
@@ -166,17 +281,8 @@ export default function AppLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  fab: {
-    position: "absolute",
-    right: 18,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
+  // Anchors the card's scale-in/out to the screen's bottom-right corner, near
+  // where the bubble sits, so it reads as "growing out of the bubble" rather
+  // than scaling from its own center.
+  cardOrigin: { transformOrigin: ["100%", "100%", 0] },
 });

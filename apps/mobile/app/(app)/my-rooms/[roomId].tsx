@@ -242,6 +242,9 @@ export default function RoomDetailScreen() {
     incrementDndAttempt,
     resetDndAttempt,
     refreshRooms,
+    roomChecklistProgress,
+    setRoomChecklistItem,
+    resetRoomChecklist,
   } = useAppStore();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -261,7 +264,7 @@ export default function RoomDetailScreen() {
   const [showSupplyRequest, setShowSupplyRequest] = useState(false);
   const [dndLoading, setDndLoading] = useState(false);
   const [declineLoading, setDeclineLoading] = useState(false);
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const checkedItems = room ? (roomChecklistProgress[room.id] ?? {}) : {};
   const [timeEntryKey, setTimeEntryKey] = useState<string | null>(null);
   const [timeText, setTimeText] = useState("");
   const [blockerBusy, setBlockerBusy] = useState<string | null>(null);
@@ -317,7 +320,6 @@ export default function RoomDetailScreen() {
   }, [isOnline, room?.id, t, user?.id]);
 
   useEffect(() => {
-    setCheckedItems({});
     setLinenOut(0);
     setLinenIn(0);
   }, [room?.clean_type, room?.id]);
@@ -374,6 +376,7 @@ export default function RoomDetailScreen() {
       if (isOnline) {
         await api.patch(`/rooms/${room.id}/status`, payload);
         if (nextStatus === "CLEAN") {
+          resetRoomChecklist(room.id);
           void refreshRooms();
           if (Platform.OS === "android") {
             ToastAndroid.show(t("rooms.detail.cleanSuccess"), ToastAndroid.SHORT);
@@ -385,6 +388,7 @@ export default function RoomDetailScreen() {
         }
       } else {
         await enqueueAction({ type: "room_status", entityId: room.id, payload });
+        if (nextStatus === "CLEAN") resetRoomChecklist(room.id);
       }
     } catch (err: unknown) {
       updateLocalRoom(previous.id, previous);
@@ -559,7 +563,8 @@ export default function RoomDetailScreen() {
   function handleCheckItem(key: string, newVal: boolean) {
     // The L&F check item is one-way — once checked it records the check and cannot be undone.
     if (key === LOST_FOUND_CHECK_KEY && !newVal) return;
-    setCheckedItems((current) => ({ ...current, [key]: newVal }));
+    if (!room) return;
+    setRoomChecklistItem(room.id, key, newVal);
   }
 
   if (loading) {

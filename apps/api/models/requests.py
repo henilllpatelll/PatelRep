@@ -1141,3 +1141,53 @@ class BriefingRoomItem(SanitizedBaseModel):
 class HousekeepingBriefingRequest(SanitizedBaseModel):
     rooms: List[BriefingRoomItem] = Field(min_length=1, max_length=60)
     language: Literal["en", "es"] = "en"
+
+
+class HousekeeperShiftRecapRequest(SanitizedBaseModel):
+    rooms: List[BriefingRoomItem] = Field(min_length=1, max_length=60)
+    language: Literal["en", "es"] = "en"
+
+
+class StaffProgressItem(SanitizedBaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    floor: Optional[str] = Field(default=None, max_length=10)
+    rooms_done: int = Field(ge=0, le=200)
+    rooms_total: int = Field(ge=0, le=200)
+    minutes_behind: Optional[int] = Field(default=None, ge=-600, le=600)
+
+
+class SupervisorBriefingRequest(SanitizedBaseModel):
+    rooms: List[BriefingRoomItem] = Field(min_length=0, max_length=200)
+    staff: List[StaffProgressItem] = Field(min_length=0, max_length=40)
+    language: Literal["en", "es"] = "en"
+
+
+class WorkOrderBriefingItem(SanitizedBaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    category: Optional[str] = Field(default=None, max_length=40)
+    priority: str = Field(min_length=1, max_length=20)
+    status: str = Field(min_length=1, max_length=20)
+    room_number: Optional[str] = Field(default=None, max_length=10)
+    due_at: Optional[str] = Field(default=None, max_length=40)
+
+
+class EngineerBriefingRequest(SanitizedBaseModel):
+    work_orders: List[WorkOrderBriefingItem] = Field(min_length=0, max_length=100)
+    pm_due_this_week: int = Field(default=0, ge=0, le=500)
+    language: Literal["en", "es"] = "en"
+
+
+class GuestRequestBriefingItem(SanitizedBaseModel):
+    request_type: str = Field(min_length=1, max_length=60)
+    room_number: Optional[str] = Field(default=None, max_length=10)
+    status: str = Field(min_length=1, max_length=20)
+    sla_breached: bool = False
+    minutes_open: Optional[int] = Field(default=None, ge=0, le=10000)
+
+
+class FrontDeskBriefingRequest(SanitizedBaseModel):
+    guest_requests: List[GuestRequestBriefingItem] = Field(min_length=0, max_length=100)
+    ready_room_count: int = Field(default=0, ge=0, le=1000)
+    arrivals_count: int = Field(default=0, ge=0, le=1000)
+    vip_arrivals_count: int = Field(default=0, ge=0, le=1000)
+    language: Literal["en", "es"] = "en"

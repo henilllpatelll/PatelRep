@@ -17581,6 +17581,2275 @@
       ],
       "occurrences": 2,
       "last_seen": "2026-08-19T08:36:27.646Z"
+    },
+    {
+      "id": "bug-1064",
+      "timestamp": "2026-08-19T08:40:24.902Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/STATE.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:40:24.902Z"
+    },
+    {
+      "id": "bug-1065",
+      "timestamp": "2026-08-19T08:54:25.265Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had \"2026-08-19T08:37:29Z\"",
+      "fix": "Changed to \"2026-08-19T09:05:00Z\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T08:54:25.265Z"
+    },
+    {
+      "id": "bug-1066",
+      "timestamp": "2026-08-19T22:42:41.044Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 16→26 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:42:41.044Z"
+    },
+    {
+      "id": "bug-1067",
+      "timestamp": "2026-08-19T22:48:55.408Z",
+      "error_message": "Significant refactor of ",
+      "file": "supabase/migrations/098_flip_web_redesign_sections_on.sql",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 9→7 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "sql"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:48:55.408Z"
+    },
+    {
+      "id": "bug-1068",
+      "timestamp": "2026-08-19T22:51:23.752Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/_scratch_verify_real.mjs",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:51:23.752Z"
+    },
+    {
+      "id": "bug-1069",
+      "timestamp": "2026-08-20T02:21:44.630Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/supabase/client.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T02:21:44.630Z"
+    },
+    {
+      "id": "bug-1070",
+      "timestamp": "2026-08-20T06:31:06.016Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_ui_refresh_status.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 17→19 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T06:31:06.016Z"
+    },
+    {
+      "id": "bug-1071",
+      "timestamp": "2026-08-20T07:58:00Z",
+      "error_message": "Vercel deployment patelrep-web.vercel.app/housekeeping showed Failed to load rooms",
+      "file": "apps/web (Vercel project env var NEXT_PUBLIC_API_URL)",
+      "root_cause": "The Vercel project (separate deployment target from the documented Railway web app, undocumented in CLAUDE.md) had NEXT_PUBLIC_API_URL baked in as https://stellar-integrity-production-f507.up.railway.app, a retired Railway API host returning 404. The build CSP already allowlisted the correct current host (-30cf), so the drift was env-var-only, not a code/CSP bug: every client fetch to the stale host got blocked by the page-s own CSP connect-src before it could even reach a dead server.",
+      "fix": "vercel env rm NEXT_PUBLIC_API_URL production && vercel env add NEXT_PUBLIC_API_URL production (value https://stellar-integrity-production-30cf.up.railway.app/v1), then vercel --prod --yes to rebake the NEXT_PUBLIC_ var into the build. Verified via Playwright: 114 room cards rendered, 0 console errors, CSP violation gone.",
+      "tags": [
+        "web",
+        "vercel",
+        "env-drift",
+        "csp",
+        "housekeeping",
+        "room-board",
+        "config"
+      ],
+      "related_bugs": [
+        "bug-089"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T07:58:00Z"
+    },
+    {
+      "id": "bug-1072",
+      "timestamp": "2026-08-20T08:04:17.188Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/deploy-check.yml",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→4 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T08:04:17.188Z"
+    },
+    {
+      "id": "bug-1073",
+      "timestamp": "2026-08-20T08:04:22.116Z",
+      "error_message": "Significant refactor of ",
+      "file": "scripts/check-deployment-drift.mjs",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→4 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T08:04:22.116Z"
+    },
+    {
+      "id": "bug-1074",
+      "timestamp": "2026-08-20T16:04:54.161Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/ui/primitives.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:04:54.161Z"
+    },
+    {
+      "id": "bug-1075",
+      "timestamp": "2026-08-20T16:06:05.189Z",
+      "error_message": "Wrong reference: rows should be null",
+      "file": "apps/web/components/dashboard/RoomBlockersList.tsx",
+      "root_cause": "Used \"rows\" instead of \"null\"",
+      "fix": "Changed rows → null",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:06:05.189Z"
+    },
+    {
+      "id": "bug-1076",
+      "timestamp": "2026-08-20T16:06:11.058Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/RoomBlockersList.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 16→16 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:06:11.058Z"
+    },
+    {
+      "id": "bug-1077",
+      "timestamp": "2026-08-20T16:08:10.933Z",
+      "error_message": "Wrong operator: === should be &&",
+      "file": "apps/web/components/dashboard/GMDashboard.tsx",
+      "root_cause": "Used \"===\" instead of \"&&\"",
+      "fix": "Changed operator === → &&",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:08:10.933Z"
+    },
+    {
+      "id": "bug-1078",
+      "timestamp": "2026-08-20T16:09:16.864Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "19 lines replaced/restructured",
+      "fix": "Rewrote 21→28 lines (19 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:09:16.864Z"
+    },
+    {
+      "id": "bug-1079",
+      "timestamp": "2026-08-20T16:09:30.234Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "19 lines replaced/restructured",
+      "fix": "Rewrote 21→28 lines (19 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:09:30.234Z"
+    },
+    {
+      "id": "bug-1080",
+      "timestamp": "2026-08-20T16:18:19.014Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/ArrivalReadinessHero.tsx",
+      "root_cause": "Had \"bg-surface border border-line rounded-[var(--r-xl",
+      "fix": "Changed to \"bg-surface border border-line rounded-[var(--r-xl",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-20T16:19:02.352Z"
+    },
+    {
+      "id": "bug-1081",
+      "timestamp": "2026-08-20T16:25:45.573Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/hooks/useArrivalReadiness.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (3 removed) | Also: // Read once per render, outside the memo below — ; // of its declared deps, and Date.now() isn't one.",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T16:26:53.935Z"
+    },
+    {
+      "id": "bug-1082",
+      "timestamp": "2026-08-20T16:35:34.738Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"6f5e11a13d02a8405b8faba15d543d1edb9c5f5f58c6308c9",
+      "fix": "Changed to \"b0d9a1148b23ead9249b1dca411b73857fa6bcc17ba1fd01f",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:35:34.738Z"
+    },
+    {
+      "id": "bug-1083",
+      "timestamp": "2026-08-20T16:35:39.163Z",
+      "error_message": "CSS fix: md",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "md: hidden') → hidden'",
+      "fix": "Changed md: hidden') → hidden'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-20T16:36:03.638Z"
+    },
+    {
+      "id": "bug-1084",
+      "timestamp": "2026-08-20T16:35:49.607Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Had \"Additive only: added an Avatar primitive (getInit",
+      "fix": "Changed to \"Additive only: added an Avatar primitive (getInit",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T16:35:49.607Z"
+    },
+    {
+      "id": "bug-1085",
+      "timestamp": "2026-08-20T17:16:56.644Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had '{{hotelName}} · {{count}} arrivals expected today",
+      "fix": "Changed to '{{hotelName}} · {{count}} arrival expected today'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T17:17:00.734Z"
+    },
+    {
+      "id": "bug-1086",
+      "timestamp": "2026-08-20T18:56:17.117Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had '{{count}} departure rooms in play'",
+      "fix": "Changed to '{{count}} departure room in play'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T18:56:17.117Z"
+    },
+    {
+      "id": "bug-1087",
+      "timestamp": "2026-08-20T18:56:24.019Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had '{{hotelName}} · {{count}} llegadas previstas hoy'",
+      "fix": "Changed to '{{hotelName}} · {{count}} llegada prevista hoy'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-20T18:56:31.083Z"
+    },
+    {
+      "id": "bug-1088",
+      "timestamp": "2026-08-20T19:15:30.274Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/GMDashboard.tsx",
+      "root_cause": "Had \"flex flex-col gap-5 max-w-[1240px]\"",
+      "fix": "Changed to \"flex flex-col gap-5\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T19:15:30.274Z"
+    },
+    {
+      "id": "bug-1089",
+      "timestamp": "2026-08-20T19:15:44.660Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/OnShiftBoard.tsx",
+      "root_cause": "Had \"grid grid-cols-2 gap-2.5\"",
+      "fix": "Changed to \"grid grid-cols-2 2xl:grid-cols-3 gap-2.5\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T19:15:53.502Z"
+    },
+    {
+      "id": "bug-1090",
+      "timestamp": "2026-08-20T21:35:01.706Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:35:01.706Z"
+    },
+    {
+      "id": "bug-1091",
+      "timestamp": "2026-08-21T12:52:18.521Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (4 removed) | Also: <button; onClick={() => setSettingsOpen(!settingsOpen)}",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T12:52:45.935Z"
+    },
+    {
+      "id": "bug-1092",
+      "timestamp": "2026-08-21T13:27:46.643Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "No early return/throw for edge case: items.length === 0",
+      "fix": "Added guard clause: if (items.length === 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T13:27:46.643Z"
+    },
+    {
+      "id": "bug-1093",
+      "timestamp": "2026-08-21T13:27:58.452Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "49 lines replaced/restructured",
+      "fix": "Rewrote 68→19 lines (49 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T13:27:58.452Z"
+    },
+    {
+      "id": "bug-1094",
+      "timestamp": "2026-08-21T15:39:54.095Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/api/client.ts",
+      "root_cause": "Had \"https://stellar-integrity-production-f507.up.rail",
+      "fix": "Changed to \"https://stellar-integrity-production-30cf.up.rail",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T15:39:54.095Z"
+    },
+    {
+      "id": "bug-1095",
+      "timestamp": "2026-08-21T15:40:04.033Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/__tests__/lib/api/client.test.ts",
+      "root_cause": "Had 'https://stellar-integrity-production-f507.up.rail",
+      "fix": "Changed to 'https://stellar-integrity-production-30cf.up.rail",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T15:40:04.033Z"
+    },
+    {
+      "id": "bug-1096",
+      "timestamp": "2026-08-21T15:40:11.062Z",
+      "error_message": "Wrong operator: === should be &&",
+      "file": "apps/web/lib/api/client.ts",
+      "root_cause": "Used \"===\" instead of \"&&\"",
+      "fix": "Changed operator === → &&",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T15:40:11.062Z"
+    },
+    {
+      "id": "bug-1097",
+      "timestamp": "2026-08-21T15:40:48.127Z",
+      "error_message": "Wrong reference: f507 should be 30cf",
+      "file": "AGENTS.md",
+      "root_cause": "Used \"f507\" instead of \"30cf\"",
+      "fix": "Changed f507 → 30cf",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T15:40:48.127Z"
+    },
+    {
+      "id": "bug-1098",
+      "timestamp": "2026-08-21T00:00:00.000Z",
+      "error_message": "Mobile app: 'API error: HTTP 404' on My Rooms / Copilot / Tasks screens",
+      "file": "apps/mobile/lib/api/client.ts, apps/mobile/.env.example, apps/mobile/eas.json, apps/mobile/__tests__/lib/api/client.test.ts, apps/web/lib/api/client.ts, AGENTS.md",
+      "root_cause": "Railway account migrated 2026-08-16 (new account after old one hit trial caps), moving the API service from host 'stellar-integrity-production-f507' to 'stellar-integrity-production-30cf'. CLAUDE.md and apps/web/next.config.mjs were updated at the time (per bug logged during Phase 37-05/32-06), but apps/mobile's DEFAULT_API_BASE, .env.example, and eas.json (preview+production EXPO_PUBLIC_API_URL) were missed, along with apps/web/lib/api/client.ts's LIVE_API_URL fallback (which itself was only a partial fix from an even earlier retired host). Verified: curl https://stellar-integrity-production-f507.up.railway.app/health -> 404; https://stellar-integrity-production-30cf.up.railway.app/health -> 200.",
+      "fix": "Replaced all remaining 'f507' host references with '30cf' across the 6 files listed. NOTE: EXPO_PUBLIC_API_URL is baked in at EAS build time, so this source fix alone does NOT patch already-installed mobile app binaries -- a new EAS build (preview and/or production profile) must be run and redistributed before the fix reaches devices.",
+      "tags": [
+        "mobile",
+        "api-url",
+        "railway-migration",
+        "404",
+        "eas-env-baked-in"
+      ],
+      "related_bugs": [
+        "bug-1097"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1099",
+      "timestamp": "2026-08-21T17:05:07.606Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "66 lines replaced/restructured",
+      "fix": "Rewrote 164→198 lines (66 removed) | Also: mosaic: {; flexWrap: \"wrap\",",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T17:05:35.780Z"
+    },
+    {
+      "id": "bug-1100",
+      "timestamp": "2026-08-21T17:05:13.736Z",
+      "error_message": "CSS fix: backgroundColor",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "backgroundColor: theme.shell.bg, borderColor: theme.shell.line → theme.shell.bg, borderColor: theme.shell.line, borderWidth: 1",
+      "fix": "Changed backgroundColor: theme.shell.bg, borderColor: theme.shell.line → theme.shell.bg, borderColor: theme.shell.line, borderWidth: 1",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:05:13.736Z"
+    },
+    {
+      "id": "bug-1101",
+      "timestamp": "2026-08-21T17:06:01.800Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:06:01.800Z"
+    },
+    {
+      "id": "bug-1102",
+      "timestamp": "2026-08-21T17:06:21.335Z",
+      "error_message": "CSS fix: color",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "color: theme.shell.ink2 → theme.textDisabled",
+      "fix": "Changed color: theme.shell.ink2 → theme.textDisabled",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-21T17:06:49.895Z"
+    },
+    {
+      "id": "bug-1103",
+      "timestamp": "2026-08-21T17:08:53.029Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:08:53.029Z"
+    },
+    {
+      "id": "bug-1104",
+      "timestamp": "2026-08-21T17:09:01.960Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:09:01.960Z"
+    },
+    {
+      "id": "bug-1105",
+      "timestamp": "2026-08-21T19:07:38.851Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:07:38.851Z"
+    },
+    {
+      "id": "bug-1106",
+      "timestamp": "2026-08-21T19:08:54.355Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_ai_copilot_rbac.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:08:54.355Z"
+    },
+    {
+      "id": "bug-1107",
+      "timestamp": "2026-08-21T19:13:33.916Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Had \"@expo/vector-icons\"",
+      "fix": "Changed to \"expo-router\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:13:33.916Z"
+    },
+    {
+      "id": "bug-1108",
+      "timestamp": "2026-08-21T19:13:48.670Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:13:48.670Z"
+    },
+    {
+      "id": "bug-1109",
+      "timestamp": "2026-08-21T19:14:57.012Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/components/shared/CopilotCard.tsx",
+      "root_cause": "Had \"react\"",
+      "fix": "Changed to \"react-native\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:14:57.012Z"
+    },
+    {
+      "id": "bug-1110",
+      "timestamp": "2026-08-21T19:15:28.068Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 18→21 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:15:28.068Z"
+    },
+    {
+      "id": "bug-1111",
+      "timestamp": "2026-08-21T19:16:11.327Z",
+      "error_message": "Wrong reference: absoluteFillObject should be absoluteFill",
+      "file": "apps/mobile/components/shared/CopilotCard.tsx",
+      "root_cause": "Used \"absoluteFillObject\" instead of \"absoluteFill\"",
+      "fix": "Changed absoluteFillObject → absoluteFill",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:16:11.327Z"
+    },
+    {
+      "id": "bug-1112",
+      "timestamp": "2026-08-21T19:18:20.320Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/__tests__/components/CopilotCard.test.tsx",
+      "root_cause": "Had \"Not now\"",
+      "fix": "Changed to \"copilot-card-backdrop\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T19:19:58.161Z"
+    },
+    {
+      "id": "bug-1113",
+      "timestamp": "2026-08-21T19:21:50.561Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/__tests__/screens/CopilotScreen.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:21:50.561Z"
+    },
+    {
+      "id": "bug-1114",
+      "timestamp": "2026-08-21T19:22:06.902Z",
+      "error_message": "Function not marked async",
+      "file": "apps/mobile/__tests__/screens/CopilotScreen.test.tsx",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:22:06.902Z"
+    },
+    {
+      "id": "bug-1115",
+      "timestamp": "2026-08-21T22:36:35.647Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T22:36:35.647Z"
+    },
+    {
+      "id": "bug-1116",
+      "timestamp": "2026-08-21T22:38:15.151Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/lib/ai/copilotCard.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T22:38:15.151Z"
+    },
+    {
+      "id": "bug-1117",
+      "timestamp": "2026-08-21T22:38:45.435Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "No early return/throw for edge case: !isLoading && !isAuthenticated",
+      "fix": "Added guard clause: if (!isLoading && !isAuthenticated)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T22:38:45.435Z"
+    },
+    {
+      "id": "bug-1118",
+      "timestamp": "2026-08-21T22:39:08.037Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 16→3 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T22:39:08.037Z"
+    },
+    {
+      "id": "bug-1119",
+      "timestamp": "2026-08-21T22:46:37.904Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/lib/theme/AppChrome.test.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 11→4 lines (3 removed) | Also: it(\"toggles the copilot corner-card overlay from t; \"onPress={() => setCopilotCardOpen((open) => !open",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T22:46:46.308Z"
+    },
+    {
+      "id": "bug-1120",
+      "timestamp": "2026-08-21T22:50:33.052Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/__tests__/components/ThemeSourceAudit.test.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T22:50:33.052Z"
+    },
+    {
+      "id": "bug-1121",
+      "timestamp": "2026-08-21T22:57:55.499Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/components/shared/CopilotBubble.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 31→54 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T22:57:55.499Z"
+    },
+    {
+      "id": "bug-1122",
+      "timestamp": "2026-08-21T23:01:18.706Z",
+      "error_message": "CSS fix: MaterialIcons, Ionicons",
+      "file": "apps/mobile/__tests__/components/CopilotBubble.test.tsx",
+      "root_cause": "MaterialIcons: () => null, → ({ name; Ionicons: () => null, → ({ name",
+      "fix": "Changed MaterialIcons: () => null, → ({ name; Ionicons: () => null, → ({ name",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T23:01:30.081Z"
+    },
+    {
+      "id": "bug-1123",
+      "timestamp": "2026-08-21T23:10:01.590Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/components/shared/CopilotCard.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 12→12 lines (8 removed) | Also: accessibilityElementsHidden; importantForAccessibility=\"no-hide-descendants\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T23:11:08.774Z"
+    },
+    {
+      "id": "bug-1124",
+      "timestamp": "2026-08-21T23:10:29.400Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/__tests__/components/CopilotCard.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:10:29.400Z"
+    },
+    {
+      "id": "bug-1125",
+      "timestamp": "2026-08-21T23:10:35.355Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/components/CopilotCard.test.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→18 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:10:35.355Z"
+    },
+    {
+      "id": "bug-1126",
+      "timestamp": "2026-08-21T23:12:45.901Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 62→100 lines (6 removed) | Also: onPress={toggleCard}; {copilotCardOpen && !hideFab ? (",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T23:12:53.592Z"
+    },
+    {
+      "id": "bug-1127",
+      "timestamp": "2026-08-21T23:12:58.720Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:12:58.720Z"
+    },
+    {
+      "id": "bug-1128",
+      "timestamp": "2026-08-21T23:14:18.488Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/lib/theme/AppChrome.test.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→26 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:14:18.488Z"
+    },
+    {
+      "id": "bug-1129",
+      "timestamp": "2026-08-21T23:23:11.009Z",
+      "error_message": "CSS fix: cardOrigin",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "cardOrigin: { transformOrigin: [\"100%\", \"100%\"] → { transformOrigin: [\"100%\", \"100%\", 0]",
+      "fix": "Changed cardOrigin: { transformOrigin: [\"100%\", \"100%\"] → { transformOrigin: [\"100%\", \"100%\", 0]",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:23:11.009Z"
+    },
+    {
+      "id": "bug-1130",
+      "timestamp": "2026-08-21T23:30:01.168Z",
+      "error_message": "CSS fix: right",
+      "file": "apps/mobile/components/shared/CopilotBubble.tsx",
+      "root_cause": "right: 18, → BUBBLE_RIGHT_INSET,",
+      "fix": "Changed right: 18, → BUBBLE_RIGHT_INSET,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:30:01.168Z"
+    },
+    {
+      "id": "bug-1131",
+      "timestamp": "2026-08-21T23:30:12.887Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:30:12.887Z"
+    },
+    {
+      "id": "bug-1132",
+      "timestamp": "2026-08-21T23:30:18.128Z",
+      "error_message": "Wrong reference: insets should be bubbleBottomOffset",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Used \"insets\" instead of \"bubbleBottomOffset\"",
+      "fix": "Changed insets → bubbleBottomOffset",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T23:30:18.128Z"
+    },
+    {
+      "id": "bug-1133",
+      "timestamp": "2026-08-21T23:35:05.181Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "19 lines replaced/restructured",
+      "fix": "Rewrote 31→19 lines (19 removed) | Also: // context must be an object — the API validates O; // intent_hint from it; a bare string fails valida",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T23:35:10.775Z"
+    },
+    {
+      "id": "bug-1134",
+      "timestamp": "2026-08-22T09:10:23.164Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/utils/cleanType.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: /** Statuses that still need a housekeeper's attention — exc; const OPEN_HOUSEKEEPING_STATUSES = new Set(['DIRTY', 'PICKUP",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T09:13:37.197Z"
+    },
+    {
+      "id": "bug-1135",
+      "timestamp": "2026-08-22T09:14:13.570Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RosterSidebar.tsx",
+      "root_cause": "Had \"w-6.5 h-6.5 w-[26px] h-[26px] rounded-full border",
+      "fix": "Changed to \"w-[26px] h-[26px] rounded-full border border-dash",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:14:13.570Z"
+    },
+    {
+      "id": "bug-1136",
+      "timestamp": "2026-08-22T09:14:35.017Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/AssignSaveBar.tsx",
+      "root_cause": "Had 'housekeeping.page.saveBar.acrossCount'",
+      "fix": "Changed to 'housekeeping.roomStatus.unknownHousekeeper'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T09:14:39.414Z"
+    },
+    {
+      "id": "bug-1137",
+      "timestamp": "2026-08-22T09:15:11.375Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: // -- Floor bulk-assign ------------------------------------; const handleAssignFloor = useCallback((floor: number, floorR",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T09:15:57.421Z"
+    },
+    {
+      "id": "bug-1138",
+      "timestamp": "2026-08-22T09:15:38.276Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "No early return/throw for edge case: !assignmentMode || assignFilter === 'all'",
+      "fix": "Added guard clause: if (!assignmentMode || assignFilter === 'all)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:15:38.276Z"
+    },
+    {
+      "id": "bug-1139",
+      "timestamp": "2026-08-22T09:17:12.084Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:17:12.084Z"
+    },
+    {
+      "id": "bug-1140",
+      "timestamp": "2026-08-22T09:18:28.844Z",
+      "error_message": "CSS fix: lg",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "lg: block\"> → flex lg:flex-col lg:gap-3.5 lg:w-[300px] lg:shrink-0 lg:sticky lg:top-4\">",
+      "fix": "Changed lg: block\"> → flex lg:flex-col lg:gap-3.5 lg:w-[300px] lg:shrink-0 lg:sticky lg:top-4\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:18:28.844Z"
+    },
+    {
+      "id": "bug-1141",
+      "timestamp": "2026-08-22T09:18:33.491Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/AssignmentSidebar.tsx",
+      "root_cause": "Had \"w-72 shrink-0 p-4\"",
+      "fix": "Changed to \"w-full shrink-0 p-4\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:18:33.491Z"
+    },
+    {
+      "id": "bug-1142",
+      "timestamp": "2026-08-22T09:19:44.502Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 20→27 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:19:44.502Z"
+    },
+    {
+      "id": "bug-1143",
+      "timestamp": "2026-08-22T09:20:20.493Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:20:20.493Z"
+    },
+    {
+      "id": "bug-1144",
+      "timestamp": "2026-08-22T09:26:19.901Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"d7de5fff5073abac30475c326cd26d36ae4124ef9a16f931f",
+      "fix": "Changed to \"1d43becfc1dde10424370ed3830d8340bb25d467d20ea7451",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T09:26:19.901Z"
+    },
+    {
+      "id": "bug-1145",
+      "timestamp": "2026-08-22T21:34:54.000Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/.tmp-debug-store.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T21:34:54.000Z"
+    },
+    {
+      "id": "bug-1146",
+      "timestamp": "2026-08-22T21:37:06.750Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T21:37:06.750Z"
+    },
+    {
+      "id": "bug-1147",
+      "timestamp": "2026-08-22T21:37:55.179Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T21:37:55.179Z"
+    },
+    {
+      "id": "bug-1148",
+      "timestamp": "2026-08-22T21:39:35.942Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T21:39:35.942Z"
+    },
+    {
+      "id": "bug-1149",
+      "timestamp": "2026-08-22T21:43:26.175Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/.tmp-verify-fix.mjs",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T21:43:26.175Z"
+    },
+    {
+      "id": "bug-1150",
+      "timestamp": "2026-08-22T22:28:24.453Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/.tmp-repro-save-remove.mjs",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T22:28:24.453Z"
+    },
+    {
+      "id": "bug-1151",
+      "timestamp": "2026-08-22T22:28:31.714Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/.tmp-repro-save-remove.mjs",
+      "root_cause": "Had '110'",
+      "fix": "Changed to '113'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-22T22:31:53.095Z"
+    },
+    {
+      "id": "bug-1152",
+      "timestamp": "2026-08-22T22:28:36.553Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/.tmp-repro-save-remove.mjs",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T22:28:36.553Z"
+    },
+    {
+      "id": "bug-1153",
+      "timestamp": "2026-08-22T22:30:04.695Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/AssignSaveBar.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T22:30:04.695Z"
+    },
+    {
+      "id": "bug-1154",
+      "timestamp": "2026-08-22T22:31:02.408Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/.tmp-repro-save-remove.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T22:31:02.408Z"
+    },
+    {
+      "id": "bug-1155",
+      "timestamp": "2026-08-22T22:32:26.655Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "No early return/throw for edge case: isSavingAssignment",
+      "fix": "Added guard clause: if (isSavingAssignment)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T22:32:26.655Z"
+    },
+    {
+      "id": "bug-1156",
+      "timestamp": "2026-08-22T22:35:49.832Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"e3d40fc5c402c281b759a3b6615eff568a04ff01d560cec60",
+      "fix": "Changed to \"0a129f10368cf7f06840564f99bf32db9983a32ef6a483c89",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T22:35:49.832Z"
+    },
+    {
+      "id": "bug-1157",
+      "timestamp": "2026-08-22T23:19:24.748Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "27 lines replaced/restructured",
+      "fix": "Rewrote 30→5 lines (27 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T23:19:24.748Z"
+    },
+    {
+      "id": "bug-1158",
+      "timestamp": "2026-08-23T00:10:09.270Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/components/shared/tokens.ts",
+      "root_cause": "Had \"#F4E7C6\"",
+      "fix": "Changed to \"#F5E9CF\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T00:10:09.271Z"
+    },
+    {
+      "id": "bug-1159",
+      "timestamp": "2026-08-23T00:10:14.043Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(auth)/auth/callback.tsx",
+      "root_cause": "Had \"#1E40AF\"",
+      "fix": "Changed to \"#B8431C\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T00:10:14.043Z"
+    },
+    {
+      "id": "bug-1160",
+      "timestamp": "2026-08-23T13:00:27.737Z",
+      "error_message": "CSS fix: room",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "room: Room, t: Translate): string { → Room, roomType: string | null, t: Translate): string {",
+      "fix": "Changed room: Room, t: Translate): string { → Room, roomType: string | null, t: Translate): string {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:00:27.737Z"
+    },
+    {
+      "id": "bug-1161",
+      "timestamp": "2026-08-23T13:00:38.616Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Had \"@/lib/offline/db\"",
+      "fix": "Changed to \"@/lib/api/notifications\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:00:38.616Z"
+    },
+    {
+      "id": "bug-1162",
+      "timestamp": "2026-08-23T13:00:45.589Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:00:45.589Z"
+    },
+    {
+      "id": "bug-1163",
+      "timestamp": "2026-08-23T13:00:51.229Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 12→19 lines (3 removed) | Also: // Real, actionable signals only — never a fabrica; // mirrors the companion tip's (attention > DND > ",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-23T13:00:57.025Z"
+    },
+    {
+      "id": "bug-1164",
+      "timestamp": "2026-08-23T13:01:00.226Z",
+      "error_message": "Wrong return value",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Was returning: items.slice(0, 2);",
+      "fix": "Now returns: items.slice(0, 3);",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:01:00.226Z"
+    },
+    {
+      "id": "bug-1165",
+      "timestamp": "2026-08-23T13:01:47.687Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:01:47.687Z"
+    },
+    {
+      "id": "bug-1166",
+      "timestamp": "2026-08-23T14:00:00.000-05:00",
+      "error_message": "PowerShell treated the unquoted Expo route-group path apps/mobile/app/(app)/... as command syntax during a targeted color-contract search.",
+      "file": "No source file changed (shell invocation only)",
+      "root_cause": "Parenthesized Expo Router paths were passed to PowerShell without quoting each complete path argument.",
+      "fix": "Retried the targeted rg command with every path containing parentheses enclosed in double quotes.",
+      "tags": [
+        "powershell",
+        "expo-router",
+        "path-quoting",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T14:00:00.000-05:00"
+    },
+    {
+      "id": "bug-1167",
+      "timestamp": "2026-08-23T14:01:00.000-05:00",
+      "error_message": "Fable 5 requires usage credits. Run /usage-credits to continue or switch models with /model.",
+      "file": "No repository file changed (Claude session 12848c75-a8be-4db1-b821-f41b2a3b0387 failed before its first turn)",
+      "root_cause": "The authenticated Anthropic account does not currently have the usage credits required for claude-fable-5.",
+      "fix": "No in-scope automatic fix is possible. Preserve the prepared session and wait for the user to enable usage credits, or obtain explicit authorization to switch models.",
+      "tags": [
+        "claude-code",
+        "claude-fable-5",
+        "usage-credits",
+        "http-429",
+        "external-blocker"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T14:01:00.000-05:00"
+    },
+    {
+      "id": "bug-1168",
+      "timestamp": "2026-08-23T13:53:03.169Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:53:03.169Z"
+    },
+    {
+      "id": "bug-1169",
+      "timestamp": "2026-08-23T13:53:29.296Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:53:29.296Z"
+    },
+    {
+      "id": "bug-1170",
+      "timestamp": "2026-08-23T13:53:34.288Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "No early return/throw for edge case: !shiftSession?.started_at",
+      "fix": "Added guard clause: if (!shiftSession?.started_at)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:53:34.288Z"
+    },
+    {
+      "id": "bug-1171",
+      "timestamp": "2026-08-23T13:54:05.930Z",
+      "error_message": "CSS fix: marginTop",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "marginTop: -6, → 2,",
+      "fix": "Changed marginTop: -6, → 2,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-23T13:54:51.639Z"
+    },
+    {
+      "id": "bug-1172",
+      "timestamp": "2026-08-23T13:54:39.098Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: style={[styles.timelineVipMarker, { left: `${vipPct ?? 0}%`,",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-23T13:58:40.432Z"
+    },
+    {
+      "id": "bug-1173",
+      "timestamp": "2026-08-23T13:55:03.317Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Had \"underPace\"",
+      "fix": "Changed to \"target\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:55:03.317Z"
+    },
+    {
+      "id": "bug-1174",
+      "timestamp": "2026-08-23T13:55:14.257Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "Had \"underPace\"",
+      "fix": "Changed to \"target\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:55:14.257Z"
+    },
+    {
+      "id": "bug-1175",
+      "timestamp": "2026-08-23T13:55:40.838Z",
+      "error_message": "CSS fix: get, post",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "get: jest.fn().mockResolvedValue({ data: mockRooms → jest.fn((path: string) => {; post: jest.fn().mockRejectedValue(new Error(\"ai offline\")), → jest.fn((path: string) => {",
+      "fix": "Changed get: jest.fn().mockResolvedValue({ data: mockRooms → jest.fn((path: string) => {; post: jest.fn().mockRejectedValue(new Error(\"ai offline\")), → jest.fn((path: string) => {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:55:40.838Z"
+    },
+    {
+      "id": "bug-1176",
+      "timestamp": "2026-08-23T13:56:14.413Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T13:56:14.413Z"
+    },
+    {
+      "id": "bug-1177",
+      "timestamp": "2026-08-23T14:50:57.904Z",
+      "error_message": "CSS fix: fontSize, lineHeight",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "fontSize: 40, → 44,; lineHeight: 44, → 42,",
+      "fix": "Changed fontSize: 40, → 44,; lineHeight: 44, → 42,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-23T14:51:04.213Z"
+    },
+    {
+      "id": "bug-1178",
+      "timestamp": "2026-08-23T15:03:52.795Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T15:03:52.795Z"
+    },
+    {
+      "id": "bug-1179",
+      "timestamp": "2026-08-23T15:04:34.324Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "fontSize: 13, → 12.5,",
+      "fix": "Changed fontSize: 13, → 12.5,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T15:04:34.324Z"
+    },
+    {
+      "id": "bug-1180",
+      "timestamp": "2026-08-23T15:04:53.177Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→7 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T15:04:53.177Z"
+    },
+    {
+      "id": "bug-1181",
+      "timestamp": "2026-08-23T15:05:04.783Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→8 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T15:05:04.783Z"
+    },
+    {
+      "id": "bug-1182",
+      "timestamp": "2026-08-23T15:05:27.657Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→5 lines (5 removed) | Also: it(\"prioritizes the VIP reason and shows a floor l; const room = {",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-23T15:05:48.239Z"
+    },
+    {
+      "id": "bug-1183",
+      "timestamp": "2026-08-23T16:45:43.885Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/stores/appStore.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:45:43.885Z"
+    },
+    {
+      "id": "bug-1184",
+      "timestamp": "2026-08-23T16:46:12.016Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:46:12.016Z"
+    },
+    {
+      "id": "bug-1185",
+      "timestamp": "2026-08-23T16:50:16.021Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:50:16.021Z"
+    },
+    {
+      "id": "bug-1186",
+      "timestamp": "2026-08-23T16:50:21.210Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "No early return/throw for edge case: !shiftStart",
+      "fix": "Added guard clause: if (!shiftStart)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:50:21.210Z"
+    },
+    {
+      "id": "bug-1187",
+      "timestamp": "2026-08-23T16:51:29.000Z",
+      "error_message": "Wrong operator: || should be !==",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Used \"||\" instead of \"!==\"",
+      "fix": "Changed operator || → !==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:51:29.000Z"
+    },
+    {
+      "id": "bug-1188",
+      "timestamp": "2026-08-23T16:51:34.130Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:51:34.130Z"
+    },
+    {
+      "id": "bug-1189",
+      "timestamp": "2026-08-23T16:54:00.123Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:54:00.123Z"
+    },
+    {
+      "id": "bug-1190",
+      "timestamp": "2026-08-23T16:55:13.456Z",
+      "error_message": "CSS fix: roomChecklistProgress, resetRoomChecklist",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "roomChecklistProgress: { → mockChecklistProgress,; resetRoomChecklist: jest.fn(), → mockResetRoomChecklist,",
+      "fix": "Changed roomChecklistProgress: { → mockChecklistProgress,; resetRoomChecklist: jest.fn(), → mockResetRoomChecklist,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:55:13.456Z"
+    },
+    {
+      "id": "bug-1191",
+      "timestamp": "2026-08-23T16:55:45.765Z",
+      "error_message": "Function not marked async",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:55:45.765Z"
+    },
+    {
+      "id": "bug-1192",
+      "timestamp": "2026-08-23T16:59:37.058Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/jest.setup.js",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:59:37.058Z"
+    },
+    {
+      "id": "bug-1193",
+      "timestamp": "2026-08-23T16:59:58.061Z",
+      "error_message": "CSS fix: duration, width",
+      "file": "apps/mobile/components/home/HoldToConfirmSheet.tsx",
+      "root_cause": "duration: 150 → HOLD_DURATION_MS,; width: `${fill.value * 100 → fill.interpolate({ inputRange: [0, 1], outputRange: [\"0%\", \"100%\"]",
+      "fix": "Changed duration: 150 → HOLD_DURATION_MS,; width: `${fill.value * 100 → fill.interpolate({ inputRange: [0, 1], outputRange: [\"0%\", \"100%\"]",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T16:59:58.061Z"
+    },
+    {
+      "id": "bug-1194",
+      "timestamp": "2026-08-23T18:18:59.892Z",
+      "error_message": "CSS fix: backgroundColor, paddingTop, color",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "backgroundColor: theme.shell.bg → theme.background; paddingTop: insets.top + 10, backgroundColor: theme.shell.bg → insets.top + 10, backgroundColor: theme.background; color: theme.shell.ink → theme.textPrimary",
+      "fix": "Changed backgroundColor: theme.shell.bg → theme.background; paddingTop: insets.top + 10, backgroundColor: theme.shell.bg → insets.top + 10, backgroundColor: theme.background; color: theme.shell.ink → theme.textPrimary",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-23T18:19:07.151Z"
+    },
+    {
+      "id": "bug-1195",
+      "timestamp": "2026-08-23T18:19:22.219Z",
+      "error_message": "CSS fix: backgroundColor",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "backgroundColor: theme.status.inProgress → accent.bg",
+      "fix": "Changed backgroundColor: theme.status.inProgress → accent.bg",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-23T18:19:56.089Z"
+    },
+    {
+      "id": "bug-1196",
+      "timestamp": "2026-08-23T22:16:23.051Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/components/shared/tokens.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 10→19 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:16:23.051Z"
+    },
+    {
+      "id": "bug-1197",
+      "timestamp": "2026-08-23T22:16:44.239Z",
+      "error_message": "CSS fix: fontFamily",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "fontFamily: monoFont, → serifFont,",
+      "fix": "Changed fontFamily: monoFont, → serifFont,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:16:44.239Z"
+    },
+    {
+      "id": "bug-1198",
+      "timestamp": "2026-08-23T22:18:32.500Z",
+      "error_message": "CSS fix: icon",
+      "file": "apps/mobile/components/home/EmptyBoardState.tsx",
+      "root_cause": "icon: React.ComponentProps<typeof Ionicons>[\"name\"] → ComponentProps<typeof Ionicons>[\"name\"]",
+      "fix": "Changed icon: React.ComponentProps<typeof Ionicons>[\"name\"] → ComponentProps<typeof Ionicons>[\"name\"]",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:18:32.500Z"
+    },
+    {
+      "id": "bug-1199",
+      "timestamp": "2026-08-23T22:19:22.408Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→27 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:19:22.408Z"
+    },
+    {
+      "id": "bug-1200",
+      "timestamp": "2026-08-23T22:22:52.533Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:22:52.533Z"
+    },
+    {
+      "id": "bug-1201",
+      "timestamp": "2026-08-23T22:22:56.780Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/middleware/credits.py",
+      "root_cause": "Had \"supervisor_briefing\"",
+      "fix": "Changed to \"housekeeper_shift_recap\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:22:56.780Z"
+    },
+    {
+      "id": "bug-1202",
+      "timestamp": "2026-08-23T22:24:30.992Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:24:30.992Z"
+    },
+    {
+      "id": "bug-1203",
+      "timestamp": "2026-08-23T22:25:19.304Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:25:19.304Z"
+    },
+    {
+      "id": "bug-1204",
+      "timestamp": "2026-08-23T22:32:35.787Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_ai_copilot_rbac.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-23T22:32:35.787Z"
     }
   ]
 }

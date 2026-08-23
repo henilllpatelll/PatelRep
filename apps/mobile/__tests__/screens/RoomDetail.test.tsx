@@ -68,6 +68,8 @@ jest.mock("@/lib/api/client", () => ({
     post: jest.fn(),
   },
 }));
+let mockChecklistProgress: Record<string, Record<string, boolean>> = {};
+
 jest.mock("@/stores/appStore", () => ({
   useAppStore: () => ({
     isOnline: true,
@@ -78,6 +80,15 @@ jest.mock("@/stores/appStore", () => ({
     refreshRooms: jest.fn(),
     incrementDndAttempt: jest.fn().mockReturnValue(1),
     resetDndAttempt: jest.fn(),
+    roomChecklistProgress: mockChecklistProgress,
+    setRoomChecklistItem: (roomId: string, key: string, checked: boolean) => {
+      mockChecklistProgress = { ...mockChecklistProgress, [roomId]: { ...mockChecklistProgress[roomId], [key]: checked } };
+    },
+    resetRoomChecklist: (roomId: string) => {
+      const next = { ...mockChecklistProgress };
+      delete next[roomId];
+      mockChecklistProgress = next;
+    },
   }),
 }));
 
@@ -106,6 +117,7 @@ function renderScreen() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockRooms = [makeRoom()];
+  mockChecklistProgress = {};
   mockApiGet.mockResolvedValue({
     data: [],
   });

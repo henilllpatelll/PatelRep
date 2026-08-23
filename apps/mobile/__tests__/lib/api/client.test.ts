@@ -35,7 +35,7 @@ describe('API client', () => {
   });
 
   it('uses the active FastAPI service as its fallback base URL', () => {
-    expect(DEFAULT_API_BASE).toBe('https://stellar-integrity-production-f507.up.railway.app/v1');
+    expect(DEFAULT_API_BASE).toBe('https://stellar-integrity-production-30cf.up.railway.app/v1');
   });
 
   it('retries once with refreshed token on 401', async () => {

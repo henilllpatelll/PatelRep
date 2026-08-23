@@ -243,3 +243,83 @@ def test_confirm_tasks_stays_open_by_design():
     typing its body -- it stays open, matching its sibling create endpoints."""
     route = _route("/ai/tasks/confirm", "POST")
     assert _role_check_dependency(route) is None
+
+
+# --- Mobile copilot corner-card briefing endpoints: role gates ---
+
+@pytest.mark.asyncio
+async def test_supervisor_briefing_excludes_other_roles():
+    route = _route("/ai/supervisor/briefing", "POST")
+    role_check = _role_check_dependency(route)
+    assert role_check is not None
+    for role in ["housekeeper", "engineer", "chief_engineer", "front_desk", "gm"]:
+        with pytest.raises(HTTPException, match="not authorized"):
+            await role_check(_user(role))
+    result = await role_check(_user("housekeeping_supervisor"))
+    assert result.role == "housekeeping_supervisor"
+
+
+@pytest.mark.asyncio
+async def test_engineer_briefing_allows_engineer_and_chief_engineer_only():
+    """Mobile treats engineer and chief_engineer as one persona -- both must
+    pass this gate even though chief_engineer has no distinct mobile login."""
+    route = _route("/ai/engineer/briefing", "POST")
+    role_check = _role_check_dependency(route)
+    assert role_check is not None
+    for role in ["housekeeper", "housekeeping_supervisor", "front_desk", "gm"]:
+        with pytest.raises(HTTPException, match="not authorized"):
+            await role_check(_user(role))
+    for role in ["engineer", "chief_engineer"]:
+        result = await role_check(_user(role))
+        assert result.role == role
+
+
+@pytest.mark.asyncio
+async def test_front_desk_briefing_excludes_other_roles():
+    route = _route("/ai/front-desk/briefing", "POST")
+    role_check = _role_check_dependency(route)
+    assert role_check is not None
+    for role in ["housekeeper", "engineer", "chief_engineer", "housekeeping_supervisor", "gm"]:
+        with pytest.raises(HTTPException, match="not authorized"):
+            await role_check(_user(role))
+    result = await role_check(_user("front_desk"))
+    assert result.role == "front_desk"
+
+
+@pytest.mark.asyncio
+async def test_gm_briefing_excludes_other_roles():
+    route = _route("/ai/gm/briefing", "GET")
+    role_check = _role_check_dependency(route)
+    assert role_check is not None
+    for role in ["housekeeper", "engineer", "chief_engineer", "housekeeping_supervisor", "front_desk"]:
+        with pytest.raises(HTTPException, match="not authorized"):
+            await role_check(_user(role))
+    result = await role_check(_user("gm"))
+    assert result.role == "gm"
+
+
+def test_housekeeping_briefing_role_gate_documented():
+    """/ai/housekeeping/briefing predates this file's ROLE_GATED_GET_PATHS list
+    (it's POST, not GET, so it was never covered) -- pin its actual gate here
+    so a future accidental widen/narrow shows up as a diff."""
+    route = _route("/ai/housekeeping/briefing", "POST")
+    role_check = _role_check_dependency(route)
+    assert role_check is not None
+
+
+# --- Housekeeper end-of-shift AI recap: role gate ---
+
+@pytest.mark.asyncio
+async def test_housekeeper_shift_recap_excludes_other_roles():
+    """POST /ai/housekeeping/shift-summary (Mobile Home housekeeper design
+    import) mirrors /ai/housekeeping/briefing's gate exactly: housekeeper and
+    housekeeping_supervisor only."""
+    route = _route("/ai/housekeeping/shift-summary", "POST")
+    role_check = _role_check_dependency(route)
+    assert role_check is not None
+    for role in ["engineer", "chief_engineer", "front_desk", "gm"]:
+        with pytest.raises(HTTPException, match="not authorized"):
+            await role_check(_user(role))
+    for role in ["housekeeper", "housekeeping_supervisor"]:
+        result = await role_check(_user(role))
+        assert result.role == role

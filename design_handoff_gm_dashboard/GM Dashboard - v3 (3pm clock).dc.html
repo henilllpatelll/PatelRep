@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@0.446.0/dist/umd/lucide.min.js"></script>
+<style>
+  :root{--paper:#f7f4ee;--surface:#fff;--surface-2:#fbf9f4;--surface-3:#f1ede4;--line:#e6dfd1;--line-2:#efe9dc;--ink:#1a1815;--ink-2:#4a4640;--ink-3:#6e685e;--ink-4:#a8a195;--accent:#b8431c;--accent-soft:#fbe9df;--accent-line:#f0c8b3;--ready:#0c6e63;--ready-soft:#d6eae5;--ready-line:#a4cfc7;--caution:#a16207;--caution-soft:#f5e9cf;--caution-line:#e0c890;--alert:#a6263c;--alert-soft:#f5d8de;--alert-line:#e8a8b3;--info:#265d8a;--info-soft:#d8e6f0;--info-line:#a8c2d8;--progress:#7c3aed;--progress-soft:#ede9fe;--progress-line:#c4b5fd;--blocked:#57534e;--blocked-soft:#f5f5f4;--blocked-line:#d6d3d1;--ai:#4a2c8f;--ai-soft:#ece4f8;--ai-line:#c8b8e3;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;--shadow-sm:0 1px 2px rgba(26,24,21,.04),0 0 0 1px rgba(26,24,21,.04);--shadow-md:0 2px 6px rgba(26,24,21,.05),0 1px 2px rgba(26,24,21,.04);--shadow-lg:0 10px 30px rgba(26,24,21,.08),0 2px 8px rgba(26,24,21,.04);--shadow-pop:0 18px 40px rgba(26,24,21,.12),0 4px 12px rgba(26,24,21,.06)}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--ink)}
+  @keyframes pulse{50%{opacity:.45}}
+</style>
+</helmet>
+<div style="display:flex;height:100vh;background:var(--paper);overflow:hidden">
+
+  <aside style="width:232px;flex-shrink:0;background:var(--paper);border-right:1px solid var(--line);display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 14px 12px">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div style="width:28px;height:28px;border-radius:7px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 21V8l8-5 8 5v13" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M9 21v-6h6v6" stroke="var(--paper)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div style="line-height:1">
+          <div style="font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">PatelRep</div>
+          <div style="font-size:10px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace;margin-top:2px">Hotel Operations AI</div>
+        </div>
+      </div>
+      <button style="width:28px;height:28px;border:0;background:none;border-radius:8px;color:var(--ink-3);display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="panel-left-close" style="width:14px;height:14px"></i></button>
+    </div>
+
+    <div style="position:relative;margin:0 12px 12px">
+      <button style="display:flex;width:100%;align-items:center;gap:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:8px 10px;text-align:left;cursor:pointer" style-hover="background:var(--surface-2)">
+        <div style="width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;font-family:'Instrument Serif',serif;flex-shrink:0">S</div>
+        <div style="flex:1;min-width:0;line-height:1">
+          <div style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Stonebriar Inn &amp; Suites</div>
+          <div style="font-size:10px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace;margin-top:2px">112 rooms</div>
+        </div>
+        <i data-lucide="chevron-down" style="width:12px;height:12px;color:var(--ink-3);flex-shrink:0"></i>
+      </button>
+    </div>
+
+    <nav style="flex:1;padding:0 12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px">
+      <div>
+        <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);padding:4px 8px 6px;margin:0">Operations</p>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div style="position:relative">
+            <span style="position:absolute;left:0;top:6px;bottom:6px;width:2px;border-radius:2px;background:var(--accent)"></span>
+            <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;background:var(--surface);font-weight:500;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)"><i data-lucide="layout-dashboard" style="width:14px;height:14px;color:var(--accent);flex-shrink:0"></i><span style="flex:1">Dashboard</span></a>
+          </div>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="bed" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Housekeeping</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="wrench" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Engineering</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="clipboard-list" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Programs</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="package" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Lost &amp; Found</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="message-square" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Guest Requests</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="list-checks" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Tasks</span></a>
+        </div>
+      </div>
+      <div>
+        <div style="margin:0 4px 8px;border-top:1px solid var(--line-2)"></div>
+        <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);padding:0 8px 6px;margin:0">Intelligence</p>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="sparkles" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">AI Copilot</span><span style="font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--ai-soft);color:var(--ai);border:1px solid var(--ai-line)">AI</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="library" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">SOP Library</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="shield-check" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Evidence</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="life-buoy" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Safety</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="file-text" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Reports</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="trending-up" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Management ROI</span></a>
+        </div>
+      </div>
+      <div>
+        <div style="margin:0 4px 8px;border-top:1px solid var(--line-2)"></div>
+        <p style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);padding:0 8px 6px;margin:0">Organization</p>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="users" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Staff</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="calendar" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Schedule</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="book-open" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span style="flex:1">Logbook</span></a>
+        </div>
+      </div>
+    </nav>
+
+    <div style="padding:8px 12px 4px;border-top:1px solid var(--line-2)">
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 14px;font-size:13px;border-radius:8px;color:var(--ink-2)" style-hover="background:var(--surface-2);color:var(--ink)"><i data-lucide="settings" style="width:14px;height:14px;color:var(--ink-3);flex-shrink:0"></i><span>Settings</span></a>
+    </div>
+    <div style="padding:8px 12px 16px;border-top:1px solid var(--line-2)">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--surface);border:1px solid var(--line)">
+        <div style="width:28px;height:28px;border-radius:50%;background:#0c6e63;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;flex-shrink:0">RP</div>
+        <div style="min-width:0">
+          <p style="margin:0;font-size:13px;font-weight:500;color:var(--ink);line-height:1.25">Raj Patel</p>
+          <p style="margin:2px 0 0;font-size:10px;color:var(--ink-3);line-height:1.25">General Manager</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+    <header style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 12px;flex:1 1 auto;min-width:0;max-width:480px">
+        <i data-lucide="search" style="width:13px;height:13px;color:var(--ink-3);flex-shrink:0"></i>
+        <span style="font-size:13px;color:var(--ink-3);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Search rooms, work orders, guests...</span>
+        <kbd style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-3);background:var(--surface-3);border:1px solid var(--line);padding:1px 5px;border-radius:4px">⌘K</kbd>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);flex-shrink:0;white-space:nowrap">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--ready);flex-shrink:0"></span>
+        <span style="font-family:'IBM Plex Mono',monospace">Thu, Aug 20 · Day shift</span>
+      </div>
+      <div style="width:1px;height:20px;background:var(--line);flex-shrink:0"></div>
+      <button style="display:inline-flex;align-items:center;gap:6px;background:var(--ai-soft);color:var(--ai);border:1px solid var(--ai-line);padding:0 10px;height:32px;border-radius:8px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;flex-shrink:0;white-space:nowrap">
+        <i data-lucide="sparkles" style="width:13px;height:13px"></i><span>Ask copilot</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.6;margin-left:4px">⌘J</span>
+      </button>
+      <div style="position:relative;flex-shrink:0">
+        <button style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);cursor:pointer"><i data-lucide="bell" style="width:14px;height:14px"></i></button>
+        <span style="position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center;border:2px solid var(--paper)">3</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:0 4px;flex-shrink:0">
+        <div style="width:28px;height:28px;border-radius:50%;background:#0c6e63;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600">RP</div>
+        <i data-lucide="chevron-down" style="width:11px;height:11px;color:var(--ink-3)"></i>
+      </div>
+    </header>
+
+    <main style="flex:1;overflow-y:auto;padding:20px 20px 80px">
+      <div style="max-width:1240px;display:flex;flex-direction:column;gap:20px">
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px">
+          <div>
+            <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3)">Thursday, August 20</p>
+            <h1 style="margin:0;font-family:'Instrument Serif',serif;font-size:34px;font-weight:400;font-style:italic;letter-spacing:-.5px;line-height:1.1;color:var(--ink)">Good morning, Raj.</h1>
+            <p style="margin:8px 0 0;font-size:14px;color:var(--ink-2);line-height:1.45">Stonebriar Inn &amp; Suites · 47 arrivals expected today</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;padding-top:4px">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ready);background:var(--ready-soft);border:1px solid var(--ready-line);border-radius:999px;padding:4px 10px">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--ready);flex-shrink:0;animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite"></span>Live
+            </span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3)">updated 9:42 AM</span>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-md);padding:24px;display:flex;gap:32px;align-items:stretch">
+          <div style="position:relative;width:184px;height:184px;flex-shrink:0">
+            <svg width="184" height="184" viewBox="0 0 184 184" style="transform:rotate(-90deg)">
+              <circle cx="92" cy="92" r="78" fill="none" stroke="var(--surface-3)" stroke-width="16"></circle>
+              <circle cx="92" cy="92" r="78" fill="none" stroke="var(--ready)" stroke-width="16" stroke-linecap="round" stroke-dasharray="323 490"></circle>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+              <span style="font-family:'Instrument Serif',serif;font-size:52px;line-height:1;color:var(--ink)">31</span>
+              <span style="font-size:12px;color:var(--ink-3)">of 47 arrivals</span>
+              <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ready);margin-top:2px">Ready now</span>
+            </div>
+          </div>
+
+          <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)">Ready for arrivals</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-3)">5h 18m to 3:00 PM</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+              <div style="background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-md);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:var(--ready);flex-shrink:0"></span><span style="font-size:11px;color:var(--ink-3);font-weight:500">Inspected</span></div>
+                <span style="font-family:'Instrument Serif',serif;font-size:30px;line-height:1;color:var(--ink)">31</span>
+              </div>
+              <div style="background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-md);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:var(--info);flex-shrink:0"></span><span style="font-size:11px;color:var(--ink-3);font-weight:500">Awaiting inspection</span></div>
+                <span style="font-family:'Instrument Serif',serif;font-size:30px;line-height:1;color:var(--ink)">7</span>
+              </div>
+              <div style="background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-md);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:var(--progress);flex-shrink:0"></span><span style="font-size:11px;color:var(--ink-3);font-weight:500">Being cleaned</span></div>
+                <span style="font-family:'Instrument Serif',serif;font-size:30px;line-height:1;color:var(--ink)">9</span>
+              </div>
+              <div style="background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-md);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:var(--alert);flex-shrink:0"></span><span style="font-size:11px;color:var(--ink-3);font-weight:500">Not started</span></div>
+                <span style="font-family:'Instrument Serif',serif;font-size:30px;line-height:1;color:var(--ink)">12</span>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface-3)">
+                <div style="width:52%;background:var(--ready)"></div>
+                <div style="width:12%;background:var(--info)"></div>
+                <div style="width:15%;background:var(--progress)"></div>
+                <div style="width:21%;background:var(--alert)"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-4)">
+                <span>59 departure rooms in play</span>
+                <span>4 blocked · see below</span>
+              </div>
+            </div>
+
+            <div style="margin-top:auto;border:1px solid var(--ai-line);background:var(--ai-soft);border-radius:var(--r-md);padding:12px 14px;display:flex;align-items:center;gap:12px">
+              <span style="display:inline-flex;align-items:center;gap:4px;background:#fff;color:var(--ai);border:1px solid var(--ai-line);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-radius:4px;flex-shrink:0">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"></path></svg>AI<span style="font-family:'IBM Plex Mono',monospace;opacity:.7">88%</span>
+              </span>
+              <p style="margin:0;font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;line-height:1.35;color:var(--ink);flex:1">At the current pace all 47 arrival rooms are ready by 2:10 PM — but floor 3 is 40 minutes behind and holds 6 of today's VIP rooms.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:20px;align-items:start">
+
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-md);padding:16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:baseline;gap:10px">
+                <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)">What's holding rooms back</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-4)">4</span>
+              </div>
+              <a href="#" style="font-size:11px;font-weight:500;color:var(--ink-3)">All work orders</a>
+            </div>
+
+            <div style="display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;flex-shrink:0">118</span>
+                <div style="flex:1;min-width:0">
+                  <p style="margin:0;font-size:13px;color:var(--ink)">AC not cooling — WO-1043</p>
+                  <p style="margin:3px 0 0;font-size:11.5px;color:var(--ink-3)">Engineering · Miguel R. · arrival 3:00 PM</p>
+                </div>
+                <span style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid var(--alert-line);background:var(--alert-soft);color:var(--alert);font-size:10.5px;font-weight:500;padding:1px 7px;flex-shrink:0">Overdue 47m</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;flex-shrink:0">312</span>
+                <div style="flex:1;min-width:0">
+                  <p style="margin:0;font-size:13px;color:var(--ink)">Bathroom leak — WO-1051</p>
+                  <p style="margin:3px 0 0;font-size:11.5px;color:var(--ink-3)">Engineering · unassigned · VIP arrival</p>
+                </div>
+                <span style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid var(--alert-line);background:var(--alert-soft);color:var(--alert);font-size:10.5px;font-weight:500;padding:1px 7px;flex-shrink:0">Urgent</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;flex-shrink:0">214</span>
+                <div style="flex:1;min-width:0">
+                  <p style="margin:0;font-size:13px;color:var(--ink)">Deep clean overdue since 8:00 AM</p>
+                  <p style="margin:3px 0 0;font-size:11.5px;color:var(--ink-3)">Housekeeping · Ana L. · 2h on room</p>
+                </div>
+                <span style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid var(--caution-line);background:var(--caution-soft);color:var(--caution);font-size:10.5px;font-weight:500;padding:1px 7px;flex-shrink:0">Behind</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;flex-shrink:0">407</span>
+                <div style="flex:1;min-width:0">
+                  <p style="margin:0;font-size:13px;color:var(--ink)">Out of order — carpet replacement</p>
+                  <p style="margin:3px 0 0;font-size:11.5px;color:var(--ink-3)">Engineering · returns Aug 22</p>
+                </div>
+                <span style="display:inline-flex;align-items:center;border-radius:999px;border:1px solid var(--blocked-line);background:var(--blocked-soft);color:var(--blocked);font-size:10.5px;font-weight:500;padding:1px 7px;flex-shrink:0">OOO</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-md);padding:16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:baseline;gap:10px">
+                <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)">On shift</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-4)">9 · 2 behind pace</span>
+              </div>
+              <a href="#" style="font-size:11px;font-weight:500;color:var(--ink-3)">Staff</a>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#265d8a;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">AL</div>
+                  <span style="font-size:12.5px;font-weight:500;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ana L.</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)">4/9</span>
+                </div>
+                <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden"><div style="width:44%;height:100%;background:var(--caution)"></div></div>
+                <span style="font-size:10.5px;color:var(--caution)">40m behind · floor 3</span>
+              </div>
+              <div style="border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#0c6e63;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">MG</div>
+                  <span style="font-size:12.5px;font-weight:500;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Maria G.</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)">7/9</span>
+                </div>
+                <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden"><div style="width:78%;height:100%;background:var(--ready)"></div></div>
+                <span style="font-size:10.5px;color:var(--ink-3)">on pace · floor 1</span>
+              </div>
+              <div style="border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#b8431c;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">JT</div>
+                  <span style="font-size:12.5px;font-weight:500;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Jorge T.</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)">6/8</span>
+                </div>
+                <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden"><div style="width:75%;height:100%;background:var(--ready)"></div></div>
+                <span style="font-size:10.5px;color:var(--ink-3)">on pace · floor 2</span>
+              </div>
+              <div style="border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#4a2c8f;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">SP</div>
+                  <span style="font-size:12.5px;font-weight:500;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sara P.</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)">3/8</span>
+                </div>
+                <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden"><div style="width:38%;height:100%;background:var(--caution)"></div></div>
+                <span style="font-size:10.5px;color:var(--caution)">25m behind · floor 3</span>
+              </div>
+              <div style="border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#57534e;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">DK</div>
+                  <span style="font-size:12.5px;font-weight:500;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Dee K.</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)">5/7</span>
+                </div>
+                <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden"><div style="width:71%;height:100%;background:var(--ready)"></div></div>
+                <span style="font-size:10.5px;color:var(--ink-3)">on pace · floor 4</span>
+              </div>
+              <div style="border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#a16207;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">RC</div>
+                  <span style="font-size:12.5px;font-weight:500;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rosa C.</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3)">6/9</span>
+                </div>
+                <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden"><div style="width:67%;height:100%;background:var(--ready)"></div></div>
+                <span style="font-size:10.5px;color:var(--ink-3)">on pace · inspections</span>
+              </div>
+            </div>
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--ink-3)">
+              <span>3 more on shift — engineering, front desk</span>
+              <a href="#" style="font-size:11px;font-weight:500;color:var(--ink-3)">Schedule</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-md);padding:14px 16px;display:flex;align-items:center;gap:16px">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:var(--ai-soft);color:var(--ai);border:1px solid var(--ai-line);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-radius:4px;flex-shrink:0">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"></path></svg>AI
+          </span>
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);flex-shrink:0">Overnight</span>
+          <p style="margin:0;font-size:13px;color:var(--ink-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Quiet night — 2 guest requests resolved, 1 noise complaint on floor 2, night audit clean, no new work orders after 11 PM.</p>
+          <a href="#" style="font-size:12px;font-weight:500;flex-shrink:0">Read full recap</a>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this.paint() }
+  componentDidUpdate() { this.paint() }
+  paint() {
+    const go = () => { try { window.lucide && window.lucide.createIcons() } catch (e) {} }
+    go(); setTimeout(go, 300); setTimeout(go, 1200)
+  }
+}
+</script>
+</body>
+</html>

@@ -153,7 +153,7 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 
 | Service | URL |
 |---|---|
-| API (Railway) | https://stellar-integrity-production-f507.up.railway.app |
+| API (Railway) | https://stellar-integrity-production-30cf.up.railway.app |
 | Web (Railway) | https://patelrep-production-0ad1.up.railway.app |
 | GitHub | https://github.com/henilllpatelll/PatelRep |
 

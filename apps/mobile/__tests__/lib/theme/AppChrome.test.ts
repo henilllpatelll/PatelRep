@@ -74,13 +74,6 @@ describe("protected navigation chrome", () => {
     expect(protectedLayoutSource).toContain(
       "headerStyle: { backgroundColor: theme.shell.surface }",
     );
-    expect(protectedLayoutSource).toContain(
-      "backgroundColor: theme.ai.primary",
-    );
-    expect(protectedLayoutSource).toContain("shadowColor: theme.ai.primary");
-    expect(protectedLayoutSource).toContain(
-      'color={theme.onAi}',
-    );
   });
 
   it("keeps role tabs, hidden routes, and badges on their existing data paths", () => {
@@ -107,15 +100,45 @@ describe("protected navigation chrome", () => {
     );
   });
 
-  it("translates tab and Copilot accessibility labels without changing destinations", () => {
+  it("translates tab accessibility labels", () => {
     expect(protectedLayoutSource).toMatch(
       /title: t\(tab\.titleKey\),[\s\S]*tabBarAccessibilityLabel: t\(tab\.titleKey\),[\s\S]*tabBarIcon:/,
     );
+  });
+
+  it("shows the copilot bubble instead of the old plain FAB, expanding into the card on tap", () => {
+    expect(protectedLayoutSource).toContain("<CopilotBubble");
     expect(protectedLayoutSource).toContain(
       'accessibilityLabel={t("tabs.copilot")}',
     );
-    expect(protectedLayoutSource).toContain(
+    expect(protectedLayoutSource).toContain("onPress={openCard}");
+    expect(protectedLayoutSource).toContain("onLongPress={startVoiceCapture}");
+    expect(protectedLayoutSource).toContain("onPressOut={stopVoiceCapture}");
+    expect(protectedLayoutSource).not.toContain(
       'router.push("/(app)/copilot" as never)',
+    );
+  });
+
+  it("only ever closes the card via its own close button (closeCard), never a bubble toggle", () => {
+    expect(protectedLayoutSource).toContain("<CopilotCard");
+    expect(protectedLayoutSource).toContain("onClose={closeCard}");
+    expect(protectedLayoutSource).not.toMatch(/onPress=\{.*(?:!open|toggle).*\}/i);
+  });
+
+  it("animates the bubble-to-card expand/collapse with reanimated, anchored near the bubble", () => {
+    expect(protectedLayoutSource).toContain(
+      'import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";',
+    );
+    expect(protectedLayoutSource).toContain("const cardProgress = useSharedValue(0);");
+    expect(protectedLayoutSource).toContain("cardOrigin: { transformOrigin:");
+  });
+
+  it("feeds the corner card its brief data from the lifted useCopilotBrief hook, not its own fetch", () => {
+    expect(protectedLayoutSource).toContain(
+      "const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();",
+    );
+    expect(protectedLayoutSource).toMatch(
+      /<CopilotCard[\s\S]*brief=\{brief\}[\s\S]*loading=\{briefLoading\}[\s\S]*error=\{briefError\}[\s\S]*reload=\{reloadBrief\}/,
     );
   });
 });

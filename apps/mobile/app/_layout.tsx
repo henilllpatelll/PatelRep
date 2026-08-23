@@ -5,6 +5,19 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
 import NetInfo from "@react-native-community/netinfo";
+import { useFonts } from "expo-font";
+import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
+import {
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+  IBMPlexSans_700Bold,
+} from "@expo-google-fonts/ibm-plex-sans";
+import {
+  IBMPlexMono_400Regular,
+  IBMPlexMono_500Medium,
+  IBMPlexMono_600SemiBold,
+} from "@expo-google-fonts/ibm-plex-mono";
 import "@/i18n";
 import { useAppStore } from "@/stores/appStore";
 import { syncOnConnect } from "@/lib/offline/sync";
@@ -35,6 +48,16 @@ function RootChrome() {
   const { setUser, setIsOnline, setIsLoading, isLoading } = useAppStore();
   const { mode, isHydrated } = useAppearancePreference();
   const theme = useTheme();
+  const [fontsLoaded] = useFonts({
+    InstrumentSerif_400Regular,
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium,
+    IBMPlexSans_600SemiBold,
+    IBMPlexSans_700Bold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
+    IBMPlexMono_600SemiBold,
+  });
 
   useEffect(() => {
     const {
@@ -96,12 +119,12 @@ function RootChrome() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Hide splash only after auth and the saved appearance have both resolved.
+  // Hide splash only after auth, the saved appearance, and fonts have all resolved.
   useEffect(() => {
-    if (!isLoading && isHydrated) {
+    if (!isLoading && isHydrated && fontsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [isLoading, isHydrated]);
+  }, [isLoading, isHydrated, fontsLoaded]);
 
   // Safety timeout: prevent permanent splash lock on slow devices or network errors.
   useEffect(() => {
