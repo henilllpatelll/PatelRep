@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Plus, MessageSquare, UserPlus, Sparkles, X, ChevronRight, Siren, CheckCircle2 } from 'lucide-react'
+import { RefreshCw, Plus, MessageSquare, UserPlus, Sparkles, X, ChevronRight, AlertTriangle, CheckCircle2, ArrowUpDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { useEngineeringStore } from '@/stores/engineeringStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -27,18 +28,36 @@ function openCopilot() {
   document.dispatchEvent(new CustomEvent('copilot:open'))
 }
 
-// ── Room status → pill/tile styling (matches CELL_MAP in SupervisorDashboard) ──
+// ── Room status → pill/tile styling (matches STATUS_LABEL_MAP in the housekeeping board) ──
 
-type StatKey = 'all' | 'OCCUPIED' | 'DIRTY' | 'INSPECTED'
+type StatKey = 'all' | 'OCCUPIED' | 'DEPARTURE' | 'VACANT'
 
 const ROOM_PILL: Record<string, { tone: any; label: string }> = {
   INSPECTED: { tone: 'inspected', label: 'Inspected' },
-  CLEAN: { tone: 'clean', label: 'Clean' },
-  DIRTY: { tone: 'dirty', label: 'Dirty' },
+  CLEAN: { tone: 'clean', label: 'Clean ready for inspection' },
+  DIRTY: { tone: 'dirty', label: 'Vacant Dirty' },
   IN_PROGRESS: { tone: 'progress', label: 'In progress' },
   OCCUPIED: { tone: 'alert', label: 'Occupied' },
   PICKUP: { tone: 'pickup', label: 'Pickup' },
   OOO: { tone: 'blocked', label: 'OOO' },
+}
+
+const OCCUPANCY_TILE_LABEL: Record<StatKey, string> = {
+  all: 'All rooms',
+  OCCUPIED: 'Occupied',
+  DEPARTURE: 'Departure',
+  VACANT: 'Vacant',
+}
+
+/**
+ * Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'`
+ * is the real proxy for "checking out" — assigned specifically to departure rooms
+ * regardless of whether the guest has physically left yet (see cleanType.ts).
+ */
+function classifyOccupancy(room: any): 'OCCUPIED' | 'DEPARTURE' | 'VACANT' {
+  if (room.clean_type === 'DEP') return 'DEPARTURE'
+  if (room.status === 'OCCUPIED') return 'OCCUPIED'
+  return 'VACANT'
 }
 
 const PRIORITY_PILL: Record<string, any> = {
@@ -131,10 +150,44 @@ function StaffPanel({
   const staff: StaffMember[] = (staffData as any)?.data?.staff ?? (staffData as any)?.data ?? []
   const technicians = staff.filter((s) => s.role === 'engineer' || s.role === 'chief_engineer')
 
+  const [sortByPace, setSortByPace] = useState(false)
+  const sortedHkRows = sortByPace
+    ? [...hkRows].sort((a, b) => {
+        const pa = (a.rooms_assigned ?? 0) > 0 ? (a.rooms_done ?? a.rooms_completed ?? 0) / (a.rooms_assigned ?? 1) : 0
+        const pb = (b.rooms_assigned ?? 0) > 0 ? (b.rooms_done ?? b.rooms_completed ?? 0) / (b.rooms_assigned ?? 1) : 0
+        return pb - pa
+      })
+    : hkRows
+  const sortedTechnicians = sortByPace
+    ? [...technicians].sort((a, b) => {
+        const openFor = (t: StaffMember) =>
+          workOrders.filter((w) => w.assigned_to === t.user_id && (w.status === 'open' || w.status === 'in_progress' || w.status === 'escalated')).length
+        return openFor(a) - openFor(b)
+      })
+    : technicians
+
   return (
-    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card flex flex-col">
-      <div className="px-4 pt-3.5 pb-1">
+    <div className="h-full bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card flex flex-col">
+      <div className="px-4 pt-3.5 pb-1 flex items-baseline justify-between gap-2">
         <SectionLabel hint={`${hkRows.length + technicians.length} on shift`}>Staff</SectionLabel>
+        <div className="flex gap-1 pb-2.5">
+          <IconButton
+            variant="outline"
+            size="sm"
+            aria-label="Assign work"
+            onClick={() => router.push('/housekeeping?assign=1')}
+          >
+            <Plus size={14} />
+          </IconButton>
+          <IconButton
+            variant={sortByPace ? 'dark' : 'outline'}
+            size="sm"
+            aria-label="Sort by pace"
+            onClick={() => setSortByPace((v) => !v)}
+          >
+            <ArrowUpDown size={14} />
+          </IconButton>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -146,7 +199,7 @@ function StaffPanel({
         {hkRows.length === 0 ? (
           <p className="text-[12px] text-ink3 px-4 py-3">No assignments today</p>
         ) : (
-          hkRows.map((hk, i) => {
+          sortedHkRows.map((hk, i) => {
             const name = hk.name ?? hk.housekeeper_name ?? hk.user_name ?? 'Staff'
             const done = hk.rooms_done ?? hk.rooms_completed ?? 0
             const total = hk.rooms_assigned ?? 0
@@ -198,7 +251,7 @@ function StaffPanel({
         {technicians.length === 0 ? (
           <p className="text-[12px] text-ink3 px-4 py-3">No technicians on shift</p>
         ) : (
-          technicians.map((tech) => {
+          sortedTechnicians.map((tech) => {
             const assigned = workOrders.filter(
               (w) => w.assigned_to === tech.user_id && (w.status === 'open' || w.status === 'in_progress' || w.status === 'escalated')
             ).length
@@ -281,7 +334,7 @@ function WorkOrdersPanel({
   const visible = urgentOnly ? workOrders.filter((w) => w.priority === 'urgent' || w.priority === 'emergency') : workOrders
 
   return (
-    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card flex flex-col">
+    <div className="h-full bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card flex flex-col">
       <div className="px-4 pt-3.5 pb-1 flex items-baseline justify-between gap-2">
         <SectionLabel hint={`${workOrders.length} open`}>Work orders</SectionLabel>
         <div className="flex gap-1 pb-2.5">
@@ -294,7 +347,7 @@ function WorkOrdersPanel({
             aria-label="Urgent only"
             onClick={() => setUrgentOnly((v) => !v)}
           >
-            <Siren size={14} />
+            <AlertTriangle size={14} />
           </IconButton>
           <IconButton variant="ai" size="sm" aria-label="AI triage the queue" onClick={openCopilot}>
             <Sparkles size={13} />
@@ -349,7 +402,7 @@ function WorkOrdersPanel({
                   onClick={() => escalateMutation.mutate(wo.id)}
                   className="hover:bg-[var(--alert-soft)] hover:text-[var(--alert)]"
                 >
-                  <Siren size={14} />
+                  <AlertTriangle size={14} />
                 </IconButton>
               </div>
             </div>
@@ -373,8 +426,8 @@ function RoomListDrawer({
   onClose: () => void
   onSelectRoom: (room: any) => void
 }) {
-  const visible = filter === 'all' ? rooms : rooms.filter((r) => r.status === filter)
-  const title = filter === 'all' ? 'All rooms' : ROOM_PILL[filter]?.label ?? filter
+  const visible = filter === 'all' ? rooms : rooms.filter((r) => classifyOccupancy(r) === filter)
+  const title = OCCUPANCY_TILE_LABEL[filter]
 
   return (
     <>
@@ -417,6 +470,7 @@ export function SimplifiedDashboard() {
   const router = useRouter()
   const storedFullName = useAuthStore((s) => s.fullName)
   const user = useAuthStore((s) => s.user)
+  const hotel = useHotelStore((s) => s.hotel)
   const { role } = useRole()
   const canMessage = role === 'gm' || role === 'housekeeping_supervisor' || role === 'engineer'
   const queryClient = useQueryClient()
@@ -471,16 +525,21 @@ export function SimplifiedDashboard() {
   const urgentWOs = workOrders.filter((w) => w.priority === 'urgent' || w.priority === 'emergency')
 
   const totalRooms = rooms.length
-  const occupied = rooms.filter((r) => r.status === 'OCCUPIED').length
-  const dirty = rooms.filter((r) => r.status === 'DIRTY').length
-  const inspected = rooms.filter((r) => r.status === 'INSPECTED').length
+  const occupied = rooms.filter((r) => classifyOccupancy(r) === 'OCCUPIED').length
+  const departure = rooms.filter((r) => classifyOccupancy(r) === 'DEPARTURE').length
+  const vacant = rooms.filter((r) => classifyOccupancy(r) === 'VACANT').length
+  const floorCount = new Set(rooms.map((r) => r.rooms?.floor).filter((f) => f != null)).size
+  const pct = (n: number) => (totalRooms > 0 ? `${Math.round((n / totalRooms) * 100)}%` : '—')
 
-  const statTiles: { key: StatKey; label: string; value: number; dot: string }[] = [
-    { key: 'all', label: 'Total rooms', value: totalRooms, dot: 'bg-white/70' },
-    { key: 'OCCUPIED', label: 'Occupied', value: occupied, dot: 'bg-[var(--alert)]' },
-    { key: 'DIRTY', label: 'Needs cleaning', value: dirty, dot: 'bg-[var(--alert)]' },
-    { key: 'INSPECTED', label: 'Inspected', value: inspected, dot: 'bg-[var(--ready)]' },
+  const statTiles: { key: StatKey; label: string; value: number; hint: string; dot: string }[] = [
+    { key: 'all', label: 'Total rooms', value: totalRooms, hint: floorCount > 0 ? `${floorCount} floors` : '', dot: 'bg-white/70' },
+    { key: 'OCCUPIED', label: 'Occupied', value: occupied, hint: pct(occupied), dot: 'bg-[var(--alert)]' },
+    { key: 'DEPARTURE', label: 'Departure', value: departure, hint: pct(departure), dot: 'bg-[var(--caution)]' },
+    { key: 'VACANT', label: 'Vacant', value: vacant, hint: pct(vacant), dot: 'bg-[var(--ready)]' },
   ]
+
+  const now = new Date()
+  const shiftLabel = now.getHours() < 15 ? 'Day shift' : now.getHours() < 23 ? 'Evening shift' : 'Night shift'
 
   const handleRefresh = () => {
     refetchBoard()
@@ -490,18 +549,12 @@ export function SimplifiedDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4 h-full min-h-0">
       {/* Greeting */}
-      <div className="flex items-end justify-between gap-6">
+      <div className="shrink-0 flex items-end justify-between gap-6">
         <DashboardGreeting
           name={firstName}
-          subtitle={
-            hkRisks.length > 0
-              ? `${hkRisks.length} room${hkRisks.length > 1 ? 's' : ''} flagged. ${urgentWOs.length} urgent work order${urgentWOs.length !== 1 ? 's' : ''} open.`
-              : dirty > 0
-              ? `${dirty} room${dirty > 1 ? 's' : ''} still need${dirty > 1 ? '' : 's'} cleaning.`
-              : 'All rooms accounted for. Good start to the shift.'
-          }
+          meta={hotel?.name ? `${shiftLabel} · ${hotel.name}` : shiftLabel}
         />
         <div className="flex gap-2 pb-1 shrink-0">
           <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-1.5">
@@ -517,7 +570,7 @@ export function SimplifiedDashboard() {
 
       {/* AI briefing hero */}
       {!briefingDismissed && (
-        <section className="relative overflow-hidden rounded-[var(--r-xl)] bg-ink text-paper shadow-card">
+        <section className="shrink-0 relative overflow-hidden rounded-[var(--r-xl)] bg-ink text-paper shadow-card">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'radial-gradient(circle at 84% 12%, var(--accent) 0%, transparent 52%)', opacity: 0.26 }}
@@ -537,8 +590,8 @@ export function SimplifiedDashboard() {
                         <span className="not-italic font-sans font-medium bg-[#3d3214] text-[#e6c47d] px-1.5 py-px rounded">{hkRisks.length} rooms flagged</span>
                         {' '}at risk. {urgentWOs.length > 0 ? `${urgentWOs.length} urgent work order${urgentWOs.length !== 1 ? 's are' : ' is'} unassigned.` : 'Work orders are on pace.'}
                       </>
-                    : dirty > 0
-                    ? `${dirty} room${dirty > 1 ? 's' : ''} still need${dirty > 1 ? '' : 's'} cleaning. Everything else is on pace.`
+                    : departure > 0
+                    ? `${departure} room${departure > 1 ? 's are' : ' is'} on departure today. Everything else is on pace.`
                     : 'All boards on pace. No rooms currently flagged.'
                   }
                 </p>
@@ -561,17 +614,22 @@ export function SimplifiedDashboard() {
                 statTiles.map((tile) => (
                   <button
                     key={tile.key}
-                    onClick={() => setListFilter(tile.key)}
+                    onClick={() => setListFilter(listFilter === tile.key ? null : tile.key)}
                     className={cn(
                       'flex flex-col justify-between gap-2 min-h-[74px] p-3 rounded-[var(--r-md)] text-left transition-colors',
-                      'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
+                      listFilter === tile.key
+                        ? 'bg-white/[.11] border border-white/30'
+                        : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
                     )}
                   >
                     <span className="flex items-center gap-1.5">
                       <span className={cn('w-1.5 h-1.5 rounded-full', tile.dot)} />
                       <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-white/60">{tile.label}</span>
                     </span>
-                    <span className="font-display text-[26px] leading-none">{tile.value}</span>
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="font-display text-[26px] leading-none">{tile.value}</span>
+                      {tile.hint && <span className="text-[10.5px] font-mono text-white/50">{tile.hint}</span>}
+                    </span>
                   </button>
                 ))
               )}
@@ -581,23 +639,27 @@ export function SimplifiedDashboard() {
       )}
 
       {boardError && (
-        <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="bg-surface border border-line rounded-[var(--r-lg)]" />
+        <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="shrink-0 bg-surface border border-line rounded-[var(--r-lg)]" />
       )}
 
-      {/* Staff + Work orders */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 min-h-[420px]">
-        <StaffPanel
-          assignmentsData={assignmentsData}
-          staffData={staffData}
-          workOrders={workOrders}
-          canMessage={canMessage}
-        />
-        <WorkOrdersPanel
-          workOrders={workOrders}
-          isError={woError}
-          onRetry={() => refetchWO()}
-          onNewWorkOrder={() => setShowCreateWO(true)}
-        />
+      {/* Staff + Work orders — each panel scrolls internally so the page itself never scrolls */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-5">
+        <div className="flex-1 min-h-0 min-w-0 md:basis-1/2">
+          <StaffPanel
+            assignmentsData={assignmentsData}
+            staffData={staffData}
+            workOrders={workOrders}
+            canMessage={canMessage}
+          />
+        </div>
+        <div className="flex-1 min-h-0 min-w-0 md:basis-1/2">
+          <WorkOrdersPanel
+            workOrders={workOrders}
+            isError={woError}
+            onRetry={() => refetchWO()}
+            onNewWorkOrder={() => setShowCreateWO(true)}
+          />
+        </div>
       </div>
 
       {listFilter && (

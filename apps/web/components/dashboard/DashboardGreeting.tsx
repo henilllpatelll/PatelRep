@@ -11,11 +11,13 @@ interface DashboardGreetingProps {
   name: string
   /** One contextual line under the greeting — hotel name for GM, a shift summary for floor roles, etc. */
   subtitle?: ReactNode
+  /** Appended to the date line after " · " — e.g. shift + hotel name. */
+  meta?: ReactNode
   className?: string
 }
 
 /** The sanctioned role-dashboard header — spacing matches PageHeader's eyebrow/title/subtitle. */
-export function DashboardGreeting({ name, subtitle, className }: DashboardGreetingProps) {
+export function DashboardGreeting({ name, subtitle, meta, className }: DashboardGreetingProps) {
   const { t, i18n } = useTranslation()
   const [greetingKey, setGreetingKey] = useState<GreetingKey>('dashboard.greeting.morning')
 
@@ -34,6 +36,7 @@ export function DashboardGreeting({ name, subtitle, className }: DashboardGreeti
           month: 'long',
           day: 'numeric',
         })}
+        {meta && <> · {meta}</>}
       </p>
       <h1 className="font-display text-[34px] font-normal italic tracking-[-0.5px] leading-[1.1] text-ink">
         {t(greetingKey)}, {name}.
