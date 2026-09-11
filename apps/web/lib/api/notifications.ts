@@ -29,4 +29,7 @@ export const notificationsApi = {
 
   broadcast: (message: string) =>
     apiClient.post('/notifications/broadcast', { message }),
+
+  sendDirect: (recipientId: string, message: string) =>
+    apiClient.post('/notifications/direct', { recipient_id: recipientId, message }),
 }
