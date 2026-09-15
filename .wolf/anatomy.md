@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-23T22:32:35.749Z
-> Files: 27 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-15T10:08:40.527Z
+> Files: 41 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -26,13 +26,20 @@
 
 ## ../../.claude/plans/
 
-- `mossy-sniffing-liskov.md` — Implement "Mobile Home - housekeeper" design → apps/mobile Home screen (~2888 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/06fa4c6b-7583-48f4-8f72-a0f25a37ea13/scratchpad/
+
+- `verify-drawer.mjs` — Declares WEB (~688 tok)
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/0c3e78d0-cc52-4cdf-8986-c9e43d344aa1/scratchpad/
+
+- `verify-transition.mjs` — Declares BASE (~1328 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/
 
@@ -52,6 +59,14 @@
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5c167adf-2ada-42ee-9785-116c306aece2/scratchpad/
 
 
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5d6b3573-406c-4b9f-b67d-242d481be00f/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/61e0709f-ebf7-43db-9c11-03c311147ac7/scratchpad/
+
+- `verify-dashboard.js` — Declares OUT (~534 tok)
+- `verify-footer.js` — Declares OUT (~716 tok)
+
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/686ef36c-e5b4-4867-85a7-7d43f49217fb/scratchpad/
 
 
@@ -63,6 +78,10 @@
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/7ac5752a-70b7-4337-b0f2-75f95ad032a5/scratchpad/
 
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/8d284829-02db-49ff-9025-850a150683dd/scratchpad/
+
+- `verify-briefing-chat.mjs` — Declares OUT (~829 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/9c1798f7-3da6-40ea-b194-8745fc2bee3e/scratchpad/
 
@@ -1089,7 +1108,6 @@
 
 ## apps/api/
 
-- `RBAC-MATRIX.md` — RBAC Matrix (~9051 tok)
 
 ## apps/api/core/
 
@@ -1099,15 +1117,14 @@
 
 ## apps/api/middleware/
 
-- `credits.py` — get_or_create_current_period_ledger, compute_credits, check_and_deduct_credits, log_ai_interaction (~1870 tok)
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~14199 tok)
 
 ## apps/api/routers/
 
-- `ai_copilot.py` — API: 1 endpoints (~15283 tok)
+- `clean_sessions.py` — API: 5 endpoints (~6728 tok)
+- `housekeeping.py` — Declares from (~26993 tok)
 
 ## apps/api/scripts/
 
@@ -1117,7 +1134,6 @@
 
 ## apps/api/services/ai/
 
-- `housekeeper_shift_recap.py` — AI end-of-shift recap for housekeepers. (~727 tok)
 
 ## apps/api/services/guest_recovery/
 
@@ -1136,13 +1152,13 @@
 
 ## apps/api/tests/
 
-- `test_ai_copilot_rbac.py` — RBAC matrix + tenant-isolation + confirm_tasks validation tests for ai_copilot.py. (~3854 tok)
 
 ## apps/api/tests/load/
 
 
 ## apps/api/tests/smoke/
 
+- `test_clean_sessions.py` — make_db, patch_db, start_request, test_start_session_snapshots_checklist_and_flips_in_progress (~2902 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -1167,7 +1183,6 @@
 
 ## apps/mobile/
 
-- `jest.setup.js` (~79 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -1189,8 +1204,6 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `HousekeeperHome.test.tsx` — mockSetMyRooms (~6032 tok)
-- `RoomDetail.test.tsx` — mockSetMyRooms (~3815 tok)
 
 ## apps/mobile/android/
 
@@ -1203,7 +1216,6 @@
 
 ## apps/mobile/app/
 
-- `_layout.tsx` — RootLayout (~1859 tok)
 
 ## apps/mobile/app/(app)/
 
@@ -1228,7 +1240,6 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — firstName (~9105 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
@@ -1244,7 +1255,6 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — Knock protocol required before entering occupied or stayover rooms. (~16104 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -1284,17 +1294,12 @@
 
 ## apps/mobile/app/(auth)/auth/
 
-- `callback.tsx` — AuthCallback (~386 tok)
 
 ## apps/mobile/components/engineering/
 
 
 ## apps/mobile/components/home/
 
-- `CompanionHome.tsx` — Seconds since the room's last status change — a reasonable proxy for "clean (~5144 tok)
-- `EmptyBoardState.tsx` — Formatted "waiting · last checked HH:MM" line — null until the first (~1166 tok)
-- `EndOfShiftState.tsx` — AI recap card — null until fetchShiftRecap resolves (or fails and falls (~2346 tok)
-- `HoldToConfirmSheet.tsx` — The room to start next once this one's confirmed — the queue entry right (~2812 tok)
 
 ## apps/mobile/components/home/SupervisorHome.tsx
 
@@ -1313,7 +1318,6 @@
 
 ## apps/mobile/components/shared/
 
-- `tokens.ts` — The light-mode "Evening Lobby" frame around the warm paper canvas. (~2490 tok)
 
 ## apps/mobile/components/supervisor/
 
@@ -1338,19 +1342,15 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~13230 tok)
-- `es.json` (~14130 tok)
 
 ## apps/mobile/lib/
 
 
 ## apps/mobile/lib/ai/
 
-- `shiftRecap.ts` — Short operational note worth flagging for tomorrow, or null. (~638 tok)
 
 ## apps/mobile/lib/api/
 
-- `shifts.ts` — Idempotent — safe to call whenever no open shift session was found. (~416 tok)
 
 ## apps/mobile/lib/api/housekeepingSupervisor.ts
 
@@ -1363,7 +1363,6 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `markClean.ts` — Marks a stayover/pickup room clean from a context that has no linen-count UI (~243 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -1385,7 +1384,6 @@
 
 ## apps/mobile/lib/theme/
 
-- `useTheme.ts` — Exports useTheme, useHousekeeperAccent (~128 tok)
 
 ## apps/mobile/lib/utils/
 
@@ -1398,16 +1396,32 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1998 tok)
 
 ## apps/mobile/stores/appStore.ts
 
 
 ## apps/web/
 
+- `__verify_slow.mjs` — BASE: sample (~846 tok)
+- `__verify_transition.mjs` — BASE: sampleTransition (~1861 tok)
+- `.probe.mjs` — Declares OUT (~235 tok)
+- `.shot.mjs` — Declares OUT (~707 tok)
+- `.verify-drawer.mjs` — OUT: openRoom (~615 tok)
+- `.verify.mjs` — OUT: openRoom (~998 tok)
+- `.verify2.mjs` — Declares OUT (~646 tok)
+- `.verify3.mjs` — OUT: openViaList (~878 tok)
+- `.verify4.mjs` — Declares OUT (~915 tok)
+- `frozen-files-allowlist.json` — Declares project (~5235 tok)
+- `frozen-files.json` (~1299 tok)
+- `inspect_drawer.mjs` — Declares browser (~356 tok)
+- `verify-briefing-bottom.mjs` — Declares OUT (~357 tok)
+- `verify-morph.mjs` — Declares OUT (~594 tok)
+- `verify-morph2.mjs` — Declares OUT (~371 tok)
+- `verify-morph3.mjs` — Declares OUT (~374 tok)
 
 ## apps/web/app/
 
+- `globals.css` — Styles: 27 rules, 145 vars (~2570 tok)
 
 ## apps/web/app/(auth)/login/
 
@@ -1459,6 +1473,11 @@
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
+- `page.tsx` — StatusBadge (~10494 tok)
+
+## apps/web/app/(dashboard)/housekeeping/routes/
+
+- `page.tsx` — HousekeepingRoutesPage (~48 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
@@ -1537,18 +1556,24 @@
 
 ## apps/web/components/ai/
 
+- `AICopilotBubble.tsx` — ConfirmView (~5127 tok)
 
 ## apps/web/components/dashboard/
 
+- `BriefingChat.tsx` — detectRoomFilter (~2187 tok)
+- `SimplifiedDashboard.tsx` — Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'` (~12062 tok)
 
 ## apps/web/components/engineering/
 
+- `EngineeringRoomBoard.tsx` — filterRooms (~2502 tok)
 
 ## apps/web/components/guest-requests/
 
 
 ## apps/web/components/housekeeping/
 
+- `HousekeepingRoutes.tsx` — Housekeeping · Routes — supervisor timeline board (real data). (~12972 tok)
+- `RoomDetailDrawer.tsx` — Standard hotel checkout. Departure rooms with no explicit checkout_time set (~15526 tok)
 
 ## apps/web/components/programs/
 
@@ -1564,6 +1589,7 @@
 
 ## apps/web/components/ui/
 
+- `primitives.tsx` — ── Avatar ─────────────────────────────────────────────────────────────────── (~2414 tok)
 
 ## apps/web/e2e/
 
@@ -1576,12 +1602,16 @@
 
 ## apps/web/i18n/locales/
 
+- `en.ts` — Declares en (~22630 tok)
+- `es.ts` — Declares es (~24835 tok)
 
 ## apps/web/lib/ai/
 
+- `briefingFastPath.ts` — Deterministic, zero-credit answers for "Ask about this" on the shift-briefing (~1096 tok)
 
 ## apps/web/lib/api/
 
+- `housekeeping.ts` — Hotel-wide average clean time for today plus the 7-day trend (dashboard hero). (~2758 tok)
 
 ## apps/web/lib/hooks/
 
@@ -1591,6 +1621,8 @@
 
 ## apps/web/lib/utils/
 
+- `housekeepingNavigation.test.ts` — Declares role (~224 tok)
+- `housekeepingNavigation.ts` — Exports HousekeepingSubNavItem, getHousekeepingSubNavItems (~242 tok)
 
 ## apps/web/playwright.phase0.config.ts
 
@@ -1600,6 +1632,7 @@
 
 ## apps/web/stores/
 
+- `copilotThreadStore.ts` — Answer locally (0 credits) instead of hitting the API/off-topic pipeline when it matches. (~1258 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -1636,7 +1669,6 @@
 
 ## supabase/migrations/
 
-- `100_ai_interactions_housekeeper_shift_recap.sql` — ============================================================================= (~341 tok)
 
 ## youtubeMobileResearch.md
 

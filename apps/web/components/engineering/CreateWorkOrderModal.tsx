@@ -165,14 +165,14 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-modal"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-modal flex items-center justify-center p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div

@@ -77,6 +77,11 @@ export function EngineeringRoomBoard() {
   }, [data])
 
   const rooms = useMemo(() => filterRooms(allRooms, filter), [allRooms, filter])
+  // Bind the open detail drawer to LIVE board data so drawer mutations show the
+  // instant the board refetches, not the frozen click-time snapshot.
+  const drawerRoom = selectedRoom
+    ? { ...selectedRoom, ...(allRooms.find((r: any) => r.room_id === selectedRoom.room_id) ?? {}) }
+    : null
   const vacantCount = useMemo(() => filterRooms(allRooms, 'vacant').length, [allRooms])
   const aiCount = useMemo(() => filterRooms(allRooms, 'ai').length, [allRooms])
 
@@ -198,7 +203,7 @@ export function EngineeringRoomBoard() {
       )}
 
       <RoomDetailDrawer
-        room={selectedRoom}
+        room={drawerRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
         onCheckoutTimeSaved={(time) =>

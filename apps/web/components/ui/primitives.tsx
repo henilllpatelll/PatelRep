@@ -102,6 +102,15 @@ export function StatusDot({ tone = 'neutral', size = 8 }: { tone?: string; size?
   )
 }
 
+// ── SparkIcon ────────────────────────────────────────────────────────────────
+export function SparkIcon({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" />
+    </svg>
+  )
+}
+
 // ── AILabel ──────────────────────────────────────────────────────────────────
 interface AILabelProps {
   children?: ReactNode
@@ -116,9 +125,7 @@ export function AILabel({ children = 'AI', confidence, className }: AILabelProps
       'text-[10px] font-semibold uppercase tracking-[0.5px] px-[5px] py-[2px] rounded',
       className
     )}>
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
-      </svg>
+      <SparkIcon size={9} />
       {children}
       {confidence != null && (
         <span className="font-mono opacity-70">{confidence}%</span>

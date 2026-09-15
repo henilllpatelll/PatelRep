@@ -628,7 +628,7 @@ async def get_my_rooms(
     # Return current status for all rooms assigned today (all statuses, not filtered)
     # room_status uses room_id as PK — there is no separate "id" column
     my_rooms_select = (
-        "room_id, tenant_id, status, assigned_to, "
+        "room_id, tenant_id, status, assigned_to, updated_at, "
         "clean_type, vip_flag, dnd_flag, do_not_service, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
         "rooms!inner(id, room_number, floor, room_types(name, code, base_clean_minutes))"
@@ -803,8 +803,11 @@ async def _send_assignment_push(housekeeper_id: str, room_number: str, room_id: 
 @router.post("/assignments")
 async def create_assignments(
     request: CreateAssignmentsRequest,
+    # front_desk included so a guest's mid-stay clean request (an occupied room)
+    # can be assigned to a housekeeper directly from the room drawer, same as
+    # front_desk already writes checkout time / stayover status on any room.
     current_user: CurrentUser = Depends(
-        require_role("gm", "housekeeping_supervisor")
+        require_role("gm", "housekeeping_supervisor", "front_desk")
     ),
 ):
     if request.shift_id:

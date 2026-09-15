@@ -2,6 +2,23 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-1234",
+      "timestamp": "2026-09-11T00:00:00.000Z",
+      "error_message": "RoomDetailDrawer header elapsed-time text showed \"40387m in\" (28 days) for the regression-fixture IN_PROGRESS room instead of a sane minute count.",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "New getElapsedMinutes(startIso) derived elapsed cleaning time from room.updated_at (the only real timestamp available for when a room entered IN_PROGRESS). Live rooms have a fresh updated_at, but the never-operated Playwright regression fixture tenant seeds updated_at once at seed time and never touches it again, so the raw diff against Date.now() could be enormous. A real room stuck IN_PROGRESS for days (abandoned session, clock skew) would hit the same problem.",
+      "fix": "Capped getElapsedMinutes at 720 minutes (12h) and negative values, returning null outside that range so the header falls back to just \"Cleaning in progress\" / \"Started {time}\" without an elapsed count rather than showing a misleading huge number. Found via manual Playwright screenshot verification against the seeded regression fixture (room 104), not caught by tsc/lint.",
+      "tags": [
+        "housekeeping",
+        "RoomDetailDrawer",
+        "ui",
+        "edge-case"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-11T00:00:00.000Z"
+    },
+    {
       "id": "bug-965",
       "timestamp": "2026-08-18T22:02:25.013Z",
       "error_message": "34-08 close-out live ES verification: forcing a query failure on Billing (subscription) and Opera Integration (statusQuery, live via the real 403 pilot-gate) produced StateBlock error MESSAGES that render as EN/ES hybrids (e.g. \"Couldn't load your Suscripcion.\" instead of \"No se pudo cargar su suscripcion.\"; \"Failed to load Opera Estado.\" instead of \"No se pudo cargar el estado de la conexion con Opera.\") even though the underlying en.ts/es.ts keys (billing.subscriptionLoadError, integrations.loadError) are both fully correct. NOT FIXED this session - flagged for a dedicated future hardening pass. Broader/systemic than bug-962/963/964: this is not limited to PageHeader chrome, it affects ANY i18next-driven StateBlock error message (or any other conditionally/late-mounted i18next text) app-wide, across every phase (30-36), not just Phase 34. | 36-04 close-out live ES verification (both live-toggle AND cold-reload-with-es-persisted methods): forcing housekeeping.page.assignBar.loadError (HousekeeperBar staff-list StateBlock error) reproduces the SAME hybrid mangling -- rendered as \"Couldn't load Personal. Intentalo de nuevo.\" instead of the correct es.ts value \"No se pudo cargar el personal. Intente de nuevo.\" -- identically via both test methods (not just live-toggle), confirming this is not method-dependent for this content. housekeeping.page.myRooms.loadError (HousekeeperMyRoomsView) was NOT independently live-tested (housekeeper is a MOBILE_ONLY_ROLE, architecturally unreachable via /login on web per routeGuard.ts -- matching Phase 32's established HousekeeperDashboard/EngineerDashboard precedent of code-trace-only verification) but is expected to reproduce identically since it shares the exact same StateBlock component and the exact same domTranslations.ts mechanism. NOT fixed this session either -- same disposition as 34-08/35-07: StateBlock.tsx has no dataI18nSkip-style escape hatch at all (confirmed via source read), and threading one in now would only patch 2 of the many already-confirmed-affected call sites across Phases 30-36 (Billing, Opera Integration, now Housekeeping), which is exactly the piecemeal, inconsistent-with-precedent scope-creep 34-08 explicitly declined to do.",
@@ -19850,6 +19867,1718 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-23T22:32:35.787Z"
+    },
+    {
+      "id": "bug-1206",
+      "timestamp": "2026-09-12T00:07:01.750Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had '@tanstack/react-query'",
+      "fix": "Changed to 'next/navigation'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-12T00:08:42.294Z"
+    },
+    {
+      "id": "bug-1207",
+      "timestamp": "2026-09-12T00:07:51.964Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: async function handleSendMessage() {; const recipientId: string | null = room?.assigned_to ?? null",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-12T00:09:19.356Z"
+    },
+    {
+      "id": "bug-1208",
+      "timestamp": "2026-09-12T00:08:21.524Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Condition was: if (!isOpen)",
+      "fix": "Changed to: if (isCleaningNow)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:08:21.524Z"
+    },
+    {
+      "id": "bug-1209",
+      "timestamp": "2026-09-12T00:10:07.645Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:10:07.645Z"
+    },
+    {
+      "id": "bug-1210",
+      "timestamp": "2026-09-12T00:13:03.708Z",
+      "error_message": "CSS fix: status, varName",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "status: string, occupancy: Occupancy): { varName: string → string, occupancy: Occupancy, isAssigned: boolean): { varName: string; varName: 'caution', eyebrowKey: status === 'INSPECTED' ? 'checkoutReady' : 'checkoutDueOut', striped: false → 'caution', eyebrowKey: isAssigned ? 'checkoutAssigned' : 'checkoutDueOut', striped: false",
+      "fix": "Changed status: string, occupancy: Occupancy): { varName: string → string, occupancy: Occupancy, isAssigned: boolean): { varName: string; varName: 'caution', eyebrowKey: status === 'INSPECTED' ? 'checkoutReady' : 'checkoutDueOut', striped: false → 'caution', eyebrowKey: isAssigned ? 'checkoutAssigned' : 'checkoutDueOut', striped: false",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:13:03.708Z"
+    },
+    {
+      "id": "bug-1211",
+      "timestamp": "2026-09-12T00:13:28.231Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Occupied · stayover'",
+      "fix": "Changed to 'Stayover · guest in house'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:13:28.231Z"
+    },
+    {
+      "id": "bug-1212",
+      "timestamp": "2026-09-12T00:13:33.730Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Ocupado · estancia'",
+      "fix": "Changed to 'Estancia · huésped en casa'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:13:33.730Z"
+    },
+    {
+      "id": "bug-1213",
+      "timestamp": "2026-09-12T00:18:05.636Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"ac2e50ce216fd3d74d60750c96050d694dc35bf4c05d0d227",
+      "fix": "Changed to \"bccaf8d00d3db828732d7c40f0f737973739b7d4a846f7108",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:18:05.636Z"
+    },
+    {
+      "id": "bug-1214",
+      "timestamp": "2026-09-12T00:18:44.975Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T00:18:44.975Z"
+    },
+    {
+      "id": "bug-1215",
+      "timestamp": "2026-09-12T01:05:12.709Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/clean_sessions.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T01:05:12.709Z"
+    },
+    {
+      "id": "bug-1216",
+      "timestamp": "2026-09-12T01:05:29.603Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/housekeeping.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T01:05:29.603Z"
+    },
+    {
+      "id": "bug-1217",
+      "timestamp": "2026-09-12T01:06:24.506Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: function paceBarTone(pct: number): 'ready' | 'caution' | 'al; return pct >= 80 ? 'ready' : pct >= 50 ? 'caution' : 'alert' | Also: <div className=\"relative border-t border-white/10 px-7 py-2 ; {cleanTime && cleanTime.today_avg_minutes != null ? (",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-12T01:10:03.254Z"
+    },
+    {
+      "id": "bug-1218",
+      "timestamp": "2026-09-12T01:09:18.758Z",
+      "error_message": "CSS fix: dot, key",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "dot: 'bg-white/70' → 'bg-[var(--ready)]'; key: 'VACANT', label: 'Vacant', value: vacant, hint: pct(vacant), dot: 'bg-[var(--ready)]' → 'VACANT', label: 'Vacant', value: vacant, hint: readyToSell > 0 ? `${readyToSell",
+      "fix": "Changed dot: 'bg-white/70' → 'bg-[var(--ready)]'; key: 'VACANT', label: 'Vacant', value: vacant, hint: pct(vacant), dot: 'bg-[var(--ready)]' → 'VACANT', label: 'Vacant', value: vacant, hint: readyToSell > 0 ? `${readyToSell",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T01:09:18.758Z"
+    },
+    {
+      "id": "bug-1219",
+      "timestamp": "2026-09-12T01:09:49.156Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 27→51 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T01:09:49.156Z"
+    },
+    {
+      "id": "bug-1220",
+      "timestamp": "2026-09-12T01:23:59.369Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_clean_sessions.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T01:23:59.369Z"
+    },
+    {
+      "id": "bug-1221",
+      "timestamp": "2026-09-12T01:24:29.156Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/smoke/test_clean_sessions.py",
+      "root_cause": "Had \"tenant_id\"",
+      "fix": "Changed to \"now\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T01:24:29.156Z"
+    },
+    {
+      "id": "bug-1222",
+      "timestamp": "2026-09-11T20:25:16",
+      "error_message": "GET /v1/clean-sessions/hotel-avg-clean-time returned 400 {\"error\":{\"code\":\"204\",\"message\":\"Database request failed\"}}",
+      "file": "apps/api/routers/clean_sessions.py",
+      "root_cause": "_get_hotel_tz() queried table 'hotels' which does not exist in the Supabase project (PGRST205 — the property table is 'tenants'); .maybe_single() surfaces the missing-table/no-row case as APIError code 204 'Missing response', which the global APIError handler turns into a 400, failing the whole request.",
+      "fix": "Wrapped the hotels timezone lookup in try/except, falling back to the existing default 'America/Chicago' tz on any error. A timezone lookup must never hard-fail a request; this also hardens the other clean-session endpoints that call _get_hotel_tz.",
+      "tags": [
+        "clean-sessions",
+        "postgrest",
+        "maybe_single",
+        "timezone",
+        "hotels",
+        "tenants",
+        "204",
+        "dashboard"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-11T20:25:16"
+    },
+    {
+      "id": "bug-1223",
+      "timestamp": "2026-09-12T23:22:32.879Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'AI Prediction'",
+      "fix": "Changed to 'AI note'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:22:32.879Z"
+    },
+    {
+      "id": "bug-1224",
+      "timestamp": "2026-09-12T23:22:35.927Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Predicción de IA'",
+      "fix": "Changed to 'Nota IA'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:22:35.927Z"
+    },
+    {
+      "id": "bug-1225",
+      "timestamp": "2026-09-12T23:25:20.862Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"bccaf8d00d3db828732d7c40f0f737973739b7d4a846f7108",
+      "fix": "Changed to \"1ff978c130e3d2a0e532f8d9efef0f98d7249c5a0d428aaa1",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:25:20.862Z"
+    },
+    {
+      "id": "bug-1226",
+      "timestamp": "2026-09-12T23:25:40.457Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:25:40.457Z"
+    },
+    {
+      "id": "bug-1227",
+      "timestamp": "2026-09-12T23:42:32.539Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had 'housekeeping.roomDetail.departureCheckout.noCheck",
+      "fix": "Changed to 'housekeeping.roomDetail.changeDeparture.tomorrow'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:42:32.539Z"
+    },
+    {
+      "id": "bug-1228",
+      "timestamp": "2026-09-12T23:43:02.958Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"1ff978c130e3d2a0e532f8d9efef0f98d7249c5a0d428aaa1",
+      "fix": "Changed to \"aa57687fdc0b3e79dd3c19920cc57df7cbd6e709cee61e993",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:43:02.958Z"
+    },
+    {
+      "id": "bug-1229",
+      "timestamp": "2026-09-12T23:43:09.505Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Had \"1ff978c130e3d2a0e532f8d9efef0f98d7249c5a0d428aaa1",
+      "fix": "Changed to \"aa57687fdc0b3e79dd3c19920cc57df7cbd6e709cee61e993",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:43:09.505Z"
+    },
+    {
+      "id": "bug-1230",
+      "timestamp": "2026-09-12T23:59:06.307Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:59:06.307Z"
+    },
+    {
+      "id": "bug-1231",
+      "timestamp": "2026-09-12T23:59:17.095Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:59:17.095Z"
+    },
+    {
+      "id": "bug-1232",
+      "timestamp": "2026-09-12T23:59:37.853Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-12T23:59:37.853Z"
+    },
+    {
+      "id": "bug-1233",
+      "timestamp": "2026-09-13T00:00:49.809Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"3239f09f3b8f11abb5b32a02533a5abae867cc2075aec77e8",
+      "fix": "Changed to \"958d4348d23c846b2861245f953a53302780561a111a85442",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T00:00:49.809Z"
+    },
+    {
+      "id": "bug-1234",
+      "timestamp": "2026-09-13T03:33:00.266Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T03:33:00.266Z"
+    },
+    {
+      "id": "bug-1235",
+      "timestamp": "2026-09-13T03:33:04.010Z",
+      "error_message": "Wrong reference: false should be true",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Used \"false\" instead of \"true\"",
+      "fix": "Changed false → true",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T03:33:04.010Z"
+    },
+    {
+      "id": "bug-1236",
+      "timestamp": "2026-09-13T03:33:56.055Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"aa57687fdc0b3e79dd3c19920cc57df7cbd6e709cee61e993",
+      "fix": "Changed to \"bb6a1f54f50bb877711ceafa998ba9cdb92b1f7bef06fc01f",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T03:33:56.055Z"
+    },
+    {
+      "id": "bug-1237",
+      "timestamp": "2026-09-13T03:34:03.860Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Had \"aa57687fdc0b3e79dd3c19920cc57df7cbd6e709cee61e993",
+      "fix": "Changed to \"bb6a1f54f50bb877711ceafa998ba9cdb92b1f7bef06fc01f",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T03:34:03.860Z"
+    },
+    {
+      "id": "bug-1238",
+      "timestamp": "2026-09-13T05:07:45.400Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Had '@/components/ui/primitives'",
+      "fix": "Changed to '@/lib/utils/cleanType'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T05:07:45.400Z"
+    },
+    {
+      "id": "bug-1239",
+      "timestamp": "2026-09-13T05:07:59.922Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T05:07:59.922Z"
+    },
+    {
+      "id": "bug-1240",
+      "timestamp": "2026-09-13T13:28:00.277Z",
+      "error_message": "CSS fix: type",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "type: string → string | null",
+      "fix": "Changed type: string → string | null",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T13:28:12.208Z"
+    },
+    {
+      "id": "bug-1241",
+      "timestamp": "2026-09-13T13:29:32.941Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Had 'CLN'",
+      "fix": "Changed to 'STD'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T13:31:06.916Z"
+    },
+    {
+      "id": "bug-1242",
+      "timestamp": "2026-09-13T13:29:42.447Z",
+      "error_message": "Wrong reference: Clean should be Std",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Used \"Clean\" instead of \"Std\"",
+      "fix": "Changed Clean → Std",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T13:29:42.447Z"
+    },
+    {
+      "id": "bug-1243",
+      "timestamp": "2026-09-13T14:01:30.057Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Had `${Math.max(Math.round(s.dur * PX), 92)}px`",
+      "fix": "Changed to `${Math.max(Math.round(s.dur * PX) - BOX_GAP, 72)}",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T14:01:30.057Z"
+    },
+    {
+      "id": "bug-1244",
+      "timestamp": "2026-09-13T14:01:54.029Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T14:01:54.029Z"
+    },
+    {
+      "id": "bug-1245",
+      "timestamp": "2026-09-13T14:22:54.724Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: edge: sc.fg, // status colour, shown as a left edge bar (lik",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T14:26:45.306Z"
+    },
+    {
+      "id": "bug-1246",
+      "timestamp": "2026-09-13T14:23:02.363Z",
+      "error_message": "Wrong operator: != should be ===",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Used \"!=\" instead of \"===\"",
+      "fix": "Changed operator != → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T14:23:02.363Z"
+    },
+    {
+      "id": "bug-1247",
+      "timestamp": "2026-09-13T14:23:12.387Z",
+      "error_message": "CSS fix: display, fontSize",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "display: 'flex', alignItems: 'center', gap: 8, border: `1px solid ${p.border → 'flex', alignItems: 'center', gap: 7, border: `1px solid ${p.border; fontSize: 11, color: '#807a70' → 10, fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase', color: p.numFg, opacity: 0.85",
+      "fix": "Changed display: 'flex', alignItems: 'center', gap: 8, border: `1px solid ${p.border → 'flex', alignItems: 'center', gap: 7, border: `1px solid ${p.border; fontSize: 11, color: '#807a70' → 10, fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase', color: p.numFg, opacity: 0.85",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-13T14:29:38.885Z"
+    },
+    {
+      "id": "bug-1248",
+      "timestamp": "2026-09-13T15:01:13.946Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T15:01:13.946Z"
+    },
+    {
+      "id": "bug-1249",
+      "timestamp": "2026-09-13T15:16:30.275Z",
+      "error_message": "CSS fix: room",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "room: any): number | null { → any): string {",
+      "fix": "Changed room: any): number | null { → any): string {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T15:16:30.275Z"
+    },
+    {
+      "id": "bug-1250",
+      "timestamp": "2026-09-13T15:36:10.004Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Assign room clean sheet — front desk/supervisor logs a g; clean request: pick clean type + housekeeper (ranked by rout",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T15:38:17.665Z"
+    },
+    {
+      "id": "bug-1251",
+      "timestamp": "2026-09-13T15:37:14.495Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T15:37:14.495Z"
+    },
+    {
+      "id": "bug-1252",
+      "timestamp": "2026-09-13T15:40:07.469Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"bb6a1f54f50bb877711ceafa998ba9cdb92b1f7bef06fc01f",
+      "fix": "Changed to \"25331ec343c72d4a69fc33d5ae0bee2525dde0ce97eb3c762",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T15:44:32.610Z"
+    },
+    {
+      "id": "bug-1253",
+      "timestamp": "2026-09-13T15:44:15.239Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (4 removed) | Also: const housekeeperRoster = useMemo(; () =>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T15:48:26.410Z"
+    },
+    {
+      "id": "bug-1254",
+      "timestamp": "2026-09-13T15:44:39.155Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Had \"25331ec343c72d4a69fc33d5ae0bee2525dde0ce97eb3c762",
+      "fix": "Changed to \"8819d0549248d4dbad85a84696062a4429171bd3bdbc7e163",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T15:44:39.155Z"
+    },
+    {
+      "id": "bug-1255",
+      "timestamp": "2026-09-13T15:50:06.671Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"8819d0549248d4dbad85a84696062a4429171bd3bdbc7e163",
+      "fix": "Changed to \"76887615a84dc621e1aa60886301303cedfef29586f7d24be",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T15:50:06.671Z"
+    },
+    {
+      "id": "bug-1256",
+      "timestamp": "2026-09-13T15:50:13.120Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Had \"8819d0549248d4dbad85a84696062a4429171bd3bdbc7e163",
+      "fix": "Changed to \"76887615a84dc621e1aa60886301303cedfef29586f7d24be",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T15:50:13.120Z"
+    },
+    {
+      "id": "bug-1257",
+      "timestamp": "2026-09-13T16:01:21.664Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:01:21.664Z"
+    },
+    {
+      "id": "bug-1258",
+      "timestamp": "2026-09-13T16:02:09.679Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"76887615a84dc621e1aa60886301303cedfef29586f7d24be",
+      "fix": "Changed to \"59c4fb8a08bb3972101eaf6e905b6b038782296b051e62d5f",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:02:09.679Z"
+    },
+    {
+      "id": "bug-1259",
+      "timestamp": "2026-09-13T16:02:33.662Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:02:33.662Z"
+    },
+    {
+      "id": "bug-1260",
+      "timestamp": "2026-09-13T16:20:19.050Z",
+      "error_message": "CSS fix: status",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "status: string, occupancy: Occupancy, isAssigned: boolean): { varName: string → string, occupancy: Occupancy): { varName: string",
+      "fix": "Changed status: string, occupancy: Occupancy, isAssigned: boolean): { varName: string → string, occupancy: Occupancy): { varName: string",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:20:19.050Z"
+    },
+    {
+      "id": "bug-1261",
+      "timestamp": "2026-09-13T16:20:49.758Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Checkout · assigned'",
+      "fix": "Changed to 'Occupied departure'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:20:49.758Z"
+    },
+    {
+      "id": "bug-1262",
+      "timestamp": "2026-09-13T16:21:01.162Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Salida · asignado'",
+      "fix": "Changed to 'Salida ocupada'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:21:01.162Z"
+    },
+    {
+      "id": "bug-1263",
+      "timestamp": "2026-09-13T16:21:25.583Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Had 'Departures · checkout'",
+      "fix": "Changed to 'Departures'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:21:25.583Z"
+    },
+    {
+      "id": "bug-1264",
+      "timestamp": "2026-09-13T16:22:07.637Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"59c4fb8a08bb3972101eaf6e905b6b038782296b051e62d5f",
+      "fix": "Changed to \"589137d9b4b191d64619a3fd715e7d47d2b3c860baa64920d",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:22:07.637Z"
+    },
+    {
+      "id": "bug-1265",
+      "timestamp": "2026-09-13T16:35:18.940Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:35:18.940Z"
+    },
+    {
+      "id": "bug-1266",
+      "timestamp": "2026-09-13T16:36:03.165Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:36:03.165Z"
+    },
+    {
+      "id": "bug-1267",
+      "timestamp": "2026-09-13T16:37:14.383Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"589137d9b4b191d64619a3fd715e7d47d2b3c860baa64920d",
+      "fix": "Changed to \"c937707d8da7b49e4f5369a4cf93c65c0436dc4ce99499815",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:37:14.383Z"
+    },
+    {
+      "id": "bug-1268",
+      "timestamp": "2026-09-13T16:37:26.982Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:37:26.982Z"
+    },
+    {
+      "id": "bug-1269",
+      "timestamp": "2026-09-13T16:37:46.410Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Had \"REPLACED_BELOW\"",
+      "fix": "Changed to \"589137d9b4b191d64619a3fd715e7d47d2b3c860baa64920d",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:37:46.410Z"
+    },
+    {
+      "id": "bug-1270",
+      "timestamp": "2026-09-13T16:45:18.095Z",
+      "error_message": "CSS fix: dot, key",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "dot: 'bg-[var(--alert)]' → string; key: 'DEPARTURE', label: 'Departures', value: departure, hint: dueOut > 0 ? `${dueOut → 'DEPARTURE', label: 'Departures', value: departure, hint: '', dot: 'bg-[var(--alert)]'",
+      "fix": "Changed dot: 'bg-[var(--alert)]' → string; key: 'DEPARTURE', label: 'Departures', value: departure, hint: dueOut > 0 ? `${dueOut → 'DEPARTURE', label: 'Departures', value: departure, hint: '', dot: 'bg-[var(--alert)]'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:45:18.095Z"
+    },
+    {
+      "id": "bug-1271",
+      "timestamp": "2026-09-13T16:45:35.544Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Had `${readyToSell} ready`",
+      "fix": "Changed to `${vacantInProgress} in progress`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:45:35.544Z"
+    },
+    {
+      "id": "bug-1272",
+      "timestamp": "2026-09-13T16:54:42.412Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "18 lines replaced/restructured",
+      "fix": "Rewrote 45→29 lines (18 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T16:54:42.412Z"
+    },
+    {
+      "id": "bug-1273",
+      "timestamp": "2026-09-13T18:15:02.862Z",
+      "error_message": "CSS fix: id, messageId",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "id: generateId(), role: 'ai', content: 'No problem — cancelled.' → generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.'; messageId: string) => → string) => cancelResponse(messageId)",
+      "fix": "Changed id: generateId(), role: 'ai', content: 'No problem — cancelled.' → generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.'; messageId: string) => → string) => cancelResponse(messageId)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:15:02.862Z"
+    },
+    {
+      "id": "bug-1274",
+      "timestamp": "2026-09-13T18:16:11.889Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/ui/primitives.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:16:11.889Z"
+    },
+    {
+      "id": "bug-1275",
+      "timestamp": "2026-09-13T18:17:46.441Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:17:46.441Z"
+    },
+    {
+      "id": "bug-1276",
+      "timestamp": "2026-09-13T18:18:02.260Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 38→60 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:18:02.260Z"
+    },
+    {
+      "id": "bug-1277",
+      "timestamp": "2026-09-13T18:32:53.527Z",
+      "error_message": "CSS fix: transform, animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "transform: translateY(18px) → translateY(-6px); animation: panel-cell-out 620ms cubic-bezier(.16,.84,.34,1) both → panel-cell-out 260ms cubic-bezier(0.4, 0, 0.2, 1) both",
+      "fix": "Changed transform: translateY(18px) → translateY(-6px); animation: panel-cell-out 620ms cubic-bezier(.16,.84,.34,1) both → panel-cell-out 260ms cubic-bezier(0.4, 0, 0.2, 1) both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:32:53.527Z"
+    },
+    {
+      "id": "bug-1278",
+      "timestamp": "2026-09-13T18:33:40.283Z",
+      "error_message": "Wrong reference: Sparkles should be SparkIcon",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Used \"Sparkles\" instead of \"SparkIcon\"",
+      "fix": "Changed Sparkles → SparkIcon",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-13T18:34:02.094Z"
+    },
+    {
+      "id": "bug-1279",
+      "timestamp": "2026-09-13T18:34:27.971Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→5 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:34:27.971Z"
+    },
+    {
+      "id": "bug-1280",
+      "timestamp": "2026-09-13T18:44:14.124Z",
+      "error_message": "CSS fix: transform, animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "transform: translateY(-6px) → translateY(0); animation: panel-cell-out 260ms cubic-bezier(0.4, 0, 0.2, 1) both → briefing-swap-in 620ms cubic-bezier(.16,.84,.34,1) both",
+      "fix": "Changed transform: translateY(-6px) → translateY(0); animation: panel-cell-out 260ms cubic-bezier(0.4, 0, 0.2, 1) both → briefing-swap-in 620ms cubic-bezier(.16,.84,.34,1) both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-13T18:44:51.646Z"
+    },
+    {
+      "id": "bug-1281",
+      "timestamp": "2026-09-13T18:46:12.135Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:46:12.135Z"
+    },
+    {
+      "id": "bug-1282",
+      "timestamp": "2026-09-13T18:56:04.126Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/8d284829-02db-49ff-9025-850a150683dd/scratchpad/verify-briefing-chat.mjs",
+      "root_cause": "Had 'Ask about the briefing…'",
+      "fix": "Changed to 'Ask about the briefing'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T18:56:04.126Z"
+    },
+    {
+      "id": "bug-1283",
+      "timestamp": "2026-09-13T18:57:16.695Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/8d284829-02db-49ff-9025-850a150683dd/scratchpad/verify-briefing-chat.mjs",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→18 lines (3 removed) | Also: await input.fill('is anyone behind?'); await input.press('Enter') | Also: // Type a checkout question -> should stream an an; const input = page.locator('input[placeholder^=\"As",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-13T18:58:40.506Z"
+    },
+    {
+      "id": "bug-1284",
+      "timestamp": "2026-09-13T19:21:23.377Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Had 'next/navigation'",
+      "fix": "Changed to 'framer-motion'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T19:21:23.377Z"
+    },
+    {
+      "id": "bug-1285",
+      "timestamp": "2026-09-13T19:21:39.457Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T19:21:39.457Z"
+    },
+    {
+      "id": "bug-1286",
+      "timestamp": "2026-09-13T19:22:32.781Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 45→74 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T19:22:32.781Z"
+    },
+    {
+      "id": "bug-1287",
+      "timestamp": "2026-09-13T19:23:35.002Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 37→16 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T19:23:35.002Z"
+    },
+    {
+      "id": "bug-1288",
+      "timestamp": "2026-09-13T19:43:47.467Z",
+      "error_message": "CSS fix: duration",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "duration: reduceMotion ? 0 : 0.45, ease: [0.16, 0.84, 0.34, 1] as const → reduceMotion ? 0 : 0.95, ease: [0.4, 0, 0.2, 1] as const",
+      "fix": "Changed duration: reduceMotion ? 0 : 0.45, ease: [0.16, 0.84, 0.34, 1] as const → reduceMotion ? 0 : 0.95, ease: [0.4, 0, 0.2, 1] as const",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T19:43:47.467Z"
+    },
+    {
+      "id": "bug-1289",
+      "timestamp": "2026-09-13T19:54:14.112Z",
+      "error_message": "CSS fix: duration",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "duration: reduceMotion ? 0 : 0.95, ease: [0.4, 0, 0.2, 1] as const → reduceMotion ? 0 : 1.6, ease: [0.4, 0, 0.2, 1] as const",
+      "fix": "Changed duration: reduceMotion ? 0 : 0.95, ease: [0.4, 0, 0.2, 1] as const → reduceMotion ? 0 : 1.6, ease: [0.4, 0, 0.2, 1] as const",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-13T19:54:14.112Z"
+    },
+    {
+      "id": "bug-1290",
+      "timestamp": "2026-09-14T23:08:53.817Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 14→33 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:08:53.817Z"
+    },
+    {
+      "id": "bug-1291",
+      "timestamp": "2026-09-14T23:08:59.157Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Had 'framer-motion'",
+      "fix": "Changed to 'next/navigation'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:08:59.157Z"
+    },
+    {
+      "id": "bug-1292",
+      "timestamp": "2026-09-14T23:09:06.193Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 13→4 lines (8 removed) | Also: <LayoutGroup>; <AnimatePresence initial={false}> | Also: </motion.div>; </AnimatePresence>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-14T23:09:42.077Z"
+    },
+    {
+      "id": "bug-1293",
+      "timestamp": "2026-09-14T23:09:48.624Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "Had 'framer-motion'",
+      "fix": "Changed to 'lucide-react'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:09:48.624Z"
+    },
+    {
+      "id": "bug-1294",
+      "timestamp": "2026-09-14T23:09:54.633Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 14→9 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:09:54.633Z"
+    },
+    {
+      "id": "bug-1235",
+      "timestamp": "2026-09-14T00:00:00.000Z",
+      "error_message": "\"Ask about this\" briefing transition popped/jumped: briefing text vanished and chat appeared instantly, or the panel changed height",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx, apps/web/app/globals.css, apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "Transition was built with framer-motion AnimatePresence opacity cross-fade + a shared-layoutId button->input morph. Because React reused the DOM node on the conditional toggle, the entering state did not reliably re-animate, reading as an instant pop.",
+      "fix": "Replaced framer-motion with a pure-CSS keyed rise-fade. Both states stack in one .briefing-left grid cell (grid-area 1/1, min-width 0). The mounted state is wrapped in a div keyed on showBriefingChat ('chat'/'briefing') so React remounts it and the new `briefing-swap-in` 620ms keyframe (opacity 0->1 + translateY 18px->0, with a 45% opacity hold and `both` fill) replays every toggle. Removed AnimatePresence/LayoutGroup/motion + morph props; dropped framer import from SimplifiedDashboard and motion.input from BriefingChat. Panel height stays constant because the sibling stat-tiles column pins the grid row height (verified 302px stable, tiles 0-1px movement, no console errors).",
+      "tags": [
+        "web",
+        "css",
+        "animation",
+        "framer-motion",
+        "briefing",
+        "SimplifiedDashboard",
+        "transition"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1296",
+      "timestamp": "2026-09-14T23:28:24.218Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "No early return/throw for edge case: next === briefingView",
+      "fix": "Added guard clause: if (next === briefingView)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:28:24.218Z"
+    },
+    {
+      "id": "bug-1297",
+      "timestamp": "2026-09-14T23:29:16.091Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:29:16.091Z"
+    },
+    {
+      "id": "bug-1298",
+      "timestamp": "2026-09-14T23:29:30.357Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "49 lines replaced/restructured",
+      "fix": "Rewrote 55→7 lines (49 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:29:30.357Z"
+    },
+    {
+      "id": "bug-1299",
+      "timestamp": "2026-09-14T23:29:40.152Z",
+      "error_message": "CSS fix: opacity, transform, animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "opacity: 1 → 0; transform: translateY(0) → translateY(-10px); animation: briefing-swap-in 120ms linear both → briefing-swap-out 80ms linear both",
+      "fix": "Changed opacity: 1 → 0; transform: translateY(0) → translateY(-10px); animation: briefing-swap-in 120ms linear both → briefing-swap-out 80ms linear both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:29:40.152Z"
+    },
+    {
+      "id": "bug-1300",
+      "timestamp": "2026-09-14T23:30:00.407Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:30:00.407Z"
+    },
+    {
+      "id": "bug-1301",
+      "timestamp": "2026-09-14T23:33:20.064Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/__verify_transition.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:33:20.064Z"
+    },
+    {
+      "id": "bug-xfade-briefing",
+      "timestamp": "2026-09-14T00:00:00.000Z",
+      "error_message": "After the CSS keyed rise-fade, the Ask about this swap still read as a hard cut then a rise: the outgoing state unmounted on the same frame the incoming one mounted, so for ~620ms you saw one element appear over empty space instead of two states crossing.",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx, apps/web/app/globals.css, apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "Conditional render mounted only one briefing state at a time; there was no outgoing/leaving element to cross-fade against.",
+      "fix": "Made it a true cross-fade. Replaced boolean showBriefingChat with { briefingView, leavingView }: swapBriefingView sets leavingView=previous + briefingView=next, and a 320ms timeout clears leavingView. Both cells render while leaving is set, each keyed `${view}-${phase}` in the same .briefing-left grid cell (grid-area 1/1). New briefing-swap-out keyframe (320ms, opacity 1->0, translateY 0->-10px, pointer-events:none) fades the old cell up-and-out while .swap-in (620ms) rises the new one in (deliberate asymmetry). Extracted renderBriefingBody/renderChatBody/renderBriefingCell so both cells reuse one body. In BriefingChat, gated mount-time motion behind a 620ms ready flag: message typewriter-reveal suppressed until ready (hydrated history/greeting never streams mid-drift) and the composer input is focused (preventScroll) only after ready. Verified via Playwright: both cells co-mounted during open+close, out=briefing-swap-out+pointer-events none, in=briefing-swap-in, out cell unmounts after, section height 302px stable, tiles 0px movement, no scroll on focus, no console errors, mid-transition screenshot shows both blocks overlapping without clipping.",
+      "tags": [
+        "web",
+        "css",
+        "animation",
+        "cross-fade",
+        "briefing",
+        "SimplifiedDashboard",
+        "BriefingChat",
+        "transition"
+      ],
+      "related_bugs": [
+        "bug-1235"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1303",
+      "timestamp": "2026-09-14T23:36:44.230Z",
+      "error_message": "CSS fix: animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "animation: briefing-swap-out 320ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 1000ms cubic-bezier(.4, 0, .6, 1) both",
+      "fix": "Changed animation: briefing-swap-out 320ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 1000ms cubic-bezier(.4, 0, .6, 1) both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:36:44.230Z"
+    },
+    {
+      "id": "bug-1304",
+      "timestamp": "2026-09-14T23:36:53.982Z",
+      "error_message": "Wrong return value",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Was returning: const t = setTimeout(() => setLeavingView(null), 3",
+      "fix": "Now returns: // Keep the outgoing cell mounted until its fade-o",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:36:53.982Z"
+    },
+    {
+      "id": "bug-1305",
+      "timestamp": "2026-09-14T23:42:45.940Z",
+      "error_message": "CSS fix: animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "animation: briefing-swap-out 1000ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 3000ms cubic-bezier(.4, 0, .6, 1) both",
+      "fix": "Changed animation: briefing-swap-out 1000ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 3000ms cubic-bezier(.4, 0, .6, 1) both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:42:45.940Z"
+    },
+    {
+      "id": "bug-1306",
+      "timestamp": "2026-09-14T23:42:55.227Z",
+      "error_message": "Wrong reference: 1000 should be 3000",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Used \"1000\" instead of \"3000\"",
+      "fix": "Changed 1000 → 3000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T23:42:55.227Z"
+    },
+    {
+      "id": "bug-1307",
+      "timestamp": "2026-09-14T23:43:09.129Z",
+      "error_message": "Wrong reference: 1800ms should be 5400ms",
+      "file": "apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "Used \"1800ms\" instead of \"5400ms\"",
+      "fix": "Changed 1800ms → 5400ms",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-14T23:43:17.120Z"
+    },
+    {
+      "id": "bug-1308",
+      "timestamp": "2026-09-15T09:57:39.701Z",
+      "error_message": "CSS fix: animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "animation: briefing-swap-out 3000ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 9000ms cubic-bezier(.4, 0, .6, 1) both",
+      "fix": "Changed animation: briefing-swap-out 3000ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 9000ms cubic-bezier(.4, 0, .6, 1) both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T09:57:39.701Z"
+    },
+    {
+      "id": "bug-1309",
+      "timestamp": "2026-09-15T10:03:53.676Z",
+      "error_message": "Wrong reference: 3000 should be 9000",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Used \"3000\" instead of \"9000\"",
+      "fix": "Changed 3000 → 9000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T10:08:03.981Z"
+    },
+    {
+      "id": "bug-1310",
+      "timestamp": "2026-09-15T10:04:00.972Z",
+      "error_message": "Wrong reference: 5400ms should be 16200ms",
+      "file": "apps/web/components/dashboard/BriefingChat.tsx",
+      "root_cause": "Used \"5400ms\" instead of \"16200ms\"",
+      "fix": "Changed 5400ms → 16200ms",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-15T10:08:40.547Z"
+    },
+    {
+      "id": "bug-1311",
+      "timestamp": "2026-09-15T10:07:51.476Z",
+      "error_message": "CSS fix: animation",
+      "file": "apps/web/app/globals.css",
+      "root_cause": "animation: briefing-swap-out 9000ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 320ms cubic-bezier(.4, 0, .6, 1) both",
+      "fix": "Changed animation: briefing-swap-out 9000ms cubic-bezier(.4, 0, .6, 1) both → briefing-swap-out 320ms cubic-bezier(.4, 0, .6, 1) both",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T10:07:51.476Z"
     }
   ]
 }

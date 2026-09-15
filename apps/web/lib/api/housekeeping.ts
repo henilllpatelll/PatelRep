@@ -109,6 +109,13 @@ export type BatchAcknowledgeResult =
   | { room_id: string; action: 'already_acknowledged' }
   | BatchRoomActionError
 
+export interface HotelAvgCleanTime {
+  today_avg_minutes: number | null
+  seven_day_avg_minutes: number | null
+  delta_minutes: number | null
+  today_count: number
+}
+
 export const housekeepingApi = {
   getBoard: (date: string, shiftId?: string, includePredictions = true) =>
     apiClient.get('/housekeeping/board', {
@@ -119,6 +126,10 @@ export const housekeepingApi = {
     apiClient.get('/housekeeping/assignments', {
       params: { date: date || undefined, shift_id: shiftId },
     }),
+
+  /** Hotel-wide average clean time for today plus the 7-day trend (dashboard hero). */
+  getHotelAvgCleanTime: (): Promise<{ data: HotelAvgCleanTime }> =>
+    apiClient.get('/clean-sessions/hotel-avg-clean-time'),
 
   saveAssignments: (data: AssignmentPayload) =>
     apiClient.post('/housekeeping/assignments', data),

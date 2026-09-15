@@ -573,6 +573,17 @@ export default function RoomsPage() {
 
   const rooms: RoomStatus[] = useMemo(() => data?.data ?? [], [data?.data])
 
+  // Bind the open detail drawer to LIVE room data so drawer mutations show the
+  // instant the list refetches, not the frozen click-time snapshot.
+  const drawerRoom = selectedRoom
+    ? {
+        ...selectedRoom,
+        ...(rooms.find(
+          (r: any) => (r.room_id ?? r.id) === ((selectedRoom as any).room_id ?? (selectedRoom as any).id),
+        ) ?? {}),
+      }
+    : null
+
   // Extract unique floors for the filter dropdown
   const floors = useMemo(() => {
     const set = new Set<number>()
@@ -851,7 +862,7 @@ export default function RoomsPage() {
 
       {/* Room detail / edit drawer */}
       <RoomDetailDrawer
-        room={selectedRoom}
+        room={drawerRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
         onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => prev ? { ...prev, checkout_time: time } : prev)}

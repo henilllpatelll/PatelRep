@@ -240,7 +240,6 @@ describe("HousekeeperHomeScreen", () => {
     expect(getByText("In progress")).toBeTruthy();
     expect(getByText("target 25:00")).toBeTruthy();
     expect(getByText("Mark Clean")).toBeTruthy();
-    expect(getByTestId("focus-pause")).toBeTruthy();
     expect(getByTestId("focus-more")).toBeTruthy();
     // No separate resume link — 108 already is the focus card
     expect(queryByTestId("focus-resume")).toBeNull();
@@ -307,8 +306,6 @@ describe("HousekeeperHomeScreen", () => {
     expect(getByText("5:00")).toBeTruthy();
     expect(getByText("20m under pace")).toBeTruthy();
     expect(getByText("Mark Clean")).toBeTruthy();
-    // Pause has no backing action yet, so it renders present but disabled — never a dead tap
-    expect(getByTestId("focus-pause").props.accessibilityState.disabled).toBe(true);
     expect(getByTestId("focus-more")).toBeTruthy();
 
     jest.useRealTimers();

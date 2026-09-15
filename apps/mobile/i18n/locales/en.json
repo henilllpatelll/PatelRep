@@ -79,7 +79,6 @@
       "target": "target {{time}}",
       "underPace": "{{minutes}}m under pace",
       "overPace": "{{minutes}}m over pace",
-      "pause": "Pause",
       "more": "More options",
       "resume": "Resume {{room}}",
       "inProgress": "in progress",

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Plus, MessageSquare, UserPlus, Sparkles, X, ChevronRight, AlertTriangle, CheckCircle2, ArrowUpDown } from 'lucide-react'
+import { RefreshCw, Plus, MessageSquare, UserPlus, X, ChevronRight, AlertTriangle, CheckCircle2, ArrowUpDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
@@ -14,19 +14,18 @@ import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { notificationsApi } from '@/lib/api/notifications'
-import { Avatar, Pill, Bar, SectionLabel, AILabel, Mono } from '@/components/ui/primitives'
+import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
+import { Avatar, Pill, Bar, SectionLabel, AILabel, Mono, SparkIcon } from '@/components/ui/primitives'
 import { Button, IconButton } from '@/components/ui/Button'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
 import { DashboardGreeting } from './DashboardGreeting'
+import { BriefingChat } from './BriefingChat'
+import type { BriefingBoardStats } from '@/lib/ai/briefingFastPath'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { cn } from '@/lib/utils'
-
-function openCopilot() {
-  document.dispatchEvent(new CustomEvent('copilot:open'))
-}
 
 // ── Room status → pill/tile styling (matches STATUS_LABEL_MAP in the housekeeping board) ──
 
@@ -42,6 +41,19 @@ const ROOM_PILL: Record<string, { tone: any; label: string }> = {
   OOO: { tone: 'blocked', label: 'OOO' },
 }
 
+// Thin status-bar color per room-status tone for the "pick a room" list — the
+// same hash-frozen room-status CSS vars used everywhere else (never a new hue).
+const ROOM_BAR_COLOR: Record<string, string> = {
+  inspected: 'var(--ready)',
+  clean: 'var(--info)',
+  dirty: 'var(--alert)',
+  progress: 'var(--progress)',
+  alert: 'var(--alert)',
+  pickup: 'var(--caution)',
+  blocked: 'var(--blocked)',
+  neutral: 'var(--line-2)',
+}
+
 const OCCUPANCY_TILE_LABEL: Record<StatKey, string> = {
   all: 'All rooms',
   OCCUPIED: 'Occupied',
@@ -53,11 +65,27 @@ const OCCUPANCY_TILE_LABEL: Record<StatKey, string> = {
  * Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'`
  * is the real proxy for "checking out" — assigned specifically to departure rooms
  * regardless of whether the guest has physically left yet (see cleanType.ts).
+ * PICKUP status means a stayover clean (Full/Light) is queued while the guest
+ * is still in the room, so it counts as occupied too — Vacant must only ever
+ * mean nobody is in the room.
  */
 function classifyOccupancy(room: any): 'OCCUPIED' | 'DEPARTURE' | 'VACANT' {
   if (room.clean_type === 'DEP') return 'DEPARTURE'
-  if (room.status === 'OCCUPIED') return 'OCCUPIED'
+  if (room.status === 'OCCUPIED' || room.status === 'PICKUP') return 'OCCUPIED'
   return 'VACANT'
+}
+
+/**
+ * Human-readable coverage label for a set of floor numbers — "Floor 3",
+ * "Floors 1–2" (contiguous), or "Floors 1, 3" (gapped). Powers the per-staff
+ * area line, derived from the floors of the rooms/work orders on their plate.
+ */
+function summarizeFloors(floors: number[]): string {
+  const uniq = Array.from(new Set(floors.filter((f) => f != null))).sort((a, b) => a - b)
+  if (uniq.length === 0) return ''
+  if (uniq.length === 1) return `Floor ${uniq[0]}`
+  const contiguous = uniq.every((f, i) => i === 0 || f === uniq[i - 1] + 1)
+  return contiguous ? `Floors ${uniq[0]}–${uniq[uniq.length - 1]}` : `Floors ${uniq.join(', ')}`
 }
 
 const PRIORITY_PILL: Record<string, any> = {
@@ -134,21 +162,56 @@ interface HKRow {
   in_progress?: number
 }
 
+function paceBarTone(pct: number): 'ready' | 'caution' | 'alert' {
+  return pct >= 80 ? 'ready' : pct >= 50 ? 'caution' : 'alert'
+}
+
 function StaffPanel({
   assignmentsData,
   staffData,
   workOrders,
+  completedWorkOrders,
+  rooms,
   canMessage,
 }: {
   assignmentsData: unknown
   staffData: unknown
   workOrders: WorkOrder[]
+  completedWorkOrders: WorkOrder[]
+  rooms: any[]
   canMessage: boolean
 }) {
   const router = useRouter()
   const hkRows: HKRow[] = (assignmentsData as any)?.data ?? []
   const staff: StaffMember[] = (staffData as any)?.data?.staff ?? (staffData as any)?.data ?? []
   const technicians = staff.filter((s) => s.role === 'engineer' || s.role === 'chief_engineer')
+
+  // ── Per-housekeeper coverage area — the distinct floors of their board today ──
+  const floorsByHk: Record<string, number[]> = {}
+  for (const room of rooms) {
+    const hkId = room.housekeeper_id
+    const floor = room.rooms?.floor
+    if (hkId == null || floor == null) continue
+    ;(floorsByHk[hkId] ??= []).push(floor)
+  }
+
+  // ── Per-technician work-order pace — completed today vs. everything still on their plate ──
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const techStats = (tech: StaffMember) => {
+    const open = workOrders.filter(
+      (w) => w.assigned_to === tech.user_id && (w.status === 'open' || w.status === 'in_progress' || w.status === 'escalated')
+    )
+    const done = completedWorkOrders.filter(
+      (w) => w.assigned_to === tech.user_id && w.completed_at != null && new Date(w.completed_at) >= startOfToday
+    )
+    const assigned = open.length + done.length
+    const floors = [...open, ...done]
+      .map((w) => w.rooms?.floor)
+      .filter((f): f is number => f != null)
+    const pct = assigned > 0 ? Math.round((done.length / assigned) * 100) : 0
+    return { done: done.length, assigned, pct, area: summarizeFloors(floors) }
+  }
 
   const [sortByPace, setSortByPace] = useState(false)
   const sortedHkRows = sortByPace
@@ -159,16 +222,12 @@ function StaffPanel({
       })
     : hkRows
   const sortedTechnicians = sortByPace
-    ? [...technicians].sort((a, b) => {
-        const openFor = (t: StaffMember) =>
-          workOrders.filter((w) => w.assigned_to === t.user_id && (w.status === 'open' || w.status === 'in_progress' || w.status === 'escalated')).length
-        return openFor(a) - openFor(b)
-      })
+    ? [...technicians].sort((a, b) => techStats(b).pct - techStats(a).pct)
     : technicians
 
   return (
     <div className="h-full bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card flex flex-col">
-      <div className="px-4 pt-3.5 pb-1 flex items-baseline justify-between gap-2">
+      <div className="px-4 pt-[14px] pb-2 flex items-baseline justify-between gap-2">
         <SectionLabel hint={`${hkRows.length + technicians.length} on shift`}>Staff</SectionLabel>
         <div className="flex gap-1 pb-2.5">
           <IconButton
@@ -206,8 +265,9 @@ function StaffPanel({
             const pct = total > 0 ? Math.round((done / total) * 100) : 0
             const paceTone = pct >= 100 ? 'ready' : pct >= 50 ? 'neutral' : 'caution'
             const paceLabel = pct >= 100 ? 'Finished' : pct >= 50 ? 'On pace' : 'Behind pace'
+            const area = hk.housekeeper_id ? summarizeFloors(floorsByHk[hk.housekeeper_id] ?? []) : ''
             return (
-              <div key={i} className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2">
+              <div key={i} className="flex items-center gap-[11px] px-4 py-[11px] border-t border-line-2">
                 <Avatar name={name} size={30} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
@@ -215,7 +275,8 @@ function StaffPanel({
                     <Mono className="text-[11px] text-ink3">{done}/{total}</Mono>
                     <Pill tone={paceTone} size="sm">{paceLabel}</Pill>
                   </div>
-                  <Bar value={done} max={total || 1} tone={pct >= 50 ? 'ready' : 'caution'} height={3} className="mt-1.5" />
+                  <Bar value={done} max={total || 1} tone={paceBarTone(pct)} height={4} className="mt-[5px]" />
+                  {area && <p className="text-[10.5px] text-ink3 mt-[5px]">{area}</p>}
                 </div>
                 <div className="flex items-center gap-0.5 shrink-0">
                   {canMessage && <MessageButton recipientId={hk.housekeeper_id} recipientName={name} />}
@@ -232,10 +293,10 @@ function StaffPanel({
                     variant="ghost"
                     size="sm"
                     aria-label={`Ask AI to rebalance ${name}`}
-                    onClick={openCopilot}
+                    onClick={() => router.push("/ai")}
                     className="hover:bg-[var(--ai-soft)] hover:text-[var(--ai)]"
                   >
-                    <Sparkles size={13} />
+                    <SparkIcon size={13} />
                   </IconButton>
                 </div>
               </div>
@@ -252,18 +313,20 @@ function StaffPanel({
           <p className="text-[12px] text-ink3 px-4 py-3">No technicians on shift</p>
         ) : (
           sortedTechnicians.map((tech) => {
-            const assigned = workOrders.filter(
-              (w) => w.assigned_to === tech.user_id && (w.status === 'open' || w.status === 'in_progress' || w.status === 'escalated')
-            ).length
+            const { done, assigned, pct, area } = techStats(tech)
+            const paceTone = assigned === 0 ? 'ready' : pct >= 100 ? 'ready' : pct >= 50 ? 'neutral' : 'caution'
+            const paceLabel = assigned === 0 ? 'Available' : pct >= 100 ? 'Clear' : pct >= 50 ? 'On pace' : 'Behind pace'
             return (
-              <div key={tech.id} className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2">
+              <div key={tech.id} className="flex items-center gap-[11px] px-4 py-[11px] border-t border-line-2">
                 <Avatar name={tech.full_name} size={30} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span className="text-[13px] font-medium text-ink truncate">{tech.full_name}</span>
-                    <Mono className="text-[11px] text-ink3">{assigned} open</Mono>
-                    <Pill tone={assigned > 0 ? 'neutral' : 'ready'} size="sm">{assigned > 0 ? 'On it' : 'Available'}</Pill>
+                    {assigned > 0 && <Mono className="text-[11px] text-ink3">{done}/{assigned}</Mono>}
+                    <Pill tone={paceTone} size="sm">{paceLabel}</Pill>
                   </div>
+                  {assigned > 0 && <Bar value={done} max={assigned} tone={paceBarTone(pct)} height={4} className="mt-[5px]" />}
+                  {area && <p className="text-[10.5px] text-ink3 mt-[5px]">{area}</p>}
                 </div>
                 <div className="flex items-center gap-0.5 shrink-0">
                   {canMessage && <MessageButton recipientId={tech.user_id} recipientName={tech.full_name} />}
@@ -280,10 +343,10 @@ function StaffPanel({
                     variant="ghost"
                     size="sm"
                     aria-label={`Ask AI to rebalance ${tech.full_name}`}
-                    onClick={openCopilot}
+                    onClick={() => router.push("/ai")}
                     className="hover:bg-[var(--ai-soft)] hover:text-[var(--ai)]"
                   >
-                    <Sparkles size={13} />
+                    <SparkIcon size={13} />
                   </IconButton>
                 </div>
               </div>
@@ -308,6 +371,7 @@ function WorkOrdersPanel({
   onRetry: () => void
   onNewWorkOrder: () => void
 }) {
+  const router = useRouter()
   const [urgentOnly, setUrgentOnly] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -335,7 +399,7 @@ function WorkOrdersPanel({
 
   return (
     <div className="h-full bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card flex flex-col">
-      <div className="px-4 pt-3.5 pb-1 flex items-baseline justify-between gap-2">
+      <div className="px-4 pt-[14px] pb-2 flex items-baseline justify-between gap-2">
         <SectionLabel hint={`${workOrders.length} open`}>Work orders</SectionLabel>
         <div className="flex gap-1 pb-2.5">
           <IconButton variant="outline" size="sm" aria-label="New work order" onClick={onNewWorkOrder}>
@@ -349,8 +413,8 @@ function WorkOrdersPanel({
           >
             <AlertTriangle size={14} />
           </IconButton>
-          <IconButton variant="ai" size="sm" aria-label="AI triage the queue" onClick={openCopilot}>
-            <Sparkles size={13} />
+          <IconButton variant="ai" size="sm" aria-label="AI triage the queue" onClick={() => router.push("/ai")}>
+            <SparkIcon size={13} />
           </IconButton>
         </div>
       </div>
@@ -361,15 +425,15 @@ function WorkOrdersPanel({
           <p className="text-[12px] text-ink3 px-4 pb-4">No open work orders</p>
         ) : (
           visible.map((wo) => (
-            <div key={wo.id} className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2">
-              <span className="shrink-0 min-w-[44px] px-2 py-1.5 rounded-[var(--r-sm)] font-mono text-[12.5px] font-semibold text-ink bg-surface-2 border border-line text-center">
+            <div key={wo.id} className="flex items-center gap-[11px] px-4 py-[11px] border-t border-line-2">
+              <span className="shrink-0 min-w-[44px] px-2 py-[6px] rounded-[var(--r-sm)] font-mono text-[12.5px] font-semibold text-ink bg-surface-2 border border-line text-center">
                 {wo.rooms?.room_number ?? wo.location_text ?? '—'}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] text-ink truncate">{wo.title}</p>
-                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                <div className="flex items-center gap-[7px] flex-wrap mt-1">
                   <Pill tone={PRIORITY_PILL[wo.priority] ?? 'neutral'} size="sm">{wo.priority}</Pill>
-                  <span className="text-[10.5px] text-ink3">
+                  <span className="text-[11px] text-ink3">
                     Opened {formatDistanceToNow(new Date(wo.created_at))} ago{wo.assigned_to ? '' : ' · unassigned'}
                   </span>
                 </div>
@@ -418,11 +482,13 @@ function WorkOrdersPanel({
 function RoomListDrawer({
   filter,
   rooms,
+  hkNameById,
   onClose,
   onSelectRoom,
 }: {
   filter: StatKey
   rooms: any[]
+  hkNameById: Record<string, string>
   onClose: () => void
   onSelectRoom: (room: any) => void
 }) {
@@ -431,8 +497,8 @@ function RoomListDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/35 z-40" onClick={onClose} />
-      <aside className="fixed top-0 right-0 bottom-0 w-full max-w-[380px] bg-surface border-l border-line shadow-pop z-50 flex flex-col">
+      <div className="fixed inset-0 bg-black/35 z-drawer" onClick={onClose} />
+      <aside className="fixed top-0 right-0 bottom-0 w-full max-w-[380px] bg-surface border-l border-line shadow-pop z-drawer flex flex-col">
         <div className="px-5 pt-5 pb-3.5 flex items-start gap-3 border-b border-line-2">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{visible.length} rooms</p>
@@ -443,18 +509,39 @@ function RoomListDrawer({
         <div className="flex-1 overflow-y-auto px-5 py-1">
           {visible.map((room) => {
             const status = ROOM_PILL[room.status] ?? { tone: 'neutral', label: room.status }
+            const hkId = room.assigned_to ?? room.housekeeper_id
+            const hkName = hkId ? hkNameById[hkId] : undefined
+            // Fold the clean-type scope into the state label for pickups
+            // ("Pickup · Full" / "Pickup · Light") so the picker shows how much
+            // work each room needs — the app's existing clean-aware convention.
+            const cleanShort = getCleanTypeShortLabel(room.clean_type)
+            const stateLabel =
+              cleanShort && room.status === 'PICKUP' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT')
+                ? `${status.label} · ${cleanShort}`
+                : status.label
+            // Occupied/stayover reads as striped red, matching the drawer header.
+            const isOccupied = room.status === 'OCCUPIED'
             return (
               <button
                 key={room.room_id}
                 onClick={() => onSelectRoom(room)}
-                className="w-full flex items-center gap-3 py-2.5 border-t border-line-2 text-left hover:bg-surface-2 transition-colors"
+                className="w-full flex items-center gap-3 px-1 py-3 border-t border-line-2 text-left hover:bg-surface-2 transition-colors"
               >
-                <Mono className="text-[14px] font-semibold text-ink min-w-[42px]">
+                <span
+                  className="shrink-0"
+                  style={
+                    isOccupied
+                      ? { width: 4, height: 26, borderRadius: 2, backgroundImage: 'repeating-linear-gradient(135deg, var(--alert) 0 4px, rgba(255,255,255,0.55) 4px 8px)' }
+                      : { width: 4, height: 26, borderRadius: 2, background: ROOM_BAR_COLOR[status.tone] ?? 'var(--line-2)' }
+                  }
+                />
+                <Mono className="text-[14px] font-semibold text-ink min-w-[38px]">
                   {room.rooms?.room_number ?? room.room_number}
                 </Mono>
-                <Pill tone={status.tone} size="sm">{status.label}</Pill>
-                <span className="flex-1" />
-                <ChevronRight size={13} className="text-ink4" />
+                <span className="flex-1 min-w-0 truncate text-[12px] text-ink3">
+                  {stateLabel}{hkName ? ` · ${hkName}` : ''}
+                </span>
+                <ChevronRight size={13} className="text-ink4 shrink-0" />
               </button>
             )
           })}
@@ -474,11 +561,29 @@ export function SimplifiedDashboard() {
   const { role } = useRole()
   const canMessage = role === 'gm' || role === 'housekeeping_supervisor' || role === 'engineer'
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   const [listFilter, setListFilter] = useState<StatKey | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
-  const [briefingDismissed, setBriefingDismissed] = useState(false)
   const [showCreateWO, setShowCreateWO] = useState(false)
+
+  // Briefing ↔ chat cross-fade. Both states stay mounted during a swap: the
+  // incoming one (`briefingView`) rises in slowly while the outgoing one
+  // (`leavingView`) fades up and out quickly, then unmounts after 320ms.
+  type BriefingView = 'briefing' | 'chat'
+  const [briefingView, setBriefingView] = useState<BriefingView>('briefing')
+  const [leavingView, setLeavingView] = useState<BriefingView | null>(null)
+  const swapBriefingView = (next: BriefingView) => {
+    if (next === briefingView) return
+    setLeavingView(briefingView)
+    setBriefingView(next)
+  }
+  useEffect(() => {
+    if (!leavingView) return
+    // Keep the outgoing cell mounted until its fade-out (.swap-out) finishes.
+    const t = setTimeout(() => setLeavingView(null), 320)
+    return () => clearTimeout(t)
+  }, [leavingView])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0]
@@ -486,9 +591,9 @@ export function SimplifiedDashboard() {
 
   const todayISO = format(new Date(), 'yyyy-MM-dd')
 
-  const { data: boardData, isLoading: boardLoading, isError: boardError, refetch: refetchBoard } = useQuery({
+  const { data: boardData, isLoading: boardLoading, isError: boardError, refetch: refetchBoard, dataUpdatedAt: boardUpdatedAt } = useQuery({
     queryKey: ['housekeeping-board', todayISO],
-    queryFn: () => housekeepingApi.getBoard(todayISO, undefined, false),
+    queryFn: () => housekeepingApi.getBoard(todayISO, undefined, true),
     staleTime: 0,
     refetchInterval: 15_000,
   })
@@ -506,10 +611,24 @@ export function SimplifiedDashboard() {
     refetchInterval: 15_000,
   })
 
+  // Completed work orders feed the maintenance pace bars (done-today ÷ on-plate).
+  const { data: completedWorkOrdersData } = useQuery({
+    queryKey: ['work-orders', 'completed'],
+    queryFn: () => engineeringApi.listWorkOrders({ status: 'completed', per_page: 100 }),
+    refetchInterval: 60_000,
+  })
+
   const { data: staffData } = useQuery({
     queryKey: ['staff-list'],
     queryFn: () => staffApi.list(),
     staleTime: 5 * 60_000,
+  })
+
+  const { data: cleanTimeData } = useQuery({
+    queryKey: ['hotel-avg-clean-time'],
+    queryFn: () => housekeepingApi.getHotelAvgCleanTime(),
+    refetchInterval: 120_000,
+    retry: 1,
   })
 
   const { data: alertsData, isError: alertsError, refetch: refetchAlerts } = useQuery({
@@ -520,26 +639,66 @@ export function SimplifiedDashboard() {
   })
 
   const rooms: any[] = (boardData as any)?.data ?? []
+  // Bind the open detail drawer to LIVE board data (checkout time, status,
+  // assignment, …) so a mutation shows the instant the board refetches — the
+  // click-time snapshot alone was stale and forced a close/reopen to see edits.
+  const drawerRoom = selectedRoom
+    ? { ...selectedRoom, ...(rooms.find((r) => r.room_id === selectedRoom.room_id) ?? {}) }
+    : null
   const workOrders: WorkOrder[] = (workOrdersData as any)?.data ?? []
+  const completedWorkOrders: WorkOrder[] = (completedWorkOrdersData as any)?.data ?? []
+  const cleanTime = cleanTimeData?.data
   const hkRisks = alertsData?.data?.housekeeping_risks ?? []
   const urgentWOs = workOrders.filter((w) => w.priority === 'urgent' || w.priority === 'emergency')
+
+  // housekeeper_id → display name, for the room-list drawer. Assignments carry the
+  // name directly; the staff roster fills in anyone the board shows but isn't assigned.
+  const hkNameById = useMemo(() => {
+    const map: Record<string, string> = {}
+    const rows: HKRow[] = (assignmentsData as any)?.data ?? []
+    for (const hk of rows) {
+      if (hk.housekeeper_id) map[hk.housekeeper_id] = hk.name ?? hk.housekeeper_name ?? hk.user_name ?? 'Staff'
+    }
+    const staff: StaffMember[] = (staffData as any)?.data?.staff ?? (staffData as any)?.data ?? []
+    for (const s of staff) {
+      if (s.user_id && !map[s.user_id]) map[s.user_id] = s.full_name
+    }
+    return map
+  }, [assignmentsData, staffData])
 
   const totalRooms = rooms.length
   const occupied = rooms.filter((r) => classifyOccupancy(r) === 'OCCUPIED').length
   const departure = rooms.filter((r) => classifyOccupancy(r) === 'DEPARTURE').length
   const vacant = rooms.filter((r) => classifyOccupancy(r) === 'VACANT').length
-  const floorCount = new Set(rooms.map((r) => r.rooms?.floor).filter((f) => f != null)).size
+  // Vacant rooms currently mid-clean — the only hint the Vacant tile shows.
+  const vacantInProgress = rooms.filter((r) => classifyOccupancy(r) === 'VACANT' && r.status === 'IN_PROGRESS').length
   const pct = (n: number) => (totalRooms > 0 ? `${Math.round((n / totalRooms) * 100)}%` : '—')
 
   const statTiles: { key: StatKey; label: string; value: number; hint: string; dot: string }[] = [
-    { key: 'all', label: 'Total rooms', value: totalRooms, hint: floorCount > 0 ? `${floorCount} floors` : '', dot: 'bg-white/70' },
-    { key: 'OCCUPIED', label: 'Occupied', value: occupied, hint: pct(occupied), dot: 'bg-[var(--alert)]' },
-    { key: 'DEPARTURE', label: 'Departure', value: departure, hint: pct(departure), dot: 'bg-[var(--caution)]' },
-    { key: 'VACANT', label: 'Vacant', value: vacant, hint: pct(vacant), dot: 'bg-[var(--ready)]' },
+    { key: 'all', label: 'Total rooms', value: totalRooms, hint: '', dot: 'bg-white/70' },
+    { key: 'OCCUPIED', label: 'Occupied · stayover', value: occupied, hint: pct(occupied), dot: 'bg-[var(--alert)]' },
+    { key: 'DEPARTURE', label: 'Departures', value: departure, hint: '', dot: 'bg-[var(--alert)]' },
+    { key: 'VACANT', label: 'Vacant', value: vacant, hint: vacantInProgress > 0 ? `${vacantInProgress} in progress` : '', dot: 'bg-[var(--ready)]' },
   ]
 
   const now = new Date()
   const shiftLabel = now.getHours() < 15 ? 'Day shift' : now.getHours() < 23 ? 'Evening shift' : 'Night shift'
+
+  // Grounds "Ask about this" answers in exactly what's on screen right now.
+  const briefingStats: BriefingBoardStats = {
+    hkStats: ((assignmentsData as any)?.data ?? []).map((hk: HKRow) => ({
+      name: hk.name ?? hk.housekeeper_name ?? hk.user_name ?? 'Staff',
+      assigned: hk.rooms_assigned ?? 0,
+      done: hk.rooms_done ?? hk.rooms_completed ?? 0,
+    })),
+    departure,
+    vacant,
+    risks: hkRisks.map((r) => ({ room_number: r.rooms?.room_number })),
+    urgentWorkOrders: urgentWOs.map((w) => ({ title: w.title, location: w.rooms?.room_number ?? w.location_text ?? undefined })),
+    cleanTime: cleanTime?.today_avg_minutes != null
+      ? { todayAvgMinutes: cleanTime.today_avg_minutes, deltaMinutes: cleanTime.delta_minutes }
+      : null,
+  }
 
   const handleRefresh = () => {
     refetchBoard()
@@ -547,6 +706,74 @@ export function SimplifiedDashboard() {
     refetchWO()
     refetchAlerts()
   }
+
+  const renderBriefingBody = () => (
+    <>
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <AILabel confidence={91}>Shift briefing</AILabel>
+        <span className="text-[11px] font-mono text-white/50">Generated {format(new Date(), 'h:mm a')}</span>
+      </div>
+      {alertsError ? (
+        <p className="font-display italic text-[16px] text-white/70">Briefing unavailable right now.</p>
+      ) : (
+        <>
+          <p className="font-display italic text-[20px] leading-[1.45] tracking-[-0.2px]">
+            {hkRisks.length > 0
+              ? <>
+                  <span className="not-italic font-sans font-medium bg-[#3d3214] text-[#e6c47d] px-1.5 py-px rounded">{hkRisks.length} rooms flagged</span>
+                  {' '}at risk. {urgentWOs.length > 0 ? `${urgentWOs.length} urgent work order${urgentWOs.length !== 1 ? 's are' : ' is'} unassigned.` : 'Work orders are on pace.'}
+                </>
+              : departure > 0
+              ? `${departure} room${departure > 1 ? 's are' : ' is'} on departure today. Everything else is on pace.`
+              : 'All boards on pace. No rooms currently flagged.'
+            }
+          </p>
+          <div className="flex gap-2.5 mt-auto flex-wrap items-center">
+            {hkRisks.length > 0 && (
+              <Button variant="primary" size="md" onClick={() => router.push('/ai')} className="gap-1.5">
+                <CheckCircle2 size={14} />
+                Apply {hkRisks.length} suggestion{hkRisks.length !== 1 ? 's' : ''}
+              </Button>
+            )}
+            <Button
+              variant="ai"
+              size="md"
+              onClick={() => swapBriefingView('chat')}
+              className="gap-1.5"
+            >
+              <SparkIcon size={14} />
+              Ask about this
+            </Button>
+          </div>
+        </>
+      )}
+    </>
+  )
+
+  const renderChatBody = () => (
+    <BriefingChat
+      stats={briefingStats}
+      onClose={() => swapBriefingView('briefing')}
+      onOpenRoomFilter={(filter) => setListFilter(filter)}
+    />
+  )
+
+  // One keyed cell. Both the leaving and the incoming cell share grid-area 1/1
+  // (set in globals.css) so they overlap and cross-fade. The whole left column
+  // (eyebrow + body + buttons) animates as one block — never the inner elements.
+  const renderBriefingCell = (view: BriefingView, phase: 'in' | 'out') => (
+    <div
+      key={`${view}-${phase}`}
+      className={cn(
+        'min-w-0 h-full',
+        phase === 'in' ? 'swap-in' : 'swap-out',
+        view === 'briefing' && 'flex flex-col gap-3'
+      )}
+      aria-hidden={phase === 'out' || undefined}
+    >
+      {view === 'chat' ? renderChatBody() : renderBriefingBody()}
+    </div>
+  )
 
   return (
     <div className="flex flex-col gap-4 h-full min-h-0">
@@ -569,74 +796,74 @@ export function SimplifiedDashboard() {
       </div>
 
       {/* AI briefing hero */}
-      {!briefingDismissed && (
-        <section className="shrink-0 relative overflow-hidden rounded-[var(--r-xl)] bg-ink text-paper shadow-card">
+      <section className="shrink-0 relative overflow-hidden rounded-[var(--r-xl)] bg-ink text-paper shadow-card">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'radial-gradient(circle at 84% 12%, var(--accent) 0%, transparent 52%)', opacity: 0.26 }}
           />
-          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-5 p-5">
-            <div className="flex flex-col gap-2.5 min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <AILabel confidence={91}>Shift briefing</AILabel>
-                <span className="text-[11px] font-mono text-white/50">Generated {format(new Date(), 'h:mm a')}</span>
-              </div>
-              {alertsError ? (
-                <p className="font-display italic text-[16px] text-white/70">Briefing unavailable right now.</p>
-              ) : (
-                <p className="font-display italic text-[17px] leading-[1.36] tracking-[-0.2px]">
-                  {hkRisks.length > 0
-                    ? <>
-                        <span className="not-italic font-sans font-medium bg-[#3d3214] text-[#e6c47d] px-1.5 py-px rounded">{hkRisks.length} rooms flagged</span>
-                        {' '}at risk. {urgentWOs.length > 0 ? `${urgentWOs.length} urgent work order${urgentWOs.length !== 1 ? 's are' : ' is'} unassigned.` : 'Work orders are on pace.'}
-                      </>
-                    : departure > 0
-                    ? `${departure} room${departure > 1 ? 's are' : ' is'} on departure today. Everything else is on pace.`
-                    : 'All boards on pace. No rooms currently flagged.'
-                  }
-                </p>
-              )}
-              <div className="flex gap-2 mt-auto flex-wrap">
-                <Button variant="ai" size="sm" onClick={openCopilot} className="gap-1.5">
-                  <Sparkles size={13} />
-                  Ask about this
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setBriefingDismissed(true)} className="text-white/60 hover:text-white hover:bg-white/10">
-                  Dismiss
-                </Button>
-              </div>
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-6 p-7">
+            {/* Cross-fade: while `leavingView` is set both cells are mounted and
+                overlap in one grid cell — the old one fades up and out (320ms),
+                the new one rises in (620ms). See renderBriefingCell above. */}
+            <div className="briefing-left">
+              {leavingView && renderBriefingCell(leavingView, 'out')}
+              {renderBriefingCell(briefingView, 'in')}
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               {boardLoading ? (
-                Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-[var(--r-md)] bg-white/5 min-h-[74px] animate-pulse" />)
+                Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-xl bg-white/5 min-h-[100px] animate-pulse" />)
               ) : (
                 statTiles.map((tile) => (
                   <button
                     key={tile.key}
                     onClick={() => setListFilter(listFilter === tile.key ? null : tile.key)}
                     className={cn(
-                      'flex flex-col justify-between gap-2 min-h-[74px] p-3 rounded-[var(--r-md)] text-left transition-colors',
+                      'flex flex-col justify-between gap-2.5 min-h-[100px] px-4 py-3.5 rounded-xl text-left transition-colors',
                       listFilter === tile.key
                         ? 'bg-white/[.11] border border-white/30'
                         : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
                     )}
                   >
-                    <span className="flex items-center gap-1.5">
-                      <span className={cn('w-1.5 h-1.5 rounded-full', tile.dot)} />
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-white/60">{tile.label}</span>
+                    <span className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full', tile.dot)} />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-white/60">{tile.label}</span>
                     </span>
-                    <span className="flex items-baseline gap-1.5">
-                      <span className="font-display text-[26px] leading-none">{tile.value}</span>
-                      {tile.hint && <span className="text-[10.5px] font-mono text-white/50">{tile.hint}</span>}
+                    <span className="flex items-baseline gap-2">
+                      <span className="font-display text-[32px] leading-none">{tile.value}</span>
+                      {tile.hint && <span className="text-[11px] font-mono text-white/50">{tile.hint}</span>}
                     </span>
                   </button>
                 ))
               )}
             </div>
           </div>
+          <div className="relative border-t border-white/10 px-7 py-2 flex items-center justify-between gap-3 flex-wrap text-[11px] text-white/50">
+            {cleanTime && cleanTime.today_avg_minutes != null ? (
+              <button
+                onClick={() => router.push('/reports')}
+                className="inline-flex items-baseline gap-2 hover:opacity-75 transition-opacity"
+                title="How today's clean times compare to the 7-day average"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-white/55">Avg clean time</span>
+                <span className="font-mono text-[13px] font-medium text-white/90">{cleanTime.today_avg_minutes}m</span>
+                {cleanTime.delta_minutes != null && cleanTime.delta_minutes !== 0 && (
+                  <span className={cn('text-[10.5px]', cleanTime.delta_minutes < 0 ? 'text-[#7cd6c5]' : 'text-[#e0a3a3]')}>
+                    {cleanTime.delta_minutes > 0 ? '+' : ''}{cleanTime.delta_minutes}m vs 7-day
+                  </span>
+                )}
+              </button>
+            ) : (
+              <span />
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4ab8a8] animate-pulse" />
+              <span className="font-mono">
+                Live · {boardUpdatedAt ? format(new Date(boardUpdatedAt), 'h:mm a') : '—'}
+              </span>
+            </span>
+          </div>
         </section>
-      )}
 
       {boardError && (
         <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="shrink-0 bg-surface border border-line rounded-[var(--r-lg)]" />
@@ -649,6 +876,8 @@ export function SimplifiedDashboard() {
             assignmentsData={assignmentsData}
             staffData={staffData}
             workOrders={workOrders}
+            completedWorkOrders={completedWorkOrders}
+            rooms={rooms}
             canMessage={canMessage}
           />
         </div>
@@ -666,12 +895,18 @@ export function SimplifiedDashboard() {
         <RoomListDrawer
           filter={listFilter}
           rooms={rooms}
+          hkNameById={hkNameById}
           onClose={() => setListFilter(null)}
           onSelectRoom={(room) => { setSelectedRoom(room); setListFilter(null) }}
         />
       )}
 
-      <RoomDetailDrawer room={selectedRoom} isOpen={!!selectedRoom} onClose={() => setSelectedRoom(null)} />
+      <RoomDetailDrawer
+        room={drawerRoom}
+        isOpen={!!selectedRoom}
+        onClose={() => setSelectedRoom(null)}
+        onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => (prev ? { ...prev, checkout_time: time } : prev))}
+      />
 
       <WorkOrderDetailDrawerHost onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} />
 

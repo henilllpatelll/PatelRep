@@ -7,6 +7,7 @@ export interface HousekeepingSubNavItem {
 
 const SUPERVISOR_HOUSEKEEPING_TABS: HousekeepingSubNavItem[] = [
   { href: '/housekeeping', label: 'Room Board' },
+  { href: '/housekeeping/routes', label: 'Routes' },
   { href: '/housekeeping/assignments', label: 'Assignments' },
   { href: '/housekeeping/inspections', label: 'Inspections' },
 ]

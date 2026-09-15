@@ -1,555 +1,77 @@
 {
-  "session_id": "session-2026-08-23-1649",
-  "started": "2026-08-23T21:49:35.862Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx": {
-      "count": 8,
-      "tokens": 8297,
-      "first_read": "2026-08-23T21:52:12.413Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/CompanionHome.tsx": {
-      "count": 1,
-      "tokens": 5146,
-      "first_read": "2026-08-23T21:52:28.513Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/shared/tokens.ts": {
-      "count": 1,
-      "tokens": 2327,
-      "first_read": "2026-08-23T21:52:28.847Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/HoldToConfirmSheet.tsx": {
-      "count": 3,
-      "tokens": 2476,
-      "first_read": "2026-08-23T21:52:35.618Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/EndOfShiftState.tsx": {
-      "count": 2,
-      "tokens": 971,
-      "first_read": "2026-08-23T21:52:56.619Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/EmptyBoardState.tsx": {
-      "count": 1,
-      "tokens": 518,
-      "first_read": "2026-08-23T21:52:57.054Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/ai/briefing.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:56:59.962Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py": {
-      "count": 3,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:19.455Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/services/ai/shift_summary.py": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:25.255Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/services/ai/housekeeping_briefing.py": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:25.828Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/work_orders.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:28.457Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:28.936Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/workOrders.ts": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:29.342Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:29.400Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/SupplyRequestModal.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:37.807Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/logbook.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:43.089Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/ReportIssueModal.tsx": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:43.149Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
-      "count": 4,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:43.527Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:43.978Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/housekeeping/supervisor.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:57:59.650Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-23T21:59:57.005Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/_layout.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:03:40.877Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:04:28.574Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/099_ai_interactions_widen_briefing_types.sql": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:05:04.303Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:05:42.599Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/middleware/credits.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:08:20.242Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/package.json": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:13:36.664Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/node_modules/@expo-google-fonts/instrument-serif/index.js": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:15:51.089Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json": {
-      "count": 5,
-      "tokens": 13182,
-      "first_read": "2026-08-23T22:17:47.920Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/ui/Button.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:18:10.204Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/HousekeeperHome.test.tsx": {
-      "count": 2,
-      "tokens": 6032,
-      "first_read": "2026-08-23T22:18:42.800Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/stores/appStore.ts": {
-      "count": 1,
-      "tokens": 1998,
-      "first_read": "2026-08-23T22:23:31.340Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/ui/Card.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:24:40.816Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json": {
-      "count": 3,
-      "tokens": 14082,
-      "first_read": "2026-08-23T22:26:01.849Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/tests/test_ai_copilot_rbac.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:32:24.909Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_rbac_matrix_contract.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:33:38.513Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5ef73dc0-dc38-4a4e-9abf-18aa2e05938d/tasks/bd6t4uzn0.output": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:35:50.298Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5ef73dc0-dc38-4a4e-9abf-18aa2e05938d/tasks/bc5ylthpp.output": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:40:42.072Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T22:40:55.610Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5ef73dc0-dc38-4a4e-9abf-18aa2e05938d/tasks/bpf5awd6x.output": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:04:12.890Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen2.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:08:28.652Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen3.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:10:07.757Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen4.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:10:29.486Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen5.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:10:44.302Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen6.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:10:57.505Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen7.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:11:09.484Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen8.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:11:20.817Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen9.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:11:33.986Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen10.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:11:46.311Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen11.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:12:01.222Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen12.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:12:31.855Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen13.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:12:58.372Z"
-    },
-    "C:/Users/Henil/AppData/Local/Temp/emulator_screen14.png": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-23T23:13:24.547Z"
-    }
-  },
+  "session_id": "session-2026-09-15-0457",
+  "started": "2026-09-15T09:57:17.278Z",
+  "files_read": {},
   "files_written": [
     {
-      "file": "C:/Users/Henil/.claude/plans/mossy-sniffing-liskov.md",
-      "action": "create",
-      "tokens": 3301,
-      "at": "2026-08-23T22:09:31.756Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx",
-      "action": "edit",
-      "tokens": 228,
-      "at": "2026-08-23T22:15:59.921Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx",
-      "action": "edit",
-      "tokens": 138,
-      "at": "2026-08-23T22:16:04.806Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx",
-      "action": "edit",
-      "tokens": 68,
-      "at": "2026-08-23T22:16:08.784Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/shared/tokens.ts",
-      "action": "edit",
-      "tokens": 248,
-      "at": "2026-08-23T22:16:23.032Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
-      "action": "edit",
-      "tokens": 20,
-      "at": "2026-08-23T22:16:29.228Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
-      "action": "edit",
-      "tokens": 25,
-      "at": "2026-08-23T22:16:32.597Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/CompanionHome.tsx",
-      "action": "edit",
-      "tokens": 32,
-      "at": "2026-08-23T22:16:40.693Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/CompanionHome.tsx",
-      "action": "edit",
-      "tokens": 26,
-      "at": "2026-08-23T22:16:44.214Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
-      "action": "edit",
-      "tokens": 105,
-      "at": "2026-08-23T22:17:07.538Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/HoldToConfirmSheet.tsx",
-      "action": "edit",
-      "tokens": 140,
-      "at": "2026-08-23T22:17:14.954Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/HoldToConfirmSheet.tsx",
-      "action": "edit",
-      "tokens": 296,
-      "at": "2026-08-23T22:17:25.116Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/HoldToConfirmSheet.tsx",
-      "action": "edit",
-      "tokens": 297,
-      "at": "2026-08-23T22:17:37.962Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/HoldToConfirmSheet.tsx",
-      "action": "edit",
-      "tokens": 137,
-      "at": "2026-08-23T22:17:43.418Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
-      "action": "edit",
-      "tokens": 62,
-      "at": "2026-08-23T22:17:54.022Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
-      "action": "edit",
-      "tokens": 65,
-      "at": "2026-08-23T22:18:00.495Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/EmptyBoardState.tsx",
-      "action": "create",
-      "tokens": 1155,
-      "at": "2026-08-23T22:18:25.607Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/EmptyBoardState.tsx",
-      "action": "edit",
-      "tokens": 124,
-      "at": "2026-08-23T22:18:32.465Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
-      "action": "edit",
-      "tokens": 55,
-      "at": "2026-08-23T22:19:04.877Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
-      "action": "edit",
-      "tokens": 166,
-      "at": "2026-08-23T22:19:15.466Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
-      "action": "edit",
-      "tokens": 276,
-      "at": "2026-08-23T22:19:22.367Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/globals.css",
       "action": "edit",
       "tokens": 66,
-      "at": "2026-08-23T22:19:27.699Z"
+      "at": "2026-09-15T09:57:39.693Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
-      "action": "edit",
-      "tokens": 60,
-      "at": "2026-08-23T22:19:35.594Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
-      "action": "edit",
-      "tokens": 63,
-      "at": "2026-08-23T22:19:42.055Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/ai/housekeeper_shift_recap.py",
-      "action": "create",
-      "tokens": 727,
-      "at": "2026-08-23T22:22:29.453Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py",
-      "action": "edit",
-      "tokens": 96,
-      "at": "2026-08-23T22:22:34.271Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py",
-      "action": "edit",
-      "tokens": 108,
-      "at": "2026-08-23T22:22:40.279Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/SimplifiedDashboard.tsx",
       "action": "edit",
       "tokens": 40,
-      "at": "2026-08-23T22:22:44.128Z"
+      "at": "2026-09-15T10:03:53.658Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/SimplifiedDashboard.tsx",
       "action": "edit",
-      "tokens": 596,
-      "at": "2026-08-23T22:22:52.505Z"
+      "tokens": 49,
+      "at": "2026-09-15T10:03:57.575Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/credits.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/BriefingChat.tsx",
       "action": "edit",
-      "tokens": 40,
-      "at": "2026-08-23T22:22:56.761Z"
+      "tokens": 24,
+      "at": "2026-09-15T10:04:00.963Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/100_ai_interactions_housekeeper_shift_recap.sql",
-      "action": "create",
-      "tokens": 365,
-      "at": "2026-08-23T22:23:03.488Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/ai/shiftRecap.ts",
-      "action": "create",
-      "tokens": 638,
-      "at": "2026-08-23T22:23:41.282Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/BriefingChat.tsx",
       "action": "edit",
-      "tokens": 138,
-      "at": "2026-08-23T22:24:10.077Z"
+      "tokens": 16,
+      "at": "2026-09-15T10:04:04.315Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/globals.css",
       "action": "edit",
-      "tokens": 96,
-      "at": "2026-08-23T22:24:15.268Z"
+      "tokens": 66,
+      "at": "2026-09-15T10:07:51.468Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/SimplifiedDashboard.tsx",
       "action": "edit",
-      "tokens": 344,
-      "at": "2026-08-23T22:24:30.973Z"
+      "tokens": 39,
+      "at": "2026-09-15T10:08:03.971Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/SimplifiedDashboard.tsx",
       "action": "edit",
-      "tokens": 55,
-      "at": "2026-08-23T22:24:36.375Z"
+      "tokens": 46,
+      "at": "2026-09-15T10:08:17.351Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/EndOfShiftState.tsx",
-      "action": "create",
-      "tokens": 2346,
-      "at": "2026-08-23T22:25:08.014Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/BriefingChat.tsx",
       "action": "edit",
-      "tokens": 541,
-      "at": "2026-08-23T22:25:19.286Z"
+      "tokens": 23,
+      "at": "2026-09-15T10:08:28.839Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/BriefingChat.tsx",
       "action": "edit",
-      "tokens": 146,
-      "at": "2026-08-23T22:25:41.387Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
-      "action": "edit",
-      "tokens": 85,
-      "at": "2026-08-23T22:25:54.870Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
-      "action": "edit",
-      "tokens": 100,
-      "at": "2026-08-23T22:26:07.451Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
-      "action": "edit",
-      "tokens": 78,
-      "at": "2026-08-23T22:26:18.375Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/test_ai_copilot_rbac.py",
-      "action": "edit",
-      "tokens": 345,
-      "at": "2026-08-23T22:32:35.774Z"
+      "tokens": 15,
+      "at": "2026-09-15T10:08:40.538Z"
     }
   ],
   "edit_counts": {
-    "../../.claude/plans/mossy-sniffing-liskov.md": 1,
-    "apps/mobile/app/_layout.tsx": 3,
-    "apps/mobile/components/shared/tokens.ts": 1,
-    "apps/mobile/app/(app)/home/index.tsx": 12,
-    "apps/mobile/components/home/CompanionHome.tsx": 2,
-    "apps/mobile/components/home/HoldToConfirmSheet.tsx": 4,
-    "apps/mobile/i18n/locales/en.json": 4,
-    "apps/mobile/i18n/locales/es.json": 4,
-    "apps/mobile/components/home/EmptyBoardState.tsx": 2,
-    "apps/api/services/ai/housekeeper_shift_recap.py": 1,
-    "apps/api/models/requests.py": 1,
-    "apps/api/routers/ai_copilot.py": 3,
-    "apps/api/middleware/credits.py": 1,
-    "supabase/migrations/100_ai_interactions_housekeeper_shift_recap.sql": 1,
-    "apps/mobile/lib/ai/shiftRecap.ts": 1,
-    "apps/mobile/components/home/EndOfShiftState.tsx": 1,
-    "apps/api/tests/test_ai_copilot_rbac.py": 1
+    "apps/web/app/globals.css": 2,
+    "apps/web/components/dashboard/SimplifiedDashboard.tsx": 4,
+    "apps/web/components/dashboard/BriefingChat.tsx": 4
   },
-  "anatomy_hits": 9,
-  "anatomy_misses": 42,
-  "repeated_reads_warned": 28,
+  "anatomy_hits": 0,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 14
+  "stop_count": 3
 }

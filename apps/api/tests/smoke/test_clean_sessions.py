@@ -213,6 +213,53 @@ async def test_other_housekeeper_cannot_touch_session(monkeypatch):
     assert exc.value.status_code == 403
 
 
+GM = CurrentUser(user_id="gm-1", hotel_id="hotel-a", role="gm", email="gm@example.com")
+
+
+@pytest.mark.asyncio
+async def test_hotel_avg_clean_time_buckets_today_vs_prior(monkeypatch):
+    # Pin the hotel timezone to UTC so today/prior bucketing is deterministic.
+    monkeypatch.setattr(sessions_router, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+    now = datetime.now(timezone.utc)
+    db = FakeDB({
+        "room_clean_sessions": [
+            # Today → 20m and 30m ⇒ avg 25 (both anchored at "now" to stay clear of the UTC midnight boundary)
+            {"tenant_id": "hotel-a", "status": "completed", "duration_seconds": 1200, "started_at": now.isoformat()},
+            {"tenant_id": "hotel-a", "status": "completed", "duration_seconds": 1800, "started_at": now.isoformat()},
+            # Prior 7 days → 60m and 40m ⇒ avg 50
+            {"tenant_id": "hotel-a", "status": "completed", "duration_seconds": 3600, "started_at": (now - timedelta(days=3)).isoformat()},
+            {"tenant_id": "hotel-a", "status": "completed", "duration_seconds": 2400, "started_at": (now - timedelta(days=5)).isoformat()},
+            # Excluded: other tenant, not completed, outside the window, missing duration
+            {"tenant_id": "hotel-b", "status": "completed", "duration_seconds": 9999, "started_at": now.isoformat()},
+            {"tenant_id": "hotel-a", "status": "active", "duration_seconds": 9999, "started_at": now.isoformat()},
+            {"tenant_id": "hotel-a", "status": "completed", "duration_seconds": 9999, "started_at": (now - timedelta(days=9)).isoformat()},
+            {"tenant_id": "hotel-a", "status": "completed", "duration_seconds": None, "started_at": now.isoformat()},
+        ],
+    })
+    monkeypatch.setattr(sessions_router, "supabase", db)
+
+    data = (await sessions_router.get_hotel_avg_clean_time(current_user=GM))["data"]
+
+    assert data["today_avg_minutes"] == 25
+    assert data["seven_day_avg_minutes"] == 50
+    assert data["delta_minutes"] == -25
+    assert data["today_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_hotel_avg_clean_time_handles_no_sessions(monkeypatch):
+    monkeypatch.setattr(sessions_router, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+    db = FakeDB({"room_clean_sessions": []})
+    monkeypatch.setattr(sessions_router, "supabase", db)
+
+    data = (await sessions_router.get_hotel_avg_clean_time(current_user=GM))["data"]
+
+    assert data["today_avg_minutes"] is None
+    assert data["seven_day_avg_minutes"] is None
+    assert data["delta_minutes"] is None
+    assert data["today_count"] == 0
+
+
 @pytest.mark.asyncio
 async def test_legacy_status_patch_closes_active_session(monkeypatch):
     db = make_db()

@@ -181,28 +181,16 @@ export function FocusCard({
             style={[styles.focusPrimaryButton, inProgress && { backgroundColor: accent.bg }]}
           />
           {inProgress ? (
-            <>
-              <TouchableOpacity
-                style={[styles.focusIconButton, { borderColor: theme.shell.line }]}
-                disabled
-                testID="focus-pause"
-                accessibilityRole="button"
-                accessibilityLabel={t("home.focus.pause")}
-                accessibilityState={{ disabled: true }}
-              >
-                <Ionicons name="pause" size={16} color={theme.shell.ink3} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.focusIconButton, { borderColor: theme.shell.line }]}
-                onPress={() => onStart(room)}
-                activeOpacity={0.8}
-                testID="focus-more"
-                accessibilityRole="button"
-                accessibilityLabel={t("home.focus.more")}
-              >
-                <Ionicons name="ellipsis-horizontal" size={16} color={theme.shell.ink} />
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity
+              style={[styles.focusIconButton, { borderColor: theme.shell.line }]}
+              onPress={() => onStart(room)}
+              activeOpacity={0.8}
+              testID="focus-more"
+              accessibilityRole="button"
+              accessibilityLabel={t("home.focus.more")}
+            >
+              <Ionicons name="ellipsis-horizontal" size={16} color={theme.shell.ink} />
+            </TouchableOpacity>
           ) : null}
         </View>
         {inProgressRoom && inProgressRoom.id !== room.id ? (

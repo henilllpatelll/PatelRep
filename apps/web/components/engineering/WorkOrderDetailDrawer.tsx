@@ -341,7 +341,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-drawer transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -353,7 +353,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
         role="dialog"
         aria-modal="true"
         aria-label={t('engineering.workOrderDetail.ariaLabel', { number: fullWo.work_order_number })}
-        className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-surface/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none"
+        className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-surface/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-drawer flex flex-col outline-none"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 300ms ease-in-out' }}
       >
         {/* ── Sticky header ── */}

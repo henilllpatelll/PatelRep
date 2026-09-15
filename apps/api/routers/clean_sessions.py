@@ -78,14 +78,20 @@ def _duration_seconds(started_at: str, ended_at: datetime) -> int:
 
 
 def _get_hotel_tz(hotel_id: str):
-    result = (
-        supabase.table("hotels")
-        .select("timezone")
-        .eq("id", hotel_id)
-        .maybe_single()
-        .execute()
-    )
-    tz_name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
+    # Best-effort lookup — a missing row/table or PostgREST hiccup must fall back to
+    # the default tz rather than crash the caller (maybe_single() raises on 204).
+    tz_name = "America/Chicago"
+    try:
+        result = (
+            supabase.table("hotels")
+            .select("timezone")
+            .eq("id", hotel_id)
+            .maybe_single()
+            .execute()
+        )
+        tz_name = ((result.data if result else None) or {}).get("timezone") or tz_name
+    except Exception:
+        logger.warning("Failed to resolve hotel timezone for hotel_id=%s; using default", hotel_id)
     return dateutil_tz.gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
 
 
@@ -314,6 +320,82 @@ async def get_sessions_summary(
             "completed_count": len(completed),
             "total_actual_minutes": round(total_actual_seconds / 60, 1),
             "total_base_minutes": total_base_minutes,
+        }
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /clean-sessions/hotel-avg-clean-time
+# ---------------------------------------------------------------------------
+# Hotel-wide average clean time for the dashboard hero. Unlike /summary (scoped
+# to the calling housekeeper), this aggregates every completed session across the
+# property so a GM/front-desk view gets one headline number plus a 7-day trend.
+
+# Everyone who sees the Simplified Dashboard board can read this headline metric.
+_AVG_CLEAN_TIME_ROLES = (
+    "housekeeper",
+    "housekeeping_supervisor",
+    "front_desk",
+    "engineer",
+    "chief_engineer",
+    "gm",
+)
+
+
+@router.get("/hotel-avg-clean-time")
+async def get_hotel_avg_clean_time(
+    current_user: CurrentUser = Depends(require_role(*_AVG_CLEAN_TIME_ROLES)),
+):
+    hotel_tz = _get_hotel_tz(current_user.hotel_id)
+    today_midnight = datetime.now(hotel_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = today_midnight.astimezone(timezone.utc)
+    tomorrow_start = (today_midnight + timedelta(days=1)).astimezone(timezone.utc)
+    # Trailing 7 days *before* today, so the comparison excludes the in-progress day.
+    week_start = (today_midnight - timedelta(days=7)).astimezone(timezone.utc)
+
+    result = (
+        supabase.table("room_clean_sessions")
+        .select("duration_seconds, started_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("status", "completed")
+        .gte("started_at", week_start.isoformat())
+        .lt("started_at", tomorrow_start.isoformat())
+        .execute()
+    )
+
+    today_minutes: list[float] = []
+    prior_minutes: list[float] = []
+    for row in result.data or []:
+        duration = row.get("duration_seconds")
+        started = row.get("started_at")
+        if not duration or not started:
+            continue
+        try:
+            started_dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            continue
+        minutes = duration / 60
+        if started_dt >= today_start:
+            today_minutes.append(minutes)
+        else:
+            prior_minutes.append(minutes)
+
+    def _avg(values: list[float]) -> Optional[int]:
+        return round(sum(values) / len(values)) if values else None
+
+    today_avg = _avg(today_minutes)
+    seven_day_avg = _avg(prior_minutes)
+    delta = (
+        today_avg - seven_day_avg
+        if today_avg is not None and seven_day_avg is not None
+        else None
+    )
+    return {
+        "data": {
+            "today_avg_minutes": today_avg,
+            "seven_day_avg_minutes": seven_day_avg,
+            "delta_minutes": delta,
+            "today_count": len(today_minutes),
         }
     }
 

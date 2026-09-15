@@ -10,40 +10,23 @@ import {
   WorkOrderCard,
 } from '@/components/ai/cards'
 import { useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
 import {
   aiApi,
-  type ParsedTask, type CopilotResponse, type InsightsResponse, type TaskPreviewResponse,
+  type ParsedTask, type InsightsResponse, type TaskPreviewResponse,
   type WorkOrderPreview, type WorkOrderPreviewResponse,
   type GuestRequestPreview, type GuestRequestPreviewResponse,
   type AssignmentPreview, type AssignmentPreviewResponse,
   type AmbiguousResponse,
 } from '@/lib/api/ai'
-import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
 import { ApiClientError } from '@/lib/api/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { usePathname } from 'next/navigation'
 import { Button, IconButton } from '@/components/ui/Button'
+import { SparkIcon } from '@/components/ui/primitives'
+import { useCopilotThreadStore, getCopilotHistoryKey, generateId, type ThreadMessage } from '@/stores/copilotThreadStore'
 
-type MessageRole = 'user' | 'ai'
-
-interface ChatMessage {
-  id: string
-  role: MessageRole
-  content: string
-  responseData?: CopilotResponse
-}
-
-function generateId() { return Math.random().toString(36).slice(2) }
-
-function SparkIcon({ size = 14, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
-    </svg>
-  )
-}
+type ChatMessage = ThreadMessage
 
 // ── Confirm Views ─────────────────────────────────────────────────────────────
 
@@ -204,35 +187,27 @@ const DEFAULT_QUICK_ACTIONS = ['At-risk rooms today', 'Open work orders', 'Creat
 
 export function AICopilotBubble() {
   const pathname = usePathname()
-  const isAiPage = pathname === '/ai'
-
-  const INITIAL_MSG: ChatMessage = {
-    id: generateId(), role: 'ai',
-    content: "Hi! I'm your AI Copilot. Tell me about a task, ask about operations, or request insights.",
-  }
+  const isAiPage = pathname === '/ai' || pathname === '/dashboard'
 
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MSG])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
 
-  const historyKey = user?.id ? `copilot-shift-${user.id}-${format(new Date(), 'yyyy-MM-dd')}` : null
+  const messages = useCopilotThreadStore((s) => s.messages)
+  const loading = useCopilotThreadStore((s) => s.loading)
+  const hydrate = useCopilotThreadStore((s) => s.hydrate)
+  const addMessage = useCopilotThreadStore((s) => s.addMessage)
+  const storeSendMessage = useCopilotThreadStore((s) => s.sendMessage)
+  const cancelResponse = useCopilotThreadStore((s) => s.cancelResponse)
+
+  const historyKey = getCopilotHistoryKey(user?.id)
 
   useEffect(() => {
-    if (!historyKey) return
-    const saved = localStorage.getItem(historyKey)
-    if (saved) { try { setMessages(JSON.parse(saved)) } catch { /* ignore */ } }
-  }, [historyKey])
-
-  useEffect(() => {
-    if (historyKey && messages.length > 1) {
-      localStorage.setItem(historyKey, JSON.stringify(messages.slice(-50)))
-    }
-  }, [messages, historyKey])
+    if (historyKey) hydrate(historyKey)
+  }, [historyKey, hydrate])
 
   useEffect(() => {
     if (open) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -252,31 +227,7 @@ export function AICopilotBubble() {
     const userMsg = (text ?? input).trim()
     if (!userMsg || loading) return
     setInput('')
-    setMessages((prev) => [...prev, { id: generateId(), role: 'user', content: userMsg }])
-
-    if (!context && isOffTopic(userMsg)) {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: OFF_TOPIC_RESPONSE.message, responseData: OFF_TOPIC_RESPONSE }])
-      return
-    }
-
-    if (!context) {
-      const fast = clientFastPath(userMsg)
-      if (fast) {
-        setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: fast.message, responseData: fast }])
-        return
-      }
-    }
-
-    setLoading(true)
-    try {
-      const res = await aiApi.chat(userMsg, context)
-      const data = res.data
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: data.message || "I've processed your request.", responseData: data }])
-    } catch (err) {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
-    } finally {
-      setLoading(false)
-    }
+    await storeSendMessage(userMsg, { context })
   }
 
   const handleConfirmTasks = async (tasks: ParsedTask[]) => {
@@ -285,7 +236,7 @@ export function AICopilotBubble() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       setTimeout(() => setOpen(false), 1200)
     } catch (err) {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      addMessage({ id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' })
       throw err
     }
   }
@@ -295,7 +246,7 @@ export function AICopilotBubble() {
       queryClient.invalidateQueries({ queryKey: ['work-orders'] })
       setTimeout(() => setOpen(false), 1200)
     } catch (err) {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      addMessage({ id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' })
       throw err
     }
   }
@@ -305,7 +256,7 @@ export function AICopilotBubble() {
       queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
       setTimeout(() => setOpen(false), 1200)
     } catch (err) {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      addMessage({ id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' })
       throw err
     }
   }
@@ -315,16 +266,12 @@ export function AICopilotBubble() {
       queryClient.invalidateQueries({ queryKey: ['assignments'] })
       setTimeout(() => setOpen(false), 1200)
     } catch (err) {
-      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' }])
+      addMessage({ id: generateId(), role: 'ai', content: err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.' })
       throw err
     }
   }
 
-  const handleCancel = (messageId: string) =>
-    setMessages((prev) => [
-      ...prev.map((msg) => (msg.id === messageId ? { ...msg, responseData: undefined } : msg)),
-      { id: generateId(), role: 'ai', content: 'No problem — cancelled.' },
-    ])
+  const handleCancel = (messageId: string) => cancelResponse(messageId)
 
   const handleResendWithHint = (originalMsg: string, intentHint: string) =>
     sendMessage(originalMsg, { intent_hint: intentHint })
