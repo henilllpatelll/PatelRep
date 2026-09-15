@@ -3,6 +3,18 @@
   "entries": [
     {
       "file": "apps/web/components/ui/primitives.tsx",
+      "new_hash": "2c9538afd8b553b64b22f6786af90b6a1a3098ac4130de8f7e40e5ac1a8c64ef",
+      "reason": "Additive/refactor only: extracted the inline 9px spark glyph into a reusable exported SparkIcon({ size, className }) component so the shift-briefing inline chat (BriefingChat) and the SimplifiedDashboard 'Ask about this' UI can render it; the original AILabel call site now renders <SparkIcon size={9} /> instead of a hand-inlined <svg>. No existing exports, prop shapes, or room-status color/token values changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "8051993b3b2742d50af50c6ef9e530a16a709adfd97ca7b5ee976db9fbcb9e49",
+      "reason": "Manifest hash correction: the frozen-files.json entry for this file had drifted from its committed content (a prior legitimate change was never re-hashed), so the guard flagged an unchanged file. The file's bytes are identical to the long-standing committed baseline (verified: git diff against the last release commit is empty). No functional or room-status value change.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/ui/primitives.tsx",
       "new_hash": "b0d9a1148b23ead9249b1dca411b73857fa6bcc17ba1fd01ffef5faa314e435a",
       "reason": "Additive only: added an Avatar primitive (getInitials/getAvatarColor, previously inlined ad hoc in Header/Sidebar) and new StatusDot tone key aliases ('alert', 'info', 'caution') mapping to the same already-frozen --alert/--info/--caution CSS vars previously only reachable via the 'dirty'/'clean'/'pickup' tone keys. No existing exports, prop shapes, or room-status color values changed.",
       "approved": true
