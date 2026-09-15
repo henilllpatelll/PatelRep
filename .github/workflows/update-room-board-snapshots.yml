@@ -1,0 +1,46 @@
+name: Update Room-Board Snapshots
+
+# Manual helper to regenerate the Room-Board pixel-diff baselines inside the
+# exact pinned Playwright container the gate uses, then upload them as an
+# artifact. Use this after an intentional visual change to a Room Board surface
+# (e.g. RoomDetailDrawer) that shifts the committed -linux.png baselines. The
+# gate job (ci.yml → room-board-regression) and this job hit the same deployed
+# PLAYWRIGHT_BASE_URL, so baselines regenerated here match a subsequent gate run.
+#
+# After running: download the "room-board-linux-snapshots" artifact and commit
+# the updated -linux.png files under
+# apps/web/e2e/room-board-baseline.spec.ts-snapshots/.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-snapshots:
+    name: Regenerate Room-Board -linux baselines
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Regenerate baselines (--update-snapshots)
+        run: cd apps/web && npx playwright test --config=playwright.regression.config.ts --update-snapshots
+        env:
+          REGRESSION_GM_EMAIL: ${{ secrets.REGRESSION_GM_EMAIL }}
+          REGRESSION_GM_PASSWORD: ${{ secrets.REGRESSION_GM_PASSWORD }}
+          REGRESSION_SUP_EMAIL: ${{ secrets.REGRESSION_SUP_EMAIL }}
+          REGRESSION_SUP_PASSWORD: ${{ secrets.REGRESSION_SUP_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+      - name: Upload regenerated -linux baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-board-linux-snapshots
+          path: apps/web/e2e/room-board-baseline.spec.ts-snapshots/*-linux.png
+          if-no-files-found: error
