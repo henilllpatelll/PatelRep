@@ -598,6 +598,22 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     <p className="text-[13px] text-ink font-medium">{fullWo.parts_used}</p>
                   </div>
                 )}
+                {fullWo.status === 'completed' && (
+                  <div className="col-span-2">
+                    <span className="font-mono text-[11px] text-ink3">{t('engineering.workOrderDetail.costLabel')}</span>
+                    {fullWo.total_cost != null ? (
+                      <p className="text-[13px] text-ink font-medium">
+                        {t('engineering.workOrderDetail.costLine', {
+                          labor: fullWo.labor_cost != null ? `$${fullWo.labor_cost.toFixed(2)}` : '—',
+                          parts: fullWo.parts_cost != null ? `$${fullWo.parts_cost.toFixed(2)}` : '—',
+                          total: `$${fullWo.total_cost.toFixed(2)}`,
+                        })}
+                      </p>
+                    ) : (
+                      <p className="text-[13px] text-ink3 italic">{t('engineering.workOrderDetail.costUnavailable')}</p>
+                    )}
+                  </div>
+                )}
                 {fullWo.notes && (
                   <div className="col-span-2">
                     <span className="font-mono text-[11px] text-ink3">{t('programs.pmCompletion.notesLabel')}</span>

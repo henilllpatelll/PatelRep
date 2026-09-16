@@ -70,6 +70,9 @@ export interface WorkOrder {
   completed_at?: string
   parts_used?: string
   labor_hours?: number
+  labor_cost?: number
+  parts_cost?: number
+  total_cost?: number
   notes?: string
   created_at: string
   updated_at: string
