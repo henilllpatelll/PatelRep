@@ -817,6 +817,7 @@ class UpdateStaffProfileRequest(SanitizedBaseModel):
     phone: Optional[str] = Field(default=None, max_length=32)
     language_pref: Optional[Literal["en", "es"]] = None
     hire_date: Optional[date] = None
+    hourly_rate: Optional[float] = Field(default=None, ge=0, le=500)
 
 
 # --- Guest Requests ---
@@ -1236,6 +1237,7 @@ class CreateEngineeringPartRequest(SanitizedBaseModel):
     minimum_stock: float = Field(default=0, ge=0, le=1_000_000)
     maximum_stock: Optional[float] = Field(default=None, ge=0, le=1_000_000)
     default_location_id: Optional[str] = Field(default=None, max_length=100)
+    unit_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000)
 
 
 class UpdateEngineeringPartRequest(SanitizedBaseModel):
@@ -1247,6 +1249,7 @@ class UpdateEngineeringPartRequest(SanitizedBaseModel):
     maximum_stock: Optional[float] = Field(default=None, ge=0, le=1_000_000)
     default_location_id: Optional[str] = Field(default=None, max_length=100)
     is_active: Optional[bool] = None
+    unit_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000)
 
 
 class CreateEngineeringPartTransactionRequest(SanitizedBaseModel):
