@@ -86,7 +86,7 @@ async def list_staff(
 ):
     """List all active staff members for the hotel."""
     roles_result = supabase.table("user_roles")\
-        .select("id, user_id, tenant_id, role, department_id, is_active, created_at, custom_role_id")\
+        .select("id, user_id, tenant_id, role, department_id, is_active, created_at, custom_role_id, hourly_rate")\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("role")\
@@ -129,7 +129,7 @@ async def list_staff(
     staff_list = []
     for r in roles:
         profile = profiles_map.get(r["user_id"], {})
-        staff_list.append({
+        entry = {
             "id": r["id"],
             "user_id": r["user_id"],
             "hotel_id": r["tenant_id"],
@@ -142,7 +142,10 @@ async def list_staff(
             "created_at": r["created_at"],
             "custom_role_id": r.get("custom_role_id"),
             "custom_role_name": custom_roles_map.get(r.get("custom_role_id")),
-        })
+        }
+        if current_user.role == "gm":
+            entry["hourly_rate"] = r.get("hourly_rate")
+        staff_list.append(entry)
 
     return {"data": {"staff": staff_list, "total": len(staff_list)}}
 
@@ -452,9 +455,18 @@ async def update_staff(
     body: dict,
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
-    """Update a staff member's role, department, or active status."""
-    allowed_fields = {"role", "department_id", "is_active", "custom_role_id"}
+    """Update a staff member's role, department, active status, or hourly_rate."""
+    allowed_fields = {"role", "department_id", "is_active", "custom_role_id", "hourly_rate"}
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
+
+    if "hourly_rate" in update_data and update_data["hourly_rate"] is not None:
+        try:
+            rate = float(update_data["hourly_rate"])
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="hourly_rate must be a number")
+        if rate < 0 or rate > 500:
+            raise HTTPException(status_code=422, detail="hourly_rate must be between 0 and 500")
+        update_data["hourly_rate"] = rate
 
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
