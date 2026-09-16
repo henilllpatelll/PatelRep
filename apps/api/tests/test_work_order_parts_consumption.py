@@ -24,6 +24,7 @@ class _Query:
         self.payload = None
         self.on_conflict = None
         self.filters = []
+        self.in_filters = []
         self.single = False
 
     def select(self, *_a, **_kw):
@@ -50,6 +51,10 @@ class _Query:
         self.filters.append((column, value))
         return self
 
+    def in_(self, column, values):
+        self.in_filters.append((column, set(values)))
+        return self
+
     def maybe_single(self):
         self.single = True
         return self
@@ -58,6 +63,8 @@ class _Query:
         matched = rows
         for column, value in self.filters:
             matched = [r for r in matched if r.get(column) == value]
+        for column, values in self.in_filters:
+            matched = [r for r in matched if r.get(column) in values]
         return matched
 
     def execute(self):
