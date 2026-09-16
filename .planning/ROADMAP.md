@@ -269,6 +269,19 @@ Plans:
 - [x] 37-04-PLAN.md — QA-03: Room-Board regression re-run (baseline + all-21-flags-on simulation)
 - [x] 37-05-PLAN.md — Migration 098 staged, dry-run-verified, and (per user go-ahead) applied for real to all 11 tenants; branch pushed and deployed to production
 
+
+### Phase 38: Engineering Work Order Labor and Cost Capture
+
+**Goal:** Turn the labor hours and parts already captured on work order completion into a computed dollar cost (labor + parts = total) stored on the work order and shown on its detail view, with hourly rates GM-only and never leaked to other roles.
+**Depends on:** Phase 37
+**Plans:** 5 plans
+
+Plans:
+- [ ] 38-01-PLAN.md — Migration 104 (hourly_rate, unit_cost, labor_cost/parts_cost/total_cost columns), applied live to Supabase dev project
+- [ ] 38-02-PLAN.md — complete_work_order computes and persists labor_cost/parts_cost/total_cost; WorkOrderResponse gains the fields; tests
+- [ ] 38-03-PLAN.md — unit_cost on parts CRUD; hourly_rate on staff (gm-only write, role-gated read); tests
+- [ ] 38-04-PLAN.md — Web UI: cost line on completed WO detail, unit_cost input on parts form, hourly_rate input on staff edit modal
+- [ ] 38-05-PLAN.md — Full test suite + live browser golden-path verification + non-regression spot-check
 ## Progress
 
 **Execution Order:**
