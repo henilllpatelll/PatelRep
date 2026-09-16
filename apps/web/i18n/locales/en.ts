@@ -1531,6 +1531,8 @@ const en = {
       unitPlaceholder: 'Unit (e.g. each)',
       minimumStockLabel: 'Minimum stock',
       maximumStockLabel: 'Maximum stock',
+      unitCostLabel: 'Unit cost',
+      unitCostDisplay: '${{cost}} per unit',
       addPart: 'Add part',
       onHand: '{{qty}} {{unit}} on hand',
       lowStockBadge: 'Low stock',

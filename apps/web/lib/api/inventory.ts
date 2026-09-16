@@ -21,6 +21,7 @@ export interface EngineeringPart {
   minimum_stock: number
   maximum_stock: number | null
   default_location_id: string | null
+  unit_cost?: number
   is_active: boolean
   created_at: string
   updated_at: string
@@ -70,6 +71,7 @@ export interface CreatePartPayload {
   minimum_stock?: number
   maximum_stock?: number
   default_location_id?: string
+  unit_cost?: number
 }
 
 export interface CreatePartTransactionPayload {

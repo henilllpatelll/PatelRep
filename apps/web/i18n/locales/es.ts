@@ -1531,6 +1531,8 @@ const es = {
       unitPlaceholder: 'Unidad (p. ej. cada uno)',
       minimumStockLabel: 'Existencia mínima',
       maximumStockLabel: 'Existencia máxima',
+      unitCostLabel: 'Costo unitario',
+      unitCostDisplay: '${{cost}} por unidad',
       addPart: 'Agregar pieza',
       onHand: '{{qty}} {{unit}} disponibles',
       lowStockBadge: 'Existencias bajas',

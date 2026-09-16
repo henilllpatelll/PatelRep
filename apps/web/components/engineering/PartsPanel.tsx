@@ -62,13 +62,13 @@ export function PartsPanel({ redesigned }: { redesigned?: boolean }) {
 
   // ── Parts ────────────────────────────────────────────────────────────────
   const [partForm, setPartForm] = useState({
-    name: '', sku: '', category: '', unit: 'each', minimum_stock: 0, maximum_stock: '' as number | '',
+    name: '', sku: '', category: '', unit: 'each', minimum_stock: 0, maximum_stock: '' as number | '', unit_cost: '' as number | '',
   })
   const createPart = useMutation({
     mutationFn: inventoryApi.createPart,
     onSuccess: () => {
       invalidateParts()
-      setPartForm({ name: '', sku: '', category: '', unit: 'each', minimum_stock: 0, maximum_stock: '' })
+      setPartForm({ name: '', sku: '', category: '', unit: 'each', minimum_stock: 0, maximum_stock: '', unit_cost: '' })
     },
   })
   const submitPart = (event: FormEvent<HTMLFormElement>) => {
@@ -81,6 +81,7 @@ export function PartsPanel({ redesigned }: { redesigned?: boolean }) {
       unit: partForm.unit.trim() || 'each',
       minimum_stock: partForm.minimum_stock,
       maximum_stock: partForm.maximum_stock === '' ? undefined : Number(partForm.maximum_stock),
+      unit_cost: partForm.unit_cost === '' ? undefined : Number(partForm.unit_cost),
     })
   }
 
@@ -198,6 +199,9 @@ export function PartsPanel({ redesigned }: { redesigned?: boolean }) {
                 <div>
                   <p className="font-medium text-ink">{part.name}</p>
                   <p className="text-ink3">{t('engineering.parts.onHand', { qty: part.total_on_hand ?? 0, unit: part.unit })}</p>
+                  {part.unit_cost != null && (
+                    <p className="text-ink3">{t('engineering.parts.unitCostDisplay', { cost: part.unit_cost.toFixed(2) })}</p>
+                  )}
                 </div>
                 {part.low_stock ? (
                   <span className="shrink-0 rounded-full bg-alert-soft px-2 py-0.5 text-xs font-medium text-alert">
@@ -249,6 +253,14 @@ export function PartsPanel({ redesigned }: { redesigned?: boolean }) {
               <Input
                 type="number" min={0} value={partForm.maximum_stock}
                 onChange={(event) => setPartForm((current) => ({ ...current, maximum_stock: event.target.value === '' ? '' : Number(event.target.value) }))}
+                className="mt-1 min-h-11"
+              />
+            </label>
+            <label className="text-sm text-ink2">
+              {t('engineering.parts.unitCostLabel')}
+              <Input
+                type="number" min={0} step="0.01" value={partForm.unit_cost}
+                onChange={(event) => setPartForm((current) => ({ ...current, unit_cost: event.target.value === '' ? '' : Number(event.target.value) }))}
                 className="mt-1 min-h-11"
               />
             </label>
