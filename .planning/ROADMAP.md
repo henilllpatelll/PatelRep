@@ -274,7 +274,7 @@ Plans:
 
 **Goal:** Turn the labor hours and parts already captured on work order completion into a computed dollar cost (labor + parts = total) stored on the work order and shown on its detail view, with hourly rates GM-only and never leaked to other roles.
 **Depends on:** Phase 37
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] 38-01-PLAN.md — Migration 104 (hourly_rate, unit_cost, labor_cost/parts_cost/total_cost columns), applied live to Supabase dev project
