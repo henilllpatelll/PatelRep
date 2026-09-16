@@ -50,6 +50,9 @@ class WorkOrderResponse(BaseModel):
     due_at: Optional[datetime] = None
     sla_breached: bool = False
     created_at: datetime
+    labor_cost: Optional[float] = None
+    parts_cost: Optional[float] = None
+    total_cost: Optional[float] = None
 
 
 class CopilotResponse(BaseModel):
