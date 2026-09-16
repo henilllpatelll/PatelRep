@@ -447,6 +447,54 @@ async def complete_work_order(
             current_user.hotel_id,
         )
 
+    # --- Cost computation (Phase 38) -----------------------------------
+    # Labor: assignee's hourly_rate (fallback: whoever is completing the WO)
+    # times labor_hours. NULL (never 0) if no rate is on file anywhere.
+    labor_cost = None
+    if request.labor_hours is not None:
+        labor_user_id = wo_check.data.get("assigned_to") or current_user.user_id
+        rate_row = (
+            supabase.table("user_roles")
+            .select("hourly_rate")
+            .eq("user_id", labor_user_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("is_active", True)
+            .execute()
+        )
+        hourly_rate = None
+        for row in (rate_row.data or []):
+            if row.get("hourly_rate") is not None:
+                hourly_rate = row["hourly_rate"]
+                break
+        if hourly_rate is not None:
+            labor_cost = round(request.labor_hours * float(hourly_rate), 2)
+
+    # Parts: sum(quantity * unit_cost) across parts_consumed. A part with no
+    # unit_cost on file contributes 0, it never blocks completion.
+    parts_cost = None
+    if request.parts_consumed:
+        part_ids = [item.part_id for item in request.parts_consumed]
+        parts_rows = (
+            supabase.table("engineering_parts")
+            .select("id, unit_cost")
+            .eq("tenant_id", current_user.hotel_id)
+            .in_("id", part_ids)
+            .execute()
+        )
+        unit_cost_by_id = {p["id"]: p.get("unit_cost") for p in (parts_rows.data or [])}
+        parts_cost = 0.0
+        for item in request.parts_consumed:
+            unit_cost = unit_cost_by_id.get(item.part_id)
+            if unit_cost is not None:
+                parts_cost += item.quantity * float(unit_cost)
+        parts_cost = round(parts_cost, 2)
+
+    # Total: NULL only when both inputs are NULL — never write 0 for "no data".
+    total_cost = None
+    if labor_cost is not None or parts_cost is not None:
+        total_cost = round((labor_cost or 0) + (parts_cost or 0), 2)
+    # ---------------------------------------------------------------------
+
     decision = validate_work_order_transition(
         current_status=wo_check.data["status"],
         request=TransitionRequest(status="completed"),
@@ -465,6 +513,9 @@ async def complete_work_order(
                 "notes": request.notes,
                 "labor_hours": request.labor_hours,
                 "parts_used": request.parts_used,
+                "labor_cost": labor_cost,
+                "parts_cost": parts_cost,
+                "total_cost": total_cost,
             }
         )
         .eq("id", wo_id)
