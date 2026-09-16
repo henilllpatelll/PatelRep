@@ -1837,7 +1837,7 @@ const en = {
   },
   staff: {
     invitations: { heading: 'Pending Invitations', loading: 'Loading invitations…', loadError: "Couldn't load pending invitations." },
-    editModal: { schedulesLoadError: "Couldn't load schedule overrides.", rolesLoadError: "Couldn't load custom roles." },
+    editModal: { schedulesLoadError: "Couldn't load schedule overrides.", rolesLoadError: "Couldn't load custom roles.", hourlyRateLabel: 'Hourly rate', hourlyRatePlaceholder: 'e.g. 18.50', hourlyRateHint: 'Used to compute labor cost when this person completes work orders. Leave blank if unknown.' },
     table: {
       sectionLabel: 'Team Members',
       loading: 'Loading staff…',

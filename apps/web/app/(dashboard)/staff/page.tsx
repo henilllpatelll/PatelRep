@@ -469,6 +469,7 @@ function EditStaffModal({
   const dialogRef = useRef<HTMLDivElement>(null)
   const [role, setRole] = useState<UserRole>(staff.role)
   const [customRoleId, setCustomRoleId] = useState<string | null>(staff.custom_role_id ?? null)
+  const [hourlyRate, setHourlyRate] = useState<string>(staff.hourly_rate != null ? String(staff.hourly_rate) : '')
   const [error, setError] = useState<string | null>(null)
   const [selectedDays, setSelectedDays] = useState<number[]>([])
 
@@ -488,7 +489,11 @@ function EditStaffModal({
   })
 
   const updateMutation = useMutation({
-    mutationFn: () => staffApi.update(staff.user_id, { role, custom_role_id: customRoleId }),
+    mutationFn: () => staffApi.update(staff.user_id, {
+      role,
+      custom_role_id: customRoleId,
+      hourly_rate: hourlyRate === '' ? undefined : Number(hourlyRate),
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       onSuccess()
@@ -562,6 +567,22 @@ function EditStaffModal({
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+          </div>
+
+          {/* Hourly rate — GM-only field, this whole page is already GM-gated */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700">{t('staff.editModal.hourlyRateLabel')}</label>
+            <input
+              type="number"
+              min={0}
+              max={500}
+              step="0.01"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+              placeholder={t('staff.editModal.hourlyRatePlaceholder')}
+              className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            />
+            <p className="text-xs text-gray-500">{t('staff.editModal.hourlyRateHint')}</p>
           </div>
 
           {/* Custom Role */}
@@ -702,7 +723,7 @@ function EditStaffModal({
             <Button
               variant="primary"
               onClick={() => updateMutation.mutate()}
-              disabled={updateMutation.isPending || (role === staff.role && customRoleId === (staff.custom_role_id ?? null))}
+              disabled={updateMutation.isPending || (role === staff.role && customRoleId === (staff.custom_role_id ?? null) && hourlyRate === (staff.hourly_rate != null ? String(staff.hourly_rate) : ''))}
               className="flex-1"
             >
               {updateMutation.isPending ? 'Saving…' : 'Save Role'}

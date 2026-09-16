@@ -15,6 +15,7 @@ export interface StaffMember {
   created_at: string
   custom_role_id?: string
   custom_role_name?: string
+  hourly_rate?: number
 }
 
 export interface StaffInvitation {
@@ -39,6 +40,7 @@ export interface UpdateStaffData {
   department_id?: string
   status?: 'active' | 'inactive'
   custom_role_id?: string | null
+  hourly_rate?: number
 }
 
 export interface RoleSchedule {
