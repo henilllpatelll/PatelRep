@@ -11,6 +11,7 @@ from models.requests import (
     CreateEngineeringPartLocationRequest,
     CreateEngineeringPartRequest,
     CreateEngineeringPartTransactionRequest,
+    UpdateEngineeringPartRequest,
 )
 from routers import inventory as inventory_router
 from services import inventory as inventory_service
@@ -145,6 +146,34 @@ async def test_create_part_sets_tenant_id(monkeypatch):
 
     assert response["data"]["tenant_id"] == "hotel-1"
     assert response["data"]["name"] == "HVAC Filter 20x20"
+
+
+@pytest.mark.asyncio
+async def test_create_part_persists_unit_cost(monkeypatch):
+    db = FakeDB()
+    _patch(monkeypatch, db)
+
+    response = await inventory_router.create_part(
+        CreateEngineeringPartRequest(name="Belt", unit_cost=14.99), MANAGER
+    )
+
+    assert response["data"]["unit_cost"] == 14.99
+
+
+@pytest.mark.asyncio
+async def test_update_part_sets_unit_cost(monkeypatch):
+    db = FakeDB({
+        "engineering_parts": [
+            {"id": "part-1", "tenant_id": "hotel-1", "name": "Belt", "minimum_stock": 0, "unit_cost": None}
+        ]
+    })
+    _patch(monkeypatch, db)
+
+    await inventory_router.update_part(
+        "part-1", UpdateEngineeringPartRequest(unit_cost=9.5), MANAGER
+    )
+
+    assert db.rows["engineering_parts"][0]["unit_cost"] == 9.5
 
 
 @pytest.mark.asyncio

@@ -128,6 +128,12 @@
       "reason": "Genuine denial gate: is_supervisor feeds `if not is_own and not is_supervisor: raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py's classification of the clock-out route as role-gated."
     },
     {
+      "router": "staff.py",
+      "line": 146,
+      "code": "current_user.role == 'gm'",
+      "reason": "Data-shaping conditional in list_staff: includes the hourly_rate key only for gm callers so pay-rate data is never returned to non-gm roles. Not a denial gate (list_staff's route gate stays require_role('gm','housekeeping_supervisor','engineer','chief_engineer','front_desk')). Same reviewed pattern as guest_requests.py L382."
+    },
+    {
       "router": "tasks.py",
       "line": 142,
       "code": "current_user.role == 'housekeeper'",
