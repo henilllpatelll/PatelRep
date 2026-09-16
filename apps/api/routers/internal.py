@@ -162,10 +162,35 @@ async def run_predictions(x_cron_secret: str = Header(None)):
     return {"status": "ok", **result}
 
 
+def _system_actor_for_tenant(tenant_id: str) -> str | None:
+    """work_orders.created_by is a NOT NULL FK to auth.users, so a
+    cron-generated PM work order needs a real user to attribute to — a
+    synthetic all-zeros placeholder UUID isn't a valid FK target and made
+    every PM work-order insert fail (23503). Prefer the tenant's GM, since PM
+    schedules aren't owned by any specific staff member; fall back to any
+    active staff record rather than leaving the tenant's PM program silently
+    broken."""
+    gm = (
+        supabase.table("user_roles").select("user_id")
+        .eq("tenant_id", tenant_id).eq("role", "gm").eq("is_active", True)
+        .limit(1).execute()
+    )
+    if gm.data:
+        return gm.data[0]["user_id"]
+    any_staff = (
+        supabase.table("user_roles").select("user_id")
+        .eq("tenant_id", tenant_id).eq("is_active", True)
+        .limit(1).execute()
+    )
+    return any_staff.data[0]["user_id"] if any_staff.data else None
+
+
 @router.post("/pm/check-due")
 async def check_due_pm(x_cron_secret: str = Header(None)):
     verify_cron(x_cron_secret)
     today = date.today()
+
+    from services.pm_schedules import advance_pm_schedule_on_generate, has_open_pm_work_order
 
     overdue_pms = supabase.table("pm_schedules")\
         .select("*, assets(tenant_id, name, id)")\
@@ -174,25 +199,46 @@ async def check_due_pm(x_cron_secret: str = Header(None)):
         .execute()
 
     created_count = 0
+    skipped_count = 0
     for pm in (overdue_pms.data or []):
         asset = pm.get("assets", {})
+        tenant_id = asset.get("tenant_id")
+        # A work order for this cycle is already open — do not regenerate a
+        # duplicate. This is the actual duplicate-WO guard; recurrence_basis
+        # only controls when next_due_at moves (see advance_pm_schedule_on_generate).
+        if has_open_pm_work_order(pm["id"], tenant_id):
+            skipped_count += 1
+            continue
+        actor_id = _system_actor_for_tenant(tenant_id)
+        if not actor_id:
+            logger.warning(
+                "pm.check-due: no active staff found for tenant %s, skipping PM schedule %s",
+                tenant_id, pm["id"],
+            )
+            skipped_count += 1
+            continue
         supabase.table("work_orders").insert({
-            "tenant_id": asset.get("tenant_id"),
+            "tenant_id": tenant_id,
             "title": f"PM: {pm['name']}",
             "description": pm.get("description"),
             "category": "general",
             "priority": "normal",
             "asset_id": asset.get("id"),
-            "created_by": "00000000-0000-0000-0000-000000000000",
+            "created_by": actor_id,
             "is_pm_generated": True,
             "pm_schedule_id": pm["id"],
             "sla_minutes": 480,
             "due_at": (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat(),
         }).execute()
+        advance_pm_schedule_on_generate(pm)
         created_count += 1
 
     _record_cron_run("pm.check-due")
-    return {"status": "ok", "pm_work_orders_created": created_count}
+    return {
+        "status": "ok",
+        "pm_work_orders_created": created_count,
+        "pm_work_orders_skipped": skipped_count,
+    }
 
 
 @router.post("/ai/failure-predictions")

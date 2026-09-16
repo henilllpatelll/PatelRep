@@ -62,7 +62,16 @@ class FakeQuery:
         return matched
 
 
-def _room_status_row(room_id, room_number, base_clean_minutes=30, vip_flag=False):
+def _room_status_row(
+    room_id, room_number, base_clean_minutes=30, vip_flag=False, room_type_id=None
+):
+    room_types = {
+        "name": "Standard",
+        "code": "STD",
+        "base_clean_minutes": base_clean_minutes,
+    }
+    if room_type_id:
+        room_types["id"] = room_type_id
     return {
         "room_id": room_id,
         "tenant_id": SUPERVISOR.hotel_id,
@@ -74,11 +83,7 @@ def _room_status_row(room_id, room_number, base_clean_minutes=30, vip_flag=False
             "room_number": room_number,
             "floor": 1,
             "building": "A",
-            "room_types": {
-                "name": "Standard",
-                "code": "STD",
-                "base_clean_minutes": base_clean_minutes,
-            },
+            "room_types": room_types,
         },
     }
 
@@ -146,6 +151,56 @@ async def test_suggest_assignments_empty_board_returns_no_rooms_message(monkeypa
             "message": "No rooms currently need assignment",
         }
     }
+
+
+@pytest.mark.asyncio
+async def test_suggest_assignments_prefers_faster_housekeeper_profile(monkeypatch):
+    """CP-SAT should route rooms to whoever's housekeeper_profiles.avg_clean_minutes
+    is actually fastest for that room type, not just split evenly by headcount."""
+    room_type_id = "rt-std"
+    room_ids = [
+        "22222222-2222-4222-8222-222222222222",
+        "33333333-3333-4333-8333-333333333333",
+    ]
+    housekeeper_ids = [
+        "55555555-5555-4555-8555-555555555555",  # fast
+        "66666666-6666-4666-8666-666666666666",  # slow
+    ]
+    db = FakeDB({
+        "room_status": [
+            _room_status_row(room_ids[0], "101", room_type_id=room_type_id),
+            _room_status_row(room_ids[1], "102", room_type_id=room_type_id),
+        ],
+        "shift_assignments": [
+            {"tenant_id": SUPERVISOR.hotel_id, "work_date": TODAY, "user_id": housekeeper_ids[0]},
+            {"tenant_id": SUPERVISOR.hotel_id, "work_date": TODAY, "user_id": housekeeper_ids[1]},
+        ],
+        "housekeeper_profiles": [
+            {
+                "tenant_id": SUPERVISOR.hotel_id,
+                "user_id": housekeeper_ids[0],
+                "room_type_id": room_type_id,
+                "avg_clean_minutes": 10,
+            },
+            {
+                "tenant_id": SUPERVISOR.hotel_id,
+                "user_id": housekeeper_ids[1],
+                "room_type_id": room_type_id,
+                "avg_clean_minutes": 50,
+            },
+        ],
+    })
+    monkeypatch.setattr(housekeeping, "supabase", db)
+
+    response = await housekeeping.suggest_assignments(
+        board_date=None, shift_id=None, current_user=SUPERVISOR
+    )
+
+    suggestions = {s["housekeeper"]["id"]: s for s in response["data"]["suggestions"]}
+    fast_hk, slow_hk = suggestions[housekeeper_ids[0]], suggestions[housekeeper_ids[1]]
+    assert fast_hk["room_count"] == 2
+    assert slow_hk["room_count"] == 0
+    assert fast_hk["total_minutes"] == 20
 
 
 @pytest.mark.asyncio

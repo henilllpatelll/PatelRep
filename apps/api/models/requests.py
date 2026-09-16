@@ -286,10 +286,19 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     source: Literal["guest", "staff_patrol", "pm", "self"] = "self"
 
 
+class ConsumedPartItem(SanitizedBaseModel):
+    """One spare part consumed closing a work order (migration 102 inventory)."""
+
+    part_id: str = Field(min_length=1, max_length=100)
+    location_id: str = Field(min_length=1, max_length=100)
+    quantity: float = Field(gt=0, le=1_000_000)
+
+
 class CompleteWorkOrderRequest(SanitizedBaseModel):
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     labor_hours: Optional[float] = Field(default=None, ge=0, le=24)
     parts_used: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    parts_consumed: List[ConsumedPartItem] = Field(default_factory=list, max_length=50)
 
 
 class TransitionWorkOrderRequest(SanitizedBaseModel):
@@ -1191,3 +1200,45 @@ class FrontDeskBriefingRequest(SanitizedBaseModel):
     arrivals_count: int = Field(default=0, ge=0, le=1000)
     vip_arrivals_count: int = Field(default=0, ge=0, le=1000)
     language: Literal["en", "es"] = "en"
+
+
+# ---------------------------------------------------------------------------
+# Engineering spare-parts inventory (migration 102)
+# ---------------------------------------------------------------------------
+
+class CreateEngineeringPartLocationRequest(SanitizedBaseModel):
+    name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    parent_id: Optional[str] = Field(default=None, max_length=100)
+    is_structural: bool = False
+
+
+class CreateEngineeringPartRequest(SanitizedBaseModel):
+    name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    sku: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    category: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    unit: str = Field(default="each", min_length=1, max_length=40)
+    minimum_stock: float = Field(default=0, ge=0, le=1_000_000)
+    maximum_stock: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    default_location_id: Optional[str] = Field(default=None, max_length=100)
+
+
+class UpdateEngineeringPartRequest(SanitizedBaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=MEDIUM_TEXT_MAX)
+    sku: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    category: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    unit: Optional[str] = Field(default=None, min_length=1, max_length=40)
+    minimum_stock: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    maximum_stock: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    default_location_id: Optional[str] = Field(default=None, max_length=100)
+    is_active: Optional[bool] = None
+
+
+class CreateEngineeringPartTransactionRequest(SanitizedBaseModel):
+    transaction_type: Literal["add", "remove", "count", "transfer"]
+    location_id: str = Field(min_length=1, max_length=100)
+    # add/remove/transfer: amount moved. count: the new absolute on-hand
+    # quantity at location_id (a physical recount), not a delta.
+    quantity: float = Field(ge=0, le=1_000_000)
+    destination_location_id: Optional[str] = Field(default=None, max_length=100)
+    work_order_id: Optional[str] = Field(default=None, max_length=100)
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)

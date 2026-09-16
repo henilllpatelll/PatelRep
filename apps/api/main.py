@@ -43,6 +43,7 @@ from routers import (
     evidence,
     safety,
     programs,
+    inventory,
 )
 
 logger = logging.getLogger(__name__)
@@ -313,6 +314,7 @@ app.include_router(late_checkout.router, prefix=PREFIX)
 app.include_router(evidence.router, prefix=PREFIX)
 app.include_router(safety.router, prefix=PREFIX)
 app.include_router(programs.router, prefix=PREFIX)
+app.include_router(inventory.router, prefix=PREFIX)
 
 
 def _cors_headers_for(request: Request) -> dict[str, str]:

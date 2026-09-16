@@ -1018,14 +1018,23 @@ async def suggest_assignments(
     ),
 ):
     """
-    Rule-based workload-balancing assignment suggester.
+    OR-Tools CP-SAT assignment suggester.
 
     Algorithm:
     1. Fetch all DIRTY / IN_PROGRESS / PICKUP rooms needing assignment.
     2. Fetch active housekeepers on shift (shift_assignments for work_date=today).
-    3. Sort rooms: VIP first, then earliest checkin_time, then floor.
-    4. Distribute round-robin weighted by room base_clean_minutes so total
-       cleaning minutes are balanced across housekeepers.
+    3. Look up each housekeeper's actual rolling-average clean time per room
+       type from housekeeper_profiles, falling back to the room type's
+       base_clean_minutes when no profile exists yet.
+    4. Solve a CP-SAT assignment: every room goes to exactly one housekeeper,
+       minimizing (in priority order) the busiest housekeeper's total minutes
+       (fairness/makespan), then total minutes across everyone (efficiency —
+       rewards routing a room to whoever is actually fastest at that room
+       type), then the number of distinct buildings any one housekeeper
+       touches (soft building-affinity). VIP rooms get no special-cased
+       sequencing here — the old greedy "VIP first" step only existed to
+       avoid starving a late-assigned housekeeper, and the global optimizer
+       already prevents that by construction.
     5. Return suggestions (not committed to DB).
     """
     target_date = board_date or date.today()
@@ -1035,7 +1044,7 @@ async def suggest_assignments(
         supabase.table("room_status")
         .select(
             "room_id, status, vip_flag, checkin_time, "
-            "rooms(id, room_number, floor, building, room_types(name, code, base_clean_minutes))"
+            "rooms(id, room_number, floor, building, room_types(id, name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
         .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])
@@ -1128,86 +1137,159 @@ async def suggest_assignments(
             }
         }
 
-    # --- 3. Separate VIP rooms (always assigned first, building-agnostic) ---
-    vip_rooms = [r for r in rooms if r.get("vip_flag")]
-    regular_rooms = [r for r in rooms if not r.get("vip_flag")]
+    # --- 3. Per-housekeeper, per-room-type speed profiles (fallback: room type default) ---
+    room_type_ids = list({
+        ((r.get("rooms") or {}).get("room_types") or {}).get("id")
+        for r in rooms
+        if ((r.get("rooms") or {}).get("room_types") or {}).get("id")
+    })
+    hk_ids_for_profiles = [hk["id"] for hk in housekeepers]
 
-    def _sort_by_building_floor_room(r: dict) -> tuple:
-        info = r.get("rooms") or {}
-        building = info.get("building") or "Z"
-        floor = info.get("floor") or 999
-        try:
-            room_num = int(info.get("room_number") or 9999)
-        except (ValueError, TypeError):
-            room_num = 9999
-        return (building, floor, room_num)
+    profile_minutes: dict[tuple[str, str], float] = {}
+    if room_type_ids and hk_ids_for_profiles:
+        profiles_result = (
+            supabase.table("housekeeper_profiles")
+            .select("user_id, room_type_id, avg_clean_minutes")
+            .eq("tenant_id", current_user.hotel_id)
+            .in_("user_id", hk_ids_for_profiles)
+            .in_("room_type_id", room_type_ids)
+            .execute()
+        )
+        for p in (profiles_result.data or []):
+            minutes = p.get("avg_clean_minutes")
+            if minutes:
+                profile_minutes[(p["user_id"], p["room_type_id"])] = float(minutes)
 
-    regular_rooms.sort(key=_sort_by_building_floor_room)
-
-    # --- 4. Building-affinity distribution ---
-    # Group regular rooms by building so housekeepers stay in one building per shift.
-    from collections import defaultdict
-    building_buckets: dict = defaultdict(list)
-    for room in regular_rooms:
-        b = (room.get("rooms") or {}).get("building") or "unknown"
-        building_buckets[b].append(room)
-
-    n_hk = len(housekeepers)
-    total_regular = len(regular_rooms)
-
-    # Allocate housekeepers to buildings proportionally by room count.
-    building_hk_map: dict = {}
-    hk_pool = list(housekeepers)
-    allocated = 0
-    buildings_sorted = sorted(building_buckets.keys())
-    for i, b in enumerate(buildings_sorted):
-        b_count = len(building_buckets[b])
-        if i == len(buildings_sorted) - 1:
-            # Last building gets remaining housekeepers
-            share = len(hk_pool) - allocated
-        else:
-            share = max(1, round(n_hk * b_count / total_regular)) if total_regular else 1
-            share = min(share, len(hk_pool) - allocated - (len(buildings_sorted) - i - 1))
-        share = max(1, share)
-        building_hk_map[b] = hk_pool[allocated:allocated + share]
-        for hk in building_hk_map[b]:
-            hk["building_affinity"] = b
-        allocated += share
-
-    def _assign_room(hk_list: list, room: dict) -> None:
+    def _duration_minutes(hk_id: str, room: dict) -> int:
         info = room.get("rooms") or {}
         rt_info = info.get("room_types") or {}
-        base_minutes: int = rt_info.get("base_clean_minutes") or 30
-        target_hk = min(hk_list, key=lambda h: h["assigned_minutes"])
-        target_hk["assigned_rooms"].append({
-            "room_id": room.get("room_id"),
-            "room_number": info.get("room_number", ""),
-            "floor": info.get("floor"),
-            "building": info.get("building"),
-            "status": room.get("status"),
-            "room_type": rt_info.get("code", rt_info.get("name", "")),
-            "base_clean_minutes": base_minutes,
-            "is_vip": room.get("vip_flag", False),
-        })
-        target_hk["assigned_minutes"] += base_minutes
+        base_minutes = rt_info.get("base_clean_minutes") or 30
+        room_type_id = rt_info.get("id")
+        actual = profile_minutes.get((hk_id, room_type_id)) if room_type_id else None
+        return max(1, round(actual if actual else base_minutes))
 
-    # Assign VIP rooms first (pick least-loaded housekeeper across all)
-    for room in vip_rooms:
-        _assign_room(housekeepers, room)
+    # --- 4. CP-SAT assignment: minimize (fairness, then efficiency, then building spread) ---
+    from ortools.sat.python import cp_model
 
-    # Assign regular rooms to building-allocated housekeepers
-    for b in buildings_sorted:
-        for room in building_buckets[b]:
-            _assign_room(building_hk_map.get(b, housekeepers), room)
+    model = cp_model.CpModel()
+    n_hk = len(housekeepers)
+    n_rooms = len(rooms)
+
+    durations = [
+        [_duration_minutes(hk["id"], room) for room in rooms]
+        for hk in housekeepers
+    ]
+    buildings_sorted = sorted({
+        (room.get("rooms") or {}).get("building") or "unknown" for room in rooms
+    })
+    room_building_idx = [
+        buildings_sorted.index((room.get("rooms") or {}).get("building") or "unknown")
+        for room in rooms
+    ]
+
+    x = {
+        (h, r): model.NewBoolVar(f"x_{h}_{r}")
+        for h in range(n_hk)
+        for r in range(n_rooms)
+    }
+    for r in range(n_rooms):
+        model.AddExactlyOne(x[h, r] for h in range(n_hk))
+
+    max_possible_minutes = sum(max(col) for col in zip(*durations))
+    load_vars = []
+    for h in range(n_hk):
+        load = model.NewIntVar(0, max(max_possible_minutes, 1), f"load_{h}")
+        model.Add(load == sum(durations[h][r] * x[h, r] for r in range(n_rooms)))
+        load_vars.append(load)
+
+    max_load = model.NewIntVar(0, max(max_possible_minutes, 1), "max_load")
+    model.AddMaxEquality(max_load, load_vars)
+
+    # Soft building-affinity: penalize a housekeeper touching more than one building.
+    building_spread_terms = []
+    for h in range(n_hk):
+        touches_building = []
+        for b_idx in range(len(buildings_sorted)):
+            room_idxs = [r for r in range(n_rooms) if room_building_idx[r] == b_idx]
+            if not room_idxs:
+                continue
+            touches = model.NewBoolVar(f"touch_{h}_{b_idx}")
+            model.AddMaxEquality(touches, [x[h, r] for r in room_idxs])
+            touches_building.append(touches)
+        if touches_building:
+            building_spread_terms.append(sum(touches_building))
+
+    # Priority order: fairness (max_load) >> efficiency (total minutes) >> building spread.
+    model.Minimize(
+        max_load * 10_000
+        + sum(load_vars) * 10
+        + (sum(building_spread_terms) if building_spread_terms else 0)
+    )
+
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = 5.0
+    solver.parameters.num_search_workers = 8
+    status = solver.Solve(model)
+
+    for hk in housekeepers:
+        hk["assigned_rooms"] = []
+        hk["assigned_minutes"] = 0
+
+    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        for r, room in enumerate(rooms):
+            for h in range(n_hk):
+                if solver.Value(x[h, r]):
+                    info = room.get("rooms") or {}
+                    rt_info = info.get("room_types") or {}
+                    minutes = durations[h][r]
+                    housekeepers[h]["assigned_rooms"].append({
+                        "room_id": room.get("room_id"),
+                        "room_number": info.get("room_number", ""),
+                        "floor": info.get("floor"),
+                        "building": info.get("building"),
+                        "status": room.get("status"),
+                        "room_type": rt_info.get("code", rt_info.get("name", "")),
+                        "base_clean_minutes": minutes,
+                        "is_vip": room.get("vip_flag", False),
+                    })
+                    housekeepers[h]["assigned_minutes"] += minutes
+                    break
+    else:
+        # Exactly-one-per-room is always feasible with n_hk >= 1 (guaranteed above),
+        # but never leave the board unassigned if the solver somehow times out short.
+        for room in rooms:
+            info = room.get("rooms") or {}
+            rt_info = info.get("room_types") or {}
+            target = min(housekeepers, key=lambda h: h["assigned_minutes"])
+            minutes = rt_info.get("base_clean_minutes") or 30
+            target["assigned_rooms"].append({
+                "room_id": room.get("room_id"),
+                "room_number": info.get("room_number", ""),
+                "floor": info.get("floor"),
+                "building": info.get("building"),
+                "status": room.get("status"),
+                "room_type": rt_info.get("code", rt_info.get("name", "")),
+                "base_clean_minutes": minutes,
+                "is_vip": room.get("vip_flag", False),
+            })
+            target["assigned_minutes"] += minutes
 
     # --- 5. Build response ---
+    def _dominant_building(hk: dict) -> Optional[str]:
+        counts: dict = {}
+        for room in hk["assigned_rooms"]:
+            b = room.get("building")
+            if b:
+                counts[b] = counts.get(b, 0) + 1
+        return max(counts, key=counts.get) if counts else None
+
     suggestions = [
         {
             "housekeeper": {
                 "id": hk["id"],
                 "full_name": hk["full_name"],
                 "preferred_name": hk["preferred_name"],
-                "building_affinity": hk["building_affinity"],
+                "building_affinity": _dominant_building(hk),
             },
             "rooms": hk["assigned_rooms"],
             "room_count": len(hk["assigned_rooms"]),
@@ -1216,7 +1298,11 @@ async def suggest_assignments(
         for hk in housekeepers
     ]
 
-    buildings_used = sorted({r.get("building_affinity") for r in suggestions if r.get("building_affinity")})
+    buildings_used = sorted({
+        s["housekeeper"]["building_affinity"]
+        for s in suggestions
+        if s["housekeeper"]["building_affinity"]
+    })
     building_note = (
         f" across buildings {', '.join(str(b) for b in buildings_used)}" if buildings_used else ""
     )

@@ -133,7 +133,23 @@ def _execute_work_order_transition(
     }
     if assigned_to is not None:
         payload["p_assigned_to"] = assigned_to
-    return supabase.rpc("transition_work_order_with_audit", payload).execute()
+    result = supabase.rpc("transition_work_order_with_audit", payload).execute()
+
+    if decision.status == "completed":
+        wo = (
+            supabase.table("work_orders")
+            .select("pm_schedule_id")
+            .eq("id", work_order_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .maybe_single()
+            .execute()
+        )
+        pm_schedule_id = (wo.data or {}).get("pm_schedule_id") if wo else None
+        if pm_schedule_id:
+            from services.pm_schedules import advance_pm_schedule_on_completion
+            advance_pm_schedule_on_completion(pm_schedule_id, current_user.hotel_id)
+
+    return result
 
 
 @router.post("")
@@ -377,6 +393,14 @@ async def complete_work_order(
         raise HTTPException(status_code=404, detail="Work order not found")
     _ensure_engineer_can_complete_work_order(current_user, wo_check.data)
 
+    if request.parts_consumed:
+        from services.inventory import ensure_sufficient_stock
+
+        ensure_sufficient_stock(
+            [(item.part_id, item.location_id, item.quantity) for item in request.parts_consumed],
+            current_user.hotel_id,
+        )
+
     decision = validate_work_order_transition(
         current_status=wo_check.data["status"],
         request=TransitionRequest(status="completed"),
@@ -401,6 +425,20 @@ async def complete_work_order(
         .eq("tenant_id", current_user.hotel_id)
         .execute()
     )
+
+    if request.parts_consumed:
+        from services.inventory import consume_part
+
+        for item in request.parts_consumed:
+            consume_part(
+                part_id=item.part_id,
+                location_id=item.location_id,
+                quantity=item.quantity,
+                tenant_id=current_user.hotel_id,
+                user_id=current_user.user_id,
+                work_order_id=wo_id,
+            )
+
     return {"data": result.data[0] if result.data else None}
 
 
