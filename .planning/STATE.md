@@ -598,11 +598,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 37 P04 | 55min | 2 tasks | 1 files |
 | Phase 37 P03 | 85min | 2 tasks | 10 files |
 | Phase 37 P05 | 50min | 2 tasks | 1 files |
+| Phase 38 P02 | 11min | 3 tasks | 4 files |
 
 ## Session
 
-Last session: 2026-08-19T08:37:29Z
-Stopped At: Completed 37-03-PLAN.md (QA-02 Spanish-locale walkthrough: full live EN/ES walkthrough of all 21 redesigned sections with all flags on simultaneously via a zero-DB-write route-intercept method; confirmed bug-965's 37-01 fix holds app-wide; found and fixed a distinct hardcoded-literal/missing-i18n-key defect class across 6 files, logged as bug-1062; confirmed bug-1021's cold-reload hybrid flash is now fully gone via high-resolution sampling). Phase 37 has 4/5 plans complete (37-01, 37-02, 37-03, 37-04 all closed; 37-05 remains, the gated production flip-on plan requiring explicit user confirmation). Next: execute 37-05.
+Last session: 2026-09-16T19:53:14Z
+Stopped At: Completed 38-02-PLAN.md (Work Order cost capture — `complete_work_order` now computes and persists labor_cost = assignee hourly_rate x labor_hours (fallback: completing user; NULL when no rate on file), parts_cost = sum(quantity x engineering_parts.unit_cost) via a new batch `.in_()` lookup (unknown unit_cost = 0), and total_cost = COALESCE(labor,0)+COALESCE(parts,0) but NULL when both are NULL; WorkOrderResponse gained the three Optional[float] cost fields; 7 new tests in test_work_order_cost_capture.py, all green. Decision: labor rate lookup is assigned_to-first then completing-user fallback; cost is point-in-time at completion, never retroactively recalculated. 3 pre-existing management_roi test failures observed and logged to phase deferred-items.md (out of scope). Runs concurrently with sibling plan 38-03 (unit_cost/hourly_rate CRUD + RBAC). Migration 104 already live from 38-01.). Next: 38-03 wrap-up, then 38-04 UI.
 
 **Phase 22 handoff (2026-08-06T03:24:18Z):** Completed 22-06-PLAN.md and Phase 22 re-verification (MOBILE-03 exact direct dependency; matching finished EAS Android artifact; Doctor, dependency tree, TypeScript, Jest, and audit green). Phase 22 is passed 4/4 with no gaps; milestone v1.4 is ready for completion/audit.
 
