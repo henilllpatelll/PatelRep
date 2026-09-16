@@ -525,7 +525,11 @@ def test_roi_downtime_revenue_uses_tenant_adr(monkeypatch):
     monkeypatch.setattr(management_roi_router, "supabase", db)
     client = TestClient(app)
 
-    response = client.get(_roi_url("/downtime-revenue"), headers=_auth_header("gm"))
+    response = client.get(
+        _roi_url("/downtime-revenue"),
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=_auth_header("gm"),
+    )
 
     assert response.status_code == 200
     body = response.json()["data"]
@@ -584,7 +588,11 @@ def test_roi_housekeeping_efficiency_pairs_in_progress_to_clean(monkeypatch):
     monkeypatch.setattr(management_roi_router, "supabase", db)
     client = TestClient(app)
 
-    response = client.get(_roi_url("/housekeeping-efficiency"), headers=_auth_header("gm"))
+    response = client.get(
+        _roi_url("/housekeeping-efficiency"),
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=_auth_header("gm"),
+    )
 
     assert response.status_code == 200
     body = response.json()["data"]
@@ -631,7 +639,11 @@ def test_roi_pm_compliance_reads_pm_deferrals_table(monkeypatch):
     monkeypatch.setattr(management_roi_router, "supabase", db)
     client = TestClient(app)
 
-    response = client.get(_roi_url("/pm-compliance"), headers=_auth_header("gm"))
+    response = client.get(
+        _roi_url("/pm-compliance"),
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=_auth_header("gm"),
+    )
 
     assert response.status_code == 200
     body = response.json()["data"]
