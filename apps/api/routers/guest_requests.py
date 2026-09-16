@@ -1,11 +1,12 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
-from middleware.auth import get_current_user, CurrentUser
+from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CreateGuestMessageRequest,
     CreateGuestRequestRequest,
     CreateGuestRequestSlaPolicyRequest,
+    CreateWorkOrderFromGuestRequestRequest,
     RecordGuestRecoveryActionRequest,
     RecordGuestSatisfactionRequest,
     TransitionGuestRequestRequest,
@@ -38,6 +39,18 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
 MESSAGE_ROLES = ("front_desk", "housekeeping_supervisor", "engineer", "gm")
 SATISFACTION_STATUSES = ("resolved", "verified")
 SLA_POLICY_ROLES = {"gm", "housekeeping_supervisor"}
+WORK_ORDER_BRIDGE_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
+# A request is only bridgeable to a WO while it's still "in flight" toward
+# dispatch; resolved/verified/cancelled requests must be reopened first so the
+# guest-request state machine stays the single source of truth for lifecycle.
+_BRIDGEABLE_STATUSES = ("open", "acknowledged", "dispatched", "arrived", "guest_contacted", "reopened")
+# Statuses that still need to advance through acknowledged -> dispatched when a
+# work order is created from them (see validate_guest_request_transition).
+_DISPATCH_PATHS = {
+    "open": ("acknowledged", "dispatched"),
+    "reopened": ("acknowledged", "dispatched"),
+    "acknowledged": ("dispatched",),
+}
 
 
 def _record_guest_request_event(
@@ -202,6 +215,130 @@ async def transition_guest_request(
         request_id=request_id, event_type=request.status, current_user=current_user, detail=request.detail
     )
     return {"data": record}
+
+
+def _advance_guest_request_for_wo_bridge(
+    *, request_id: str, current_status: str, category: str, priority: str,
+    current_user: CurrentUser, now: datetime, work_order_id: str,
+) -> str:
+    """Creating a linked work order implies the request has been acknowledged and
+    dispatched to an engineer, so walk the state machine forward instead of leaving
+    the guest request stuck at 'open' while a WO is already in progress."""
+    _record_guest_request_event(
+        request_id=request_id, event_type="note", current_user=current_user,
+        detail="Engineering work order created from this request", source="automation",
+        metadata={"work_order_id": work_order_id},
+    )
+    status = current_status
+    for next_status in _DISPATCH_PATHS.get(current_status, ()):
+        try:
+            validate_guest_request_transition(
+                current_status=status, next_status=next_status, category=category, priority=priority,
+            )
+        except (AccessibilityPriorityError, InvalidGuestRequestTransition):
+            break
+        supabase.table("guest_requests").update(
+            {"status": next_status, **_status_timestamp(next_status, now)}
+        ).eq("id", request_id).eq("tenant_id", current_user.hotel_id).execute()
+        _record_guest_request_event(
+            request_id=request_id, event_type=next_status, current_user=current_user,
+            detail="Auto-advanced: engineering work order created", source="automation",
+            metadata={"work_order_id": work_order_id},
+        )
+        status = next_status
+    return status
+
+
+@router.post("/{request_id}/create-work-order")
+async def create_work_order_from_guest_request(
+    request_id: str,
+    request: CreateWorkOrderFromGuestRequestRequest,
+    current_user: CurrentUser = Depends(require_role(*WORK_ORDER_BRIDGE_ROLES)),
+):
+    """Guest-request -> engineering WO bridge (one tap): dedupes on an existing
+    active WO, pre-links the room's asset when unambiguous, and starts the WO's
+    own SLA clock via the normal work_orders insert path."""
+    from routers.work_orders import SLA_MINUTES
+
+    guest_request = supabase.table("guest_requests").select(
+        "id, title, description, room_id, status, priority, guest_impact, category"
+    ).eq("id", request_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    guest_request = guest_request.data if guest_request else None
+    if not guest_request:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+    if guest_request["status"] not in _BRIDGEABLE_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail="This request must be reopened before a new work order can be linked",
+        )
+
+    existing = supabase.table("work_orders").select("id").eq(
+        "guest_request_id", request_id
+    ).eq("tenant_id", current_user.hotel_id).neq("status", "cancelled").execute().data
+    if existing:
+        raise HTTPException(status_code=409, detail="This guest request already has a linked work order")
+
+    room_id = guest_request.get("room_id")
+    asset_id = str(request.asset_id) if request.asset_id else None
+    if asset_id:
+        asset = supabase.table("assets").select("id, room_id").eq("id", asset_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).maybe_single().execute()
+        asset = asset.data if asset else None
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        if room_id and asset.get("room_id") and asset["room_id"] != room_id:
+            raise HTTPException(status_code=422, detail="Asset does not belong to this guest request's room")
+    elif room_id:
+        # Only auto-link when there's exactly one candidate -- an ambiguous room
+        # is left for the engineer to pick on the work order instead of guessing.
+        room_assets = supabase.table("assets").select("id").eq("room_id", room_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).eq("is_active", True).execute().data or []
+        if len(room_assets) == 1:
+            asset_id = room_assets[0]["id"]
+
+    priority = request.priority
+    if not priority:
+        if guest_request.get("priority") == "urgent" or guest_request.get("guest_impact") == "high":
+            priority = "urgent"
+        elif guest_request.get("guest_impact") == "low":
+            priority = "low"
+        else:
+            priority = "normal"
+
+    sla = SLA_MINUTES.get(priority, 240)
+    now = datetime.now(timezone.utc)
+    due_at = (now + timedelta(minutes=sla)).isoformat()
+
+    wo_data = {
+        "tenant_id": current_user.hotel_id,
+        "title": guest_request["title"],
+        "description": guest_request.get("description") or request.notes,
+        "category": request.category,
+        "priority": priority,
+        "room_id": room_id,
+        "asset_id": asset_id,
+        "created_by": current_user.user_id,
+        "guest_reported": True,
+        "sla_minutes": sla,
+        "due_at": due_at,
+        "guest_request_id": request_id,
+    }
+    wo_result = supabase.table("work_orders").insert(wo_data).execute()
+    work_order = wo_result.data[0] if wo_result.data else None
+
+    new_status = _advance_guest_request_for_wo_bridge(
+        request_id=request_id,
+        current_status=guest_request["status"],
+        category=guest_request.get("category", "service"),
+        priority=guest_request.get("priority", "normal"),
+        current_user=current_user,
+        now=now,
+        work_order_id=work_order["id"] if work_order else request_id,
+    )
+
+    return {"data": work_order, "meta": {"guest_request_status": new_status}}
 
 
 @router.post("/{request_id}/messages")
@@ -516,7 +653,7 @@ async def list_guest_requests(
 ):
     """List guest requests with optional filters."""
     query = supabase.table("guest_requests")\
-        .select("*, rooms(room_number)")\
+        .select("*, rooms(room_number), work_orders(id, status, work_order_number, title, category)")\
         .eq("tenant_id", current_user.hotel_id)\
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)

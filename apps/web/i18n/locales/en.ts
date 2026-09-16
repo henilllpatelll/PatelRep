@@ -1747,6 +1747,22 @@ const en = {
     urgent: 'URGENT',
     slaOverdue: 'SLA overdue',
     timeAgo: { minutes: '{{count}}m ago', hours: '{{count}}h ago', days: '{{count}}d ago' },
+    workOrderBridge: {
+      heading: 'Create Work Order',
+      createButton: 'Create',
+      creating: 'Creating...',
+      error: 'Failed to create work order',
+      linkedHeading: 'Linked Work Order',
+      linkedTitle: 'WO #{{number}} — {{title}}',
+      status: {
+        open: 'Open',
+        escalated: 'Escalated',
+        in_progress: 'In Progress',
+        on_hold: 'On Hold',
+        completed: 'Completed',
+        cancelled: 'Cancelled',
+      },
+    },
   },
   sop: {
     pageTitle: 'SOP Library',

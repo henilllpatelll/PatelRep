@@ -2,7 +2,7 @@
 
 > OpenWolf's learning memory. Updated automatically as the AI learns from interactions.
 > Do not edit manually unless correcting an error.
-> Last updated: 2026-09-11
+> Last updated: 2026-09-16
 
 ## User Preferences
 
@@ -279,6 +279,7 @@
 
 ## Do-Not-Repeat
 
+- [2026-09-16] **A newly-added FastAPI route can silently miss `uvicorn --reload` even when the watcher process is alive and the port is answering requests — verify via `GET /openapi.json`, don't assume `--reload` picked it up.** Added `POST /v1/guest-requests/{id}/create-work-order` to `routers/guest_requests.py`; the already-running dev API (started earlier in the session, PID confirmed via `Get-CimInstance Win32_Process` to be `.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8003`, so `--reload` genuinely was active) kept returning `404 Not Found` for the new path while every other route still worked and `/openapi.json` had 253 paths but not mine. This is at least the third occurrence of this class of bug in this repo (see the 2026-09-11 and 2026-06-26 entries below) — stop assuming a live `--reload` server has your latest route; `curl .../openapi.json | grep <new-path>` (exact match, not a loose substring — a loose grep matched an unrelated existing route sharing a suffix and gave a false "it's registered" reading here) is the only reliable check before testing a new endpoint. Fix: `Get-CimInstance Win32_Process -Filter "ProcessId=<pid>"` to find the reload-worker child (`spawn_main(parent_pid=...)`), `Stop-Process -Force` BOTH the child and the parent watcher (killing only the parent can orphan the child per the 2026-08-05 zombie-listener entry), confirm the port is free, then `npm run dev:api` fresh from repo root and re-poll `/health` until 200 before re-testing.
 - [2026-08-23] **`apps/mobile`: never import `react-native-reanimated` in a component under Jest, even via `react-native-reanimated/mock`.** In this version, `mock.js` itself pulls in the real `react-native-worklets` native bindings and crashes with `Cannot read properties of undefined (reading 'loadUnpackers')` under `jest-expo`. No components previously exercised by tests used reanimated (only `(app)/_layout.tsx`, which isn't rendered in tests), so this was latent. Use React Native's core `Animated` API for any animated view that a component test will mount.
 - [2026-08-23] **Claude Fable 5 currently rejects work before the first turn unless Anthropic usage credits are enabled.** A fresh `claude --model claude-fable-5 --print ...` launch returned HTTP 429 with `Fable 5 requires usage credits` and consumed zero tokens. Preserve the prepared session/prompt and ask the user to enable credits or explicitly authorize a different model; do not silently switch away from their requested model.
 - [2026-08-05] **The current GSD `state advance-plan` parser cannot read this repository's legacy prose/duplicated STATE layout.** If it returns `Cannot parse Current Plan or Total Plans in Phase`, do not rewrite or delete historical state blocks to satisfy the parser. Preserve them and manually update the active frontmatter, current-position prose, progress totals, decisions, metrics, and session fields; run the roadmap helper independently where it still works.

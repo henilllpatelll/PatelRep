@@ -13236,3 +13236,39 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 02:24 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_oss_build_phase1.md | inline fix | ~245 |
 | 02:24 | Session end: 51 writes across 25 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 47 reads | ~161789 tok |
 | 02:54 | Session end: 51 writes across 25 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 47 reads | ~161789 tok |
+| 02:58 | Session end: 51 writes across 25 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 47 reads | ~161789 tok |
+| 03:00 | Session end: 51 writes across 25 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 47 reads | ~161789 tok |
+
+## Session: 2026-09-16 03:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:08 | Created supabase/migrations/103_guest_request_work_order_bridge.sql | — | ~277 |
+| 03:08 | Edited apps/api/models/requests.py | modified CreateGuestMessageRequest() | ~200 |
+| 03:08 | Edited apps/api/routers/guest_requests.py | 10→11 lines | ~114 |
+| 03:08 | Edited apps/api/routers/guest_requests.py | expanded (+12 lines) | ~256 |
+| 03:08 | Edited apps/api/routers/guest_requests.py | modified _advance_guest_request_for_wo_bridge() | ~1632 |
+| 03:08 | Edited apps/api/routers/work_orders.py | added 1 import(s) | ~37 |
+| 03:08 | Edited apps/api/routers/work_orders.py | 1→3 lines | ~29 |
+| 03:08 | Edited apps/api/routers/work_orders.py | modified _notify_guest_request_of_wo_completion() | ~516 |
+| 03:09 | Edited apps/api/routers/work_orders.py | 11→11 lines | ~125 |
+| 03:09 | Edited apps/api/routers/work_orders.py | expanded (+8 lines) | ~119 |
+| 03:09 | Edited apps/api/routers/guest_requests.py | 4→4 lines | ~72 |
+| 03:09 | Edited supabase/migrations/103_guest_request_work_order_bridge.sql | 2→6 lines | ~131 |
+| 03:09 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | inline fix | ~13 |
+| 03:09 | Edited apps/web/lib/api/guest_requests.ts | expanded (+9 lines) | ~99 |
+| 03:09 | Edited apps/web/lib/api/guest_requests.ts | expanded (+9 lines) | ~121 |
+| 03:09 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | added 1 import(s) | ~124 |
+| 03:09 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | expanded (+13 lines) | ~159 |
+| 03:09 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | added optional chaining | ~205 |
+| 03:09 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | inline fix | ~18 |
+| 03:10 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | 4→9 lines | ~50 |
+| 03:10 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | added optional chaining | ~89 |
+| 03:10 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | added nullish coalescing | ~730 |
+| 03:10 | Edited apps/web/i18n/locales/en.ts | expanded (+16 lines) | ~162 |
+| 03:10 | Edited apps/web/i18n/locales/es.ts | expanded (+16 lines) | ~170 |
+| 03:22 | Built guest-request -> WO bridge (migration 103, POST /guest-requests/{id}/create-work-order) | apps/api/routers/guest_requests.py, work_orders.py, models/requests.py | shipped | ~4200 |
+| 03:22 | Wired Create Work Order UI + linked-WO pill into GuestRequestDrawer | apps/web/components/guest-requests/GuestRequestDrawer.tsx, lib/api/guest_requests.ts | shipped | ~1100 |
+| 03:22 | Applied migration 103 to live Supabase (oacnwalhcpqdabivweki), verified full loop via curl+SQL+Playwright | supabase/migrations/103_guest_request_work_order_bridge.sql | verified | ~800 |
+| 03:24 | Created apps/api/tests/test_guest_request_work_order_bridge.py | — | ~2154 |
+| 03:25 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_oss_build_phase1.md | modified twice() | ~972 |

@@ -20,7 +20,7 @@ interface Props {
   onCreate: (wo: WorkOrder) => void
 }
 
-function getCategories(t: TFunction) {
+export function getCategories(t: TFunction) {
   return [
     { value: 'plumbing', label: t('engineering.createWorkOrder.categoryPlumbing') },
     { value: 'electrical', label: t('engineering.createWorkOrder.categoryElectrical') },

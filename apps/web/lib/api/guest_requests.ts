@@ -35,6 +35,15 @@ export interface GuestRequest {
   updated_at?: string
   // Joined
   rooms?: { room_number: string }
+  work_orders?: LinkedWorkOrder[]
+}
+
+export interface LinkedWorkOrder {
+  id: string
+  status: 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+  work_order_number: number
+  title: string
+  category: string
 }
 
 export type GuestMessageDeliveryStatus =
@@ -135,6 +144,15 @@ export const guestRequestsApi = {
     apiClient.post(`/guest-requests/${id}/satisfaction`, payload) as Promise<{ data: GuestRequest }>,
 
   getMetrics: () => apiClient.get('/guest-requests/metrics/summary') as Promise<{ data: GuestRequestMetrics }>,
+
+  createWorkOrder: (
+    id: string,
+    payload: { category: string; priority?: string; asset_id?: string; notes?: string },
+  ) =>
+    apiClient.post(`/guest-requests/${id}/create-work-order`, payload) as Promise<{
+      data: LinkedWorkOrder
+      meta: { guest_request_status: GuestRequestStatus }
+    }>,
 
   deleteRequest: (id: string) =>
     apiClient.delete(`/guest-requests/${id}`),

@@ -847,6 +847,22 @@ class CreateGuestMessageRequest(SanitizedBaseModel):
     channel: Literal["sms", "email"] = "sms"
 
 
+class CreateWorkOrderFromGuestRequestRequest(SanitizedBaseModel):
+    category: Literal[
+        "plumbing",
+        "electrical",
+        "hvac",
+        "furniture",
+        "appliance",
+        "structural",
+        "safety",
+        "general",
+    ]
+    priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = None
+    asset_id: Optional[UUID4] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
 class CreateGuestRequestSlaPolicyRequest(SanitizedBaseModel):
     category: Optional[Literal["service", "housekeeping", "maintenance", "accessibility", "other"]] = None
     priority: Optional[Literal["normal", "urgent"]] = None

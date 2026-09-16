@@ -1747,6 +1747,22 @@ const es = {
     urgent: 'URGENTE',
     slaOverdue: 'SLA vencido',
     timeAgo: { minutes: 'hace {{count}}m', hours: 'hace {{count}}h', days: 'hace {{count}}d' },
+    workOrderBridge: {
+      heading: 'Crear orden de trabajo',
+      createButton: 'Crear',
+      creating: 'Creando...',
+      error: 'Error al crear la orden de trabajo',
+      linkedHeading: 'Orden de trabajo vinculada',
+      linkedTitle: 'OT #{{number}} — {{title}}',
+      status: {
+        open: 'Abierta',
+        escalated: 'Escalada',
+        in_progress: 'En progreso',
+        on_hold: 'En espera',
+        completed: 'Completada',
+        cancelled: 'Cancelada',
+      },
+    },
   },
   sop: {
     pageTitle: 'Biblioteca de POE',

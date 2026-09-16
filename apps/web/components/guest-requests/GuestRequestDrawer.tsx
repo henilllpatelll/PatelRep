@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { X, Send, Clock } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,7 @@ import {
   type GuestMessage,
   type AccessibleRoomFeature,
 } from '@/lib/api/guest_requests'
+import { getCategories } from '@/components/engineering/CreateWorkOrderModal'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
 import { useRole } from '@/lib/hooks/useRole'
@@ -26,6 +27,19 @@ interface Props {
 }
 
 const MESSAGE_ROLES = ['front_desk', 'housekeeping_supervisor', 'engineer', 'gm'] as const
+const WORK_ORDER_BRIDGE_ROLES = ['front_desk', 'housekeeping_supervisor', 'gm'] as const
+const BRIDGEABLE_STATUSES: GuestRequest['status'][] = [
+  'open', 'acknowledged', 'dispatched', 'arrived', 'guest_contacted', 'reopened',
+]
+
+const WORK_ORDER_STATUS_TONE: Record<string, 'ready' | 'info' | 'caution' | 'alert' | 'blocked'> = {
+  open: 'caution',
+  escalated: 'alert',
+  in_progress: 'info',
+  on_hold: 'blocked',
+  completed: 'ready',
+  cancelled: 'blocked',
+}
 
 const DELIVERY_TONE: Record<GuestMessage['effective_delivery_status'], 'ready' | 'info' | 'caution' | 'alert' | 'blocked'> = {
   delivered: 'ready',
@@ -59,6 +73,21 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
   const [replyError, setReplyError] = useState<string | null>(null)
 
   const canReply = MESSAGE_ROLES.includes((role ?? '') as (typeof MESSAGE_ROLES)[number])
+  const canBridgeToWorkOrder = WORK_ORDER_BRIDGE_ROLES.includes(
+    (role ?? '') as (typeof WORK_ORDER_BRIDGE_ROLES)[number],
+  )
+  const CATEGORIES = useMemo(() => getCategories(t), [t])
+  const [woCategory, setWoCategory] = useState('general')
+  const [woError, setWoError] = useState<string | null>(null)
+
+  const createWorkOrderMutation = useMutation({
+    mutationFn: () => guestRequestsApi.createWorkOrder(request!.id, { category: woCategory }),
+    onSuccess: () => {
+      setWoError(null)
+      onNoteAdded()
+    },
+    onError: (err: any) => setWoError(err?.message || t('guestRequests.workOrderBridge.error')),
+  })
 
   const noteMutation = useMutation({
     mutationFn: (notes: string) => guestRequestsApi.updateRequest(request!.id, { notes }),
@@ -104,6 +133,11 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
     setScoreError(null)
   }, [request?.id])
 
+  useEffect(() => {
+    setWoCategory('general')
+    setWoError(null)
+  }, [request?.id])
+
   const satisfactionMutation = useMutation({
     mutationFn: (value: number) => guestRequestsApi.recordSatisfaction(request!.id, { satisfaction_score: value }),
     onSuccess: () => {
@@ -123,6 +157,10 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
   const createdAt = request.created_at
     ? format(new Date(request.created_at), 'MMM d, h:mm a')
     : '—'
+
+  const linkedWorkOrder = request.work_orders?.find((wo) => wo.status !== 'cancelled') ?? null
+  const canCreateWorkOrder =
+    canBridgeToWorkOrder && !linkedWorkOrder && BRIDGEABLE_STATUSES.includes(request.status)
 
   const isOptedOut = !!request.contact_opted_out_at
   const hasPhone = !!request.guest_phone
@@ -206,6 +244,52 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
               )}
             </div>
           )}
+
+          {/* Guest-request -> engineering work order bridge */}
+          {linkedWorkOrder ? (
+            <div className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-1.5">
+                {t('guestRequests.workOrderBridge.linkedHeading')}
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[14px] text-ink truncate">
+                  {t('guestRequests.workOrderBridge.linkedTitle', { number: linkedWorkOrder.work_order_number, title: linkedWorkOrder.title })}
+                </p>
+                <Pill tone={WORK_ORDER_STATUS_TONE[linkedWorkOrder.status] ?? 'info'} size="sm">
+                  {t(`guestRequests.workOrderBridge.status.${linkedWorkOrder.status}`)}
+                </Pill>
+              </div>
+            </div>
+          ) : canCreateWorkOrder ? (
+            <div className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3">
+                {t('guestRequests.workOrderBridge.heading')}
+              </p>
+              <div className="flex gap-1.5">
+                <select
+                  value={woCategory}
+                  onChange={(e) => setWoCategory(e.target.value)}
+                  disabled={createWorkOrderMutation.isPending}
+                  className="flex-1 border border-line rounded-[var(--r-md)] px-2.5 py-1.5 text-xs bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <Button
+                  variant="secondary"
+                  className="text-xs py-1.5"
+                  disabled={createWorkOrderMutation.isPending}
+                  onClick={() => createWorkOrderMutation.mutate()}
+                >
+                  {createWorkOrderMutation.isPending
+                    ? t('guestRequests.workOrderBridge.creating')
+                    : t('guestRequests.workOrderBridge.createButton')}
+                </Button>
+              </div>
+              {woError && <p className="text-[12px] text-[var(--alert)]">{woError}</p>}
+            </div>
+          ) : null}
 
           {/* Accessibility guidance (informational only, no assignment/booking action) */}
           {request?.category === 'accessibility' && (

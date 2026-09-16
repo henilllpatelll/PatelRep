@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from typing import Literal, Optional
@@ -25,6 +26,8 @@ ALLOWED_PHOTO_TYPES = {
     "image/webp": "webp",
 }
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
@@ -331,6 +334,49 @@ async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> 
         pass  # Never block claim response on push failure
 
 
+def _notify_guest_request_of_wo_completion(
+    *, tenant_id: str, guest_request_id: str, wo_title: str
+) -> None:
+    """Guest-request bridge (see guest_requests.create_work_order_from_guest_request):
+    tell front desk the linked repair is done so they can update the guest. Best-effort —
+    a notification failure must never fail the underlying WO completion."""
+    try:
+        staff = (
+            supabase.table("user_roles")
+            .select("user_id")
+            .eq("tenant_id", tenant_id)
+            .eq("is_active", True)
+            .in_("role", ["front_desk", "housekeeping_supervisor"])
+            .execute()
+        )
+        recipients = {r["user_id"] for r in (staff.data or [])}
+        if recipients:
+            supabase.table("notifications").insert(
+                [
+                    {
+                        "tenant_id": tenant_id,
+                        "user_id": uid,
+                        "type": "guest_request_wo_completed",
+                        "title": "Work order completed",
+                        "body": f"'{wo_title}' is done — update the guest if needed.",
+                        "data": {"guest_request_id": guest_request_id},
+                    }
+                    for uid in recipients
+                ]
+            ).execute()
+        supabase.table("guest_request_events").insert(
+            {
+                "tenant_id": tenant_id,
+                "guest_request_id": guest_request_id,
+                "event_type": "note",
+                "source": "automation",
+                "detail": "Linked engineering work order completed",
+            }
+        ).execute()
+    except Exception:
+        logger.exception("Failed to notify front desk of WO completion for guest_request=%s", guest_request_id)
+
+
 @router.post("/{wo_id}/claim")
 async def claim_work_order(
     wo_id: str,
@@ -383,7 +429,7 @@ async def complete_work_order(
 ):
     wo_check = (
         supabase.table("work_orders")
-        .select("id, assigned_to, status")
+        .select("id, assigned_to, status, title, guest_request_id")
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -438,6 +484,14 @@ async def complete_work_order(
                 user_id=current_user.user_id,
                 work_order_id=wo_id,
             )
+
+    guest_request_id = wo_check.data.get("guest_request_id")
+    if guest_request_id:
+        _notify_guest_request_of_wo_completion(
+            tenant_id=current_user.hotel_id,
+            guest_request_id=guest_request_id,
+            wo_title=wo_check.data.get("title") or "Work order",
+        )
 
     return {"data": result.data[0] if result.data else None}
 
