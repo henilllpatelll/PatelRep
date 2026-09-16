@@ -19,7 +19,7 @@
     "check:frozen-files": "node scripts/check-frozen-files.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:deployment-drift": "node scripts/check-deployment-drift.mjs",
-    "test:unit": "tsx --test lib/utils/housekeepingBoardFilters.test.ts lib/utils/housekeepingDashboardMetrics.test.ts lib/utils/navigation.test.ts lib/utils/roomType.test.ts"
+    "test:unit": "tsx --test lib/utils/housekeepingBoardFilters.test.ts lib/utils/housekeepingDashboardMetrics.test.ts lib/utils/navigation.test.ts lib/utils/roomType.test.ts lib/utils/unifiedTasks.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

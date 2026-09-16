@@ -18,13 +18,14 @@ export const EMPTY_ROLE_FORM: RoleFormValues = {
   name: '',
   description: '',
   base_role: 'front_desk',
-  allowed_modules: ['housekeeping', 'guest-requests', 'lost-found', 'tasks', 'logbook'],
+  allowed_modules: ['housekeeping', 'lost-found', 'tasks', 'logbook'],
 }
 
+// Guest Requests is no longer a standalone selectable module — its operational screen merged
+// into Tasks. Not listed here so new/edited roles can't select it as its own module.
 export const ALL_MODULES = [
   { key: 'housekeeping',   label: 'Housekeeping' },
   { key: 'engineering',    label: 'Engineering' },
-  { key: 'guest-requests', label: 'Guest Requests' },
   { key: 'lost-found',     label: 'Lost & Found' },
   { key: 'tasks',          label: 'Tasks' },
   { key: 'staff',          label: 'Staff' },
@@ -34,6 +35,12 @@ export const ALL_MODULES = [
   { key: 'reports',        label: 'Reports' },
   { key: 'ai',             label: 'AI Copilot' },
 ]
+
+// Legacy module keys that may still be saved on existing custom roles — kept only so
+// RoleCard can render a friendly label instead of the raw slug; not user-selectable.
+const LEGACY_MODULE_LABELS: Record<string, string> = {
+  'guest-requests': 'Guest Requests',
+}
 
 export const BASE_ROLES = [
   { value: 'housekeeper',             label: 'Housekeeper' },
@@ -62,9 +69,10 @@ const BASE_ROLE_COLORS: Record<string, string> = {
   gm:                      'bg-violet-100 text-violet-700',
 }
 
-const MODULE_LABELS: Record<string, string> = Object.fromEntries(
-  ALL_MODULES.map(m => [m.key, m.label]),
-)
+const MODULE_LABELS: Record<string, string> = {
+  ...LEGACY_MODULE_LABELS,
+  ...Object.fromEntries(ALL_MODULES.map(m => [m.key, m.label])),
+}
 
 // ─── RoleCard ─────────────────────────────────────────────────────────────────
 

@@ -20,7 +20,9 @@ const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/staff', roles: ['gm'] },
   { prefix: '/ai', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk'] },
   { prefix: '/sop', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },
-  { prefix: '/guest-requests', roles: ['gm', 'housekeeping_supervisor', 'front_desk', 'housekeeper'] },
+  // Legacy route — this page immediately redirects into /tasks, so any authenticated role may
+  // land here (old bookmarks/notifications/deep-links) without hitting an unauthorized bounce.
+  { prefix: '/guest-requests', roles: [...ALL_ROLES] },
   { prefix: '/logbook', roles: ['housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk', 'gm'] },
   { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
   { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },

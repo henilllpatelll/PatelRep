@@ -84,7 +84,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   })
   const roomsAllowed = allowed.includes('/housekeeping')
   const workOrdersAllowed = allowed.includes('/engineering')
-  const guestsAllowed = allowed.includes('/guest-requests')
+  const guestsAllowed = allowed.includes('/tasks')
   const sopsAllowed = allowed.includes('/sop')
 
   const items = getAllowedNavItems({
@@ -152,7 +152,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   const guestResults: PaletteResult[] = showRecords
     ? ((guestsQuery.data as any)?.data ?? []).map((gr: any) => ({
         key: `guest-${gr.id}`,
-        href: `/guest-requests?focus=${gr.id}`,
+        href: `/tasks?view=guest&focus=${gr.id}`,
         primary: `Request #${gr.request_number}`,
         secondary: gr.title,
         icon: MessageSquare,

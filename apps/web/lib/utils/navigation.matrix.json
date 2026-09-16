@@ -5,7 +5,6 @@
     "/engineering",
     "/programs",
     "/lost-found",
-    "/guest-requests",
     "/tasks",
     "/ai",
     "/sop",
@@ -23,7 +22,6 @@
     "/engineering",
     "/programs",
     "/lost-found",
-    "/guest-requests",
     "/tasks",
     "/ai",
     "/sop",
@@ -34,7 +32,7 @@
   "housekeeper": [
     "/dashboard",
     "/housekeeping",
-    "/guest-requests"
+    "/tasks"
   ],
   "engineer": [
     "/dashboard",

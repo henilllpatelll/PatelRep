@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
   FileText, Library, Settings, ClipboardList, ShieldCheck, LifeBuoy,
-  Package, Sparkles, MessageSquare, TrendingUp, ListChecks,
+  Package, Sparkles, TrendingUp, ListChecks,
 } from 'lucide-react'
 import type { UserRole } from '@/stores/authStore'
 
@@ -19,7 +19,6 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   ]},
   { href: '/programs',       label: 'Programs',       icon: ClipboardList },
   { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
-  { href: '/guest-requests', label: 'Guest Requests', icon: MessageSquare },
   { href: '/tasks',          label: 'Tasks',          icon: ListChecks },
   { href: '/ai',             label: 'AI Copilot',     icon: Sparkles,    tag: 'AI' },
   { href: '/sop',            label: 'SOP Library',    icon: Library },
@@ -50,12 +49,12 @@ export const SETTINGS_NAV_ITEM: NavItem = {
 }
 
 export const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai'],
-  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
+  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai'],
+  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  housekeeper:    ['/dashboard','/housekeeping','/tasks'],
   engineer:       ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   chief_engineer: ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  front_desk:     ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found','/ai'],
+  front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/lost-found','/ai'],
 }
 
 export const DEFAULT_FRONT_DESK_MODULES = ['housekeeping', 'lost-found', 'tasks', 'logbook']
@@ -96,7 +95,7 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
   Feedback: 'nav.feedback',
 }
 
-export const OPERATIONS_HREFS   = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks']
+export const OPERATIONS_HREFS   = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks']
 export const INTELLIGENCE_HREFS = ['/ai','/sop','/evidence','/safety','/reports','/management-roi']
 export const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
 
@@ -106,12 +105,20 @@ export interface AllowedNavParams {
   frontDeskModules?: string[] | null
 }
 
+/** Legacy saved module slugs that no longer map to a standalone route — normalized to their
+ * replacement so hotels with old saved custom-role/front-desk module configs don't lose access. */
+const LEGACY_MODULE_ALIASES: Record<string, string> = { 'guest-requests': 'tasks' }
+
+function normalizeModules(modules: string[]): string[] {
+  return Array.from(new Set(modules.map((m) => LEGACY_MODULE_ALIASES[m] ?? m)))
+}
+
 /** Single source of truth for "which routes can this user reach" — Sidebar, CommandPalette,
  * and Breadcrumbs all read through this so nothing can drift out of sync with RBAC. */
 export function getAllowedHrefs({ role, customRoleModules, frontDeskModules }: AllowedNavParams): string[] {
-  if (customRoleModules) return ['/dashboard', ...customRoleModules.map((m) => `/${m}`)]
+  if (customRoleModules) return ['/dashboard', ...normalizeModules(customRoleModules).map((m) => `/${m}`)]
   if (role === 'front_desk') {
-    return ['/dashboard', ...(frontDeskModules ?? DEFAULT_FRONT_DESK_MODULES).map((m) => `/${m}`)]
+    return ['/dashboard', ...normalizeModules(frontDeskModules ?? DEFAULT_FRONT_DESK_MODULES).map((m) => `/${m}`)]
   }
   return role ? (NAV_BY_ROLE[role] ?? []) : []
 }

@@ -22,7 +22,7 @@ import {
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
 
-const PRIMARY_HREFS = ['/dashboard', '/housekeeping', '/engineering', '/guest-requests', '/tasks']
+const PRIMARY_HREFS = ['/dashboard', '/housekeeping', '/engineering', '/tasks']
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm:                      'roles.gm',

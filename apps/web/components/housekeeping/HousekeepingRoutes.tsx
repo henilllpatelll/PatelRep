@@ -551,7 +551,7 @@ export function HousekeepingRoutes() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
-          <HeaderButton onClick={() => router.push('/guest-requests')}>
+          <HeaderButton onClick={() => router.push('/tasks?view=guest')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
             </svg>
@@ -728,7 +728,7 @@ export function HousekeepingRoutes() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => router.push('/guest-requests')}
+                    onClick={() => router.push('/tasks?view=guest')}
                     style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid #b8431c', background: '#b8431c', color: '#fff', borderRadius: 8, height: 34, padding: '7px 12px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     {t('housekeeping.routes.openRequest')}
@@ -761,7 +761,7 @@ export function HousekeepingRoutes() {
                 return (
                   <div
                     key={r.id}
-                    onClick={() => router.push('/guest-requests')}
+                    onClick={() => router.push(`/tasks?view=guest&focus=${r.id}`)}
                     style={{ padding: '11px 16px', borderTop: '1px solid #efe9dc', display: 'flex', flexDirection: 'column', gap: 5, cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

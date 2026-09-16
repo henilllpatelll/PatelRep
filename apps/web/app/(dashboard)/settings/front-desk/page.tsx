@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Bed, Wrench, Bell, Package, ClipboardList,
+  Bed, Wrench, Package, ClipboardList,
   Users, Calendar, BookOpen, Library, FileText, Sparkles,
 } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -18,9 +18,8 @@ import { useToast } from '@/components/ui/Toast'
 const FRONT_DESK_MODULES = [
   { key: 'housekeeping',   label: 'Housekeeping',   description: 'Room board, assignments and inspections', icon: Bed },
   { key: 'engineering',    label: 'Maintenance',    description: 'Work orders and maintenance tracking', icon: Wrench },
-  { key: 'guest-requests', label: 'Guest Requests', description: 'Guest service requests and escalations', icon: Bell },
   { key: 'lost-found',     label: 'Lost & Found',   description: 'Log and look up guest items', icon: Package },
-  { key: 'tasks',          label: 'Tasks',          description: 'Assign and track ad-hoc tasks', icon: ClipboardList },
+  { key: 'tasks',          label: 'Tasks',          description: 'Guest requests, ad-hoc tasks, and everything that needs doing', icon: ClipboardList },
   { key: 'staff',          label: 'Staff',          description: 'View and manage hotel staff', icon: Users },
   { key: 'scheduling',     label: 'Schedule',       description: 'Staff scheduling and shifts', icon: Calendar },
   { key: 'logbook',        label: 'Logbook',        description: 'Shift-by-shift log entries', icon: BookOpen },
@@ -29,7 +28,7 @@ const FRONT_DESK_MODULES = [
   { key: 'ai',             label: 'AI Copilot',     description: 'AI-powered hotel insights and automation', icon: Sparkles },
 ]
 
-const DEFAULT_FD_MODULES = ['housekeeping', 'engineering', 'guest-requests', 'lost-found', 'tasks', 'logbook']
+const DEFAULT_FD_MODULES = ['housekeeping', 'engineering', 'lost-found', 'tasks', 'logbook']
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

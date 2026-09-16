@@ -402,25 +402,36 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
 
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-2">Add Note</p>
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="Add an internal note..."
-              rows={3}
-              className="w-full bg-surface border border-line rounded-[var(--r-md)] px-3 py-2.5 text-sm text-ink placeholder:text-ink4 focus:border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none resize-none"
-            />
-            {error && <p className="mt-1 text-[12px] text-[var(--alert)]">{error}</p>}
-            <div className="mt-2 flex justify-end">
-              <Button
-                variant="primary"
-                className="text-xs py-1.5"
-                disabled={!note.trim() || noteMutation.isPending}
-                onClick={() => noteMutation.mutate(note.trim())}
-              >
-                <Send size={13} />
-                {noteMutation.isPending ? 'Saving...' : 'Save Note'}
-              </Button>
-            </div>
+            {request.task_id ? (
+              <>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="Add an internal note..."
+                  rows={3}
+                  className="w-full bg-surface border border-line rounded-[var(--r-md)] px-3 py-2.5 text-sm text-ink placeholder:text-ink4 focus:border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none resize-none"
+                />
+                {error && <p className="mt-1 text-[12px] text-[var(--alert)]">{error}</p>}
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    variant="primary"
+                    className="text-xs py-1.5"
+                    disabled={!note.trim() || noteMutation.isPending}
+                    onClick={() => noteMutation.mutate(note.trim())}
+                  >
+                    <Send size={13} />
+                    {noteMutation.isPending ? 'Saving...' : 'Save Note'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              // Notes are stored as task_comments against the auto-created Task — this
+              // request has no linked task (creation failed / degraded), so there's
+              // nowhere to save a note to. Disable rather than silently drop it.
+              <p className="text-[13px] text-ink3 italic">
+                {t('guestRequests.notesUnavailableOrphan')}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { apiClient } from './client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled'
+export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'escalated'
 export type TaskType = 'housekeeping' | 'engineering' | 'guest_request' | 'lost_found' | 'general'
 export type Priority = 'urgent' | 'normal' | 'low'
 

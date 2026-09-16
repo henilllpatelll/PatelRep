@@ -72,3 +72,49 @@ test('redirects unauthenticated users to login with the intended path', () => {
     { type: 'redirect', pathname: '/login', redirectTo: '/reports' },
   )
 })
+
+// housekeeper/engineer are MOBILE_ONLY_ROLES — blocked from every web portal route
+// (including /tasks and /guest-requests) independent of ROLE_ROUTE_RULES; unaffected
+// by the Guest Requests/Tasks merge, asserted here only so a future change to that
+// gate doesn't silently break these two roles' one remaining route (the mobile-app nudge).
+test('allows every non-mobile-only role to reach the legacy /guest-requests route so it can redirect into /tasks', () => {
+  for (const role of ['gm', 'housekeeping_supervisor', 'front_desk', 'chief_engineer']) {
+    assert.deepEqual(
+      getRouteAccessDecision({
+        pathname: '/guest-requests',
+        isAuthenticated: true,
+        hasHotel: true,
+        role,
+      }),
+      { type: 'allow' },
+    )
+  }
+})
+
+test('mobile-only roles are still redirected to login even for the legacy /guest-requests route', () => {
+  for (const role of ['housekeeper', 'engineer']) {
+    assert.deepEqual(
+      getRouteAccessDecision({
+        pathname: '/guest-requests',
+        isAuthenticated: true,
+        hasHotel: true,
+        role,
+      }),
+      { type: 'redirect', pathname: '/login', mobileOnly: true },
+    )
+  }
+})
+
+test('allows non-mobile-only roles to reach the unified /tasks screen', () => {
+  for (const role of ['gm', 'housekeeping_supervisor', 'front_desk', 'chief_engineer']) {
+    assert.deepEqual(
+      getRouteAccessDecision({
+        pathname: '/tasks',
+        isAuthenticated: true,
+        hasHotel: true,
+        role,
+      }),
+      { type: 'allow' },
+    )
+  }
+})
