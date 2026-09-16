@@ -25,6 +25,7 @@ import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderMo
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
 import { EngineeringRoomBoard } from '@/components/engineering/EngineeringRoomBoard'
+import { PartsPanel } from '@/components/engineering/PartsPanel'
 import { BulkArchiveModal } from '@/components/engineering/BulkArchiveModal'
 import { ArchivedWorkOrdersPanel } from '@/components/engineering/ArchivedWorkOrdersPanel'
 import { formatDistanceToNowStrict } from 'date-fns'
@@ -284,7 +285,7 @@ function WorkOrdersPageContent() {
   const searchParams = useSearchParams()
   const appliedFocusRef = useRef<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board' | 'archived'>('work-orders')
+  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board' | 'parts' | 'archived'>('work-orders')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
@@ -446,6 +447,7 @@ function WorkOrdersPageContent() {
           tabs={[
             { label: t('engineering.workOrdersPage.tabWorkOrders'), active: activeTab === 'work-orders', onClick: () => setActiveTab('work-orders') },
             { label: t('engineering.workOrdersPage.tabRoomBoard'), active: activeTab === 'room-board', onClick: () => setActiveTab('room-board') },
+            { label: t('engineering.workOrdersPage.tabParts'), active: activeTab === 'parts', onClick: () => setActiveTab('parts') },
             { label: t('engineering.workOrdersPage.tabArchived'), active: activeTab === 'archived', onClick: () => setActiveTab('archived') },
           ]}
           actions={activeTab === 'work-orders' && (
@@ -538,6 +540,8 @@ function WorkOrdersPageContent() {
           </>
         ) : activeTab === 'room-board' ? (
           <EngineeringRoomBoard />
+        ) : activeTab === 'parts' ? (
+          <PartsPanel redesigned={v2} />
         ) : (
           <ArchivedWorkOrdersPanel redesigned={v2} />
         )}

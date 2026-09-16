@@ -215,6 +215,10 @@ export const engineeringApi = {
     notes?: string
     labor_hours?: number
     parts_used?: string
+    // Structured spare-parts consumption (migration 102) -- decrements
+    // engineering_part_stock and logs an engineering_part_transactions row
+    // per item, distinct from the free-text parts_used field above.
+    parts_consumed?: Array<{ part_id: string; location_id: string; quantity: number }>
   }) => apiClient.post(`/work-orders/${id}/complete`, payload) as Promise<{ data: WorkOrder }>,
 
   addComment: (id: string, comment: string) =>

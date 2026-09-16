@@ -30,6 +30,7 @@ import {
   type WorkOrderStatus,
 } from '@/lib/api/engineering'
 import { tasksApi } from '@/lib/api/tasks'
+import { inventoryApi } from '@/lib/api/inventory'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
@@ -129,6 +130,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const [completionNotes, setCompletionNotes] = useState('')
   const [laborHours, setLaborHours] = useState('')
   const [partsUsed, setPartsUsed] = useState('')
+  const [partsConsumed, setPartsConsumed] = useState<Array<{ part_id: string; location_id: string; quantity: number }>>([])
   const [pendingTransition, setPendingTransition] = useState<WorkOrderStatus | null>(null)
   const [transitionReason, setTransitionReason] = useState('')
   const [transitionNote, setTransitionNote] = useState('')
@@ -169,6 +171,21 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const comments: WorkOrderComment[] = fullWo?.work_order_comments ?? []
   const photos = fullWo?.work_order_photos ?? []
 
+  // Only fetched once the completion form is actually open -- avoids a
+  // network call on every drawer open for work orders nobody is closing.
+  const partsQuery = useQuery({
+    queryKey: ['engineering-parts'],
+    queryFn: () => inventoryApi.listParts(),
+    enabled: showCompleteForm,
+  })
+  const inventoryParts = partsQuery.data?.data ?? []
+  const locationsQuery = useQuery({
+    queryKey: ['engineering-part-locations'],
+    queryFn: () => inventoryApi.listLocations(),
+    enabled: showCompleteForm,
+  })
+  const inventoryLocations = locationsQuery.data?.data ?? []
+
   const canClaim   = (isEngineer || isChief || isGM) && fullWo?.status === 'open'
   const canComplete = (isEngineer || isChief || isGM) && fullWo?.status === 'in_progress'
   const canHold    = (isChief || isGM) && fullWo?.status === 'in_progress'
@@ -189,17 +206,21 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   })
 
   const completeMutation = useMutation({
-    mutationFn: () =>
-      engineeringApi.completeWorkOrder(wo!.id, {
+    mutationFn: () => {
+      const validPartsConsumed = partsConsumed.filter((row) => row.part_id && row.location_id && row.quantity > 0)
+      return engineeringApi.completeWorkOrder(wo!.id, {
         notes: completionNotes.trim() || undefined,
         labor_hours: laborHours ? parseFloat(laborHours) : undefined,
         parts_used: partsUsed.trim() || undefined,
-      }),
+        parts_consumed: validPartsConsumed.length ? validPartsConsumed : undefined,
+      })
+    },
     onSuccess: () => {
       setShowCompleteForm(false)
       setCompletionNotes('')
       setLaborHours('')
       setPartsUsed('')
+      setPartsConsumed([])
       invalidate()
       onUpdate()
       onClose()
@@ -787,6 +808,65 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       />
                     </div>
                   </div>
+
+                  {inventoryParts.length > 0 && (
+                    <div>
+                      <label className="block font-mono text-[11px] text-ink3 mb-1">
+                        {t('engineering.workOrderDetail.partsConsumedLabel')} <span className="font-normal">{t('programs.pmCompletion.optionalTag')}</span>
+                      </label>
+                      <div className="space-y-2">
+                        {partsConsumed.map((row, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <select
+                              aria-label={t('engineering.workOrderDetail.partsConsumedPartLabel')}
+                              value={row.part_id}
+                              onChange={(e) => setPartsConsumed((current) => current.map((r, i) => i === index ? { ...r, part_id: e.target.value } : r))}
+                              className="flex-1 min-h-9 border border-line rounded-lg px-2 text-sm bg-surface/70"
+                            >
+                              <option value="">{t('engineering.parts.choosePart')}</option>
+                              {inventoryParts.map((part) => (
+                                <option key={part.id} value={part.id}>{part.name}</option>
+                              ))}
+                            </select>
+                            <select
+                              aria-label={t('engineering.workOrderDetail.partsConsumedLocationLabel')}
+                              value={row.location_id}
+                              onChange={(e) => setPartsConsumed((current) => current.map((r, i) => i === index ? { ...r, location_id: e.target.value } : r))}
+                              className="flex-1 min-h-9 border border-line rounded-lg px-2 text-sm bg-surface/70"
+                            >
+                              <option value="">{t('engineering.parts.chooseLocation')}</option>
+                              {inventoryLocations.map((location) => (
+                                <option key={location.id} value={location.id}>{location.name}</option>
+                              ))}
+                            </select>
+                            <input
+                              aria-label={t('engineering.parts.quantityLabel')}
+                              type="number"
+                              min={0}
+                              value={row.quantity}
+                              onChange={(e) => setPartsConsumed((current) => current.map((r, i) => i === index ? { ...r, quantity: Number(e.target.value) } : r))}
+                              className="w-16 min-h-9 border border-line rounded-lg px-2 text-sm bg-surface/70"
+                            />
+                            <IconButton
+                              aria-label={t('engineering.workOrderDetail.removePartRow')}
+                              onClick={() => setPartsConsumed((current) => current.filter((_, i) => i !== index))}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </IconButton>
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => setPartsConsumed((current) => [...current, { part_id: '', location_id: '', quantity: 1 }])}
+                      >
+                        {t('engineering.workOrderDetail.addPartRow')}
+                      </Button>
+                    </div>
+                  )}
 
                   {completeMutation.isError && (
                     <p className="text-xs text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
