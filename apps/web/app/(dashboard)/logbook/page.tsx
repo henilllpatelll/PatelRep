@@ -251,16 +251,12 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
   const [generateError, setGenerateError] = useState<string | null>(null)
 
   const generateMutation = useMutation({
-    mutationFn: () =>
-      logbookApi.generateShiftSummary({
-        shift_id: 'today',
-        shift_date: shiftDate,
-      }),
+    mutationFn: () => logbookApi.generateShiftSummary({ shift_date: shiftDate }),
     onSuccess: (res) => {
       setSummaryText(res.data.summary_text)
       setStats({ tasks_completed: res.data.tasks_completed, open_work_orders: res.data.open_work_orders })
       setGenerateError(null)
-      queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', 'today'] })
+      queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', shiftDate] })
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to generate summary.'
@@ -268,15 +264,27 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
     },
   })
 
-  // Once a summary exists for today (freshly generated or already stored), hydrate its
-  // acknowledgment state. A 404 (no stored row yet) resolves fast to "no ack row" — retry:false.
+  // Look this date's summary up as soon as the panel opens — not gated on a fresh
+  // in-session generate — so an already-generated summary (cron, or an earlier
+  // click before a reload) shows immediately instead of prompting a redundant
+  // regenerate. A 404 (no stored row yet) resolves fast to "no summary" — retry:false.
   const ackQuery = useQuery({
-    queryKey: ['shift-summary-ack', 'today'],
-    queryFn: () => logbookApi.getShiftSummary('today'),
-    enabled: isOpen && !!summaryText,
+    queryKey: ['shift-summary-ack', shiftDate],
+    queryFn: () => logbookApi.getCurrentShiftSummary(shiftDate),
+    enabled: isOpen,
     retry: false,
     select: (res) => res.data,
   })
+
+  useEffect(() => {
+    if (ackQuery.data?.summary_text) {
+      setSummaryText(ackQuery.data.summary_text)
+      setStats({
+        tasks_completed: ackQuery.data.stats?.tasks_completed ?? 0,
+        open_work_orders: ackQuery.data.stats?.open_work_orders ?? 0,
+      })
+    }
+  }, [ackQuery.data])
 
   const ackId = ackQuery.data?.id
   const acknowledgedAt = ackQuery.data?.acknowledged_at ?? null
@@ -285,7 +293,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
   const acknowledgeMutation = useMutation({
     mutationFn: (id: string) => logbookApi.acknowledgeShiftSummary(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', 'today'] })
+      queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', shiftDate] })
     },
   })
 

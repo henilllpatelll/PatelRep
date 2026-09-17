@@ -50,7 +50,7 @@ export const logbookApi = {
   listDepartments: (hotelId: string) =>
     apiClient.get(`/hotels/${hotelId}/departments`) as Promise<{ data: Department[] }>,
 
-  generateShiftSummary: (payload: { shift_id: string; shift_date: string }) =>
+  generateShiftSummary: (payload: { shift_date: string }) =>
     apiClient.post('/logbook/shift-summary/generate', payload) as Promise<{ data: { summary_text: string; tasks_completed: number; open_work_orders: number } }>,
 
   getShiftSummary: (shiftId: string) =>
@@ -59,6 +59,22 @@ export const logbookApi = {
         id: string
         summary_text: string
         generated_by_ai: boolean
+        acknowledged_by: string | null
+        acknowledged_at: string | null
+        acknowledged_by_name: string | null
+      }
+    }>,
+
+  // Looks up the summary for whichever shift most recently ended on the given date,
+  // without generating one — lets the UI show an already-generated summary (cron or
+  // an earlier manual click) on open, instead of only after a fresh in-session generate.
+  getCurrentShiftSummary: (shiftDate: string) =>
+    apiClient.get('/logbook/shift-summary', { params: { shift_date: shiftDate } }) as Promise<{
+      data: {
+        id: string
+        shift_id: string
+        summary_text: string
+        stats: { tasks_completed?: number; open_work_orders?: number }
         acknowledged_by: string | null
         acknowledged_at: string | null
         acknowledged_by_name: string | null

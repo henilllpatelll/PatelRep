@@ -19,7 +19,7 @@ def _expires_at(hours: Optional[int]) -> Optional[str]:
 
 def _get_hotel_tz(hotel_id: str):
     result = (
-        supabase.table("hotels")
+        supabase.table("tenants")
         .select("timezone")
         .eq("id", hotel_id)
         .maybe_single()
@@ -31,6 +31,33 @@ def _get_hotel_tz(hotel_id: str):
 
 def _hotel_today(hotel_id: str) -> str:
     return datetime.now(_get_hotel_tz(hotel_id)).date().isoformat()
+
+
+def _resolve_current_shift(hotel_id: str) -> Optional[dict]:
+    """Pick the shift template whose window most recently closed, hotel-local time.
+
+    Used by the manual "generate summary" flow so the caller never has to know a
+    real `shifts.id` up front — mirrors the cron's per-shift generation semantics
+    (routers/internal.py's generate_shift_summaries), just resolved on demand for
+    whichever shift last ended relative to now instead of iterating every shift.
+    """
+    tz = _get_hotel_tz(hotel_id)
+    now_minutes = datetime.now(tz).hour * 60 + datetime.now(tz).minute
+
+    shifts_result = supabase.table("shifts")\
+        .select("id, name, department_id, end_time")\
+        .eq("tenant_id", hotel_id)\
+        .eq("is_active", True)\
+        .execute()
+    shifts = shifts_result.data or []
+    if not shifts:
+        return None
+
+    def _end_minutes(shift: dict) -> int:
+        hours, minutes, *_ = str(shift["end_time"]).split(":")
+        return int(hours) * 60 + int(minutes)
+
+    return min(shifts, key=lambda s: (now_minutes - _end_minutes(s)) % (24 * 60))
 
 
 def _resolve_user_name(user_id: Optional[str]) -> Optional[str]:
@@ -199,6 +226,36 @@ async def delete_logbook_entry(
     return None
 
 
+@router.get("/shift-summary")
+async def get_current_shift_summary(
+    shift_date: Optional[str] = Query(None),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Look up (without generating) the summary for whichever shift most recently
+    ended, on the given date. Lets the UI show an already-generated summary
+    (cron- or manually-triggered) without the caller knowing its shift_id."""
+    resolved_date = shift_date or _hotel_today(current_user.hotel_id)
+
+    shift = _resolve_current_shift(current_user.hotel_id)
+    if not shift:
+        raise HTTPException(status_code=404, detail="No shifts configured for this hotel")
+
+    result = supabase.table("shift_summaries")\
+        .select("*")\
+        .eq("shift_id", shift["id"])\
+        .eq("shift_date", resolved_date)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Shift summary not found")
+
+    row = result.data
+    name = _resolve_user_name(row.get("acknowledged_by"))
+    return {"data": {**row, "acknowledged_by_name": name}}
+
+
 @router.get("/shift-summary/{shift_id}")
 async def get_shift_summary(
     shift_id: str,
@@ -266,12 +323,31 @@ async def generate_shift_summary_endpoint(
     body: dict,
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
 ):
-    shift_id = body.get("shift_id")
-    shift_date = body.get("shift_date")
+    shift_date = body.get("shift_date") or _hotel_today(current_user.hotel_id)
 
-    if not shift_id or not shift_date:
-        raise HTTPException(status_code=422, detail="shift_id and shift_date are required")
+    shift = _resolve_current_shift(current_user.hotel_id)
+    if not shift:
+        raise HTTPException(status_code=422, detail="No shifts configured for this hotel")
+
+    # Avoid a duplicate AI call (and a duplicate row — shift_id+shift_date has no
+    # unique constraint) if a summary for this shift/date already exists, e.g. the
+    # cron already ran or the user double-clicks Generate.
+    existing = supabase.table("shift_summaries")\
+        .select("summary_text, stats")\
+        .eq("shift_id", shift["id"])\
+        .eq("shift_date", shift_date)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+    if existing and existing.data:
+        row = existing.data
+        stats = row.get("stats") or {}
+        return {"data": {
+            "summary_text": row["summary_text"],
+            "tasks_completed": stats.get("tasks_completed", 0),
+            "open_work_orders": stats.get("open_work_orders", 0),
+        }}
 
     from services.ai.shift_summary import generate_shift_summary
-    result = generate_shift_summary(current_user.hotel_id, shift_id, shift_date)
+    result = generate_shift_summary(current_user.hotel_id, shift["id"], shift_date)
     return {"data": result}

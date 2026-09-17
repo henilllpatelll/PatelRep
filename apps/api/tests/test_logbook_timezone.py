@@ -29,8 +29,15 @@ def _auth_header(role: str, hotel_id: str = "hotel-a", user_id: str = "user-a-1"
 
 
 def _chicago_hotel_db(extra_rows: dict | None = None) -> FakeDB:
+    return _hotel_db("America/Chicago", extra_rows)
+
+
+def _hotel_db(tz_name: str, extra_rows: dict | None = None) -> FakeDB:
+    # Timezone lives on `tenants` (there is no `hotels` table in this schema —
+    # querying one is exactly the PGRST205 bug this file guards against, see
+    # test_tz_is_read_from_the_tenants_table_not_hardcoded_default below).
     rows = {
-        "hotels": [{"id": "hotel-a", "timezone": "America/Chicago"}],
+        "tenants": [{"id": "hotel-a", "timezone": tz_name}],
         "departments": [{"id": DEPT_ID, "name": "Housekeeping"}],
         "logbook_entries": [],
     }
@@ -100,6 +107,30 @@ def test_pre_midnight_entry_resolves_via_real_tz_conversion(monkeypatch):
     assert response.status_code == 200
     entry = response.json()["data"]
     assert entry["entry_date"] == "2026-08-02"
+
+
+def test_tz_is_read_from_the_tenants_table_not_hardcoded_default(monkeypatch):
+    """Regression guard: _get_hotel_tz previously queried a non-existent `hotels`
+    table (PGRST205 live, silently swallowed to the "America/Chicago" default in
+    FakeDB-backed tests), so every tenant's real configured timezone was ignored.
+    Uses America/Denver (UTC-6 MDT) at an instant where Denver's local day differs
+    from both UTC's and the old hardcoded-default Chicago's (UTC-5 CDT) local day
+    -- only a real `tenants` lookup produces the correct answer here."""
+    db = _hotel_db("America/Denver")
+    monkeypatch.setattr(logbook_router, "supabase", db)
+    # 2026-08-03T05:30:00Z is 2026-08-02 23:30 MDT (Denver) but 2026-08-03 00:30 CDT
+    # (Chicago) and 2026-08-03 (UTC) -- three different "today"s from one instant.
+    _freeze(monkeypatch, "2026-08-03T05:30:00")
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/logbook/entries",
+        headers=_auth_header("gm"),
+        json={"department_id": DEPT_ID, "content": "Denver-local late note"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["entry_date"] == "2026-08-02"
 
 
 # ---------------------------------------------------------------------------

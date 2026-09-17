@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T01:54:17.330Z
-> Files: 42 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T05:40:18.444Z
+> Files: 48 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -29,6 +29,7 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `reference_railway.md` — Railway Infrastructure (~1436 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -980,6 +981,7 @@
 
 ## .github/workflows/
 
+- `ci.yml` — CI: CI (~2920 tok)
 
 ## .planning/
 
@@ -1152,7 +1154,8 @@
 
 ## apps/api/routers/
 
-- `logbook.py` — API: 7 endpoints (~2707 tok)
+- `clean_sessions.py` — API: 5 endpoints (~6728 tok)
+- `logbook.py` — API: 8 endpoints (~3610 tok)
 
 ## apps/api/scripts/
 
@@ -1181,9 +1184,12 @@
 
 ## apps/api/tests/
 
+- `test_clean_sessions_timezone.py` — Clean-sessions hotel-local timezone regression test. (~734 tok)
 - `test_inventory.py` — Engineering spare-parts inventory (migration 102): items, locations, (~3431 tok)
+- `test_logbook_timezone.py` — Logbook hotel-local timezone tests (LOGBOOK-01). (~1949 tok)
 - `test_shift_summary_acknowledgment.py` — Shift-summary acknowledgment tests (39-03). (~1482 tok)
 - `test_shift_summary_enrichment.py` — Enrichment coverage for generate_shift_summary (Phase 39-02): VIP arrivals, (~2976 tok)
+- `test_shift_summary_generate.py` — Shift-summary generate/lookup tests. (~2516 tok)
 - `test_work_order_parts_consumption.py` — Closing a work order can consume engineering spare parts (migration 102): (~1884 tok)
 
 ## apps/api/tests/load/
@@ -1494,7 +1500,7 @@
 
 ## apps/web/app/(dashboard)/logbook/
 
-- `page.tsx` — todayIso (~11379 tok)
+- `page.tsx` — todayIso (~11494 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
@@ -1627,7 +1633,7 @@
 
 - `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~3161 tok)
 - `inventory.ts` — Mirrors apps/api/routers/inventory.py / models/requests.py (migration 102). (~911 tok)
-- `logbook.ts` — API routes: GET, POST, PATCH, DELETE (8 endpoints) (~668 tok)
+- `logbook.ts` — API routes: GET, POST, PATCH, DELETE (9 endpoints) (~868 tok)
 - `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1238 tok)
 
 ## apps/web/lib/hooks/

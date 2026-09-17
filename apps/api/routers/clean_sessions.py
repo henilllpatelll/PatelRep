@@ -83,7 +83,7 @@ def _get_hotel_tz(hotel_id: str):
     tz_name = "America/Chicago"
     try:
         result = (
-            supabase.table("hotels")
+            supabase.table("tenants")
             .select("timezone")
             .eq("id", hotel_id)
             .maybe_single()

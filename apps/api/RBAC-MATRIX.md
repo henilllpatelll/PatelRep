@@ -173,11 +173,12 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | late_checkout.py | /v1/late-checkout/requests/{request_id} | PATCH | front_desk, gm, housekeeping_supervisor | require_role('front_desk', 'gm', 'housekeeping_supervisor') [L73] |
 | logbook.py | /v1/logbook/entries | POST | none |  |
 | logbook.py | /v1/logbook/entries | GET | none |  |
-| logbook.py | /v1/logbook/entries/{entry_id} | PATCH | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L139]; inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L138] |
-| logbook.py | /v1/logbook/entries/{entry_id} | DELETE | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L191]; inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L190] |
+| logbook.py | /v1/logbook/entries/{entry_id} | PATCH | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L166]; inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L165] |
+| logbook.py | /v1/logbook/entries/{entry_id} | DELETE | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L218]; inline: current_user.role in ('gm', 'housekeeping_supervisor', 'engineer') [L217] |
+| logbook.py | /v1/logbook/shift-summary | GET | none |  |
 | logbook.py | /v1/logbook/shift-summary/{shift_id} | GET | none |  |
 | logbook.py | /v1/logbook/shift-summary/{summary_id}/acknowledge | POST | none |  |
-| logbook.py | /v1/logbook/shift-summary/generate | POST | engineer, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer') [L267] |
+| logbook.py | /v1/logbook/shift-summary/generate | POST | engineer, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer') [L324] |
 | lost_found.py | /v1/lost-found/upload-photo | POST | none |  |
 | lost_found.py | /v1/lost-found | POST | none |  |
 | lost_found.py | /v1/lost-found | GET | none |  |
@@ -320,4 +321,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm | require_role('engineer', 'gm') [L803] |
 | work_orders.py | /v1/work-orders/{wo_id}/comments | POST | none |  |
 
-**31 routers, 309 routes.**
+**31 routers, 310 routes.**

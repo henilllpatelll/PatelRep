@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 106349329,
-    "total_reads": 42077,
-    "total_writes": 44415,
+    "total_tokens_estimated": 106432567,
+    "total_reads": 42086,
+    "total_writes": 44419,
     "total_sessions": 672,
-    "anatomy_hits": 12558,
-    "anatomy_misses": 28936,
-    "repeated_reads_blocked": 30981,
-    "estimated_savings_vs_bare_cli": 238184001
+    "anatomy_hits": 12561,
+    "anatomy_misses": 28942,
+    "repeated_reads_blocked": 30983,
+    "estimated_savings_vs_bare_cli": 238329791
   },
   "sessions": [
     {
@@ -505053,6 +505053,114 @@
         "writes_count": 135,
         "repeated_reads_blocked": 95,
         "anatomy_lookups": 14
+      }
+    },
+    {
+      "id": "session-2026-09-17-2108",
+      "started": "2026-09-17T02:08:50.230Z",
+      "ended": "2026-09-17T02:25:56.362Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/playwright.regression.config.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 341,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+          "tokens_estimated": 768,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 1109,
+        "reads_count": 3,
+        "writes_count": 2,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-09-17-2108",
+      "started": "2026-09-17T02:08:50.230Z",
+      "ended": "2026-09-17T02:30:56.283Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/playwright.regression.config.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 72595,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ROADMAP.md",
+          "tokens_estimated": 7035,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/phases/40-gm-morning-brief-dashboard-wiring/40-01-SUMMARY.md",
+          "tokens_estimated": 1390,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 341,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+          "tokens_estimated": 768,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 81020,
+        "output_tokens_estimated": 1109,
+        "reads_count": 6,
+        "writes_count": 2,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 3
       }
     }
   ],

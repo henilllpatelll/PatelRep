@@ -22331,6 +22331,125 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T01:50:31.418Z"
+    },
+    {
+      "id": "bug-1359",
+      "timestamp": "2026-09-17T02:23:30.985Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 17→24 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T02:23:30.985Z"
+    },
+    {
+      "id": "bug-1360",
+      "timestamp": "2026-09-17T02:25:43.910Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 17→34 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T02:25:43.910Z"
+    },
+    {
+      "id": "bug-1361",
+      "timestamp": "2026-09-17T05:27:08.206Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:27:08.206Z"
+    },
+    {
+      "id": "bug-1362",
+      "timestamp": "2026-09-17T05:27:17.407Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 14→33 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:27:17.407Z"
+    },
+    {
+      "id": "bug-1363",
+      "timestamp": "2026-09-17T05:27:55.433Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:27:55.433Z"
+    },
+    {
+      "id": "bug-1364",
+      "timestamp": "2026-09-17T05:41:17.667Z",
+      "error_message": "Logbook 'Generate for today' button sent the literal string shift_id: 'today' to POST /shift-summary/generate, which passed straight through to .eq('id', 'today') against the UUID-typed shifts table -- Postgres 22P02 invalid UUID syntax, before ever reaching the AI call. Broken for everyone, regardless of AI-key availability. Found+documented (not fixed) during Phase 39 close-out (39-05-SUMMARY.md), introduced in commit bf9dd630.",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx; apps/api/routers/logbook.py",
+      "root_cause": "Frontend used the sentinel string 'today' as a stand-in for a real shifts.id it never resolved, for both generating a summary and re-fetching its ack state (['shift-summary-ack','today'] query key never even varied with the page's own shiftDate prop).",
+      "fix": "Added _resolve_current_shift(hotel_id) (apps/api/routers/logbook.py) to pick the shift template whose window most recently closed, hotel-local time, mirroring the cron's per-shift generation semantics. POST /shift-summary/generate no longer requires a client-supplied shift_id (resolves it server-side, dedupes against an existing row instead of re-calling the AI). Added GET /shift-summary?shift_date= lookup-only endpoint so the UI can show an already-generated summary on open. Frontend AISummaryPanel now keys its query on the real shiftDate prop and fetches on open (not gated on a fresh in-session generate).",
+      "tags": [
+        "logbook",
+        "shift-summary",
+        "ai-copilot",
+        "uuid",
+        "fastapi",
+        "react-query"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:41:17.667Z"
+    },
+    {
+      "id": "bug-1365",
+      "timestamp": "2026-09-17T05:41:17.667Z",
+      "error_message": "POST /v1/logbook/entries failed live with PostgREST PGRST205 ('Could not find the table public.hotels in the schema cache'). Extensively investigated during Phase 39 close-out and wrongly concluded to be a live-environment-only, process-specific flake not reproducible outside the running uvicorn server (39-05-SUMMARY.md) -- reproduced instantly here from a brand-new standalone script, disproving that theory.",
+      "file": "apps/api/routers/logbook.py; apps/api/routers/clean_sessions.py",
+      "root_cause": "_get_hotel_tz() in both files queried supabase.table('hotels'), but no 'hotels' table exists in this schema -- the real table is 'tenants' (supabase/migrations/002_tenants.sql). logbook.py's copy had no try/except so the PGRST205 APIError propagated straight to the caller (the reported live failure); clean_sessions.py's copy was wrapped in a broad try/except so it never crashed, but silently always fell back to the 'America/Chicago' default, meaning every tenant's real configured timezone was ignored there too. Existing tests for both files coincidentally used 'America/Chicago' as their seeded/expected timezone, matching the fallback default, so the wrong table name never surfaced as a test failure.",
+      "fix": "Changed both call sites from supabase.table('hotels') to supabase.table('tenants'). Live-verified against the real shared Supabase project: reproduced the exact PGRST205 from a fresh standalone script hitting 'hotels', confirmed 'tenants' resolves correctly, then verified a real POST /v1/logbook/entries succeeds end-to-end (test row inserted and deleted). Added a regression test in each area (test_logbook_timezone.py, new test_clean_sessions_timezone.py) using a non-default timezone (America/Denver) at a UTC instant whose local day differs across Denver/Chicago/UTC, so a future reversion to the wrong table (or the wrong fallback) fails loudly instead of coincidentally passing.",
+      "tags": [
+        "logbook",
+        "clean-sessions",
+        "postgrest",
+        "pgrst205",
+        "schema-drift",
+        "timezone",
+        "do-not-repeat"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:41:17.667Z"
     }
   ]
 }

@@ -13389,3 +13389,18 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 21:23 | Edited .github/workflows/ci.yml | expanded (+7 lines) | ~341 |
+| 21:25 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md | modified STATUS() | ~717 |
+| 21:25 | Session end: 2 writes across 2 files (ci.yml, reference_railway.md) | 3 reads | ~1109 tok |
+| 21:30 | Session end: 2 writes across 2 files (ci.yml, reference_railway.md) | 6 reads | ~82129 tok |
+| 00:27 | Edited apps/api/routers/logbook.py | modified _resolve_current_shift() | ~329 |
+| 00:27 | Edited apps/api/routers/logbook.py | modified get_current_shift_summary() | ~341 |
+| 00:27 | Edited apps/api/routers/logbook.py | modified generate_shift_summary_endpoint() | ~408 |
+| 00:27 | Edited apps/web/lib/api/logbook.ts | expanded (+16 lines) | ~362 |
+| 00:27 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added 1 condition(s) | ~523 |
+| 00:29 | Created apps/api/tests/test_shift_summary_generate.py | — | ~2516 |
+| 00:35 | Edited apps/api/routers/logbook.py | modified _get_hotel_tz() | ~54 |
+| 00:36 | Edited apps/api/routers/clean_sessions.py | 7→7 lines | ~52 |
+| 00:38 | Edited apps/api/tests/test_logbook_timezone.py | modified _chicago_hotel_db() | ~192 |
+| 00:38 | Edited apps/api/tests/test_logbook_timezone.py | modified test_tz_is_read_from_the_tenants_table_not_hardcoded_default() | ~402 |
+| 00:40 | Created apps/api/tests/test_clean_sessions_timezone.py | — | ~734 |
