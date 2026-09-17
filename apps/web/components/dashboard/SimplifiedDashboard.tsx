@@ -21,7 +21,10 @@ import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
 import { DashboardGreeting } from './DashboardGreeting'
 import { BriefingChat } from './BriefingChat'
+import { OvernightRecapStrip } from './OvernightRecapStrip'
 import type { BriefingBoardStats } from '@/lib/ai/briefingFastPath'
+import { logbookApi } from '@/lib/api/logbook'
+import type { OvernightSummary } from '@/lib/hooks/useArrivalReadiness'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
@@ -558,7 +561,7 @@ export function SimplifiedDashboard() {
   const storedFullName = useAuthStore((s) => s.fullName)
   const user = useAuthStore((s) => s.user)
   const hotel = useHotelStore((s) => s.hotel)
-  const { role } = useRole()
+  const { role, isSupervisor } = useRole()
   const canMessage = role === 'gm' || role === 'housekeeping_supervisor' || role === 'engineer'
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -590,6 +593,45 @@ export function SimplifiedDashboard() {
     : (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || 'there'
 
   const todayISO = format(new Date(), 'yyyy-MM-dd')
+
+  const overnightLogbookQuery = useQuery({
+    queryKey: ['gm-overnight-summary', todayISO],
+    queryFn: () => logbookApi.listEntries({ entry_date: todayISO, per_page: 20 }),
+    staleTime: 120_000,
+    refetchInterval: 120_000,
+  })
+
+  // Duplicated (not imported) from useArrivalReadiness: importing that hook would fire
+  // 4 redundant queries SimplifiedDashboard already runs under different keys. The night
+  // AI recap is the earliest is_ai_generated entry of the day (cron runs 7/15/23 UTC).
+  const overnightBase = useMemo(() => {
+    const entries = overnightLogbookQuery.data?.data ?? []
+    const aiEntries = entries
+      .filter((e) => e.is_ai_generated)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    const entry = aiEntries[0]
+    return entry ? { text: entry.content, href: '/logbook', shiftId: entry.shift_id ?? null } : null
+  }, [overnightLogbookQuery.data])
+
+  const overnightShiftId = overnightBase?.shiftId ?? null
+  const overnightAckQuery = useQuery({
+    queryKey: ['overnight-shift-summary', overnightShiftId],
+    queryFn: () => logbookApi.getShiftSummary(overnightShiftId as string),
+    enabled: !!overnightShiftId,
+    retry: false,
+  })
+
+  const overnightSummary: OvernightSummary | null = useMemo(() => {
+    if (!overnightBase) return null
+    const ack = overnightAckQuery.data?.data
+    return {
+      text: overnightBase.text,
+      href: overnightBase.href,
+      id: ack?.id,
+      acknowledgedAt: ack?.acknowledged_at ?? undefined,
+      acknowledgedByName: ack?.acknowledged_by_name ?? undefined,
+    }
+  }, [overnightBase, overnightAckQuery.data])
 
   const { data: boardData, isLoading: boardLoading, isError: boardError, refetch: refetchBoard, dataUpdatedAt: boardUpdatedAt } = useQuery({
     queryKey: ['housekeeping-board', todayISO],
@@ -794,6 +836,10 @@ export function SimplifiedDashboard() {
           </Button>
         </div>
       </div>
+
+      {isSupervisor && (
+        <OvernightRecapStrip summary={overnightSummary} isLoading={overnightLogbookQuery.isLoading} />
+      )}
 
       {/* AI briefing hero */}
       <section className="shrink-0 relative overflow-hidden rounded-[var(--r-xl)] bg-ink text-paper shadow-card">
