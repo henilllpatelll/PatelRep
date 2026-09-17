@@ -602,11 +602,12 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 37 P05 | 50min | 2 tasks | 1 files |
 | Phase 38 P02 | 11min | 3 tasks | 4 files |
 | Phase 39-ai-shift-handover-and-gm-morning-brief P03 | 5min | 3 tasks | 3 files |
+| Phase 39 P02 | 15min | 2 tasks | 2 files |
 
 ## Session
 
-Last session: 2026-09-16T19:53:14Z
-Stopped At: Completed 38-02-PLAN.md (Work Order cost capture — `complete_work_order` now computes and persists labor_cost = assignee hourly_rate x labor_hours (fallback: completing user; NULL when no rate on file), parts_cost = sum(quantity x engineering_parts.unit_cost) via a new batch `.in_()` lookup (unknown unit_cost = 0), and total_cost = COALESCE(labor,0)+COALESCE(parts,0) but NULL when both are NULL; WorkOrderResponse gained the three Optional[float] cost fields; 7 new tests in test_work_order_cost_capture.py, all green. Decision: labor rate lookup is assigned_to-first then completing-user fallback; cost is point-in-time at completion, never retroactively recalculated. 3 pre-existing management_roi test failures observed and logged to phase deferred-items.md (out of scope). Runs concurrently with sibling plan 38-03 (unit_cost/hourly_rate CRUD + RBAC). Migration 104 already live from 38-01.). Next: 38-03 wrap-up, then 38-04 UI.
+Last session: 2026-09-16T20:30:00Z
+Stopped At: Completed 39-02-PLAN.md (Shift-summary AI enrichment — `generate_shift_summary()` now pulls four tenant-scoped signals into the prompt: VIP arrivals (`room_status` clean_type='DEP' AND vip_flag=true, rooms!inner join), pending guest issues (`guest_requests` not_.in_ resolved/verified/cancelled), low-stock engineering parts (active `engineering_parts` + summed `engineering_part_stock` where total < minimum_stock, replicated inline per A1), and SLA breaches (`work_orders`+`tasks` status IN open/in_progress AND due_at<now). Four new prompt sections ([:10] cap) + a 5th instruction bullet; four additive `stats` count keys (full un-truncated counts). anthropic model call, credits_charged 3.0, cron, ai_interactions insert, and the four original stats keys all untouched. 6 new tests in test_shift_summary_enrichment.py (fake-Supabase harness + stubbed anthropic), all green. Ran concurrently with sibling plan 39-03 (acknowledge endpoint) — stayed within own file list, did not touch logbook.py/logbook.ts. Migration 105 already live from 39-01.). Next: 39-03 wrap-up, then 39-04/05 UI.
 
 **Phase 22 handoff (2026-08-06T03:24:18Z):** Completed 22-06-PLAN.md and Phase 22 re-verification (MOBILE-03 exact direct dependency; matching finished EAS Android artifact; Doctor, dependency tree, TypeScript, Jest, and audit green). Phase 22 is passed 4/4 with no gaps; milestone v1.4 is ready for completion/audit.
 
