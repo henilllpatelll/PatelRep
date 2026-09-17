@@ -298,12 +298,12 @@ Plans:
 
 ### Phase 40: GM Morning Brief Dashboard Wiring
 
-**Goal:** [To be planned]
+**Goal:** Wire the real AI-generated, acknowledgeable overnight shift-summary recap (OvernightRecapStrip) into the live SimplifiedDashboard so GMs and housekeeping supervisors actually see and can acknowledge it, as a small additive row between the greeting and the AI briefing hero.
 **Depends on:** Phase 39
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 40 to break down)
+- [ ] 40-01-PLAN.md — Add overnight recap data wiring + isSupervisor-gated OvernightRecapStrip render to SimplifiedDashboard, then live-browser verify
 ## Progress
 
 **Execution Order:**
