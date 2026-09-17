@@ -300,7 +300,7 @@ Plans:
 
 **Goal:** Wire the real AI-generated, acknowledgeable overnight shift-summary recap (OvernightRecapStrip) into the live SimplifiedDashboard so GMs and housekeeping supervisors actually see and can acknowledge it, as a small additive row between the greeting and the AI briefing hero.
 **Depends on:** Phase 39
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 40-01-PLAN.md — Add overnight recap data wiring + isSupervisor-gated OvernightRecapStrip render to SimplifiedDashboard, then live-browser verify
