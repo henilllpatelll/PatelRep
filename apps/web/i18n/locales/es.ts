@@ -184,6 +184,8 @@ const es = {
       overnightTitle: 'Turno nocturno',
       readFullRecap: 'Ver resumen completo',
       noOvernightSummary: 'Aún no hay resumen nocturno',
+      acknowledge: 'Confirmar lectura',
+      acknowledged: 'Confirmado',
     },
     section: {
       myQueue: 'Mi cola',

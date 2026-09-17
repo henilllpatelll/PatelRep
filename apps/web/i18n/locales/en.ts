@@ -184,6 +184,8 @@ const en = {
       overnightTitle: 'Overnight',
       readFullRecap: 'Read full recap',
       noOvernightSummary: 'No overnight summary yet',
+      acknowledge: 'Acknowledge',
+      acknowledged: 'Acknowledged',
     },
     section: {
       myQueue: 'My queue',
