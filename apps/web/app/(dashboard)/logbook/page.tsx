@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Check,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
@@ -242,6 +243,8 @@ interface AISummaryPanelProps {
 }
 
 function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
   const [summaryText, setSummaryText] = useState<string | null>(null)
   const [stats, setStats] = useState<{ tasks_completed: number; open_work_orders: number } | null>(null)
@@ -257,10 +260,32 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
       setSummaryText(res.data.summary_text)
       setStats({ tasks_completed: res.data.tasks_completed, open_work_orders: res.data.open_work_orders })
       setGenerateError(null)
+      queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', 'today'] })
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to generate summary.'
       setGenerateError(msg)
+    },
+  })
+
+  // Once a summary exists for today (freshly generated or already stored), hydrate its
+  // acknowledgment state. A 404 (no stored row yet) resolves fast to "no ack row" — retry:false.
+  const ackQuery = useQuery({
+    queryKey: ['shift-summary-ack', 'today'],
+    queryFn: () => logbookApi.getShiftSummary('today'),
+    enabled: isOpen && !!summaryText,
+    retry: false,
+    select: (res) => res.data,
+  })
+
+  const ackId = ackQuery.data?.id
+  const acknowledgedAt = ackQuery.data?.acknowledged_at ?? null
+  const acknowledgedByName = ackQuery.data?.acknowledged_by_name ?? null
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: (id: string) => logbookApi.acknowledgeShiftSummary(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', 'today'] })
     },
   })
 
@@ -314,20 +339,44 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   {summaryText}
                 </p>
               </Card>
-              <Button
-                variant="ghost"
-                size="sm"
-                loading={generateMutation.isPending}
-                onClick={() => {
-                  setSummaryText(null)
-                  setStats(null)
-                  generateMutation.mutate()
-                }}
-                className="gap-1.5 text-[var(--caution)] hover:text-amber-800"
-              >
-                <Sparkles size={12} />
-                Regenerate
-              </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={generateMutation.isPending}
+                  onClick={() => {
+                    setSummaryText(null)
+                    setStats(null)
+                    generateMutation.mutate()
+                  }}
+                  className="gap-1.5 text-[var(--caution)] hover:text-amber-800"
+                >
+                  <Sparkles size={12} />
+                  Regenerate
+                </Button>
+                {ackId && (
+                  acknowledgedAt ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-ink3">
+                      <Check size={13} className="text-[var(--ready)]" />
+                      {t('logbook.acknowledgedBy', {
+                        name: acknowledgedByName ?? t('logbook.acknowledgedFallback'),
+                        time: formatDistanceToNow(new Date(acknowledgedAt), { addSuffix: true }),
+                      })}
+                    </span>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={acknowledgeMutation.isPending}
+                      onClick={() => acknowledgeMutation.mutate(ackId)}
+                      className="gap-1.5"
+                    >
+                      <Check size={13} />
+                      {t('logbook.acknowledge')}
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
           ) : (
             <div className="mt-3 space-y-3">

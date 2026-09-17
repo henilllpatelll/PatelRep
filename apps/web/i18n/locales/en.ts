@@ -1781,6 +1781,9 @@ const en = {
     pageSubtitle: 'Record and review shift notes across all departments',
     empty: { title: 'No entries for {{date}}', body: 'Add the first entry for today to keep your team informed.' },
     loadError: 'Failed to load logbook',
+    acknowledge: 'Acknowledge',
+    acknowledgedBy: 'Acknowledged by {{name}} · {{time}}',
+    acknowledgedFallback: 'a teammate',
   },
   lostFound: {
     pageTitle: 'Lost & Found',

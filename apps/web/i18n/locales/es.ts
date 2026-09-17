@@ -1781,6 +1781,9 @@ const es = {
     pageSubtitle: 'Registre y revise las notas de turno de todos los departamentos',
     empty: { title: 'No hay entradas para {{date}}', body: 'Agregue la primera entrada de hoy para mantener a su equipo informado.' },
     loadError: 'No se pudo cargar la bitácora',
+    acknowledge: 'Confirmar lectura',
+    acknowledgedBy: 'Confirmado por {{name}} · {{time}}',
+    acknowledgedFallback: 'un compañero',
   },
   lostFound: {
     pageTitle: 'Objetos Perdidos',
