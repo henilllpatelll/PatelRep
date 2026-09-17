@@ -171,8 +171,7 @@ jobs:
     # software-rasterizer variance), which a strict 0-tolerance diff cannot
     # absorb. Running inside this container pins the whole OS/font/library
     # stack so the job's own rendering is deterministic run-to-run, not just
-    # the browser version. Chromium ships preinstalled in this image, so the
-    # separate "Install Chromium" step is unnecessary here.
+    # the browser version.
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble
     needs: build-web
@@ -185,6 +184,14 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - name: Install dependencies
         run: cd apps/web && npm ci
+      # The image's bundled browser build only matches whatever @playwright/test
+      # patch version happened to be current when the image tag was built. A
+      # routine dependency bump (e.g. Dependabot) can drift past that silently
+      # ("Executable doesn't exist at .../chromium_headless_shell-XXXX"), so
+      # install the browser build that matches the exact installed package
+      # version rather than assuming the image already has it.
+      - name: Install matching Playwright browser build
+        run: cd apps/web && npx playwright install chromium
       # FOUND-03 exit gate: diffs the 3 excluded Room Board surfaces against
       # the committed baseline for the never-operated regression fixture
       # tenant. Requires REGRESSION_GM_EMAIL, REGRESSION_GM_PASSWORD,
