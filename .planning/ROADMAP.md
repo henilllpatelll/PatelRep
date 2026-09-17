@@ -287,7 +287,7 @@ Plans:
 
 **Goal:** Enrich the AI shift-handover summary with VIP arrivals, pending guest issues, low-stock parts, and SLA breaches, and add a lightweight read-acknowledgment surfaced in both the Logbook and the GM dashboard overnight recap strip.
 **Depends on:** Phase 38
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] 39-01-PLAN.md — Migration 105 (shift_summaries.acknowledged_by / acknowledged_at), applied live to Supabase dev project
