@@ -54,5 +54,24 @@ export const logbookApi = {
     apiClient.post('/logbook/shift-summary/generate', payload) as Promise<{ data: { summary_text: string; tasks_completed: number; open_work_orders: number } }>,
 
   getShiftSummary: (shiftId: string) =>
-    apiClient.get(`/logbook/shift-summary/${shiftId}`) as Promise<{ data: { summary_text: string; generated_by_ai: boolean } }>,
+    apiClient.get(`/logbook/shift-summary/${shiftId}`) as Promise<{
+      data: {
+        id: string
+        summary_text: string
+        generated_by_ai: boolean
+        acknowledged_by: string | null
+        acknowledged_at: string | null
+        acknowledged_by_name: string | null
+      }
+    }>,
+
+  acknowledgeShiftSummary: (summaryId: string) =>
+    apiClient.post(`/logbook/shift-summary/${summaryId}/acknowledge`, {}) as Promise<{
+      data: {
+        id: string
+        acknowledged_by: string
+        acknowledged_at: string
+        acknowledged_by_name: string | null
+      }
+    }>,
 }
