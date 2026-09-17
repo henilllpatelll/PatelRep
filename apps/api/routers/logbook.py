@@ -33,6 +33,20 @@ def _hotel_today(hotel_id: str) -> str:
     return datetime.now(_get_hotel_tz(hotel_id)).date().isoformat()
 
 
+def _resolve_user_name(user_id: Optional[str]) -> Optional[str]:
+    if not user_id:
+        return None
+    result = (
+        supabase.table("user_profiles")
+        .select("preferred_name, full_name")
+        .eq("id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    data = (result.data if result else None) or {}
+    return data.get("preferred_name") or data.get("full_name")
+
+
 def _build_entries_query(hotel_id: str, department_id, shift_id, entry_date, page, per_page):
     q = supabase.table("logbook_entries")\
         .select("*, departments(name)")\
@@ -200,7 +214,51 @@ async def get_shift_summary(
     if not result or not result.data:
         raise HTTPException(status_code=404, detail="Shift summary not found")
 
-    return {"data": result.data}
+    row = result.data
+    name = _resolve_user_name(row.get("acknowledged_by"))
+    return {"data": {**row, "acknowledged_by_name": name}}
+
+
+@router.post("/shift-summary/{summary_id}/acknowledge")
+async def acknowledge_shift_summary(
+    summary_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    result = supabase.table("shift_summaries")\
+        .select("id, acknowledged_by, acknowledged_at")\
+        .eq("id", summary_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Shift summary not found")
+
+    row = result.data
+    if row.get("acknowledged_at"):
+        name = _resolve_user_name(row.get("acknowledged_by"))
+        return {"data": {
+            "id": summary_id,
+            "acknowledged_by": row.get("acknowledged_by"),
+            "acknowledged_at": row.get("acknowledged_at"),
+            "acknowledged_by_name": name,
+            "already_acknowledged": True,
+        }}
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    supabase.table("shift_summaries")\
+        .update({"acknowledged_by": current_user.user_id, "acknowledged_at": now_iso})\
+        .eq("id", summary_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    name = _resolve_user_name(current_user.user_id)
+    return {"data": {
+        "id": summary_id,
+        "acknowledged_by": current_user.user_id,
+        "acknowledged_at": now_iso,
+        "acknowledged_by_name": name,
+    }}
 
 
 @router.post("/shift-summary/generate")
