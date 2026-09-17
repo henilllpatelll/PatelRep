@@ -282,6 +282,19 @@ Plans:
 - [ ] 38-03-PLAN.md — unit_cost on parts CRUD; hourly_rate on staff (gm-only write, role-gated read); tests
 - [ ] 38-04-PLAN.md — Web UI: cost line on completed WO detail, unit_cost input on parts form, hourly_rate input on staff edit modal
 - [ ] 38-05-PLAN.md — Full test suite + live browser golden-path verification + non-regression spot-check
+
+### Phase 39: AI Shift-Handover and GM Morning Brief
+
+**Goal:** Enrich the AI shift-handover summary with VIP arrivals, pending guest issues, low-stock parts, and SLA breaches, and add a lightweight read-acknowledgment surfaced in both the Logbook and the GM dashboard overnight recap strip.
+**Depends on:** Phase 38
+**Plans:** 5 plans
+
+Plans:
+- [ ] 39-01-PLAN.md — Migration 105 (shift_summaries.acknowledged_by / acknowledged_at), applied live to Supabase dev project
+- [ ] 39-02-PLAN.md — Enrich generate_shift_summary with 4 new signals (VIP arrivals, pending guest issues, low-stock parts, SLA breaches) + prompt sections + additive stats keys; tests
+- [ ] 39-03-PLAN.md — Any-role idempotent acknowledge endpoint + acknowledged fields (resolved name) on get_shift_summary + typed web client; tests
+- [ ] 39-04-PLAN.md — Web UI: Acknowledge affordance on the Logbook AI summary and the GM OvernightRecapStrip; useArrivalReadiness wiring; en/es i18n
+- [ ] 39-05-PLAN.md — Full test suite + live browser golden-path verification (both surfaces) + non-regression spot-check
 ## Progress
 
 **Execution Order:**
