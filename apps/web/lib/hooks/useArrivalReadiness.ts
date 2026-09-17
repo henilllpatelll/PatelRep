@@ -51,6 +51,9 @@ export interface PaceProjection {
 export interface OvernightSummary {
   text: string
   href: string
+  id?: string
+  acknowledgedAt?: string | null
+  acknowledgedByName?: string | null
 }
 
 function shortName(fullName: string): string {
@@ -290,14 +293,37 @@ export function useArrivalReadiness(hotelId: string) {
   // The night-shift AI recap has no dedicated lookup — cron `logbook.shift-summary` runs 3x/day
   // (7, 15, 23 UTC), so the earliest AI-generated entry of the day is the one written for the
   // shift that just ended overnight.
-  const overnightSummary: OvernightSummary | null = useMemo(() => {
+  const overnightBase = useMemo(() => {
     const entries = logbookQuery.data?.data ?? []
     const aiEntries = entries
       .filter((e) => e.is_ai_generated)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     const entry = aiEntries[0]
-    return entry ? { text: entry.content, href: '/logbook' } : null
+    return entry ? { text: entry.content, href: '/logbook', shiftId: entry.shift_id ?? null } : null
   }, [logbookQuery.data])
+
+  // Hydrate the acknowledgment state for the overnight recap. Only the AI entry carries a shift_id
+  // that maps to a stored shift_summaries row — without one (or on a 404) the ack fields stay
+  // undefined and the strip renders no acknowledge affordance (graceful degrade).
+  const overnightShiftId = overnightBase?.shiftId ?? null
+  const overnightAckQuery = useQuery({
+    queryKey: ['overnight-shift-summary', overnightShiftId],
+    queryFn: () => logbookApi.getShiftSummary(overnightShiftId as string),
+    enabled: !!overnightShiftId,
+    retry: false,
+  })
+
+  const overnightSummary: OvernightSummary | null = useMemo(() => {
+    if (!overnightBase) return null
+    const ack = overnightAckQuery.data?.data
+    return {
+      text: overnightBase.text,
+      href: overnightBase.href,
+      id: ack?.id,
+      acknowledgedAt: ack?.acknowledged_at ?? undefined,
+      acknowledgedByName: ack?.acknowledged_by_name ?? undefined,
+    }
+  }, [overnightBase, overnightAckQuery.data])
 
   const lastUpdatedAt = useMemo(() => {
     const timestamps = [
