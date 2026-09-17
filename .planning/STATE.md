@@ -601,6 +601,7 @@ Progress: v1.4 — Phase 18 closed (1/1), Phase 19 closed (4/4), Phase 20 closed
 | Phase 37 P03 | 85min | 2 tasks | 10 files |
 | Phase 37 P05 | 50min | 2 tasks | 1 files |
 | Phase 38 P02 | 11min | 3 tasks | 4 files |
+| Phase 39-ai-shift-handover-and-gm-morning-brief P03 | 5min | 3 tasks | 3 files |
 
 ## Session
 
