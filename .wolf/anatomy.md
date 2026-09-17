@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-16T07:24:37.652Z
-> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T01:54:17.330Z
+> Files: 42 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -29,21 +29,15 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `feedback_edit_tool_pydantic_splice.md` — Declares body (~537 tok)
-- `MEMORY.md` — PatelRep Project Memory (~958 tok)
-- `project_oss_build_phase1.md` — Declares instead (~965 tok)
-- `reference_local_dev_api.md` (~477 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/06fa4c6b-7583-48f4-8f72-a0f25a37ea13/scratchpad/
 
-- `verify-drawer.mjs` — Declares WEB (~688 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/0c3e78d0-cc52-4cdf-8986-c9e43d344aa1/scratchpad/
 
-- `verify-transition.mjs` — Declares BASE (~1328 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/
 
@@ -65,12 +59,9 @@
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5d6b3573-406c-4b9f-b67d-242d481be00f/scratchpad/
 
-- `patelrep-three-project-dissection.md` — PatelRep — Deep Dissection of the 3 Priority OSS Projects (~2787 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/61e0709f-ebf7-43db-9c11-03c311147ac7/scratchpad/
 
-- `verify-dashboard.js` — Declares OUT (~534 tok)
-- `verify-footer.js` — Declares OUT (~716 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/686ef36c-e5b4-4867-85a7-7d43f49217fb/scratchpad/
 
@@ -86,7 +77,6 @@
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/8d284829-02db-49ff-9025-850a150683dd/scratchpad/
 
-- `verify-briefing-chat.mjs` — Declares OUT (~829 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/9c1798f7-3da6-40ea-b194-8745fc2bee3e/scratchpad/
 
@@ -990,10 +980,11 @@
 
 ## .github/workflows/
 
-- `update-room-board-snapshots.yml` — CI: Update Room-Board Snapshots (~561 tok)
 
 ## .planning/
 
+- `ROADMAP.md` — Roadmap: PatelRep (~7035 tok)
+- `STATE.md` — GSD State (~72595 tok)
 
 ## .planning/UI-REFRESH-PLAN.md
 
@@ -1076,6 +1067,34 @@
 ## .planning/phases/37-final-qa-rollout/
 
 
+## .planning/phases/38-engineering-work-order-labor-and-cost-capture/
+
+- `38-02-SUMMARY.md` — Phase 38 Plan 02: Work Order Cost Capture Summary (~1880 tok)
+- `38-03-SUMMARY.md` — Phase 38 Plan 03: unit_cost / hourly_rate Write + RBAC Summary (~1498 tok)
+- `38-04-SUMMARY.md` — Dependency graph (~1322 tok)
+- `38-05-SUMMARY.md` — Phase 38 Plan 05: Full-Suite + Live Golden-Path Verification Summary (~2965 tok)
+- `deferred-items.md` — Deferred Items — Phase 38 (~208 tok)
+
+## .planning/phases/39-ai-shift-handover-and-gm-morning-brief/
+
+- `39-01-PLAN.md` — FROM: it (~2256 tok)
+- `39-01-SUMMARY.md` — Phase 39 Plan 01: Migration 105 — Shift Summary Acknowledgment Columns Summary (~705 tok)
+- `39-02-PLAN.md` (~3082 tok)
+- `39-02-SUMMARY.md` — Phase 39 Plan 02: Shift-Summary AI Enrichment Summary (~1418 tok)
+- `39-03-PLAN.md` — Declares carries (~2825 tok)
+- `39-03-SUMMARY.md` — Phase 39 Plan 03: Shift-Summary Acknowledgment Endpoint + Web Client Summary (~1145 tok)
+- `39-04-PLAN.md` — Declares extended (~3180 tok)
+- `39-04-SUMMARY.md` — Dependency graph (~1541 tok)
+- `39-05-PLAN.md` — Declares of (~2911 tok)
+- `39-05-SUMMARY.md` — Phase 39 Plan 05: Full-Suite + Live Verification Summary (~3497 tok)
+- `39-CONTEXT.md` — Phase 39: AI Shift-Handover + GM Morning Brief - Context (~2537 tok)
+
+## .planning/phases/40-gm-morning-brief-dashboard-wiring/
+
+- `40-01-PLAN.md` — NON-REGRESSION: SimplifiedDashboard.tsx is a ~950-line, live, shared-across-all-roles (~3039 tok)
+- `40-01-SUMMARY.md` — Phase 40 Plan 01: Wire OvernightRecapStrip into the Live GM Dashboard Summary (~1390 tok)
+- `40-CONTEXT.md` — Phase 40: GM Morning Brief Dashboard Wiring - Context (~2387 tok)
+
 ## .planning/research/
 
 
@@ -1092,6 +1111,9 @@
 
 
 ## Phase 3 session additions
+
+
+## Phase 39 resume references (2026-09-16)
 
 
 ## Session Additions 2026-05-24 Assignment Fix
@@ -1114,8 +1136,7 @@
 
 ## apps/api/
 
-- `main.py` — API: 1 endpoints (~4052 tok)
-- `requirements.txt` — Python dependencies (~109 tok)
+- `rbac_bare_comparison_allowlist.json` (~2337 tok)
 
 ## apps/api/core/
 
@@ -1128,26 +1149,20 @@
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~14961 tok)
 
 ## apps/api/routers/
 
-- `clean_sessions.py` — API: 5 endpoints (~6728 tok)
-- `housekeeping.py` — Declares from (~28072 tok)
-- `internal.py` — API: 5 endpoints (~10472 tok)
-- `inventory.py` — Engineering spare-parts inventory (migration 102). (~2992 tok)
-- `work_orders.py` — API: 4 endpoints (~7578 tok)
+- `logbook.py` — API: 7 endpoints (~2707 tok)
 
 ## apps/api/scripts/
 
 
 ## apps/api/services/
 
-- `inventory.py` — Engineering spare-parts stock movements (migration 102). (~1314 tok)
-- `pm_schedules.py` — Preventive-maintenance schedule advancement. (~984 tok)
 
 ## apps/api/services/ai/
 
+- `shift_summary.py` — generate_shift_summary (~2594 tok)
 
 ## apps/api/services/guest_recovery/
 
@@ -1166,17 +1181,16 @@
 
 ## apps/api/tests/
 
-- `test_inventory.py` — Engineering spare-parts inventory (migration 102): items, locations, (~3103 tok)
-- `test_pm_schedules.py` — PM schedule advancement: fixes pm.check-due regenerating a duplicate work (~3971 tok)
-- `test_work_order_parts_consumption.py` — Closing a work order can consume engineering spare parts (migration 102): (~1759 tok)
+- `test_inventory.py` — Engineering spare-parts inventory (migration 102): items, locations, (~3431 tok)
+- `test_shift_summary_acknowledgment.py` — Shift-summary acknowledgment tests (39-03). (~1482 tok)
+- `test_shift_summary_enrichment.py` — Enrichment coverage for generate_shift_summary (Phase 39-02): VIP arrivals, (~2976 tok)
+- `test_work_order_parts_consumption.py` — Closing a work order can consume engineering spare parts (migration 102): (~1884 tok)
 
 ## apps/api/tests/load/
 
 
 ## apps/api/tests/smoke/
 
-- `test_ai_suggest_assignments.py` — FakeDB: table, select, eq, in_ + 6 more (~1962 tok)
-- `test_clean_sessions.py` — make_db, patch_db, start_request, test_start_session_snapshots_checklist_and_flips_in_progress (~2902 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -1420,27 +1434,9 @@
 
 ## apps/web/
 
-- `__verify_slow.mjs` — BASE: sample (~846 tok)
-- `__verify_transition.mjs` — BASE: sampleTransition (~1861 tok)
-- `.probe.mjs` — Declares OUT (~235 tok)
-- `.shot.mjs` — Declares OUT (~707 tok)
-- `.verify-drawer.mjs` — OUT: openRoom (~615 tok)
-- `.verify.mjs` — OUT: openRoom (~998 tok)
-- `.verify2.mjs` — Declares OUT (~646 tok)
-- `.verify3.mjs` — OUT: openViaList (~878 tok)
-- `.verify4.mjs` — Declares OUT (~915 tok)
-- `frozen-files-allowlist.json` — Declares project (~5580 tok)
-- `frozen-files.json` (~1299 tok)
-- `inspect_drawer.mjs` — Declares browser (~356 tok)
-- `package.json` — Node.js package manifest (~817 tok)
-- `verify-briefing-bottom.mjs` — Declares OUT (~357 tok)
-- `verify-morph.mjs` — Declares OUT (~594 tok)
-- `verify-morph2.mjs` — Declares OUT (~371 tok)
-- `verify-morph3.mjs` — Declares OUT (~374 tok)
 
 ## apps/web/app/
 
-- `globals.css` — Styles: 27 rules, 145 vars (~2570 tok)
 
 ## apps/web/app/(auth)/login/
 
@@ -1474,14 +1470,12 @@
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~6473 tok)
 
 ## apps/web/app/(dashboard)/evidence/
 
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — GuestRequestsRedirect (~200 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
@@ -1494,14 +1488,13 @@
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
-- `page.tsx` — StatusBadge (~10494 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/routes/
 
-- `page.tsx` — HousekeepingRoutesPage (~48 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
+- `page.tsx` — todayIso (~11379 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
@@ -1538,7 +1531,6 @@
 
 ## apps/web/app/(dashboard)/settings/front-desk/
 
-- `page.tsx` — FRONT_DESK_MODULES (~1539 tok)
 
 ## apps/web/app/(dashboard)/settings/general/
 
@@ -1566,10 +1558,10 @@
 
 ## apps/web/app/(dashboard)/staff/
 
+- `page.tsx` — ROLE_OPTIONS (~15331 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — VIEW_TABS (~4611 tok)
 
 ## apps/web/app/auth/callback/
 
@@ -1579,27 +1571,22 @@
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — ConfirmView (~5127 tok)
 
 ## apps/web/components/dashboard/
 
-- `BriefingChat.tsx` — detectRoomFilter (~2187 tok)
-- `SimplifiedDashboard.tsx` — Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'` (~12062 tok)
+- `OvernightRecapStrip.tsx` — OvernightRecapStrip (~695 tok)
+- `SimplifiedDashboard.tsx` — Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'` (~12639 tok)
 
 ## apps/web/components/engineering/
 
-- `EngineeringRoomBoard.tsx` — filterRooms (~2502 tok)
-- `PartsPanel.tsx` — LOCATIONS_KEY — renders form (~4183 tok)
-- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~16329 tok)
+- `PartsPanel.tsx` — LOCATIONS_KEY — renders form (~4400 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~16607 tok)
 
 ## apps/web/components/guest-requests/
 
-- `GuestRequestDrawer.tsx` — MESSAGE_ROLES (~5770 tok)
 
 ## apps/web/components/housekeeping/
 
-- `HousekeepingRoutes.tsx` — Housekeeping · Routes — supervisor timeline board (real data). (~13242 tok)
-- `RoomDetailDrawer.tsx` — Standard hotel checkout. Departure rooms with no explicit checkout_time set (~15526 tok)
 
 ## apps/web/components/programs/
 
@@ -1609,25 +1596,15 @@
 
 ## apps/web/components/settings/
 
-- `RoleForm.tsx` — EMPTY_ROLE_FORM (~2802 tok)
 
 ## apps/web/components/shared/
 
-- `CommandPalette.tsx` — Global ⌘K / Ctrl-K palette. Lists the current user's allowed nav routes — (~3567 tok)
-- `MobileFloorNav.tsx` — Bottom tab bar for floor roles only — managers keep the sidebar + mobile drawer. (~877 tok)
-- `Sidebar.tsx` — Wraps `children` (a single focusable element) in a right-side tooltip when `collapsed`; passes throu (~5293 tok)
 
 ## apps/web/components/tasks/
 
-- `CreateTaskModal.tsx` — CreateTaskModal — renders form (~2099 tok)
-- `NewTaskChooser.tsx` — First step of "+ New Task": pick which of the two underlying domains this belongs to. (~795 tok)
-- `TaskDetailDrawer.tsx` — TaskDetailDrawer (~3813 tok)
-- `taskDisplay.tsx` — getTaskTypeOptions (~1101 tok)
-- `UnifiedTaskRow.tsx` — DISPLAY_STATUS_TONE (~960 tok)
 
 ## apps/web/components/ui/
 
-- `primitives.tsx` — ── Avatar ─────────────────────────────────────────────────────────────────── (~2414 tok)
 
 ## apps/web/e2e/
 
@@ -1640,36 +1617,28 @@
 
 ## apps/web/i18n/locales/
 
-- `en.ts` — Declares en (~23824 tok)
-- `es.ts` — Declares es (~26170 tok)
+- `en.ts` — Declares en (~24139 tok)
+- `es.ts` — Declares es (~26509 tok)
 
 ## apps/web/lib/ai/
 
-- `briefingFastPath.ts` — Deterministic, zero-credit answers for "Ask about this" on the shift-briefing (~1096 tok)
 
 ## apps/web/lib/api/
 
-- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~3141 tok)
-- `housekeeping.ts` — Hotel-wide average clean time for today plus the 7-day trend (dashboard hero). (~2758 tok)
-- `inventory.ts` — Mirrors apps/api/routers/inventory.py / models/requests.py (migration 102). (~899 tok)
-- `tasks.ts` — ── Types ───────────────────────────────────────────────────────────────────── (~712 tok)
+- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~3161 tok)
+- `inventory.ts` — Mirrors apps/api/routers/inventory.py / models/requests.py (migration 102). (~911 tok)
+- `logbook.ts` — API routes: GET, POST, PATCH, DELETE (8 endpoints) (~668 tok)
+- `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1238 tok)
 
 ## apps/web/lib/hooks/
 
+- `useArrivalReadiness.ts` — Exports BlockerRow, ShiftTile, PaceProjection, OvernightSummary, useArrivalReadiness (~4258 tok)
 
 ## apps/web/lib/supabase/
 
 
 ## apps/web/lib/utils/
 
-- `housekeepingNavigation.test.ts` — Declares role (~224 tok)
-- `housekeepingNavigation.ts` — Exports HousekeepingSubNavItem, getHousekeepingSubNavItems (~242 tok)
-- `navigation.matrix.json` (~288 tok)
-- `navigation.ts` — Legacy saved module slugs that no longer map to a standalone route — normalized to their (~1836 tok)
-- `routeGuard.test.mjs` — Declares role (~975 tok)
-- `routeGuard.ts` — Roles that only use the mobile app — blocked from all web portal routes (~1242 tok)
-- `unifiedTasks.test.ts` — makeTask: makeGuestRequest (~1389 tok)
-- `unifiedTasks.ts` — A Guest Request auto-creates a linked Task (`guest_requests.task_id -> tasks.id`). (~1783 tok)
 
 ## apps/web/playwright.phase0.config.ts
 
@@ -1679,7 +1648,6 @@
 
 ## apps/web/stores/
 
-- `copilotThreadStore.ts` — Answer locally (0 credits) instead of hitting the API/off-topic pipeline when it matches. (~1258 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -1716,8 +1684,7 @@
 
 ## supabase/migrations/
 
-- `101_pm_schedule_recurrence_basis.sql` — ============================================================================= (~291 tok)
-- `102_engineering_parts_inventory.sql` — ============================================================================= (~2097 tok)
+- `105_shift_summary_acknowledgment.sql` — ============================================================================= (~369 tok)
 
 ## youtubeMobileResearch.md
 

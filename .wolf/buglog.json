@@ -22028,6 +22028,309 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-16T07:17:40.476Z"
+    },
+    {
+      "id": "bug-1340",
+      "timestamp": "2026-09-16T19:57:34.447Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_inventory.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T19:57:34.447Z"
+    },
+    {
+      "id": "bug-1341",
+      "timestamp": "2026-09-16T20:01:12.881Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T20:01:12.881Z"
+    },
+    {
+      "id": "bug-1342",
+      "timestamp": "2026-09-16T20:05:35.141Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T20:05:35.141Z"
+    },
+    {
+      "id": "bug-1343",
+      "timestamp": "2026-09-16T20:06:58.111Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/PartsPanel.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T20:06:58.111Z"
+    },
+    {
+      "id": "bug-1344",
+      "timestamp": "2026-09-16T20:07:51.931Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: disabled={updateMutation.isPending || (role === staff.role &",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-16T20:08:00.485Z"
+    },
+    {
+      "id": "bug-1345",
+      "timestamp": "2026-09-16T20:07:54.131Z",
+      "error_message": "CSS fix: mutationFn",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "mutationFn: () => staffApi.update(staff.user_id, { role, custom_role_id: customRoleId → () => staffApi.update(staff.user_id, {",
+      "fix": "Changed mutationFn: () => staffApi.update(staff.user_id, { role, custom_role_id: customRoleId → () => staffApi.update(staff.user_id, {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T20:07:54.131Z"
+    },
+    {
+      "id": "bug-1346",
+      "timestamp": "2026-09-16T21:43:44.637Z",
+      "error_message": "Phase 39 resume tooling failed: repository GSD path missing; registered gpt-5.3-spark unsupported on ChatGPT; spaced commit message split on Windows.",
+      "file": ".planning/phases/39-ai-shift-handover-and-gm-morning-brief",
+      "root_cause": "GSD runtime is installed in the user home and the registered Spark role is unavailable; helper shell quoting loses spaced commit messages.",
+      "fix": "Used home GSD engine, inherited-model role-contract fallback, and space-free helper commit messages.",
+      "tags": [
+        "phase39",
+        "gsd",
+        "windows"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T21:43:44.637Z"
+    },
+    {
+      "id": "bug-1347",
+      "timestamp": "2026-09-16T21:43:44.637Z",
+      "error_message": "Three ROI fixture tests returned zero instead of July fixture metrics.",
+      "file": "apps/api/tests/test_management_roi.py",
+      "root_cause": "Fixed July timestamps were queried through a moving default 30-day window.",
+      "fix": "Passed explicit July start_date/end_date in the three fixture tests. Focused 38/38 and all non-smoke API tests 431/431 pass.",
+      "tags": [
+        "tests",
+        "roi",
+        "date-window"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T21:43:44.637Z"
+    },
+    {
+      "id": "bug-1348",
+      "timestamp": "2026-09-16T21:43:44.637Z",
+      "error_message": "Phase 39 design references disconnected summary surfaces and non-existent schema fields.",
+      "file": "apps/api/services/ai/shift_summary.py; apps/web/lib/hooks/useArrivalReadiness.ts; apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Service persists summaries only; recap reads logbook entries and is unmounted; Logbook passes today as a shift UUID. Actual schema uses tenant_id and room_status.vip_flag.",
+      "fix": "Recorded verified source/schema corrections in 39-RESEARCH.md for implementation planning.",
+      "tags": [
+        "phase39",
+        "planning",
+        "schema"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T21:43:44.637Z"
+    },
+    {
+      "id": "bug-1349",
+      "timestamp": "2026-09-16T21:43:44.637Z",
+      "error_message": "PowerShell nested command lost pipeline variables during environment-key inspection.",
+      "file": "shell inspection",
+      "root_cause": "Double-quoted outer command interpolated $_ before the nested shell; backslash does not escape PowerShell variables.",
+      "fix": "Used a single-quoted outer command and printed environment variable names only.",
+      "tags": [
+        "windows",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-16T21:43:44.637Z"
+    },
+    {
+      "id": "bug-1350",
+      "timestamp": "2026-09-17T00:53:16.382Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→11 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T00:53:16.382Z"
+    },
+    {
+      "id": "bug-1351",
+      "timestamp": "2026-09-17T00:59:34.954Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Was returning: {\"data\": result.data}",
+      "fix": "Now returns: {\"data\": {**row, \"acknowledged_by_name\": name}}",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T00:59:34.954Z"
+    },
+    {
+      "id": "bug-1352",
+      "timestamp": "2026-09-17T01:06:28.496Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `complete_work_order`",
+      "fix": "Changed to `generate_shift_summary()`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T01:06:28.496Z"
+    },
+    {
+      "id": "bug-1353",
+      "timestamp": "2026-09-17T01:12:21.109Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <div className=\"flex flex-wrap items-center gap-3\">; {ackId && (",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T01:12:30.351Z"
+    },
+    {
+      "id": "bug-1354",
+      "timestamp": "2026-09-17T01:12:59.596Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Had \"text-[var(--success)]\"",
+      "fix": "Changed to \"text-[var(--ready)]\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T01:12:59.596Z"
+    },
+    {
+      "id": "bug-1355",
+      "timestamp": "2026-09-17T01:13:48.564Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/lib/hooks/useArrivalReadiness.ts",
+      "root_cause": "No early return/throw for edge case: !overnightBase",
+      "fix": "Added guard clause: if (!overnightBase)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T01:13:48.564Z"
+    },
+    {
+      "id": "bug-1356",
+      "timestamp": "2026-09-17T01:48:44.326Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T01:48:44.326Z"
+    },
+    {
+      "id": "bug-1357",
+      "timestamp": "2026-09-17T01:50:15.782Z",
+      "error_message": "Wrong reference: useRole should be isSupervisor",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Used \"useRole\" instead of \"isSupervisor\"",
+      "fix": "Changed useRole → isSupervisor",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T01:50:15.782Z"
+    },
+    {
+      "id": "bug-1358",
+      "timestamp": "2026-09-17T01:50:31.418Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T01:50:31.418Z"
     }
   ]
 }

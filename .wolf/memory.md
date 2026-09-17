@@ -13272,3 +13272,120 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 03:22 | Applied migration 103 to live Supabase (oacnwalhcpqdabivweki), verified full loop via curl+SQL+Playwright | supabase/migrations/103_guest_request_work_order_bridge.sql | verified | ~800 |
 | 03:24 | Created apps/api/tests/test_guest_request_work_order_bridge.py | — | ~2154 |
 | 03:25 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_oss_build_phase1.md | modified twice() | ~972 |
+| 14:57 | Edited apps/api/tests/test_inventory.py | 5→6 lines | ~54 |
+| 14:57 | Edited apps/api/tests/test_inventory.py | modified test_create_part_persists_unit_cost() | ~248 |
+| 14:57 | Edited apps/api/rbac_bare_comparison_allowlist.json | expanded (+6 lines) | ~183 |
+| 14:58 | Edited apps/api/tests/test_work_order_parts_consumption.py | modified select() | ~57 |
+| 14:58 | Edited apps/api/tests/test_work_order_parts_consumption.py | modified eq() | ~169 |
+| 14:59 | Created .planning/phases/38-engineering-work-order-labor-and-cost-capture/deferred-items.md | — | ~300 |
+| 14:59 | Created .planning/phases/38-engineering-work-order-labor-and-cost-capture/deferred-items.md | — | ~222 |
+| 15:00 | Created .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-03-SUMMARY.md | — | ~1560 |
+| 15:00 | Edited .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-03-SUMMARY.md | 3→6 lines | ~60 |
+| 15:00 | Created .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-02-SUMMARY.md | — | ~1965 |
+| 15:00 | Edited .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-02-SUMMARY.md | 3→6 lines | ~64 |
+| 15:00 | Edited .planning/STATE.md | modified CLOSED() | ~408 |
+| 15:01 | Edited .planning/STATE.md | 6→7 lines | ~290 |
+| 15:01 | Session end: 64 writes across 30 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 49 reads | ~239320 tok |
+| 15:01 | Session end: 64 writes across 30 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 49 reads | ~239320 tok |
+| 15:04 | Session end: 64 writes across 30 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 51 reads | ~239320 tok |
+| 15:04 | Session end: 64 writes across 30 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 51 reads | ~239320 tok |
+| 15:05 | Edited apps/web/lib/api/engineering.ts | 3→6 lines | ~37 |
+| 15:05 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | CSS: labor, parts, total | ~364 |
+| 15:05 | Edited apps/web/i18n/locales/en.ts | 2→5 lines | ~62 |
+| 15:05 | Edited apps/web/i18n/locales/es.ts | 1→4 lines | ~59 |
+| 15:06 | Edited apps/web/lib/api/inventory.ts | 3→4 lines | ~32 |
+| 15:06 | Edited apps/web/lib/api/inventory.ts | 4→5 lines | ~30 |
+| 15:06 | Edited apps/web/components/engineering/PartsPanel.tsx | CSS: unit_cost, unit_cost, unit_cost | ~288 |
+| 15:06 | Edited apps/web/components/engineering/PartsPanel.tsx | CSS: cost | ~120 |
+| 15:07 | Edited apps/web/components/engineering/PartsPanel.tsx | CSS: unit_cost | ~277 |
+| 15:07 | Edited apps/web/i18n/locales/en.ts | 1→3 lines | ~35 |
+| 15:07 | Edited apps/web/i18n/locales/es.ts | 1→3 lines | ~38 |
+| 15:07 | Edited apps/web/lib/api/staff.ts | 3→4 lines | ~23 |
+| 15:07 | Edited apps/web/lib/api/staff.ts | 3→4 lines | ~26 |
+| 15:07 | Edited apps/web/app/(dashboard)/staff/page.tsx | modified String() | ~77 |
+| 15:07 | Edited apps/web/app/(dashboard)/staff/page.tsx | CSS: hourly_rate, undefined | ~52 |
+| 15:07 | Edited apps/web/app/(dashboard)/staff/page.tsx | CSS: focus, focus, focus | ~257 |
+| 15:08 | Edited apps/web/app/(dashboard)/staff/page.tsx | inline fix | ~59 |
+| 15:08 | Edited apps/web/i18n/locales/en.ts | inline fix | ~86 |
+| 15:08 | Edited apps/web/i18n/locales/es.ts | inline fix | ~105 |
+| 15:09 | Created .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-04-SUMMARY.md | — | ~1370 |
+| 15:09 | Edited .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-04-SUMMARY.md | 3→7 lines | ~64 |
+| 15:10 | Edited .planning/STATE.md | modified CLOSED() | ~480 |
+| 15:38 | Created .planning/phases/38-engineering-work-order-labor-and-cost-capture/38-05-SUMMARY.md | — | ~3163 |
+| 15:39 | Session end: 87 writes across 33 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 59 reads | ~175194 tok |
+| 15:39 | Session end: 87 writes across 33 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 59 reads | ~175194 tok |
+| 15:39 | Session end: 87 writes across 33 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 59 reads | ~175194 tok |
+| 16:07 | Session end: 87 writes across 33 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 59 reads | ~175194 tok |
+| 16:14 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-CONTEXT.md | — | ~2706 |
+| 16:15 | Session end: 88 writes across 34 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 61 reads | ~178093 tok |
+| 16:20 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-01-PLAN.md | — | ~2406 |
+| 17:35 | Resumed Phase 39: only context/01 plan existed; verified linked DB access, nullable ack columns absent and existing RLS active; researching missing UI wiring before execution. | Phase 39, Supabase | in progress | ~3500 |
+
+| 21:43 UTC | Phase39 research found disconnected summary identity/UI; linked DB metadata verified; fixed three date-dependent ROI tests and re-ran API baseline 431/431. | Phase39, test_management_roi.py | verified baseline; planning remaining work | ~5000 |
+| 19:30 | Session end: 89 writes across 35 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 72 reads | ~146111 tok |
+| 19:45 | Session end: 89 writes across 35 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 72 reads | ~146111 tok |
+| 19:50 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-02-PLAN.md | — | ~3287 |
+| 19:50 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-03-PLAN.md | — | ~3014 |
+| 19:52 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-04-PLAN.md | — | ~3392 |
+| 19:53 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-05-PLAN.md | — | ~3106 |
+| 19:53 | Edited .planning/ROADMAP.md | 7→11 lines | ~276 |
+| 19:54 | Session end: 94 writes across 40 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 75 reads | ~162375 tok |
+| 19:57 | Session end: 94 writes across 40 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 80 reads | ~174373 tok |
+| 19:57 | Created supabase/migrations/105_shift_summary_acknowledgment.sql | — | ~369 |
+| 19:58 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-01-SUMMARY.md | — | ~752 |
+| 19:58 | Session end: 96 writes across 42 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 81 reads | ~176280 tok |
+| 19:58 | Session end: 96 writes across 42 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 81 reads | ~176280 tok |
+| 19:59 | Edited apps/api/services/ai/shift_summary.py | added 1 import(s) | ~36 |
+| 19:59 | Edited apps/api/routers/logbook.py | modified _hotel_today() | ~144 |
+| 19:59 | Edited apps/api/routers/logbook.py | modified acknowledge_shift_summary() | ~480 |
+| 19:59 | Edited apps/api/services/ai/shift_summary.py | added 1 condition(s) | ~762 |
+| 19:59 | Edited apps/api/services/ai/shift_summary.py | modified ORDERS() | ~499 |
+| 20:00 | Edited apps/api/services/ai/shift_summary.py | 6→10 lines | ~137 |
+| 20:00 | Edited apps/api/services/ai/shift_summary.py | 6→10 lines | ~123 |
+| 20:00 | Created apps/api/tests/test_shift_summary_acknowledgment.py | — | ~1482 |
+| 20:01 | Created apps/api/tests/test_shift_summary_enrichment.py | — | ~2974 |
+| 20:02 | Edited apps/web/lib/api/logbook.ts | expanded (+19 lines) | ~182 |
+| 20:04 | Edited apps/api/tests/test_shift_summary_enrichment.py | modified isoformat() | ~116 |
+| 20:04 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-03-SUMMARY.md | — | ~1222 |
+| 20:05 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-02-SUMMARY.md | — | ~1470 |
+| 20:05 | Edited .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-02-SUMMARY.md | 3→7 lines | ~63 |
+| 20:05 | Session end: 110 writes across 49 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~186167 tok |
+| 20:05 | Session end: 110 writes across 49 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~186167 tok |
+| 20:06 | Edited .planning/STATE.md | 2→2 lines | ~303 |
+| 20:11 | Session end: 111 writes across 49 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~186920 tok |
+| 20:11 | Session end: 111 writes across 49 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~186920 tok |
+| 20:12 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added optional chaining | ~548 |
+| 20:12 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added nullish coalescing | ~464 |
+| 20:12 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 4→5 lines | ~20 |
+| 20:12 | Edited apps/web/i18n/locales/en.ts | 6→9 lines | ~118 |
+| 20:12 | Edited apps/web/i18n/locales/es.ts | 6→9 lines | ~132 |
+| 20:12 | Edited apps/web/app/(dashboard)/logbook/page.tsx | "text-[var(--success)]" → "text-[var(--ready)]" | ~21 |
+| 20:13 | Edited apps/web/lib/hooks/useArrivalReadiness.ts | 4→7 lines | ~44 |
+| 20:13 | Edited apps/web/lib/hooks/useArrivalReadiness.ts | added 1 condition(s) | ~400 |
+| 20:14 | Created apps/web/components/dashboard/OvernightRecapStrip.tsx | — | ~695 |
+| 20:14 | Edited apps/web/i18n/locales/en.ts | 4→6 lines | ~59 |
+| 20:14 | Edited apps/web/i18n/locales/es.ts | 4→6 lines | ~64 |
+| 20:15 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-04-SUMMARY.md | — | ~1601 |
+| 20:15 | Edited .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-04-SUMMARY.md | 3→7 lines | ~64 |
+| 20:16 | Edited .planning/STATE.md | 2→3 lines | ~46 |
+| 20:16 | Edited .planning/STATE.md | 2→2 lines | ~444 |
+| 20:37 | Created .planning/phases/39-ai-shift-handover-and-gm-morning-brief/39-05-SUMMARY.md | — | ~3730 |
+| 20:38 | Session end: 127 writes across 53 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~247057 tok |
+| 20:38 | Session end: 127 writes across 53 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~247057 tok |
+| 20:38 | Session end: 127 writes across 53 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 84 reads | ~247057 tok |
+| 20:46 | Created .planning/phases/40-gm-morning-brief-dashboard-wiring/40-CONTEXT.md | — | ~2547 |
+| 20:46 | Session end: 128 writes across 54 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 86 reads | ~256430 tok |
+| 20:48 | Created .planning/phases/40-gm-morning-brief-dashboard-wiring/40-01-PLAN.md | — | ~3242 |
+| 20:48 | Edited .planning/ROADMAP.md | TBD() → recap() | ~130 |
+| 20:50 | Edited apps/web/components/dashboard/SimplifiedDashboard.tsx | added 3 import(s) | ~100 |
+| 20:50 | Edited apps/web/components/dashboard/SimplifiedDashboard.tsx | inline fix | ~12 |
+| 20:50 | Edited apps/web/components/dashboard/SimplifiedDashboard.tsx | added optional chaining | ~524 |
+| 20:50 | Edited apps/web/components/dashboard/SimplifiedDashboard.tsx | 3→7 lines | ~52 |
+| 20:54 | Created .planning/phases/40-gm-morning-brief-dashboard-wiring/40-01-SUMMARY.md | — | ~1483 |
+| 20:54 | Session end: 135 writes across 57 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 88 reads | ~285550 tok |
+| 21:02 | Session end: 135 writes across 57 files (requirements.txt, housekeeping.py, test_ai_suggest_assignments.py, 101_pm_schedule_recurrence_basis.sql, pm_schedules.py) | 88 reads | ~285550 tok |
+
+## Session: 2026-09-17 21:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
