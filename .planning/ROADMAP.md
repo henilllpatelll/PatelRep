@@ -295,6 +295,15 @@ Plans:
 - [ ] 39-03-PLAN.md — Any-role idempotent acknowledge endpoint + acknowledged fields (resolved name) on get_shift_summary + typed web client; tests
 - [ ] 39-04-PLAN.md — Web UI: Acknowledge affordance on the Logbook AI summary and the GM OvernightRecapStrip; useArrivalReadiness wiring; en/es i18n
 - [ ] 39-05-PLAN.md — Full test suite + live browser golden-path verification (both surfaces) + non-regression spot-check
+
+### Phase 40: GM Morning Brief Dashboard Wiring
+
+**Goal:** [To be planned]
+**Depends on:** Phase 39
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 40 to break down)
 ## Progress
 
 **Execution Order:**
