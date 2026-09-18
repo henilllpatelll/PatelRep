@@ -472,6 +472,7 @@ const es = {
       shiftOutlook: 'Perspectiva del turno',
     },
     roomStatus: {
+      loading: 'Cargando habitaciones…',
       filters: {
         all: 'Todos',
         departure: 'Salida',

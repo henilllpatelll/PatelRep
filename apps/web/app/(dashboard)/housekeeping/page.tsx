@@ -724,7 +724,8 @@ export default function HousekeepingPage() {
 
   if (isAuthLoading || !role) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" role="status" aria-live="polite">
+        <p className="text-sm text-ink3">{t('housekeeping.roomStatus.loading')}</p>
         {v2 ? (
           <>
             <Skeleton className="h-8 w-56" />

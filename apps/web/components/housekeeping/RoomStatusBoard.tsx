@@ -52,8 +52,11 @@ function getStatusWorkflowChips(t: TFunction): Array<{ key: string; label: strin
 // -- Skeleton loader -----------------------------------------------------------
 
 function SkeletonGrid() {
+  const { t } = useTranslation()
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="status" aria-live="polite">
+      <p className="text-sm text-ink3">{t('housekeeping.roomStatus.loading')}</p>
       <div className="h-5 w-40 bg-surface-3 rounded animate-pulse" />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
         {Array.from({ length: 12 }).map((_, i) => (

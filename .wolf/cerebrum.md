@@ -29,6 +29,8 @@
 
 ## Key Learnings
 
+- **Room Board hydration feedback (2026-09-18):** The supervisor Room Board has two sequential loading phases—auth role hydration in `HousekeepingPage` and board-data hydration in `RoomStatusBoard`. Both need the same localized `housekeeping.roomStatus.loading` status message; skeleton-only states look like a broken blank board.
+- **Deployment-target integrity (2026-09-18):** The Room Board pixel gate and public health checks depend on live deployment configuration, not only application code. A Railway fallback 404 at `/login` means the configured domain is stale; resolve the live Railway domain and the Vercel public API URL before treating login-selector timeouts as Playwright regressions.
 - **Windows dependency verification (2026-09-18):** A running local Uvicorn server can lock its executable and interrupt a full pip requirements sync. For validation, install only missing declared packages or stop the server explicitly before replacing it; if an interrupted upgrade leaves Pydantic mismatched with pydantic-core, force-reinstall the exact pinned pair before running tests.
 - **AI entry-point parity (2026-09-17):** When the persistent Copilot trigger should visually match an in-workspace Ask AI control, use the shared Button `ai` variant rather than a primary button with an ad-hoc AI background; remove shortcut text independently from the keyboard listener.
 - **Hover-only sidebar behavior (2026-09-17):** For an icon-only default sidebar that expands temporarily, derive `sidebarCollapsed` directly from local hover state (`!isHovering`) instead of persisted preferences, then drive desktop width from that state.

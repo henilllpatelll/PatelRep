@@ -23371,6 +23371,42 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1278",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "GitHub CI deployment checks fail because configured Railway web targets return fallback HTTP 404s and the Vercel frontend reports its API/database connection unavailable.",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "The GitHub deployment target and Playwright base-URL configuration reference stale Railway domains, while the active Vercel frontend has a stale or unavailable API URL.",
+      "fix": "Reauthenticate Railway to resolve the live service domain, update GitHub deployment/Playwright targets, and correct the Vercel NEXT_PUBLIC_API_URL environment variable before rerunning CI.",
+      "tags": ["github-actions", "railway", "vercel", "deployment", "ci"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1279",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "The Room Board appeared not to load on a fresh visit because authentication hydration rendered only non-semantic skeleton blocks for several seconds.",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "The role-gated loading branch had no readable loading message, so staff saw an apparently empty content area until the board query completed.",
+      "fix": "Expose the existing localized Room Board loading label in a polite status region alongside the skeleton placeholders.",
+      "tags": ["housekeeping", "loading-state", "accessibility", "ux"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1280",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "The new Room Board loading indicator initially rendered the raw i18n key housekeeping.roomStatus.loading.",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "The existing localized loading string belongs to housekeeping.roomBoard, not housekeeping.roomStatus.",
+      "fix": "Use housekeeping.roomBoard.loading in both Room Board loading states.",
+      "tags": ["i18n", "housekeeping", "loading-state"],
+      "related_bugs": ["bug-1279"],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
     }
   ]
 }

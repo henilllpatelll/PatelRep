@@ -472,6 +472,7 @@ const en = {
       shiftOutlook: 'Shift outlook',
     },
     roomStatus: {
+      loading: 'Loading rooms…',
       filters: {
         all: 'All',
         departure: 'Departure',
