@@ -22450,6 +22450,927 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T05:41:17.667Z"
+    },
+    {
+      "id": "bug-1366",
+      "timestamp": "2026-09-17T06:59:14.250Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Had \"id, room_id, assigned_to, shift_id, assignment_da",
+      "fix": "Changed to \"id, room_id, assigned_to, shift_id, assignment_da",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:59:14.250Z"
+    },
+    {
+      "id": "bug-1367",
+      "timestamp": "2026-09-17T06:59:59.054Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/smoke/test_room_sequencing.py",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 13→8 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:59:59.054Z"
+    },
+    {
+      "id": "bug-1368",
+      "timestamp": "2026-09-17T07:00:56.958Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/housekeeping.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:00:56.958Z"
+    },
+    {
+      "id": "bug-1369",
+      "timestamp": "2026-09-17T07:01:40.824Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/AssignmentSidebar.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:01:40.824Z"
+    },
+    {
+      "id": "bug-1370",
+      "timestamp": "2026-09-17T07:20:41.679Z",
+      "error_message": "Wrong reference: timezone should be timedelta",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "Used \"timezone\" instead of \"timedelta\"",
+      "fix": "Changed timezone → timedelta",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:20:41.679Z"
+    },
+    {
+      "id": "bug-1371",
+      "timestamp": "2026-09-17T07:20:56.074Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:20:56.074Z"
+    },
+    {
+      "id": "bug-1372",
+      "timestamp": "2026-09-17T07:21:43.045Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/engineering.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:21:43.045Z"
+    },
+    {
+      "id": "bug-1373",
+      "timestamp": "2026-09-17T07:22:30.934Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had '{{count}}th in {{days}}d'",
+      "fix": "Changed to '{{count}}x in {{days}}d'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:22:30.934Z"
+    },
+    {
+      "id": "bug-1374",
+      "timestamp": "2026-09-17T07:27:59.063Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/management_roi.py",
+      "root_cause": "Was returning: {\"data\": {\"generated_for\": today.isoformat(), \"loo",
+      "fix": "Now returns: {",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:27:59.063Z"
+    },
+    {
+      "id": "bug-1375",
+      "timestamp": "2026-09-17T07:30:22.560Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/management-roi/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:30:22.560Z"
+    },
+    {
+      "id": "bug-1376",
+      "timestamp": "2026-09-17T07:33:16.212Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:33:16.212Z"
+    },
+    {
+      "id": "bug-1377",
+      "timestamp": "2026-09-17T07:36:07.446Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/AIRiskAlertsPanel.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 27→33 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:36:07.446Z"
+    },
+    {
+      "id": "bug-1378",
+      "timestamp": "2026-09-17T07:36:18.758Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/AIRiskAlertsPanel.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:36:18.758Z"
+    },
+    {
+      "id": "bug-1379",
+      "timestamp": "2026-09-17T07:36:34.955Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:36:34.955Z"
+    },
+    {
+      "id": "bug-1380",
+      "timestamp": "2026-09-17T07:36:43.910Z",
+      "error_message": "Wrong reference: AVATAR_COLORS should be VALID_TABS",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "Used \"AVATAR_COLORS\" instead of \"VALID_TABS\"",
+      "fix": "Changed AVATAR_COLORS → VALID_TABS",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T07:36:43.910Z"
+    },
+    {
+      "id": "bug-1381",
+      "timestamp": "2026-09-17T13:19:36.148Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/plans/recursive-nibbling-barto.md",
+      "root_cause": "Had `mid.md`",
+      "fix": "Changed to \"staff-entered guest name must not be silently ove",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T13:19:36.148Z"
+    },
+    {
+      "id": "bug-1382",
+      "timestamp": "2026-09-17T14:22:42.609Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/integrations.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:22:42.609Z"
+    },
+    {
+      "id": "bug-1383",
+      "timestamp": "2026-09-17T14:22:58.468Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/integrations.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:22:58.468Z"
+    },
+    {
+      "id": "bug-1384",
+      "timestamp": "2026-09-17T14:23:32.343Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:23:32.343Z"
+    },
+    {
+      "id": "bug-1385",
+      "timestamp": "2026-09-17T14:25:13.041Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/test_opera_report_columns.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:25:13.041Z"
+    },
+    {
+      "id": "bug-1386",
+      "timestamp": "2026-09-17T14:31:08.723Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/services/opera/sync.py",
+      "root_cause": "Was returning: {\"synced\": 0, \"error\": \"Opera not connected or hot",
+      "fix": "Now returns: {\"synced\": 0, \"skipped\": True, \"reason\": \"connecti",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:31:08.723Z"
+    },
+    {
+      "id": "bug-1387",
+      "timestamp": "2026-09-17T14:31:30.828Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/tests/test_opera_pilot_gate.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:31:30.828Z"
+    },
+    {
+      "id": "bug-1388",
+      "timestamp": "2026-09-17T15:05:27.826Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude.json",
+      "root_cause": "Had \"Bearer cd71d7d2-ba9c-4ac3-ad58-70f031e16c6f\"",
+      "fix": "Changed to \"Bearer c3e9266a-6033-4f27-b4a0-71624f5ff203\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:05:27.826Z"
+    },
+    {
+      "id": "bug-1389",
+      "timestamp": "2026-09-17T15:28:45.923Z",
+      "error_message": "Ask about this should transition into a chatbox; close did not restore keyboard focus (confirmed by failing browser test).",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "The existing swap faded unrelated panels and remounted content using timers; no return-focus path existed.",
+      "fix": "Use shared-layout button/composer morph, a stable panel, presence-controlled exit, and explicit focus restoration. Six browser regressions cover desktop, mobile, and reduced motion.",
+      "tags": [
+        "dashboard",
+        "chat",
+        "animation",
+        "accessibility"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:28:45.923Z"
+    },
+    {
+      "id": "bug-1390",
+      "timestamp": "2026-09-17T15:28:45.923Z",
+      "error_message": "TS2769 reducedMotion config property; TS2322 inert string incompatible with boolean.",
+      "file": "apps/web/playwright.briefing.config.ts",
+      "root_cause": "Installed Playwright config types omit reducedMotion and Framer motion types accept boolean inert.",
+      "fix": "Use page.emulateMedia in tests and set DOM node.inert from the presence-aware ref; typecheck passes.",
+      "tags": [
+        "typescript",
+        "playwright",
+        "framer-motion"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:28:45.923Z"
+    },
+    {
+      "id": "bug-1391",
+      "timestamp": "2026-09-17T15:28:45.923Z",
+      "error_message": "Sites configure-execution-profile.mjs unavailable; exploratory missing paths and nested PowerShell quoting failed.",
+      "file": ".wolf/memory.md",
+      "root_cause": "Installed Sites helper path was missing; project uses named Playwright configs rather than playwright.config.ts; double-quoted nested shell expanded variables.",
+      "fix": "Preserved existing app workflow, used discovered briefing/regression configs, and single-quoted nested PowerShell scripts.",
+      "tags": [
+        "tooling",
+        "sites",
+        "powershell"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:28:45.923Z"
+    },
+    {
+      "id": "bug-1235",
+      "timestamp": "2026-09-17T15:45:00.000Z",
+      "error_message": "The new housekeeping navigation test failed because the supervisor tab list still exposed Assignments.",
+      "file": "apps/web/lib/utils/housekeepingNavigation.ts",
+      "root_cause": "SUPERVISOR_HOUSEKEEPING_TABS retained the standalone /housekeeping/assignments item after the workflow was requested to move into Room Board.",
+      "fix": "Remove the Assignments item, surface the OPERA import action on the Room Board, and redirect legacy assignment links to /housekeeping.",
+      "tags": ["housekeeping", "navigation", "opera-import"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:45:00.000Z"
+    },
+    {
+      "id": "bug-1236",
+      "timestamp": "2026-09-17T15:42:00.000Z",
+      "error_message": "rtk could not execute the PowerShell Get-Content cmdlet when invoked as a direct command.",
+      "file": ".wolf/OPENWOLF.md",
+      "root_cause": "rtk resolves executable commands on PATH; PowerShell cmdlets require an explicit powershell.exe invocation.",
+      "fix": "Use rtk powershell -NoProfile -Command for PowerShell built-ins.",
+      "tags": ["tooling", "rtk", "powershell"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:42:00.000Z"
+    },
+    {
+      "id": "bug-1237",
+      "timestamp": "2026-09-17T15:44:00.000Z",
+      "error_message": "An apply_patch attempt failed because it targeted the same assignment page as both a deletion and an addition in one patch.",
+      "file": "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+      "root_cause": "The patch format does not permit multiple operations on one file within a single patch.",
+      "fix": "Apply the navigation changes separately, then replace the route page through sequential delete and add patches.",
+      "tags": ["tooling", "apply-patch"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:44:00.000Z"
+    },
+    {
+      "id": "bug-1238",
+      "timestamp": "2026-09-17T15:50:00.000Z",
+      "error_message": "The housekeeping navigation test failed because the supervisor tab list still exposed Inspections.",
+      "file": "apps/web/lib/utils/housekeepingNavigation.ts",
+      "root_cause": "SUPERVISOR_HOUSEKEEPING_TABS retained the standalone /housekeeping/inspections item after the user requested its removal.",
+      "fix": "Remove the item, drop the inspection-specific route guard, and redirect the legacy route to /housekeeping.",
+      "tags": ["housekeeping", "navigation", "inspections"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:50:00.000Z"
+    },
+    {
+      "id": "bug-1239",
+      "timestamp": "2026-09-17T15:55:00.000Z",
+      "error_message": "The housekeeping navigation test failed because the supervisor tab list still exposed Routes.",
+      "file": "apps/web/lib/utils/housekeepingNavigation.ts",
+      "root_cause": "SUPERVISOR_HOUSEKEEPING_TABS retained the standalone /housekeeping/routes item after the user requested an in-board toggle.",
+      "fix": "Remove the item, embed HousekeepingRoutes behind a Room Board icon toggle, and redirect legacy route links to /housekeeping.",
+      "tags": ["housekeeping", "navigation", "routes"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:55:00.000Z"
+    },
+    {
+      "id": "bug-1240",
+      "timestamp": "2026-09-17T15:57:00.000Z",
+      "error_message": "A tool call to add the legacy routes redirect failed with a JavaScript syntax error.",
+      "file": "apps/web/app/(dashboard)/housekeeping/routes/page.tsx",
+      "root_cause": "The orchestration script was malformed before apply_patch ran.",
+      "fix": "Reissued the same focused patch with valid JavaScript; the redirect file was created successfully.",
+      "tags": ["tooling", "apply-patch"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T15:57:00.000Z"
+    },
+    {
+      "id": "bug-1241",
+      "timestamp": "2026-09-17T16:10:00.000Z",
+      "error_message": "A read-only ripgrep audit command used a parenthesized directory expression as a literal Windows path and failed with os error 123.",
+      "file": "apps/web/app/(dashboard)",
+      "root_cause": "ripgrep path arguments do not support shell-style grouped alternatives on Windows.",
+      "fix": "Use one valid root path and apply the alternatives only in rg's regex pattern.",
+      "tags": ["tooling", "ripgrep", "audit"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:10:00.000Z"
+    },
+    {
+      "id": "bug-1242",
+      "timestamp": "2026-09-17T16:14:00.000Z",
+      "error_message": "A read-only graph audit command failed with a PowerShell parser error while nesting Python quotes.",
+      "file": "graphify-out/graph.json",
+      "root_cause": "The command mixed PowerShell escaping with Python keyword arguments inside a quoted one-liner.",
+      "fix": "Run the focused Python command directly through rtk without wrapping it in an additional PowerShell command.",
+      "tags": ["tooling", "powershell", "graphify"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:14:00.000Z"
+    },
+    {
+      "id": "bug-1243",
+      "timestamp": "2026-09-17T16:17:00.000Z",
+      "error_message": "Browser audit navigation to /settings timed out while waiting for the local tab to finish navigation.",
+      "file": "apps/web/app/(dashboard)/settings",
+      "root_cause": "Unknown; the local development route did not settle within the browser helper timeout.",
+      "fix": "Treat the navigation result as unknown and take a fresh read-only browser observation before drawing conclusions.",
+      "tags": ["browser", "local-dev", "audit"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:17:00.000Z"
+    },
+    {
+      "id": "bug-1244",
+      "timestamp": "2026-09-17T16:20:00.000Z",
+      "error_message": "OpenWolf audit-memory patch failed because the expected cerebrum text did not exactly match the file's encoded punctuation.",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The patch anchored on a long Unicode-rich paragraph rather than a stable end-of-file context.",
+      "fix": "Verify whether the atomic patch made no partial change, then append the concise learning with a stable tail anchor.",
+      "tags": ["tooling", "apply-patch", "openwolf"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:20:00.000Z"
+    },
+    {
+      "id": "bug-1245",
+      "timestamp": "2026-09-17T16:22:00.000Z",
+      "error_message": "A second attempt to append the OpenWolf navigation-audit learning failed because the patch tool does not accept a line-count-only hunk as end-of-file context.",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The patch omitted actual source-line context.",
+      "fix": "Leave the already recorded audit in memory and avoid further documentation mutation during this read-only report rather than risk unrelated large-file edits.",
+      "tags": ["tooling", "apply-patch", "openwolf"],
+      "related_bugs": ["bug-1244"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:22:00.000Z"
+    },
+    {
+      "id": "bug-1246",
+      "timestamp": "2026-09-17T16:22:00.000Z",
+      "error_message": "The initial bug-log patch for bug-1245 was malformed and rejected before it could modify the file.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The added closing JSON line lacked the patch addition prefix.",
+      "fix": "Reissued the same focused JSON append with every added line prefixed correctly.",
+      "tags": ["tooling", "apply-patch", "openwolf"],
+      "related_bugs": ["bug-1245"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:22:00.000Z"
+    },
+    {
+      "id": "bug-1247",
+      "timestamp": "2026-09-17T16:24:00.000Z",
+      "error_message": "Python JSON validation of the OpenWolf bug log failed under the Windows cp1252 default decoder.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The log contains UTF-8 punctuation that cp1252 cannot decode.",
+      "fix": "Validate it with an explicit UTF-8 file encoding.",
+      "tags": ["tooling", "encoding", "openwolf"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:24:00.000Z"
+    },
+    {
+      "id": "bug-1248",
+      "timestamp": "2026-09-17T16:28:00.000Z",
+      "error_message": "A chunked Graphify skill-read command lost its PowerShell variable before evaluation and failed to parse.",
+      "file": "C:\\Users\\Henil\\.agents\\skills\\graphify\\SKILL.md",
+      "root_cause": "The nested PowerShell command used double quotes, allowing the outer shell to interpolate the variable.",
+      "fix": "Use a single-quoted inner PowerShell command to preserve the variable for the rtk child process.",
+      "tags": ["tooling", "powershell", "skills"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:28:00.000Z"
+    },
+    {
+      "id": "bug-1249",
+      "timestamp": "2026-09-17T16:32:00.000Z",
+      "error_message": "Graph navigation query failed because the system Python does not include graphify's networkx dependency.",
+      "file": "graphify-out/graph.json",
+      "root_cause": "The query used the generic Python interpreter instead of the graph-specific interpreter recorded by Graphify.",
+      "fix": "Use the interpreter path stored in graphify-out/.graphify_python for graph queries and updates.",
+      "tags": ["tooling", "graphify", "python"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:32:00.000Z"
+    },
+    {
+      "id": "bug-1250",
+      "timestamp": "2026-09-17T16:34:00.000Z",
+      "error_message": "The retry using Graphify's virtual-environment interpreter failed with a Python syntax error caused by nested PowerShell quoting.",
+      "file": "graphify-out/graph.json",
+      "root_cause": "Escaped inner Python string quotes were altered by the nested shell command.",
+      "fix": "Use a dependency-free JSON query through the standard interpreter instead of nesting a virtual-environment command.",
+      "tags": ["tooling", "graphify", "powershell"],
+      "related_bugs": ["bug-1249"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:34:00.000Z"
+    },
+    {
+      "id": "bug-1251",
+      "timestamp": "2026-09-17T16:38:00.000Z",
+      "error_message": "New navigation-consolidation unit tests failed before implementation because the primary/More groups and People label did not yet exist.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "Intentional TDD red phase for the agreed navigation consolidation.",
+      "fix": "Add the primary and secondary navigation group constants, rename Staff to People, and remove engineering sidebar sub-navigation.",
+      "tags": ["tdd", "navigation", "frontend"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:38:00.000Z"
+    },
+    {
+      "id": "bug-1252",
+      "timestamp": "2026-09-17T16:41:00.000Z",
+      "error_message": "A focused work-order source-read command failed because its PowerShell variable was interpolated by the outer shell.",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "Nested PowerShell command used double quotes around variable assignment.",
+      "fix": "Use a single-quoted inner PowerShell command when indexing source arrays.",
+      "tags": ["tooling", "powershell"],
+      "related_bugs": ["bug-1248"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:41:00.000Z"
+    },
+    {
+      "id": "bug-1253",
+      "timestamp": "2026-09-17T16:44:00.000Z",
+      "error_message": "The cross-page consolidation patch did not apply because the Staff page's React import did not match the assumed symbol order.",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "A multi-file patch used inferred import text instead of the exact source line.",
+      "fix": "Inspect the compact import blocks and reissue focused patches with exact context.",
+      "tags": ["tooling", "apply-patch", "frontend"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:44:00.000Z"
+    },
+    {
+      "id": "bug-1254",
+      "timestamp": "2026-09-17T16:49:00.000Z",
+      "error_message": "The OpenWolf anatomy patch failed because the expected Unicode dash text did not match the file's source encoding.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The patch relied on Unicode-rich existing descriptions as context.",
+      "fix": "Use ASCII-only section headers as patch context when appending missing file descriptions.",
+      "tags": ["tooling", "apply-patch", "openwolf"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:49:00.000Z"
+    },
+    {
+      "id": "bug-1255",
+      "timestamp": "2026-09-17T16:50:00.000Z",
+      "error_message": "The first bug-log entry for the failed anatomy patch was malformed and rejected before it changed the JSON file.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "One added JSON line was missing the patch addition prefix.",
+      "fix": "Reissued the append with every new line prefixed correctly.",
+      "tags": ["tooling", "apply-patch", "openwolf"],
+      "related_bugs": ["bug-1254"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:50:00.000Z"
+    },
+    {
+      "id": "bug-1256",
+      "timestamp": "2026-09-17T16:53:00.000Z",
+      "error_message": "A focused git-diff review command failed because PowerShell interpreted unquoted paths containing (dashboard).",
+      "file": "apps/web/app/(dashboard)",
+      "root_cause": "Parenthesized Windows paths require quoting in PowerShell arguments.",
+      "fix": "Use git diff --stat for a safe overview and quote each parenthesized path in targeted reviews.",
+      "tags": ["tooling", "git", "powershell"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:53:00.000Z"
+    },
+    {
+      "id": "bug-1257",
+      "timestamp": "2026-09-17T16:57:00.000Z",
+      "error_message": "Live verification showed the consolidated People workspace still rendered as Staff in the sidebar.",
+      "file": "apps/web/lib/utils/navigation.ts",
+      "root_cause": "The new People label reused the existing nav.staff translation key.",
+      "fix": "Add a dedicated nav.people translation and map the People navigation item to it.",
+      "tags": ["i18n", "navigation", "browser-verified"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T16:57:00.000Z"
+    },
+    {
+      "id": "bug-1258",
+      "timestamp": "2026-09-17T17:00:00.000Z",
+      "error_message": "Browser verification of the Schedule route timed out while waiting for local navigation to settle.",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "Unknown local-development navigation delay.",
+      "fix": "Treat the outcome as unknown and take a fresh read-only browser observation before retrying or drawing conclusions.",
+      "tags": ["browser", "local-dev", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:00:00.000Z"
+    },
+    {
+      "id": "bug-1259",
+      "timestamp": "2026-09-17T17:03:00.000Z",
+      "error_message": "Navigation tests failed in the intended TDD red phase because Schedule and Management ROI were still shown in More rather than only inside People and Reports.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "The contextual-only navigation group had not been implemented yet.",
+      "fix": "Export the contextual route list and remove its routes from the More sidebar group.",
+      "tags": ["tdd", "navigation", "consolidation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:03:00.000Z"
+    },
+    {
+      "id": "bug-1260",
+      "timestamp": "2026-09-17T17:03:00.000Z",
+      "error_message": "The initial bug-log patch for the contextual-navigation test failure was malformed and rejected before changing the log.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "Several added JSON lines lacked the patch addition prefix.",
+      "fix": "Reissued the same focused append with valid patch prefixes.",
+      "tags": ["tooling", "apply-patch", "openwolf"],
+      "related_bugs": ["bug-1259"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:03:00.000Z"
+    },
+    {
+      "id": "bug-1261",
+      "timestamp": "2026-09-17T17:12:00.000Z",
+      "error_message": "Navigation tests failed in the intended TDD red phase because Safety was still primary and the direct-access navigation group did not exist.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "The requested sidebar-only removal had not yet been represented in the navigation model.",
+      "fix": "Add DIRECT_ACCESS_NAV_HREFS for Safety and remove Safety from PRIMARY_NAV_HREFS while retaining its route and role allow-list.",
+      "tags": ["tdd", "navigation", "safety"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:12:00.000Z"
+    },
+    {
+      "id": "bug-1262",
+      "timestamp": "2026-09-17T17:20:00.000Z",
+      "error_message": "Navigation tests failed in the intended TDD red phase because AI Copilot and Evidence were still present in the More sidebar group.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "The requested navigation-only removals had not yet been represented in the shared navigation model.",
+      "fix": "Move the AI and Evidence routes to DIRECT_ACCESS_NAV_HREFS, remove them from MORE_NAV_HREFS, and remove duplicate visual entry points.",
+      "tags": ["tdd", "navigation", "ai", "evidence"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:20:00.000Z"
+    },
+    {
+      "id": "bug-1263",
+      "timestamp": "2026-09-17T17:30:00.000Z",
+      "error_message": "Housekeeping navigation tests failed in the intended TDD red phase because the Room Board link was still rendered as a redundant sub-navigation item.",
+      "file": "apps/web/lib/utils/housekeepingNavigation.test.ts",
+      "root_cause": "The housekeeping navigation helper still defined Room Board as a secondary item despite it being the default Housekeeping destination.",
+      "fix": "Return no housekeeping sub-navigation items so selecting Housekeeping opens the Room Board without a duplicate label.",
+      "tags": ["tdd", "housekeeping", "navigation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:30:00.000Z"
+    },
+    {
+      "id": "bug-1264",
+      "timestamp": "2026-09-17T17:34:00.000Z",
+      "error_message": "Type-check failed because a concurrent Next build regenerated .next and temporarily removed generated route types.",
+      "file": "apps/web/.next/types/validator.ts",
+      "root_cause": "npm run type-check and npm run build were launched concurrently despite both touching generated Next artifacts.",
+      "fix": "Run the type-check again after the build finishes, and run these two checks serially in future verification passes.",
+      "tags": ["tooling", "nextjs", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:34:00.000Z"
+    },
+    {
+      "id": "bug-1265",
+      "timestamp": "2026-09-17T17:42:00.000Z",
+      "error_message": "Initial settings-navigation search failed because PowerShell interpreted an unquoted parenthesized App Router path as syntax.",
+      "file": "apps/web/app/(dashboard)/settings",
+      "root_cause": "The PowerShell command included an unquoted path containing parentheses.",
+      "fix": "Repeated the search from the apps/web root without parenthesized positional paths.",
+      "tags": ["tooling", "powershell", "search"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:42:00.000Z"
+    },
+    {
+      "id": "bug-1266",
+      "timestamp": "2026-09-17T17:44:00.000Z",
+      "error_message": "Navigation tests failed in the intended TDD red phase because Programs was still a primary sidebar destination.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "Programs had not yet been moved from the primary navigation group to Settings/direct access.",
+      "fix": "Remove Programs from PRIMARY_NAV_HREFS, retain its direct route, and add it as a Workflow item in Settings.",
+      "tags": ["tdd", "navigation", "programs", "settings"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:44:00.000Z"
+    },
+    {
+      "id": "bug-1267",
+      "timestamp": "2026-09-17T17:49:00.000Z",
+      "error_message": "The /settings/programs breadcrumb rendered an i18n object error instead of the Programs label.",
+      "file": "apps/web/components/shared/Breadcrumbs.tsx",
+      "root_cause": "The shared Settings sub-navigation registry did not include /settings/programs, so the fallback interpreted the programs translation namespace as a label.",
+      "fix": "Add Programs to SETTINGS_NAV_ITEM.subNav so Breadcrumbs resolves its nav label key.",
+      "tags": ["i18n", "breadcrumb", "settings", "programs"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T17:49:00.000Z"
+    },
+    {
+      "id": "bug-1268",
+      "timestamp": "2026-09-17T18:05:00.000Z",
+      "error_message": "Navigation test failed in the intended TDD red phase because Reports and People were still primary sidebar destinations.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "The requested demotion to More had not yet been reflected in the shared navigation groups.",
+      "fix": "Remove Reports and People from PRIMARY_NAV_HREFS and add them to MORE_NAV_HREFS without changing route access.",
+      "tags": ["tdd", "navigation", "reports", "people"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T18:05:00.000Z"
+    },
+    {
+      "id": "bug-1269",
+      "timestamp": "2026-09-17T18:18:00.000Z",
+      "error_message": "Navigation tests failed in the intended TDD red phase because Dashboard was still a primary sidebar item and no brand-link navigation group existed.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "The requested logo-only Dashboard access had not yet been represented in the shared navigation model.",
+      "fix": "Move Dashboard to BRAND_NAV_HREFS and wrap the PatelRep logo in a dashboard link.",
+      "tags": ["tdd", "navigation", "dashboard", "sidebar"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T18:18:00.000Z"
+    },
+    {
+      "id": "bug-1270",
+      "timestamp": "2026-09-17T18:23:00.000Z",
+      "error_message": "The local browser automation helper did not support getByRole while attempting to click the verified PatelRep dashboard link.",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "The browser tab automation surface exposes accessibility snapshots but not the attempted locator helper.",
+      "fix": "Verified the rendered Dashboard link target directly in the accessibility tree; no application code change was needed.",
+      "tags": ["tooling", "browser", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T18:23:00.000Z"
+    },
+    {
+      "id": "bug-1272",
+      "timestamp": "2026-09-17T18:56:00.000Z",
+      "error_message": "Navigation tests failed in the intended TDD red phase because SOP Library was still in More and absent from Settings/direct access navigation.",
+      "file": "apps/web/lib/utils/navigation.test.ts",
+      "root_cause": "The requested SOP relocation had not yet been represented in the shared navigation and Settings registry.",
+      "fix": "Move SOP from MORE_NAV_HREFS to DIRECT_ACCESS_NAV_HREFS and expose it at /settings/sop with a Settings sub-navigation entry.",
+      "tags": ["tdd", "navigation", "sop", "settings"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T18:56:00.000Z"
+    },
+    {
+      "id": "bug-1273",
+      "timestamp": "2026-09-17T19:01:00.000Z",
+      "error_message": "Local browser automation timed out while navigating from Dashboard to /settings/sop during live verification.",
+      "file": "apps/web/app/(dashboard)/settings/sop/page.tsx",
+      "root_cause": "The browser navigation did not settle within the automation timeout; the running app remained on Dashboard.",
+      "fix": "Retry the same read-only route navigation and inspect the resulting accessibility tree.",
+      "tags": ["tooling", "browser", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T19:01:00.000Z"
+    },
+    {
+      "id": "bug-1274",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "API test collection failed because the local Python environment lacked the newly declared paramiko dependency; the ruff executable was also unavailable.",
+      "file": "apps/api/requirements.txt",
+      "root_cause": "The local API environment had not been synchronized after the SFTP report-ingestion dependency was added.",
+      "fix": "Install the declared API requirements, then rerun ruff and the API test suite before pushing.",
+      "tags": ["tooling", "dependencies", "api", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1275",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "Synchronizing API requirements failed because the running local uvicorn process locked its Windows executable during package replacement.",
+      "file": "apps/api/requirements.txt",
+      "root_cause": "pip attempted to replace the currently running uvicorn executable while the local API server was active.",
+      "fix": "Leave the active development server intact and install only the missing test dependencies without replacing uvicorn.",
+      "tags": ["tooling", "windows", "dependencies", "verification"],
+      "related_bugs": ["bug-1274"],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1276",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "API verification found two unused test imports and test collection failed because pydantic and pydantic-core were left at incompatible versions after an interrupted dependency sync.",
+      "file": "apps/api/tests/test_opera_report_ingest.py",
+      "root_cause": "New tests retained unused imports, and the earlier pip interruption left the local environment only partially upgraded.",
+      "fix": "Remove the unused imports and force-reinstall the exact pydantic pair required by requirements.txt before rerunning checks.",
+      "tags": ["lint", "tests", "dependencies", "verification"],
+      "related_bugs": ["bug-1275"],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1277",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "git add was blocked by an existing .git/index.lock file.",
+      "file": ".git/index.lock",
+      "root_cause": "A previous Git operation left an index lock in the working tree.",
+      "fix": "Verify no Git process is active, then remove only the stale index lock and retry staging.",
+      "tags": ["git", "tooling", "delivery"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
     }
   ]
 }

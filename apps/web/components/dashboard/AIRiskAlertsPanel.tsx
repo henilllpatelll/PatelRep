@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { AlertTriangle, Zap, Clock, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
+import { AlertTriangle, Zap, Clock, ChevronDown, ChevronUp, CheckCircle, Package, MessageSquare, RefreshCw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { aiApi } from '@/lib/api/ai'
 
@@ -18,13 +18,19 @@ export function AIRiskAlertsPanel() {
   const hasAlerts = alerts && (
     (alerts.housekeeping_risks?.length ?? 0) > 0 ||
     (alerts.maintenance_risks?.length ?? 0) > 0 ||
-    (alerts.sla_breaches?.length ?? 0) > 0
+    (alerts.sla_breaches?.length ?? 0) > 0 ||
+    (alerts.low_stock_parts?.length ?? 0) > 0 ||
+    (alerts.pending_guest_issues?.length ?? 0) > 0 ||
+    (alerts.recurring_issues?.length ?? 0) > 0
   )
 
   const totalCount =
     (alerts?.housekeeping_risks?.length ?? 0) +
     (alerts?.maintenance_risks?.length ?? 0) +
-    (alerts?.sla_breaches?.length ?? 0)
+    (alerts?.sla_breaches?.length ?? 0) +
+    (alerts?.low_stock_parts?.length ?? 0) +
+    (alerts?.pending_guest_issues?.length ?? 0) +
+    (alerts?.recurring_issues?.length ?? 0)
 
   if (isLoading) {
     return (
@@ -138,6 +144,77 @@ export function AIRiskAlertsPanel() {
                   </div>
                   <a
                     href={`/engineering/predictions?asset=${r.id}`}
+                    className="text-xs text-[var(--caution)] hover:underline shrink-0"
+                  >
+                    View
+                  </a>
+                </div>
+              ))}
+
+              {/* Recurring issues */}
+              {alerts?.recurring_issues?.map((r) => (
+                <div key={r.key} className="border-l-4 border-[var(--caution)] bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                  <RefreshCw size={16} className="text-[var(--caution)] mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-ink2">
+                        {r.asset_name ?? (r.room_number ? `Room ${r.room_number}` : 'Unknown location')}
+                        {' — '}{r.wo_count}x in {r.window_days}d
+                      </p>
+                      <span className="px-1.5 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] text-xs font-semibold rounded uppercase">
+                        RECURRING
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href="/engineering"
+                    className="text-xs text-[var(--caution)] hover:underline shrink-0"
+                  >
+                    View
+                  </a>
+                </div>
+              ))}
+
+              {/* Low-stock parts */}
+              {alerts?.low_stock_parts?.map((p) => (
+                <div key={p.id} className="border-l-4 border-[var(--caution)] bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                  <Package size={16} className="text-[var(--caution)] mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-ink2">
+                        {p.name} — {p.on_hand} on hand{p.minimum_stock != null ? ` (min ${p.minimum_stock})` : ''}
+                      </p>
+                      <span className="px-1.5 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] text-xs font-semibold rounded uppercase">
+                        LOW STOCK
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href="/engineering/work-orders?tab=parts"
+                    className="text-xs text-[var(--caution)] hover:underline shrink-0"
+                  >
+                    View
+                  </a>
+                </div>
+              ))}
+
+              {/* Pending guest issues */}
+              {alerts?.pending_guest_issues?.map((g) => (
+                <div key={g.id} className="border-l-4 border-[var(--alert)] bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                  <MessageSquare size={16} className="text-[var(--alert)] mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-ink2 truncate">
+                        {g.rooms?.room_number ? `Room ${g.rooms.room_number} — ` : ''}
+                        {g.title ?? g.description ?? 'Guest request'}
+                      </p>
+                      <span className="px-1.5 py-0.5 bg-[var(--alert-soft)] text-[var(--alert)] text-xs font-semibold rounded uppercase shrink-0">
+                        GUEST
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href="/guest-requests"
                     className="text-xs text-[var(--caution)] hover:underline shrink-0"
                   >
                     View

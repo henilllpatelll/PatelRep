@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -139,6 +140,7 @@ function Section({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ManagementRoiPage() {
+  const router = useRouter()
   const { t } = useTranslation()
   const { isGM } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
@@ -269,10 +271,14 @@ export default function ManagementRoiPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Intelligence"
-        title={v2 ? t('managementRoi.pageTitle') : 'Management ROI'}
+        title="Reports"
         subtitle={v2 ? t('managementRoi.pageSubtitle') : 'Time saved, quality, response, and revenue protected — trends and exceptions, not totals alone'}
         dataI18nSkip={v2}
         actions={<DateRangeSelector value={range} onChange={setRange} />}
+        tabs={[
+          { label: 'Operational reports', active: false, onClick: () => router.push('/reports') },
+          { label: 'Management ROI', active: true, onClick: () => undefined },
+        ]}
       />
 
       {errors.length > 0 && (
@@ -493,7 +499,12 @@ export default function ManagementRoiPage() {
 
           {/* 7-day forecast strip */}
           <Card hover={false} className="p-5">
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">7-Day Forecast</h3>
+            <div className="mb-3 flex items-baseline justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">7-Day Forecast</h3>
+              {forecast && (
+                <p className="text-xs text-gray-400">{t('managementRoi.forecastStaffingHint', { hours: forecast.avg_shift_hours })}</p>
+              )}
+            </div>
             {forecast && forecast.days.length > 0 ? (
               <div className="grid grid-cols-7 gap-2">
                 {forecast.days.map((d) => (
@@ -506,6 +517,23 @@ export default function ManagementRoiPage() {
                       <Pill tone={CONFIDENCE_TONE[d.confidence] ?? 'neutral'} size="sm">
                         {d.confidence}
                       </Pill>
+                    </div>
+                    <div className="mt-2 border-t border-line pt-2">
+                      <p className="text-xs text-gray-500">
+                        {t('managementRoi.forecastStaffingSummary', {
+                          needed: d.suggested_housekeepers,
+                          scheduled: d.scheduled_housekeepers,
+                        })}
+                      </p>
+                      {d.staffing_gap > 0 ? (
+                        <Pill tone="alert" size="sm" className="mt-1">
+                          {t('managementRoi.forecastStaffingShort', { count: d.staffing_gap })}
+                        </Pill>
+                      ) : (
+                        <Pill tone="ready" size="sm" className="mt-1">
+                          {t('managementRoi.forecastStaffingCovered')}
+                        </Pill>
+                      )}
                     </div>
                   </div>
                 ))}

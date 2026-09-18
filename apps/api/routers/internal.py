@@ -476,6 +476,31 @@ async def sync_opera_reservations(x_cron_secret: str = Header(None)):
     return {"status": "ok", "results": results, "hotels_synced": len(results)}
 
 
+@router.post("/opera/sftp-sync-reports")
+async def sync_opera_report_files(x_cron_secret: str = Header(None)):
+    """Cron job: poll SFTP and ingest new scheduled-report files for all sftp_report tenants."""
+    verify_cron(x_cron_secret)
+    from services.opera import sync_report_files
+
+    connected = supabase.table("opera_credentials")\
+        .select("tenant_id")\
+        .eq("is_connected", True)\
+        .eq("connection_mode", "sftp_report")\
+        .execute()
+
+    results = []
+    for row in (connected.data or []):
+        hotel_id = row["tenant_id"]
+        try:
+            result = sync_report_files(hotel_id)
+            results.append({"hotel_id": hotel_id, **result})
+        except Exception as e:
+            results.append({"hotel_id": hotel_id, "error": str(e)})
+
+    _record_cron_run("opera.sftp-sync-reports")
+    return {"status": "ok", "results": results, "hotels_synced": len(results)}
+
+
 def _notify_role(hotel_id: str, target_role: str, notif_type: str, title: str, body: str, data: dict) -> None:
     """Insert an in-app notification for every active user of target_role in the hotel."""
     users = supabase.table("user_roles")\

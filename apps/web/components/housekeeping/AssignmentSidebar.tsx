@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
-import { housekeepingApi } from '@/lib/api/housekeeping'
+import { housekeepingApi, type AssignmentSuggestion } from '@/lib/api/housekeeping'
 import { ApiClientError } from '@/lib/api/client'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
+import { AssignmentSuggestionsDrawer } from '@/components/housekeeping/AssignmentSuggestionsDrawer'
 
 export function AssignmentSidebar() {
   const { t } = useTranslation()
@@ -19,6 +20,7 @@ export function AssignmentSidebar() {
   const hotel = useHotelStore((s) => s.hotel)
   const v2 = isSectionRedesigned('housekeeping', hotel)
   const [aiLoading, setAiLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<AssignmentSuggestion[] | null>(null)
 
   const scopedRooms = buildingFilter != null
     ? rooms.filter((room: any) => room.rooms?.building === buildingFilter)
@@ -31,20 +33,13 @@ export function AssignmentSidebar() {
     setAiLoading(true)
     try {
       const result = await housekeepingApi.aiSuggestAssignments(selectedDate, selectedShift ?? undefined)
-      const suggestions = (result as any)?.data?.suggestions ?? []
-      const roomCount = suggestions.reduce(
-        (sum: number, s: any) => sum + (s.room_count ?? s.rooms?.length ?? 0),
-        0,
-      )
+      const fetchedSuggestions = result.data.suggestions ?? []
+      const roomCount = fetchedSuggestions.reduce((sum, s) => sum + s.room_count, 0)
 
       if (roomCount === 0) {
-        toast.info((result as any)?.data?.message || t('housekeeping.assignmentSidebar.noRoomsNeedWork'))
+        toast.info(result.data.message || t('housekeeping.assignmentSidebar.noRoomsNeedWork'))
       } else {
-        toast.success(
-          roomCount === 1
-            ? t('housekeeping.assignmentSidebar.successCountOne', { count: roomCount })
-            : t('housekeeping.assignmentSidebar.successCountOther', { count: roomCount }),
-        )
+        setSuggestions(fetchedSuggestions)
       }
     } catch (err) {
       toast.error(err instanceof ApiClientError ? err.message : t('housekeeping.assignmentSidebar.failure'))
@@ -96,6 +91,14 @@ export function AssignmentSidebar() {
           </>
         )}
       </Button>
+
+      <AssignmentSuggestionsDrawer
+        isOpen={suggestions != null}
+        onClose={() => setSuggestions(null)}
+        suggestions={suggestions ?? []}
+        date={selectedDate}
+        shiftId={selectedShift}
+      />
     </Card>
   )
 }

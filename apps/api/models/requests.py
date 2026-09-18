@@ -386,6 +386,9 @@ class RoomAssignmentItem(SanitizedBaseModel):
     room_id: UUID4
     housekeeper_id: UUID4
     clean_type: Optional[CleanType] = None
+    # Walking order (1-based) within this housekeeper's day, as computed by
+    # ai-suggest-assignments' room sequencing. Null for manual assignments.
+    sequence_order: Optional[int] = Field(default=None, ge=1, le=500)
 
 
 class CreateAssignmentsRequest(SanitizedBaseModel):
@@ -1038,6 +1041,29 @@ class OperaConnectRequest(SanitizedBaseModel):
         default=None, max_length=MEDIUM_TEXT_MAX
     )
     integration_password: Optional[str] = None
+
+
+class OperaSftpConnectRequest(SanitizedBaseModel):
+    """Connects Opera Cloud via scheduled-report SFTP ingestion instead of the
+    OHIP API (services/opera/report_ingest.py) -- for hotels whose subscription
+    doesn't include OHIP API access."""
+
+    sftp_host: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    sftp_port: int = Field(default=22, ge=1, le=65535)
+    sftp_username: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    sftp_password: Optional[str] = None
+    sftp_private_key: Optional[str] = Field(default=None, max_length=16000)
+    sftp_host_key_fingerprint: Optional[str] = Field(default=None, max_length=128)
+    sftp_remote_path: str = Field(default="/", max_length=1024)
+    report_delimiter: Literal["\t", ",", "|"] = "\t"
+    report_column_mapping: Optional[dict] = None
+    report_type_filename_patterns: Optional[dict] = None
+
+    @model_validator(mode="after")
+    def require_exactly_one_auth_method(self):
+        if bool(self.sftp_password) == bool(self.sftp_private_key):
+            raise ValueError("Provide exactly one of sftp_password or sftp_private_key")
+        return self
 
 
 # --- AI Copilot: Preview models ---

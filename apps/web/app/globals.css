@@ -257,53 +257,18 @@
   100% { background-position:  200% 0; }
 }
 
-/* Shift-briefing ↔ inline-chat swap. Both states render into the same grid cell
-   (single column track) so the taller one sets the height and the room-figure
-   column / footer strip never move. Whichever state is mounted plays the
-   `swap-in` keyframe below — a slow upward drift + fade. No display:none,
-   height animation, or overflow:hidden here (it would clip the 18px rise). The
-   entering child is keyed on state in SimplifiedDashboard so React remounts it
-   and the animation replays every toggle. */
+/* Reserve the same space for the briefing and chat so room totals stay put.
+   Framer Motion shares the ask button/composer layout inside this grid cell. */
 .briefing-left {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  height: 224px;
 }
 
 .briefing-left > * {
   grid-area: 1 / 1;
   min-width: 0;
-}
-
-@keyframes briefing-swap-in {
-  0%   { opacity: 0;   transform: translateY(18px); }
-  45%  { opacity: .45; }
-  100% { opacity: 1;   transform: translateY(0); }
-}
-
-/* Outgoing state: leaves quickly and upward while the incoming state rises in,
-   so the eye follows one continuous upward motion instead of seeing a gap. */
-@keyframes briefing-swap-out {
-  0%   { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
-
-.swap-in {
-  animation: briefing-swap-in 620ms cubic-bezier(.16, .84, .34, 1) both;
-}
-
-.swap-out {
-  animation: briefing-swap-out 320ms cubic-bezier(.4, 0, .6, 1) both;
-  pointer-events: none; /* not clickable while leaving */
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .swap-in {
-    animation: briefing-swap-in 120ms linear both;
-  }
-  .swap-out {
-    animation: briefing-swap-out 80ms linear both;
-  }
 }
 
 @keyframes dot-bob {

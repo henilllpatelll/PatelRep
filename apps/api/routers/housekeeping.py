@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from typing import Optional
@@ -570,7 +571,7 @@ def _fetch_my_assignments(current_user: CurrentUser, target_date: date) -> list[
     try:
         assignments = (
             supabase.table("room_assignments")
-            .select("id, room_id, assignment_date, clean_type")
+            .select("id, room_id, assignment_date, clean_type, sequence_order")
             .eq("tenant_id", current_user.hotel_id)
             .eq("assigned_to", current_user.user_id)
             .eq("assignment_date", target_date.isoformat())
@@ -669,8 +670,17 @@ async def get_my_rooms(
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
             "assignment_id": assignment.get("id"),
             "assignment_date": assignment.get("assignment_date"),
+            "sequence_order": assignment.get("sequence_order"),
             **_clean_type_payload(clean_type),
         })
+    # AI-sequenced rooms (walking order) lead; unsequenced rooms fall back
+    # to floor/room_number so the list is still stably ordered.
+    rows.sort(key=lambda r: (
+        r.get("sequence_order") is None,
+        r.get("sequence_order") or 0,
+        r.get("floor") or 0,
+        r.get("room_number") or "",
+    ))
     _attach_task_sheet_clean_types(rows, current_user.hotel_id, today)
     _attach_room_activity(rows, current_user.hotel_id, today)
     return {"data": rows}
@@ -695,7 +705,7 @@ async def get_assignments(
     # Fetch assignments for the date (and optionally shift)
     assign_query = (
         supabase.table("room_assignments")
-        .select("id, room_id, assigned_to, shift_id, assignment_date, clean_type, rooms(room_number, room_types(name, code))")
+        .select("id, room_id, assigned_to, shift_id, assignment_date, clean_type, sequence_order, rooms(room_number, room_types(name, code))")
         .eq("tenant_id", current_user.hotel_id)
         .eq("assignment_date", target_date.isoformat())
     )
@@ -744,6 +754,7 @@ async def get_assignments(
             "room_number": room_info.get("room_number", ""),
             "status": status,
             "room_type": rt_info.get("name", ""),
+            "sequence_order": a.get("sequence_order"),
             **_clean_type_payload(a.get("clean_type")),
         })
 
@@ -752,6 +763,13 @@ async def get_assignments(
             grouped[hk_id]["rooms_done"] += 1
         elif status == "IN_PROGRESS":
             grouped[hk_id]["in_progress"] += 1
+
+    # Rooms with a sequence number (AI-sequenced) lead, in walking order;
+    # unsequenced (manually assigned) rooms follow in their existing order.
+    for group in grouped.values():
+        group["rooms"].sort(
+            key=lambda r: (r.get("sequence_order") is None, r.get("sequence_order") or 0)
+        )
 
     # Fetch housekeeper names
     if grouped:
@@ -858,6 +876,9 @@ async def create_assignments(
         clean_type = _resolve_clean_type(str(a.room_id), a.clean_type)
         if clean_type is not None:
             row["clean_type"] = clean_type
+        # Always set explicitly (including None) so a manual re-assignment
+        # clears a stale sequence number left over from a prior AI suggestion.
+        row["sequence_order"] = a.sequence_order
         return row
 
     assignments_data = [_build_assignment_row(a) for a in request.assignments]
@@ -1003,6 +1024,92 @@ async def remove_room_assignment_mirror(
         .execute()
 
     return {"data": {"success": True, "room_id": room_id}}
+
+
+# ---------------------------------------------------------------------------
+# Room sequencing (floor-walk minimization)
+# ---------------------------------------------------------------------------
+
+def _room_number_position(room: dict) -> float:
+    match = re.search(r"\d+", str(room.get("room_number") or ""))
+    return float(match.group()) if match else 0.0
+
+
+def _sequence_rooms(rooms: list[dict]) -> list[dict]:
+    """
+    Order a housekeeper's assigned rooms to minimize floor-walking: same
+    building/floor rooms are grouped, with floor switches (elevator/stair
+    trips) treated as the most expensive move after a building switch.
+
+    Distance is a synthetic metric over (building, floor, room_number) --
+    the only location fields guaranteed present on every room -- rather than
+    the free-form, per-tenant `tenants.layout` JSON (most tenants never seed
+    one, and its schema isn't guaranteed stable across properties).
+
+    A housekeeper's day is usually well under 20 rooms, so nearest-neighbor
+    construction + 2-opt local search in plain Python is used instead of
+    standing up an OR-Tools open-path RoutingModel per housekeeper on every
+    suggest-assignments call -- that's real solver overhead for a heuristic
+    distance metric that doesn't need ILP-grade optimality.
+    """
+    n = len(rooms)
+    if n <= 1:
+        for i, room in enumerate(rooms):
+            room["sequence"] = i + 1
+        return rooms
+
+    BUILDING_PENALTY = 500.0
+    FLOOR_PENALTY = 20.0
+
+    def _dist(a: dict, b: dict) -> float:
+        d = 0.0
+        if (a.get("building") or None) != (b.get("building") or None):
+            d += BUILDING_PENALTY
+        d += FLOOR_PENALTY * abs((a.get("floor") or 0) - (b.get("floor") or 0))
+        d += abs(_room_number_position(a) - _room_number_position(b))
+        return d
+
+    dist = [[_dist(rooms[i], rooms[j]) for j in range(n)] for i in range(n)]
+
+    start = min(
+        range(n),
+        key=lambda i: (
+            str(rooms[i].get("building") or ""),
+            rooms[i].get("floor") or 0,
+            _room_number_position(rooms[i]),
+        ),
+    )
+    unvisited = set(range(n)) - {start}
+    order = [start]
+    while unvisited:
+        last = order[-1]
+        nxt = min(unvisited, key=lambda j: dist[last][j])
+        order.append(nxt)
+        unvisited.remove(nxt)
+
+    def _order_length(candidate: list[int]) -> float:
+        return sum(dist[candidate[k]][candidate[k + 1]] for k in range(len(candidate) - 1))
+
+    max_passes = 25
+    for _ in range(max_passes):
+        improved = False
+        for i in range(1, n - 1):
+            for j in range(i + 1, n):
+                if j - i == 1:
+                    continue
+                candidate = order[:i] + order[i:j][::-1] + order[j:]
+                if _order_length(candidate) < _order_length(order) - 1e-9:
+                    order = candidate
+                    improved = True
+        if not improved:
+            break
+
+    sequenced = []
+    for seq, idx in enumerate(order, start=1):
+        room = rooms[idx]
+        room["sequence"] = seq
+        sequenced.append(room)
+    return sequenced
 
 
 # ---------------------------------------------------------------------------
@@ -1274,7 +1381,11 @@ async def suggest_assignments(
             })
             target["assigned_minutes"] += minutes
 
-    # --- 5. Build response ---
+    # --- 5. Sequence each housekeeper's rooms into a walking order ---
+    for hk in housekeepers:
+        hk["assigned_rooms"] = _sequence_rooms(hk["assigned_rooms"])
+
+    # --- 6. Build response ---
     def _dominant_building(hk: dict) -> Optional[str]:
         counts: dict = {}
         for room in hk["assigned_rooms"]:

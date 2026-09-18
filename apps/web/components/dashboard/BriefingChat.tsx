@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { motion, useIsPresent, useReducedMotion, type Transition } from 'framer-motion'
 import { X, Send } from 'lucide-react'
 import { SparkIcon } from '@/components/ui/primitives'
 import { useAuthStore } from '@/stores/authStore'
@@ -18,10 +19,14 @@ export function BriefingChat({
   stats,
   onClose,
   onOpenRoomFilter,
+  composerLayoutId,
+  transition,
 }: {
   stats: BriefingBoardStats
   onClose: () => void
   onOpenRoomFilter: (filter: 'DEPARTURE' | 'VACANT') => void
+  composerLayoutId: string
+  transition: Transition
 }) {
   const user = useAuthStore((s) => s.user)
   const messages = useCopilotThreadStore((s) => s.messages)
@@ -31,10 +36,8 @@ export function BriefingChat({
 
   const [input, setInput] = useState('')
   const [revealLengths, setRevealLengths] = useState<Record<string, number>>({})
-  // Gate all mount-time motion behind the 620ms entrance animation: until then
-  // nothing inside the panel typewriters or grabs focus, so the whole column
-  // drifts up as one block without the caret snapping in or history streaming.
-  const [ready, setReady] = useState(false)
+  const isPresent = useIsPresent()
+  const reducedMotion = useReducedMotion()
   const scrollerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const animatedIds = useRef<Set<string>>(new Set())
@@ -46,22 +49,16 @@ export function BriefingChat({
     if (historyKey) hydrate(historyKey)
   }, [historyKey, hydrate])
 
+  // Ready for typing immediately, including when motion is reduced.
   useEffect(() => {
-    const t = setTimeout(() => setReady(true), 620)
-    return () => clearTimeout(t)
-  }, [])
-
-  // Focus the composer only after the entrance drift finishes.
-  useEffect(() => {
-    if (ready) inputRef.current?.focus({ preventScroll: true })
-  }, [ready])
+    if (isPresent) inputRef.current?.focus({ preventScroll: true })
+  }, [isPresent])
 
   // Only stream-reveal AI messages that arrive while this panel is open — the
   // initial greeting, hydrated history, and anything answered elsewhere show in
-  // full. While the entrance animation is still running (`!ready`) everything on
-  // screen is treated as already-seen so it never typewriters mid-drift.
+  // full. Reduced-motion users receive the complete answer immediately.
   useEffect(() => {
-    if (!ready) {
+    if (prevCountRef.current === null || reducedMotion || !isPresent) {
       for (const m of messages) animatedIds.current.add(m.id)
       prevCountRef.current = messages.length
       return
@@ -89,7 +86,7 @@ export function BriefingChat({
       }, 16)
       timersRef.current[m.id] = timer
     }
-  }, [messages, ready])
+  }, [messages, reducedMotion, isPresent])
 
   useEffect(() => () => {
     Object.values(timersRef.current).forEach(clearInterval)
@@ -100,12 +97,13 @@ export function BriefingChat({
   }, [messages, revealLengths, loading])
 
   useEffect(() => {
+    if (!isPresent) return
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
+  }, [onClose, isPresent])
 
   const handleSend = () => {
     const trimmed = input.trim()
@@ -117,7 +115,7 @@ export function BriefingChat({
   }
 
   return (
-    <div className="flex flex-col gap-3 min-w-0 h-full">
+    <div className="flex flex-col gap-3 min-w-0 min-h-0 h-full" role="region" aria-label="Briefing chat">
       <div className="flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-1.5">
           <SparkIcon size={12} className="text-[#b39ce0]" />
@@ -167,7 +165,9 @@ export function BriefingChat({
       </div>
 
       <div className="flex items-center gap-2 shrink-0 mt-auto">
-        <input
+        <motion.input
+          layoutId={composerLayoutId}
+          transition={{ layout: transition }}
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -176,8 +176,8 @@ export function BriefingChat({
           }}
           placeholder="Ask about the briefing…"
           aria-label="Ask about the briefing"
-          disabled={loading}
-          className="flex-1 h-[34px] px-3 text-[12.5px] text-[#f7f4ee] placeholder:text-white/40 focus:outline-none"
+          disabled={loading || !isPresent}
+          className="flex-1 min-w-0 h-[36px] px-3 text-[12.5px] text-[#f7f4ee] placeholder:text-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b39ce0]/50"
           style={{
             background: 'rgba(255,255,255,.05)',
             border: '1px solid rgba(255,255,255,.14)',

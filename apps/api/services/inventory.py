@@ -135,3 +135,36 @@ def consume_part(
         work_order_id=work_order_id,
         note=note or "Consumed closing work order",
     )
+
+
+def get_low_stock_parts_summary(tenant_id: str) -> list[dict]:
+    """Active parts where total on-hand (summed across locations) is below
+    minimum_stock. Shared by anything that needs a quick low-stock list
+    (GM exception alerts, shift-summary AI enrichment) without each caller
+    re-deriving the on_hand-vs-minimum comparison independently."""
+    parts = (
+        supabase.table("engineering_parts")
+        .select("id, name, minimum_stock")
+        .eq("tenant_id", tenant_id)
+        .eq("is_active", True)
+        .execute()
+    ).data or []
+
+    part_ids = [p["id"] for p in parts]
+    on_hand: dict[str, float] = {}
+    if part_ids:
+        stock_rows = (
+            supabase.table("engineering_part_stock")
+            .select("part_id, quantity")
+            .eq("tenant_id", tenant_id)
+            .in_("part_id", part_ids)
+            .execute()
+        ).data or []
+        for row in stock_rows:
+            on_hand[row["part_id"]] = on_hand.get(row["part_id"], 0.0) + float(row.get("quantity") or 0)
+
+    return [
+        {"id": p["id"], "name": p.get("name", ""), "on_hand": on_hand.get(p["id"], 0.0), "minimum_stock": p.get("minimum_stock")}
+        for p in parts
+        if on_hand.get(p["id"], 0.0) < float(p.get("minimum_stock") or 0)
+    ]

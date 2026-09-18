@@ -7,7 +7,7 @@ from core.config import settings
 
 
 ENVELOPE_PREFIX = "enc:v1:"
-SECRET_FIELDS = ("integration_password", "access_token", "refresh_token")
+SECRET_FIELDS = ("integration_password", "access_token", "refresh_token", "sftp_password", "sftp_private_key")
 
 
 def _fernet() -> Fernet:

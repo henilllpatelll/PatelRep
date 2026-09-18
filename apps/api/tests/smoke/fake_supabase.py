@@ -50,6 +50,21 @@ class FakeDB:
         return FakeQuery(self, name)
 
 
+class _FakeNotProxy:
+    """Mirrors supabase-py's `.not_` filter-negation proxy (e.g. `.not_.in_(...)`)."""
+
+    def __init__(self, query):
+        self._query = query
+
+    def in_(self, column, values):
+        self._query.filters.append(("not_in", column, list(values)))
+        return self._query
+
+    def eq(self, column, value):
+        self._query.filters.append(("not_eq", column, value))
+        return self._query
+
+
 class FakeQuery:
     def __init__(self, db, table_name):
         self.db = db
@@ -117,6 +132,10 @@ class FakeQuery:
         self.filters.append(("in", column, list(values)))
         return self
 
+    @property
+    def not_(self):
+        return _FakeNotProxy(self)
+
     def like(self, column, pattern):
         self.filters.append(("like", column, pattern))
         return self
@@ -159,6 +178,10 @@ class FakeQuery:
                 elif actual != value:
                     return False
             if op == "in" and actual not in value:
+                return False
+            if op == "not_in" and actual in value:
+                return False
+            if op == "not_eq" and actual == value:
                 return False
             if op == "like":
                 prefix = value.rstrip("%")

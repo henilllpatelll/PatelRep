@@ -1,7 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T05:40:18.444Z
-> Files: 48 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T15:39:40.233Z
+> Files: 105 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../
+
+- `.claude.json` (~26810 tok)
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -26,9 +30,12 @@
 
 ## ../../.claude/plans/
 
+- `recursive-nibbling-barto.md` — OPERA Cloud SFTP Scheduled-Report Ingestion (~3519 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `MEMORY.md` — PatelRep Project Memory (~1056 tok)
+- `project_opera_sftp_report_ingestion.md` — Real ground truth (verified live against a real Opera Cloud property + 2 real downloaded exports — n (~1192 tok)
 - `reference_railway.md` — Railway Infrastructure (~1436 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
@@ -90,6 +97,14 @@
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/b05610ee-fc7b-410c-90c0-8a68b1724167/scratchpad/
 
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/c4eb5f35-9822-4802-895f-b4d749b9abc0/scratchpad/
+
+- `encrypt_pw.py` (~57 tok)
+- `get_fingerprint.py` (~115 tok)
+- `gibyroom_TEST001.txt` (~57 tok)
+- `test_sftp.py` (~174 tok)
+- `upload_test_file.py` (~167 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/d54b8745-6c21-494e-b7e4-ee2a6d97bbd9/scratchpad/
 
@@ -1106,6 +1121,15 @@
 ## .wolf/runtime-logs/
 
 
+## Dashboard briefing interaction (2026-09-17)
+
+- `apps/web/components/dashboard/BriefingChat.tsx` — Inline shift-briefing conversation, shared composer layout, focus and reduced-motion handling; uses existing shared copilot store. (~2300 tok)
+- `apps/web/e2e/dashboard-briefing.spec.ts` — Authenticated inline-chat interaction checks for sending, focus restoration, reopening, stable totals, and rapid close. (~900 tok)
+- `apps/web/e2e/global-setup.ts` — Existing GM/supervisor fixture sign-in and browser storage state creation. (~1100 tok)
+- `apps/web/lib/ai/briefingFastPath.ts` — Local answers grounded in dashboard board statistics. (~1100 tok)
+- `apps/web/playwright.briefing.config.ts` — Localhost briefing suite for desktop, mobile, and reduced motion using existing fixture auth. (~350 tok)
+- `apps/web/stores/copilotThreadStore.ts` — Shared per-user daily conversation and API/local answer pipeline. (~1500 tok)
+
 ## Docker Context Additions
 
 
@@ -1139,9 +1163,11 @@
 ## apps/api/
 
 - `rbac_bare_comparison_allowlist.json` (~2337 tok)
+- `requirements.txt` — Python dependencies (~113 tok)
 
 ## apps/api/core/
 
+- `scheduler.py` — In-process cron scheduler. (~1416 tok)
 
 ## apps/api/core/scheduler.py
 
@@ -1151,17 +1177,25 @@
 
 ## apps/api/models/
 
+- `requests.py` — Pydantic: SanitizedBaseModel (~15550 tok)
 
 ## apps/api/routers/
 
+- `ai_copilot.py` — API: 1 endpoints (~15597 tok)
+- `assets.py` — API: 8 endpoints (~7165 tok)
 - `clean_sessions.py` — API: 5 endpoints (~6728 tok)
+- `housekeeping.py` — Declares from (~29335 tok)
+- `integrations.py` — API: 10 endpoints (~3827 tok)
+- `internal.py` — API: 5 endpoints (~10741 tok)
 - `logbook.py` — API: 8 endpoints (~3610 tok)
+- `management_roi.py` — Phase 5 management ROI aggregation. GM-only (D-06). Math lives in contracts.py. (~5614 tok)
 
 ## apps/api/scripts/
 
 
 ## apps/api/services/
 
+- `inventory.py` — Engineering spare-parts stock movements (migration 102). (~1727 tok)
 
 ## apps/api/services/ai/
 
@@ -1169,9 +1203,17 @@
 
 ## apps/api/services/guest_recovery/
 
+- `contracts.py` — Pure Phase 5 guest recovery, custody, and ROI policy contracts. (~6069 tok)
 
 ## apps/api/services/opera/
 
+- `__init__.py` (~199 tok)
+- `crypto.py` — encrypt_secret, decrypt_secret, encrypt_opera_secrets, decrypt_opera_secrets (~546 tok)
+- `report_columns.py` — Column and report-type resolution for Opera Cloud scheduled-report ingestion. (~1369 tok)
+- `report_ingest.py` — Opera Cloud SFTP scheduled-report ingestion. (~3695 tok)
+- `report_parser.py` — Parser for Opera Cloud "Delimited Data" scheduled-report exports. (~971 tok)
+- `sftp_client.py` — SftpConnectionError: test_connection, list_report_files, download_file (~1365 tok)
+- `sync.py` — ohip_request, map_opera_reservation, has_reservation_conflict, upsert_opera_reservation (~3404 tok)
 
 ## apps/api/services/programs/
 
@@ -1184,9 +1226,18 @@
 
 ## apps/api/tests/
 
+- `test_ai_copilot_rbac.py` — RBAC matrix + tenant-isolation + confirm_tasks validation tests for ai_copilot.py. (~4038 tok)
 - `test_clean_sessions_timezone.py` — Clean-sessions hotel-local timezone regression test. (~734 tok)
+- `test_cron_scheduler.py` — The in-process cron scheduler must register every job with the right schedule (~708 tok)
 - `test_inventory.py` — Engineering spare-parts inventory (migration 102): items, locations, (~3431 tok)
 - `test_logbook_timezone.py` — Logbook hotel-local timezone tests (LOGBOOK-01). (~1949 tok)
+- `test_management_roi.py` — Fixture-reconcilable coverage for Phase 5 management ROI calculators. (~9731 tok)
+- `test_opera_pilot_gate.py` — test_opera_connect_403_when_pilot_not_enabled, test_opera_status_403_when_pilot_not_enabled, test_op (~2638 tok)
+- `test_opera_report_columns.py` — Unit tests for services/opera/report_columns.py. (~738 tok)
+- `test_opera_report_ingest.py` — Unit tests for services/opera/report_ingest.py using the in-memory FakeDB. (~2565 tok)
+- `test_opera_report_parser.py` — Unit tests for services/opera/report_parser.py. (~1121 tok)
+- `test_recurring_issues.py` — Tests for GET /assets/recurring-issues (recurring-failure radar). (~1601 tok)
+- `test_risk_alerts_exceptions.py` — Tests for GET /ai/risk-alerts' three new exception categories (proactive (~1229 tok)
 - `test_shift_summary_acknowledgment.py` — Shift-summary acknowledgment tests (39-03). (~1482 tok)
 - `test_shift_summary_enrichment.py` — Enrichment coverage for generate_shift_summary (Phase 39-02): VIP arrivals, (~2976 tok)
 - `test_shift_summary_generate.py` — Shift-summary generate/lookup tests. (~2516 tok)
@@ -1197,6 +1248,10 @@
 
 ## apps/api/tests/smoke/
 
+- `fake_supabase.py` — Richer in-memory Supabase fake for clean-sessions / checklists / shifts tests. (~2480 tok)
+- `test_opera_report_routes.py` — Router-level tests for the new Opera SFTP report-ingestion endpoints. (~2464 tok)
+- `test_opera_sftp_client.py` — Connectivity/error-handling SHAPE tests for services/opera/sftp_client.py. (~774 tok)
+- `test_room_sequencing.py` — test_single_room_gets_sequence_one, test_empty_list_returns_empty, test_same_floor_rooms_ordered_by_ (~574 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -1440,6 +1495,8 @@
 
 ## apps/web/
 
+- `package.json` — Web scripts, dependencies, and verification commands. (~800 tok)
+
 
 ## apps/web/app/
 
@@ -1476,6 +1533,7 @@
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
+- `page.tsx` — dynamic (~6611 tok)
 
 ## apps/web/app/(dashboard)/evidence/
 
@@ -1485,17 +1543,25 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
+- `page.tsx` — Housekeeping room board, including supervisor tools and assignments workflow entry points. (~9000 tok)
+
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
+- `page.tsx` — Legacy assignment URL redirect to the Room Board. (~100 tok)
+
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
+
+- `page.tsx` — Legacy inspection URL to be redirected to the Room Board. (~100 tok)
 
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
 
 ## apps/web/app/(dashboard)/housekeeping/routes/
+
+- `page.tsx` — Legacy standalone Routes page; will redirect to the Room Board. (~100 tok)
 
 
 ## apps/web/app/(dashboard)/logbook/
@@ -1507,6 +1573,7 @@
 
 ## apps/web/app/(dashboard)/management-roi/
 
+- `page.tsx` — toLocalDateStr (~6298 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
@@ -1524,6 +1591,11 @@
 
 
 ## apps/web/app/(dashboard)/settings/
+
+
+## apps/web/app/(dashboard)/settings/programs/
+
+- `page.tsx` — Renders the operational Programs workspace within the Settings layout. (~20 tok)
 
 
 ## apps/web/app/(dashboard)/settings/billing/
@@ -1556,6 +1628,11 @@
 ## apps/web/app/(dashboard)/settings/roles/
 
 
+## apps/web/app/(dashboard)/settings/sop/
+
+- `page.tsx` — Renders the SOP Library within the Settings layout. (~20 tok)
+
+
 ## apps/web/app/(dashboard)/settings/rooms/
 
 
@@ -1580,12 +1657,14 @@
 
 ## apps/web/components/dashboard/
 
+- `AIRiskAlertsPanel.tsx` — AIRiskAlertsPanel (~2956 tok)
 - `OvernightRecapStrip.tsx` — OvernightRecapStrip (~695 tok)
 - `SimplifiedDashboard.tsx` — Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'` (~12639 tok)
 
 ## apps/web/components/engineering/
 
 - `PartsPanel.tsx` — LOCATIONS_KEY — renders form (~4400 tok)
+- `RecurringIssuesSidebar.tsx` — SkeletonItem (~1260 tok)
 - `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~16607 tok)
 
 ## apps/web/components/guest-requests/
@@ -1593,6 +1672,11 @@
 
 ## apps/web/components/housekeeping/
 
+- `HousekeepingRoutes.tsx` — Route-planning view with assignment staging and publishing controls. (~4800 tok)
+- `OccupancyImportModal.tsx` — OPERA occupancy import modal used by housekeeping workflows. (~1100 tok)
+
+- `AssignmentSidebar.tsx` — AssignmentSidebar (~1298 tok)
+- `AssignmentSuggestionsDrawer.tsx` — AssignmentSuggestionsDrawer (~1896 tok)
 
 ## apps/web/components/programs/
 
@@ -1605,6 +1689,9 @@
 
 ## apps/web/components/shared/
 
+- `Sidebar.tsx` — Dashboard sidebar grouping and visible primary navigation links. (~2800 tok)
+- `MobileFloorNav.tsx` — Role-specific mobile floor-navigation link definitions. (~1600 tok)
+
 
 ## apps/web/components/tasks/
 
@@ -1613,6 +1700,8 @@
 
 
 ## apps/web/e2e/
+
+- `room-board-baseline.spec.ts` — Authenticated visual-regression checks for the housekeeping room board. (~1400 tok)
 
 
 ## apps/web/e2e/fixtures/
@@ -1623,17 +1712,20 @@
 
 ## apps/web/i18n/locales/
 
-- `en.ts` — Declares en (~24139 tok)
-- `es.ts` — Declares es (~26509 tok)
+- `en.ts` — Declares en (~24551 tok)
+- `es.ts` — Declares es (~26956 tok)
 
 ## apps/web/lib/ai/
 
 
 ## apps/web/lib/api/
 
-- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~3161 tok)
+- `ai.ts` — ── Types ──────────────────────────────────────────────────────────────────── (~1624 tok)
+- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~3283 tok)
+- `housekeeping.ts` — Hotel-wide average clean time for today plus the 7-day trend (dashboard hero). (~2967 tok)
 - `inventory.ts` — Mirrors apps/api/routers/inventory.py / models/requests.py (migration 102). (~911 tok)
 - `logbook.ts` — API routes: GET, POST, PATCH, DELETE (9 endpoints) (~868 tok)
+- `managementRoi.ts` — API routes: GET (7 endpoints) (~1066 tok)
 - `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1238 tok)
 
 ## apps/web/lib/hooks/
@@ -1644,6 +1736,11 @@
 
 
 ## apps/web/lib/utils/
+
+- `housekeepingNavigation.ts` — Housekeeping sub-navigation by role. (~600 tok)
+- `housekeepingNavigation.test.ts` — Unit coverage for role-based housekeeping sub-navigation. (~600 tok)
+- `navigation.ts` — Role-based desktop navigation definitions and allowed-route helpers. (~1200 tok)
+- `routeGuard.ts` — Role-aware route access rules and mobile-only role redirects. (~1000 tok)
 
 
 ## apps/web/playwright.phase0.config.ts
@@ -1691,6 +1788,7 @@
 ## supabase/migrations/
 
 - `105_shift_summary_acknowledgment.sql` — ============================================================================= (~369 tok)
+- `106_room_assignment_sequence.sql` — ============================================================================= (~219 tok)
+- `107_opera_sftp_report_ingestion.sql` — Opera Cloud SFTP scheduled-report ingestion: a parallel connection mode to the (~1280 tok)
 
 ## youtubeMobileResearch.md
-

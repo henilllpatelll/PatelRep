@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useMemo, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -1243,6 +1244,7 @@ function WeekCalendar({
 // â”€â”€â”€ SchedulingPage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function SchedulingPage() {
+  const router = useRouter()
   const { t } = useTranslation()
   const { isSupervisor, canManageStaff } = useRole()
   const queryClient = useQueryClient()
@@ -1320,8 +1322,12 @@ export default function SchedulingPage() {
     <div className="space-y-5">
       <PageHeader
         eyebrow="Organization"
-        title={v2 ? t('scheduling.pageTitle') : 'Staff Scheduling'}
+        title="People"
         subtitle={v2 ? t('scheduling.pageSubtitle') : 'Manage shift assignments and view weekly coverage'}
+        tabs={[
+          { label: 'Team', active: false, onClick: () => router.push('/staff') },
+          { label: 'Schedule', active: true, onClick: () => undefined },
+        ]}
         actions={isSupervisor && (
           <Button
             variant="primary"

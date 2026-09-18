@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { AnimatePresence, LayoutGroup, motion, useIsPresent, useReducedMotion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -556,6 +557,23 @@ function RoomListDrawer({
 
 // ── SimplifiedDashboard ──────────────────────────────────────────────────────────
 
+function BriefingCell({ children, duration }: { children: ReactNode; duration: number }) {
+  const isPresent = useIsPresent()
+  return (
+    <motion.div
+      className="min-w-0 min-h-0 h-full flex flex-col gap-3"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration }}
+      aria-hidden={!isPresent || undefined}
+      ref={(node) => { if (node) node.inert = !isPresent }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export function SimplifiedDashboard() {
   const router = useRouter()
   const storedFullName = useAuthStore((s) => s.fullName)
@@ -570,23 +588,13 @@ export function SimplifiedDashboard() {
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [showCreateWO, setShowCreateWO] = useState(false)
 
-  // Briefing ↔ chat cross-fade. Both states stay mounted during a swap: the
-  // incoming one (`briefingView`) rises in slowly while the outgoing one
-  // (`leavingView`) fades up and out quickly, then unmounts after 320ms.
+  // Shared layout turns the ask button into the composer in the same panel.
+  const briefingLayoutId = useId()
+  const askButtonRef = useRef<HTMLButtonElement>(null)
+  const reducedMotion = useReducedMotion()
+  const briefingTransition = { duration: reducedMotion ? 0 : 0.4, ease: [0.16, 0.84, 0.34, 1] as const }
   type BriefingView = 'briefing' | 'chat'
   const [briefingView, setBriefingView] = useState<BriefingView>('briefing')
-  const [leavingView, setLeavingView] = useState<BriefingView | null>(null)
-  const swapBriefingView = (next: BriefingView) => {
-    if (next === briefingView) return
-    setLeavingView(briefingView)
-    setBriefingView(next)
-  }
-  useEffect(() => {
-    if (!leavingView) return
-    // Keep the outgoing cell mounted until its fade-out (.swap-out) finishes.
-    const t = setTimeout(() => setLeavingView(null), 320)
-    return () => clearTimeout(t)
-  }, [leavingView])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0]
@@ -778,9 +786,12 @@ export function SimplifiedDashboard() {
               </Button>
             )}
             <Button
+              ref={askButtonRef}
               variant="ai"
               size="md"
-              onClick={() => swapBriefingView('chat')}
+              layoutId="briefing-composer"
+              transition={{ layout: briefingTransition }}
+              onClick={() => setBriefingView('chat')}
               className="gap-1.5"
             >
               <SparkIcon size={14} />
@@ -795,26 +806,11 @@ export function SimplifiedDashboard() {
   const renderChatBody = () => (
     <BriefingChat
       stats={briefingStats}
-      onClose={() => swapBriefingView('briefing')}
+      composerLayoutId="briefing-composer"
+      transition={briefingTransition}
+      onClose={() => setBriefingView('briefing')}
       onOpenRoomFilter={(filter) => setListFilter(filter)}
     />
-  )
-
-  // One keyed cell. Both the leaving and the incoming cell share grid-area 1/1
-  // (set in globals.css) so they overlap and cross-fade. The whole left column
-  // (eyebrow + body + buttons) animates as one block — never the inner elements.
-  const renderBriefingCell = (view: BriefingView, phase: 'in' | 'out') => (
-    <div
-      key={`${view}-${phase}`}
-      className={cn(
-        'min-w-0 h-full',
-        phase === 'in' ? 'swap-in' : 'swap-out',
-        view === 'briefing' && 'flex flex-col gap-3'
-      )}
-      aria-hidden={phase === 'out' || undefined}
-    >
-      {view === 'chat' ? renderChatBody() : renderBriefingBody()}
-    </div>
   )
 
   return (
@@ -848,13 +844,20 @@ export function SimplifiedDashboard() {
             style={{ background: 'radial-gradient(circle at 84% 12%, var(--accent) 0%, transparent 52%)', opacity: 0.26 }}
           />
           <div className="relative grid grid-cols-1 md:grid-cols-2 gap-6 p-7">
-            {/* Cross-fade: while `leavingView` is set both cells are mounted and
-                overlap in one grid cell — the old one fades up and out (320ms),
-                the new one rises in (620ms). See renderBriefingCell above. */}
-            <div className="briefing-left">
-              {leavingView && renderBriefingCell(leavingView, 'out')}
-              {renderBriefingCell(briefingView, 'in')}
-            </div>
+            <LayoutGroup id={briefingLayoutId}>
+              <div className="briefing-left">
+                <AnimatePresence
+                  initial={false}
+                  onExitComplete={() => {
+                    if (briefingView === 'briefing') askButtonRef.current?.focus({ preventScroll: true })
+                  }}
+                >
+                  <BriefingCell key={briefingView} duration={briefingTransition.duration}>
+                    {briefingView === 'chat' ? renderChatBody() : renderBriefingBody()}
+                  </BriefingCell>
+                </AnimatePresence>
+              </div>
+            </LayoutGroup>
 
             <div className="grid grid-cols-2 gap-3">
               {boardLoading ? (

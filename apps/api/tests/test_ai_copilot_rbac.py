@@ -24,7 +24,8 @@ from pydantic import ValidationError
 
 from middleware.auth import CurrentUser
 from models.requests import AssignmentPreview
-from routers import ai_copilot
+from routers import ai_copilot, assets as assets_router
+from services import inventory as inventory_service
 from tests.smoke.fake_supabase import FakeDB
 
 
@@ -127,12 +128,21 @@ async def test_risk_alerts_asset_select_includes_id(monkeypatch):
         ],
     })
     monkeypatch.setattr(ai_copilot, "supabase", db)
+    # get_risk_alerts also calls into services.inventory and routers.assets for
+    # the low-stock-parts and recurring-issues sections -- those modules hold
+    # their own `supabase` reference, so they need patching too or this test
+    # would silently hit the real database.
+    monkeypatch.setattr(inventory_service, "supabase", db)
+    monkeypatch.setattr(assets_router, "supabase", db)
 
     response = await ai_copilot.get_risk_alerts(current_user=_user("gm"))
 
     assert response["data"]["maintenance_risks"][0]["id"] == "asset-1"
     asset_select_args = next(args for table, args in db.select_calls if table == "assets")
     assert "id" in " ".join(str(a) for a in asset_select_args)
+    assert response["data"]["low_stock_parts"] == []
+    assert response["data"]["pending_guest_issues"] == []
+    assert response["data"]["recurring_issues"] == []
 
 
 # --- /ai/assignments/confirm excludes housekeeper ---

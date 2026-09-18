@@ -84,11 +84,15 @@ export interface ForecastDay {
   projected_labor_hours: number
   confidence: 'low' | 'medium' | 'high'
   by_room_type: { room_type_id: string; projected_rooms: number; projected_labor_hours: number }[]
+  suggested_housekeepers: number
+  scheduled_housekeepers: number
+  staffing_gap: number
 }
 
 export interface ForecastReport {
   generated_for: string
   lookback_weeks: number
+  avg_shift_hours: number
   days: ForecastDay[]
 }
 

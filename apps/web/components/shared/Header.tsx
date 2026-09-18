@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell, CheckCheck } from 'lucide-react'
+import { LogOut, Settings, ChevronDown, Menu, Bell, CheckCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
@@ -27,7 +27,6 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notificationsTab, setNotificationsTab] = useState<'unread' | 'all'>('unread')
-  const [searchFocused, setSearchFocused] = useState(false)
   const [dateShiftLabel, setDateShiftLabel] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
@@ -88,10 +87,6 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
 
   const handleCopilotOpen = useCallback(() => {
     document.dispatchEvent(new CustomEvent('copilot:open'))
-  }, [])
-
-  const openCommandPalette = useCallback(() => {
-    document.dispatchEvent(new CustomEvent('command-palette:open'))
   }, [])
 
   useEffect(() => {
@@ -173,33 +168,6 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
         <Menu size={16} />
       </button>
 
-      {/* Search */}
-      <div className={cn(
-        'hidden md:flex items-center gap-2 bg-surface border border-line rounded-[9px] px-3 py-2 flex-1 max-w-[480px]',
-        redesigned ? 'transition-all duration-fast' : 'transition-all duration-150',
-        searchFocused
-          ? redesigned
-            ? 'border-brand ring-2 ring-[var(--focus-ring)]'
-            : 'border-accent ring-2 ring-[var(--accent-soft)]'
-          : 'hover:border-ink4'
-      )}>
-        <Search size={13} className="text-ink3 shrink-0" />
-        <input
-          id="topbar-search"
-          type="text"
-          placeholder={t('header.searchPlaceholder')}
-          value=""
-          onFocus={() => { setSearchFocused(true); openCommandPalette() }}
-          onBlur={() => setSearchFocused(false)}
-          onChange={() => undefined}
-          className="text-[13px] text-ink placeholder:text-ink3 bg-transparent outline-none flex-1 min-w-0"
-          aria-label={t('header.openCommandPalette')}
-        />
-        <kbd className="hidden lg:inline-flex font-mono text-[10px] text-ink3 bg-surface-3 border border-line px-[5px] py-px rounded shrink-0">
-          ⌘K
-        </kbd>
-      </div>
-
       {/* Spacer */}
       <div className="flex-1" />
 
@@ -212,17 +180,6 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
       <div className="hidden lg:block w-px h-5 bg-line shrink-0" />
 
       <LanguageToggle className="hidden sm:inline-flex shrink-0" />
-
-      {/* Ask copilot */}
-      <button
-        onClick={handleCopilotOpen}
-        className="hidden md:inline-flex items-center gap-1.5 bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)] px-2.5 h-8 rounded-lg text-[12px] font-medium hover:opacity-90 transition-opacity shrink-0"
-        aria-label={`${t('header.openCopilot')} (Cmd+J)`}
-      >
-        <Sparkles size={13} />
-        <span>{t('header.askCopilot')}</span>
-        <span className="font-mono text-[10px] opacity-60 ml-1">⌘J</span>
-      </button>
 
       {/* Notification bell */}
       <div className="relative" ref={notificationsRef}>

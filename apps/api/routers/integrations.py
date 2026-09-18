@@ -4,10 +4,11 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
-from models.requests import OperaConnectRequest, ResolveOperaSyncConflictRequest
-from services.opera import sync_reservations, bootstrap_opera_data
+from models.requests import OperaConnectRequest, OperaSftpConnectRequest, ResolveOperaSyncConflictRequest
+from services.opera import sync_reservations, bootstrap_opera_data, sync_report_files
 from services.opera.auth import acquire_new_token, get_opera_credentials, get_valid_access_token
 from services.opera.crypto import encrypt_opera_secrets
+from services.opera.sftp_client import SftpConnectionError, test_connection as sftp_test_connection
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,10 @@ async def opera_status(
     """Return current Opera Cloud integration status for the hotel."""
     _require_opera_pilot(current_user)
     result = supabase.table("opera_credentials")\
-        .select("hotel_id_opera, ohip_base_url, is_connected, last_sync_at, created_at, updated_at")\
+        .select(
+            "hotel_id_opera, ohip_base_url, connection_mode, sftp_host, sftp_remote_path, "
+            "is_connected, last_sync_at, created_at, updated_at"
+        )\
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
         .execute()
@@ -91,8 +95,11 @@ async def opera_status(
     return {
         "data": {
             "connected": True,
+            "connection_mode": d.get("connection_mode", "api"),
             "opera_hotel_id": d.get("hotel_id_opera"),
             "ohip_base_url": d.get("ohip_base_url"),
+            "sftp_host": d.get("sftp_host"),
+            "sftp_remote_path": d.get("sftp_remote_path"),
             "last_sync_at": d.get("last_sync_at"),
             "connected_since": d.get("created_at"),
         }
@@ -179,6 +186,108 @@ async def resolve_opera_sync_conflict(
     return {"data": (result.data or [None])[0]}
 
 
+@router.post("/opera/sftp/connect")
+async def opera_sftp_connect(
+    body: OperaSftpConnectRequest,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """
+    Connect Opera Cloud via scheduled-report SFTP ingestion (services/opera/report_ingest.py),
+    an alternative to the OHIP API path for hotels whose subscription doesn't include OHIP access.
+    Tests the SFTP connection before storing credentials.
+    """
+    _require_opera_pilot(current_user)
+    creds = {
+        "sftp_host": body.sftp_host,
+        "sftp_port": body.sftp_port,
+        "sftp_username": body.sftp_username,
+        "sftp_password": body.sftp_password,
+        "sftp_private_key": body.sftp_private_key,
+        "sftp_host_key_fingerprint": body.sftp_host_key_fingerprint,
+        "sftp_remote_path": body.sftp_remote_path,
+    }
+    try:
+        sftp_test_connection(creds)
+    except SftpConnectionError as e:
+        raise HTTPException(status_code=400, detail=f"SFTP connection failed: {e}")
+
+    now_utc = datetime.now(timezone.utc)
+    supabase.table("opera_credentials").upsert(encrypt_opera_secrets({
+        "tenant_id": current_user.hotel_id,
+        "connection_mode": "sftp_report",
+        "sftp_host": body.sftp_host,
+        "sftp_port": body.sftp_port,
+        "sftp_username": body.sftp_username,
+        "sftp_password": body.sftp_password,
+        "sftp_private_key": body.sftp_private_key,
+        "sftp_host_key_fingerprint": body.sftp_host_key_fingerprint,
+        "sftp_remote_path": body.sftp_remote_path,
+        "report_delimiter": body.report_delimiter,
+        "report_column_mapping": body.report_column_mapping,
+        "report_type_filename_patterns": body.report_type_filename_patterns,
+        "is_connected": True,
+        "updated_at": now_utc.isoformat(),
+    }), on_conflict="tenant_id").execute()
+
+    try:
+        sync_report_files(current_user.hotel_id)
+    except Exception as exc:
+        logger.error("Opera SFTP initial sync failed for hotel=%s: %s", current_user.hotel_id, exc)
+
+    return {"data": {"connected": True, "message": "Opera Cloud SFTP report ingestion connected successfully"}}
+
+
+@router.post("/opera/sftp/sync")
+async def opera_sftp_sync(
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Manually trigger an SFTP report poll/ingest for this hotel."""
+    _require_opera_pilot(current_user)
+    result = sync_report_files(current_user.hotel_id)
+    if result.get("error"):
+        raise HTTPException(status_code=503, detail=result["error"])
+    return {
+        "data": {
+            "files_processed": result.get("files_processed", 0),
+            "synced_rows": result.get("synced", 0),
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+        }
+    }
+
+
+@router.post("/opera/sftp/test")
+async def opera_sftp_test(
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Re-verify the stored SFTP connection."""
+    _require_opera_pilot(current_user)
+    creds = get_opera_credentials(current_user.hotel_id)
+    if not creds or creds.get("connection_mode") != "sftp_report":
+        raise HTTPException(status_code=400, detail="Opera Cloud SFTP report ingestion is not connected")
+
+    try:
+        sftp_test_connection(creds)
+    except SftpConnectionError as e:
+        raise HTTPException(status_code=503, detail=f"SFTP connection failed: {e}")
+
+    return {"data": {"connected": True, "message": "Opera Cloud SFTP connection verified"}}
+
+
+@router.get("/opera/sftp/files")
+async def list_opera_report_files(
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    """Show recent SFTP report ingestion history (filenames/counts only, no secrets)."""
+    _require_opera_pilot(current_user)
+    result = supabase.table("opera_report_files") \
+        .select("id, report_type, remote_filename, status, rows_parsed, rows_upserted, error_detail, processed_at") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .order("processed_at", desc=True) \
+        .limit(50) \
+        .execute()
+    return {"data": result.data or []}
+
+
 @router.post("/opera/test")
 async def opera_test(
     current_user: CurrentUser = Depends(require_role("gm"))
@@ -208,6 +317,8 @@ async def opera_disconnect(
             "integration_password": None,
             "access_token": None,
             "refresh_token": None,
+            "sftp_password": None,
+            "sftp_private_key": None,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         })\
         .eq("tenant_id", current_user.hotel_id)\

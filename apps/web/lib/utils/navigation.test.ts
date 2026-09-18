@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  ALL_NAV_ITEMS,
+  BRAND_NAV_HREFS,
+  CONTEXTUAL_NAV_HREFS,
+  DIRECT_ACCESS_NAV_HREFS,
   getAllowedNavItems,
-  OPERATIONS_HREFS,
-  INTELLIGENCE_HREFS,
-  PEOPLE_HREFS,
+  MORE_NAV_HREFS,
+  PRIMARY_NAV_HREFS,
+  SETTINGS_NAV_ITEM,
 } from './navigation'
 import baseline from './navigation.matrix.json' with { type: 'json' }
 
@@ -28,11 +32,65 @@ test('6-role nav allow-set matches the committed baseline snapshot', () => {
   assert.deepEqual(buildMatrix(), baseline)
 })
 
-test('every allowed href for every role falls within a sidebar group (Pitfall #2)', () => {
-  const grouped = new Set([...OPERATIONS_HREFS, ...INTELLIGENCE_HREFS, ...PEOPLE_HREFS, '/settings'])
+test('every allowed href for every role is primary, in More, direct-accessible, or reachable from its workspace', () => {
+  const grouped = new Set([
+    ...PRIMARY_NAV_HREFS,
+    ...MORE_NAV_HREFS,
+    ...BRAND_NAV_HREFS,
+    ...CONTEXTUAL_NAV_HREFS,
+    ...DIRECT_ACCESS_NAV_HREFS,
+    '/settings',
+  ])
   const matrix = buildMatrix()
   for (const role of ROLES) {
     const ungrouped = matrix[role].filter((href) => !grouped.has(href))
-    assert.deepEqual(ungrouped, [], `role "${role}" has allowed hrefs missing from every sidebar group: ${ungrouped.join(', ')}`)
+    assert.deepEqual(ungrouped, [], `role "${role}" has allowed hrefs missing from the navigation model: ${ungrouped.join(', ')}`)
+  }
+})
+
+test('keeps core workspaces primary while demoting secondary records to More', () => {
+  assert.deepEqual(PRIMARY_NAV_HREFS, [
+    '/housekeeping', '/engineering', '/tasks',
+  ])
+  assert.deepEqual(MORE_NAV_HREFS, [
+    '/lost-found', '/reports', '/staff', '/logbook',
+  ])
+  assert.deepEqual(CONTEXTUAL_NAV_HREFS, ['/scheduling', '/management-roi'])
+})
+
+test('reaches Dashboard through the PatelRep brand link instead of the sidebar', () => {
+  assert.deepEqual(BRAND_NAV_HREFS, ['/dashboard'])
+  assert.equal(PRIMARY_NAV_HREFS.includes('/dashboard'), false)
+  assert.equal(MORE_NAV_HREFS.includes('/dashboard'), false)
+  assert.ok(getAllowedNavItems({ role: 'gm' }).some((item) => item.href === '/dashboard'))
+})
+
+test('presents People as one workspace and removes engineering sub-navigation', () => {
+  const people = ALL_NAV_ITEMS.find((item) => item.href === '/staff')
+  const engineering = ALL_NAV_ITEMS.find((item) => item.href === '/engineering')
+
+  assert.equal(people?.label, 'People')
+  assert.equal(engineering?.subNav, undefined)
+})
+
+test('places Programs and SOP Library in Settings instead of the primary sidebar', () => {
+  assert.equal(PRIMARY_NAV_HREFS.includes('/programs'), false)
+  assert.deepEqual(
+    SETTINGS_NAV_ITEM.subNav?.find((item) => item.href === '/settings/programs'),
+    { href: '/settings/programs', label: 'Programs' },
+  )
+  assert.deepEqual(
+    SETTINGS_NAV_ITEM.subNav?.find((item) => item.href === '/settings/sop'),
+    { href: '/settings/sop', label: 'SOP Library' },
+  )
+})
+
+test('keeps supplemental pages direct-accessible without sidebar tabs', () => {
+  assert.deepEqual(DIRECT_ACCESS_NAV_HREFS, ['/ai', '/evidence', '/programs', '/safety', '/sop'])
+
+  for (const href of DIRECT_ACCESS_NAV_HREFS) {
+    assert.equal(PRIMARY_NAV_HREFS.includes(href), false)
+    assert.equal(MORE_NAV_HREFS.includes(href), false)
+    assert.ok(getAllowedNavItems({ role: 'gm' }).some((item) => item.href === href))
   }
 })

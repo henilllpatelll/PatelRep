@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
 from pydantic import BaseModel
@@ -225,6 +225,123 @@ async def create_work_order_from_prediction(
     }).eq("id", prediction_id).eq("tenant_id", current_user.hotel_id).execute()
 
     return {"data": wo_result.data[0] if wo_result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# 6b. GET /recurring-issues — repeat work orders on the same asset/room (NEW)
+# ---------------------------------------------------------------------------
+
+@router.get("/recurring-issues")
+async def get_recurring_issues(
+    days: int = Query(30, ge=1, le=365),
+    min_count: int = Query(3, ge=2, le=20),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Flags assets/rooms with repeated work orders in a rolling window (e.g.
+    "Room 214 AC: 3rd work order in 30 days") -- a cheap, data-driven signal
+    that a repair-vs-replace decision may be due. Distinct from the AI
+    failure_predictions model above (which scores from WO history + asset
+    age/warranty via an LLM call); this is plain frequency counting with no
+    AI credit cost, so it can run on every page load.
+
+    Not a duplicate of GET /management-roi/repeat-failures (D-08,
+    calculate_repeat_failures): that one is a GM-only, 90-day, 2+-threshold
+    backward-looking KPI count (anonymous ids, no names) for the ROI
+    dashboard. This is an engineer-facing, 30-day, 3+-threshold *actionable*
+    list (named asset/room, last-seen, linked WO ids) meant to be glanced at
+    while triaging work orders, not analyzed after the fact.
+    """
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    wo_result = (
+        supabase.table("work_orders")
+        .select("id, asset_id, room_id, category, title, status, created_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .neq("status", "cancelled")
+        .gte("created_at", since)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    work_orders = wo_result.data or []
+
+    asset_groups: dict[str, list[dict]] = {}
+    room_only_groups: dict[str, list[dict]] = {}
+    for wo in work_orders:
+        asset_id = wo.get("asset_id")
+        room_id = wo.get("room_id")
+        if asset_id:
+            asset_groups.setdefault(asset_id, []).append(wo)
+        elif room_id:
+            room_only_groups.setdefault(room_id, []).append(wo)
+
+    flagged_asset_ids = [aid for aid, wos in asset_groups.items() if len(wos) >= min_count]
+    flagged_room_ids = [rid for rid, wos in room_only_groups.items() if len(wos) >= min_count]
+
+    asset_map: dict[str, dict] = {}
+    if flagged_asset_ids:
+        assets_result = (
+            supabase.table("assets")
+            .select("id, name, room_id, rooms(room_number)")
+            .in_("id", flagged_asset_ids)
+            .execute()
+        )
+        asset_map = {a["id"]: a for a in (assets_result.data or [])}
+
+    room_map: dict[str, dict] = {}
+    all_room_ids = list(flagged_room_ids) + [
+        a.get("room_id") for a in asset_map.values() if a.get("room_id") and not isinstance(a.get("rooms"), dict)
+    ]
+    if all_room_ids:
+        rooms_result = (
+            supabase.table("rooms")
+            .select("id, room_number")
+            .in_("id", list(set(all_room_ids)))
+            .execute()
+        )
+        room_map = {r["id"]: r for r in (rooms_result.data or [])}
+
+    issues = []
+    for asset_id in flagged_asset_ids:
+        wos = asset_groups[asset_id]
+        asset = asset_map.get(asset_id) or {}
+        nested_room = asset.get("rooms")
+        if isinstance(nested_room, dict):
+            room_number = nested_room.get("room_number")
+        else:
+            room_number = (room_map.get(asset.get("room_id")) or {}).get("room_number")
+        issues.append({
+            "key": f"asset:{asset_id}",
+            "asset_id": asset_id,
+            "asset_name": asset.get("name") or "Unknown asset",
+            "room_id": asset.get("room_id"),
+            "room_number": room_number,
+            "category": wos[-1].get("category"),
+            "wo_count": len(wos),
+            "window_days": days,
+            "first_wo_at": wos[0]["created_at"],
+            "last_wo_at": wos[-1]["created_at"],
+            "work_order_ids": [w["id"] for w in wos],
+        })
+
+    for room_id in flagged_room_ids:
+        wos = room_only_groups[room_id]
+        room = room_map.get(room_id) or {}
+        issues.append({
+            "key": f"room:{room_id}",
+            "asset_id": None,
+            "asset_name": None,
+            "room_id": room_id,
+            "room_number": room.get("room_number"),
+            "category": wos[-1].get("category"),
+            "wo_count": len(wos),
+            "window_days": days,
+            "first_wo_at": wos[0]["created_at"],
+            "last_wo_at": wos[-1]["created_at"],
+            "work_order_ids": [w["id"] for w in wos],
+        })
+
+    issues.sort(key=lambda i: i["wo_count"], reverse=True)
+    return {"data": issues[:20]}
 
 
 # ---------------------------------------------------------------------------

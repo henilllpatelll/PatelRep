@@ -133,6 +133,23 @@ export interface RiskAlerts {
   }>
   maintenance_risks: Array<{ id: string; name: string; failure_risk_score: number }>
   sla_breaches: Array<{ work_order_number: string; title: string; due_at: string }>
+  low_stock_parts: Array<{ id: string; name: string; on_hand: number; minimum_stock: number | null }>
+  pending_guest_issues: Array<{
+    id: string
+    title: string | null
+    description: string | null
+    room_id: string | null
+    rooms: { room_number: string } | null
+  }>
+  recurring_issues: Array<{
+    key: string
+    asset_id: string | null
+    asset_name: string | null
+    room_id: string | null
+    room_number: string | null
+    wo_count: number
+    window_days: number
+  }>
 }
 
 export interface AIRecommendation {

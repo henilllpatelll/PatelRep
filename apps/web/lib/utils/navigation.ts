@@ -11,12 +11,7 @@ export interface NavItem { href: string; label: string; icon: React.ElementType;
 export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',      label: 'Dashboard',      icon: LayoutDashboard },
   { href: '/housekeeping',   label: 'Housekeeping',   icon: Bed },
-  { href: '/engineering',    label: 'Engineering',    icon: Wrench,      subNav: [
-    { href: '/engineering/work-orders',  label: 'Work Orders' },
-    { href: '/engineering/assets',       label: 'Assets' },
-    { href: '/engineering/pm-schedules', label: 'PM Schedules' },
-    { href: '/engineering/predictions',  label: 'Predictions' },
-  ]},
+  { href: '/engineering',    label: 'Engineering',    icon: Wrench },
   { href: '/programs',       label: 'Programs',       icon: ClipboardList },
   { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
   { href: '/tasks',          label: 'Tasks',          icon: ListChecks },
@@ -27,7 +22,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/reports',        label: 'Reports',        icon: FileText },
   { href: '/management-roi', label: 'Management ROI', icon: TrendingUp },
   { href: '/logbook',        label: 'Logbook',        icon: BookOpen },
-  { href: '/staff',          label: 'Staff',          icon: Users },
+  { href: '/staff',          label: 'People',         icon: Users },
   { href: '/scheduling',     label: 'Schedule',       icon: Calendar },
 ]
 
@@ -41,6 +36,8 @@ export const SETTINGS_NAV_ITEM: NavItem = {
     { href: '/settings/inspections',    label: 'Inspections' },
     { href: '/settings/guest-requests', label: 'Guest Requests' },
     { href: '/settings/housekeeping',   label: 'Housekeeping' },
+    { href: '/settings/programs',       label: 'Programs' },
+    { href: '/settings/sop',            label: 'SOP Library' },
     { href: '/settings/rooms',          label: 'Rooms' },
     { href: '/settings/billing',        label: 'Billing' },
     { href: '/settings/integrations',   label: 'Integrations' },
@@ -80,6 +77,7 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
   'Management ROI': 'nav.managementRoi',
   Logbook: 'nav.logbook',
   Staff: 'nav.staff',
+  People: 'nav.people',
   Schedule: 'nav.schedule',
   Settings: 'nav.settings',
   'Room Board': 'nav.roomBoard',
@@ -95,9 +93,24 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
   Feedback: 'nav.feedback',
 }
 
-export const OPERATIONS_HREFS   = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks']
-export const INTELLIGENCE_HREFS = ['/ai','/sop','/evidence','/safety','/reports','/management-roi']
-export const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
+/** The few places a manager needs at the start of a shift. */
+export const PRIMARY_NAV_HREFS = [
+  '/housekeeping', '/engineering', '/tasks',
+]
+
+/** Important but lower-frequency records and focused tools, kept reachable without crowding the start-of-shift flow. */
+export const MORE_NAV_HREFS = [
+  '/lost-found', '/reports', '/staff', '/logbook',
+]
+
+/** The persistent PatelRep brand link returns to the dashboard. */
+export const BRAND_NAV_HREFS = ['/dashboard']
+
+/** Deep links reached from the workspace switchers rather than from the sidebar. */
+export const CONTEXTUAL_NAV_HREFS = ['/scheduling', '/management-roi']
+
+/** Role-allowed routes kept for direct links without a sidebar destination. */
+export const DIRECT_ACCESS_NAV_HREFS = ['/ai', '/evidence', '/programs', '/safety', '/sop']
 
 export interface AllowedNavParams {
   role: UserRole | null

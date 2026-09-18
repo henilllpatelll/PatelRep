@@ -5,25 +5,9 @@ export interface HousekeepingSubNavItem {
   label: string
 }
 
-const SUPERVISOR_HOUSEKEEPING_TABS: HousekeepingSubNavItem[] = [
-  { href: '/housekeeping', label: 'Room Board' },
-  { href: '/housekeeping/routes', label: 'Routes' },
-  { href: '/housekeeping/assignments', label: 'Assignments' },
-  { href: '/housekeeping/inspections', label: 'Inspections' },
-]
+const NO_HOUSEKEEPING_SUB_NAV_ITEMS: HousekeepingSubNavItem[] = []
 
-const FRONT_DESK_HOUSEKEEPING_TABS: HousekeepingSubNavItem[] = [
-  { href: '/housekeeping', label: 'Room Board' },
-]
-
-export function getHousekeepingSubNavItems(role: UserRole | null | undefined): HousekeepingSubNavItem[] {
-  if (role === 'gm' || role === 'housekeeping_supervisor') {
-    return SUPERVISOR_HOUSEKEEPING_TABS
-  }
-
-  if (role === 'front_desk') {
-    return FRONT_DESK_HOUSEKEEPING_TABS
-  }
-
-  return []
+/** Housekeeping opens directly to the Room Board, so no duplicate section is needed. */
+export function getHousekeepingSubNavItems(_role: UserRole | null | undefined): HousekeepingSubNavItem[] {
+  return NO_HOUSEKEEPING_SUB_NAV_ITEMS
 }

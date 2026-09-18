@@ -17,11 +17,78 @@ from services.guest_recovery.contracts import (
     calculate_room_downtime_hours,
     calculate_training_readiness,
     project_seven_day_labor_forecast,
+    suggested_housekeeper_staffing,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reports/roi", tags=["management-roi"])
+
+DEFAULT_HOUSEKEEPING_SHIFT_HOURS = 8.0
+
+
+def _housekeeping_department_id(hotel_id: str) -> Optional[str]:
+    # Seeded for every tenant at onboarding (routers/hotels.py DEFAULT_DEPARTMENTS,
+    # code="HK") -- more stable than matching on the display name.
+    result = supabase.table("departments").select("id").eq("tenant_id", hotel_id).eq("code", "HK").maybe_single().execute()
+    return (result.data or {}).get("id") if result and result.data else None
+
+
+def _parse_time_str(value: Optional[str]) -> Optional[float]:
+    if not value:
+        return None
+    try:
+        parts = str(value).split(":")
+        return int(parts[0]) + int(parts[1]) / 60
+    except (ValueError, IndexError, TypeError):
+        return None
+
+
+def _avg_housekeeping_shift_hours(hotel_id: str, department_id: Optional[str]) -> float:
+    if not department_id:
+        return DEFAULT_HOUSEKEEPING_SHIFT_HOURS
+    shifts = supabase.table("shifts").select("start_time, end_time").eq(
+        "tenant_id", hotel_id
+    ).eq("department_id", department_id).eq("is_active", True).execute().data or []
+    durations = []
+    for shift in shifts:
+        start = _parse_time_str(shift.get("start_time"))
+        end = _parse_time_str(shift.get("end_time"))
+        if start is None or end is None:
+            continue
+        duration = end - start
+        if duration <= 0:
+            duration += 24.0  # overnight shift wraps past midnight
+        durations.append(duration)
+    return sum(durations) / len(durations) if durations else DEFAULT_HOUSEKEEPING_SHIFT_HOURS
+
+
+def _scheduled_housekeepers_by_date(
+    hotel_id: str, department_id: Optional[str], target_dates: list[str]
+) -> dict[str, int]:
+    if not department_id or not target_dates:
+        return {}
+    hk_shift_ids = [
+        row["id"]
+        for row in (
+            supabase.table("shifts").select("id").eq("tenant_id", hotel_id)
+            .eq("department_id", department_id).execute().data or []
+        )
+    ]
+    if not hk_shift_ids:
+        return {}
+    assignments = (
+        supabase.table("shift_assignments")
+        .select("user_id, shift_id, work_date")
+        .eq("tenant_id", hotel_id)
+        .in_("work_date", target_dates)
+        .in_("shift_id", hk_shift_ids)
+        .execute()
+    ).data or []
+    by_date: dict[str, set] = {}
+    for row in assignments:
+        by_date.setdefault(row["work_date"], set()).add(row["user_id"])
+    return {work_date: len(users) for work_date, users in by_date.items()}
 
 DEFAULT_WINDOW_DAYS = 90  # D-08
 PRIOR_STATE_LOOKBACK_DAYS = 90  # WR-03: how far before the window to seek an open interval
@@ -358,4 +425,21 @@ async def get_seven_day_forecast(
         historical, clean_minutes_by_type,
         start_date=today + timedelta(days=1), lookback_weeks=lookback_weeks,
     )
-    return {"data": {"generated_for": today.isoformat(), "lookback_weeks": lookback_weeks, "days": days}}
+
+    hk_department_id = _housekeeping_department_id(current_user.hotel_id)
+    avg_shift_hours = _avg_housekeeping_shift_hours(current_user.hotel_id, hk_department_id)
+    scheduled_by_date = _scheduled_housekeepers_by_date(
+        current_user.hotel_id, hk_department_id, [d["date"] for d in days]
+    )
+    days = suggested_housekeeper_staffing(
+        days, avg_shift_hours=avg_shift_hours, scheduled_by_date=scheduled_by_date
+    )
+
+    return {
+        "data": {
+            "generated_for": today.isoformat(),
+            "lookback_weeks": lookback_weeks,
+            "avg_shift_hours": round(avg_shift_hours, 1),
+            "days": days,
+        }
+    }

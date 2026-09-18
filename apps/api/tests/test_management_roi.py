@@ -22,6 +22,7 @@ from services.guest_recovery.contracts import (
     calculate_room_downtime_hours,
     calculate_training_readiness,
     project_seven_day_labor_forecast,
+    suggested_housekeeper_staffing,
 )
 from tests.smoke.fake_supabase import FakeDB
 
@@ -464,6 +465,54 @@ def test_forecast_empty_history_returns_seven_zero_days():
 
 
 # ---------------------------------------------------------------------------
+# suggested_housekeeper_staffing
+# ---------------------------------------------------------------------------
+
+
+def test_staffing_suggestion_rounds_hours_up_to_headcount():
+    days = [{"date": "2026-08-03", "projected_labor_hours": 17.0}]
+
+    result = suggested_housekeeper_staffing(days, avg_shift_hours=8.0, scheduled_by_date={})
+
+    # 17 hours / 8-hour shift = 2.125 -> rounds up to 3, never rounds down and
+    # leaves a fraction of a housekeeper's worth of rooms uncovered.
+    assert result[0]["suggested_housekeepers"] == 3
+    assert result[0]["scheduled_housekeepers"] == 0
+    assert result[0]["staffing_gap"] == 3
+
+
+def test_staffing_suggestion_reports_gap_against_scheduled():
+    days = [{"date": "2026-08-03", "projected_labor_hours": 24.0}]
+
+    result = suggested_housekeeper_staffing(
+        days, avg_shift_hours=8.0, scheduled_by_date={"2026-08-03": 5}
+    )
+
+    # Needs 3, already has 5 scheduled -> overstaffed by 2 (negative gap).
+    assert result[0]["suggested_housekeepers"] == 3
+    assert result[0]["scheduled_housekeepers"] == 5
+    assert result[0]["staffing_gap"] == -2
+
+
+def test_staffing_suggestion_zero_hours_needs_nobody():
+    days = [{"date": "2026-08-03", "projected_labor_hours": 0.0}]
+
+    result = suggested_housekeeper_staffing(days, avg_shift_hours=8.0, scheduled_by_date={})
+
+    assert result[0]["suggested_housekeepers"] == 0
+    assert result[0]["staffing_gap"] == 0
+
+
+def test_staffing_suggestion_preserves_original_day_fields():
+    days = [{"date": "2026-08-03", "projected_labor_hours": 8.0, "confidence": "high", "weekday": 0}]
+
+    result = suggested_housekeeper_staffing(days, avg_shift_hours=8.0, scheduled_by_date={})
+
+    assert result[0]["confidence"] == "high"
+    assert result[0]["weekday"] == 0
+
+
+# ---------------------------------------------------------------------------
 # Router-level tests: apps/api/routers/management_roi.py
 #
 # Mirrors the TestClient + monkeypatch(supabase, FakeDB) harness from
@@ -704,6 +753,38 @@ def test_forecast_endpoint_returns_seven_days(monkeypatch):
     assert "generated_for" in body
     assert body["lookback_weeks"] == 4
     assert len(body["days"]) == 7
+    # No departments/shifts seeded in this fake tenant -> default shift length,
+    # zero scheduled, but every day still carries the new staffing fields.
+    assert body["avg_shift_hours"] == 8.0
+    for day in body["days"]:
+        assert day["suggested_housekeepers"] == 0  # no forecasted hours either
+        assert day["scheduled_housekeepers"] == 0
+
+
+def test_forecast_endpoint_staffing_reflects_real_shift_config(monkeypatch):
+    db = FakeDB({
+        "departments": [{"id": "dept-hk", "tenant_id": "hotel-a", "code": "HK", "name": "Housekeeping"}],
+        "shifts": [
+            {"id": "shift-am", "tenant_id": "hotel-a", "department_id": "dept-hk",
+             "start_time": "07:00:00", "end_time": "15:00:00", "is_active": True},
+        ],
+        "shift_assignments": [
+            {"id": "sa-1", "tenant_id": "hotel-a", "user_id": "hk-1", "shift_id": "shift-am",
+             "work_date": (date.today() + timedelta(days=1)).isoformat()},
+            {"id": "sa-2", "tenant_id": "hotel-a", "user_id": "hk-2", "shift_id": "shift-am",
+             "work_date": (date.today() + timedelta(days=1)).isoformat()},
+        ],
+    })
+    monkeypatch.setattr(management_roi_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get(_roi_url("/forecast-7day"), headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["avg_shift_hours"] == 8.0  # 07:00-15:00 = 8h shift
+    tomorrow = body["days"][0]
+    assert tomorrow["scheduled_housekeepers"] == 2
 
 
 def test_forecast_endpoint_ignores_opera_sources():

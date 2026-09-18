@@ -131,12 +131,13 @@ function slaTimer(dueAt?: string): { label: string; overdue: boolean } | null {
   return { label: overdue ? `${label} over` : label, overdue }
 }
 
-export function HousekeepingRoutes() {
+export function HousekeepingRoutes({ onShowBoard }: { onShowBoard?: () => void }) {
   const router = useRouter()
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
   const { role, canAssignRooms } = useRole()
+  const returnToBoard = onShowBoard ?? (() => router.push('/housekeeping'))
 
   const {
     rooms: rawRooms,
@@ -557,7 +558,7 @@ export function HousekeepingRoutes() {
             </svg>
             {t('housekeeping.routes.logGuestCall')}
           </HeaderButton>
-          <HeaderButton onClick={() => router.push('/housekeeping')} bg="transparent">
+          <HeaderButton onClick={returnToBoard} bg="transparent">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
             </svg>

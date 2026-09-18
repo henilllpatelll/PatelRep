@@ -1,14 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { ChevronDown, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
-import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
@@ -16,13 +14,11 @@ import type { UserRole } from '@/stores/authStore'
 import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
 import {
   ALL_NAV_ITEMS, SETTINGS_NAV_ITEM, NAV_LABEL_KEYS,
-  OPERATIONS_HREFS, INTELLIGENCE_HREFS, PEOPLE_HREFS,
+  MORE_NAV_HREFS, PRIMARY_NAV_HREFS,
   getAllowedNavItems, type NavItem,
 } from '@/lib/utils/navigation'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
-
-const PRIMARY_HREFS = ['/dashboard', '/housekeeping', '/engineering', '/tasks']
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm:                      'roles.gm',
@@ -61,17 +57,13 @@ function CollapsedTooltip({ collapsed, label, children }: { collapsed: boolean; 
 
 export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const { t } = useTranslation()
   const { role } = useRole()
   const { user } = useAuth()
-  const { hotel, hotels, setHotel } = useHotelStore()
+  const { hotel } = useHotelStore()
   const customRoleModules = useAuthStore((state) => state.customRoleModules)
-  const { sidebarCollapsed: sidebarCollapsedPref, toggleSidebarCollapsed } = useUIPreferencesStore()
   const [isHovering, setIsHovering] = useState(false)
-  const sidebarCollapsed = sidebarCollapsedPref && !isHovering
-  const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
-  const hotelDropdownRef = useRef<HTMLDivElement>(null)
+  const sidebarCollapsed = !isHovering
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -105,29 +97,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
 
   const bottomItems = role === 'gm' ? [SETTINGS_NAV_ITEM] : []
 
-  const opsItems   = visibleNavItems.filter(i => OPERATIONS_HREFS.includes(i.href))
-  const intelItems = visibleNavItems.filter(i => INTELLIGENCE_HREFS.includes(i.href))
-  const peopleItems = visibleNavItems.filter(i => PEOPLE_HREFS.includes(i.href))
-  const primaryItems = visibleNavItems.filter(i => PRIMARY_HREFS.includes(i.href))
-  const opsTailItems = opsItems.filter(i => !PRIMARY_HREFS.includes(i.href))
-
-  useEffect(() => {
-    if (!hotelDropdownOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      if (hotelDropdownRef.current && !hotelDropdownRef.current.contains(e.target as Node)) {
-        setHotelDropdownOpen(false)
-      }
-    }
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setHotelDropdownOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [hotelDropdownOpen])
+  const primaryItems = visibleNavItems.filter((item) => PRIMARY_NAV_HREFS.includes(item.href))
+  const moreItems = visibleNavItems.filter((item) => MORE_NAV_HREFS.includes(item.href))
 
   const renderNavItem = ({ href, label, icon: Icon, subNav, tag }: NavItem) => {
     const active     = pathname === href || pathname.startsWith(href + '/')
@@ -233,7 +204,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
   return (
     <aside
       aria-label="Main navigation"
-      onMouseEnter={() => sidebarCollapsedPref && setIsHovering(true)}
+      onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       className={cn(
         'bg-paper border-r border-line flex flex-col shrink-0',
@@ -243,9 +214,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
         mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       )}
     >
-      {/* Logo + collapse button */}
-      <div className="flex items-center justify-between px-3.5 pt-4 pb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+      {/* Dashboard brand */}
+      <div className="px-3.5 pt-4 pb-3">
+        <Link
+          href="/dashboard"
+          prefetch={false}
+          onClick={onMobileClose}
+          aria-label={t('nav.dashboard')}
+          className="flex items-center gap-2.5 min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+        >
           <div className="w-7 h-7 rounded-[7px] bg-ink flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M4 21V8l8-5 8 5v13" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -256,92 +233,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
             <div className="text-sm font-semibold tracking-tight text-ink">PatelRep</div>
             <div className="text-[10px] text-ink3 font-mono mt-0.5">{t('nav.hotelOperationsAI')}</div>
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={toggleSidebarCollapsed}
-          aria-label={sidebarCollapsedPref ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
-          aria-expanded={!sidebarCollapsedPref}
-          className="hidden md:inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-ink3 hover:bg-surface-2 hover:text-ink transition-colors"
-        >
-          {sidebarCollapsedPref ? <PanelLeft className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
-        </button>
+        </Link>
       </div>
-
-      {/* Hotel switcher */}
-      {hotel && (
-        <div
-          ref={hotelDropdownRef}
-          className={cn('relative mx-3 mb-3', sidebarCollapsed && 'md:hidden')}
-        >
-          <button
-            type="button"
-            aria-haspopup="menu"
-            aria-expanded={hotelDropdownOpen}
-            onClick={() => setHotelDropdownOpen((open) => !open)}
-            className="flex w-full items-center gap-2.5 rounded-[10px] border border-line bg-surface px-2.5 py-2 text-left transition-colors hover:bg-surface-2"
-          >
-          <div className="w-6 h-6 rounded-md bg-accent flex items-center justify-center text-white text-[10px] font-bold font-display shrink-0">
-            {hotel.name[0]?.toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0 leading-none">
-            <div className="text-xs font-semibold text-ink truncate">{hotel.name}</div>
-            <div className="text-[10px] text-ink3 font-mono mt-0.5">{t('common.rooms', { count: hotel.room_count ?? 0 })}</div>
-          </div>
-          <ChevronDown className={cn('w-3 h-3 text-ink3 shrink-0 transition-transform', hotelDropdownOpen && 'rotate-180')} />
-          </button>
-          {hotelDropdownOpen && (
-            <div
-              role="menu"
-              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-xl border border-line bg-surface p-1.5 shadow-pop"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {(hotels.length ? hotels : [hotel]).map((item) => {
-                const active = item.id === hotel.id
-                return (
-                  <button
-                    key={item.id}
-                    role="menuitem"
-                    onClick={() => {
-                      setHotel(item)
-                      setHotelDropdownOpen(false)
-                    }}
-                    className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-surface-2',
-                      active && 'bg-accent-soft text-accent'
-                    )}
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-white">
-                      {item.name[0]?.toUpperCase()}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12px] font-medium">{item.name}</span>
-                      <span className="block font-mono text-[10px] text-ink3">{t('common.rooms', { count: item.room_count ?? 0 })}</span>
-                    </span>
-                  </button>
-                )
-              })}
-              <button
-                role="menuitem"
-                onClick={() => {
-                  setHotelDropdownOpen(false)
-                  router.push('/settings')
-                  onMobileClose?.()
-                }}
-                className="mt-1 flex w-full items-center justify-center rounded-lg border border-line px-2.5 py-2 text-[12px] font-medium text-ink2 hover:bg-surface-2"
-              >
-                {t('nav.manageHotelProfile')}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Nav */}
       <nav className="flex-1 px-3 overflow-y-auto">
         {sidebarCollapsed ? (
           <div className="space-y-px">
-            {[...primaryItems, ...opsTailItems, ...intelItems, ...peopleItems].map(renderNavItem)}
+            {[...primaryItems, ...moreItems].map(renderNavItem)}
           </div>
         ) : (
           <>
@@ -350,26 +249,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
                 {primaryItems.map(renderNavItem)}
               </div>
             )}
-            {renderTailGroup(t('nav.tailOps'), opsTailItems)}
-            {renderTailGroup(t('nav.tailIntel'), intelItems)}
-            {renderTailGroup(t('nav.tailTeam'), peopleItems)}
+            {renderTailGroup(t('nav.tailMore'), moreItems)}
           </>
         )}
       </nav>
 
-      {/* Settings / Billing */}
+      {/* Settings */}
       {bottomItems.length > 0 && (
-          <div className="mt-4 px-3 pt-2 pb-1 border-t border-line-2 space-y-px">
-            <div
-              className={cn(
-                'px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4',
-                sidebarCollapsed && 'md:hidden'
-              )}
-            >
-              {t('nav.settings')}
-            </div>
-            <div className="mt-2 space-y-px">
-              {bottomItems.map(({ href, label, icon: Icon }) => {
+        <div className="mt-4 px-3 pt-2 pb-1 border-t border-line-2 space-y-px">
+          {bottomItems.map(({ href, label, icon: Icon }) => {
                   const active = pathname === href
                   const link = (
                     <Link
@@ -396,9 +284,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
                       </CollapsedTooltip>
                     </div>
                   )
-                })}
-              </div>
-          </div>
+          })}
+        </div>
         )}
 
       {/* User identity */}

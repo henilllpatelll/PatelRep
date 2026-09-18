@@ -120,6 +120,20 @@ export interface FailurePrediction {
   assets?: Asset & { asset_categories?: { name: string } }
 }
 
+export interface RecurringIssue {
+  key: string
+  asset_id: string | null
+  asset_name: string | null
+  room_id: string | null
+  room_number: string | null
+  category: string | null
+  wo_count: number
+  window_days: number
+  first_wo_at: string
+  last_wo_at: string
+  work_order_ids: string[]
+}
+
 export type BatchAcknowledgePredictionResult =
   | { prediction_id: string; action: 'acknowledged' }
   | { prediction_id: string; action: 'not_found' }
@@ -333,4 +347,7 @@ export const engineeringApi = {
 
   runAssetPrediction: (assetId: string) =>
     apiClient.post(`/assets/${assetId}/run-prediction`) as Promise<{ data: FailurePrediction }>,
+
+  getRecurringIssues: () =>
+    apiClient.get('/assets/recurring-issues') as Promise<{ data: RecurringIssue[] }>,
 }

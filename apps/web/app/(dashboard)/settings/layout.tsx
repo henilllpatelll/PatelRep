@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Building2, Layers, Sliders, ShieldCheck,
-  ClipboardList, Hotel, CreditCard, Link2, MessageSquareWarning, MessageSquare, Brush,
+  BookOpen, ClipboardList, Hotel, CreditCard, Link2, MessageSquare, Brush,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
@@ -25,16 +25,16 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
+    label: 'Property',
     items: [
       { href: '/settings/general', label: 'General', icon: Building2 },
-      { href: '/settings/departments', label: 'Departments', icon: Layers },
+      { href: '/settings/rooms', label: 'Rooms', icon: Hotel, roles: ['gm'] },
     ],
   },
   {
-    label: 'Configuration',
+    label: 'Workflow',
     items: [
       { href: '/settings/front-desk', label: 'Front Desk', icon: Sliders, roles: ['gm'] },
-      { href: '/settings/roles', label: 'Roles', icon: ShieldCheck, roles: ['gm'] },
       {
         href: '/settings/inspections', label: 'Inspections', icon: ClipboardList,
         roles: ['gm', 'housekeeping_supervisor'],
@@ -47,7 +47,21 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/settings/housekeeping', label: 'Housekeeping', icon: Brush,
         roles: ['gm', 'housekeeping_supervisor'],
       },
-      { href: '/settings/rooms', label: 'Rooms', icon: Hotel, roles: ['gm'] },
+      {
+        href: '/settings/programs', label: 'Programs', icon: ClipboardList,
+        roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'],
+      },
+      {
+        href: '/settings/sop', label: 'SOP Library', icon: BookOpen,
+        roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'],
+      },
+    ],
+  },
+  {
+    label: 'Team',
+    items: [
+      { href: '/settings/departments', label: 'Departments', icon: Layers },
+      { href: '/settings/roles', label: 'Roles', icon: ShieldCheck, roles: ['gm'] },
     ],
   },
   {
@@ -55,7 +69,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/settings/billing', label: 'Billing', icon: CreditCard, roles: ['gm'] },
       { href: '/settings/integrations', label: 'Integrations', icon: Link2, roles: ['gm'] },
-      { href: '/settings/feedback', label: 'Feedback', icon: MessageSquareWarning, roles: ['gm'] },
     ],
   },
 ]
@@ -82,7 +95,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="space-y-5">
-      {/* Page header */}
       <div>
         <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Settings</h1>
         <p className="text-sm text-stone-500 mt-1">Manage your hotel profile and configuration.</p>

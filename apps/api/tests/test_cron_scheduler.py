@@ -12,6 +12,7 @@ import core.scheduler as sched
 EXPECTED_JOBS = {
     "predictions.run",
     "opera.sync-reservations",
+    "opera.sftp-sync-reports",
     "escalations.check",
     "predictions.escalation-check",
     "pm.check-due",

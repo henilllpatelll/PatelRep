@@ -25,6 +25,7 @@ CRON_SCHEDULE: dict[str, dict] = {
     # Frequent group — every 30 minutes.
     "predictions.run": {"minute": "*/30"},
     "opera.sync-reservations": {"minute": "*/30"},
+    "opera.sftp-sync-reports": {"minute": "*/30"},
     "escalations.check": {"minute": "*/30"},
     "predictions.escalation-check": {"minute": "*/30"},
     # Daily 06:00.
@@ -65,6 +66,7 @@ def _job_handlers() -> dict[str, Callable[..., Awaitable]]:
     return {
         "predictions.run": internal.run_predictions,
         "opera.sync-reservations": internal.sync_opera_reservations,
+        "opera.sftp-sync-reports": internal.sync_opera_report_files,
         "escalations.check": internal.check_escalations,
         "predictions.escalation-check": internal.check_prediction_escalations,
         "pm.check-due": internal.check_due_pm,

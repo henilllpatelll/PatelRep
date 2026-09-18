@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -738,6 +739,7 @@ function EditStaffModal({
 // â”€â”€â”€ Staff Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function StaffPage() {
+  const router = useRouter()
   const { canManageStaff, isGM } = useRole()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
@@ -836,8 +838,12 @@ export default function StaffPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Organization"
-        title="Staff"
+        title="People"
         subtitle={`${staffQuery.data?.length ?? 0} team member${staffQuery.data?.length !== 1 ? 's' : ''}`}
+        tabs={[
+          { label: 'Team', active: true, onClick: () => undefined },
+          { label: 'Schedule', active: false, onClick: () => router.push('/scheduling') },
+        ]}
         actions={canManageStaff && (
           <>
           <div className="relative sm:hidden">

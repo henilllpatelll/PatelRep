@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { AlertCircle, Plus, Sparkles, Loader2, Archive } from 'lucide-react'
@@ -24,6 +24,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
+import { RecurringIssuesSidebar } from '@/components/engineering/RecurringIssuesSidebar'
 import { EngineeringRoomBoard } from '@/components/engineering/EngineeringRoomBoard'
 import { PartsPanel } from '@/components/engineering/PartsPanel'
 import { BulkArchiveModal } from '@/components/engineering/BulkArchiveModal'
@@ -54,6 +55,8 @@ const PRIORITY_BORDER: Record<string, string> = {
   normal: 'border-l-[var(--caution)]',
   low:    'border-l-[var(--ready)]',
 }
+
+const VALID_TABS = ['work-orders', 'room-board', 'parts', 'archived'] as const
 
 const AVATAR_COLORS = [
   'bg-[var(--accent-soft)] text-[var(--accent)]',
@@ -274,6 +277,7 @@ function sortWOs(wos: WorkOrder[], aiTriageActive = false): WorkOrder[] {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 function WorkOrdersPageContent() {
+  const router = useRouter()
   const { t } = useTranslation()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
@@ -285,7 +289,10 @@ function WorkOrdersPageContent() {
   const searchParams = useSearchParams()
   const appliedFocusRef = useRef<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board' | 'parts' | 'archived'>('work-orders')
+  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board' | 'parts' | 'archived'>(() => {
+    const requested = searchParams.get('tab')
+    return (VALID_TABS as readonly string[]).includes(requested ?? '') ? (requested as typeof VALID_TABS[number]) : 'work-orders'
+  })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
@@ -452,6 +459,15 @@ function WorkOrdersPageContent() {
           ]}
           actions={activeTab === 'work-orders' && (
             <>
+              <Button variant="outline" onClick={() => router.push('/engineering/assets')} className="shrink-0">
+                Assets
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/engineering/pm-schedules')} className="shrink-0">
+                Preventive maintenance
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/engineering/predictions')} className="shrink-0">
+                Insights
+              </Button>
               <Button
                 variant="ai"
                 onClick={handleAITriage}
@@ -564,7 +580,12 @@ function WorkOrdersPageContent() {
         />
       </div>
 
-      {activeTab === 'work-orders' && <FailurePredictionSidebar />}
+      {activeTab === 'work-orders' && (
+        <div className="flex flex-col gap-6 shrink-0">
+          <FailurePredictionSidebar />
+          <RecurringIssuesSidebar />
+        </div>
+      )}
 
       {/* Detail drawer */}
       <WorkOrderDetailDrawer

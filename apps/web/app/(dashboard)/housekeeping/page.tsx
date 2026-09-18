@@ -5,11 +5,13 @@ import { format, addDays, parseISO } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { Clock, LogOut, MessageSquare, Wrench } from 'lucide-react'
+import { Clock, LogOut, Map, MessageSquare, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
+import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportModal'
+import { HousekeepingRoutes } from '@/components/housekeeping/HousekeepingRoutes'
 import { RosterSidebar, CreditWeightsCard } from '@/components/housekeeping/RosterSidebar'
 import { AssignSaveBar } from '@/components/housekeeping/AssignSaveBar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
@@ -560,6 +562,8 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
 
   const [predictions, setPredictions] = useState<RoomPrediction[]>([])
   const [predictionsLoading, setPredictionsLoading] = useState(false)
+  const [showOperaImport, setShowOperaImport] = useState(false)
+  const [showRoutes, setShowRoutes] = useState(false)
 
   const fetchPredictions = useCallback(async () => {
     setPredictionsLoading(true)
@@ -592,8 +596,19 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
     [rooms],
   )
 
+  if (showRoutes) {
+    return <HousekeepingRoutes onShowBoard={() => setShowRoutes(false)} />
+  }
+
   return (
     <div className="space-y-4">
+      {showOperaImport && (
+        <OccupancyImportModal
+          date={selectedDate}
+          onClose={() => setShowOperaImport(false)}
+        />
+      )}
+
       {/* Page header */}
       <PageHeader
         eyebrow={t('housekeeping.page.board.eyebrow')}
@@ -632,12 +647,29 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
               ))}
             </select>
             {canAssignRooms && (
-              <Button
-                variant={assignmentMode ? 'primary' : 'secondary'}
-                onClick={toggleAssignmentMode}
-              >
-                {assignmentMode ? t('housekeeping.page.board.exitAssign') : t('housekeeping.page.board.assignMode')}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRoutes(true)}
+                  aria-label={t('housekeeping.routes.title')}
+                  title={t('housekeeping.routes.title')}
+                >
+                  <Map className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowOperaImport(true)}
+                >
+                  {t('housekeeping.assignmentsPage.importFromOpera')}
+                </Button>
+                <Button
+                  variant={assignmentMode ? 'primary' : 'secondary'}
+                  onClick={toggleAssignmentMode}
+                >
+                  {assignmentMode ? t('housekeeping.page.board.exitAssign') : t('housekeeping.page.board.assignMode')}
+                </Button>
+              </>
             )}
           </>
         }

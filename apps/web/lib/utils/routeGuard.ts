@@ -10,8 +10,6 @@ export const MOBILE_ONLY_ROLES = new Set<UserRole>(['housekeeper', 'engineer'])
 
 const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/dashboard', roles: [...ALL_ROLES] },
-  { prefix: '/housekeeping/assignments', roles: ['gm', 'housekeeping_supervisor'] },
-  { prefix: '/housekeeping/inspections', roles: ['gm', 'housekeeping_supervisor'] },
   { prefix: '/housekeeping/rooms', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
   { prefix: '/housekeeping', roles: ['gm', 'housekeeping_supervisor', 'housekeeper', 'front_desk'] },
   { prefix: '/engineering', roles: ['gm', 'engineer', 'chief_engineer', 'housekeeping_supervisor'] },

@@ -179,6 +179,11 @@ def sync_reservations(hotel_id: str) -> dict:
         return {"synced": 0, "skipped": True, "reason": "opera_pilot_not_enabled", "error": None}
 
     creds = get_opera_credentials(hotel_id)
+    if creds and creds.get("connection_mode") == "sftp_report":
+        # D-03-style single-source-of-truth guard: a hotel that has switched to the
+        # SFTP report path (services/opera/report_ingest.py) must never be auto-synced
+        # here with whatever OHIP tokens happen to still be sitting in this row.
+        return {"synced": 0, "skipped": True, "reason": "connection_mode_is_sftp_report", "error": None}
     if not creds or not creds.get("hotel_id_opera"):
         return {"synced": 0, "error": "Opera not connected or hotel_id_opera not set"}
 

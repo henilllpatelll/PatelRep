@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -524,3 +525,29 @@ def project_seven_day_labor_forecast(
         )
 
     return results
+
+
+def suggested_housekeeper_staffing(
+    days: list[dict[str, Any]],
+    *,
+    avg_shift_hours: float,
+    scheduled_by_date: dict[str, int],
+) -> list[dict[str, Any]]:
+    """Turns D-09's projected_labor_hours into a suggested headcount per day
+    (hours / avg shift length, rounded up) and the gap against housekeepers
+    already scheduled for that date -- so a GM sees "need 5, have 3" instead
+    of just raw labor-hours. `scheduled_by_date` keys are ISO date strings
+    matching each day's "date" field; a date with no entry means 0 scheduled.
+    """
+    augmented = []
+    for day in days:
+        hours = day.get("projected_labor_hours") or 0.0
+        suggested = math.ceil(hours / avg_shift_hours) if avg_shift_hours > 0 else 0
+        scheduled = scheduled_by_date.get(day["date"], 0)
+        augmented.append({
+            **day,
+            "suggested_housekeepers": suggested,
+            "scheduled_housekeepers": scheduled,
+            "staffing_gap": suggested - scheduled,
+        })
+    return augmented

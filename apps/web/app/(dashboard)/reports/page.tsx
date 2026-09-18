@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -787,6 +788,7 @@ function AIUsageTab({ redesigned }: { redesigned?: boolean }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const router = useRouter()
   const { t } = useTranslation()
   const { role, isGM, isSupervisor } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
@@ -857,11 +859,14 @@ export default function ReportsPage() {
         title={v2 ? t('reports.pageTitle') : 'Reports'}
         subtitle={v2 ? t('reports.pageSubtitle') : 'Operational analytics and performance metrics'}
         dataI18nSkip={v2}
-        tabs={tabs.map((tab) => ({
-          label: tab.label,
-          active: currentTab === tab.id,
-          onClick: () => setActiveTab(tab.id),
-        }))}
+        tabs={[
+          ...tabs.map((tab) => ({
+            label: tab.label,
+            active: currentTab === tab.id,
+            onClick: () => setActiveTab(tab.id),
+          })),
+          ...(isGM ? [{ label: 'Management ROI', active: false, onClick: () => router.push('/management-roi') }] : []),
+        ]}
       />
 
       {/* Tab content */}

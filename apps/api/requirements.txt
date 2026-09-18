@@ -19,3 +19,4 @@ pytest-asyncio==1.4.0
 pdfplumber==0.11.10
 pypdf==6.15.0
 ortools==9.15.6755
+paramiko==3.5.1

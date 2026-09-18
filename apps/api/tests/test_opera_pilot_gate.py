@@ -224,3 +224,29 @@ async def test_sync_reservations_skips_connected_non_pilot_hotel(monkeypatch):
     assert ohip_calls == []
     assert db.updates == []
     assert db.inserts == []
+
+
+@pytest.mark.asyncio
+async def test_sync_reservations_skips_hotel_switched_to_sftp_report_mode(monkeypatch):
+    """A hotel that has moved to the SFTP report path (services/opera/report_ingest.py)
+    must never be auto-synced here with whatever OHIP tokens are still sitting in its
+    opera_credentials row."""
+    db = FakeDB(rows={"tenants": [{"id": "hotel-1", "opera_pilot_enabled": True}]})
+    monkeypatch.setattr(opera_sync_module, "supabase", db)
+    monkeypatch.setattr(
+        opera_sync_module,
+        "get_opera_credentials",
+        # stale hotel_id_opera left over from a prior api-mode connection
+        lambda hotel_id: {"connection_mode": "sftp_report", "hotel_id_opera": "SAND01"},
+    )
+    monkeypatch.setattr(
+        opera_sync_module,
+        "ohip_request",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("OHIP must not be called for an sftp_report-mode hotel")),
+    )
+
+    result = opera_sync_module.sync_reservations("hotel-1")
+
+    assert result["synced"] == 0
+    assert result.get("skipped") is True
+    assert result.get("reason") == "connection_mode_is_sftp_report"

@@ -24,6 +24,7 @@ from services.ai.engineer_briefing import generate_engineer_briefing
 from services.ai.front_desk_briefing import generate_front_desk_briefing
 from services.ai.gm_briefing import generate_gm_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
+from services.inventory import get_low_stock_parts_summary
 from services.policy import check_action_permitted
 from services.ai.governance import (
     InvalidRecommendationTransition,
@@ -34,6 +35,7 @@ from services.ai.governance import (
 from services.ai.model_routing import DEFAULT_MODEL_ROUTES
 from services.guest_recovery.contracts import resolve_sla_minutes
 from routers.guest_requests import _record_guest_request_event
+from routers.assets import get_recurring_issues
 import openai
 import anthropic
 import time
@@ -985,6 +987,11 @@ async def confirm_assignments(
 
 @router.get("/risk-alerts")
 async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user)):
+    """Real-time, deterministic exception feed for the GM dashboard -- unlike
+    the cron-driven shift_summary AI narrative (which mentions similar signals
+    inside a paragraph 3x/day), this recomputes on every request with no AI
+    credit cost, so it's always current and each item links straight to the
+    room/WO/part/request that needs attention."""
     from datetime import datetime, timezone
     room_risks = supabase.table("room_readiness_predictions")\
         .select("*, rooms(room_number)")\
@@ -1004,11 +1011,26 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
         .order("failure_risk_score", desc=True)\
         .limit(5)\
         .execute()
+
+    low_stock_parts = get_low_stock_parts_summary(current_user.hotel_id)
+
+    guest_issues = supabase.table("guest_requests")\
+        .select("id, title, description, room_id, rooms(room_number)")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .not_.in_("status", ["resolved", "verified", "cancelled"])\
+        .limit(10)\
+        .execute()
+
+    recurring = await get_recurring_issues(days=30, min_count=3, current_user=current_user)
+
     return {
         "data": {
             "housekeeping_risks": room_risks.data or [],
             "maintenance_risks": asset_risks.data or [],
             "sla_breaches": sla_breaches.data or [],
+            "low_stock_parts": low_stock_parts,
+            "pending_guest_issues": guest_issues.data or [],
+            "recurring_issues": recurring["data"],
         }
     }
 

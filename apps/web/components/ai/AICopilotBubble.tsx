@@ -373,14 +373,13 @@ export function AICopilotBubble() {
       )}
 
       <Button
-        variant="primary"
+        variant="ai"
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? 'Close AI Copilot' : 'Open AI Copilot'}
-        className="gap-2 rounded-full bg-ai shadow-[var(--shadow-pop)]"
+        className="gap-2 rounded-full shadow-[var(--shadow-pop)]"
       >
-        <SparkIcon size={15} className="text-white" />
+        <SparkIcon size={15} className="text-ai" />
         <span className="text-[13px] font-medium hidden sm:inline">Ask copilot</span>
-        <span className="font-mono text-[10px] opacity-60 hidden sm:inline">⌘J</span>
       </Button>
     </div>
   )

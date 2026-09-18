@@ -2,19 +2,19 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { getHousekeepingSubNavItems } from './housekeepingNavigation'
 
-test('shows full housekeeping tabs for gm and housekeeping supervisor roles', () => {
+test('shows no redundant housekeeping sub-navigation for managers', () => {
   for (const role of ['gm', 'housekeeping_supervisor'] as const) {
     assert.deepEqual(
       getHousekeepingSubNavItems(role).map((item) => item.label),
-      ['Room Board', 'Routes', 'Assignments', 'Inspections'],
+      [],
     )
   }
 })
 
-test('shows only front-desk-safe housekeeping tabs for front desk', () => {
+test('shows no redundant housekeeping sub-navigation for front desk', () => {
   assert.deepEqual(
     getHousekeepingSubNavItems('front_desk').map((item) => item.label),
-    ['Room Board'],
+    [],
   )
 })
 

@@ -63,8 +63,41 @@ export interface ReadyToStripRoom {
 export interface AssignmentPayload {
   date: string
   shift_id: string | null
-  assignments: { room_id: string; housekeeper_id: string; clean_type?: CleanType }[]
+  assignments: { room_id: string; housekeeper_id: string; clean_type?: CleanType; sequence_order?: number }[]
   is_ai_suggested: boolean
+}
+
+export interface SuggestedRoom {
+  room_id: string
+  room_number: string
+  floor: number | null
+  building: string | null
+  status: string
+  room_type: string
+  base_clean_minutes: number
+  is_vip: boolean
+  sequence: number
+}
+
+export interface AssignmentSuggestion {
+  housekeeper: {
+    id: string
+    full_name: string
+    preferred_name: string
+    building_affinity: string | null
+  }
+  rooms: SuggestedRoom[]
+  room_count: number
+  total_minutes: number
+}
+
+export interface AiSuggestAssignmentsResponse {
+  data: {
+    suggestions: AssignmentSuggestion[]
+    date?: string
+    shift_id?: string | null
+    message: string
+  }
 }
 
 export interface UpdateRoomStatusPayload {
@@ -150,7 +183,7 @@ export const housekeepingApi = {
       '/housekeeping/ai-suggest-assignments',
       {},
       { params: { date, shift_id: shiftId } },
-    ),
+    ) as Promise<AiSuggestAssignmentsResponse>,
 
   getPredictions: () => apiClient.get('/housekeeping/predictions'),
 
