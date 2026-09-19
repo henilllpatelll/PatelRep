@@ -1,3 +1,0 @@
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "infra/opera-sftp/Dockerfile"
