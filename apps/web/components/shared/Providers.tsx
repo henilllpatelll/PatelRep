@@ -19,7 +19,8 @@ interface MeResponse {
     id: string
     email: string
     role: UserRole
-    full_name: string
+    full_name?: string | null
+    preferred_name?: string | null
   }
   hotel: {
     id: string
@@ -127,8 +128,9 @@ function AuthListener() {
           setRole(data.user.role)
           writeAppRoleCookie(data.user.role)
         }
-        if (data.user?.full_name) {
-          setFullName(data.user.full_name)
+        const displayName = data.user?.preferred_name?.trim() || data.user?.full_name?.trim()
+        if (displayName) {
+          setFullName(displayName)
         }
         await fetchEffectiveRole()
       } catch (err) {

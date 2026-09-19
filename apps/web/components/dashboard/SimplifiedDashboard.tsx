@@ -20,6 +20,7 @@ import { Avatar, Pill, Bar, SectionLabel, AILabel, Mono, SparkIcon } from '@/com
 import { Button, IconButton } from '@/components/ui/Button'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
+import { getGreetingName } from '@/lib/utils/userGreeting'
 import { DashboardGreeting } from './DashboardGreeting'
 import { BriefingChat } from './BriefingChat'
 import { OvernightRecapStrip } from './OvernightRecapStrip'
@@ -293,15 +294,6 @@ function StaffPanel({
                   >
                     <UserPlus size={14} />
                   </IconButton>
-                  <IconButton
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Ask AI to rebalance ${name}`}
-                    onClick={() => router.push("/ai")}
-                    className="hover:bg-[var(--ai-soft)] hover:text-[var(--ai)]"
-                  >
-                    <SparkIcon size={13} />
-                  </IconButton>
                 </div>
               </div>
             )
@@ -342,15 +334,6 @@ function StaffPanel({
                     className="hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
                   >
                     <UserPlus size={14} />
-                  </IconButton>
-                  <IconButton
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Ask AI to rebalance ${tech.full_name}`}
-                    onClick={() => router.push("/ai")}
-                    className="hover:bg-[var(--ai-soft)] hover:text-[var(--ai)]"
-                  >
-                    <SparkIcon size={13} />
                   </IconButton>
                 </div>
               </div>
@@ -416,9 +399,6 @@ function WorkOrdersPanel({
             onClick={() => setUrgentOnly((v) => !v)}
           >
             <AlertTriangle size={14} />
-          </IconButton>
-          <IconButton variant="ai" size="sm" aria-label="AI triage the queue" onClick={() => router.push("/ai")}>
-            <SparkIcon size={13} />
           </IconButton>
         </div>
       </div>
@@ -596,9 +576,11 @@ export function SimplifiedDashboard() {
   type BriefingView = 'briefing' | 'chat'
   const [briefingView, setBriefingView] = useState<BriefingView>('briefing')
 
-  const firstName = storedFullName
-    ? storedFullName.split(' ')[0]
-    : (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || 'there'
+  const firstName = getGreetingName({
+    fullName: storedFullName,
+    userMetadataFullName: user?.user_metadata?.full_name,
+    appMetadataFullName: user?.app_metadata?.full_name,
+  })
 
   const todayISO = format(new Date(), 'yyyy-MM-dd')
 
@@ -732,7 +714,6 @@ export function SimplifiedDashboard() {
   ]
 
   const now = new Date()
-  const shiftLabel = now.getHours() < 15 ? 'Day shift' : now.getHours() < 23 ? 'Evening shift' : 'Night shift'
 
   // Grounds "Ask about this" answers in exactly what's on screen right now.
   const briefingStats: BriefingBoardStats = {
@@ -779,12 +760,6 @@ export function SimplifiedDashboard() {
             }
           </p>
           <div className="flex gap-2.5 mt-auto flex-wrap items-center">
-            {hkRisks.length > 0 && (
-              <Button variant="primary" size="md" onClick={() => router.push('/ai')} className="gap-1.5">
-                <CheckCircle2 size={14} />
-                Apply {hkRisks.length} suggestion{hkRisks.length !== 1 ? 's' : ''}
-              </Button>
-            )}
             <Button
               ref={askButtonRef}
               variant="ai"
@@ -819,7 +794,7 @@ export function SimplifiedDashboard() {
       <div className="shrink-0 flex items-end justify-between gap-6">
         <DashboardGreeting
           name={firstName}
-          meta={hotel?.name ? `${shiftLabel} · ${hotel.name}` : shiftLabel}
+          meta={hotel?.name}
         />
         <div className="flex gap-2 pb-1 shrink-0">
           <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-1.5">

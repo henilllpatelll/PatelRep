@@ -14,8 +14,13 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str
 
     # AI
+    ai_provider: str = "hosted"
     openai_api_key: str = ""
     anthropic_api_key: str = ""
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "qwen3.8:latest"
+    ollama_embedding_model: str = "nomic-embed-text"
+    ollama_disable_thinking: bool = True
 
     # Stripe
     stripe_secret_key: str = ""

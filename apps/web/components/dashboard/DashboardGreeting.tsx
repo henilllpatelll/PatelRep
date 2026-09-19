@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { formatDashboardGreeting } from '@/lib/utils/userGreeting'
 import type { ReactNode } from 'react'
 
 type GreetingKey = 'dashboard.greeting.morning' | 'dashboard.greeting.afternoon' | 'dashboard.greeting.evening'
 
 interface DashboardGreetingProps {
-  name: string
+  name?: string
   /** One contextual line under the greeting — hotel name for GM, a shift summary for floor roles, etc. */
   subtitle?: ReactNode
   /** Appended to the date line after " · " — e.g. shift + hotel name. */
@@ -39,7 +40,7 @@ export function DashboardGreeting({ name, subtitle, meta, className }: Dashboard
         {meta && <> · {meta}</>}
       </p>
       <h1 className="font-display text-[34px] font-normal italic tracking-[-0.5px] leading-[1.1] text-ink">
-        {t(greetingKey)}, {name}.
+        {formatDashboardGreeting(t(greetingKey), name)}
       </h1>
       {subtitle && <p className="mt-2 text-[14px] text-ink2 max-w-[640px] leading-[1.45]">{subtitle}</p>}
     </div>

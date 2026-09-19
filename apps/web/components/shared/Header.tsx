@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Settings, ChevronDown, Menu, Bell, CheckCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useHotelStore } from '@/stores/hotelStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/stores/authStore'
@@ -23,6 +24,7 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, signOut } = useAuth()
+  const hotel = useHotelStore((s) => s.hotel)
   const { t, i18n } = useTranslation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -149,10 +151,9 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
       month: 'short',
       day: 'numeric',
     }).format(now)
-    const hour = now.getHours()
-    const shift = hour < 15 ? t('header.dayShift') : hour < 23 ? t('header.eveningShift') : t('header.nightShift')
-    setDateShiftLabel(`${today} · ${shift}`)
-  }, [i18n.language, t])
+    const propertyName = hotel?.name
+    setDateShiftLabel(propertyName ? `${today} · ${propertyName}` : today)
+  }, [i18n.language, hotel?.name])
 
   return (
     <header className={cn(

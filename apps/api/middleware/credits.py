@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from core.config import settings
 from core.database import supabase
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -126,6 +127,11 @@ async def check_and_deduct_credits(
     Returns the credits charged (token-derived — see compute_credits).
     Raises HTTPException if at cap or trial exhausted.
     """
+    # A local Ollama instance has no provider bill, so development testing must
+    # neither create an overage nor decrement the tenant's paid credit balance.
+    if settings.ai_provider.strip().lower() == "ollama":
+        return 0
+
     credits = compute_credits(interaction_type, prompt_tokens, completion_tokens)
 
     ledger = get_or_create_current_period_ledger(hotel_id)
@@ -169,6 +175,10 @@ async def log_ai_interaction(
     success: bool = True,
     error_message: str = None
 ):
+    if settings.ai_provider.strip().lower() == "ollama":
+        model_used = settings.ollama_model
+        credits_charged = 0
+
     supabase.table("ai_interactions").insert({
         "tenant_id": hotel_id,
         "user_id": user_id,

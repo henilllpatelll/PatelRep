@@ -4,8 +4,7 @@ Collects: logbook entries, completed tasks, open work orders for the shift perio
 """
 from datetime import datetime, timezone
 
-import anthropic
-from core.config import settings
+from services.ai.providers import get_anthropic_client
 from core.database import supabase
 
 
@@ -201,7 +200,7 @@ Write a professional 3-4 paragraph shift handoff summary that:
 Keep it concise, factual, and actionable. Use hotel industry terminology."""
 
     # 6. Call Claude Sonnet
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = get_anthropic_client()
 
     message = client.messages.create(
         model="claude-sonnet-4-6",

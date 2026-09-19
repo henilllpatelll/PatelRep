@@ -23,6 +23,7 @@ from middleware.auth import CurrentUser
 from models.requests import CopilotChatRequest
 from routers import ai_copilot
 from services.ai import sop_rag
+from core.config import settings
 from tests.smoke.fake_supabase import FakeDB, FakeQuery
 
 
@@ -149,6 +150,7 @@ def _fake_parse_nl_tasks(prompt_tokens: int, completion_tokens: int):
 async def _run_task_creation(monkeypatch, db, prompt_tokens: int, completion_tokens: int) -> float:
     monkeypatch.setattr(ai_copilot, "supabase", db)
     monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(settings, "ai_provider", "hosted")
     monkeypatch.setattr(ai_copilot, "try_fast_path", lambda message: None)
     monkeypatch.setattr(ai_copilot, "parse_nl_tasks", _fake_parse_nl_tasks(prompt_tokens, completion_tokens))
 
@@ -181,6 +183,35 @@ async def test_credits_not_flat_lookup(monkeypatch):
     credits_charged = await _run_task_creation(monkeypatch, db, 50_000, 30_000)
 
     assert credits_charged != credits.CREDIT_COSTS["task_creation"]
+
+
+@pytest.mark.asyncio
+async def test_ollama_runs_do_not_charge_the_credit_ledger(monkeypatch):
+    """Local development inference must not consume a hotel's billable credits."""
+    db = CopilotFakeDB(_seeded_ledger_rows(GM.hotel_id))
+    monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(settings, "ai_provider", "ollama", raising=False)
+
+    credits_charged = await credits.check_and_deduct_credits(
+        GM.hotel_id,
+        "task_creation",
+        prompt_tokens=50_000,
+        completion_tokens=30_000,
+    )
+
+    assert credits_charged == 0
+    assert db.rpc_calls == []
+
+    await credits.log_ai_interaction(
+        hotel_id=GM.hotel_id,
+        user_id=GM.user_id,
+        interaction_type="task_creation",
+        model_used="gpt-4o-mini",
+        credits_charged=1.275,
+    )
+    interaction = [row for table, row in db.inserts if table == "ai_interactions"][0]
+    assert interaction["model_used"] == settings.ollama_model
+    assert interaction["credits_charged"] == 0
 
 
 @pytest.mark.asyncio
