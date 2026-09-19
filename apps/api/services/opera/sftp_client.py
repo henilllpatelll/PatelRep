@@ -14,9 +14,13 @@ class SftpConnectionError(Exception):
 def _open_sftp(creds: dict) -> tuple[paramiko.SSHClient, paramiko.SFTPClient]:
     """Open an SSH+SFTP connection using key auth first, then password.
 
-    Host-key verification uses the pinned `sftp_host_key_fingerprint` when set;
-    otherwise falls back to auto-accepting the remote host key (logged as a
-    warning -- a known gap to close once a pilot hotel's fingerprint is known).
+    Host-key verification is done manually against the pinned
+    `sftp_host_key_fingerprint` after connecting (below), not via paramiko's
+    known_hosts mechanism -- RejectPolicy would reject every host on first
+    connect since we never pre-populate a known_hosts store, so the initial
+    handshake always uses AutoAddPolicy and the real enforcement is the
+    fingerprint comparison post-connect. Without a pinned fingerprint, any
+    host key is accepted (logged as a warning).
     """
     host = creds.get("sftp_host")
     port = creds.get("sftp_port", 22)
@@ -26,11 +30,9 @@ def _open_sftp(creds: dict) -> tuple[paramiko.SSHClient, paramiko.SFTPClient]:
     fingerprint = creds.get("sftp_host_key_fingerprint")
 
     client = paramiko.SSHClient()
-    if fingerprint:
-        client.set_missing_host_key_policy(paramiko.RejectPolicy())
-    else:
+    if not fingerprint:
         logger.warning("No sftp_host_key_fingerprint pinned for host=%s; auto-accepting host key", host)
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
         if private_key_pem:
