@@ -73,7 +73,12 @@ jobs:
   deployment-drift-check:
     name: Deployment API-URL drift check
     # HTTP 200 on the HTML shell doesn't prove NEXT_PUBLIC_API_URL points at a live backend (bug-1071) — this checks the real client-side health fetch instead.
+    # Depends on check-api/check-web so a fresh push's Railway build has a chance to finish
+    # rolling out before this runs -- this job has no retry of its own (unlike check-api/
+    # check-web), so it previously raced a same-push Railway redeploy and hit the still-live
+    # OLD container (stale CSP/API-URL) before the swap completed.
     runs-on: ubuntu-latest
+    needs: [check-api, check-web]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -84,7 +89,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
       - name: Check every deployed frontend has a live API connection
-        run: npm run check:deployment-drift
+        run: |
+          for i in $(seq 1 5); do
+            if npm run check:deployment-drift; then exit 0; fi
+            echo "Attempt $i failed, retrying in 20s (Railway deploy may still be rolling out)..."
+            sleep 20
+          done
+          exit 1
         working-directory: apps/web
         env:
           # patelrep-web.vercel.app deliberately excluded: its NEXT_PUBLIC_API_URL is
