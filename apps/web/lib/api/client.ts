@@ -4,8 +4,9 @@ import { useAuthStore } from '@/stores/authStore'
 const RETIRED_API_URLS = [
   'https://patelrep-web-production.up.railway.app/v1',
   'https://stellar-integrity-production-f507.up.railway.app/v1',
+  'https://stellar-integrity-production-30cf.up.railway.app/v1',
 ]
-const LIVE_API_URL = 'https://stellar-integrity-production-30cf.up.railway.app/v1'
+const LIVE_API_URL = 'https://noble-cooperation-production.up.railway.app/v1'
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL
 
 // Vercel builds expose public environment values at build time. Keep an old

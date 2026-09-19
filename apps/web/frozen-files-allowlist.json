@@ -2,6 +2,12 @@
   "_readme": "Reasoned allowlist for legitimate changes to files listed in apps/web/frozen-files.json's \"files\" section. Each entry: { file, new_hash, reason, approved }. A legitimate future change bumps the hash in frozen-files.json AND adds a matching entry here in the same PR, so a reviewer sees the intent. NOTE: this allowlist mechanism does NOT apply to frozen-files.json's \"room_status_values\" section -- room-status token VALUE changes have no allowlist escape (see FROZEN.md).",
   "entries": [
     {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "76bb2e00945ab66c24d97be0d27199ee36edb71aa83fc59079d7cbcfde60bb85",
+      "reason": "Retroactively added (the hash bump was missed at commit time in b85b3dbf, 2026-09-18, causing every CI run since to fail the frozen-file guard). Two changes: (1) a11y — SkeletonGrid now renders role=\"status\" aria-live=\"polite\" with a translated 'loading' announcement instead of a silent skeleton. (2) real bugfix — the Realtime merge in mergeRoom() used `statusRow.clean_type ?? room.clean_type`, which silently ignored a legitimate `clean_type: null` payload (e.g. a DELETE /assignments/{id} clearing a manually-set clean type on Remove) and kept re-deriving the stale local status instead of the backend's cleared value; changed to use `statusRow.clean_type` directly since Postgres Realtime UPDATE payloads always carry the full new row. No exports, props, or room-status color/token values changed.",
+      "approved": true
+    },
+    {
       "file": "apps/web/components/ui/primitives.tsx",
       "new_hash": "2c9538afd8b553b64b22f6786af90b6a1a3098ac4130de8f7e40e5ac1a8c64ef",
       "reason": "Additive/refactor only: extracted the inline 9px spark glyph into a reusable exported SparkIcon({ size, className }) component so the shift-briefing inline chat (BriefingChat) and the SimplifiedDashboard 'Ask about this' UI can render it; the original AILabel call site now renders <SparkIcon size={9} /> instead of a hand-inlined <svg>. No existing exports, prop shapes, or room-status color/token values changed.",

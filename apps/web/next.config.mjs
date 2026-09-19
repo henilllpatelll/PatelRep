@@ -20,6 +20,7 @@ function buildCSP() {
     'https://patelrep-production.up.railway.app',
     'https://patelrep-web-production.up.railway.app',
     'https://stellar-integrity-production-30cf.up.railway.app',
+    'https://noble-cooperation-production.up.railway.app',
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ]
 
