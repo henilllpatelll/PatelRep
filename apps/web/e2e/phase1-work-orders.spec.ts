@@ -48,7 +48,7 @@ async function loginAsGM(page: Page): Promise<void> {
 }
 
 async function navigateToWorkOrders(page: Page): Promise<void> {
-  await page.goto('/engineering/work-orders')
+  await page.goto('/engineering?tab=work-orders')
   // Wait for the Kanban board to render
   await page.waitForSelector('[role="button"]', { timeout: 15000 }).catch(() => {
     // Board may be empty — that's fine

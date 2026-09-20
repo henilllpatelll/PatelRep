@@ -86,6 +86,22 @@ export interface WorkOrder {
 export type WorkOrderPriority = 'emergency' | 'urgent' | 'normal' | 'low'
 export type WorkOrderStatus = 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
 
+export type WorkOrderSortBy = 'created_at' | 'due_at' | 'priority'
+
+/** GM/engineering command-center KPIs. `cost_this_month` is null for non-GM roles. */
+export interface WorkOrderStats {
+  open: number
+  escalated: number
+  in_progress: number
+  on_hold: number
+  overdue: number
+  unassigned: number
+  urgent: number
+  completed_today: number
+  avg_resolution_minutes: number | null
+  cost_this_month: number | null
+}
+
 export interface TransitionWorkOrderPayload {
   status: WorkOrderStatus
   reason_code?:
@@ -167,6 +183,10 @@ export const engineeringApi = {
     assigned_to?: string
     room_id?: string
     q?: string
+    sort_by?: WorkOrderSortBy
+    sort_dir?: 'asc' | 'desc'
+    overdue?: boolean
+    unassigned?: boolean
     archived?: boolean
     page?: number
     per_page?: number
@@ -175,6 +195,9 @@ export const engineeringApi = {
       data: WorkOrder[]
       meta: { page: number; per_page: number }
     }>,
+
+  getWorkOrderStats: () =>
+    apiClient.get('/work-orders/stats') as Promise<{ data: WorkOrderStats }>,
 
   createWorkOrder: (payload: {
     title?: string

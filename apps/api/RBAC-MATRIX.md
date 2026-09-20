@@ -314,17 +314,18 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | webhooks.py | /v1/webhooks/twilio-sms | POST | UNVERIFIED (no auth dependency detected) |  |
 | webhooks.py | /v1/webhooks/twilio-status | POST | UNVERIFIED (no auth dependency detected) |  |
 | work_orders.py | /v1/work-orders | POST | none |  |
-| work_orders.py | /v1/work-orders | GET | none | inline: current_user.role == 'engineer' [L213] |
+| work_orders.py | /v1/work-orders | GET | none | inline: current_user.role == 'engineer' [L224] |
+| work_orders.py | /v1/work-orders/stats | GET | none | inline: current_user.role == 'engineer' [L319]; inline: current_user.role == 'gm' [L410] |
 | work_orders.py | /v1/work-orders/{wo_id} | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/claim | POST | engineer, gm | require_role('engineer', 'gm') [L384] |
-| work_orders.py | /v1/work-orders/{wo_id}/complete | POST | engineer, gm | require_role('engineer', 'gm') [L427] |
-| work_orders.py | /v1/work-orders/{wo_id}/transition | POST | engineer, gm | require_role('engineer', 'gm') [L554] |
-| work_orders.py | /v1/work-orders/{wo_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L594] |
-| work_orders.py | /v1/work-orders/{wo_id} | DELETE | gm | require_role('gm') [L642] |
-| work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L669] |
-| work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L681] |
-| work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L755] |
-| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm | require_role('engineer', 'gm') [L803] |
+| work_orders.py | /v1/work-orders/{wo_id}/claim | POST | engineer, gm | require_role('engineer', 'gm') [L523] |
+| work_orders.py | /v1/work-orders/{wo_id}/complete | POST | engineer, gm | require_role('engineer', 'gm') [L566] |
+| work_orders.py | /v1/work-orders/{wo_id}/transition | POST | engineer, gm | require_role('engineer', 'gm') [L693] |
+| work_orders.py | /v1/work-orders/{wo_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L733] |
+| work_orders.py | /v1/work-orders/{wo_id} | DELETE | gm | require_role('gm') [L781] |
+| work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L808] |
+| work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L820] |
+| work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L894] |
+| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm | require_role('engineer', 'gm') [L942] |
 | work_orders.py | /v1/work-orders/{wo_id}/comments | POST | none |  |
 
-**31 routers, 316 routes.**
+**31 routers, 317 routes.**

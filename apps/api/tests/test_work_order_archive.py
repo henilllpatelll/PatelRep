@@ -352,6 +352,10 @@ async def test_list_work_orders_excludes_archived_by_default(monkeypatch, role: 
         assigned_to=None,
         room_id=None,
         q=None,
+        sort_by="created_at",
+        sort_dir="desc",
+        overdue=False,
+        unassigned=False,
         page=1,
         per_page=20,
         archived=False,
@@ -446,11 +450,13 @@ async def test_full_archive_unarchive_round_trip_is_reconstructable_from_audit_e
 
     active = await work_orders_router.list_work_orders(
         status=None, category=None, priority=None, assigned_to=None, room_id=None,
-        q=None, page=1, per_page=20, archived=False, current_user=GM,
+        q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
+        page=1, per_page=20, archived=False, current_user=GM,
     )
     archived = await work_orders_router.list_work_orders(
         status=None, category=None, priority=None, assigned_to=None, room_id=None,
-        q=None, page=1, per_page=20, archived=True, current_user=GM,
+        q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
+        page=1, per_page=20, archived=True, current_user=GM,
     )
     assert WO_COMPLETED_ID not in {r["id"] for r in active["data"]}
     assert WO_COMPLETED_ID in {r["id"] for r in archived["data"]}
@@ -462,11 +468,13 @@ async def test_full_archive_unarchive_round_trip_is_reconstructable_from_audit_e
 
     active_after = await work_orders_router.list_work_orders(
         status=None, category=None, priority=None, assigned_to=None, room_id=None,
-        q=None, page=1, per_page=20, archived=False, current_user=GM,
+        q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
+        page=1, per_page=20, archived=False, current_user=GM,
     )
     archived_after = await work_orders_router.list_work_orders(
         status=None, category=None, priority=None, assigned_to=None, room_id=None,
-        q=None, page=1, per_page=20, archived=True, current_user=GM,
+        q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
+        page=1, per_page=20, archived=True, current_user=GM,
     )
     assert WO_COMPLETED_ID in {r["id"] for r in active_after["data"]}
     assert WO_COMPLETED_ID not in {r["id"] for r in archived_after["data"]}

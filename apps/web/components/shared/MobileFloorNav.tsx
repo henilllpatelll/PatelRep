@@ -22,7 +22,7 @@ const FLOOR_NAV: Record<FloorRole, FloorNavItem[]> = {
   ],
   engineer: [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/engineering/work-orders', label: 'Work Orders', icon: Wrench },
+    { href: '/engineering', label: 'Work Orders', icon: Wrench },
     { href: '/tasks', label: 'Tasks', icon: ListChecks },
   ],
   front_desk: [

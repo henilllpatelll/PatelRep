@@ -143,7 +143,7 @@ export function AIRiskAlertsPanel() {
                     </div>
                   </div>
                   <a
-                    href={`/engineering/predictions?asset=${r.id}`}
+                    href={`/engineering?tab=predictions&asset=${r.id}`}
                     className="text-xs text-[var(--caution)] hover:underline shrink-0"
                   >
                     View
@@ -190,7 +190,7 @@ export function AIRiskAlertsPanel() {
                     </div>
                   </div>
                   <a
-                    href="/engineering/work-orders?tab=parts"
+                    href="/engineering?tab=parts"
                     className="text-xs text-[var(--caution)] hover:underline shrink-0"
                   >
                     View

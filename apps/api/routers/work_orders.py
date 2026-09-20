@@ -205,11 +205,22 @@ async def list_work_orders(
     assigned_to: Optional[str] = Query(None),
     room_id: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
+    sort_by: Literal["created_at", "due_at", "priority"] = Query("created_at"),
+    sort_dir: Literal["asc", "desc"] = Query("desc"),
+    overdue: bool = Query(False),
+    unassigned: bool = Query(False),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     archived: bool = Query(False),
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    # Priority has no natural SQL ordering (its enum values don't sort by
+    # urgency alphabetically), so priority sort is applied client-side on the
+    # loaded page; server-side ordering falls back to created_at for it.
+    order_col = "due_at" if sort_by == "due_at" else "created_at"
+    order_desc = sort_dir == "desc"
+    active_statuses = ["open", "escalated", "in_progress", "on_hold"]
+    now_iso = datetime.now(timezone.utc).isoformat()
     if current_user.role == "engineer":
         # OR-filter (assigned_to=me OR assigned_to IS NULL) forces a seq-scan.
         # Two indexed queries + Python merge is faster under concurrent load.
@@ -220,7 +231,7 @@ async def list_work_orders(
                 supabase.table("work_orders")
                 .select("*, rooms(room_number), assets(name)")
                 .eq("tenant_id", current_user.hotel_id)
-                .order("created_at", desc=True)
+                .order(order_col, desc=order_desc)
                 .range(0, fetch_up_to - 1)
             )
             if archived:
@@ -237,6 +248,10 @@ async def list_work_orders(
                 query = query.eq("room_id", room_id)
             if q:
                 query = query.ilike("title", f"%{q}%")
+            if overdue:
+                query = query.lt("due_at", now_iso)
+                if not status:
+                    query = query.in_("status", active_statuses)
             return query
 
         r_mine = _base().eq("assigned_to", current_user.user_id).execute()
@@ -248,7 +263,7 @@ async def list_work_orders(
             if row["id"] not in seen:
                 seen.add(row["id"])
                 merged.append(row)
-        merged.sort(key=lambda r: r["created_at"], reverse=True)
+        merged.sort(key=lambda r: r.get(order_col) or "", reverse=order_desc)
 
         start = (page - 1) * per_page
         return {
@@ -260,7 +275,7 @@ async def list_work_orders(
         supabase.table("work_orders")
         .select("*, rooms(room_number), assets(name)")
         .eq("tenant_id", current_user.hotel_id)
-        .order("created_at", desc=True)
+        .order(order_col, desc=order_desc)
         .range((page - 1) * per_page, page * per_page - 1)
     )
     if archived:
@@ -276,13 +291,137 @@ async def list_work_orders(
         query = query.eq("priority", priority)
     if assigned_to:
         query = query.eq("assigned_to", assigned_to)
+    if unassigned:
+        query = query.is_("assigned_to", "null")
     if room_id:
         query = query.eq("room_id", room_id)
     if q:
         query = query.ilike("title", f"%{q}%")
+    if overdue:
+        query = query.lt("due_at", now_iso)
+        if not status:
+            query = query.in_("status", active_statuses)
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
+
+
+@router.get("/stats")
+async def work_order_stats(current_user: CurrentUser = Depends(get_current_user)):
+    """GM/engineering command-center KPIs. Tenant-scoped; engineers see only
+    their own + claimable work orders. cost_this_month is GM-only (hourly-rate
+    derived costs are not exposed to non-GM roles — migration 104)."""
+    hotel_id = current_user.hotel_id
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = today_start.replace(day=1)
+    thirty_days_ago = now - timedelta(days=30)
+    is_engineer = current_user.role == "engineer"
+    active_statuses = ["open", "escalated", "in_progress", "on_hold"]
+
+    def _active_base():
+        return (
+            supabase.table("work_orders")
+            .select("id, status, priority, assigned_to, due_at")
+            .eq("tenant_id", hotel_id)
+            .is_("archived_at", "null")
+            .in_("status", active_statuses)
+        )
+
+    if is_engineer:
+        mine = _active_base().eq("assigned_to", current_user.user_id).execute().data or []
+        claimable = (
+            _active_base().eq("status", "open").is_("assigned_to", "null").execute().data
+            or []
+        )
+        seen: set = set()
+        active_rows = []
+        for row in mine + claimable:
+            if row["id"] not in seen:
+                seen.add(row["id"])
+                active_rows.append(row)
+    else:
+        active_rows = _active_base().execute().data or []
+
+    counts = {"open": 0, "escalated": 0, "in_progress": 0, "on_hold": 0}
+    overdue = unassigned = urgent = 0
+    for row in active_rows:
+        st = row.get("status")
+        if st in counts:
+            counts[st] += 1
+        if row.get("priority") in ("urgent", "emergency"):
+            urgent += 1
+        if not row.get("assigned_to"):
+            unassigned += 1
+        due = row.get("due_at")
+        if due:
+            try:
+                if datetime.fromisoformat(due.replace("Z", "+00:00")) < now:
+                    overdue += 1
+            except (ValueError, AttributeError):
+                pass
+
+    completed_today_q = (
+        supabase.table("work_orders")
+        .select("id", count="exact")
+        .eq("tenant_id", hotel_id)
+        .eq("status", "completed")
+        .gte("completed_at", today_start.isoformat())
+    )
+    if is_engineer:
+        completed_today_q = completed_today_q.eq("assigned_to", current_user.user_id)
+    completed_today = completed_today_q.execute().count or 0
+
+    resolved_q = (
+        supabase.table("work_orders")
+        .select("started_at, completed_at")
+        .eq("tenant_id", hotel_id)
+        .eq("status", "completed")
+        .gte("completed_at", thirty_days_ago.isoformat())
+        .not_.is_("started_at", "null")
+    )
+    if is_engineer:
+        resolved_q = resolved_q.eq("assigned_to", current_user.user_id)
+    durations = []
+    for row in resolved_q.execute().data or []:
+        try:
+            started = datetime.fromisoformat(row["started_at"].replace("Z", "+00:00"))
+            done = datetime.fromisoformat(row["completed_at"].replace("Z", "+00:00"))
+            minutes = (done - started).total_seconds() / 60
+            if minutes >= 0:
+                durations.append(minutes)
+        except (ValueError, AttributeError, KeyError, TypeError):
+            pass
+    avg_resolution_minutes = round(sum(durations) / len(durations)) if durations else None
+
+    stats = {
+        "open": counts["open"],
+        "escalated": counts["escalated"],
+        "in_progress": counts["in_progress"],
+        "on_hold": counts["on_hold"],
+        "overdue": overdue,
+        "unassigned": unassigned,
+        "urgent": urgent,
+        "completed_today": completed_today,
+        "avg_resolution_minutes": avg_resolution_minutes,
+        "cost_this_month": None,
+    }
+
+    if current_user.role == "gm":
+        cost_rows = (
+            supabase.table("work_orders")
+            .select("total_cost")
+            .eq("tenant_id", hotel_id)
+            .eq("status", "completed")
+            .gte("completed_at", month_start.isoformat())
+            .not_.is_("total_cost", "null")
+            .execute()
+        ).data or []
+        stats["cost_this_month"] = round(
+            sum(float(r["total_cost"]) for r in cost_rows if r.get("total_cost") is not None), 2
+        )
+
+    return {"data": stats}
 
 
 @router.get("/{wo_id}")

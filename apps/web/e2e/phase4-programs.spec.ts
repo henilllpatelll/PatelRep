@@ -60,19 +60,19 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 test.describe('Phase 4 — bilingual floor contract (390px)', () => {
-  test('PM Schedules page heading and status copy translate EN <-> ES at 390px', async ({ page }) => {
+  test('PM Schedules tab heading and status copy translate EN <-> ES at 390px', async ({ page }) => {
     await loginAsGM(page)
-    await page.goto('/engineering/pm-schedules')
+    await page.goto('/engineering?tab=pm-schedules')
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 
     await setLanguage(page, 'en')
-    const enHeading = page.getByRole('heading', { name: 'PM Schedules' })
-    await expect(enHeading).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: 'Engineering' })).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('button', { name: 'PM Schedules', exact: true })).toBeVisible({ timeout: 10000 })
     await expectNoHorizontalOverflow(page)
 
     await setLanguage(page, 'es')
-    const esHeading = page.getByRole('heading', { name: 'Programas de mantenimiento preventivo' })
-    await expect(esHeading).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: 'Ingeniería' })).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('button', { name: 'Mantenimiento preventivo', exact: true })).toBeVisible({ timeout: 10000 })
     await expectNoHorizontalOverflow(page)
 
     // Reset to English so this test doesn't leak Spanish into a shared browser context.
@@ -81,7 +81,7 @@ test.describe('Phase 4 — bilingual floor contract (390px)', () => {
 
   test('PM completion form opens with translated core labels', async ({ page }) => {
     await loginAsGM(page)
-    await page.goto('/engineering/pm-schedules')
+    await page.goto('/engineering?tab=pm-schedules')
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 
     const completeButton = page.getByRole('button', { name: 'Complete', exact: true }).first()
@@ -99,7 +99,7 @@ test.describe('Phase 4 — bilingual floor contract (390px)', () => {
     await page.keyboard.press('Escape')
 
     await setLanguage(page, 'es')
-    await page.goto('/engineering/pm-schedules')
+    await page.goto('/engineering?tab=pm-schedules')
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
     const completeButtonEs = page.getByRole('button', { name: 'Completar', exact: true }).first()
     await completeButtonEs.click()

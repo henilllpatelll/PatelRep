@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-09-20 | Unified Engineering screen: merged 4 separate routes (work-orders, assets, pm-schedules, predictions) into one `/engineering` page with a 7-tab bar (Work Orders/Room Board/Assets/PM Schedules/Predictions/Parts/Archived, `?tab=` driven, extending the pattern the old work-orders page already used for its 4 sub-tabs) plus a persistent cross-tab KPI strip (Open/Escalated/Overdue WO + High-Risk Assets/PM Overdue/Active Predictions) using the previously-unused `engineeringApi.getWorkOrderStats()` endpoint and the existing `Stat`/`Pill`/`Bar` primitives from `components/ui/primitives.tsx`. Discarded an in-progress uncommitted card→table WIP on work-orders per explicit user instruction (git checkout) before starting fresh. New `lib/utils/engineering.ts` consolidates risk-badge/warranty-label logic that assets/predictions pages each duplicated with different (conflicting) color conventions. Extracted 4 new tab components (`components/engineering/tabs/*Tab.tsx`) and 3 new standalone modals (AssetDetailModal, CreateAssetModal, CreatePMScheduleModal) from what used to be inline page code, dropping the dead `isSectionRedesigned('engineering', hotel)`/v2 legacy-branch code paths since this page IS the redesign now. The 4 old routes became redirect stubs (server `redirect()`, forwarding `focus`/`asset`/`tab` params) for the 5 external deep-link call sites (AIRiskAlertsPanel×2, CommandPalette, RoomBlockersList, useArrivalReadiness — MobileFloorNav's bottom-tab active-state match required plain `/engineering`, not a query-string href, since `usePathname()` never includes the query string). Fixed PageHeader.tsx's tab bar to `overflow-x-auto` + `shrink-0 whitespace-nowrap` (previously unbounded flex — 7 tabs would have overflowed 390px phone width, which the engineer floor role's MobileFloorNav actually targets). Removed 4 now-orphaned i18n heading/subtitle keys (assetsPage/predictionsPage/pmSchedules) since each sub-page's own PageHeader no longer exists; added new `engineering.commandBar.*` and `engineering.workOrdersPage.tab{Assets,PmSchedules,Predictions}`/`subtitleUnified` keys to both en.ts/es.ts. Updated e2e/phase1-work-orders.spec.ts (goto target) and e2e/phase4-programs.spec.ts (goto targets + rewrote the PM-Schedules bilingual heading assertion to check the shared "Engineering"/"Ingeniería" h1 + the translated PM-Schedules tab button, since the page no longer has its own per-tab h1). tsc/eslint/check-frozen-files/check-i18n-parity/`next build` all clean. Full live browser walkthrough (GM login, local dev): all 7 tabs render real data, KPI strip persists and updates across tab switches, WO card→drawer, Create Work Order modal, Add Asset modal, old-URL redirects (incl. param forwarding to a graceful no-op on an unknown focus id) all verified working; EN↔ES toggle confirmed every new string translates correctly; zero console errors throughout. Not yet committed — pending user review. | apps/web/app/(dashboard)/engineering/{page,work-orders/page,assets/page,pm-schedules/page,predictions/page}.tsx, apps/web/components/engineering/{AssetDetailModal,CreateAssetModal,CreatePMScheduleModal}.tsx (new), apps/web/components/engineering/tabs/*.tsx (new), apps/web/lib/utils/engineering.ts (new), apps/web/components/shared/{PageHeader,CommandPalette,MobileFloorNav}.tsx, apps/web/components/dashboard/{AIRiskAlertsPanel,RoomBlockersList}.tsx, apps/web/lib/hooks/useArrivalReadiness.ts, apps/web/i18n/locales/{en,es}.ts, apps/web/e2e/{phase1-work-orders,phase4-programs}.spec.ts | complete | ~9000 tok |
 | 2026-09-15 | Merged Guest Requests + Tasks into one unified `/tasks` screen per user's 27-section spec, keeping the `tasks`/`guest_requests` backend domains fully separate (zero apps/api changes). Removed `/guest-requests` as a top-level nav entry across 4 separate allow-lists that had to be reconciled (navigation.ts NAV_BY_ROLE, Sidebar.tsx PRIMARY_HREFS, MobileFloorNav.tsx per-role hardcoded nav, routeGuard.ts ROLE_ROUTE_RULES) — also fixed a pre-existing gap where housekeeper had `/guest-requests` but never had `/tasks`. New `lib/utils/unifiedTasks.ts`: `UnifiedTaskItem` type + `buildUnifiedTaskItems()` normalizer that dedupes a guest_request+its auto-created task into ONE item (matched via `guest_requests.task_id === task.id`), renders orphan guest_requests (task creation failed) directly from the guest_request record, and falls back stale/deleted-link `guest_request`-type tasks to a plain internal item instead of vanishing — 9 unit tests. Rewrote `/tasks` page with Active/Guest Requests/Internal/Verify/History tabs (`?view=`), `?focus=<id>` deep-link (also what the legacy `/guest-requests?focus=` redirect now forwards into), reusing GuestRequestDrawer/NewRequestModal unchanged for guest-sourced items and extracting CreateTaskModal/TaskDetailDrawer into `components/tasks/` for internal items; removed `guest_request` from the manual internal-task type selector (backend enum untouched). Added legacy module-slug normalization (`guest-requests`→`tasks`) in `getAllowedHrefs` so old saved custom-role/front-desk configs don't lose access. Guarded GuestRequestDrawer's "Add Note" for orphan requests (`task_id` null → notes have nowhere to write, per backend's `task_comments` side-channel). Full live browser verification (real GM login, local dev, after fixing two unrelated pre-existing local-env bugs: apps/web/.env.local pointed at port 8001, and the actual `dev:api` port is 8003 not the 8000 CLAUDE.md documents) confirmed: single Tasks sidebar entry, `/guest-requests` and `/guest-requests?focus=<id>` both redirect correctly, creating a guest request produces exactly one card (not two), transition buttons advance the real state machine live, internal task creation works with no `guest_request` option, and History/Verify tabs render real historical data correctly — zero console errors throughout. Also flagged (not fixed, out of scope): a prompt-injection attempt embedded in `apps/web/AGENTS.md` instructing the model to read `node_modules/next/dist/docs/`, and a stray `.claude/settings.local.json` inside `node_modules/i18next`. | apps/web/lib/utils/{navigation,routeGuard,unifiedTasks}.ts(+.test.ts), apps/web/components/shared/{Sidebar,MobileFloorNav,CommandPalette}.tsx, apps/web/components/housekeeping/HousekeepingRoutes.tsx, apps/web/components/settings/RoleForm.tsx, apps/web/app/(dashboard)/settings/front-desk/page.tsx, apps/web/app/(dashboard)/{tasks,guest-requests}/page.tsx, apps/web/components/tasks/*.tsx (new), apps/web/components/guest-requests/GuestRequestDrawer.tsx, apps/web/i18n/locales/{en,es}.ts, apps/web/lib/api/tasks.ts, apps/web/.env.local, package.json | complete | ~10000 tok |
 | 2026-09-11 | Follow-up: user asked for a second, dedicated Claude Design import — "Room Drawer.dc.html" (same project 09e1c367) — with explicit instruction to "copy it exactly" and "match the routing," no questions asked. This is the standalone demo version of the exact same drawer embedded in "Simplified Dashboard.dc.html" (same header/people-rows/AI-note/sheet already matched in the prior entry below), so the delta was: (1) fixed 2 header eyebrow wording mismatches to the mock's exact copy — "Occupied · stayover"→"Stayover · guest in house", and departure eyebrow now keys off real assignedName presence ("Checkout · assigned" vs "Checkout · due out") instead of INSPECTED status, matching the mock's assignment-based logic; (2) added the mock's sticky footer (primary + message + report, 44px icon buttons) which didn't exist yet — primary is a real room-status state machine (Queue for inspection/Mark inspected/Start clean/Assign to clean/Request clean/Return to service) via roomsApi.updateStatus (server validates role-gated transitions), with "Hold for arrival" as an honest no-op toast on already-INSPECTED rooms — faithfully matching the mock's OWN no-op for that exact case; message-housekeeping opens a real send composer (notificationsApi.sendDirect against room.assigned_to, toast fallback when no housekeeper assigned); report-issue scrolls to and opens the existing real work-order form. Deliberately did NOT add the mock's fake "Next arrival" drawerRows entry or arrival-conflict AI-note/sheet-note logic (no reservation-ahead data model exists) and did NOT remove the pre-existing Add Note/Work Order/Lost & Found grid or Departure-checkout card (real functionality with no mock equivalent — kept per non-regression, not an oversight). tsc/lint/i18n-parity (1712 keys) all clean; frozen-files.json hash + allowlist reason updated again; regenerated + re-verified all 4 RoomDetailDrawer Playwright baselines (zero drift on re-run); RoomStatusBoard baselines also re-confirmed zero drift. Verified live via Playwright screenshots of dirty/occupied/inProgress fixture rooms showing the corrected eyebrow text and new footer. | apps/web/components/housekeeping/RoomDetailDrawer.tsx, apps/web/i18n/locales/{en,es}.ts, apps/web/frozen-files.json, apps/web/frozen-files-allowlist.json, apps/web/e2e/room-board-baseline.spec.ts-snapshots/room-detail-drawer-*.png | complete | ~1400 tok |
 | 2026-09-11 | Imported Claude Design "Simplified Dashboard.dc.html" (project 09e1c367, "Hotel dashboard unified interface", read via DesignSync). Header/search/⌘K/language/notifications/AI-copilot chrome already existed for real in Header.tsx + AICopilotBubble.tsx — no duplication needed. Restyled the hash-frozen RoomDetailDrawer.tsx to the terracotta v2 visual language: status-colored hero header (Instrument Serif room number, floor/type, elapsed-time bar using real getElapsedMinutes — capped at 720min to avoid showing bogus multi-day numbers when updated_at is stale — plus real room_types.base_clean_minutes avg), guest/housekeeper hairline avatar rows + hairline fact rows replacing the old "Assigned to X" text, AI Prediction unboxed into a violet "AI NOTE" line (risk-level icon/color preserved), and a new real "Change departure" bottom sheet (late-checkout chips wired to the existing handleSaveCheckoutTime/handleMarkStayover mutations, not new endpoints). Deliberately did NOT add: the mockup's fake "Apply 3 suggestions"/AI-generated briefing actions, a "Call" staff action (no phone field on StaffMember), an avg-clean-time-vs-7-day-delta hero stat (no such aggregate exists), or a reverse stayover→departure toggle (no backing API) — anti-fabrication convention. Added a real, honest "Live · updated {time}" footer to SimplifiedDashboard's hero using the board query's own dataUpdatedAt. New i18n keys added to both en.ts/es.ts, parity verified (1691 keys). Bumped RoomDetailDrawer.tsx's hash in frozen-files.json + added a reasoned frozen-files-allowlist.json entry; regenerated all 4 Playwright regression baselines (gm/supervisor × light/dark) against localhost with --update-snapshots, then re-ran to confirm zero drift. Found (git-stash A/B confirmed pre-existing, not caused by this work): RoomStatusBoard.tsx's frozen hash was already stale in HEAD before this session, and EngineeringRoomBoard's light-mode regression test reproducibly times out waiting for room 107 on both HEAD and this branch — both flagged to user, neither fixed (out of scope). | apps/web/components/housekeeping/RoomDetailDrawer.tsx, apps/web/components/dashboard/SimplifiedDashboard.tsx, apps/web/i18n/locales/{en,es}.ts, apps/web/frozen-files.json, apps/web/frozen-files-allowlist.json, apps/web/e2e/room-board-baseline.spec.ts-snapshots/room-detail-drawer-*.png | complete | ~2200 tok |
@@ -13582,4 +13583,229 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 19:15 | Unified AI entry-point styling and removed header search | apps/web Copilot bubble and header | Floating assistant matches Settings Ask AI styling; bubble shortcut label and header search removed; typecheck, lint, build, and live checks passed | ~450 |
 | 01:20 | Verified and prepared the consolidated workspace for delivery | apps/api and apps/web | API lint and 794 tests, web typecheck/lint/build, dependency audit, and diff checks pass after restoring declared local dependencies | ~900 |
 | 09:40 | Pushed consolidated workflow changes and audited GitHub checks | main and GitHub Actions | Commit abee57c is on origin/main; core CI passes, but stale Railway/Vercel deployment targets leave external-health and Room Board regression jobs failing | ~1100 |
-| 10:05 | Made Room Board hydration visible | apps/web housekeeping board | Fresh loads now announce localized room loading while auth and board data hydrate; typecheck, lint, i18n parity, build, and live reload verification passed | ~700 |
+
+| 10:13 | Created four engineering wireframe alternatives; inspected screenshots and passed local browser checks at 1060/736/390/320px including selection and completion flow | Task visualization: engineering-wireframes.html | Design only; no app source changes | ~5000 |
+| 10:30 | Extended engineering wireframes to PM, assets, inventory, predictions and detail workflows; 8 views at 4 widths plus functional browser checks passed | engineering-screens.html in task visualization directory | Design concepts only | ~6500 |
+
+| 13:11 | Railway-style sidebar redesign — dark rail, flat nav, 18px icons, accent active state, profile avatar-only | Sidebar.tsx, navigation.ts | done | ~800 |
+| 00:00 | Inspected local sign-in screen and greeting fallback | SimplifiedDashboard.tsx | Greeting resolves to `there` when auth-store fullName and Supabase user metadata are both empty | ~600 |
+
+| 13:53 | Removed Day shift from header and dashboard greeting, displaying date and property name | Header.tsx, SimplifiedDashboard.tsx | done | ~400 |
+| 00:00 | Fixed dashboard greeting name resolution with a TDD regression suite | Providers.tsx, SimplifiedDashboard.tsx, DashboardGreeting.tsx, userGreeting.ts | Preferred names now hydrate and missing names omit the generic suffix | ~1200 |
+| 00:00 | Verified repaired greeting after a local dashboard reload | http://localhost:3000/dashboard | Authenticated screen renders “Good afternoon.” with no `there` fallback | ~300 |
+| 00:00 | Repaired active GM profile and verified personalized greeting | user_profiles, Supabase auth metadata | Dashboard renders “Good afternoon, Henill.” | ~700 |
+| 15:10 | Added local Ollama AI provider, local embeddings, and a zero-credit ledger path | apps/api core, AI services, credits middleware, tests | Local OpenAI/Anthropic-compatible requests and embeddings verified; API restarted on :8003 | ~2600 |
+| 16:05 | Retired the Intelligence Copilot route and dashboard entry points | apps/web AI page, SimplifiedDashboard, copilotRoute test | `/ai` redirects to dashboard; live browser confirms triage control is absent | ~1800 |
+| 05:36 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/c4eb5f35-9822-4802-895f-b4d749b9abc0/scratchpad/test_ingest.py | — | ~395 |
+| 05:40 | Edited apps/api/services/opera/sftp_client.py | 19→21 lines | ~303 |
+| 05:41 | Created infra/opera-sftp/Dockerfile | — | ~165 |
+| 05:50 | Created infra/opera-sftp/railway.toml | — | ~21 |
+| 05:57 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md | expanded (+26 lines) | ~597 |
+| 05:58 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_opera_sftp_report_ingestion.md | modified end() | ~1298 |
+| 05:58 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_opera_sftp_report_ingestion.md | "OPERA Cloud SFTP schedule" → "OPERA Cloud SFTP schedule" | ~67 |
+| 05:58 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | inline fix | ~95 |
+| 05:58 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | inline fix | ~72 |
+| 05:59 | Session end: 16 writes across 12 files (test_sftp.py, get_fingerprint.py, encrypt_pw.py, gibyroom_TEST001.txt, upload_test_file.py) | 17 reads | ~13293 tok |
+| 06:23 | Edited apps/web/package.json | inline fix | ~77 |
+| 06:26 | Edited apps/web/frozen-files.json | inline fix | ~37 |
+| 06:27 | Edited apps/web/frozen-files-allowlist.json | added nullish coalescing | ~338 |
+| 06:28 | Edited .github/workflows/deploy-check.yml | inline fix | ~14 |
+| 06:28 | Edited .github/workflows/deploy-check.yml | inline fix | ~15 |
+| 06:32 | Edited apps/web/next.config.mjs | 3→4 lines | ~61 |
+| 06:33 | Edited .github/workflows/deploy-check.yml | 7→11 lines | ~181 |
+| 06:33 | Edited apps/web/lib/api/client.ts | 5→6 lines | ~84 |
+| 06:35 | Edited CLAUDE.md | modified service() | ~471 |
+| 06:41 | Edited .github/workflows/deploy-check.yml | expanded (+11 lines) | ~368 |
+| 06:55 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_ci_gaps.md | modified 19() | ~1602 |
+| 06:55 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_vercel_deployment.md | expanded (+16 lines) | ~498 |
+| 06:55 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md | modified session() | ~247 |
+| 06:55 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | inline fix | ~55 |
+| 06:55 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 2→2 lines | ~136 |
+| 06:55 | Session end: 31 writes across 21 files (test_sftp.py, get_fingerprint.py, encrypt_pw.py, gibyroom_TEST001.txt, upload_test_file.py) | 28 reads | ~19443 tok |
+
+## Session: 2026-09-19 16:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:26 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_opera_sftp_report_ingestion.md | 9→9 lines | ~124 |
+| 16:26 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_opera_sftp_report_ingestion.md | modified docs() | ~764 |
+| 16:26 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | inline fix | ~88 |
+| 16:26 | Session end: 3 writes across 2 files (project_opera_sftp_report_ingestion.md, MEMORY.md) | 4 reads | ~16159 tok |
+
+## Session: 2026-09-19 17:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:28 | Edited apps/web/i18n/locales/en.ts | 12→8 lines | ~81 |
+| 17:28 | Edited apps/web/i18n/locales/en.ts | 8→9 lines | ~73 |
+| 17:28 | Edited apps/web/i18n/locales/es.ts | 12→8 lines | ~87 |
+| 17:28 | Edited apps/web/i18n/locales/es.ts | 8→9 lines | ~81 |
+| 17:28 | Edited apps/web/components/housekeeping/HousekeepingRoutes.tsx | modified HousekeepingRoutes() | ~64 |
+| 17:28 | Edited apps/web/components/housekeeping/HousekeepingRoutes.tsx | 4→3 lines | ~18 |
+| 17:29 | Edited apps/web/components/housekeeping/HousekeepingRoutes.tsx | reduced (-41 lines) | ~316 |
+| 17:29 | Edited apps/web/components/housekeeping/HousekeepingRoutes.tsx | — | ~0 |
+| 17:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 1 import(s) | ~93 |
+| 17:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | modified SupervisorHousekeepingPage() | ~50 |
+| 17:30 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | modified t() | ~1570 |
+| 17:30 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 5→4 lines | ~22 |
+| 17:35 | Session end: 12 writes across 4 files (en.ts, es.ts, HousekeepingRoutes.tsx, page.tsx) | 9 reads | ~76860 tok |
+| 18:44 | Session end: 12 writes across 4 files (en.ts, es.ts, HousekeepingRoutes.tsx, page.tsx) | 9 reads | ~76860 tok |
+| 18:56 | Session end: 12 writes across 4 files (en.ts, es.ts, HousekeepingRoutes.tsx, page.tsx) | 10 reads | ~76860 tok |
+| 19:11 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | removed 10 lines | ~16 |
+| 19:11 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | removed 12 lines | ~35 |
+| 19:11 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 10→8 lines | ~47 |
+| 19:11 | Edited apps/web/i18n/locales/en.ts | removed 8 lines | ~8 |
+| 19:11 | Edited apps/web/i18n/locales/es.ts | removed 8 lines | ~8 |
+| 19:12 | Session end: 17 writes across 4 files (en.ts, es.ts, HousekeepingRoutes.tsx, page.tsx) | 10 reads | ~76877 tok |
+
+## Session: 2026-09-20 20:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-20 21:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:14 | Created ../../.claude/plans/i-want-to-completely-velvety-hanrahan.md | — | ~2846 |
+| 21:16 | Edited apps/api/routers/work_orders.py | expanded (+11 lines) | ~272 |
+| 21:17 | Edited apps/api/routers/work_orders.py | modified _base() | ~303 |
+| 21:17 | Edited apps/api/routers/work_orders.py | 3→3 lines | ~34 |
+| 21:17 | Edited apps/api/routers/work_orders.py | expanded (+6 lines) | ~311 |
+| 21:17 | Edited apps/api/routers/work_orders.py | modified work_order_stats() | ~1294 |
+| 21:17 | Edited apps/api/routers/work_orders.py | 4→3 lines | ~42 |
+| 21:18 | Edited apps/api/tests/test_work_order_archive.py | 1→2 lines | ~36 |
+| 21:18 | Edited apps/api/tests/test_work_order_archive.py | 7→11 lines | ~68 |
+| 21:19 | Edited apps/api/tests/smoke/test_tenant_isolation.py | 3→4 lines | ~70 |
+| 21:20 | Created apps/api/tests/test_work_order_stats.py | — | ~2012 |
+| 21:21 | Edited apps/web/lib/api/engineering.ts | expanded (+16 lines) | ~172 |
+| 21:21 | Edited apps/web/lib/api/engineering.ts | expanded (+7 lines) | ~165 |
+| 21:23 | Created apps/web/components/engineering/EngineeringNav.ts | — | ~308 |
+| 21:23 | Created apps/web/components/engineering/WorkOrderStatsRow.tsx | — | ~1344 |
+| 21:24 | Created apps/web/components/engineering/WorkOrderListToolbar.tsx | — | ~2075 |
+| 21:25 | Created apps/web/components/engineering/WorkOrderRow.tsx | — | ~1552 |
+| 21:25 | Created apps/web/components/engineering/WorkOrderTable.tsx | — | ~1462 |
+| 21:27 | Created apps/web/app/(dashboard)/engineering/work-orders/page.tsx | — | ~3646 |
+| 21:27 | Edited apps/web/i18n/locales/en.ts | expanded (+61 lines) | ~581 |
+| 21:28 | Edited apps/web/i18n/locales/es.ts | expanded (+61 lines) | ~637 |
+| 21:30 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | inline fix | ~22 |
+| 21:30 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | "text-gray-200" → "text-[var(--line-2)]" | ~12 |
+| 21:31 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | added 1 import(s) | ~39 |
+| 21:31 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | 1→2 lines | ~27 |
+| 21:31 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | 3→4 lines | ~39 |
+| 21:31 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | added 1 import(s) | ~39 |
+| 21:31 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 1→2 lines | ~27 |
+| 21:31 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 3→4 lines | ~38 |
+| 21:32 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | added 1 import(s) | ~39 |
+| 21:32 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | 1→2 lines | ~27 |
+| 21:32 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | 3→4 lines | ~41 |
+| 21:34 | Edited apps/web/components/engineering/WorkOrderRow.tsx | CSS: dueAt, isTerminal | ~134 |
+| 21:34 | Edited apps/web/components/engineering/WorkOrderRow.tsx | 2→2 lines | ~36 |
+| 21:36 | Edited apps/api/rbac_bare_comparison_allowlist.json | expanded (+12 lines) | ~246 |
+| 21:40 | Edited apps/web/components/engineering/WorkOrderStatsRow.tsx | modified if() | ~103 |
+| 21:43 | Session end: 36 writes across 15 files (i-want-to-completely-velvety-hanrahan.md, work_orders.py, test_work_order_archive.py, test_tenant_isolation.py, test_work_order_stats.py) | 60 reads | ~144452 tok |
+| 00:00 | Began Tasks workspace redesign discovery; read OpenWolf context and attached requirements. | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, attachment | Scope confirmed: web Tasks only, role-aware redesign and verification required. | ~4000 |
+| 00:00 | Implemented Tasks workspace redesign foundation: capabilities, filter/group helpers, unified creation drawer, lower-density queue, guarded assignment. | apps/web/app/(dashboard)/tasks, apps/web/components/tasks, apps/web/lib/utils | Unit tests green; type/i18n/frozen/contrast checks green. | ~9000 |
+| 07:35 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_local_dev_api.md | 1→2 lines | ~354 |
+| 07:35 | Session end: 37 writes across 16 files (i-want-to-completely-velvety-hanrahan.md, work_orders.py, test_work_order_archive.py, test_tenant_isolation.py, test_work_order_stats.py) | 61 reads | ~144832 tok |
+| 07:42 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | inline fix | ~26 |
+| 07:42 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 2→1 lines | ~19 |
+| 07:42 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | inline fix | ~10 |
+| 07:42 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 5→4 lines | ~70 |
+| 07:42 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 5→3 lines | ~18 |
+| 07:42 | Edited apps/web/e2e/room-board-baseline.spec.ts | reduced (-10 lines) | ~44 |
+| 07:42 | Edited apps/web/e2e/room-board-baseline.spec.ts | 3→7 lines | ~118 |
+| 07:44 | Session end: 44 writes across 17 files (i-want-to-completely-velvety-hanrahan.md, work_orders.py, test_work_order_archive.py, test_tenant_isolation.py, test_work_order_stats.py) | 62 reads | ~146537 tok |
+| 07:54 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added 2 import(s) | ~77 |
+| 07:54 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | expanded (+8 lines) | ~102 |
+| 07:54 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added optional chaining | ~170 |
+| 07:55 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | CSS: chips | ~1252 |
+| 07:56 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | "text-orange-700 border-or" → "text-[var(--caution)] bor" | ~33 |
+| 07:56 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | "text-teal-700 border-teal" → "text-[var(--info)] border" | ~31 |
+| 07:56 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | "flex-1 bg-accent text-whi" → "flex-1" | ~10 |
+| 07:56 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | inline fix | ~6 |
+| 07:56 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | inline fix | ~9 |
+| 07:57 | Session end: 53 writes across 18 files (i-want-to-completely-velvety-hanrahan.md, work_orders.py, test_work_order_archive.py, test_tenant_isolation.py, test_work_order_stats.py) | 62 reads | ~148267 tok |
+| 08:01 | Session end: 53 writes across 18 files (i-want-to-completely-velvety-hanrahan.md, work_orders.py, test_work_order_archive.py, test_tenant_isolation.py, test_work_order_stats.py) | 62 reads | ~148267 tok |
+
+## Session: 2026-09-20 08:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-20 09:15
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-20 09:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-20 09:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-20 09:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:43 | Created ../../.claude/plans/cozy-hatching-toast.md | — | ~2479 |
+| 09:47 | Created apps/web/lib/utils/engineering.ts | — | ~706 |
+| 09:48 | Created apps/web/components/engineering/AssetDetailModal.tsx | — | ~5245 |
+| 09:48 | Created apps/web/components/engineering/CreateAssetModal.tsx | — | ~3263 |
+| 09:49 | Created apps/web/components/engineering/CreatePMScheduleModal.tsx | — | ~3295 |
+| 09:50 | Created apps/web/components/engineering/tabs/WorkOrdersTab.tsx | — | ~4988 |
+| 09:50 | Edited apps/web/components/engineering/tabs/WorkOrdersTab.tsx | inline fix | ~17 |
+| 09:50 | Edited apps/web/components/engineering/tabs/WorkOrdersTab.tsx | reduced (-7 lines) | ~97 |
+| 09:51 | Created apps/web/components/engineering/tabs/AssetsTab.tsx | — | ~4161 |
+| 09:51 | Edited apps/web/components/engineering/tabs/AssetsTab.tsx | inline fix | ~17 |
+| 09:51 | Edited apps/web/components/engineering/tabs/AssetsTab.tsx | 7→5 lines | ~74 |
+| 09:52 | Created apps/web/components/engineering/tabs/PMSchedulesTab.tsx | — | ~6484 |
+| 09:52 | Edited apps/web/components/engineering/tabs/PMSchedulesTab.tsx | inline fix | ~18 |
+| 09:52 | Edited apps/web/components/engineering/tabs/PMSchedulesTab.tsx | modified calcNextDueAt() | ~105 |
+| 09:54 | Created apps/web/components/engineering/tabs/PredictionsTab.tsx | — | ~7513 |
+| 09:54 | Edited apps/web/components/engineering/tabs/PredictionsTab.tsx | added 1 import(s) | ~55 |
+| 09:54 | Edited apps/web/components/engineering/tabs/PredictionsTab.tsx | CSS: hover | ~139 |
+| 09:54 | Edited apps/web/i18n/locales/en.ts | 3→7 lines | ~82 |
+| 09:54 | Edited apps/web/i18n/locales/en.ts | expanded (+8 lines) | ~85 |
+| 09:55 | Edited apps/web/i18n/locales/es.ts | expanded (+12 lines) | ~259 |
+| 09:55 | Created apps/web/app/(dashboard)/engineering/page.tsx | — | ~3000 |
+| 09:55 | Edited apps/web/app/(dashboard)/engineering/page.tsx | 2→3 lines | ~36 |
+| 09:55 | Edited apps/web/app/(dashboard)/engineering/page.tsx | inline fix | ~9 |
+| 09:56 | Edited apps/web/app/(dashboard)/engineering/page.tsx | 2→3 lines | ~30 |
+| 09:56 | Created apps/web/app/(dashboard)/engineering/work-orders/page.tsx | — | ~250 |
+| 09:56 | Created apps/web/app/(dashboard)/engineering/assets/page.tsx | — | ~124 |
+| 09:56 | Created apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | — | ~127 |
+| 09:56 | Created apps/web/app/(dashboard)/engineering/predictions/page.tsx | — | ~192 |
+| 09:56 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | "/engineering/predictions?" → "/engineering?tab=predicti" | ~21 |
+| 09:56 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | "/engineering/work-orders?" → "/engineering?tab=parts" | ~14 |
+| 09:56 | Edited apps/web/components/shared/CommandPalette.tsx | "/engineering/work-orders?" → "/engineering?tab=work-ord" | ~18 |
+| 09:56 | Edited apps/web/components/dashboard/RoomBlockersList.tsx | "/engineering/work-orders" → "/engineering?tab=work-ord" | ~38 |
+| 09:56 | Edited apps/web/components/shared/MobileFloorNav.tsx | "/engineering/work-orders" → "/engineering?tab=work-ord" | ~24 |
+| 09:57 | Edited apps/web/components/shared/MobileFloorNav.tsx | "/engineering?tab=work-ord" → "/engineering" | ~19 |
+| 09:57 | Created apps/web/app/(dashboard)/engineering/work-orders/page.tsx | — | ~185 |
+| 09:58 | Created apps/web/app/(dashboard)/engineering/assets/page.tsx | — | ~37 |
+| 09:58 | Created apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | — | ~40 |
+| 09:58 | Created apps/web/app/(dashboard)/engineering/predictions/page.tsx | — | ~120 |
+| 09:58 | Edited apps/web/lib/hooks/useArrivalReadiness.ts | "/engineering/work-orders?" → "/engineering?tab=work-ord" | ~18 |
+| 09:59 | Edited apps/web/i18n/locales/en.ts | removed 3 lines | ~6 |
+| 09:59 | Edited apps/web/i18n/locales/es.ts | removed 3 lines | ~6 |
+| 09:59 | Edited apps/web/i18n/locales/en.ts | 4→2 lines | ~14 |
+| 09:59 | Edited apps/web/i18n/locales/en.ts | 4→2 lines | ~20 |
+| 09:59 | Edited apps/web/i18n/locales/es.ts | 4→2 lines | ~15 |
+| 09:59 | Edited apps/web/i18n/locales/es.ts | 4→2 lines | ~24 |
+| 09:59 | Edited apps/web/e2e/phase1-work-orders.spec.ts | "/engineering/work-orders" → "/engineering?tab=work-ord" | ~14 |
+| 09:59 | Edited apps/web/e2e/phase4-programs.spec.ts | 23→23 lines | ~354 |
+| 10:00 | Edited apps/web/e2e/phase4-programs.spec.ts | 2→2 lines | ~25 |
+| 10:00 | Edited apps/web/components/shared/PageHeader.tsx | 13→13 lines | ~160 |
+| 10:15 | Session end: 49 writes across 20 files (cozy-hatching-toast.md, engineering.ts, AssetDetailModal.tsx, CreateAssetModal.tsx, CreatePMScheduleModal.tsx) | 22 reads | ~152214 tok |
+| 10:25 | Session end: 49 writes across 20 files (cozy-hatching-toast.md, engineering.ts, AssetDetailModal.tsx, CreateAssetModal.tsx, CreatePMScheduleModal.tsx) | 22 reads | ~152214 tok |
+| 10:27 | Edited apps/web/app/(dashboard)/engineering/page.tsx | 7→6 lines | ~127 |
+| 10:27 | Edited apps/web/app/(dashboard)/engineering/page.tsx | removed 2 lines | ~4 |
+| 10:27 | Edited apps/web/app/(dashboard)/engineering/page.tsx | 3→1 lines | ~11 |
+| 10:27 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | inline fix | ~18 |
+| 10:27 | Edited apps/web/i18n/locales/en.ts | — | ~0 |
+| 10:27 | Edited apps/web/i18n/locales/es.ts | — | ~0 |

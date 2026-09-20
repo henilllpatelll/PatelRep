@@ -76,13 +76,13 @@ export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, clas
       </div>
 
       {tabs && (
-        <div className="flex mt-4 border-b border-line -mb-px">
+        <div className="flex mt-4 border-b border-line -mb-px overflow-x-auto">
           {tabs.map((tab, i) => (
             <button
               key={i}
               onClick={tab.onClick}
               className={cn(
-                'flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] border-b-2 transition-colors',
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2.5 text-[13px] border-b-2 transition-colors',
                 tab.active
                   ? 'font-semibold text-ink border-accent'
                   : 'font-medium text-ink3 border-transparent hover:text-ink2'

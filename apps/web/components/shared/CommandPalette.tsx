@@ -142,7 +142,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   const workOrderResults: PaletteResult[] = showRecords
     ? ((workOrdersQuery.data as any)?.data ?? []).map((wo: any) => ({
         key: `wo-${wo.id}`,
-        href: `/engineering/work-orders?focus=${wo.id}`,
+        href: `/engineering?tab=work-orders&focus=${wo.id}`,
         primary: `WO #${wo.work_order_number}`,
         secondary: wo.title,
         icon: Wrench,

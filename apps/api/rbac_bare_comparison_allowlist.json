@@ -156,6 +156,18 @@
       "line": 193,
       "code": "current_user.role == 'engineer'",
       "reason": "Engineer's own-work-order list-scoping filter (RBAC-AUDIT.md work_orders.py row context)."
+    },
+    {
+      "router": "work_orders.py",
+      "line": 319,
+      "code": "current_user.role == 'engineer'",
+      "reason": "GET /work-orders/stats: same engineer own+claimable self-scoping the list endpoint uses, applied to KPI aggregation. Not a denial gate (stats route gate stays get_current_user)."
+    },
+    {
+      "router": "work_orders.py",
+      "line": 410,
+      "code": "current_user.role == 'gm'",
+      "reason": "GET /work-orders/stats: data-shaping conditional that returns cost_this_month only to gm callers (hourly-rate-derived costs are GM-only, migration 104). Same reviewed pattern as staff.py L146."
     }
   ]
 }

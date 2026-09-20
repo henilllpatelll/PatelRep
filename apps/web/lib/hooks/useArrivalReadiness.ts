@@ -164,7 +164,7 @@ export function useArrivalReadiness(hotelId: string) {
         meta: `Engineering · ${assignee}`,
         pillTone: isOverdue || isUrgent ? 'alert' : 'caution',
         pillLabel: isOverdue ? 'Overdue' : isUrgent ? 'Urgent' : 'Open',
-        href: `/engineering/work-orders?wo=${wo.id}`,
+        href: `/engineering?tab=work-orders&focus=${wo.id}`,
         sortWeight: isOverdue ? 0 : isUrgent ? 1 : 2,
       })
     }

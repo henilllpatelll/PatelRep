@@ -31,7 +31,7 @@ export function RoomBlockersList({ rows, isLoading, isError, onRetry }: RoomBloc
       <SectionLabel
         hint={rows.length > 0 ? rows.length : undefined}
         action={
-          <Link href="/engineering/work-orders" className="text-[11px] font-medium text-ink3 hover:text-brand transition-colors">
+          <Link href="/engineering?tab=work-orders" className="text-[11px] font-medium text-ink3 hover:text-brand transition-colors">
             {t('dashboard.gm.viewAllWorkOrders')}
           </Link>
         }
