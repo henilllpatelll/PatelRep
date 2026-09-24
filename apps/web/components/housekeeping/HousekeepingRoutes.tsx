@@ -131,13 +131,12 @@ function slaTimer(dueAt?: string): { label: string; overdue: boolean } | null {
   return { label: overdue ? `${label} over` : label, overdue }
 }
 
-export function HousekeepingRoutes({ onShowBoard }: { onShowBoard?: () => void }) {
+export function HousekeepingRoutes() {
   const router = useRouter()
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
   const { role, canAssignRooms } = useRole()
-  const returnToBoard = onShowBoard ?? (() => router.push('/housekeeping'))
 
   const {
     rooms: rawRooms,
@@ -149,7 +148,6 @@ export function HousekeepingRoutes({ onShowBoard }: { onShowBoard?: () => void }
     selectedDate,
     selectedShift,
     assignmentMode,
-    toggleAssignmentMode,
     activeAssigneeId,
     activeAssigneeName,
     setActiveAssignee,
@@ -532,60 +530,19 @@ export function HousekeepingRoutes({ onShowBoard }: { onShowBoard?: () => void }
     <div>
       <style>{'@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}'}</style>
 
-      {/* Title block */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#807a70', marginBottom: 8 }}>
-            {t('housekeeping.routes.eyebrow', { date: format(new Date(), 'EEEE d') })}
-          </div>
-          <h1 style={{ margin: 0, fontFamily: SERIF, fontWeight: 400, fontSize: 34, lineHeight: 1.1, letterSpacing: '-0.5px', color: '#1a1815' }}>
-            {t('housekeeping.routes.title')}
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
-            <Pill bg="#d6eae5" fg="#0c6e63" line="#a4cfc7">{t('housekeeping.routes.readyPill', { n: board.readyCount })}</Pill>
-            <Pill bg="#f5d8de" fg="#a6263c" line="#e8a8b3">{t('housekeeping.routes.vacantDirtyPill', { n: board.vacantDirty })}</Pill>
-            <Pill bg="#fbe9df" fg="#b8431c" line="#f0c8b3">{t('housekeeping.routes.serviceRequestsPill', { n: requests.length })}</Pill>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#0c6e63' }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: '#0c6e63', animation: 'pulseDot 2s ease-in-out infinite' }} />
-              {t('housekeeping.routes.liveSynced', { time: syncLabel })}
-            </span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
-          <HeaderButton onClick={() => router.push('/tasks?view=guest')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
-            </svg>
-            {t('housekeeping.routes.logGuestCall')}
-          </HeaderButton>
-          <HeaderButton onClick={returnToBoard} bg="transparent">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
-            </svg>
-            {t('housekeeping.routes.gridView')}
-          </HeaderButton>
-          {canAssignRooms && (
-            <button
-              onClick={toggleAssignmentMode}
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                background: assignmentMode ? '#1a1815' : '#fff',
-                color: assignmentMode ? '#f7f4ee' : '#1a1815',
-                border: `1px solid ${assignmentMode ? '#1a1815' : '#e6dfd1'}`,
-                padding: '7px 12px', fontSize: 13, height: 34, borderRadius: 8, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              {assignmentMode ? t('housekeeping.routes.assignModeOn') : t('housekeeping.routes.assignMode')}
-            </button>
-          )}
-        </div>
+      {/* Live board stats strip — page title and Board/Routes switching live in the shared PageHeader above this component. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <Pill bg="#d6eae5" fg="#0c6e63" line="#a4cfc7">{t('housekeeping.routes.readyPill', { n: board.readyCount })}</Pill>
+        <Pill bg="#f5d8de" fg="#a6263c" line="#e8a8b3">{t('housekeeping.routes.vacantDirtyPill', { n: board.vacantDirty })}</Pill>
+        <Pill bg="#fbe9df" fg="#b8431c" line="#f0c8b3">{t('housekeeping.routes.serviceRequestsPill', { n: requests.length })}</Pill>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#0c6e63' }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: '#0c6e63', animation: 'pulseDot 2s ease-in-out infinite' }} />
+          {t('housekeeping.routes.liveSynced', { time: syncLabel })}
+        </span>
       </div>
 
       {/* Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 20, paddingTop: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 20, paddingTop: 14, alignItems: 'start' }}>
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
           <div style={{ background: '#fff', border: '1px solid #e6dfd1', borderRadius: 14, boxShadow: '0 1px 2px rgba(26,24,21,.04)', overflow: 'hidden' }}>
@@ -729,7 +686,7 @@ export function HousekeepingRoutes({ onShowBoard }: { onShowBoard?: () => void }
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => router.push('/tasks?view=guest')}
+                    onClick={() => router.push('/tasks?type=guest_request')}
                     style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid #b8431c', background: '#b8431c', color: '#fff', borderRadius: 8, height: 34, padding: '7px 12px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     {t('housekeeping.routes.openRequest')}
@@ -762,7 +719,7 @@ export function HousekeepingRoutes({ onShowBoard }: { onShowBoard?: () => void }
                 return (
                   <div
                     key={r.id}
-                    onClick={() => router.push(`/tasks?view=guest&focus=${r.id}`)}
+                    onClick={() => router.push(`/tasks?type=guest_request&focus=${r.id}`)}
                     style={{ padding: '11px 16px', borderTop: '1px solid #efe9dc', display: 'flex', flexDirection: 'column', gap: 5, cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -844,16 +801,6 @@ function Pill({ children, bg, fg, line }: { children: React.ReactNode; bg: strin
   )
 }
 
-function HeaderButton({ children, onClick, bg = '#fff' }: { children: React.ReactNode; onClick: () => void; bg?: string }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: bg, color: '#1a1815', border: '1px solid #e6dfd1', padding: '7px 12px', fontSize: 13, height: 34, borderRadius: 8, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
-    >
-      {children}
-    </button>
-  )
-}
 
 function MetaChip({ children, alert }: { children: React.ReactNode; alert?: boolean }) {
   return (

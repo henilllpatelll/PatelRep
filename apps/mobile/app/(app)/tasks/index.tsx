@@ -24,6 +24,7 @@ import { TaskCard } from "@/components/tasks/TaskCard";
 import {
   buildTaskBriefing,
   buildTaskQueue,
+  claimTask,
   confirmAITask,
   parseTaskWithAI,
   type Task,
@@ -57,6 +58,8 @@ export default function TasksScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimMessage, setClaimMessage] = useState<string | null>(null);
   const [doneToday, setDoneToday] = useState(0);
 
   // AI composer state
@@ -100,6 +103,26 @@ export default function TasksScreen() {
         .finally(() => setBusyId(null));
     },
     [],
+  );
+
+  // Claiming an open, unassigned housekeeping task self-assigns and starts it in
+  // the same tap — no separate "claim" step. If someone else claimed it first the
+  // server returns 409; refresh from server truth so the card reflects who has it.
+  const claimTaskById = useCallback(
+    (taskId: string) => {
+      setClaimingId(taskId);
+      setClaimMessage(null);
+      claimTask(taskId)
+        .then((claimed) => {
+          if (claimed) setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...claimed } : task)));
+        })
+        .catch(() => {
+          setClaimMessage(t("tasks.claimFailed"));
+          void loadTasks();
+        })
+        .finally(() => setClaimingId(null));
+    },
+    [loadTasks, t],
   );
 
   const submitToAI = useCallback(async () => {
@@ -184,6 +207,9 @@ export default function TasksScreen() {
             ) : null}
           </View>
         </View>
+        {claimMessage ? (
+          <Text style={[styles.claimMessage, { color: theme.status.dirty }]}>{claimMessage}</Text>
+        ) : null}
       </View>
 
       <ScrollView
@@ -220,9 +246,12 @@ export default function TasksScreen() {
                     locale={locale}
                     confirming={confirmingId === entry.task.id}
                     busy={busyId === entry.task.id}
+                    claimable={entry.task.task_type === "housekeeping" && !entry.task.assigned_to}
+                    claiming={claimingId === entry.task.id}
                     onRequestComplete={() => setConfirmingId(entry.task.id)}
                     onConfirm={() => completeTask(entry.task.id)}
                     onCancel={() => setConfirmingId(null)}
+                    onClaim={() => claimTaskById(entry.task.id)}
                   />
                 ))}
               </View>
@@ -349,6 +378,7 @@ const styles = StyleSheet.create({
   shellCountValue: { fontFamily: monoFont, fontSize: 24, fontWeight: "800" },
   shellCountLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
   shellDoneLabel: { fontFamily: monoFont, fontSize: 10.5, marginTop: 2 },
+  claimMessage: { fontSize: 12, marginTop: 8 },
 
   section: { gap: 9 },
   taskStack: { gap: 9 },

@@ -177,6 +177,25 @@ class UpdateRoomStatusRequest(SanitizedBaseModel):
     force: bool = False
 
 
+class CreateRoomUnavailabilityRequest(SanitizedBaseModel):
+    room_id: UUID4
+    reason_code: str = Field(min_length=1, max_length=64)
+    reason_label: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    expected_return_at: datetime
+    details: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    owner_id: Optional[UUID4] = None
+    primary_work_order_id: Optional[UUID4] = None
+
+
+class UpdateRoomUnavailabilityEtaRequest(SanitizedBaseModel):
+    expected_return_at: datetime
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class ReleaseRoomUnavailabilityRequest(SanitizedBaseModel):
+    release_notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
 class ManualCheckoutRequest(SanitizedBaseModel):
     checkout_time: Optional[datetime] = None
     actual_checkout_at: Optional[datetime] = None
@@ -284,6 +303,7 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     use_ai: bool = False
     guest_reported: bool = False
     source: Literal["guest", "staff_patrol", "pm", "self"] = "self"
+    mark_room_out_of_order: bool = False
 
 
 class ConsumedPartItem(SanitizedBaseModel):
@@ -352,6 +372,23 @@ class UpdateWorkOrderRequest(SanitizedBaseModel):
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     labor_hours: Optional[float] = Field(default=None, ge=0, le=24)
     parts_used: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class SnoozeWorkOrderRequest(SanitizedBaseModel):
+    hours: float = Field(default=1, gt=0, le=72)
+
+
+class CreateChecklistItemRequest(SanitizedBaseModel):
+    label: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    estimated_minutes: Optional[int] = Field(default=None, gt=0, le=1440)
+
+
+class UpdateChecklistItemRequest(SanitizedBaseModel):
+    is_done: bool
+
+
+class MergeWorkOrderRequest(SanitizedBaseModel):
+    target_wo_id: UUID4
 
 
 class AddCommentRequest(SanitizedBaseModel):
@@ -628,6 +665,7 @@ class UpdateAssetRequest(SanitizedBaseModel):
     failure_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
     warranty_expires: Optional[date] = None
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    zone: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
 
 
 # --- PM Schedules ---

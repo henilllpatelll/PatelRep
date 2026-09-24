@@ -152,7 +152,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
   const guestResults: PaletteResult[] = showRecords
     ? ((guestsQuery.data as any)?.data ?? []).map((gr: any) => ({
         key: `guest-${gr.id}`,
-        href: `/tasks?view=guest&focus=${gr.id}`,
+        href: `/tasks?type=guest_request&focus=${gr.id}`,
         primary: `Request #${gr.request_number}`,
         secondary: gr.title,
         icon: MessageSquare,

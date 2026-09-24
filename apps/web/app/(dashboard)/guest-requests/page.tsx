@@ -11,7 +11,7 @@ function GuestRequestsRedirect() {
 
   useEffect(() => {
     const focus = searchParams.get('focus')
-    router.replace(focus ? `/tasks?view=guest&focus=${focus}` : '/tasks?view=guest')
+    router.replace(focus ? `/tasks?type=guest_request&focus=${focus}` : '/tasks?type=guest_request')
   }, [router, searchParams])
 
   return null

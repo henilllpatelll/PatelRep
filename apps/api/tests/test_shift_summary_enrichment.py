@@ -147,7 +147,10 @@ class _FakeDatetime:
 def _patch(monkeypatch, db):
     monkeypatch.setattr(shift_summary_module, "supabase", db)
     monkeypatch.setattr(shift_summary_module, "datetime", _FakeDatetime)
-    monkeypatch.setattr(shift_summary_module.anthropic, "Anthropic", _FakeAnthropic)
+    # shift_summary.py calls services.ai.providers.get_anthropic_client() (imported
+    # by name), not a module-level `anthropic` — patch the same name shift_summary_module
+    # itself binds, matching the convention in test_ai_copilot_briefings.py.
+    monkeypatch.setattr(shift_summary_module, "get_anthropic_client", lambda: _FakeAnthropic())
 
 
 def _seed():

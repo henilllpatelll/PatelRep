@@ -15,3 +15,7 @@ ALL_STAFF_ROLES = ALL_ROLES  # hotels.py's prior definition had a duplicate "eng
 # (see Phase 19 RESEARCH Decision 1) — kept distinct on purpose, not merged:
 MANAGER_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")  # leadership/compliance tier (safety.py)
 PROGRAM_MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer", "chief_engineer")  # operational-program tier incl. line engineers (programs.py)
+
+# Availability is broadly visible, but repair detail is deliberately withheld
+# from roles that only need guest-facing room availability.
+LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES = ("front_desk", "housekeeper")

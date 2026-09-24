@@ -17,6 +17,7 @@ export interface Task {
   location_text?: string
   department_id?: string
   assigned_to?: string
+  assigned_by?: string
   created_by: string
   is_ai_created: boolean
   ai_confidence?: number
@@ -24,11 +25,15 @@ export interface Task {
   due_at?: string
   started_at?: string
   completed_at?: string
+  cancelled_at?: string
+  escalated_at?: string
   created_at: string
   updated_at: string
   // Joined relations
   rooms?: { room_number: string; floor?: number }
-  user_profiles?: { preferred_name?: string | null; full_name?: string | null }
+  user_profiles?: { preferred_name?: string | null; full_name?: string | null } | null
+  creator_profile?: { preferred_name?: string | null; full_name?: string | null } | null
+  assigner_profile?: { preferred_name?: string | null; full_name?: string | null } | null
   task_comments?: TaskComment[]
 }
 

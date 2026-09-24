@@ -29,7 +29,7 @@ import { logbookApi } from '@/lib/api/logbook'
 import type { OvernightSummary } from '@/lib/hooks/useArrivalReadiness'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
-import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
+import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderDrawer'
 import { cn } from '@/lib/utils'
 
 // ── Room status → pill/tile styling (matches STATUS_LABEL_MAP in the housekeeping board) ──
@@ -935,7 +935,7 @@ export function SimplifiedDashboard() {
       <WorkOrderDetailDrawerHost onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} />
 
       {showCreateWO && (
-        <CreateWorkOrderModal
+        <CreateWorkOrderDrawer
           isOpen={showCreateWO}
           onClose={() => setShowCreateWO(false)}
           onCreate={() => {

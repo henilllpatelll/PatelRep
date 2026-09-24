@@ -7,9 +7,11 @@ import { X, Send, Pencil } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority } from '@/lib/api/tasks'
 import { Pill, AILabel, Mono } from '@/components/ui/primitives'
 import { Button, IconButton } from '@/components/ui/Button'
-import { getTaskTypeOptions, getTaskTypeLabels, getPriorityOptions, priorityTone, taskTypeIcon } from './taskDisplay'
+import { getTaskTypeOptions, getTaskTypeLabels, getPriorityOptions, priorityTone, taskTypeIcon, statusTone } from './taskDisplay'
+import { TaskTimeline } from './TaskTimeline'
+import type { StaffMember } from '@/lib/api/staff'
 
-export function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, updating, startInEditMode }: {
+export function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, updating, startInEditMode, staff = [], canReassign = false, canUpdateStatus = false }: {
   task: Task
   onClose: () => void
   onStatusChange: (taskId: string, status: TaskStatus) => void
@@ -17,6 +19,11 @@ export function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onS
   onSaved: (updated: Task) => void
   updating: boolean
   startInEditMode?: boolean
+  staff?: StaffMember[]
+  canReassign?: boolean
+  /** Start/Mark Complete/Cancel — limited to roles who could actually be doing (or standing
+   * in on the floor for) the work, not the roles who only assign it. */
+  canUpdateStatus?: boolean
 }) {
   const { t } = useTranslation()
   const taskTypeOptions = getTaskTypeOptions(t)
@@ -39,6 +46,10 @@ export function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onS
   const { mutate: completeTask, isPending: completing } = useMutation({
     mutationFn: () => tasksApi.update(task.id, { status: 'completed', notes: completeNotes.trim() || undefined }),
     onSuccess: (result: any) => { setShowCompleteForm(false); setCompleteNotes(''); queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved(result?.data ?? { ...task, status: 'completed' }) },
+  })
+  const { mutate: reassignTask, isPending: reassigning } = useMutation({
+    mutationFn: (assigned_to: string) => tasksApi.update(task.id, { assigned_to: assigned_to || undefined }),
+    onSuccess: (result: any) => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved(result?.data ?? task) },
   })
 
   const handleComment = async () => {
@@ -95,7 +106,8 @@ export function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onS
 
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Pill tone={priorityTone(task.priority)} size="sm">{task.priority}</Pill>
+              <Pill tone={statusTone(task.status)} size="sm">{t(`tasks.detail.statusLabels.${task.status}`)}</Pill>
+              <Pill tone={priorityTone(task.priority)} size="sm">{t(`tasks.priorities.${task.priority}`)}</Pill>
               {task.is_ai_created && <AILabel>{t('tasks.detail.aiCreated')}</AILabel>}
             </div>
             <h3 className="text-base font-semibold text-ink">{task.title}</h3>
@@ -115,31 +127,21 @@ export function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onS
                 <span className="font-medium text-ink">{task.location_text}</span>
               </div>
             )}
-            {task.user_profiles && (
-              <div className="flex items-center justify-between">
-                <span className="text-ink3">{t('tasks.detail.assignedTo')}</span>
-                <span className="font-medium text-ink">{task.user_profiles.preferred_name}</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-ink3">{t('tasks.detail.assignedTo')}</span>
+              {canReassign ? <select aria-label={t('tasks.detail.assignedTo')} disabled={reassigning} value={task.assigned_to ?? ''} onChange={(event) => reassignTask(event.target.value)} className="max-w-[190px] rounded border border-line bg-surface px-2 py-1 text-sm text-ink"><option value="">{task.task_type === 'housekeeping' ? t('tasks.createModal.unassignedHousekeeping') : t('tasks.createModal.unassigned')}</option>{staff.map((member) => <option key={member.user_id} value={member.user_id}>{member.full_name}</option>)}</select> : <span className="font-medium text-ink">{task.user_profiles?.preferred_name ?? task.user_profiles?.full_name ?? (task.task_type === 'housekeeping' ? t('tasks.createModal.unassignedHousekeeping') : t('tasks.createModal.unassigned'))}</span>}
+            </div>
             {task.due_at && (
               <div className="flex items-center justify-between">
                 <span className="text-ink3">{t('tasks.detail.due')}</span>
                 <Mono className="font-medium text-ink">{new Date(task.due_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</Mono>
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <span className="text-ink3">{t('tasks.detail.created')}</span>
-              <Mono className="font-medium text-ink">{new Date(task.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</Mono>
-            </div>
-            {task.completed_at && (
-              <div className="flex items-center justify-between">
-                <span className="text-ink3">{t('tasks.detail.completed')}</span>
-                <Mono className="font-medium text-[var(--ready)]">{new Date(task.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</Mono>
-              </div>
-            )}
           </div>
 
-          {!isDone && (
+          <TaskTimeline task={task} />
+
+          {!isDone && canUpdateStatus && (
             <div>
               <p className="text-xs font-medium text-ink3 mb-2">{t('tasks.detail.updateStatus')}</p>
               <div className="flex gap-2">

@@ -1,18 +1,9 @@
 'use client'
 
 import { useTranslation } from 'react-i18next'
-import { Clock } from 'lucide-react'
 import type { UnifiedTaskItem, UnifiedDisplayStatus } from '@/lib/utils/unifiedTasks'
-import { Pill, Mono } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
-import { priorityTone, taskTypeIcon, SparkIcon, DueTime } from './taskDisplay'
-
-const DISPLAY_STATUS_TONE: Record<UnifiedDisplayStatus, 'info' | 'caution' | 'ready' | 'neutral'> = {
-  new: 'info',
-  in_progress: 'caution',
-  verify: 'ready',
-  done: 'neutral',
-}
+import { taskTypeIcon, SparkIcon, DueTime, laneAccentColor } from './taskDisplay'
 
 function displayStatusLabel(t: (key: string) => string, status: UnifiedDisplayStatus): string {
   return t(`tasks.unified.displayStatus.${status}`)
@@ -23,11 +14,13 @@ export function UnifiedTaskRow({
   onOpen,
   onEdit,
   onDelete,
+  showActions = false,
 }: {
   item: UnifiedTaskItem
   onOpen: (item: UnifiedTaskItem) => void
   onEdit?: (item: UnifiedTaskItem) => void
   onDelete?: (item: UnifiedTaskItem) => void
+  showActions?: boolean
 }) {
   const { t } = useTranslation()
   const isDone = item.displayStatus === 'done'
@@ -37,51 +30,17 @@ export function UnifiedTaskRow({
     <div
       role="button"
       tabIndex={0}
-      className={`relative flex items-center gap-[11px] px-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : ''}`}
+      className={`relative flex items-center gap-[11px] pl-4 pr-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : ''}`}
       onClick={() => onOpen(item)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(item) } }}
     >
-      {item.slaBreached && (
-        <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[var(--alert)] rounded-l" />
-      )}
-
-      <Pill tone={isGuest ? 'info' : 'neutral'} size="sm">
-        {isGuest ? t('tasks.unified.badgeGuest') : t('tasks.unified.badgeInternal')}
-      </Pill>
-
-      <Pill tone={priorityTone(item.priority)} size="sm">{item.priority}</Pill>
+      <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l" style={{ background: laneAccentColor(item) }} />
 
       <span className="text-ink3 shrink-0">{taskTypeIcon(item.department ?? '')}</span>
+      <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className={`truncate text-sm font-semibold text-ink ${isDone ? 'line-through text-ink3' : ''}`}>{item.title}</span>{item.isAiCreated && <span className="text-[10px] text-[var(--ai)]" aria-label={t('tasks.aiBadge')}><SparkIcon /></span>}</div><div className="mt-1 flex items-center gap-2 text-xs text-ink3"><span>{item.roomNumber ? `${t('tasks.detail.room')} ${item.roomNumber}` : item.locationText ?? t('tasks.createModal.unassigned')}</span><span aria-hidden>·</span><span>{item.department ?? t('tasks.unified.badgeInternal')}</span><span aria-hidden>·</span><span>{item.assigneeName ?? t('tasks.createModal.unassigned')}</span></div></div>
+      <div className="hidden shrink-0 text-right sm:block"><span className="block text-xs text-ink3">{displayStatusLabel(t, item.displayStatus)}</span><DueTime dueAt={item.dueAt} isDone={isDone} isOverdue={item.slaBreached} /></div>
 
-      <span className={`text-[13.5px] flex-1 min-w-0 text-ink truncate ${isDone ? 'line-through text-ink3' : ''}`}>
-        {item.title}
-      </span>
-
-      {item.isAiCreated && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--ai)] bg-[var(--ai-soft)] border border-[var(--ai-line)] px-[6px] py-px rounded-[4px] tracking-[0.4px] shrink-0">
-          <SparkIcon /> {t('tasks.aiBadge')}
-        </span>
-      )}
-
-      {item.roomNumber && (
-        <span className="text-[10.5px] text-ink3 bg-surface-3 px-[5px] py-px rounded-[3px] shrink-0">
-          #{item.roomNumber}
-        </span>
-      )}
-
-      {item.assigneeName && (
-        <span className="w-[22px] h-[22px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[9px] font-bold flex items-center justify-center shrink-0 uppercase">
-          {item.assigneeName.slice(0, 2)}
-        </span>
-      )}
-
-      <Pill tone={DISPLAY_STATUS_TONE[item.displayStatus]} size="sm">
-        {displayStatusLabel(t, item.displayStatus)}
-      </Pill>
-
-      <DueTime dueAt={item.dueAt} isDone={isDone} isOverdue={item.slaBreached} />
-
-      {onDelete && (
+      {showActions && onDelete && (
         <div onClick={(e) => e.stopPropagation()}>
           <KebabMenu
             onEdit={!isDone && onEdit ? () => onEdit(item) : undefined}

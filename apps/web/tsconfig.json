@@ -37,7 +37,9 @@
     ".next-ops-audit/types/**/*.ts",
     ".next-ops-audit/dev/types/**/*.ts",
     ".next-ops-audit-8004/types/**/*.ts",
-    ".next-ops-audit-8004/dev/types/**/*.ts"
+    ".next-ops-audit-8004/dev/types/**/*.ts",
+    ".next-phase0/types/**/*.ts",
+    ".next-phase0/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

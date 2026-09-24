@@ -219,6 +219,15 @@ export function AICopilotBubble() {
     return () => document.removeEventListener('copilot:open', handleOpen)
   }, [])
 
+  useEffect(() => {
+    if (!open) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [open])
+
   if (isAiPage) return null
 
   const quickActions = (role && QUICK_ACTIONS_BY_ROLE[role]) || DEFAULT_QUICK_ACTIONS

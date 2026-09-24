@@ -14,6 +14,8 @@ export type Task = {
   location_text?: string | null;
   source?: string | null;
   ai_suggested?: boolean | null;
+  /** null = open housekeeping broadcast pool — any housekeeper can claim it. */
+  assigned_to?: string | null;
 };
 
 export type TaskBucket = "overdue" | "now" | "today";
@@ -140,4 +142,11 @@ export async function parseTaskWithAI(message: string): Promise<CopilotTaskRespo
 /** Create the task the AI proposed. */
 export async function confirmAITask(preview: TaskPreview): Promise<void> {
   await api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
+}
+
+/** Self-assign and start an open, unassigned housekeeping task in one tap.
+ * Throws (409) if another housekeeper claimed it first. */
+export async function claimTask(taskId: string): Promise<Task | null> {
+  const res = await api.post<{ data: Task | null }>(`/tasks/${taskId}/claim`, {});
+  return res.data;
 }

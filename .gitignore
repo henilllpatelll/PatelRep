@@ -86,6 +86,10 @@ apps/web/test-results/
 .claude/worktrees/
 .claude/skills/
 
+# Agent skill scaffolding (local tooling, not project code — see d9626119)
+.agents/skills/
+skills-lock.json
+
 # Playwright test screenshots (root-level)
 test-*.png
 login-page.png

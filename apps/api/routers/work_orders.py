@@ -13,6 +13,10 @@ from models.requests import (
     BulkArchiveWorkOrdersRequest,
     BulkArchiveByAgeRequest,
     BulkUnarchiveWorkOrdersRequest,
+    SnoozeWorkOrderRequest,
+    CreateChecklistItemRequest,
+    UpdateChecklistItemRequest,
+    MergeWorkOrderRequest,
 )
 from core.database import supabase
 from core.config import settings
@@ -33,6 +37,53 @@ router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
 SLA_MINUTES = {"urgent": 60, "emergency": 30, "normal": 240, "low": 480}
 _ARCHIVABLE_STATUSES = {"completed", "cancelled"}
+
+# Best-effort category → room-unavailability reason mapping (migration 108/109
+# seeds these codes for every tenant). Categories with no clean match fall
+# back to OTHER rather than guessing.
+_OOO_REASON_BY_CATEGORY = {
+    "plumbing": ("PLUMBING", "Plumbing"),
+    "electrical": ("ELECTRICAL", "Electrical"),
+    "hvac": ("HVAC", "HVAC"),
+    "furniture": ("FURNITURE_FIXTURE", "Furniture / fixture"),
+    "safety": ("SAFETY", "Safety"),
+}
+_OOO_DEFAULT_REASON = ("OTHER", "Other")
+_OOO_DEFAULT_WINDOW_HOURS = 24
+
+
+def _mark_room_out_of_order(wo: dict, request: CreateWorkOrderRequest, current_user: CurrentUser) -> bool:
+    """Open a room-unavailability period linked to this new work order (the
+    same RPC the dedicated Out-of-Order screen uses, migration 108). Never
+    blocks work order creation — a failure here is logged and swallowed."""
+    if not request.room_id:
+        return False
+    reason_code, reason_label = _OOO_REASON_BY_CATEGORY.get(request.category, _OOO_DEFAULT_REASON)
+    expected_return_at = datetime.now(timezone.utc) + timedelta(hours=_OOO_DEFAULT_WINDOW_HOURS)
+    try:
+        supabase.rpc(
+            "create_room_unavailability",
+            {
+                "p_room_id": str(request.room_id),
+                "p_tenant_id": current_user.hotel_id,
+                "p_reason_code": reason_code,
+                "p_reason_label": reason_label,
+                "p_details": f"Reported via work order: {wo.get('title') or 'Untitled'}",
+                "p_expected_return_at": expected_return_at.isoformat(),
+                "p_owner_id": None,
+                "p_work_order_id": wo["id"],
+                "p_created_by": current_user.user_id,
+                "p_source": "WEB",
+            },
+        ).execute()
+        return True
+    except Exception:
+        logger.exception(
+            "Failed to mark room %s out of order for work order %s",
+            request.room_id,
+            wo.get("id"),
+        )
+        return False
 
 
 def _ensure_engineer_can_update_work_order(
@@ -181,7 +232,52 @@ async def create_work_order(
         "guest_reported": request.guest_reported,
     }
     result = supabase.table("work_orders").insert(wo_data).execute()
-    return {"data": result.data[0] if result.data else None}
+    wo = result.data[0] if result.data else None
+    room_marked_out_of_order = False
+    if wo:
+        _seed_checklist_from_template(wo["id"], request.category, current_user.hotel_id)
+        if request.mark_room_out_of_order:
+            room_marked_out_of_order = _mark_room_out_of_order(wo, request, current_user)
+    return {"data": wo, "room_marked_out_of_order": room_marked_out_of_order}
+
+
+def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> None:
+    """Snapshot the tenant's default checklist for this category (migration 110)
+    onto the new work order. No-op when the category has no template — the WO
+    simply starts with an empty, manually-built checklist."""
+    template = (
+        supabase.table("work_order_checklist_templates")
+        .select("id")
+        .eq("tenant_id", hotel_id)
+        .eq("category", category)
+        .eq("is_active", True)
+        .maybe_single()
+        .execute()
+    )
+    template_id = (template.data or {}).get("id") if template else None
+    if not template_id:
+        return
+    items = (
+        supabase.table("work_order_checklist_template_items")
+        .select("label, estimated_minutes, sort_order")
+        .eq("template_id", template_id)
+        .order("sort_order")
+        .execute()
+    ).data or []
+    if not items:
+        return
+    supabase.table("work_order_checklist_items").insert(
+        [
+            {
+                "tenant_id": hotel_id,
+                "work_order_id": wo_id,
+                "label": item["label"],
+                "estimated_minutes": item.get("estimated_minutes"),
+                "sort_order": item.get("sort_order", 0),
+            }
+            for item in items
+        ]
+    ).execute()
 
 
 @router.get("")
@@ -1032,3 +1128,307 @@ async def add_comment(
         .execute()
     )
     return {"data": result.data[0] if result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# Checklist — per-category defaults snapshotted at creation (migration 110),
+# editable per work order thereafter.
+# ---------------------------------------------------------------------------
+
+@router.get("/{wo_id}/checklist")
+async def list_checklist_items(
+    wo_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
+    result = (
+        supabase.table("work_order_checklist_items")
+        .select("*")
+        .eq("work_order_id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("sort_order")
+        .execute()
+    )
+    return {"data": result.data or []}
+
+
+@router.post("/{wo_id}/checklist")
+async def add_checklist_item(
+    wo_id: str,
+    request: CreateChecklistItemRequest,
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
+):
+    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
+    existing = (
+        supabase.table("work_order_checklist_items")
+        .select("sort_order")
+        .eq("work_order_id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("sort_order", desc=True)
+        .limit(1)
+        .execute()
+    )
+    next_sort = ((existing.data or [{}])[0].get("sort_order") or 0) + 1
+    result = (
+        supabase.table("work_order_checklist_items")
+        .insert(
+            {
+                "tenant_id": current_user.hotel_id,
+                "work_order_id": wo_id,
+                "label": request.label,
+                "estimated_minutes": request.estimated_minutes,
+                "sort_order": next_sort,
+            }
+        )
+        .execute()
+    )
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.patch("/{wo_id}/checklist/{item_id}")
+async def update_checklist_item(
+    wo_id: str,
+    item_id: str,
+    request: UpdateChecklistItemRequest,
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
+):
+    update_data = {
+        "is_done": request.is_done,
+        "done_by": current_user.user_id if request.is_done else None,
+        "done_at": datetime.now(timezone.utc).isoformat() if request.is_done else None,
+    }
+    result = (
+        supabase.table("work_order_checklist_items")
+        .update(update_data)
+        .eq("id", item_id)
+        .eq("work_order_id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Checklist item not found")
+    return {"data": result.data[0]}
+
+
+# ---------------------------------------------------------------------------
+# Parts — spare parts already consumed against this work order (migration
+# 102's engineering_part_transactions already carries work_order_id; this is
+# just the first list-by-WO view onto it). Logging a new part against an
+# open WO reuses the existing POST /inventory/parts/{part_id}/transactions
+# endpoint with work_order_id set — no separate write path needed here.
+# ---------------------------------------------------------------------------
+
+@router.get("/{wo_id}/parts")
+async def list_work_order_parts(
+    wo_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
+    result = (
+        supabase.table("engineering_part_transactions")
+        .select(
+            "*, engineering_parts(name, unit, sku), engineering_part_locations(name)"
+        )
+        .eq("work_order_id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return {"data": result.data or []}
+
+
+# ---------------------------------------------------------------------------
+# Duplicate-signal — cheap frequency-based heuristic, same philosophy as
+# GET /assets/recurring-issues (plain counting, no AI credit cost): other
+# still-open work orders on the same asset, or on an asset sharing the same
+# zone, within a rolling window. Not an LLM call.
+# ---------------------------------------------------------------------------
+
+_DUPLICATE_SIGNAL_WINDOW_DAYS = 30
+_OPEN_STATUSES = ("open", "escalated", "in_progress", "on_hold")
+
+
+@router.get("/{wo_id}/duplicate-signal")
+async def get_duplicate_signal(
+    wo_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    wo = (
+        supabase.table("work_orders")
+        .select("id, work_order_number, asset_id, room_id, category, status, created_at")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not wo or not wo.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    source = wo.data
+    if source["status"] not in _OPEN_STATUSES or not source.get("asset_id"):
+        return {"data": None}
+
+    zone = None
+    asset = (
+        supabase.table("assets")
+        .select("zone")
+        .eq("id", source["asset_id"])
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if asset and asset.data:
+        zone = asset.data.get("zone")
+
+    zoned_asset_ids = [source["asset_id"]]
+    if zone:
+        zoned = (
+            supabase.table("assets")
+            .select("id")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("zone", zone)
+            .execute()
+        )
+        zoned_asset_ids = list({a["id"] for a in (zoned.data or [])} | {source["asset_id"]})
+
+    since = (datetime.now(timezone.utc) - timedelta(days=_DUPLICATE_SIGNAL_WINDOW_DAYS)).isoformat()
+    candidates = (
+        supabase.table("work_orders")
+        .select("id, work_order_number, title, asset_id, status, created_at, rooms(room_number)")
+        .eq("tenant_id", current_user.hotel_id)
+        .in_("asset_id", zoned_asset_ids)
+        .in_("status", list(_OPEN_STATUSES))
+        .neq("id", wo_id)
+        .gte("created_at", since)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    signals = candidates.data or []
+    if not signals:
+        return {"data": None}
+
+    same_asset_count = sum(1 for c in signals if c.get("asset_id") == source["asset_id"])
+    # Deterministic heuristic, not a model score: base confidence for any
+    # signal at all, plus a bump per corroborating WO (same asset weighted
+    # higher than same-zone), capped well short of certainty.
+    confidence = min(96, 55 + same_asset_count * 15 + (len(signals) - same_asset_count) * 8)
+
+    top = signals[0]
+    return {
+        "data": {
+            "candidate_wo_id": top["id"],
+            "candidate_wo_number": top["work_order_number"],
+            "confidence": confidence,
+            "window_days": _DUPLICATE_SIGNAL_WINDOW_DAYS,
+            "same_zone": bool(zone),
+            "signals": [
+                {
+                    "work_order_id": c["id"],
+                    "work_order_number": c["work_order_number"],
+                    "title": c["title"],
+                    "room_number": (c.get("rooms") or {}).get("room_number"),
+                    "created_at": c["created_at"],
+                }
+                for c in signals
+            ],
+        }
+    }
+
+
+# ---------------------------------------------------------------------------
+# Merge — cancels this WO as a duplicate of the target and leaves a linking
+# comment on the target, reusing the existing "duplicate" cancellation
+# reason (TransitionWorkOrderRequest) rather than introducing a new state.
+# Deliberately its own endpoint (not routed through POST /{wo_id}/transition)
+# so chief_engineer — who the console UI shows this action to — isn't
+# blocked by that endpoint's engineer/gm-only role gate.
+# ---------------------------------------------------------------------------
+
+@router.post("/{wo_id}/merge")
+async def merge_work_order(
+    wo_id: str,
+    request: MergeWorkOrderRequest,
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
+):
+    target_id = str(request.target_wo_id)
+    if target_id == wo_id:
+        raise HTTPException(status_code=422, detail="Cannot merge a work order into itself")
+
+    work_order = (
+        supabase.table("work_orders")
+        .select("id, status, work_order_number")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not work_order or not work_order.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    target = (
+        supabase.table("work_orders")
+        .select("id, work_order_number")
+        .eq("id", target_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not target or not target.data:
+        raise HTTPException(status_code=404, detail="Target work order not found")
+
+    decision = validate_work_order_transition(
+        current_status=work_order.data["status"],
+        request=TransitionRequest(
+            status="cancelled",
+            reason_code="duplicate",
+            reason_note=f"Merged into WO-{target.data['work_order_number']}",
+        ),
+        actor_role=current_user.role,
+    )
+    result = _execute_work_order_transition(
+        work_order_id=wo_id,
+        current_user=current_user,
+        decision=decision,
+        source="web",
+    )
+
+    supabase.table("work_order_comments").insert(
+        {
+            "work_order_id": target_id,
+            "tenant_id": current_user.hotel_id,
+            "user_id": current_user.user_id,
+            "comment": f"WO-{work_order.data['work_order_number']} was merged into this work order as a duplicate.",
+            "is_system": True,
+        }
+    ).execute()
+
+    return {"data": result.data[0] if result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# Snooze — display-only hint on the console panel (does not affect queue
+# sort, AI triage ordering, or SLA-breach styling elsewhere).
+# ---------------------------------------------------------------------------
+
+@router.post("/{wo_id}/snooze")
+async def snooze_work_order(
+    wo_id: str,
+    request: SnoozeWorkOrderRequest,
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
+):
+    snoozed_until = datetime.now(timezone.utc) + timedelta(hours=request.hours)
+    result = (
+        supabase.table("work_orders")
+        .update({"snoozed_until": snoozed_until.isoformat()})
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    return {"data": result.data[0]}

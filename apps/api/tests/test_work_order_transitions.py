@@ -58,11 +58,31 @@ class _CreateWorkOrderQuery:
         return type("Result", (), {"data": [{"id": "work-order-1", **self.database.inserted_payload}]})()
 
 
+class _NoTemplateQuery:
+    """Stands in for the migration-110 checklist-template lookup that
+    create_work_order now runs after insert -- always reports no template
+    found, so this fake keeps testing only the work_orders insert payload."""
+
+    def select(self, *_args, **_kwargs):
+        return self
+
+    def eq(self, *_args, **_kwargs):
+        return self
+
+    def maybe_single(self):
+        return self
+
+    def execute(self):
+        return type("Result", (), {"data": None})()
+
+
 class _CreateWorkOrderDatabase:
     def __init__(self):
         self.inserted_payload: dict = {}
 
     def table(self, table_name: str):
+        if table_name == "work_order_checklist_templates":
+            return _NoTemplateQuery()
         assert table_name == "work_orders"
         return _CreateWorkOrderQuery(self)
 

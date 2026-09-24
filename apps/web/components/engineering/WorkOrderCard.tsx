@@ -14,6 +14,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   appliance: '🔌',
   structural: '🏗️',
   safety: '🛡️',
+  doors_locks: '🔒',
+  painting: '🎨',
   general: '🔧',
 }
 

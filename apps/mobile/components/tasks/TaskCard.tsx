@@ -45,12 +45,27 @@ interface TaskCardProps {
   confirming: boolean;
   busy: boolean;
   locale: string;
+  /** Open + unassigned housekeeping task — first tap on "Claim & start" wins it. */
+  claimable: boolean;
+  claiming: boolean;
   onRequestComplete: () => void;
   onConfirm: () => void;
   onCancel: () => void;
+  onClaim: () => void;
 }
 
-export function TaskCard({ entry, confirming, busy, locale, onRequestComplete, onConfirm, onCancel }: TaskCardProps) {
+export function TaskCard({
+  entry,
+  confirming,
+  busy,
+  locale,
+  claimable,
+  claiming,
+  onRequestComplete,
+  onConfirm,
+  onCancel,
+  onClaim,
+}: TaskCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { task, bucket, overdueMinutes } = entry;
@@ -124,6 +139,12 @@ export function TaskCard({ entry, confirming, busy, locale, onRequestComplete, o
                   <Text style={[styles.guestChipText, { color: theme.status.clean }]}>{t("tasks.guestTag")}</Text>
                 </View>
               ) : null}
+              {claimable ? (
+                <View style={styles.guestChip}>
+                  <Ionicons name="hand-left-outline" size={10} color={theme.status.pickup} />
+                  <Text style={[styles.guestChipText, { color: theme.status.pickup }]}>{t("tasks.unclaimedTag")}</Text>
+                </View>
+              ) : null}
               {overdueLabel ? (
                 <StatusBadge statusKey="overdue" label={overdueLabel} style={styles.overdueBadge} />
               ) : dueLabel ? (
@@ -135,19 +156,35 @@ export function TaskCard({ entry, confirming, busy, locale, onRequestComplete, o
             </View>
           </View>
 
-          <TouchableOpacity
-            accessibilityLabel={t("tasks.markDone", { title: task.title })}
-            onPress={onRequestComplete}
-            disabled={busy || confirming}
-            style={[styles.doneBtn, { borderColor: doneBtnBorderColor, backgroundColor: doneBtnBg }]}
-            hitSlop={8}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={theme.primaryAction} />
-            ) : (
-              <Ionicons name="checkmark" size={17} color={doneIconColor} />
-            )}
-          </TouchableOpacity>
+          {claimable ? (
+            <TouchableOpacity
+              accessibilityLabel={t("tasks.claimStart")}
+              onPress={onClaim}
+              disabled={claiming}
+              style={[styles.doneBtn, { borderColor: theme.status.pickupLine, backgroundColor: theme.status.pickupSoft }]}
+              hitSlop={8}
+            >
+              {claiming ? (
+                <ActivityIndicator size="small" color={theme.status.pickup} />
+              ) : (
+                <Ionicons name="play" size={15} color={theme.status.pickup} />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              accessibilityLabel={t("tasks.markDone", { title: task.title })}
+              onPress={onRequestComplete}
+              disabled={busy || confirming}
+              style={[styles.doneBtn, { borderColor: doneBtnBorderColor, backgroundColor: doneBtnBg }]}
+              hitSlop={8}
+            >
+              {busy ? (
+                <ActivityIndicator size="small" color={theme.primaryAction} />
+              ) : (
+                <Ionicons name="checkmark" size={17} color={doneIconColor} />
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         {confirming ? (

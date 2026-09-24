@@ -27,6 +27,8 @@ export interface UnifiedTaskItem {
   department?: string
   createdAt: string
   dueAt?: string
+  startedAt?: string
+  completedAt?: string
   taskStatus?: TaskStatus
   guestRequestStatus?: GuestRequestStatus
   displayStatus: UnifiedDisplayStatus
@@ -80,6 +82,8 @@ function fromGuestRequest(gr: GuestRequest, linkedTask: Task | undefined): Unifi
     department: gr.category,
     createdAt: gr.created_at,
     dueAt,
+    startedAt: gr.dispatched_at ?? gr.acknowledged_at,
+    completedAt: gr.verified_at ?? gr.resolved_at,
     taskStatus: linkedTask?.status,
     guestRequestStatus: gr.status,
     displayStatus,
@@ -107,6 +111,8 @@ function fromInternalTask(task: Task): UnifiedTaskItem {
     department: task.task_type,
     createdAt: task.created_at,
     dueAt: task.due_at,
+    startedAt: task.started_at,
+    completedAt: task.completed_at,
     taskStatus: task.status,
     displayStatus,
     isAiCreated: task.is_ai_created,

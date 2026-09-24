@@ -79,6 +79,12 @@
       "new_hash": "c937707d8da7b49e4f5369a4cf93c65c0436dc4ce994998155ebe7bf7c7ea922",
       "reason": "getOccupancy() only checked room.status === 'OCCUPIED', so a PICKUP-status room (a stayover clean queued while the guest is still physically in the room) fell through to 'VACANT' -- wrong, since the guest hasn't left. Added `|| room?.status === 'PICKUP'` to the OCCUPIED branch, matching the equivalent fix in SimplifiedDashboard.tsx's classifyOccupancy() (which this function's comment already says it mirrors) so 'Vacant' only ever means nobody is in the room on both surfaces. Because getHeaderTone's `occupancy === 'OCCUPIED'` branch previously ran before its `status === 'PICKUP'` branch, this would have overwritten the Pickup-specific header (added in a prior change: 'PICKUP · FULL'/'PICKUP · LIGHT') with the generic 'STAYOVER · GUEST IN HOUSE' label -- reordered getHeaderTone so the `status === 'PICKUP'` check runs first (right after the IN_PROGRESS/OOO checks) and wins, so the pickup header is unchanged. The only observable effect of the occupancy fix is that showDepartureRow/departureRowLabel/departureRowValue (which read occupancy, not status) now correctly show a 'Departure: Tomorrow' fact row for Pickup rooms too, same as any other stayover-occupied room, instead of hiding it. No exports or the Props contract changed.",
       "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "765df5b097ec0d1b6abd83bce161c0cc58ef0f0f281db08a627b70628f49c607",
+      "reason": "The drawer's backdrop and panel use `fixed` positioning (z-drawer) and previously rendered inline in the host page's component tree. The housekeeping page now renders Board and Routes as tabs under one shared PageHeader/layout instead of swapping to a separate screen (HousekeepingRoutes' own grid/panel containers), so the drawer's ancestor chain changed; a `fixed` element is clipped/mispositioned by any ancestor that establishes a new containing block (transform/filter/will-change/contain), which the new shared tab layout risks introducing now or in future changes. Wrapped the drawer's returned JSX in `createPortal(..., document.body)` so it always renders as a direct child of body regardless of which host page/tab mounts it. Purely a render-target change: no exports, the Props contract ({ room, isOpen, onClose, onCheckoutTimeSaved }), or any visible markup/behavior changed.",
+      "approved": true
     }
   ]
 }

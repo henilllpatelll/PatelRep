@@ -22,7 +22,7 @@ import { ArchivedWorkOrdersPanel } from '@/components/engineering/ArchivedWorkOr
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
 import { RecurringIssuesSidebar } from '@/components/engineering/RecurringIssuesSidebar'
 
-const VALID_TABS = ['work-orders', 'assets', 'pm-schedules', 'predictions', 'parts', 'archived'] as const
+const VALID_TABS = ['work-orders', 'assets', 'pm-schedules', 'reliability', 'parts', 'archived'] as const
 type EngineeringTab = (typeof VALID_TABS)[number]
 
 function getHotelIdFromToken(token: string | undefined): string {
@@ -40,6 +40,7 @@ function EngineeringPageContent() {
 
   const [activeTab, setActiveTab] = useState<EngineeringTab>(() => {
     const requested = searchParams.get('tab')
+    if (requested === 'predictions') return 'reliability'
     return (VALID_TABS as readonly string[]).includes(requested ?? '') ? (requested as EngineeringTab) : 'work-orders'
   })
   const focusId = searchParams.get('focus')
@@ -114,19 +115,17 @@ function EngineeringPageContent() {
             count: highRiskAssetsCount > 0 ? highRiskAssetsCount : undefined,
           },
           {
-            label: t('engineering.workOrdersPage.tabPmSchedules'),
+            label: t('engineering.workOrdersPage.tabPreventive'),
             active: activeTab === 'pm-schedules',
             onClick: () => setActiveTab('pm-schedules'),
             count: pmOverdueCount > 0 ? pmOverdueCount : undefined,
           },
           {
-            label: t('engineering.workOrdersPage.tabPredictions'),
-            active: activeTab === 'predictions',
-            onClick: () => setActiveTab('predictions'),
+            label: t('engineering.workOrdersPage.tabReliability'),
+            active: activeTab === 'reliability',
+            onClick: () => setActiveTab('reliability'),
             count: activePredictionsCount > 0 ? activePredictionsCount : undefined,
           },
-          { label: t('engineering.workOrdersPage.tabParts'), active: activeTab === 'parts', onClick: () => setActiveTab('parts') },
-          { label: t('engineering.workOrdersPage.tabArchived'), active: activeTab === 'archived', onClick: () => setActiveTab('archived') },
         ]}
         actions={
           <>
@@ -162,20 +161,16 @@ function EngineeringPageContent() {
         }
       />
 
-      {/* KPI strip — persistent across tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Quiet operational summary — work flows stay in the queue below. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label={t('engineering.commandBar.statOpen')} value={openCount} />
-        <Stat label={t('engineering.commandBar.statEscalated')} value={<span className={escalatedCount > 0 ? 'text-[var(--alert)]' : undefined}>{escalatedCount}</span>} />
         <Stat label={t('engineering.commandBar.statOverdue')} value={<span className={overdueWOCount > 0 ? 'text-[var(--alert)]' : undefined}>{overdueWOCount}</span>} />
-        <Stat label={t('engineering.commandBar.statHighRiskAssets')} value={<span className={highRiskAssetsCount > 0 ? 'text-[var(--alert)]' : undefined}>{highRiskAssetsCount}</span>} />
-        <Stat label={t('engineering.commandBar.statPmOverdue')} value={<span className={pmOverdueCount > 0 ? 'text-[var(--caution)]' : undefined}>{pmOverdueCount}</span>} />
-        <Stat label={t('engineering.commandBar.statActivePredictions')} value={activePredictionsCount} />
+        <Stat label={t('engineering.commandBar.statUnassigned')} value={<span className={statsQ.data?.unassigned ? 'text-[var(--alert)]' : undefined}>{statsQ.data?.unassigned ?? 0}</span>} />
+        <Stat label={t('engineering.commandBar.statWaiting')} value={<span className={statsQ.data?.on_hold ? 'text-[var(--caution)]' : undefined}>{statsQ.data?.on_hold ?? 0}</span>} />
       </div>
 
       {/* Tab content */}
       {activeTab === 'work-orders' ? (
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 min-w-0">
             <WorkOrdersTab
               hotelId={hotelId}
               isEngineer={isEngineer}
@@ -188,12 +183,6 @@ function EngineeringPageContent() {
               showArchiveModal={showArchiveWO}
               onCloseArchiveModal={() => setShowArchiveWO(false)}
             />
-          </div>
-          <div className="flex flex-col gap-6 shrink-0">
-            <FailurePredictionSidebar />
-            <RecurringIssuesSidebar />
-          </div>
-        </div>
       ) : activeTab === 'assets' ? (
         <AssetsTab
           canEdit={canEditAssets}
@@ -208,12 +197,8 @@ function EngineeringPageContent() {
           onCloseCreateModal={() => setShowCreatePM(false)}
           onRequestCreate={() => setShowCreatePM(true)}
         />
-      ) : activeTab === 'predictions' ? (
-        <PredictionsTab
-          canManage={canManagePredictions}
-          canAuthorize={canAuthorizePredictions}
-          highlightAssetId={highlightAssetId}
-        />
+      ) : activeTab === 'reliability' ? (
+        <div className="space-y-6"><PredictionsTab canManage={canManagePredictions} canAuthorize={canAuthorizePredictions} highlightAssetId={highlightAssetId} /><div className="grid gap-6 xl:grid-cols-2"><FailurePredictionSidebar /><RecurringIssuesSidebar /></div></div>
       ) : activeTab === 'parts' ? (
         <PartsPanel redesigned />
       ) : (

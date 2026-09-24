@@ -22875,7 +22875,11 @@
       "file": "apps/web/lib/utils/housekeepingNavigation.ts",
       "root_cause": "SUPERVISOR_HOUSEKEEPING_TABS retained the standalone /housekeeping/assignments item after the workflow was requested to move into Room Board.",
       "fix": "Remove the Assignments item, surface the OPERA import action on the Room Board, and redirect legacy assignment links to /housekeeping.",
-      "tags": ["housekeeping", "navigation", "opera-import"],
+      "tags": [
+        "housekeeping",
+        "navigation",
+        "opera-import"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T15:45:00.000Z"
@@ -22887,7 +22891,11 @@
       "file": ".wolf/OPENWOLF.md",
       "root_cause": "rtk resolves executable commands on PATH; PowerShell cmdlets require an explicit powershell.exe invocation.",
       "fix": "Use rtk powershell -NoProfile -Command for PowerShell built-ins.",
-      "tags": ["tooling", "rtk", "powershell"],
+      "tags": [
+        "tooling",
+        "rtk",
+        "powershell"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T15:42:00.000Z"
@@ -22899,7 +22907,10 @@
       "file": "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
       "root_cause": "The patch format does not permit multiple operations on one file within a single patch.",
       "fix": "Apply the navigation changes separately, then replace the route page through sequential delete and add patches.",
-      "tags": ["tooling", "apply-patch"],
+      "tags": [
+        "tooling",
+        "apply-patch"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T15:44:00.000Z"
@@ -22911,7 +22922,11 @@
       "file": "apps/web/lib/utils/housekeepingNavigation.ts",
       "root_cause": "SUPERVISOR_HOUSEKEEPING_TABS retained the standalone /housekeeping/inspections item after the user requested its removal.",
       "fix": "Remove the item, drop the inspection-specific route guard, and redirect the legacy route to /housekeeping.",
-      "tags": ["housekeeping", "navigation", "inspections"],
+      "tags": [
+        "housekeeping",
+        "navigation",
+        "inspections"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T15:50:00.000Z"
@@ -22923,7 +22938,11 @@
       "file": "apps/web/lib/utils/housekeepingNavigation.ts",
       "root_cause": "SUPERVISOR_HOUSEKEEPING_TABS retained the standalone /housekeeping/routes item after the user requested an in-board toggle.",
       "fix": "Remove the item, embed HousekeepingRoutes behind a Room Board icon toggle, and redirect legacy route links to /housekeeping.",
-      "tags": ["housekeeping", "navigation", "routes"],
+      "tags": [
+        "housekeeping",
+        "navigation",
+        "routes"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T15:55:00.000Z"
@@ -22935,7 +22954,10 @@
       "file": "apps/web/app/(dashboard)/housekeeping/routes/page.tsx",
       "root_cause": "The orchestration script was malformed before apply_patch ran.",
       "fix": "Reissued the same focused patch with valid JavaScript; the redirect file was created successfully.",
-      "tags": ["tooling", "apply-patch"],
+      "tags": [
+        "tooling",
+        "apply-patch"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T15:57:00.000Z"
@@ -22947,7 +22969,11 @@
       "file": "apps/web/app/(dashboard)",
       "root_cause": "ripgrep path arguments do not support shell-style grouped alternatives on Windows.",
       "fix": "Use one valid root path and apply the alternatives only in rg's regex pattern.",
-      "tags": ["tooling", "ripgrep", "audit"],
+      "tags": [
+        "tooling",
+        "ripgrep",
+        "audit"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:10:00.000Z"
@@ -22959,7 +22985,11 @@
       "file": "graphify-out/graph.json",
       "root_cause": "The command mixed PowerShell escaping with Python keyword arguments inside a quoted one-liner.",
       "fix": "Run the focused Python command directly through rtk without wrapping it in an additional PowerShell command.",
-      "tags": ["tooling", "powershell", "graphify"],
+      "tags": [
+        "tooling",
+        "powershell",
+        "graphify"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:14:00.000Z"
@@ -22971,7 +23001,11 @@
       "file": "apps/web/app/(dashboard)/settings",
       "root_cause": "Unknown; the local development route did not settle within the browser helper timeout.",
       "fix": "Treat the navigation result as unknown and take a fresh read-only browser observation before drawing conclusions.",
-      "tags": ["browser", "local-dev", "audit"],
+      "tags": [
+        "browser",
+        "local-dev",
+        "audit"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:17:00.000Z"
@@ -22983,7 +23017,11 @@
       "file": ".wolf/cerebrum.md",
       "root_cause": "The patch anchored on a long Unicode-rich paragraph rather than a stable end-of-file context.",
       "fix": "Verify whether the atomic patch made no partial change, then append the concise learning with a stable tail anchor.",
-      "tags": ["tooling", "apply-patch", "openwolf"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "openwolf"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:20:00.000Z"
@@ -22995,8 +23033,14 @@
       "file": ".wolf/cerebrum.md",
       "root_cause": "The patch omitted actual source-line context.",
       "fix": "Leave the already recorded audit in memory and avoid further documentation mutation during this read-only report rather than risk unrelated large-file edits.",
-      "tags": ["tooling", "apply-patch", "openwolf"],
-      "related_bugs": ["bug-1244"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "openwolf"
+      ],
+      "related_bugs": [
+        "bug-1244"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:22:00.000Z"
     },
@@ -23007,8 +23051,14 @@
       "file": ".wolf/buglog.json",
       "root_cause": "The added closing JSON line lacked the patch addition prefix.",
       "fix": "Reissued the same focused JSON append with every added line prefixed correctly.",
-      "tags": ["tooling", "apply-patch", "openwolf"],
-      "related_bugs": ["bug-1245"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "openwolf"
+      ],
+      "related_bugs": [
+        "bug-1245"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:22:00.000Z"
     },
@@ -23019,7 +23069,11 @@
       "file": ".wolf/buglog.json",
       "root_cause": "The log contains UTF-8 punctuation that cp1252 cannot decode.",
       "fix": "Validate it with an explicit UTF-8 file encoding.",
-      "tags": ["tooling", "encoding", "openwolf"],
+      "tags": [
+        "tooling",
+        "encoding",
+        "openwolf"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:24:00.000Z"
@@ -23031,7 +23085,11 @@
       "file": "C:\\Users\\Henil\\.agents\\skills\\graphify\\SKILL.md",
       "root_cause": "The nested PowerShell command used double quotes, allowing the outer shell to interpolate the variable.",
       "fix": "Use a single-quoted inner PowerShell command to preserve the variable for the rtk child process.",
-      "tags": ["tooling", "powershell", "skills"],
+      "tags": [
+        "tooling",
+        "powershell",
+        "skills"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:28:00.000Z"
@@ -23043,7 +23101,11 @@
       "file": "graphify-out/graph.json",
       "root_cause": "The query used the generic Python interpreter instead of the graph-specific interpreter recorded by Graphify.",
       "fix": "Use the interpreter path stored in graphify-out/.graphify_python for graph queries and updates.",
-      "tags": ["tooling", "graphify", "python"],
+      "tags": [
+        "tooling",
+        "graphify",
+        "python"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:32:00.000Z"
@@ -23055,8 +23117,14 @@
       "file": "graphify-out/graph.json",
       "root_cause": "Escaped inner Python string quotes were altered by the nested shell command.",
       "fix": "Use a dependency-free JSON query through the standard interpreter instead of nesting a virtual-environment command.",
-      "tags": ["tooling", "graphify", "powershell"],
-      "related_bugs": ["bug-1249"],
+      "tags": [
+        "tooling",
+        "graphify",
+        "powershell"
+      ],
+      "related_bugs": [
+        "bug-1249"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:34:00.000Z"
     },
@@ -23067,7 +23135,11 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "Intentional TDD red phase for the agreed navigation consolidation.",
       "fix": "Add the primary and secondary navigation group constants, rename Staff to People, and remove engineering sidebar sub-navigation.",
-      "tags": ["tdd", "navigation", "frontend"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "frontend"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:38:00.000Z"
@@ -23079,8 +23151,13 @@
       "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "root_cause": "Nested PowerShell command used double quotes around variable assignment.",
       "fix": "Use a single-quoted inner PowerShell command when indexing source arrays.",
-      "tags": ["tooling", "powershell"],
-      "related_bugs": ["bug-1248"],
+      "tags": [
+        "tooling",
+        "powershell"
+      ],
+      "related_bugs": [
+        "bug-1248"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:41:00.000Z"
     },
@@ -23091,7 +23168,11 @@
       "file": "apps/web/app/(dashboard)/staff/page.tsx",
       "root_cause": "A multi-file patch used inferred import text instead of the exact source line.",
       "fix": "Inspect the compact import blocks and reissue focused patches with exact context.",
-      "tags": ["tooling", "apply-patch", "frontend"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "frontend"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:44:00.000Z"
@@ -23103,7 +23184,11 @@
       "file": ".wolf/anatomy.md",
       "root_cause": "The patch relied on Unicode-rich existing descriptions as context.",
       "fix": "Use ASCII-only section headers as patch context when appending missing file descriptions.",
-      "tags": ["tooling", "apply-patch", "openwolf"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "openwolf"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:49:00.000Z"
@@ -23115,8 +23200,14 @@
       "file": ".wolf/buglog.json",
       "root_cause": "One added JSON line was missing the patch addition prefix.",
       "fix": "Reissued the append with every new line prefixed correctly.",
-      "tags": ["tooling", "apply-patch", "openwolf"],
-      "related_bugs": ["bug-1254"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "openwolf"
+      ],
+      "related_bugs": [
+        "bug-1254"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:50:00.000Z"
     },
@@ -23127,7 +23218,11 @@
       "file": "apps/web/app/(dashboard)",
       "root_cause": "Parenthesized Windows paths require quoting in PowerShell arguments.",
       "fix": "Use git diff --stat for a safe overview and quote each parenthesized path in targeted reviews.",
-      "tags": ["tooling", "git", "powershell"],
+      "tags": [
+        "tooling",
+        "git",
+        "powershell"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:53:00.000Z"
@@ -23139,7 +23234,11 @@
       "file": "apps/web/lib/utils/navigation.ts",
       "root_cause": "The new People label reused the existing nav.staff translation key.",
       "fix": "Add a dedicated nav.people translation and map the People navigation item to it.",
-      "tags": ["i18n", "navigation", "browser-verified"],
+      "tags": [
+        "i18n",
+        "navigation",
+        "browser-verified"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T16:57:00.000Z"
@@ -23151,7 +23250,11 @@
       "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
       "root_cause": "Unknown local-development navigation delay.",
       "fix": "Treat the outcome as unknown and take a fresh read-only browser observation before retrying or drawing conclusions.",
-      "tags": ["browser", "local-dev", "verification"],
+      "tags": [
+        "browser",
+        "local-dev",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:00:00.000Z"
@@ -23163,7 +23266,11 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "The contextual-only navigation group had not been implemented yet.",
       "fix": "Export the contextual route list and remove its routes from the More sidebar group.",
-      "tags": ["tdd", "navigation", "consolidation"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "consolidation"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:03:00.000Z"
@@ -23175,8 +23282,14 @@
       "file": ".wolf/buglog.json",
       "root_cause": "Several added JSON lines lacked the patch addition prefix.",
       "fix": "Reissued the same focused append with valid patch prefixes.",
-      "tags": ["tooling", "apply-patch", "openwolf"],
-      "related_bugs": ["bug-1259"],
+      "tags": [
+        "tooling",
+        "apply-patch",
+        "openwolf"
+      ],
+      "related_bugs": [
+        "bug-1259"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:03:00.000Z"
     },
@@ -23187,7 +23300,11 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "The requested sidebar-only removal had not yet been represented in the navigation model.",
       "fix": "Add DIRECT_ACCESS_NAV_HREFS for Safety and remove Safety from PRIMARY_NAV_HREFS while retaining its route and role allow-list.",
-      "tags": ["tdd", "navigation", "safety"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "safety"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:12:00.000Z"
@@ -23199,7 +23316,12 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "The requested navigation-only removals had not yet been represented in the shared navigation model.",
       "fix": "Move the AI and Evidence routes to DIRECT_ACCESS_NAV_HREFS, remove them from MORE_NAV_HREFS, and remove duplicate visual entry points.",
-      "tags": ["tdd", "navigation", "ai", "evidence"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "ai",
+        "evidence"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:20:00.000Z"
@@ -23211,7 +23333,11 @@
       "file": "apps/web/lib/utils/housekeepingNavigation.test.ts",
       "root_cause": "The housekeeping navigation helper still defined Room Board as a secondary item despite it being the default Housekeeping destination.",
       "fix": "Return no housekeeping sub-navigation items so selecting Housekeeping opens the Room Board without a duplicate label.",
-      "tags": ["tdd", "housekeeping", "navigation"],
+      "tags": [
+        "tdd",
+        "housekeeping",
+        "navigation"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:30:00.000Z"
@@ -23223,7 +23349,11 @@
       "file": "apps/web/.next/types/validator.ts",
       "root_cause": "npm run type-check and npm run build were launched concurrently despite both touching generated Next artifacts.",
       "fix": "Run the type-check again after the build finishes, and run these two checks serially in future verification passes.",
-      "tags": ["tooling", "nextjs", "verification"],
+      "tags": [
+        "tooling",
+        "nextjs",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:34:00.000Z"
@@ -23235,7 +23365,11 @@
       "file": "apps/web/app/(dashboard)/settings",
       "root_cause": "The PowerShell command included an unquoted path containing parentheses.",
       "fix": "Repeated the search from the apps/web root without parenthesized positional paths.",
-      "tags": ["tooling", "powershell", "search"],
+      "tags": [
+        "tooling",
+        "powershell",
+        "search"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:42:00.000Z"
@@ -23247,7 +23381,12 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "Programs had not yet been moved from the primary navigation group to Settings/direct access.",
       "fix": "Remove Programs from PRIMARY_NAV_HREFS, retain its direct route, and add it as a Workflow item in Settings.",
-      "tags": ["tdd", "navigation", "programs", "settings"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "programs",
+        "settings"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:44:00.000Z"
@@ -23259,7 +23398,12 @@
       "file": "apps/web/components/shared/Breadcrumbs.tsx",
       "root_cause": "The shared Settings sub-navigation registry did not include /settings/programs, so the fallback interpreted the programs translation namespace as a label.",
       "fix": "Add Programs to SETTINGS_NAV_ITEM.subNav so Breadcrumbs resolves its nav label key.",
-      "tags": ["i18n", "breadcrumb", "settings", "programs"],
+      "tags": [
+        "i18n",
+        "breadcrumb",
+        "settings",
+        "programs"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T17:49:00.000Z"
@@ -23271,7 +23415,12 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "The requested demotion to More had not yet been reflected in the shared navigation groups.",
       "fix": "Remove Reports and People from PRIMARY_NAV_HREFS and add them to MORE_NAV_HREFS without changing route access.",
-      "tags": ["tdd", "navigation", "reports", "people"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "reports",
+        "people"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T18:05:00.000Z"
@@ -23283,7 +23432,12 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "The requested logo-only Dashboard access had not yet been represented in the shared navigation model.",
       "fix": "Move Dashboard to BRAND_NAV_HREFS and wrap the PatelRep logo in a dashboard link.",
-      "tags": ["tdd", "navigation", "dashboard", "sidebar"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "dashboard",
+        "sidebar"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T18:18:00.000Z"
@@ -23295,7 +23449,11 @@
       "file": "apps/web/components/shared/Sidebar.tsx",
       "root_cause": "The browser tab automation surface exposes accessibility snapshots but not the attempted locator helper.",
       "fix": "Verified the rendered Dashboard link target directly in the accessibility tree; no application code change was needed.",
-      "tags": ["tooling", "browser", "verification"],
+      "tags": [
+        "tooling",
+        "browser",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T18:23:00.000Z"
@@ -23307,7 +23465,12 @@
       "file": "apps/web/lib/utils/navigation.test.ts",
       "root_cause": "The requested SOP relocation had not yet been represented in the shared navigation and Settings registry.",
       "fix": "Move SOP from MORE_NAV_HREFS to DIRECT_ACCESS_NAV_HREFS and expose it at /settings/sop with a Settings sub-navigation entry.",
-      "tags": ["tdd", "navigation", "sop", "settings"],
+      "tags": [
+        "tdd",
+        "navigation",
+        "sop",
+        "settings"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T18:56:00.000Z"
@@ -23319,7 +23482,11 @@
       "file": "apps/web/app/(dashboard)/settings/sop/page.tsx",
       "root_cause": "The browser navigation did not settle within the automation timeout; the running app remained on Dashboard.",
       "fix": "Retry the same read-only route navigation and inspect the resulting accessibility tree.",
-      "tags": ["tooling", "browser", "verification"],
+      "tags": [
+        "tooling",
+        "browser",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T19:01:00.000Z"
@@ -23331,7 +23498,12 @@
       "file": "apps/api/requirements.txt",
       "root_cause": "The local API environment had not been synchronized after the SFTP report-ingestion dependency was added.",
       "fix": "Install the declared API requirements, then rerun ruff and the API test suite before pushing.",
-      "tags": ["tooling", "dependencies", "api", "verification"],
+      "tags": [
+        "tooling",
+        "dependencies",
+        "api",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
@@ -23343,8 +23515,15 @@
       "file": "apps/api/requirements.txt",
       "root_cause": "pip attempted to replace the currently running uvicorn executable while the local API server was active.",
       "fix": "Leave the active development server intact and install only the missing test dependencies without replacing uvicorn.",
-      "tags": ["tooling", "windows", "dependencies", "verification"],
-      "related_bugs": ["bug-1274"],
+      "tags": [
+        "tooling",
+        "windows",
+        "dependencies",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1274"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
     },
@@ -23355,8 +23534,15 @@
       "file": "apps/api/tests/test_opera_report_ingest.py",
       "root_cause": "New tests retained unused imports, and the earlier pip interruption left the local environment only partially upgraded.",
       "fix": "Remove the unused imports and force-reinstall the exact pydantic pair required by requirements.txt before rerunning checks.",
-      "tags": ["lint", "tests", "dependencies", "verification"],
-      "related_bugs": ["bug-1275"],
+      "tags": [
+        "lint",
+        "tests",
+        "dependencies",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1275"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
     },
@@ -23367,7 +23553,11 @@
       "file": ".git/index.lock",
       "root_cause": "A previous Git operation left an index lock in the working tree.",
       "fix": "Verify no Git process is active, then remove only the stale index lock and retry staging.",
-      "tags": ["git", "tooling", "delivery"],
+      "tags": [
+        "git",
+        "tooling",
+        "delivery"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
@@ -23379,7 +23569,13 @@
       "file": ".github/workflows/ci.yml",
       "root_cause": "The GitHub deployment target and Playwright base-URL configuration reference stale Railway domains, while the active Vercel frontend has a stale or unavailable API URL.",
       "fix": "Reauthenticate Railway to resolve the live service domain, update GitHub deployment/Playwright targets, and correct the Vercel NEXT_PUBLIC_API_URL environment variable before rerunning CI.",
-      "tags": ["github-actions", "railway", "vercel", "deployment", "ci"],
+      "tags": [
+        "github-actions",
+        "railway",
+        "vercel",
+        "deployment",
+        "ci"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
@@ -23391,7 +23587,12 @@
       "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
       "root_cause": "The role-gated loading branch had no readable loading message, so staff saw an apparently empty content area until the board query completed.",
       "fix": "Expose the existing localized Room Board loading label in a polite status region alongside the skeleton placeholders.",
-      "tags": ["housekeeping", "loading-state", "accessibility", "ux"],
+      "tags": [
+        "housekeeping",
+        "loading-state",
+        "accessibility",
+        "ux"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
@@ -23403,10 +23604,2522 @@
       "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "root_cause": "The existing localized loading string belongs to housekeeping.roomBoard, not housekeeping.roomStatus.",
       "fix": "Use housekeeping.roomBoard.loading in both Room Board loading states.",
-      "tags": ["i18n", "housekeeping", "loading-state"],
-      "related_bugs": ["bug-1279"],
+      "tags": [
+        "i18n",
+        "housekeeping",
+        "loading-state"
+      ],
+      "related_bugs": [
+        "bug-1279"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1392",
+      "timestamp": "2026-09-18T15:13:11.280166+00:00",
+      "error_message": "ValueError: invalid literal for int() with base 10: briefing",
+      "file": ".wolf/buglog.json",
+      "root_cause": "Existing bug IDs include descriptive suffixes as well as numeric IDs.",
+      "fix": "Filter numeric suffixes before allocating the next numeric bug ID.",
+      "tags": [
+        "openwolf",
+        "logging"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:13:11.280166+00:00"
+    },
+    {
+      "id": "bug-1393",
+      "timestamp": "2026-09-18T15:13:11.280166+00:00",
+      "error_message": "rg: spec: The system cannot find the file specified. (os error 2)",
+      "file": "spec/",
+      "root_cause": "Supplied project map references a missing directory.",
+      "fix": "Used available project context for design concepts; recorded the missing path.",
+      "tags": [
+        "navigation",
+        "documentation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:13:11.280166+00:00"
+    },
+    {
+      "id": "bug-1394",
+      "timestamp": "2026-09-18T15:13:11.280166+00:00",
+      "error_message": "Completed wireframe job still displayed Job in progress in the queue.",
+      "file": "engineering-wireframes.html",
+      "root_cause": "Queue label only distinguished started from not started.",
+      "fix": "Added completed state to the queue label and a matching browser assertion.",
+      "tags": [
+        "wireframe",
+        "state"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:13:11.280166+00:00"
+    },
+    {
+      "id": "bug-1395",
+      "timestamp": "2026-09-18T15:13:11.280166+00:00",
+      "error_message": "render.py: error: destination already exists; pass --force to replace it",
+      "file": "engineering-preview.html",
+      "root_cause": "Preview regeneration requires --force; the subsequent assertion read the old preview.",
+      "fix": "Regenerated with --force and reran all browser checks successfully.",
+      "tags": [
+        "wireframe",
+        "preview",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:13:11.280166+00:00"
+    },
+    {
+      "id": "bug-1396",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "PowerShell parser error while attempting to read the computer-use skill documentation.",
+      "file": "C:\\Users\\Henil\\.codex\\plugins\\cache\\openai-bundled\\computer-use\\26.908.70816\\docs",
+      "root_cause": "An outer PowerShell command expanded the inner foreach variables before the nested command ran.",
+      "fix": "Quote nested PowerShell commands with single quotes so their variables are evaluated only by the intended shell.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "documentation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1397",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "Dashboard header shows 'Good afternoon, there' instead of the signed-in user's name.",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "The dashboard uses the literal fallback 'there' whenever auth-store fullName is unavailable and Supabase user_metadata.full_name is absent. That occurs if /auth/me supplies no user_profiles.full_name or profile hydration fails before it can set the value.",
+      "fix": "Not changed: this was a diagnosis-only request. Ensure /auth/me hydrates successfully and that the user's profile full_name (or user metadata) is populated.",
+      "tags": [
+        "dashboard",
+        "auth",
+        "profile",
+        "greeting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1398",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "PowerShell treated a nested ripgrep pattern as an importable module while inspecting the dashboard greeting.",
+      "file": "apps/web/components/dashboard/DashboardGreeting.tsx",
+      "root_cause": "A shell command embedded rtk invocations inside a PowerShell command string, causing its quoting to be parsed by the wrong shell.",
+      "fix": "Run each rtk-prefixed command directly rather than nesting it in PowerShell.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "inspection"
+      ],
+      "related_bugs": [
+        "bug-1396"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1399",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "Dashboard greeting regression test initially failed because the name-resolution helper did not exist.",
+      "file": "apps/web/lib/utils/userGreeting.test.ts",
+      "root_cause": "Expected TDD red phase before implementing the shared profile-name fallback.",
+      "fix": "Added a pure greeting-name helper, preferred-name hydration, and a nameless greeting format.",
+      "tags": [
+        "tdd",
+        "dashboard",
+        "auth",
+        "greeting"
+      ],
+      "related_bugs": [
+        "bug-1397"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1400",
+      "timestamp": "2026-09-18T00:00:00.000Z",
+      "error_message": "The authenticated GM account hp.patelrep@gmail.com displayed as Unnamed Staff and could not receive a dashboard greeting.",
+      "file": "user_profiles",
+      "root_cause": "The account had active user_roles for the current tenant but no user_profiles row. During diagnosis, the Supabase SDK list_users result was also initially treated as an object instead of its actual list shape.",
+      "fix": "Created the missing current-tenant profile with full_name 'Henill Patel' and preferred_name 'Henill', then synchronized full_name into the account metadata. Reload verification shows 'Good afternoon, Henill.'",
+      "tags": [
+        "auth",
+        "profile",
+        "dashboard",
+        "data-repair"
+      ],
+      "related_bugs": [
+        "bug-1397",
+        "bug-1399"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1401",
+      "timestamp": "2026-09-18T15:10:00.000Z",
+      "error_message": "Local Ollama calls still deducted the tenant AI-credit ledger (expected 0, received 1.275).",
+      "file": "apps/api/middleware/credits.py",
+      "root_cause": "The credit middleware priced every AI interaction from hosted-model rates, independent of the selected provider.",
+      "fix": "When AI_PROVIDER=ollama, bypass ledger deduction and log the configured local model with zero credits; hosted billing remains unchanged.",
+      "tags": [
+        "ai",
+        "ollama",
+        "credits",
+        "development"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:10:00.000Z"
+    },
+    {
+      "id": "bug-1402",
+      "timestamp": "2026-09-18T15:10:00.000Z",
+      "error_message": "The lightweight deepseek-r1:1.5b local model returned no tool call for a task-creation prompt.",
+      "file": "apps/api/.env",
+      "root_cause": "Although the model advertises tool capability, it produced explanatory text instead of the required function invocation in the verified task-parser shape.",
+      "fix": "Kept the installed qwen3.8:latest model as the local default for tool-driven features and installed nomic-embed-text for local RAG embeddings.",
+      "tags": [
+        "ai",
+        "ollama",
+        "tool-calling",
+        "model-selection"
+      ],
+      "related_bugs": [
+        "bug-1401"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:10:00.000Z"
+    },
+    {
+      "id": "bug-1403",
+      "timestamp": "2026-09-18T15:12:00.000Z",
+      "error_message": "Ruff reported E902 for every relative API path during final verification.",
+      "file": "apps/api",
+      "root_cause": "The lint command was run from the repository root while its paths were relative to apps/api.",
+      "fix": "Reran the identical lint command from apps/api; all touched files pass.",
+      "tags": [
+        "tooling",
+        "ruff",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T15:12:00.000Z"
+    },
+    {
+      "id": "bug-1404",
+      "timestamp": "2026-09-18T16:05:00.000Z",
+      "error_message": "Dashboard work-order AI triage opened the unwanted Intelligence Copilot screen at /ai.",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Four dashboard controls navigated directly to the legacy standalone Copilot route.",
+      "fix": "Removed all dashboard /ai entry points and replaced the route implementation with a redirect to /dashboard.",
+      "tags": [
+        "dashboard",
+        "routing",
+        "copilot",
+        "ui"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T16:05:00.000Z"
+    },
+    {
+      "id": "bug-1405",
+      "timestamp": "2026-09-18T16:05:00.000Z",
+      "error_message": "Browser navigation verification reported a CDP timeout after navigating to /ai.",
+      "file": "apps/web/app/(dashboard)/ai/page.tsx",
+      "root_cause": "The immediate server redirect completed before the browser automation navigation call received its final CDP response.",
+      "fix": "Verified the post-navigation browser state directly: it was on /dashboard and the retired work-order triage control was absent.",
+      "tags": [
+        "verification",
+        "browser",
+        "routing"
+      ],
+      "related_bugs": [
+        "bug-1404"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T16:05:00.000Z"
+    },
+    {
+      "id": "bug-1451",
+      "timestamp": "2026-09-19T10:57:51.683Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 13→39 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T10:57:51.683Z"
+    },
+    {
+      "id": "bug-1452",
+      "timestamp": "2026-09-19T10:58:20.932Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_opera_sftp_report_ingestion.md",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 10→65 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T10:58:20.932Z"
+    },
+    {
+      "id": "bug-1453",
+      "timestamp": "2026-09-19T10:58:32.358Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_opera_sftp_report_ingestion.md",
+      "root_cause": "Had \"OPERA Cloud SFTP scheduled-report ingestion (para",
+      "fix": "Changed to \"OPERA Cloud SFTP scheduled-report ingestion for t",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T10:58:32.358Z"
+    },
+    {
+      "id": "bug-1454",
+      "timestamp": "2026-09-19T11:23:19.006Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "fix": "Changed to \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:23:19.006Z"
+    },
+    {
+      "id": "bug-1455",
+      "timestamp": "2026-09-19T11:26:54.779Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"8051993b3b2742d50af50c6ef9e530a16a709adfd97ca7b5e",
+      "fix": "Changed to \"76bb2e00945ab66c24d97be0d27199ee36edb71aa83fc5907",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:26:54.779Z"
+    },
+    {
+      "id": "bug-1456",
+      "timestamp": "2026-09-19T11:27:07.461Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:27:07.461Z"
+    },
+    {
+      "id": "bug-1457",
+      "timestamp": "2026-09-19T11:28:25.717Z",
+      "error_message": "Wrong reference: 4e7f should be 6f35",
+      "file": ".github/workflows/deploy-check.yml",
+      "root_cause": "Used \"4e7f\" instead of \"6f35\"",
+      "fix": "Changed 4e7f → 6f35",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:28:25.717Z"
+    },
+    {
+      "id": "bug-1458",
+      "timestamp": "2026-09-19T11:33:03.560Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/deploy-check.yml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→11 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:33:03.560Z"
+    },
+    {
+      "id": "bug-1459",
+      "timestamp": "2026-09-19T11:35:18.430Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→10 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:35:18.430Z"
+    },
+    {
+      "id": "bug-1460",
+      "timestamp": "2026-09-19T11:55:11.251Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_ci_gaps.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 17→86 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:55:11.251Z"
+    },
+    {
+      "id": "bug-1461",
+      "timestamp": "2026-09-19T11:55:24.618Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_vercel_deployment.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:55:24.618Z"
+    },
+    {
+      "id": "bug-1462",
+      "timestamp": "2026-09-19T11:55:34.286Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 5→10 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T11:55:34.286Z"
+    },
+    {
+      "id": "bug-1463",
+      "timestamp": "2026-09-19T22:28:31.615Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T22:28:31.615Z"
+    },
+    {
+      "id": "bug-1464",
+      "timestamp": "2026-09-19T22:28:39.781Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T22:28:39.781Z"
+    },
+    {
+      "id": "bug-1465",
+      "timestamp": "2026-09-19T22:28:47.944Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T22:28:47.944Z"
+    },
+    {
+      "id": "bug-1466",
+      "timestamp": "2026-09-19T22:29:17.697Z",
+      "error_message": "CSS fix: display",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 20, paddingTop: 18, alignItems: 'start' → 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 20, paddingTop: 14, alignItems: 'start'",
+      "fix": "Changed display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 20, paddingTop: 18, alignItems: 'start' → 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 20, paddingTop: 14, alignItems: 'start'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-19T22:29:17.697Z"
+    },
+    {
+      "id": "bug-1467",
+      "timestamp": "2026-09-20T00:11:06.847Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 12→3 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T00:11:06.847Z"
+    },
+    {
+      "id": "bug-1468",
+      "timestamp": "2026-09-20T02:21:22.301Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/engineering.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:21:22.301Z"
+    },
+    {
+      "id": "bug-1469",
+      "timestamp": "2026-09-20T02:30:40.516Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "Had \"text-gray-200\"",
+      "fix": "Changed to \"text-[var(--line-2)]\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:30:40.516Z"
+    },
+    {
+      "id": "bug-1470",
+      "timestamp": "2026-09-20T02:40:14.927Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/web/components/engineering/WorkOrderStatsRow.tsx",
+      "root_cause": "Condition was: if (isLoading || isError)",
+      "fix": "Changed to: if (isLoading || isError || !data)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:40:14.927Z"
+    },
+    {
+      "id": "bug-1471",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "error_message": "Attempting to read skill files with `rtk Get-Content` failed because Get-Content is a PowerShell cmdlet, not an executable on PATH.",
+      "file": "C:\\Users\\Henil\\.codex\\RTK.md",
+      "root_cause": "The RTK wrapper resolves an executable name and cannot invoke PowerShell cmdlets directly.",
+      "fix": "Invoke the cmdlet through `rtk powershell -NoProfile -Command` for PowerShell file reads.",
+      "tags": [
+        "tooling",
+        "rtk",
+        "powershell"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1472",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "error_message": "Tasks page type check failed with TS1005 because a JSX expression nested braces inside PageHeader's actions prop.",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "The capability conditional was wrapped as a JSX child inside an already-braced prop expression.",
+      "fix": "Use a single ternary expression for the actions prop.",
+      "tags": [
+        "tasks",
+        "typescript",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1473",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "error_message": "Tasks page type check found a stale setShowInternalModal reference after consolidating creation into CreateTaskDrawer.",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "The React Query success callback still referenced removed two-modal state.",
+      "fix": "Kept success scoped to query invalidation; the unified drawer owns its close/reset state.",
+      "tags": [
+        "tasks",
+        "refactor",
+        "typescript"
+      ],
+      "related_bugs": [
+        "bug-1472"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1474",
+      "timestamp": "2026-09-20T00:00:00.000Z",
+      "error_message": "The i18n gate command was run from the repository root, where the script is not defined.",
+      "file": "apps/web/package.json",
+      "root_cause": "The i18n scripts live in the web package rather than the root package.",
+      "fix": "Run `npm run verify:i18n-gate` from apps/web.",
+      "tags": [
+        "tooling",
+        "i18n",
+        "npm"
+      ],
+      "related_bugs": [
+        "bug-1471"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1475",
+      "timestamp": "2026-09-20T12:42:16.957Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "Had '@/components/engineering/EngineeringRoomBoard'",
+      "fix": "Changed to '@/components/engineering/PartsPanel'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T12:42:20.288Z"
+    },
+    {
+      "id": "bug-1476",
+      "timestamp": "2026-09-20T12:42:29.859Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T12:42:29.859Z"
+    },
+    {
+      "id": "bug-1477",
+      "timestamp": "2026-09-20T12:42:43.257Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 15→5 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T12:42:43.257Z"
+    },
+    {
+      "id": "bug-1478",
+      "timestamp": "2026-09-20T12:42:53.979Z",
+      "error_message": "Type error",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T12:42:53.979Z"
+    },
+    {
+      "id": "bug-1479",
+      "timestamp": "2026-09-20T12:54:41.593Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T12:54:41.593Z"
+    },
+    {
+      "id": "bug-1480",
+      "timestamp": "2026-09-20T12:56:07.165Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Had \"text-orange-700 border-orange-200 hover:bg-orange",
+      "fix": "Changed to \"text-[var(--caution)] border-[var(--caution-line)",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-20T12:56:10.703Z"
+    },
+    {
+      "id": "bug-1481",
+      "timestamp": "2026-09-20T12:56:15.002Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "hover: bg-green-100 → brightness-95",
+      "fix": "Changed hover: bg-green-100 → brightness-95",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T12:56:16.032Z"
+    },
+    {
+      "id": "bug-1482",
+      "timestamp": "2026-09-20T14:50:52.823Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→6 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T14:50:52.823Z"
+    },
+    {
+      "id": "bug-1483",
+      "timestamp": "2026-09-20T14:56:36.419Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/AIRiskAlertsPanel.tsx",
+      "root_cause": "Had `/engineering/predictions?asset=${r.id}`",
+      "fix": "Changed to `/engineering?tab=predictions&asset=${r.id}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T14:56:38.981Z"
+    },
+    {
+      "id": "bug-1484",
+      "timestamp": "2026-09-20T14:56:45.788Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/CommandPalette.tsx",
+      "root_cause": "Had `/engineering/work-orders?focus=${wo.id}`",
+      "fix": "Changed to `/engineering?tab=work-orders&focus=${wo.id}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T14:56:45.788Z"
+    },
+    {
+      "id": "bug-1485",
+      "timestamp": "2026-09-20T14:56:49.380Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/RoomBlockersList.tsx",
+      "root_cause": "Had \"/engineering/work-orders\"",
+      "fix": "Changed to \"/engineering?tab=work-orders\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T14:56:49.380Z"
+    },
+    {
+      "id": "bug-1486",
+      "timestamp": "2026-09-20T14:56:53.144Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/MobileFloorNav.tsx",
+      "root_cause": "Had '/engineering/work-orders'",
+      "fix": "Changed to '/engineering?tab=work-orders'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T14:57:01.688Z"
+    },
+    {
+      "id": "bug-1487",
+      "timestamp": "2026-09-20T14:58:14.923Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/hooks/useArrivalReadiness.ts",
+      "root_cause": "Had `/engineering/work-orders?wo=${wo.id}`",
+      "fix": "Changed to `/engineering?tab=work-orders&focus=${wo.id}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T14:58:14.923Z"
+    },
+    {
+      "id": "bug-1488",
+      "timestamp": "2026-09-20T14:59:36.578Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/e2e/phase1-work-orders.spec.ts",
+      "root_cause": "Had '/engineering/work-orders'",
+      "fix": "Changed to '/engineering?tab=work-orders'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T14:59:36.578Z"
+    },
+    {
+      "id": "bug-1489",
+      "timestamp": "2026-09-20T15:00:00.983Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/e2e/phase4-programs.spec.ts",
+      "root_cause": "Had '/engineering/pm-schedules'",
+      "fix": "Changed to '/engineering?tab=pm-schedules'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T15:00:00.983Z"
+    },
+    {
+      "id": "bug-1490",
+      "timestamp": "2026-09-20T15:27:09.610Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/engineering/page.tsx",
+      "root_cause": "Had 'room-board'",
+      "fix": "Changed to 'assets'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T15:27:15.174Z"
+    },
+    {
+      "id": "bug-1491",
+      "timestamp": "2026-09-20T17:59:54.351Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 20→13 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T17:59:54.352Z"
+    },
+    {
+      "id": "bug-1492",
+      "timestamp": "2026-09-20T18:01:33.126Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/tabs/AssetsTab.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (5 removed) | Also: <tr className=\"animate-pulse border-b border-[var(; <td className=\"px-4 py-3\"> | Also: <table className=\"w-full text-sm\">; <tr className=\"border-b border-amber-100 bg-[var(- | Also: <td colSpan={7} className=\"text-center py-14 text-; <p className=\"text-[14px] font-medium text-ink\">",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-20T18:02:21.360Z"
+    },
+    {
+      "id": "bug-1493",
+      "timestamp": "2026-09-20T18:01:58.688Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/engineering/tabs/AssetsTab.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T18:01:58.688Z"
+    },
+    {
+      "id": "bug-1494",
+      "timestamp": "2026-09-21T00:00:00Z",
+      "error_message": "TypeScript rejected roomsApi.list as a React Query queryFn because its optional filter parameter conflicts with QueryFunctionContext.",
+      "file": "apps/web/app/(dashboard)/housekeeping/out-of-order/page.tsx",
+      "root_cause": "A parameterized API client function was passed directly as a React Query callback.",
+      "fix": "Wrap roomsApi.list in a zero-argument callback.",
+      "tags": [
+        "typescript",
+        "react-query",
+        "room-unavailability"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T00:00:00Z"
+    },
+    {
+      "id": "bug-1495",
+      "timestamp": "2026-09-21T08:18:00Z",
+      "error_message": "Verification command was run from repository root, where the web type-check script and API test path do not exist.",
+      "file": "verification command",
+      "root_cause": "Mixed package-specific commands used the monorepo root working directory.",
+      "fix": "Run web checks from apps/web and API checks from apps/api.",
+      "tags": [
+        "verification",
+        "monorepo"
+      ],
+      "related_bugs": [
+        "bug-1494"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T08:18:00Z"
+    },
+    {
+      "id": "bug-1496",
+      "timestamp": "2026-09-21T08:22:00Z",
+      "error_message": "Full API suite has seven unrelated failures: engineer briefing credits remain zero and shift-summary enrichment tests expect a removed anthropic module attribute.",
+      "file": "apps/api/tests/test_ai_copilot_briefings.py; apps/api/tests/test_shift_summary_enrichment.py",
+      "root_cause": "Pre-existing AI test/source contract drift outside room unavailability and Engineering files.",
+      "fix": "Not modified because it is unrelated to this scoped feature; focused OOO and RBAC tests pass.",
+      "tags": [
+        "pre-existing",
+        "api-tests",
+        "ai"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T08:22:00Z"
+    },
+    {
+      "id": "bug-1497",
+      "timestamp": "2026-09-21T08:25:00Z",
+      "error_message": "ESLint rejected Date.now() during WorkOrdersTab render as impure.",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "Needs-attention classification captured the current time inside useMemo's render path.",
+      "fix": "Capture a stable component timestamp with lazy state and use it for queue classification.",
+      "tags": [
+        "lint",
+        "react-purity",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T08:25:00Z"
+    },
+    {
+      "id": "bug-1498",
+      "timestamp": "2026-09-21T13:55:36.235Z",
+      "error_message": "Wrong reference: Props should be autoAction",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Used \"Props\" instead of \"autoAction\"",
+      "fix": "Changed Props → autoAction",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T13:55:36.236Z"
+    },
+    {
+      "id": "bug-1499",
+      "timestamp": "2026-09-21T13:57:36.103Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→11 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T13:57:36.103Z"
+    },
+    {
+      "id": "bug-1500",
+      "timestamp": "2026-09-21T14:07:11.921Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/engineering/board/PMWeekGlance.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:07:11.921Z"
+    },
+    {
+      "id": "bug-1501",
+      "timestamp": "2026-09-21T14:14:05.395Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/board/EngineeringConsoleView.tsx",
+      "root_cause": "Had 'engineering.workOrdersPage.unassigned'",
+      "fix": "Changed to 'engineering.commandCenter.filterAssignee'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:14:05.395Z"
+    },
+    {
+      "id": "bug-1502",
+      "timestamp": "2026-09-21T14:14:21.097Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/engineering/board/EngineeringBoardView.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:14:21.097Z"
+    },
+    {
+      "id": "bug-1503",
+      "timestamp": "2026-09-21T14:14:26.954Z",
+      "error_message": "Wrong reference: getInitials should be shortId",
+      "file": "apps/web/components/engineering/board/EngineeringBoardView.tsx",
+      "root_cause": "Used \"getInitials\" instead of \"shortId\"",
+      "fix": "Changed getInitials → shortId",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:14:26.954Z"
+    },
+    {
+      "id": "bug-1504",
+      "timestamp": "2026-09-21T14:14:43.100Z",
+      "error_message": "Wrong reference: getInitials should be shortId",
+      "file": "apps/web/components/engineering/board/EngineeringConsoleView.tsx",
+      "root_cause": "Used \"getInitials\" instead of \"shortId\"",
+      "fix": "Changed getInitials → shortId",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T14:14:48.432Z"
+    },
+    {
+      "id": "bug-1505",
+      "timestamp": "2026-09-21T14:38:46.165Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/board/EngineeringBoardView.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:38:46.165Z"
+    },
+    {
+      "id": "bug-1506",
+      "timestamp": "2026-09-21T14:39:02.966Z",
+      "error_message": "CSS fix: key",
+      "file": "apps/web/components/engineering/board/EngineeringBoardView.tsx",
+      "root_cause": "key: 'completed', titleKey: 'engineering.workOrdersPage.columnCompleted', dot: 'var(--ready)' → 'completed', titleKey: 'engineering.workOrdersPage.columnCompleted', hintKey: 'engineering.workOrdersPage.hintCompleted', dot: 'var(--ready)'",
+      "fix": "Changed key: 'completed', titleKey: 'engineering.workOrdersPage.columnCompleted', dot: 'var(--ready)' → 'completed', titleKey: 'engineering.workOrdersPage.columnCompleted', hintKey: 'engineering.workOrdersPage.hintCompleted', dot: 'var(--ready)'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:39:02.966Z"
+    },
+    {
+      "id": "bug-1507",
+      "timestamp": "2026-09-21T14:39:33.276Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/board/EngineeringConsoleView.tsx",
+      "root_cause": "Had 'engineering.workOrdersPage.columnOnHold'",
+      "fix": "Changed to 'engineering.workOrdersPage.columnReview'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:39:33.276Z"
+    },
+    {
+      "id": "bug-1508",
+      "timestamp": "2026-09-21T14:40:07.205Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/board/PMWeekGlance.tsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 28→43 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:40:07.205Z"
+    },
+    {
+      "id": "bug-1509",
+      "timestamp": "2026-09-21T14:41:08.139Z",
+      "error_message": "Wrong reference: onClose should be onToggle",
+      "file": "apps/web/components/engineering/board/EngineeringCopilotPanel.tsx",
+      "root_cause": "Used \"onClose\" instead of \"onToggle\"",
+      "fix": "Changed onClose → onToggle",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:41:08.139Z"
+    },
+    {
+      "id": "bug-1510",
+      "timestamp": "2026-09-21T14:42:05.584Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:42:05.584Z"
+    },
+    {
+      "id": "bug-1511",
+      "timestamp": "2026-09-21T14:42:12.821Z",
+      "error_message": "CSS fix: shortcuts",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "shortcuts: âŒ˜/Ctrl+K focuses search, âŒ˜/Ctrl+J toggles copilot, Escape → Cmd/Ctrl+K focuses search, Cmd/Ctrl+J toggles copilot,",
+      "fix": "Changed shortcuts: âŒ˜/Ctrl+K focuses search, âŒ˜/Ctrl+J toggles copilot, Escape → Cmd/Ctrl+K focuses search, Cmd/Ctrl+J toggles copilot,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:42:12.821Z"
+    },
+    {
+      "id": "bug-1512",
+      "timestamp": "2026-09-21T14:53:21.673Z",
+      "error_message": "CSS fix: shortcuts",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "shortcuts: Cmd/Ctrl+K focuses search, Cmd/Ctrl+J toggles copilot, → Cmd/Ctrl+K focuses search, Cmd/Ctrl+J opens the global",
+      "fix": "Changed shortcuts: Cmd/Ctrl+K focuses search, Cmd/Ctrl+J toggles copilot, → Cmd/Ctrl+K focuses search, Cmd/Ctrl+J opens the global",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:53:21.673Z"
+    },
+    {
+      "id": "bug-1513",
+      "timestamp": "2026-09-21T14:53:28.209Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "Had '@/components/engineering/board/EngineeringCopilot",
+      "fix": "Changed to '@/lib/api/rooms'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:53:28.209Z"
+    },
+    {
+      "id": "bug-1514",
+      "timestamp": "2026-09-21T14:53:59.749Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had '{{count}} things worth doing on this board now'",
+      "fix": "Changed to \"Nothing needs your attention right now — the boar",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:53:59.749Z"
+    },
+    {
+      "id": "bug-1515",
+      "timestamp": "2026-09-21T14:54:05.630Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had '{{count}} cosas que vale la pena hacer ahora en e",
+      "fix": "Changed to 'No hay nada que requiera su atención ahora mismo ",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:54:05.631Z"
+    },
+    {
+      "id": "bug-1516",
+      "timestamp": "2026-09-21T14:54:14.037Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "No early return/throw for edge case: !open",
+      "fix": "Added guard clause: if (!open)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:54:14.037Z"
+    },
+    {
+      "id": "bug-1517",
+      "timestamp": "2026-09-21T14:58:34.173Z",
+      "error_message": "CSS fix: shortcuts",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "shortcuts: Cmd/Ctrl+K focuses search, Cmd/Ctrl+J opens the global → Cmd/Ctrl+K is already the app-wide CommandPalette",
+      "fix": "Changed shortcuts: Cmd/Ctrl+K focuses search, Cmd/Ctrl+J opens the global → Cmd/Ctrl+K is already the app-wide CommandPalette",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T14:58:34.173Z"
+    },
+    {
+      "id": "bug-1518",
+      "timestamp": "2026-09-21T15:14:56.918Z",
+      "error_message": "Wrong reference: Props should be roomUnavailabilityReason",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Used \"Props\" instead of \"roomUnavailabilityReason\"",
+      "fix": "Changed Props → roomUnavailabilityReason",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:14:56.918Z"
+    },
+    {
+      "id": "bug-1519",
+      "timestamp": "2026-09-21T15:16:03.174Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/board/EngineeringConsoleView.tsx",
+      "root_cause": "33 lines replaced/restructured",
+      "fix": "Rewrote 58→17 lines (33 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:16:03.174Z"
+    },
+    {
+      "id": "bug-1520",
+      "timestamp": "2026-09-21T15:16:52.880Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/board/EngineeringConsoleView.tsx",
+      "root_cause": "Had \"min-h-0 overflow-hidden\"",
+      "fix": "Changed to \"h-full min-h-0 overflow-hidden\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:16:52.880Z"
+    },
+    {
+      "id": "bug-1521",
+      "timestamp": "2026-09-21T15:17:14.368Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:17:14.368Z"
+    },
+    {
+      "id": "bug-1522",
+      "timestamp": "2026-09-21T15:48:54.714Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:48:54.714Z"
+    },
+    {
+      "id": "bug-1523",
+      "timestamp": "2026-09-21T15:49:02.790Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Had 'photos'",
+      "fix": "Changed to 'timeline'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:49:02.790Z"
+    },
+    {
+      "id": "bug-1524",
+      "timestamp": "2026-09-21T15:49:31.230Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:49:31.230Z"
+    },
+    {
+      "id": "bug-1525",
+      "timestamp": "2026-09-21T15:51:03.778Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:51:03.778Z"
+    },
+    {
+      "id": "bug-1526",
+      "timestamp": "2026-09-21T15:51:13.234Z",
+      "error_message": "Wrong operator: === should be &&",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Used \"===\" instead of \"&&\"",
+      "fix": "Changed operator === → &&",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T15:51:13.234Z"
+    },
+    {
+      "id": "bug-1527",
+      "timestamp": "2026-09-21T18:43:56.342Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T18:43:56.342Z"
+    },
+    {
+      "id": "bug-1528",
+      "timestamp": "2026-09-21T18:44:36.534Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "hover: bg-green-100\"> → bg-[var(--info-soft)]\">",
+      "fix": "Changed hover: bg-green-100\"> → bg-[var(--info-soft)]\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T18:44:36.534Z"
+    },
+    {
+      "id": "bug-1529",
+      "timestamp": "2026-09-21T19:07:41.803Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Was returning: {\"data\": result.data[0] if result.data else None}",
+      "fix": "Now returns: {\"data\": wo}",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T19:07:41.803Z"
+    },
+    {
+      "id": "bug-1530",
+      "timestamp": "2026-09-21T19:08:23.216Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T19:08:23.216Z"
+    },
+    {
+      "id": "bug-1531",
+      "timestamp": "2026-09-21T19:10:05.526Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/test_work_order_console_features.py",
+      "root_cause": "Had \"zone\"",
+      "fix": "Changed to \"tenant_id\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T19:10:28.205Z"
+    },
+    {
+      "id": "bug-1532",
+      "timestamp": "2026-09-21T19:10:11.089Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/test_work_order_console_features.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T19:10:11.089Z"
+    },
+    {
+      "id": "bug-1533",
+      "timestamp": "2026-09-21T19:13:56.343Z",
+      "error_message": "CSS fix: queryKey, queryFn, enabled",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "queryKey: ['engineering-part-locations'], → ['work-order-duplicate-signal', wo.id],; queryFn: () => inventoryApi.listLocations(), → () => engineeringApi.getDuplicateSignal(wo.id),; enabled: showCompleteForm, → !['completed', 'cancelled'].includes(wo.status) && !!wo.asset_id,",
+      "fix": "Changed queryKey: ['engineering-part-locations'], → ['work-order-duplicate-signal', wo.id],; queryFn: () => inventoryApi.listLocations(), → () => engineeringApi.getDuplicateSignal(wo.id),; enabled: showCompleteForm, → !['completed', 'cancelled'].includes(wo.status) && !!wo.asset_id,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-21T19:14:22.103Z"
+    },
+    {
+      "id": "bug-1534",
+      "timestamp": "2026-09-21T19:14:53.119Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {activeTab === 'parts' && (; <div className=\"space-y-4 p-5\">",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T19:15:22.083Z"
+    },
+    {
+      "id": "bug-1535",
+      "timestamp": "2026-09-21T19:15:28.186Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Had '@/components/ui/primitives'",
+      "fix": "Changed to '@/components/ui/Skeleton'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T19:15:28.186Z"
+    },
+    {
+      "id": "bug-1536",
+      "timestamp": "2026-09-21T19:15:40.893Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <span className=\"shrink-0 font-mono text-[11px] text-ink3\">; {t('engineering.workOrderDetail.checklistMinutesSuffix', { m",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T19:17:11.674Z"
+    },
+    {
+      "id": "bug-1537",
+      "timestamp": "2026-09-21T19:15:55.769Z",
+      "error_message": "Type error",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T19:15:55.769Z"
+    },
+    {
+      "id": "bug-1538",
+      "timestamp": "2026-09-21T20:01:38.688Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "50 lines replaced/restructured",
+      "fix": "Rewrote 71→8 lines (50 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T20:01:38.688Z"
+    },
+    {
+      "id": "bug-1539",
+      "timestamp": "2026-09-21T20:01:52.548Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T20:01:52.548Z"
+    },
+    {
+      "id": "bug-1540",
+      "timestamp": "2026-09-23T00:05:02.921Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/690c4508-ebe4-45f9-9fc4-332f025280ab/scratchpad/tasks-redesign/project/Home-Table.dc.html",
+      "root_cause": "Had \"font-size:12px;font-weight:600;color:var(--ink;ba",
+      "fix": "Changed to \"font-size:12px;font-weight:600;color:var(--ink);b",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "html"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:05:02.921Z"
+    },
+    {
+      "id": "bug-1541",
+      "timestamp": "2026-09-23T00:13:30.953Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "Had \"created_by\"",
+      "fix": "Changed to \"assigned_by\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:13:30.953Z"
+    },
+    {
+      "id": "bug-1542",
+      "timestamp": "2026-09-23T00:13:34.136Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "Was returning: {\"data\": result.data, \"meta\": {\"page\": page, \"per_",
+      "fix": "Now returns: {\"data\": tasks, \"meta\": {\"page\": page, \"per_page\":",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-23T00:13:36.830Z"
+    },
+    {
+      "id": "bug-1543",
+      "timestamp": "2026-09-23T00:16:14.043Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/TaskDetailDrawer.tsx",
+      "root_cause": "Had '@/lib/api/staff'",
+      "fix": "Changed to './TaskTimeline'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:16:14.043Z"
+    },
+    {
+      "id": "bug-1544",
+      "timestamp": "2026-09-23T00:16:39.438Z",
+      "error_message": "CSS fix: taskType",
+      "file": "apps/web/components/tasks/taskDisplay.tsx",
+      "root_cause": "taskType: string) { → string, size = 13) {",
+      "fix": "Changed taskType: string) { → string, size = 13) {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:16:39.438Z"
+    },
+    {
+      "id": "bug-1545",
+      "timestamp": "2026-09-23T00:17:37.764Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/utils/unifiedTasks.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:17:37.764Z"
+    },
+    {
+      "id": "bug-1546",
+      "timestamp": "2026-09-23T00:17:51.981Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/lib/utils/taskWorkspace.ts",
+      "root_cause": "No early return/throw for edge case: !iso",
+      "fix": "Added guard clause: if (!iso)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:17:51.981Z"
+    },
+    {
+      "id": "bug-1547",
+      "timestamp": "2026-09-23T00:18:36.246Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/taskDisplay.tsx",
+      "root_cause": "Had '@/components/ui/primitives'",
+      "fix": "Changed to '@/lib/utils/unifiedTasks'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:18:36.246Z"
+    },
+    {
+      "id": "bug-1548",
+      "timestamp": "2026-09-23T00:18:40.400Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/tasks/taskDisplay.tsx",
+      "root_cause": "No early return/throw for edge case: item.slaBreached",
+      "fix": "Added guard clause: if (item.slaBreached)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:18:40.400Z"
+    },
+    {
+      "id": "bug-1549",
+      "timestamp": "2026-09-23T00:18:44.245Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/tasks/TaskLaneCard.tsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→3 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:18:44.245Z"
+    },
+    {
+      "id": "bug-1550",
+      "timestamp": "2026-09-23T00:18:47.062Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/TaskLaneCard.tsx",
+      "root_cause": "Had `3px solid ${accentColor(item)}`",
+      "fix": "Changed to `3px solid ${laneAccentColor(item)}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:18:47.062Z"
+    },
+    {
+      "id": "bug-1551",
+      "timestamp": "2026-09-23T00:19:28.498Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 16→22 lines (2 removed) | Also: onEdit={capabilities.canEdit ? editInternalItem : ; onDelete={capabilities.canDelete ? deleteInternalI",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-23T00:20:16.644Z"
+    },
+    {
+      "id": "bug-1552",
+      "timestamp": "2026-09-23T00:19:32.933Z",
+      "error_message": "Missing error handling in changeBoardMode",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:19:32.933Z"
+    },
+    {
+      "id": "bug-1553",
+      "timestamp": "2026-09-23T00:20:32.045Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/tasks/TasksTableView.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→15 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:20:32.045Z"
+    },
+    {
+      "id": "bug-1554",
+      "timestamp": "2026-09-23T00:20:44.547Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/tasks/CreateTaskDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <div>; <label className=\"mb-1.5 block text-sm font-medium text-ink\" | Also: {mode === 'internal' && (; <p className=\"rounded-[var(--r-md)] bg-surface-2 px-3 py-2 t | Also: // Mirrors apps/api/routers/tasks.py SLA_MINUTES — display-o; // backend is the source of truth for the actual due_at it s",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-23T00:21:38.463Z"
+    },
+    {
+      "id": "bug-1555",
+      "timestamp": "2026-09-23T00:20:49.347Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:20:49.347Z"
+    },
+    {
+      "id": "bug-1556",
+      "timestamp": "2026-09-23T00:21:13.221Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "No early return/throw for edge case: !value",
+      "fix": "Added guard clause: if (!value)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:21:13.222Z"
+    },
+    {
+      "id": "bug-1557",
+      "timestamp": "2026-09-23T00:21:47.020Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/tasks/CreateTaskDrawer.tsx",
+      "root_cause": "No early return/throw for edge case: minutes % 60 === 0",
+      "fix": "Added guard clause: if (minutes % 60 === 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T00:21:47.020Z"
+    },
+    {
+      "id": "bug-1558",
+      "timestamp": "2026-09-23T01:11:38.788Z",
+      "error_message": "CSS fix: VIEW_TABS",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "VIEW_TABS: ViewTab[] = ['active', 'guest', 'internal', 'verify', 'history'] → ViewTab[] = ['active', 'history']",
+      "fix": "Changed VIEW_TABS: ViewTab[] = ['active', 'guest', 'internal', 'verify', 'history'] → ViewTab[] = ['active', 'history']",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-23T01:13:21.489Z"
+    },
+    {
+      "id": "bug-1559",
+      "timestamp": "2026-09-23T01:11:43.525Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:11:43.525Z"
+    },
+    {
+      "id": "bug-1560",
+      "timestamp": "2026-09-23T01:11:52.259Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:11:52.259Z"
+    },
+    {
+      "id": "bug-1561",
+      "timestamp": "2026-09-23T01:12:06.827Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Had 'tasks.filterPriorityAria'",
+      "fix": "Changed to 'tasks.allTypesOption'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-23T01:13:16.885Z"
+    },
+    {
+      "id": "bug-1562",
+      "timestamp": "2026-09-23T01:12:25.759Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:12:25.759Z"
+    },
+    {
+      "id": "bug-1563",
+      "timestamp": "2026-09-23T01:12:35.962Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:12:35.962Z"
+    },
+    {
+      "id": "bug-1564",
+      "timestamp": "2026-09-23T01:12:54.495Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/HousekeepingRoutes.tsx",
+      "root_cause": "Had '/tasks?view=guest'",
+      "fix": "Changed to '/tasks?type=guest_request'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-23T01:12:59.256Z"
+    },
+    {
+      "id": "bug-1565",
+      "timestamp": "2026-09-23T01:13:09.585Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/CommandPalette.tsx",
+      "root_cause": "Had `/tasks?view=guest&focus=${gr.id}`",
+      "fix": "Changed to `/tasks?type=guest_request&focus=${gr.id}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:13:09.585Z"
+    },
+    {
+      "id": "bug-1566",
+      "timestamp": "2026-09-23T01:16:36.828Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/utils/taskWorkspace.test.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:16:36.828Z"
+    },
+    {
+      "id": "bug-1567",
+      "timestamp": "2026-09-23T01:32:58.017Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:32:58.017Z"
+    },
+    {
+      "id": "bug-1568",
+      "timestamp": "2026-09-23T01:34:08.467Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (3 removed) | Also: // The board lays out its own per-lane scroll area; // region must not also scroll — anything else (ta",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-23T01:34:13.336Z"
+    },
+    {
+      "id": "bug-1569",
+      "timestamp": "2026-09-23T01:34:49.007Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/TasksBoardView.tsx",
+      "root_cause": "Had \"grid h-full grid-cols-1 gap-3.5 sm:grid-cols-2 xl",
+      "fix": "Changed to \"grid h-full auto-rows-fr grid-cols-1 gap-3.5 sm:g",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:34:49.007Z"
+    },
+    {
+      "id": "bug-1570",
+      "timestamp": "2026-09-23T01:35:08.096Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Open'",
+      "fix": "Changed to 'Filters'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:35:08.096Z"
+    },
+    {
+      "id": "bug-1571",
+      "timestamp": "2026-09-23T01:35:14.521Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Abiertas'",
+      "fix": "Changed to 'Filtros'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T01:35:14.522Z"
+    },
+    {
+      "id": "bug-1572",
+      "timestamp": "2026-09-23T04:13:42.372Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→10 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:13:42.372Z"
+    },
+    {
+      "id": "bug-1573",
+      "timestamp": "2026-09-23T04:17:23.643Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Had \"claimAria\"",
+      "fix": "Changed to \"unclaimedTag\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:17:23.643Z"
+    },
+    {
+      "id": "bug-1574",
+      "timestamp": "2026-09-23T04:17:32.081Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "Had \"claimAria\"",
+      "fix": "Changed to \"unclaimedTag\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:17:32.081Z"
+    },
+    {
+      "id": "bug-1575",
+      "timestamp": "2026-09-23T04:17:37.806Z",
+      "error_message": "CSS fix: color",
+      "file": "apps/mobile/components/tasks/TaskCard.tsx",
+      "root_cause": "color: theme.status.clean → theme.status.pickup",
+      "fix": "Changed color: theme.status.clean → theme.status.pickup",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:17:37.806Z"
+    },
+    {
+      "id": "bug-1576",
+      "timestamp": "2026-09-23T04:20:08.452Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/CreateTaskDrawer.tsx",
+      "root_cause": "Had \">{t('",
+      "fix": "Changed to \">{type === '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:20:08.452Z"
+    },
+    {
+      "id": "bug-1577",
+      "timestamp": "2026-09-23T04:20:17.896Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/TaskDetailDrawer.tsx",
+      "root_cause": "Had \">{t('",
+      "fix": "Changed to \">{task.task_type === '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:20:17.896Z"
+    },
+    {
+      "id": "bug-1578",
+      "timestamp": "2026-09-23T04:31:30.621Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'All Housekeepers — first to claim'",
+      "fix": "Changed to 'All Housekeepers'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:31:30.621Z"
+    },
+    {
+      "id": "bug-1579",
+      "timestamp": "2026-09-23T04:31:33.800Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Todo el equipo de limpieza — el primero en tomarl",
+      "fix": "Changed to 'Todo el equipo de limpieza'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:31:33.800Z"
+    },
+    {
+      "id": "bug-1580",
+      "timestamp": "2026-09-23T04:35:05.215Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Had \"mb-2 mt-3 text-xs font-semibold text-ink3\"",
+      "fix": "Changed to \"mt-3 flex flex-wrap gap-1\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T04:35:05.215Z"
+    },
+    {
+      "id": "bug-1581",
+      "timestamp": "2026-09-23T23:20:37.476Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Was returning: {\"data\": wo}",
+      "fix": "Now returns: {\"data\": wo, \"room_marked_out_of_order\": room_mark",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:20:37.477Z"
+    },
+    {
+      "id": "bug-1582",
+      "timestamp": "2026-09-23T23:23:19.055Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/api/engineering.ts",
+      "root_cause": "Had 'general'",
+      "fix": "Changed to 'doors_locks'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:23:19.055Z"
+    },
+    {
+      "id": "bug-1583",
+      "timestamp": "2026-09-23T23:23:50.796Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 48→62 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:23:50.796Z"
+    },
+    {
+      "id": "bug-1584",
+      "timestamp": "2026-09-23T23:24:08.654Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 48→62 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:24:08.654Z"
+    },
+    {
+      "id": "bug-1585",
+      "timestamp": "2026-09-23T23:26:07.381Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
+      "root_cause": "Had '@/components/engineering/CreateWorkOrderModal'",
+      "fix": "Changed to '@/components/engineering/CreateWorkOrderDrawer'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:26:07.381Z"
+    },
+    {
+      "id": "bug-1586",
+      "timestamp": "2026-09-23T23:26:16.773Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Had '@/components/engineering/CreateWorkOrderModal'",
+      "fix": "Changed to '@/components/engineering/CreateWorkOrderDrawer'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:26:16.773Z"
+    },
+    {
+      "id": "bug-1587",
+      "timestamp": "2026-09-23T23:26:20.778Z",
+      "error_message": "Wrong reference: CreateWorkOrderModal should be CreateWorkOrderDrawer",
+      "file": "apps/web/components/dashboard/SimplifiedDashboard.tsx",
+      "root_cause": "Used \"CreateWorkOrderModal\" instead of \"CreateWorkOrderDrawer\"",
+      "fix": "Changed CreateWorkOrderModal → CreateWorkOrderDrawer",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:26:20.778Z"
+    },
+    {
+      "id": "bug-1588",
+      "timestamp": "2026-09-23T23:26:26.945Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "Had '@/components/engineering/CreateWorkOrderModal'",
+      "fix": "Changed to '@/components/engineering/CreateWorkOrderDrawer'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:26:26.945Z"
+    },
+    {
+      "id": "bug-1589",
+      "timestamp": "2026-09-23T23:00:00.000Z",
+      "error_message": "New POST /v1/work-orders response never carried the new room_marked_out_of_order field; work orders still created fine, but the room-unavailability period was silently never opened despite the toggle being confirmed ON in the UI before every submit.",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Not a code bug: an unkillable phantom process (same OwningProcess-lies class as bug-766/2026-08-05 cerebrum entry, but worse) was already bound to 127.0.0.1:8003 running stale code from before this session. Get-NetTCPConnection/netstat correctly reported its PID as the socket owner, but Get-Process, Get-CimInstance, Stop-Process and taskkill (run both sandboxed and with dangerouslyDisableSandbox) ALL reported that PID as nonexistent -- a genuine cross-namespace process the agent sandbox cannot see or signal, not a stale-cache artifact. A brand-new local uvicorn on the same port always failed to bind (WinError 10048), proving the phantom really was live and holding the socket, not a netstat caching glitch.",
+      "fix": "Ran the API on a fresh alternate port (8010), temporarily pointed apps/web/.env.local NEXT_PUBLIC_API_URL at it, restarted the Next.js dev server (NEXT_PUBLIC_ vars are inlined at process start, so a save alone does not apply), verified the full flow end-to-end via curl + direct Supabase SQL + live browser UI, then reverted .env.local to the canonical :8003 value and killed the two diagnostic processes. The zombie on 8003 itself was never actually killed -- only worked around. Also discovered as a side effect: migrations 108/109 (room_unavailability_schema/seed) existed as files but had never been applied to production Supabase at all -- applied them via mcp__plugin_supabase_supabase__apply_migration.",
+      "tags": [
+        "windows",
+        "uvicorn",
+        "zombie-process",
+        "phantom-pid",
+        "dev-server",
+        "port-conflict",
+        "sandbox-boundary",
+        "migrations-not-applied"
+      ],
+      "related_bugs": [
+        "bug-766"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-23T23:00:00.000Z"
+    },
+    {
+      "id": "bug-1590",
+      "timestamp": "2026-09-24T16:12:49.586Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had 'next/navigation'",
+      "fix": "Changed to 'react-dom'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-24T16:12:49.586Z"
+    },
+    {
+      "id": "bug-1591",
+      "timestamp": "2026-09-24T16:33:33.064Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"c937707d8da7b49e4f5369a4cf93c65c0436dc4ce99499815",
+      "fix": "Changed to \"765df5b097ec0d1b6abd83bce161c0cc58ef0f0f281db08a6",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-24T16:33:33.064Z"
     }
   ]
 }

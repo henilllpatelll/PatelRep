@@ -115,3 +115,17 @@ test('sortUnifiedItems puts overdue/urgent work first and done work last', () =>
   assert.equal(sorted[sorted.length - 1].taskId, 'done')
   assert.equal(sorted[0].taskId, 'overdue')
 })
+
+test('internal task items carry startedAt/completedAt through for the board\'s done_today lane', () => {
+  const task = makeTask({ id: 'wo-1', status: 'completed', started_at: '2026-09-01T10:00:00Z', completed_at: '2026-09-01T11:00:00Z' })
+  const [item] = buildUnifiedTaskItems([task], [])
+  assert.equal(item.startedAt, '2026-09-01T10:00:00Z')
+  assert.equal(item.completedAt, '2026-09-01T11:00:00Z')
+})
+
+test('guest request items derive startedAt/completedAt from their own status timestamps', () => {
+  const gr = makeGuestRequest({ id: 'gr-done', status: 'verified', dispatched_at: '2026-09-01T09:00:00Z', verified_at: '2026-09-01T12:00:00Z' })
+  const [item] = buildUnifiedTaskItems([], [gr])
+  assert.equal(item.startedAt, '2026-09-01T09:00:00Z')
+  assert.equal(item.completedAt, '2026-09-01T12:00:00Z')
+})

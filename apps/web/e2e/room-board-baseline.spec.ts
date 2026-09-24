@@ -1,7 +1,11 @@
 /**
- * FOUND-03 — Regression pixel-diff baseline for the 3 excluded Room Board
- * surfaces (RoomStatusBoard, RoomDetailDrawer, EngineeringRoomBoard), each
+ * FOUND-03 — Regression pixel-diff baseline for the housekeeping Room Board
+ * surfaces (RoomStatusBoard, RoomDetailDrawer), each
  * captured in light + dark mode, as two REAL roles (GM +
+ *
+ * NOTE: the EngineeringRoomBoard surface was retired when the Engineering
+ * work-orders screen became a work-order command center (its inner "Room
+ * Board" view was removed), so its baseline cases were dropped here.
  * housekeeping_supervisor) of the never-operated, cron-inert regression
  * fixture tenant (see e2e/fixtures/seed-regression-tenant.mjs).
  *
@@ -131,16 +135,6 @@ for (const role of ROLES) {
         await drawer.waitFor({ state: 'visible', timeout: 8000 })
 
         await expect(drawer).toHaveScreenshot(`room-detail-drawer-${role.key}-${mode}.png`, {
-          mask: chromeMasks(page),
-        })
-      })
-
-      test(`EngineeringRoomBoard — ${mode}`, async ({ page }) => {
-        await gotoWithTheme(page, '/engineering/work-orders', mode)
-        await page.getByRole('button', { name: 'Room Board' }).click()
-        await page.getByText(FIXTURE_ROOM_NUMBERS.ooo, { exact: true }).waitFor({ state: 'visible', timeout: 15000 })
-
-        await expect(page).toHaveScreenshot(`engineering-room-board-${role.key}-${mode}.png`, {
           mask: chromeMasks(page),
         })
       })

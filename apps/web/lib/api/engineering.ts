@@ -40,6 +40,7 @@ export interface Asset {
   is_active: boolean
   failure_risk_score: number
   failure_risk_updated_at?: string
+  zone?: string
   created_at: string
   updated_at: string
   // Joined
@@ -53,7 +54,7 @@ export interface WorkOrder {
   title: string
   description?: string
   original_nl_input?: string
-  category: 'plumbing' | 'electrical' | 'hvac' | 'furniture' | 'appliance' | 'structural' | 'safety' | 'general'
+  category: 'plumbing' | 'electrical' | 'hvac' | 'furniture' | 'appliance' | 'structural' | 'safety' | 'doors_locks' | 'painting' | 'general'
   priority: WorkOrderPriority
   status: WorkOrderStatus
   room_id?: string
@@ -74,6 +75,7 @@ export interface WorkOrder {
   parts_cost?: number
   total_cost?: number
   notes?: string
+  snoozed_until?: string
   created_at: string
   updated_at: string
   // Joined
@@ -81,6 +83,50 @@ export interface WorkOrder {
   assets?: Asset
   work_order_photos?: WorkOrderPhoto[]
   work_order_comments?: WorkOrderComment[]
+}
+
+export interface WorkOrderChecklistItem {
+  id: string
+  work_order_id: string
+  label: string
+  estimated_minutes?: number
+  is_done: boolean
+  done_by?: string
+  done_at?: string
+  sort_order: number
+}
+
+export interface WorkOrderPartTransaction {
+  id: string
+  part_id: string
+  location_id: string
+  transaction_type: 'add' | 'remove' | 'count' | 'transfer'
+  quantity_delta: number
+  resulting_quantity: number
+  work_order_id: string | null
+  user_id: string
+  note: string | null
+  created_at: string
+  // Joined
+  engineering_parts?: { name: string; unit: string; sku: string | null }
+  engineering_part_locations?: { name: string }
+}
+
+export interface DuplicateSignalCandidate {
+  work_order_id: string
+  work_order_number: number
+  title: string
+  room_number?: string
+  created_at: string
+}
+
+export interface DuplicateSignal {
+  candidate_wo_id: string
+  candidate_wo_number: number
+  confidence: number
+  window_days: number
+  same_zone: boolean
+  signals: DuplicateSignalCandidate[]
 }
 
 export type WorkOrderPriority = 'emergency' | 'urgent' | 'normal' | 'low'
@@ -210,7 +256,8 @@ export const engineeringApi = {
     asset_id?: string
     assigned_to?: string
     guest_reported?: boolean
-  }) => apiClient.post('/work-orders', payload) as Promise<{ data: WorkOrder }>,
+    mark_room_out_of_order?: boolean
+  }) => apiClient.post('/work-orders', payload) as Promise<{ data: WorkOrder; room_marked_out_of_order?: boolean }>,
 
   getWorkOrder: (id: string) =>
     apiClient.get(`/work-orders/${id}`) as Promise<{ data: WorkOrder }>,
@@ -274,6 +321,33 @@ export const engineeringApi = {
     form.append('photo_type', photoType)
     return apiClient.post(`/work-orders/${id}/photos`, form) as Promise<{ data: WorkOrderPhoto }>
   },
+
+  snoozeWorkOrder: (id: string, hours = 1) =>
+    apiClient.post(`/work-orders/${id}/snooze`, { hours }) as Promise<{ data: WorkOrder }>,
+
+  mergeWorkOrder: (id: string, targetWoId: string) =>
+    apiClient.post(`/work-orders/${id}/merge`, { target_wo_id: targetWoId }) as Promise<{ data: WorkOrder }>,
+
+  getDuplicateSignal: (id: string) =>
+    apiClient.get(`/work-orders/${id}/duplicate-signal`) as Promise<{ data: DuplicateSignal | null }>,
+
+  // ── Work Order Checklist (migration 110) ────────────────────────────────────
+
+  listChecklistItems: (woId: string) =>
+    apiClient.get(`/work-orders/${woId}/checklist`) as Promise<{ data: WorkOrderChecklistItem[] }>,
+
+  addChecklistItem: (woId: string, payload: { label: string; estimated_minutes?: number }) =>
+    apiClient.post(`/work-orders/${woId}/checklist`, payload) as Promise<{ data: WorkOrderChecklistItem }>,
+
+  toggleChecklistItem: (woId: string, itemId: string, isDone: boolean) =>
+    apiClient.patch(`/work-orders/${woId}/checklist/${itemId}`, { is_done: isDone }) as Promise<{
+      data: WorkOrderChecklistItem
+    }>,
+
+  // ── Work Order Parts (migration 102 transactions, filtered by WO) ──────────────
+
+  listWorkOrderParts: (woId: string) =>
+    apiClient.get(`/work-orders/${woId}/parts`) as Promise<{ data: WorkOrderPartTransaction[] }>,
 
   // ── Assets ───────────────────────────────────────────────────────────────────
 

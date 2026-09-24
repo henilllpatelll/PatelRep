@@ -1,198 +1,29 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
-import { AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { StateBlock } from '@/components/ui/StateBlock'
-import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
+import { AlertCircle, Sparkles, Loader2, Search, SlidersHorizontal } from 'lucide-react'
+import { engineeringApi, type FailurePrediction, type PMSchedule, type WorkOrder, type WorkOrderStats, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { ApiClientError } from '@/lib/api/client'
 import { createClient } from '@/lib/supabase/client'
-import { Button, IconButton } from '@/components/ui/Button'
-import { Pill } from '@/components/ui/primitives'
-import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
+import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/Button'
+import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { BulkArchiveModal } from '@/components/engineering/BulkArchiveModal'
-import { formatDistanceToNowStrict } from 'date-fns'
+import { EngineeringBoardView, type DrawerAutoAction, type DropOutcome } from '@/components/engineering/board/EngineeringBoardView'
+import { EngineeringConsoleView } from '@/components/engineering/board/EngineeringConsoleView'
+import { PMWeekGlance } from '@/components/engineering/board/PMWeekGlance'
+import { roomUnavailabilityApi } from '@/lib/api/rooms'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type KanbanStatus = Extract<WorkOrderStatus, 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed'>
+type SubTab = 'board' | 'console' | 'week'
 
-type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
-
-// ── Constants ────────────────────────────────────────────────────────────────
-
-function getColumns(t: TFunction): { status: KanbanStatus; label: string; tone: PillTone }[] {
-  return [
-    { status: 'open',        label: t('engineering.workOrdersPage.columnOpen'),       tone: 'info'    },
-    { status: 'escalated',   label: t('engineering.workOrdersPage.columnEscalated'),  tone: 'alert'   },
-    { status: 'in_progress', label: t('engineering.workOrdersPage.columnInProgress'), tone: 'caution' },
-    { status: 'on_hold',     label: t('engineering.workOrdersPage.columnOnHold'),     tone: 'alert'   },
-    { status: 'completed',   label: t('engineering.workOrdersPage.columnCompleted'),  tone: 'ready'   },
-  ]
-}
-
-const PRIORITY_BORDER: Record<string, string> = {
-  emergency: 'border-l-red-700',
-  urgent: 'border-l-[var(--alert)]',
-  normal: 'border-l-[var(--caution)]',
-  low:    'border-l-[var(--ready)]',
-}
-
-const AVATAR_COLORS = [
-  'bg-[var(--accent-soft)] text-[var(--accent)]',
-  'bg-[var(--info-soft)] text-[var(--info)]',
-  'bg-[var(--ready-soft)] text-[var(--ready)]',
-  'bg-[var(--caution-soft)] text-[var(--caution)]',
-  'bg-[var(--ai-soft)] text-[var(--ai)]',
-]
-
-function avatarColor(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
-
-function initials(id: string): string {
-  return id.slice(0, 2).toUpperCase()
-}
-
-function timeAgo(iso: string): string {
-  try {
-    return formatDistanceToNowStrict(new Date(iso), { addSuffix: true })
-  } catch {
-    return ''
-  }
-}
-
-// ── WO Card ──────────────────────────────────────────────────────────────────
-
-function WorkOrderCard({ wo, onClick }: { wo: WorkOrder; onClick: () => void }) {
-  const { t } = useTranslation()
-  const location = wo.rooms?.room_number
-    ? `${t('engineering.workOrderCard.room')} ${wo.rooms.room_number}`
-    : wo.location_text ?? null
-
-  const borderColor = PRIORITY_BORDER[wo.priority] ?? PRIORITY_BORDER.normal
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick() }}
-      className={`bg-surface border border-line rounded-[var(--r-lg)] p-3.5 cursor-pointer hover:shadow-md transition-all duration-200 border-l-[3px] ${borderColor} outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 ${wo.priority === 'emergency' ? 'bg-red-50' : ''}`}
-    >
-      <p className="font-mono text-[10px] text-ink3 mb-0.5">
-        WO-{wo.work_order_number}
-      </p>
-
-      <p className="text-[13px] font-medium text-ink leading-snug line-clamp-2 mb-2">
-        {wo.title}
-      </p>
-
-      {location && (
-        <span className="inline-block font-mono text-[11px] bg-surface-2 border border-line-2 rounded px-1.5 py-px text-ink3 mb-2">
-          {location}
-        </span>
-      )}
-
-      <div className="flex items-center justify-between gap-2">
-        {wo.assigned_to ? (
-          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-semibold shrink-0 ${avatarColor(wo.assigned_to)}`}>
-            {initials(wo.assigned_to)}
-          </span>
-        ) : (
-          <span className="w-5 h-5 rounded-full bg-surface-3 border border-line shrink-0" />
-        )}
-        <span className="font-mono text-[11px] text-ink3 truncate text-right">
-          {timeAgo(wo.created_at)}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ── Column ───────────────────────────────────────────────────────────────────
-
-function KanbanColumn({
-  label,
-  tone,
-  status,
-  workOrders,
-  canAdd,
-  onAdd,
-  onCardClick,
-  isLoading,
-  isError,
-  onRetry,
-}: {
-  label: string
-  tone: PillTone
-  status: KanbanStatus
-  workOrders: WorkOrder[]
-  canAdd: boolean
-  onAdd: () => void
-  onCardClick: (wo: WorkOrder) => void
-  isLoading: boolean
-  isError: boolean
-  onRetry: () => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div
-      data-testid={`work-order-column-${status}`}
-      className="flex flex-col bg-surface border border-line rounded-[var(--r-lg)] shadow-card overflow-hidden min-h-[400px]"
-    >
-      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-line bg-surface-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-ink">{label}</span>
-          <Pill tone={tone} size="sm">{workOrders.length}</Pill>
-        </div>
-        {canAdd && status === 'open' && (
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onAdd}
-            aria-label={t('engineering.workOrdersPage.newWorkOrderAriaLabel')}
-            className="w-6 h-6 text-ink3 hover:text-ink"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </IconButton>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
-        {isLoading ? (
-          <>
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="card" className="h-[88px]" />
-            ))}
-          </>
-        ) : isError ? (
-          <StateBlock
-            status="error"
-            error={{ message: t('engineering.workOrderList.loadError'), onRetry }}
-            className="py-6"
-          />
-        ) : workOrders.length === 0 ? (
-          <StateBlock
-            status="empty"
-            empty={{ title: t('engineering.workOrdersPage.emptyColumn', { label: label.toLowerCase() }) }}
-            className="py-6"
-          />
-        ) : (
-          workOrders.map((wo) => (
-            <WorkOrderCard key={wo.id} wo={wo} onClick={() => onCardClick(wo)} />
-          ))
-        )}
-      </div>
-    </div>
-  )
-}
+const CATEGORIES = ['plumbing', 'electrical', 'hvac', 'furniture', 'appliance', 'structural', 'safety', 'general']
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -241,14 +72,40 @@ export function WorkOrdersTab({
 }: WorkOrdersTabProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const toast = useToast()
   const appliedFocusRef = useRef<string | null>(null)
 
+  const [subTab, setSubTab] = useState<SubTab>('board')
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerAutoAction, setDrawerAutoAction] = useState<DrawerAutoAction | undefined>(undefined)
   const [aiTriageActive, setAiTriageActive] = useState(false)
   const [aiTriageLoading, setAiTriageLoading] = useState(false)
   const [aiTriageNotice, setAiTriageNotice] = useState<{ message: string; isError: boolean } | null>(null)
-  const COLUMNS = getColumns(t)
+  const [search, setSearch] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([])
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+
+  // Keyboard shortcuts: Cmd/Ctrl+K is already the app-wide CommandPalette
+  // shortcut (searches work orders, rooms, and more from anywhere), so this
+  // only adds Cmd/Ctrl+J to open the global AI copilot bubble (it listens for
+  // this same event itself) and Escape to close the filters panel. The drawer
+  // and the copilot bubble each close themselves on Escape via their own
+  // listeners, so this only steps in for filters.
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey
+      if (meta && e.key.toLowerCase() === 'j') {
+        e.preventDefault()
+        document.dispatchEvent(new CustomEvent('copilot:open'))
+      } else if (e.key === 'Escape' && !drawerOpen && filtersOpen) {
+        setFiltersOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [drawerOpen, filtersOpen])
 
   // Realtime subscription
   useEffect(() => {
@@ -285,42 +142,9 @@ export function WorkOrdersTab({
   const holdQ      = useQuery(queryOpts('on_hold'))
   const completedQ = useQuery(queryOpts('completed'))
 
-  const columnData: Record<KanbanStatus, WorkOrder[]> = {
-    open:        sortWOs(openQ.data?.data ?? [], aiTriageActive),
-    escalated:   sortWOs(escalatedQ.data?.data ?? [], aiTriageActive),
-    in_progress: sortWOs(progressQ.data?.data ?? [], aiTriageActive),
-    on_hold:     sortWOs(holdQ.data?.data ?? [], aiTriageActive),
-    completed:   sortWOs(completedQ.data?.data ?? [], aiTriageActive),
-  }
-
-  const columnLoading: Record<KanbanStatus, boolean> = {
-    open:        openQ.isLoading,
-    escalated:   escalatedQ.isLoading,
-    in_progress: progressQ.isLoading,
-    on_hold:     holdQ.isLoading,
-    completed:   completedQ.isLoading,
-  }
-
-  const columnError: Record<KanbanStatus, boolean> = {
-    open:        openQ.isError,
-    escalated:   escalatedQ.isError,
-    in_progress: progressQ.isError,
-    on_hold:     holdQ.isError,
-    completed:   completedQ.isError,
-  }
-
-  const columnRefetch: Record<KanbanStatus, () => void> = {
-    open:        () => openQ.refetch(),
-    escalated:   () => escalatedQ.refetch(),
-    in_progress: () => progressQ.refetch(),
-    on_hold:     () => holdQ.refetch(),
-    completed:   () => completedQ.refetch(),
-  }
-
-  const emergencyCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'emergency').length
-  const urgentCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'urgent').length
-
-  // ── Deep link: open the detail drawer for a specific work order ────────────
+  const isLoading = [openQ, escalatedQ, progressQ, holdQ, completedQ].some((q) => q.isLoading)
+  const isError = [openQ, escalatedQ, progressQ, holdQ, completedQ].some((q) => q.isError)
+  const refetchAll = () => [openQ, escalatedQ, progressQ, holdQ, completedQ].forEach((q) => q.refetch())
 
   const allWOs = useMemo(
     () => [
@@ -333,17 +157,84 @@ export function WorkOrdersTab({
     [openQ.data, escalatedQ.data, progressQ.data, holdQ.data, completedQ.data]
   )
 
+  const emergencyCount = allWOs.filter((wo) => wo.priority === 'emergency').length
+  const urgentCount = allWOs.filter((wo) => wo.priority === 'urgent').length
+
+  // ── Shared filter/search/AI-triage pipeline feeding Board + Console ────────
+
+  const queue = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    const filtered = allWOs.filter((wo) => {
+      if (priorityFilter.length && !priorityFilter.includes(wo.priority)) return false
+      if (categoryFilter.length && !categoryFilter.includes(wo.category)) return false
+      if (needle && ![wo.title, wo.category, wo.location_text, wo.rooms?.room_number, String(wo.work_order_number)]
+        .some((value) => String(value ?? '').toLowerCase().includes(needle))) return false
+      return true
+    })
+    return sortWOs(filtered, aiTriageActive)
+  }, [aiTriageActive, allWOs, categoryFilter, priorityFilter, search])
+
+  // ── Rail data: stats, failure predictions, PM schedules ─────────────────────
+  // Same query keys/params the page-level KPI strip and Reliability/PM tabs use
+  // -- React Query dedupes, so this never doubles a network call in practice.
+
+  const statsQ = useQuery({
+    queryKey: ['work-order-stats'],
+    queryFn: () => engineeringApi.getWorkOrderStats(),
+    select: (res) => res.data as WorkOrderStats,
+    refetchInterval: 60_000,
+    enabled: !!hotelId,
+  })
+  const predictionsQ = useQuery({
+    queryKey: ['failure-predictions-history'],
+    queryFn: () => engineeringApi.getFailurePredictionHistory(),
+    select: (res) => (res.data as FailurePrediction[]).filter((p) => !p.is_acknowledged),
+    enabled: !!hotelId,
+  })
+  const pmQ = useQuery({
+    queryKey: ['pm-schedules'],
+    queryFn: () => engineeringApi.listPMSchedules(),
+    select: (res) => res.data as PMSchedule[],
+    enabled: !!hotelId,
+  })
+
+  const [predictionPendingId, setPredictionPendingId] = useState<string | null>(null)
+  const createWOFromPredictionMutation = useMutation({
+    mutationFn: (id: string) => engineeringApi.createWorkOrderFromPrediction(id),
+    onMutate: (id) => setPredictionPendingId(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      toast.success(t('engineering.failurePrediction.createWO'))
+    },
+    onSettled: () => setPredictionPendingId(null),
+  })
+  const acknowledgePredictionMutation = useMutation({
+    mutationFn: (id: string) => engineeringApi.acknowledgeFailurePrediction(id),
+    onMutate: (id) => setPredictionPendingId(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['failure-predictions-history'] }),
+    onSettled: () => setPredictionPendingId(null),
+  })
+
+  // ── Deep link: open the detail drawer for a specific work order ────────────
+
+  const selectedRoomUnavailability = useQuery({
+    queryKey: ['room-unavailability-active', selectedWO?.room_id],
+    queryFn: () => roomUnavailabilityApi.getActiveForRoom(selectedWO!.room_id!),
+    enabled: !!selectedWO?.room_id,
+  })
+
   useEffect(() => {
     if (!focusId || appliedFocusRef.current === focusId) return
     const target = allWOs.find((wo) => wo.id === focusId)
     if (!target) return // graceful no-op: deleted/stale/cross-tenant id, or outside the loaded lanes
     appliedFocusRef.current = focusId
     setSelectedWO(target)
+    setDrawerAutoAction(undefined)
     setDrawerOpen(true)
   }, [focusId, allWOs])
 
   const handleAITriage = async () => {
-    const openOrders = Object.values(columnData).flat().filter((wo) => wo.status !== 'completed')
+    const openOrders = allWOs.filter((wo) => wo.status !== 'completed')
     setAiTriageLoading(true)
     setAiTriageNotice(null)
     try {
@@ -375,9 +266,48 @@ export function WorkOrdersTab({
     }
   }
 
-  const handleCardClick = (wo: WorkOrder) => {
+  // ── Board actions: claim / direct transition / open-drawer-with-action ─────
+
+  const claimMutation = useMutation({
+    mutationFn: (id: string) => engineeringApi.claimWorkOrder(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-orders'] }),
+  })
+  const quickTransitionMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'in_progress' }) =>
+      engineeringApi.transitionWorkOrder(id, { status, source: 'web' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-orders'] }),
+  })
+
+  const openDrawerFor = (wo: WorkOrder, autoAction?: DrawerAutoAction) => {
     setSelectedWO(wo)
+    setDrawerAutoAction(autoAction)
     setDrawerOpen(true)
+  }
+
+  const handleBoardSelect = (wo: WorkOrder) => openDrawerFor(wo)
+  const handleConsoleSelect = (wo: WorkOrder) => { setSelectedWO(wo); setDrawerAutoAction(undefined) }
+
+  const handleDrop = async (wo: WorkOrder, outcome: DropOutcome) => {
+    if (outcome.kind === 'noop') return
+    if (outcome.kind === 'blocked') {
+      toast.error(t('engineering.workOrdersPage.moveBlocked', { id: `WO-${wo.work_order_number}` }))
+      return
+    }
+    if (outcome.kind === 'auto') {
+      openDrawerFor(wo, outcome.action)
+      return
+    }
+    try {
+      if (outcome.kind === 'claim') {
+        await claimMutation.mutateAsync(wo.id)
+      } else {
+        await quickTransitionMutation.mutateAsync({ id: wo.id, status: outcome.status })
+      }
+      toast.success(t('engineering.workOrdersPage.moveToast', { id: `WO-${wo.work_order_number}`, column: t('engineering.workOrdersPage.columnInProgress') }))
+    } catch (err) {
+      const detail = err instanceof ApiClientError ? err.message : null
+      toast.error(detail ?? t('engineering.workOrderDetail.transitionError'))
+    }
   }
 
   return (
@@ -421,35 +351,128 @@ export function WorkOrdersTab({
         </div>
       )}
 
-      <div className="flex justify-end">
-        <Button variant="ai" onClick={handleAITriage} disabled={aiTriageLoading} className="shrink-0">
-          {aiTriageLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {t('engineering.workOrdersPage.aiTriage')}
-        </Button>
+      {/* Sub-tabs + search/filters/AI triage — shared across Board and Console */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1 rounded-full bg-surface-3 p-1">
+          {([
+            { key: 'board', label: t('engineering.workOrdersPage.subTabBoard') },
+            { key: 'console', label: t('engineering.workOrdersPage.subTabConsole') },
+            { key: 'week', label: t('engineering.workOrdersPage.subTabWeek') },
+          ] as { key: SubTab; label: string }[]).map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setSubTab(s.key)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${subTab === s.key ? 'bg-surface text-ink shadow-[var(--shadow-sm)]' : 'text-ink3 hover:text-ink2'}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {subTab !== 'week' && (
+          <>
+            <label className="relative flex-1 min-w-[220px]">
+              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink3" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={t('engineering.workOrdersPage.searchPlaceholder')}
+                className="min-h-[36px] w-full rounded-[var(--r-md)] border border-line bg-surface px-3 pl-9 text-sm text-ink outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </label>
+            <Button variant="outline" size="sm" onClick={() => setFiltersOpen((v) => !v)}>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {t('engineering.commandCenter.filterPriority')}
+            </Button>
+            <Button variant="ai" size="sm" onClick={handleAITriage} disabled={aiTriageLoading}>
+              {aiTriageLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {t('engineering.workOrdersPage.aiTriage')}
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* Kanban board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        {COLUMNS.map(({ status, label, tone }) => (
-          <KanbanColumn
-            key={status}
-            label={label}
-            tone={tone}
-            status={status}
-            workOrders={columnData[status]}
-            canAdd={canManage}
-            onAdd={onRequestCreate}
-            onCardClick={handleCardClick}
-            isLoading={columnLoading[status]}
-            isError={columnError[status]}
-            onRetry={columnRefetch[status]}
-          />
-        ))}
-      </div>
+      {filtersOpen && subTab !== 'week' && (
+        <div className="flex flex-wrap items-center gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.commandCenter.filterPriority')}</span>
+            {['emergency', 'urgent', 'normal', 'low'].map((p) => (
+              <button
+                key={p}
+                onClick={() => setPriorityFilter((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p])}
+                className={`rounded-full px-3 py-1 text-xs ${priorityFilter.includes(p) ? 'bg-ink text-paper' : 'border border-line text-ink2 hover:bg-surface-2'}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.commandCenter.filterCategory')}</span>
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategoryFilter((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c])}
+                className={`rounded-full px-3 py-1 text-xs ${categoryFilter.includes(c) ? 'bg-ink text-paper' : 'border border-line text-ink2 hover:bg-surface-2'}`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          {(priorityFilter.length > 0 || categoryFilter.length > 0) && (
+            <button
+              onClick={() => { setPriorityFilter([]); setCategoryFilter([]) }}
+              className="ml-auto text-xs font-medium text-accent"
+            >
+              {t('engineering.commandCenter.clearFilters')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {subTab === 'board' && (
+        <EngineeringBoardView
+          workOrders={queue}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={refetchAll}
+          stats={statsQ.data}
+          predictions={predictionsQ.data ?? []}
+          predictionsLoading={predictionsQ.isLoading}
+          onCreateWOFromPrediction={(id) => createWOFromPredictionMutation.mutate(id)}
+          onAcknowledgePrediction={(id) => acknowledgePredictionMutation.mutate(id)}
+          predictionPendingId={predictionPendingId}
+          selectedId={drawerOpen ? selectedWO?.id : undefined}
+          onSelect={handleBoardSelect}
+          onDrop={handleDrop}
+          aiTriageActive={aiTriageActive}
+        />
+      )}
+
+      {subTab === 'console' && (
+        <EngineeringConsoleView
+          workOrders={queue}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={refetchAll}
+          selected={selectedWO}
+          onSelect={handleConsoleSelect}
+          onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })}
+          roomUnavailabilityReason={selectedRoomUnavailability.data?.data?.reason_label ?? null}
+        />
+      )}
+
+      {subTab === 'week' && (
+        <PMWeekGlance
+          schedules={pmQ.data ?? []}
+          isLoading={pmQ.isLoading}
+          isError={pmQ.isError}
+          onRetry={() => pmQ.refetch()}
+        />
+      )}
 
       {/* Modals */}
       {showCreateModal && (
-        <CreateWorkOrderModal
+        <CreateWorkOrderDrawer
           isOpen={showCreateModal}
           onClose={onCloseCreateModal}
           onCreate={() => {
@@ -468,8 +491,10 @@ export function WorkOrdersTab({
       <WorkOrderDetailDrawer
         wo={selectedWO}
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        autoAction={drawerAutoAction}
+        onClose={() => { setDrawerOpen(false); setDrawerAutoAction(undefined) }}
         onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })}
+        roomUnavailabilityReason={selectedRoomUnavailability.data?.data?.reason_label ?? null}
       />
     </div>
   )

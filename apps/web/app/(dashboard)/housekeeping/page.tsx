@@ -5,7 +5,8 @@ import { format, addDays, parseISO } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { Clock, LogOut, Map, MessageSquare, Wrench } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Clock, LogOut, MessageSquare, Phone, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
@@ -35,15 +36,6 @@ import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-
-// -- Shift options -------------------------------------------------------------
-
-const SHIFTS = [
-  { value: '', key: 'all' },
-  { value: 'morning', key: 'morning' },
-  { value: 'evening', key: 'evening' },
-  { value: 'night', key: 'night' },
-]
 
 const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
   DEP: 'text-[var(--alert)]',
@@ -543,15 +535,13 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
 
 function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
   const { t } = useTranslation()
+  const router = useRouter()
   const { canAssignRooms } = useRole()
   const {
     selectedDate,
-    selectedShift,
     assignmentMode,
     lastSyncedAt,
-    rooms,
     setSelectedDate,
-    setSelectedShift,
     toggleAssignmentMode,
     setLastSyncedAt,
   } = useHousekeepingStore()
@@ -587,19 +577,6 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
     setSelectedDate(format(addDays(current, delta), 'yyyy-MM-dd'))
   }
 
-  const displayRooms = useMemo(() =>
-    rooms.map((room: any) => {
-      const status = getEffectiveRoomStatusForCleanType(room.status, room.clean_type, room.fo_status)
-      if (status === room.status) return room
-      return { ...room, status }
-    }),
-    [rooms],
-  )
-
-  if (showRoutes) {
-    return <HousekeepingRoutes onShowBoard={() => setShowRoutes(false)} />
-  }
-
   return (
     <div className="space-y-4">
       {showOperaImport && (
@@ -609,60 +586,71 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
         />
       )}
 
-      {/* Page header */}
+      {/* Page header — Board/Routes stay a single persistent header with a tab
+          switcher, instead of swapping to a differently-styled screen, so moving
+          between them reads as one workspace rather than a jump to another page. */}
       <PageHeader
         eyebrow={t('housekeeping.page.board.eyebrow')}
-        title={t('housekeeping.page.board.title')}
+        title={showRoutes ? t('housekeeping.routes.title') : t('housekeeping.page.board.title')}
         meta={<SyncBadge lastSyncedAt={lastSyncedAt} />}
         dataI18nSkip={v2}
+        tabs={
+          canAssignRooms
+            ? [
+                { label: t('housekeeping.page.board.boardTab'), active: !showRoutes, onClick: () => setShowRoutes(false) },
+                { label: t('housekeeping.routes.title'), active: showRoutes, onClick: () => setShowRoutes(true) },
+              ]
+            : undefined
+        }
         actions={
           <>
-            {/* Date navigation */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(-1)}
-              aria-label={t('housekeeping.page.board.previousDay')}
-            >
-              &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
-            </Button>
-            <span className="px-3 py-1.5 rounded-lg bg-surface border border-line text-sm font-semibold text-ink">
-              {format(parseISO(selectedDate), 'MMM d')}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(1)}
-              aria-label={t('housekeeping.page.board.nextDay')}
-            >
-              {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
-            </Button>
-            <select
-              value={selectedShift ?? ''}
-              onChange={(e) => setSelectedShift(e.target.value || null)}
-              className={`px-2.5 py-2 rounded-lg border border-line text-xs text-ink2 bg-surface hover:border-line-2 transition-colors ${v2 ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:outline-none focus:ring-2 focus:ring-amber-400'}`}
-            >
-              {SHIFTS.map((s) => (
-                <option key={s.value} value={s.value}>{t(`housekeeping.page.shifts.${s.key}`)}</option>
-              ))}
-            </select>
-            {canAssignRooms && (
+            {!showRoutes && (
               <>
+                {/* Date navigation */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowRoutes(true)}
-                  aria-label={t('housekeeping.routes.title')}
-                  title={t('housekeeping.routes.title')}
+                  onClick={() => navigate(-1)}
+                  aria-label={t('housekeeping.page.board.previousDay')}
                 >
-                  <Map className="h-4 w-4" aria-hidden="true" />
+                  &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
                 </Button>
+                <span className="px-3 py-1.5 rounded-lg bg-surface border border-line text-sm font-semibold text-ink">
+                  {format(parseISO(selectedDate), 'MMM d')}
+                </span>
                 <Button
-                  variant="secondary"
-                  onClick={() => setShowOperaImport(true)}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(1)}
+                  aria-label={t('housekeeping.page.board.nextDay')}
                 >
-                  {t('housekeeping.assignmentsPage.importFromOpera')}
+                  {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
                 </Button>
+              </>
+            )}
+            {showRoutes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/tasks?type=guest_request')}
+              >
+                <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('housekeeping.routes.logGuestCall')}
+              </Button>
+            )}
+            {canAssignRooms && (
+              <>
+                {!showRoutes && (
+                  <>
+                    <span className="w-px h-6 bg-line" aria-hidden="true" />
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowOperaImport(true)}
+                    >
+                      {t('housekeeping.assignmentsPage.importFromOpera')}
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant={assignmentMode ? 'primary' : 'secondary'}
                   onClick={toggleAssignmentMode}
@@ -675,40 +663,46 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
         }
       />
 
-      {/* Prediction alerts */}
-      {predictions.some((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM') && (
-        <PredictionPanel
-          predictions={predictions}
-          isLoading={predictionsLoading}
-          canAssignRooms={canAssignRooms}
-          onActionComplete={fetchPredictions}
-        />
-      )}
+      {showRoutes ? (
+        <HousekeepingRoutes />
+      ) : (
+        <>
+          {/* Prediction alerts */}
+          {predictions.some((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM') && (
+            <PredictionPanel
+              predictions={predictions}
+              isLoading={predictionsLoading}
+              canAssignRooms={canAssignRooms}
+              onActionComplete={fetchPredictions}
+            />
+          )}
 
-      {/* Assign mode banner */}
-      {assignmentMode && canAssignRooms && <AssignModeBanner />}
+          {/* Assign mode banner */}
+          {assignmentMode && canAssignRooms && <AssignModeBanner />}
 
-      {/* Main layout — roster sits above the board on narrow screens (flex-col) and
-          becomes a sticky right column on lg+ (flex-row + order), as a single
-          instance so the housekeeper picker is always reachable, at any width. */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start">
-        {assignmentMode && canAssignRooms && (
-          <div className="flex flex-col gap-3.5 w-full lg:w-[300px] lg:shrink-0 lg:sticky lg:top-4 lg:order-2">
-            <RosterSidebar v2={v2} />
-            <div className="hidden lg:contents">
-              <AssignmentSidebar />
-              <CreditWeightsCard />
+          {/* Main layout — roster sits above the board on narrow screens (flex-col) and
+              becomes a sticky right column on lg+ (flex-row + order), as a single
+              instance so the housekeeper picker is always reachable, at any width. */}
+          <div className="flex flex-col lg:flex-row gap-4 items-start">
+            {assignmentMode && canAssignRooms && (
+              <div className="flex flex-col gap-3.5 w-full lg:w-[300px] lg:shrink-0 lg:sticky lg:top-4 lg:order-2">
+                <RosterSidebar v2={v2} />
+                <div className="hidden lg:contents">
+                  <AssignmentSidebar />
+                  <CreditWeightsCard />
+                </div>
+              </div>
+            )}
+            <div className="flex-1 min-w-0 lg:order-1">
+              <Suspense>
+                <RoomStatusBoard />
+              </Suspense>
             </div>
           </div>
-        )}
-        <div className="flex-1 min-w-0 lg:order-1">
-          <Suspense>
-            <RoomStatusBoard />
-          </Suspense>
-        </div>
-      </div>
 
-      {assignmentMode && canAssignRooms && <AssignSaveBar />}
+          {assignmentMode && canAssignRooms && <AssignSaveBar />}
+        </>
+      )}
     </div>
   )
 }

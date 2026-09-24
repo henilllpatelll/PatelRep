@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bed, Users, HelpCircle } from 'lucide-react'
+import { Bed, Users, HelpCircle, Wrench, PackageSearch, Flag } from 'lucide-react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import type { Task, TaskType, Priority } from '@/lib/api/tasks'
+import type { Task, TaskStatus, TaskType, Priority } from '@/lib/api/tasks'
+import type { UnifiedTaskItem } from '@/lib/utils/unifiedTasks'
 import { Mono } from '@/components/ui/primitives'
 
 // Internal Task type options for the MANUAL create/edit selector. 'guest_request' is
@@ -46,10 +47,35 @@ export function priorityTone(p: Priority): 'alert' | 'caution' | 'neutral' {
   return 'neutral'
 }
 
-export function taskTypeIcon(taskType: string) {
-  if (taskType === 'housekeeping') return <Bed size={13} className="shrink-0" />
-  if (taskType === 'guest_request') return <Users size={13} className="shrink-0" />
-  return <HelpCircle size={13} className="shrink-0" />
+/** Raw backend TaskStatus → Pill tone (distinct from UnifiedDisplayStatus, which collapses several of these). */
+export function statusTone(status: TaskStatus): 'neutral' | 'progress' | 'alert' | 'ready' | 'blocked' {
+  switch (status) {
+    case 'open': return 'neutral'
+    case 'in_progress': return 'progress'
+    case 'escalated': return 'alert'
+    case 'completed': return 'ready'
+    case 'cancelled': return 'blocked'
+  }
+}
+
+/** Left-accent color shared by the board's lane cards and the dense row/table view. */
+export function laneAccentColor(item: Pick<UnifiedTaskItem, 'slaBreached' | 'displayStatus'>): string {
+  if (item.slaBreached) return 'var(--alert)'
+  switch (item.displayStatus) {
+    case 'in_progress': return 'var(--progress)'
+    case 'verify': return 'var(--info)'
+    case 'done': return 'var(--ready)'
+    default: return 'transparent'
+  }
+}
+
+export function taskTypeIcon(taskType: string, size = 13) {
+  if (taskType === 'housekeeping') return <Bed size={size} className="shrink-0" />
+  if (taskType === 'engineering') return <Wrench size={size} className="shrink-0" />
+  if (taskType === 'lost_found') return <PackageSearch size={size} className="shrink-0" />
+  if (taskType === 'general') return <Flag size={size} className="shrink-0" />
+  if (taskType === 'guest_request') return <Users size={size} className="shrink-0" />
+  return <HelpCircle size={size} className="shrink-0" />
 }
 
 export const SparkIcon = () => (

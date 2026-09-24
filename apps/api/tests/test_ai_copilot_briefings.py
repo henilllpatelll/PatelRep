@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from core.config import settings
 from middleware import credits
 from middleware.auth import CurrentUser
 from models.requests import (
@@ -189,6 +190,11 @@ async def test_engineer_briefing_credit_variance(monkeypatch):
     db = BriefingFakeDB(_seeded_ledger_rows(ENGINEER.hotel_id))
     monkeypatch.setattr(ai_copilot, "supabase", db)
     monkeypatch.setattr(credits, "supabase", db)
+    # check_and_deduct_credits short-circuits to 0 credits under the local Ollama
+    # dev provider (by design — no provider bill to pass through); this test needs
+    # the real token-based billing path, so force "hosted" regardless of the
+    # environment's AI_PROVIDER (same pattern as test_ai_copilot_credits.py).
+    monkeypatch.setattr(settings, "ai_provider", "hosted")
 
     request = EngineerBriefingRequest(
         work_orders=[

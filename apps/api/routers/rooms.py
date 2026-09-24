@@ -198,6 +198,40 @@ async def update_room_status(
     if not (request.force and current_user.role == "gm"):
         _validate_transition(from_status, to_status, current_user.role)
 
+    # Preserve mobile and legacy web callers while centralizing OOO episodes.
+    # The RPC changes the episode, current room state, and status history in one
+    # database transaction, so an old status-only client cannot create a half
+    # completed OOO transition.
+    if to_status == "OOO" and from_status != "OOO":
+        result = supabase.rpc("create_room_unavailability", {
+            "p_room_id": room_id,
+            "p_tenant_id": current_user.hotel_id,
+            "p_reason_code": "LEGACY_UNKNOWN",
+            "p_reason_label": "Unknown / legacy",
+            "p_details": request.notes,
+            "p_expected_return_at": None,
+            "p_owner_id": None,
+            "p_work_order_id": None,
+            "p_created_by": current_user.user_id,
+            "p_source": "MOBILE",
+        }).execute()
+        payload = result.data or {}
+        return {"data": payload.get("room_status", payload)}
+
+    if from_status == "OOO" and to_status == "DIRTY":
+        active = supabase.table("room_unavailability_periods").select("id").eq("tenant_id", current_user.hotel_id).eq("room_id", room_id).eq("status", "ACTIVE").maybe_single().execute()
+        active_period = (active.data if active else None) or None
+        if active_period:
+            result = supabase.rpc("release_room_unavailability", {
+                "p_period_id": active_period["id"],
+                "p_tenant_id": current_user.hotel_id,
+                "p_released_by": current_user.user_id,
+                "p_release_notes": request.notes,
+                "p_source": "MOBILE",
+            }).execute()
+            payload = result.data or {}
+            return {"data": payload.get("room_status", payload)}
+
     # 3. Build the update payload
     now_iso = datetime.now(timezone.utc).isoformat()
     update_payload: dict = {

@@ -11,7 +11,7 @@ import {
   type GuestMessage,
   type AccessibleRoomFeature,
 } from '@/lib/api/guest_requests'
-import { getCategories } from '@/components/engineering/CreateWorkOrderModal'
+import { getCategories } from '@/components/engineering/CreateWorkOrderDrawer'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
 import { useRole } from '@/lib/hooks/useRole'
