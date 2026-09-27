@@ -11,6 +11,10 @@ ALL_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "houseke
 
 ALL_STAFF_ROLES = ALL_ROLES  # hotels.py's prior definition had a duplicate "engineer"
 
+# Use this for narrow, GM-only exceptions that sit inside otherwise
+# engineer-accessible operational workflows.
+GM_ONLY_ROLES = ("gm",)
+
 # Two DIFFERENT authority tiers that previously shared the name MANAGER_ROLES
 # (see Phase 19 RESEARCH Decision 1) — kept distinct on purpose, not merged:
 MANAGER_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")  # leadership/compliance tier (safety.py)

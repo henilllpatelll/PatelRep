@@ -1,13 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Columns3, MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { AlertCircle, Sparkles, Loader2, Search, SlidersHorizontal } from 'lucide-react'
-import { engineeringApi, type FailurePrediction, type PMSchedule, type WorkOrder, type WorkOrderStats, type WorkOrderStatus } from '@/lib/api/engineering'
-import { aiApi } from '@/lib/api/ai'
+import { engineeringApi, type WorkOrder, type WorkOrderStats, type WorkOrderStatus } from '@/lib/api/engineering'
+import { roomUnavailabilityApi } from '@/lib/api/rooms'
+import { staffApi } from '@/lib/api/staff'
 import { ApiClientError } from '@/lib/api/client'
 import { createClient } from '@/lib/supabase/client'
+import { groupWorkOrderQueue, orderWorkOrders } from '@/lib/utils/workOrderQueue'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderDrawer'
@@ -15,35 +17,12 @@ import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailD
 import { BulkArchiveModal } from '@/components/engineering/BulkArchiveModal'
 import { EngineeringBoardView, type DrawerAutoAction, type DropOutcome } from '@/components/engineering/board/EngineeringBoardView'
 import { EngineeringConsoleView } from '@/components/engineering/board/EngineeringConsoleView'
-import { PMWeekGlance } from '@/components/engineering/board/PMWeekGlance'
-import { roomUnavailabilityApi } from '@/lib/api/rooms'
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
 type KanbanStatus = Extract<WorkOrderStatus, 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed'>
-type SubTab = 'board' | 'console' | 'week'
+type View = 'queue' | 'board'
+type QuickFilter = 'active' | 'critical' | 'ooo' | 'unassigned' | 'mine' | 'waiting' | null
 
 const CATEGORIES = ['plumbing', 'electrical', 'hvac', 'furniture', 'appliance', 'structural', 'safety', 'general']
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function sortWOs(wos: WorkOrder[], aiTriageActive = false): WorkOrder[] {
-  const priorityOrder = { emergency: 0, urgent: 1, normal: 2, low: 3 }
-  return [...wos].sort((a, b) => {
-    if (aiTriageActive) {
-      const aOverdue = a.due_at ? new Date(a.due_at).getTime() < Date.now() : false
-      const bOverdue = b.due_at ? new Date(b.due_at).getTime() < Date.now() : false
-      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1
-      if (!!a.assigned_to !== !!b.assigned_to) return a.assigned_to ? 1 : -1
-    }
-    const pa = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1
-    const pb = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 1
-    if (pa !== pb) return pa - pb
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  })
-}
-
-// ── Tab ──────────────────────────────────────────────────────────────────────
 
 interface WorkOrdersTabProps {
   hotelId: string
@@ -56,446 +35,170 @@ interface WorkOrdersTabProps {
   onRequestCreate: () => void
   showArchiveModal: boolean
   onCloseArchiveModal: () => void
+  onRequestArchive: () => void
+  onRequestReliability: () => void
 }
 
 export function WorkOrdersTab({
-  hotelId,
-  isEngineer,
-  userId,
-  canManage,
-  focusId,
-  showCreateModal,
-  onCloseCreateModal,
-  onRequestCreate,
-  showArchiveModal,
-  onCloseArchiveModal,
+  hotelId, isEngineer, userId, focusId, showCreateModal, onCloseCreateModal, showArchiveModal,
+  onCloseArchiveModal, onRequestArchive, onRequestReliability,
 }: WorkOrdersTabProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const toast = useToast()
   const appliedFocusRef = useRef<string | null>(null)
-
-  const [subTab, setSubTab] = useState<SubTab>('board')
+  const [view, setView] = useState<View>('queue')
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerAutoAction, setDrawerAutoAction] = useState<DrawerAutoAction | undefined>(undefined)
-  const [aiTriageActive, setAiTriageActive] = useState(false)
-  const [aiTriageLoading, setAiTriageLoading] = useState(false)
-  const [aiTriageNotice, setAiTriageNotice] = useState<{ message: string; isError: boolean } | null>(null)
+  const [drawerAutoAction, setDrawerAutoAction] = useState<DrawerAutoAction>()
   const [search, setSearch] = useState('')
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [priorityFilter, setPriorityFilter] = useState<string[]>([])
   const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [completedExpanded, setCompletedExpanded] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-  // Keyboard shortcuts: Cmd/Ctrl+K is already the app-wide CommandPalette
-  // shortcut (searches work orders, rooms, and more from anywhere), so this
-  // only adds Cmd/Ctrl+J to open the global AI copilot bubble (it listens for
-  // this same event itself) and Escape to close the filters panel. The drawer
-  // and the copilot bubble each close themselves on Escape via their own
-  // listeners, so this only steps in for filters.
   useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      const meta = e.metaKey || e.ctrlKey
-      if (meta && e.key.toLowerCase() === 'j') {
-        e.preventDefault()
-        document.dispatchEvent(new CustomEvent('copilot:open'))
-      } else if (e.key === 'Escape' && !drawerOpen && filtersOpen) {
+    const media = window.matchMedia('(max-width: 1023px)')
+    const update = () => setIsMobile(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !drawerOpen) {
         setFiltersOpen(false)
+        setMoreOpen(false)
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [drawerOpen, filtersOpen])
+  }, [drawerOpen])
 
-  // Realtime subscription
   useEffect(() => {
     if (!hotelId) return
     const supabase = createClient()
-    const channel = supabase
-      .channel('wo_realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'work_orders', filter: `tenant_id=eq.${hotelId}` },
-        () => { queryClient.invalidateQueries({ queryKey: ['work-orders'] }) },
-      )
+    const channel = supabase.channel('wo_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `tenant_id=eq.${hotelId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+        queryClient.invalidateQueries({ queryKey: ['work-order-stats'] })
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [hotelId, queryClient])
 
-  // Fetch all operational lanes in parallel. Status changes are deliberately
-  // handled in the detail drawer so required reasons cannot be skipped.
-  const queryOpts = (status: KanbanStatus) => ({
+  const queryOptions = (status: KanbanStatus) => ({
     queryKey: ['work-orders', status, isEngineer ? userId : null] as const,
-    queryFn: () =>
-      engineeringApi.listWorkOrders({
-        status,
-        assigned_to: isEngineer ? userId : undefined,
-        per_page: 50,
-      }),
+    queryFn: () => engineeringApi.listWorkOrders({ status, assigned_to: isEngineer ? userId : undefined, per_page: 50 }),
     refetchInterval: 60_000,
     enabled: !!hotelId,
   })
+  const openQ = useQuery(queryOptions('open'))
+  const escalatedQ = useQuery(queryOptions('escalated'))
+  const progressQ = useQuery(queryOptions('in_progress'))
+  const holdQ = useQuery(queryOptions('on_hold'))
+  const completedQ = useQuery(queryOptions('completed'))
+  const statsQ = useQuery({
+    queryKey: ['work-order-stats'], queryFn: () => engineeringApi.getWorkOrderStats(),
+    select: (response) => response.data as WorkOrderStats, refetchInterval: 60_000, enabled: !!hotelId,
+  })
+  const staffQ = useQuery({ queryKey: ['staff-picker'], queryFn: () => staffApi.list(), staleTime: 300_000, enabled: !!hotelId })
+  const unavailableRoomsQ = useQuery({ queryKey: ['room-unavailability-active-list'], queryFn: () => roomUnavailabilityApi.list('ACTIVE'), staleTime: 60_000, enabled: !!hotelId })
 
-  const openQ      = useQuery(queryOpts('open'))
-  const escalatedQ = useQuery(queryOpts('escalated'))
-  const progressQ  = useQuery(queryOpts('in_progress'))
-  const holdQ      = useQuery(queryOpts('on_hold'))
-  const completedQ = useQuery(queryOpts('completed'))
+  const allWorkOrders = useMemo(() => [
+    ...(openQ.data?.data ?? []), ...(escalatedQ.data?.data ?? []), ...(progressQ.data?.data ?? []),
+    ...(holdQ.data?.data ?? []), ...(completedQ.data?.data ?? []),
+  ], [openQ.data, escalatedQ.data, progressQ.data, holdQ.data, completedQ.data])
+  const staffNames = useMemo(() => new Map((staffQ.data?.data.staff ?? []).map((staff) => [staff.user_id, staff.full_name])), [staffQ.data])
+  const unavailableRoomIds = useMemo(() => new Set((unavailableRoomsQ.data?.data ?? []).map((period) => period.room_id)), [unavailableRoomsQ.data])
+  const isLoading = [openQ, escalatedQ, progressQ, holdQ, completedQ].some((query) => query.isLoading)
+  const isError = [openQ, escalatedQ, progressQ, holdQ, completedQ].some((query) => query.isError)
+  const refetchAll = () => [openQ, escalatedQ, progressQ, holdQ, completedQ].forEach((query) => query.refetch())
 
-  const isLoading = [openQ, escalatedQ, progressQ, holdQ, completedQ].some((q) => q.isLoading)
-  const isError = [openQ, escalatedQ, progressQ, holdQ, completedQ].some((q) => q.isError)
-  const refetchAll = () => [openQ, escalatedQ, progressQ, holdQ, completedQ].forEach((q) => q.refetch())
-
-  const allWOs = useMemo(
-    () => [
-      ...(openQ.data?.data ?? []),
-      ...(escalatedQ.data?.data ?? []),
-      ...(progressQ.data?.data ?? []),
-      ...(holdQ.data?.data ?? []),
-      ...(completedQ.data?.data ?? []),
-    ],
-    [openQ.data, escalatedQ.data, progressQ.data, holdQ.data, completedQ.data]
-  )
-
-  const emergencyCount = allWOs.filter((wo) => wo.priority === 'emergency').length
-  const urgentCount = allWOs.filter((wo) => wo.priority === 'urgent').length
-
-  // ── Shared filter/search/AI-triage pipeline feeding Board + Console ────────
-
-  const queue = useMemo(() => {
+  const visibleWorkOrders = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    const filtered = allWOs.filter((wo) => {
-      if (priorityFilter.length && !priorityFilter.includes(wo.priority)) return false
-      if (categoryFilter.length && !categoryFilter.includes(wo.category)) return false
-      if (needle && ![wo.title, wo.category, wo.location_text, wo.rooms?.room_number, String(wo.work_order_number)]
-        .some((value) => String(value ?? '').toLowerCase().includes(needle))) return false
+    const filtered = allWorkOrders.filter((workOrder) => {
+      if (priorityFilter.length && !priorityFilter.includes(workOrder.priority)) return false
+      if (categoryFilter.length && !categoryFilter.includes(workOrder.category)) return false
+      if (needle && ![workOrder.title, workOrder.category, workOrder.location_text, workOrder.rooms?.room_number, workOrder.work_order_number].some((value) => String(value ?? '').toLowerCase().includes(needle))) return false
+      if (quickFilter === 'active') return !['completed', 'cancelled'].includes(workOrder.status)
+      if (quickFilter === 'critical') return ['emergency', 'urgent'].includes(workOrder.priority)
+      if (quickFilter === 'ooo') return !!workOrder.room_id && unavailableRoomIds.has(workOrder.room_id)
+      if (quickFilter === 'unassigned') return !workOrder.assigned_to
+      if (quickFilter === 'mine') return !!userId && workOrder.assigned_to === userId
+      if (quickFilter === 'waiting') return workOrder.status === 'on_hold'
       return true
     })
-    return sortWOs(filtered, aiTriageActive)
-  }, [aiTriageActive, allWOs, categoryFilter, priorityFilter, search])
+    return orderWorkOrders(filtered, new Date(), unavailableRoomIds)
+  }, [allWorkOrders, categoryFilter, priorityFilter, quickFilter, search, unavailableRoomIds, userId])
+  const queueGroups = useMemo(() => groupWorkOrderQueue(visibleWorkOrders, new Date(), unavailableRoomIds), [unavailableRoomIds, visibleWorkOrders])
+  const emergencyCount = allWorkOrders.filter((workOrder) => workOrder.priority === 'emergency' && workOrder.status !== 'completed').length
+  const selectedRoomUnavailability = useQuery({ queryKey: ['room-unavailability-active', selectedWO?.room_id], queryFn: () => roomUnavailabilityApi.getActiveForRoom(selectedWO!.room_id!), enabled: !!selectedWO?.room_id })
 
-  // ── Rail data: stats, failure predictions, PM schedules ─────────────────────
-  // Same query keys/params the page-level KPI strip and Reliability/PM tabs use
-  // -- React Query dedupes, so this never doubles a network call in practice.
-
-  const statsQ = useQuery({
-    queryKey: ['work-order-stats'],
-    queryFn: () => engineeringApi.getWorkOrderStats(),
-    select: (res) => res.data as WorkOrderStats,
-    refetchInterval: 60_000,
-    enabled: !!hotelId,
-  })
-  const predictionsQ = useQuery({
-    queryKey: ['failure-predictions-history'],
-    queryFn: () => engineeringApi.getFailurePredictionHistory(),
-    select: (res) => (res.data as FailurePrediction[]).filter((p) => !p.is_acknowledged),
-    enabled: !!hotelId,
-  })
-  const pmQ = useQuery({
-    queryKey: ['pm-schedules'],
-    queryFn: () => engineeringApi.listPMSchedules(),
-    select: (res) => res.data as PMSchedule[],
-    enabled: !!hotelId,
-  })
-
-  const [predictionPendingId, setPredictionPendingId] = useState<string | null>(null)
-  const createWOFromPredictionMutation = useMutation({
-    mutationFn: (id: string) => engineeringApi.createWorkOrderFromPrediction(id),
-    onMutate: (id) => setPredictionPendingId(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-      toast.success(t('engineering.failurePrediction.createWO'))
-    },
-    onSettled: () => setPredictionPendingId(null),
-  })
-  const acknowledgePredictionMutation = useMutation({
-    mutationFn: (id: string) => engineeringApi.acknowledgeFailurePrediction(id),
-    onMutate: (id) => setPredictionPendingId(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['failure-predictions-history'] }),
-    onSettled: () => setPredictionPendingId(null),
-  })
-
-  // ── Deep link: open the detail drawer for a specific work order ────────────
-
-  const selectedRoomUnavailability = useQuery({
-    queryKey: ['room-unavailability-active', selectedWO?.room_id],
-    queryFn: () => roomUnavailabilityApi.getActiveForRoom(selectedWO!.room_id!),
-    enabled: !!selectedWO?.room_id,
-  })
-
+  useEffect(() => { if (!selectedWO && visibleWorkOrders[0]) setSelectedWO(visibleWorkOrders[0]) }, [selectedWO, visibleWorkOrders])
   useEffect(() => {
     if (!focusId || appliedFocusRef.current === focusId) return
-    const target = allWOs.find((wo) => wo.id === focusId)
-    if (!target) return // graceful no-op: deleted/stale/cross-tenant id, or outside the loaded lanes
+    const target = allWorkOrders.find((workOrder) => workOrder.id === focusId)
+    if (!target) return
     appliedFocusRef.current = focusId
     setSelectedWO(target)
-    setDrawerAutoAction(undefined)
     setDrawerOpen(true)
-  }, [focusId, allWOs])
+  }, [allWorkOrders, focusId])
 
-  const handleAITriage = async () => {
-    const openOrders = allWOs.filter((wo) => wo.status !== 'completed')
-    setAiTriageLoading(true)
-    setAiTriageNotice(null)
-    try {
-      const res = await aiApi.chat('Triage open work orders and suggest the safest floor order for engineers.', {
-        intent_hint: 'work_order_triage',
-        source: 'work_orders_kanban',
-        work_orders: openOrders.slice(0, 20).map((wo) => ({
-          id: wo.id,
-          title: wo.title,
-          priority: wo.priority,
-          status: wo.status,
-          due_at: wo.due_at,
-          assigned_to: wo.assigned_to,
-          room_number: wo.rooms?.room_number,
-        })),
-      })
-      setAiTriageNotice({ message: res.data.message, isError: false })
-    } catch (err) {
-      const detail = err instanceof ApiClientError ? err.message : null
-      setAiTriageNotice({
-        message: detail
-          ? t('engineering.workOrdersPage.aiTriageErrorDetail', { error: detail })
-          : t('engineering.workOrdersPage.aiTriageFallback'),
-        isError: true,
-      })
-    } finally {
-      setAiTriageActive(true)
-      setAiTriageLoading(false)
-    }
-  }
-
-  // ── Board actions: claim / direct transition / open-drawer-with-action ─────
-
-  const claimMutation = useMutation({
-    mutationFn: (id: string) => engineeringApi.claimWorkOrder(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-orders'] }),
-  })
-  const quickTransitionMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'in_progress' }) =>
-      engineeringApi.transitionWorkOrder(id, { status, source: 'web' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-orders'] }),
-  })
-
-  const openDrawerFor = (wo: WorkOrder, autoAction?: DrawerAutoAction) => {
-    setSelectedWO(wo)
-    setDrawerAutoAction(autoAction)
-    setDrawerOpen(true)
-  }
-
-  const handleBoardSelect = (wo: WorkOrder) => openDrawerFor(wo)
-  const handleConsoleSelect = (wo: WorkOrder) => { setSelectedWO(wo); setDrawerAutoAction(undefined) }
-
-  const handleDrop = async (wo: WorkOrder, outcome: DropOutcome) => {
+  const claimMutation = useMutation({ mutationFn: (id: string) => engineeringApi.claimWorkOrder(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-orders'] }) })
+  const quickTransitionMutation = useMutation({ mutationFn: ({ id, status }: { id: string; status: 'in_progress' }) => engineeringApi.transitionWorkOrder(id, { status, source: 'web' }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-orders'] }) })
+  const openDrawerFor = (workOrder: WorkOrder, autoAction?: DrawerAutoAction) => { setSelectedWO(workOrder); setDrawerAutoAction(autoAction); setDrawerOpen(true) }
+  const handleQueueSelect = (workOrder: WorkOrder) => isMobile ? openDrawerFor(workOrder) : (setSelectedWO(workOrder), setDrawerAutoAction(undefined))
+  const handleDrop = async (workOrder: WorkOrder, outcome: DropOutcome) => {
     if (outcome.kind === 'noop') return
-    if (outcome.kind === 'blocked') {
-      toast.error(t('engineering.workOrdersPage.moveBlocked', { id: `WO-${wo.work_order_number}` }))
-      return
-    }
-    if (outcome.kind === 'auto') {
-      openDrawerFor(wo, outcome.action)
-      return
-    }
+    if (outcome.kind === 'blocked') return toast.error(t('engineering.workOrdersPage.moveBlocked', { id: `WO-${workOrder.work_order_number}` }))
+    if (outcome.kind === 'auto') return openDrawerFor(workOrder, outcome.action)
     try {
-      if (outcome.kind === 'claim') {
-        await claimMutation.mutateAsync(wo.id)
-      } else {
-        await quickTransitionMutation.mutateAsync({ id: wo.id, status: outcome.status })
-      }
-      toast.success(t('engineering.workOrdersPage.moveToast', { id: `WO-${wo.work_order_number}`, column: t('engineering.workOrdersPage.columnInProgress') }))
-    } catch (err) {
-      const detail = err instanceof ApiClientError ? err.message : null
-      toast.error(detail ?? t('engineering.workOrderDetail.transitionError'))
-    }
+      if (outcome.kind === 'claim') await claimMutation.mutateAsync(workOrder.id)
+      else await quickTransitionMutation.mutateAsync({ id: workOrder.id, status: outcome.status })
+      toast.success(t('engineering.workOrdersPage.moveToast', { id: `WO-${workOrder.work_order_number}`, column: t('engineering.workOrdersPage.columnInProgress') }))
+    } catch (error) { toast.error(error instanceof ApiClientError ? error.message : t('engineering.workOrderDetail.transitionError')) }
   }
 
-  return (
-    <div className="space-y-5">
-      {/* Urgent alert */}
-      {(emergencyCount > 0 || urgentCount > 0) && (
-        <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="font-medium">
-            {emergencyCount > 0 && t(
-              emergencyCount === 1
-                ? 'engineering.workOrdersPage.emergencyAlertOne'
-                : 'engineering.workOrdersPage.emergencyAlertOther',
-              { count: emergencyCount },
-            )}
-            {emergencyCount > 0 && urgentCount > 0 && ' · '}
-            {urgentCount > 0 && t(
-              urgentCount === 1
-                ? 'engineering.workOrdersPage.urgentAlertOne'
-                : 'engineering.workOrdersPage.urgentAlertOther',
-              { count: urgentCount },
-            )}
-          </span>
-        </div>
-      )}
+  const quickFilters: { key: Exclude<QuickFilter, null>; label: string }[] = [
+    { key: 'active', label: t('engineering.workOrdersPage.quickActive') }, { key: 'critical', label: t('engineering.workOrdersPage.quickCritical') },
+    { key: 'ooo', label: t('engineering.workOrdersPage.quickOOO') }, { key: 'unassigned', label: t('engineering.workOrdersPage.quickUnassigned') },
+    { key: 'mine', label: t('engineering.workOrdersPage.quickMine') }, { key: 'waiting', label: t('engineering.workOrdersPage.quickWaiting') },
+  ]
 
-      {aiTriageNotice && (
-        <div
-          className={
-            aiTriageNotice.isError
-              ? 'flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]'
-              : 'flex items-start gap-2.5 px-4 py-3 bg-ai-soft border border-ai-line rounded-xl text-sm text-ai'
-          }
-        >
-          {aiTriageNotice.isError ? (
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          ) : (
-            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
-          )}
-          <span className="font-medium">{aiTriageNotice.message}</span>
-        </div>
-      )}
-
-      {/* Sub-tabs + search/filters/AI triage — shared across Board and Console */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex gap-1 rounded-full bg-surface-3 p-1">
-          {([
-            { key: 'board', label: t('engineering.workOrdersPage.subTabBoard') },
-            { key: 'console', label: t('engineering.workOrdersPage.subTabConsole') },
-            { key: 'week', label: t('engineering.workOrdersPage.subTabWeek') },
-          ] as { key: SubTab; label: string }[]).map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setSubTab(s.key)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${subTab === s.key ? 'bg-surface text-ink shadow-[var(--shadow-sm)]' : 'text-ink3 hover:text-ink2'}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {subTab !== 'week' && (
-          <>
-            <label className="relative flex-1 min-w-[220px]">
-              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink3" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={t('engineering.workOrdersPage.searchPlaceholder')}
-                className="min-h-[36px] w-full rounded-[var(--r-md)] border border-line bg-surface px-3 pl-9 text-sm text-ink outline-none focus:ring-2 focus:ring-amber-400"
-              />
-            </label>
-            <Button variant="outline" size="sm" onClick={() => setFiltersOpen((v) => !v)}>
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              {t('engineering.commandCenter.filterPriority')}
-            </Button>
-            <Button variant="ai" size="sm" onClick={handleAITriage} disabled={aiTriageLoading}>
-              {aiTriageLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              {t('engineering.workOrdersPage.aiTriage')}
-            </Button>
-          </>
-        )}
-      </div>
-
-      {filtersOpen && subTab !== 'week' && (
-        <div className="flex flex-wrap items-center gap-4 rounded-[var(--r-lg)] border border-line bg-surface p-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.commandCenter.filterPriority')}</span>
-            {['emergency', 'urgent', 'normal', 'low'].map((p) => (
-              <button
-                key={p}
-                onClick={() => setPriorityFilter((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p])}
-                className={`rounded-full px-3 py-1 text-xs ${priorityFilter.includes(p) ? 'bg-ink text-paper' : 'border border-line text-ink2 hover:bg-surface-2'}`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.commandCenter.filterCategory')}</span>
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                onClick={() => setCategoryFilter((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c])}
-                className={`rounded-full px-3 py-1 text-xs ${categoryFilter.includes(c) ? 'bg-ink text-paper' : 'border border-line text-ink2 hover:bg-surface-2'}`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-          {(priorityFilter.length > 0 || categoryFilter.length > 0) && (
-            <button
-              onClick={() => { setPriorityFilter([]); setCategoryFilter([]) }}
-              className="ml-auto text-xs font-medium text-accent"
-            >
-              {t('engineering.commandCenter.clearFilters')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {subTab === 'board' && (
-        <EngineeringBoardView
-          workOrders={queue}
-          isLoading={isLoading}
-          isError={isError}
-          onRetry={refetchAll}
-          stats={statsQ.data}
-          predictions={predictionsQ.data ?? []}
-          predictionsLoading={predictionsQ.isLoading}
-          onCreateWOFromPrediction={(id) => createWOFromPredictionMutation.mutate(id)}
-          onAcknowledgePrediction={(id) => acknowledgePredictionMutation.mutate(id)}
-          predictionPendingId={predictionPendingId}
-          selectedId={drawerOpen ? selectedWO?.id : undefined}
-          onSelect={handleBoardSelect}
-          onDrop={handleDrop}
-          aiTriageActive={aiTriageActive}
-        />
-      )}
-
-      {subTab === 'console' && (
-        <EngineeringConsoleView
-          workOrders={queue}
-          isLoading={isLoading}
-          isError={isError}
-          onRetry={refetchAll}
-          selected={selectedWO}
-          onSelect={handleConsoleSelect}
-          onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })}
-          roomUnavailabilityReason={selectedRoomUnavailability.data?.data?.reason_label ?? null}
-        />
-      )}
-
-      {subTab === 'week' && (
-        <PMWeekGlance
-          schedules={pmQ.data ?? []}
-          isLoading={pmQ.isLoading}
-          isError={pmQ.isError}
-          onRetry={() => pmQ.refetch()}
-        />
-      )}
-
-      {/* Modals */}
-      {showCreateModal && (
-        <CreateWorkOrderDrawer
-          isOpen={showCreateModal}
-          onClose={onCloseCreateModal}
-          onCreate={() => {
-            onCloseCreateModal()
-            queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-          }}
-        />
-      )}
-      <BulkArchiveModal
-        isOpen={showArchiveModal}
-        onClose={onCloseArchiveModal}
-        onArchived={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })}
-      />
-
-      {/* Detail drawer */}
-      <WorkOrderDetailDrawer
-        wo={selectedWO}
-        isOpen={drawerOpen}
-        autoAction={drawerAutoAction}
-        onClose={() => { setDrawerOpen(false); setDrawerAutoAction(undefined) }}
-        onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })}
-        roomUnavailabilityReason={selectedRoomUnavailability.data?.data?.reason_label ?? null}
-      />
+  return <div className="space-y-3">
+    <div className="grid grid-cols-2 divide-x divide-y divide-line overflow-hidden rounded-[var(--r-md)] border border-line bg-surface sm:grid-cols-5 sm:divide-y-0">
+      {[
+        [t('engineering.workOrdersPage.metricActive'), statsQ.data?.open ?? 0, 'text-ink'], [t('engineering.workOrdersPage.metricEmergency'), emergencyCount, emergencyCount ? 'text-[var(--alert)]' : 'text-ink'],
+        [t('engineering.workOrdersPage.metricOverdue'), statsQ.data?.overdue ?? 0, statsQ.data?.overdue ? 'text-[var(--alert)]' : 'text-ink'], [t('engineering.workOrdersPage.metricUnassigned'), statsQ.data?.unassigned ?? 0, statsQ.data?.unassigned ? 'text-[var(--caution)]' : 'text-ink'],
+        [t('engineering.workOrdersPage.metricWaiting'), statsQ.data?.on_hold ?? 0, statsQ.data?.on_hold ? 'text-[var(--caution)]' : 'text-ink'],
+      ].map(([label, value, tone]) => <div key={String(label)} className="flex items-baseline gap-1.5 px-3 py-2.5"><span className={`font-mono text-[15px] font-semibold ${tone}`}>{value}</span><span className="text-[10px] font-semibold uppercase tracking-[0.07em] text-ink3">{label}</span></div>)}
     </div>
-  )
+
+    <div className="flex flex-wrap items-center gap-2" aria-label={t('engineering.workOrdersPage.queueControlsAria')}>
+      <label className="relative min-w-[13rem] flex-1"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink3" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('engineering.workOrdersPage.searchPlaceholder')} className="min-h-[36px] w-full rounded-[var(--r-md)] border border-line bg-surface px-3 pl-9 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/40" /></label>
+      <div className="order-3 flex w-full gap-1 overflow-x-auto pb-0.5 lg:order-none lg:w-auto">{quickFilters.map((filter) => <button key={filter.key} type="button" onClick={() => setQuickFilter((current) => current === filter.key ? null : filter.key)} className={`min-h-[32px] shrink-0 rounded-[var(--r-sm)] border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${quickFilter === filter.key ? 'border-accent bg-[var(--accent-soft)] text-accent' : 'border-line bg-surface text-ink2 hover:bg-surface-2'}`}>{filter.label}</button>)}</div>
+      <Button variant="outline" size="sm" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen}><SlidersHorizontal className="h-3.5 w-3.5" />{t('engineering.workOrdersPage.filters')}</Button>
+      <div className="flex items-center rounded-[var(--r-md)] border border-line bg-surface p-0.5" aria-label={t('engineering.workOrdersPage.viewLabel')}>
+        <button type="button" onClick={() => setView('queue')} aria-pressed={view === 'queue'} className={`inline-flex min-h-[30px] items-center gap-1 rounded-[5px] px-2 text-xs font-medium ${view === 'queue' ? 'bg-surface-3 text-ink' : 'text-ink3 hover:text-ink'}`}>
+          <Columns3 className="h-3.5 w-3.5" />{t('engineering.workOrdersPage.viewQueue')}
+        </button>
+        <button type="button" onClick={() => setView('board')} aria-pressed={view === 'board'} className={`inline-flex min-h-[30px] items-center gap-1 rounded-[5px] px-2 text-xs font-medium ${view === 'board' ? 'bg-surface-3 text-ink' : 'text-ink3 hover:text-ink'}`}>
+          <Columns3 className="h-3.5 w-3.5" />{t('engineering.workOrdersPage.viewBoard')}
+        </button>
+      </div>
+      <div className="relative"><Button variant="ghost" size="sm" aria-label={t('engineering.workOrdersPage.moreActions')} aria-expanded={moreOpen} onClick={() => setMoreOpen((open) => !open)}><MoreHorizontal className="h-4 w-4" /></Button>{moreOpen && <div role="menu" className="absolute right-0 z-10 mt-1 w-52 rounded-[var(--r-md)] border border-line bg-surface p-1 shadow-[var(--shadow-md)]"><button type="button" role="menuitem" onClick={() => { setMoreOpen(false); onRequestArchive() }} className="w-full rounded px-2.5 py-2 text-left text-sm text-ink2 hover:bg-surface-2">{t('engineering.workOrdersPage.archiveAction')}</button><button type="button" role="menuitem" onClick={() => { setMoreOpen(false); onRequestReliability() }} className="w-full rounded px-2.5 py-2 text-left text-sm text-ink2 hover:bg-surface-2">{t('engineering.workOrdersPage.tabReliability')}</button></div>}</div>
+    </div>
+
+    {filtersOpen && <div className="flex flex-wrap gap-4 rounded-[var(--r-md)] border border-line bg-surface-2 p-3"><div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-ink3">{t('engineering.commandCenter.filterPriority')}</span>{['emergency', 'urgent', 'normal', 'low'].map((priority) => <button key={priority} type="button" onClick={() => setPriorityFilter((current) => current.includes(priority) ? current.filter((value) => value !== priority) : [...current, priority])} className={`rounded-[var(--r-sm)] px-2 py-1 text-xs ${priorityFilter.includes(priority) ? 'bg-ink text-paper' : 'border border-line bg-surface text-ink2'}`}>{priority}</button>)}</div><div className="flex flex-wrap items-center gap-1.5"><span className="text-xs text-ink3">{t('engineering.commandCenter.filterCategory')}</span>{CATEGORIES.map((category) => <button key={category} type="button" onClick={() => setCategoryFilter((current) => current.includes(category) ? current.filter((value) => value !== category) : [...current, category])} className={`rounded-[var(--r-sm)] px-2 py-1 text-xs ${categoryFilter.includes(category) ? 'bg-ink text-paper' : 'border border-line bg-surface text-ink2'}`}>{category}</button>)}</div></div>}
+
+    {view === 'queue' ? <EngineeringConsoleView workOrders={visibleWorkOrders} groups={queueGroups} isLoading={isLoading} isError={isError} onRetry={refetchAll} selected={selectedWO} onSelect={handleQueueSelect} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} roomUnavailability={selectedRoomUnavailability.data?.data ?? null} staffNames={staffNames} completedExpanded={completedExpanded} onCompletedExpandedChange={setCompletedExpanded} /> : <EngineeringBoardView workOrders={visibleWorkOrders} isLoading={isLoading} isError={isError} onRetry={refetchAll} stats={statsQ.data} predictions={[]} predictionsLoading={false} onCreateWOFromPrediction={() => undefined} onAcknowledgePrediction={() => undefined} predictionPendingId={null} selectedId={drawerOpen ? selectedWO?.id : undefined} onSelect={(workOrder) => openDrawerFor(workOrder)} onDrop={handleDrop} showRail={false} staffNames={staffNames} />}
+    {showCreateModal && <CreateWorkOrderDrawer isOpen={showCreateModal} onClose={onCloseCreateModal} onCreate={() => { onCloseCreateModal(); queryClient.invalidateQueries({ queryKey: ['work-orders'] }) }} />}
+    <BulkArchiveModal isOpen={showArchiveModal} onClose={onCloseArchiveModal} onArchived={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} />
+    <WorkOrderDetailDrawer wo={selectedWO} isOpen={drawerOpen} autoAction={drawerAutoAction} onClose={() => { setDrawerOpen(false); setDrawerAutoAction(undefined) }} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} roomUnavailability={selectedRoomUnavailability.data?.data ?? null} />
+  </div>
 }

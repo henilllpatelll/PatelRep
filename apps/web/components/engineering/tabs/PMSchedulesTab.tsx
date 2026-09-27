@@ -1,486 +1,98 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
-import { format, differenceInDays, addDays } from 'date-fns'
-import { Calendar, Plus, AlertTriangle, Clock, CheckCircle } from 'lucide-react'
+import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, MoreHorizontal } from 'lucide-react'
 import { engineeringApi, type PMSchedule } from '@/lib/api/engineering'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { programsApi, type PMCompletionRecord } from '@/lib/api/programs'
+import { Button, IconButton } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { EngineeringDrawer } from '@/components/engineering/EngineeringDrawer'
 import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
 import { CreatePMScheduleModal, formatIntervalLabel } from '@/components/engineering/CreatePMScheduleModal'
-import { StateBlock } from '@/components/ui/StateBlock'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Pill, Stat } from '@/components/ui/primitives'
+import { getPreventiveMetrics, getScheduleState, schedulesForDay, type PreventiveScheduleState } from '@/lib/utils/preventiveSchedule'
 
-type ScheduleTone = 'alert' | 'caution' | 'ready'
+type PreventiveView = 'today' | 'week' | 'calendar' | 'programs'
 
-function getScheduleStatus(nextDueAt: string, t: TFunction): {
-  kind: 'overdue' | 'due_soon' | 'upcoming'
-  label: string
-  tone: ScheduleTone
-} {
-  const now = new Date()
-  const due = new Date(nextDueAt)
-  if (due < now) {
-    return { kind: 'overdue', label: t('programs.pmSchedules.statusOverdue'), tone: 'alert' }
-  }
-  const daysUntil = differenceInDays(due, now)
-  if (daysUntil <= 7) {
-    return { kind: 'due_soon', label: t('programs.pmSchedules.statusDueSoon'), tone: 'caution' }
-  }
-  return { kind: 'upcoming', label: t('programs.pmSchedules.statusUpcoming'), tone: 'ready' }
+interface PMSchedulesTabProps { canEdit: boolean; showCreateModal: boolean; onCloseCreateModal: () => void; onRequestCreate: () => void }
+
+function scheduleTone(state: PreventiveScheduleState) {
+  if (state === 'overdue') return 'border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)]'
+  if (state === 'due_today') return 'border-[var(--caution-line)] bg-[var(--caution-soft)] text-[var(--caution)]'
+  if (state === 'due_soon') return 'border-[var(--info-line)] bg-[var(--info-soft)] text-[var(--info)]'
+  return 'border-line bg-surface-2 text-ink3'
 }
 
-function calcNextDueAt(intervalType: PMSchedule['interval_type'], intervalDays?: number): Date {
-  const now = new Date()
-  const offsetMap: Record<string, number> = { daily: 1, weekly: 7, monthly: 30, quarterly: 90, annual: 365 }
-  if (intervalType === 'custom') {
-    return addDays(now, intervalDays ?? 1)
-  }
-  return addDays(now, offsetMap[intervalType] ?? 30)
-}
+function assetLabel(schedule: PMSchedule, unknown: string) { return schedule.assets?.name ?? unknown }
+function completionItems(record: PMCompletionRecord) { return record.items ?? (record as PMCompletionRecord & { pm_completion_items?: PMCompletionRecord['items'] }).pm_completion_items ?? [] }
 
-function PMScheduleMobileCard({
-  schedule,
-  canEdit,
-  isOverdue,
-  status,
-  onComplete,
-  onCreateWO,
-  onAskDeactivate,
-  onConfirmDeactivate,
-  onCancelDeactivate,
-  confirmingDeactivate,
-}: {
-  schedule: PMSchedule
-  canEdit: boolean
-  isOverdue: boolean
-  status: ReturnType<typeof getScheduleStatus>
-  onComplete: () => void
-  onCreateWO: () => void
-  onAskDeactivate: () => void
-  onConfirmDeactivate: () => void
-  onCancelDeactivate: () => void
-  confirmingDeactivate: boolean
-}) {
+function ScheduleRow({ schedule, selected, onSelect, now }: { schedule: PMSchedule; selected?: boolean; onSelect: () => void; now: Date }) {
   const { t } = useTranslation()
-  return (
-    <div className="border-b border-amber-100 px-4 py-4 last:border-b-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0" data-i18n-skip="true">
-          <p className="text-base font-semibold text-ink">
-            {schedule.assets?.name ?? t('programs.pmSchedules.unknownAsset')}
-          </p>
-          <p className="mt-0.5 text-sm text-ink2">{schedule.name}</p>
-        </div>
-        <Pill tone={status.tone} size="md">{status.label}</Pill>
-      </div>
-      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-ink3">{t('programs.pmSchedules.colNextDue')}</dt>
-          <dd className={isOverdue ? 'mt-1 font-medium text-[var(--alert)]' : 'mt-1 text-ink2'}>
-            {format(new Date(schedule.next_due_at), 'MMM d, yyyy')}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-ink3">{t('programs.pmSchedules.colEstTime')}</dt>
-          <dd className="mt-1 text-ink2">{schedule.estimated_minutes ?? '-'} {t('programs.pmSchedules.minutesSuffix')}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-ink3">{t('programs.pmSchedules.colInterval')}</dt>
-          <dd className="mt-1 text-ink2">
-            {formatIntervalLabel(schedule.interval_type, schedule.interval_days, t)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-ink3">{t('programs.pmSchedules.colLastDone')}</dt>
-          <dd className="mt-1 text-ink2">
-            {schedule.last_completed_at ? format(new Date(schedule.last_completed_at), 'MMM d, yyyy') : t('programs.pmSchedules.never')}
-          </dd>
-        </div>
-      </dl>
-      <div className="mt-4 grid grid-cols-1 gap-2">
-        {schedule.is_active && (
-          <Button variant="outline" onClick={onComplete} className="border-[var(--ready-line)] text-[var(--ready)] hover:bg-[var(--ready-soft)]">
-            {t('programs.pmSchedules.complete')}
-          </Button>
-        )}
-        {canEdit && schedule.is_active && (
-          confirmingDeactivate ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={onConfirmDeactivate} className="border-[var(--alert-line)] text-[var(--alert)]">
-                {t('programs.pmSchedules.confirm')}
-              </Button>
-              <Button variant="outline" onClick={onCancelDeactivate}>
-                {t('programs.pmSchedules.cancel')}
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={onAskDeactivate} className="border-[var(--alert-line)] text-[var(--alert)] hover:bg-[var(--alert-soft)]">
-              {t('programs.pmSchedules.deactivate')}
-            </Button>
-          )
-        )}
-        {canEdit && isOverdue && (
-          <Button variant="outline" onClick={onCreateWO} className="border-[var(--info-line)] text-[var(--info)] hover:bg-[var(--info-soft)]">
-            {t('programs.pmSchedules.createWorkOrderFull')}
-          </Button>
-        )}
-      </div>
+  const state = getScheduleState(schedule)
+  const overdueDays = state === 'overdue' ? Math.max(1, Math.floor((now.getTime() - new Date(schedule.next_due_at).getTime()) / 86_400_000)) : 0
+  return <button type="button" onClick={onSelect} className={`grid w-full grid-cols-[auto_minmax(0,1fr)_auto] gap-3 border-b border-line px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40 sm:grid-cols-[104px_minmax(0,1.2fr)_minmax(9rem,.8fr)_7rem] ${selected ? 'bg-accent-soft' : 'bg-surface hover:bg-surface-2'}`}>
+    <span className={`w-fit rounded-[var(--r-sm)] border px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] ${scheduleTone(state)}`}>{t(`programs.pmSchedules.${state}`)}</span>
+    <span className="min-w-0"><span className="block truncate text-sm font-semibold text-ink">{schedule.name}</span><span className="mt-0.5 block truncate text-xs text-ink3 sm:hidden">{assetLabel(schedule, t('programs.pmSchedules.unknownAsset'))}</span></span>
+    <span className="hidden min-w-0 text-sm text-ink2 sm:block"><span className="block truncate">{assetLabel(schedule, t('programs.pmSchedules.unknownAsset'))}</span><span className="mt-0.5 block text-xs text-ink3">{schedule.assigned_to_role ?? t('programs.pmSchedules.engineeringTeam')}</span></span>
+    <span className="text-right text-xs text-ink2"><span className={state === 'overdue' ? 'font-semibold text-[var(--alert)]' : ''}>{state === 'overdue' ? t('programs.pmSchedules.daysOverdue', { count: overdueDays }) : format(new Date(schedule.next_due_at), 'MMM d')}</span><span className="mt-1 block text-ink3">{schedule.estimated_minutes} {t('programs.pmSchedules.minutesSuffix')}</span></span>
+  </button>
+}
+
+function Metric({ label, value, tone }: { label: string; value: number; tone?: 'alert' | 'caution' }) {
+  return <div className="min-w-[8rem] border-l border-line px-3 first:border-l-0 sm:px-5"><p className="font-mono text-xl font-semibold tabular-nums text-ink">{value}</p><p className={`mt-0.5 text-[10px] font-semibold uppercase tracking-[.08em] ${tone === 'alert' ? 'text-[var(--alert)]' : tone === 'caution' ? 'text-[var(--caution)]' : 'text-ink3'}`}>{label}</p></div>
+}
+
+function PMDetail({ schedule, canEdit, onClose, onComplete, onDeactivate }: { schedule: PMSchedule; canEdit: boolean; onClose: () => void; onComplete: () => void; onDeactivate: () => void }) {
+  const { t, i18n } = useTranslation()
+  const historyQuery = useQuery({ queryKey: ['pm-completions', schedule.id], queryFn: () => programsApi.listPMCompletions(schedule.id), staleTime: 30_000 })
+  const history = historyQuery.data?.data ?? []
+  const state = getScheduleState(schedule)
+  return <EngineeringDrawer open title={schedule.name} onClose={onClose} closeLabel={t('common.close')} width="wide" footer={<div className="flex flex-wrap justify-between gap-2"><Button type="button" variant="outline" onClick={onDeactivate} disabled={!canEdit}><MoreHorizontal className="h-4 w-4" />{t('programs.pmSchedules.deactivate')}</Button><Button type="button" variant="primary" onClick={onComplete}><CheckCircle2 className="h-4 w-4" />{t('programs.pmSchedules.complete')}</Button></div>}>
+    <div className="space-y-6">
+      <section className="border-b border-line pb-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-medium text-ink2">{assetLabel(schedule, t('programs.pmSchedules.unknownAsset'))}</p><p className="mt-1 text-sm text-ink3">{formatIntervalLabel(schedule.interval_type, schedule.interval_days, t)} · {schedule.estimated_minutes} {t('programs.pmSchedules.minutesSuffix')}</p></div><span className={`rounded-[var(--r-sm)] border px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] ${scheduleTone(state)}`}>{t(`programs.pmSchedules.${state}`)}</span></div><p className="mt-4 text-sm text-ink2">{state === 'overdue' ? t('programs.pmSchedules.detailOverdue', { date: format(new Date(schedule.next_due_at), 'MMM d') }) : t('programs.pmSchedules.detailDue', { date: format(new Date(schedule.next_due_at), 'MMM d') })}</p></section>
+      <section><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.lastService')}</p>{schedule.last_completed_at ? <p className="mt-2 text-sm text-ink">{new Intl.DateTimeFormat(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(schedule.last_completed_at))}</p> : <p className="mt-2 text-sm text-ink3">{t('programs.pmSchedules.never')}</p>}</section>
+      {schedule.description && <section><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.description')}</p><p className="mt-2 text-sm leading-relaxed text-ink2">{schedule.description}</p></section>}
+      <section><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.recentCompletions')}</p><Clock3 className="h-4 w-4 text-ink3" /></div>{historyQuery.isLoading ? <p className="mt-3 text-sm text-ink3">{t('common.loading')}</p> : history.length ? <div className="mt-3 divide-y divide-line rounded-[var(--r-md)] border border-line">{history.map((record) => { const items = completionItems(record); const failed = items.filter((item) => item.result === 'failed').length; return <div key={record.id} className="px-3 py-3"><div className="flex items-start justify-between gap-3"><p className="text-sm font-medium text-ink">{record.completed_at ? new Intl.DateTimeFormat(i18n.language, { month: 'short', day: 'numeric' }).format(new Date(record.completed_at)) : t('programs.pmSchedules.completed')}</p><p className={`text-xs font-medium ${failed ? 'text-[var(--alert)]' : 'text-[var(--ready)]'}`}>{failed ? t('programs.pmSchedules.failedChecks', { count: failed }) : t('programs.pmSchedules.allChecksPassed')}</p></div><p className="mt-1 text-xs text-ink3">{record.labor_minutes ?? 0} {t('programs.pmSchedules.minutesSuffix')}{record.vendor_name ? ` · ${record.vendor_name}` : ''}</p></div> })}</div> : <p className="mt-3 text-sm text-ink3">{t('programs.pmSchedules.noHistory')}</p>}</section>
     </div>
-  )
-}
-
-function SkeletonRow() {
-  return (
-    <tr className="animate-pulse border-b border-[var(--caution-line)]">
-      <td className="px-4 py-3"><div className="h-4 bg-surface-3 rounded w-3/4" /></td>
-      <td className="px-4 py-3"><div className="h-4 bg-surface-3 rounded w-1/2" /></td>
-      <td className="px-4 py-3"><div className="h-4 bg-surface-3 rounded w-20" /></td>
-      <td className="px-4 py-3"><div className="h-4 bg-surface-3 rounded w-24" /></td>
-      <td className="px-4 py-3"><div className="h-4 bg-surface-3 rounded w-16" /></td>
-      <td className="px-4 py-3"><div className="h-4 bg-surface-3 rounded w-24" /></td>
-      <td className="px-4 py-3"><div className="h-5 bg-surface-3 rounded w-16" /></td>
-      <td className="px-4 py-3"><div className="h-5 bg-surface-3 rounded w-28" /></td>
-    </tr>
-  )
-}
-
-interface PMSchedulesTabProps {
-  canEdit: boolean
-  showCreateModal: boolean
-  onCloseCreateModal: () => void
-  onRequestCreate: () => void
+  </EngineeringDrawer>
 }
 
 export function PMSchedulesTab({ canEdit, showCreateModal, onCloseCreateModal, onRequestCreate }: PMSchedulesTabProps) {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-
-  const [completingSchedule, setCompletingSchedule] = useState<PMSchedule | null>(null)
-  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-
-  const { data: schedulesData, isLoading, isError } = useQuery({
-    queryKey: ['pm-schedules'],
-    queryFn: () => engineeringApi.listPMSchedules(),
-    select: (res) => res.data as PMSchedule[],
-  })
-
-  const schedules = schedulesData ?? []
-
-  const now = new Date()
-  const activeSchedules = schedules.filter((s) => s.is_active)
-  const overdueCount = schedules.filter((s) => new Date(s.next_due_at) < now).length
-  const dueThisWeekCount = schedules.filter((s) => {
-    const due = new Date(s.next_due_at)
-    const days = differenceInDays(due, now)
-    return days >= 0 && days <= 7
-  }).length
-
-  function handleCreateSuccess() {
-    queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
-  }
-
-  function handleCompleteSuccess(scheduleName: string, nextDueAt: Date) {
-    queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
-    setSuccessMessage(
-      t('programs.pmSchedules.completeSuccessMessage', { name: scheduleName, date: format(nextDueAt, 'MMM d, yyyy') }),
-    )
-    setTimeout(() => setSuccessMessage(null), 4000)
-  }
-
-  async function handleDeactivate(scheduleId: string) {
-    try {
-      await engineeringApi.deactivatePMSchedule(scheduleId)
-      queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
-      setConfirmDeactivateId(null)
-    } catch {
-      // deactivation failed — user can retry
-    }
-  }
-
-  async function handleCreateWOFromPM(schedule: PMSchedule) {
-    try {
-      await engineeringApi.createWorkOrder({
-        title: `PM Due: ${schedule.name}`,
-        description: schedule.description,
-        category: 'general',
-        priority: 'normal',
-        asset_id: schedule.asset_id,
-      })
-      setSuccessMessage(t('programs.pmSchedules.woCreatedMessage', { name: schedule.name }))
-      setTimeout(() => setSuccessMessage(null), 4000)
-    } catch {
-      // work order creation failed — user can retry
-    }
-  }
-
-  return (
-    <div className="space-y-5">
-      {successMessage && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--ready-soft)] border border-green-200 text-[var(--ready)] text-sm">
-          <CheckCircle size={15} />
-          {successMessage}
-        </div>
-      )}
-
-      {/* Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Stat label={t('programs.pmSchedules.totalSchedules')} value={activeSchedules.length} hint={t('programs.pmSchedules.activeSchedulesSub')} icon={<Calendar size={16} />} />
-        <Stat
-          label={t('programs.pmSchedules.dueThisWeek')}
-          value={<span className={dueThisWeekCount > 0 ? 'text-[var(--caution)]' : undefined}>{dueThisWeekCount}</span>}
-          hint={t('programs.pmSchedules.within7Days')}
-          icon={<Clock size={16} />}
-        />
-        <Stat
-          label={t('programs.pmSchedules.overdueStat')}
-          value={<span className={overdueCount > 0 ? 'text-[var(--alert)]' : undefined}>{overdueCount}</span>}
-          hint={t('programs.pmSchedules.pastDueDateSub')}
-          icon={<AlertTriangle size={16} />}
-        />
-      </div>
-
-      {/* Table */}
-      <Card className="p-0 overflow-hidden">
-        {isError ? (
-          <StateBlock
-            status="error"
-            error={{ message: t('programs.pmSchedules.failedToLoad'), onRetry: () => queryClient.invalidateQueries({ queryKey: ['pm-schedules'] }) }}
-          />
-        ) : (
-          <>
-          <div className="md:hidden">
-            {isLoading ? (
-              <div className="p-4 space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-32 animate-pulse rounded-xl bg-surface-3" />
-                ))}
-              </div>
-            ) : schedules.length === 0 ? (
-              <EmptyState
-                icon={<Calendar size={22} />}
-                title={t('programs.pmSchedules.noSchedules')}
-                body={t('programs.pmSchedules.noSchedulesHelp')}
-                action={canEdit ? (
-                  <Button variant="primary" onClick={onRequestCreate}>
-                    <Plus size={14} />
-                    {t('programs.pmSchedules.createSchedule')}
-                  </Button>
-                ) : undefined}
-              />
-            ) : (
-              schedules.map((schedule) => {
-                const status = getScheduleStatus(schedule.next_due_at, t)
-                const dueDate = new Date(schedule.next_due_at)
-                const isOverdue = dueDate < now
-                return (
-                  <PMScheduleMobileCard
-                    key={schedule.id}
-                    schedule={schedule}
-                    canEdit={canEdit}
-                    isOverdue={isOverdue}
-                    status={status}
-                    onComplete={() => setCompletingSchedule(schedule)}
-                    onCreateWO={() => handleCreateWOFromPM(schedule)}
-                    onAskDeactivate={() => setConfirmDeactivateId(schedule.id)}
-                    onConfirmDeactivate={() => handleDeactivate(schedule.id)}
-                    onCancelDeactivate={() => setConfirmDeactivateId(null)}
-                    confirmingDeactivate={confirmDeactivateId === schedule.id}
-                  />
-                )
-              })
-            )}
-          </div>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-amber-100 bg-[var(--caution-soft)]/60">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colAsset')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colScheduleName')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colInterval')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colNextDue')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colEstTime')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colLastDone')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colStatus')}</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">{t('programs.pmSchedules.colActions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                ) : schedules.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-14">
-                      <EmptyState
-                        icon={<Calendar size={22} />}
-                        title={t('programs.pmSchedules.noSchedules')}
-                        body={t('programs.pmSchedules.noSchedulesHelp')}
-                        action={
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-                              {[
-                                t('programs.pmSchedules.exampleHvac'),
-                                t('programs.pmSchedules.examplePool'),
-                                t('programs.pmSchedules.exampleElevator'),
-                              ].map((item) => (
-                                <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
-                                  <p className="text-sm font-semibold text-ink">{item}</p>
-                                  <p className="mt-1 text-xs text-ink3">{t('programs.pmSchedules.commonPMSchedule')}</p>
-                                </div>
-                              ))}
-                            </div>
-                            {canEdit && (
-                              <Button variant="primary" onClick={onRequestCreate}>
-                                <Plus size={14} />
-                                {t('programs.pmSchedules.createSchedule')}
-                              </Button>
-                            )}
-                          </div>
-                        }
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  schedules.map((schedule) => {
-                    const status = getScheduleStatus(schedule.next_due_at, t)
-                    const dueDate = new Date(schedule.next_due_at)
-                    const isOverdue = dueDate < now
-                    return (
-                      <tr key={schedule.id} className="border-b border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/40 transition-colors">
-                        <td className="px-4 py-3" data-i18n-skip="true">
-                          <p className="font-medium text-ink leading-tight">
-                            {schedule.assets?.name ?? (
-                              <span className="text-ink3 font-normal italic">{t('programs.pmSchedules.unknownAsset')}</span>
-                            )}
-                          </p>
-                        </td>
-
-                        <td className="px-4 py-3 text-ink2" data-i18n-skip="true">{schedule.name}</td>
-
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-ink2 border border-line-2">
-                            {formatIntervalLabel(schedule.interval_type, schedule.interval_days, t)}
-                          </span>
-                        </td>
-
-                        <td className={`px-4 py-3 text-sm font-medium ${isOverdue ? 'text-[var(--alert)]' : 'text-ink2'}`}>
-                          {format(dueDate, 'MMM d, yyyy')}
-                        </td>
-
-                        <td className="px-4 py-3 text-ink2">
-                          {schedule.estimated_minutes} {t('programs.pmSchedules.minutesSuffix')}
-                        </td>
-
-                        <td className="px-4 py-3 text-ink3 text-xs">
-                          {schedule.last_completed_at ? (
-                            format(new Date(schedule.last_completed_at), 'MMM d, yyyy')
-                          ) : (
-                            <span className="italic text-ink4">{t('programs.pmSchedules.never')}</span>
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <Pill tone={status.tone} size="sm">
-                            {status.kind === 'overdue' && <AlertTriangle size={11} />}
-                            {status.kind === 'due_soon' && <Clock size={11} />}
-                            {status.kind === 'upcoming' && <CheckCircle size={11} />}
-                            {status.label}
-                          </Pill>
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {schedule.is_active && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCompletingSchedule(schedule)}
-                                className="border-[var(--ready-line)] text-[var(--ready)] hover:bg-[var(--ready-soft)]"
-                              >
-                                {t('programs.pmSchedules.complete')}
-                              </Button>
-                            )}
-
-                            {canEdit && schedule.is_active && (
-                              confirmDeactivateId === schedule.id ? (
-                                <span className="flex items-center gap-1">
-                                  <Button variant="ghost" size="sm" onClick={() => handleDeactivate(schedule.id)} className="text-[var(--alert)] hover:underline">
-                                    {t('programs.pmSchedules.confirm')}
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => setConfirmDeactivateId(null)} className="text-ink3 hover:underline">
-                                    {t('programs.pmSchedules.cancel')}
-                                  </Button>
-                                </span>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setConfirmDeactivateId(schedule.id)}
-                                  className="border-[var(--alert-line)] text-[var(--alert)] hover:bg-[var(--alert-soft)]"
-                                >
-                                  {t('programs.pmSchedules.deactivate')}
-                                </Button>
-                              )
-                            )}
-
-                            {canEdit && isOverdue && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleCreateWOFromPM(schedule)}
-                                className="border-[var(--info-line)] text-[var(--info)] hover:bg-[var(--info-soft)]"
-                              >
-                                {t('programs.pmSchedules.createWO')}
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-          </>
-        )}
-
-        {!isLoading && !isError && schedules.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-[var(--caution-line)] bg-[var(--caution-soft)]/40 flex items-center justify-between">
-            <p className="text-xs text-ink3">
-              {schedules.length === 1
-                ? t('programs.pmSchedules.scheduleCountOne', { count: schedules.length })
-                : t('programs.pmSchedules.scheduleCountOther', { count: schedules.length })}
-            </p>
-            {overdueCount > 0 && (
-              <p className="text-xs font-medium text-[var(--alert)]">
-                {t('programs.pmSchedules.overdueCount', { count: overdueCount })}
-              </p>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Modals */}
-      <CreatePMScheduleModal isOpen={showCreateModal} onClose={onCloseCreateModal} onSuccess={handleCreateSuccess} />
-
-      <PMCompletionModal
-        isOpen={completingSchedule !== null}
-        onClose={() => setCompletingSchedule(null)}
-        schedule={completingSchedule}
-        onSuccess={() => {
-          if (completingSchedule) {
-            const nextDue = calcNextDueAt(completingSchedule.interval_type, completingSchedule.interval_days)
-            handleCompleteSuccess(completingSchedule.name, nextDue)
-          }
-          setCompletingSchedule(null)
-        }}
-      />
-    </div>
+  const { t, i18n } = useTranslation(); const queryClient = useQueryClient()
+  const [view, setView] = useState<PreventiveView>('today'); const [selectedSchedule, setSelectedSchedule] = useState<PMSchedule | null>(null); const [completingSchedule, setCompletingSchedule] = useState<PMSchedule | null>(null); const [selectedDay, setSelectedDay] = useState(() => startOfDay(new Date())); const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date())); const [completionNotice, setCompletionNotice] = useState<string | null>(null)
+  const schedulesQuery = useQuery({ queryKey: ['pm-schedules'], queryFn: engineeringApi.listPMSchedules, select: (response) => response.data as PMSchedule[] })
+  const schedules = useMemo(() => schedulesQuery.data ?? [], [schedulesQuery.data]); const [now] = useState(() => new Date()); const metrics = useMemo(() => getPreventiveMetrics(schedules, now), [now, schedules]); const activeSchedules = useMemo(() => schedules.filter((schedule) => schedule.is_active), [schedules]); const todaySchedules = useMemo(() => activeSchedules.filter((schedule) => { const state = getScheduleState(schedule, now); return state === 'overdue' || state === 'due_today' }), [activeSchedules, now]); const overdueSchedules = useMemo(() => activeSchedules.filter((schedule) => getScheduleState(schedule, now) === 'overdue'), [activeSchedules, now])
+  const weekStart = useMemo(() => startOfWeek(now, { weekStartsOn: 1 }), [now]); const weekDays = useMemo(() => eachDayOfInterval({ start: weekStart, end: endOfWeek(now, { weekStartsOn: 1 }) }), [now, weekStart]); const selectedDaySchedules = useMemo(() => schedulesForDay(activeSchedules, selectedDay, now), [activeSchedules, now, selectedDay]); const calendarDays = useMemo(() => eachDayOfInterval({ start: startOfMonth(calendarMonth), end: endOfMonth(calendarMonth) }), [calendarMonth]); const calendarOffset = (startOfMonth(calendarMonth).getDay() + 6) % 7; const calendarWeekdays = useMemo(() => Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(i18n.language, { weekday: 'short' }).format(addDays(weekStart, index))), [i18n.language, weekStart])
+  function refresh() { queryClient.invalidateQueries({ queryKey: ['pm-schedules'] }) }
+  async function deactivateSelected() { if (!selectedSchedule) return; await engineeringApi.deactivatePMSchedule(selectedSchedule.id); refresh(); setSelectedSchedule(null) }
+  function completeSuccess(record?: PMCompletionRecord) { refresh(); queryClient.invalidateQueries({ queryKey: ['pm-completions'] }); const count = record?.corrective_work_orders?.length ?? 0; setCompletionNotice(count ? t('programs.pmSchedules.correctiveCreated', { count }) : t('programs.pmSchedules.completeSaved')) }
+  const tabButton = (id: PreventiveView, label: string) => (
+    <button
+      key={id}
+      type="button"
+      role="tab"
+      aria-selected={view === id}
+      onClick={() => setView(id)}
+      className={`min-h-10 border-b-2 px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${view === id ? 'border-ink text-ink' : 'border-transparent text-ink3 hover:text-ink'}`}
+    >
+      {label}
+    </button>
   )
+  const dayList = <div className="mt-4 rounded-[var(--r-md)] border border-line"><div className="border-b border-line px-4 py-3 text-sm font-medium text-ink">{format(selectedDay, 'EEEE, MMMM d')}</div>{selectedDaySchedules.length ? selectedDaySchedules.map((schedule) => <ScheduleRow key={schedule.id} schedule={schedule} now={now} onSelect={() => setSelectedSchedule(schedule)} />) : <p className="px-4 py-8 text-sm text-ink3">{t('programs.pmSchedules.noDueOnDay')}</p>}</div>
+  return <div className="space-y-5">
+    <section className="flex overflow-x-auto border-y border-line bg-surface py-3" aria-label={t('programs.pmSchedules.summaryLabel')}><Metric label={t('programs.pmSchedules.pmStatus')} value={metrics.active} /><Metric label={t('programs.pmSchedules.overdueStat')} value={metrics.overdue} tone="alert" /><Metric label={t('programs.pmSchedules.dueThisWeek')} value={metrics.dueThisWeek} tone="caution" /><Metric label={t('programs.pmSchedules.completedThisMonth')} value={metrics.completedThisMonth} /></section>
+    <nav className="flex overflow-x-auto border-b border-line" role="tablist" aria-label={t('programs.pmSchedules.viewLabel')}>{tabButton('today', t('programs.pmSchedules.today'))}{tabButton('week', t('programs.pmSchedules.week'))}{tabButton('calendar', t('programs.pmSchedules.calendar'))}{tabButton('programs', t('programs.pmSchedules.programsView'))}</nav>
+    {completionNotice && <div role="status" className="flex items-center gap-2 rounded-[var(--r-md)] border border-[var(--ready-line)] bg-[var(--ready-soft)] px-3 py-2 text-sm text-[var(--ready)]"><CheckCircle2 className="h-4 w-4" />{completionNotice}</div>}
+    {schedulesQuery.isError ? <div className="rounded-[var(--r-md)] border border-[var(--alert-line)] bg-[var(--alert-soft)] p-4 text-sm text-[var(--alert)]">{t('programs.pmSchedules.failedToLoad')}<Button className="ml-3" size="sm" variant="outline" onClick={() => schedulesQuery.refetch()}>{t('programs.pmSchedules.retry')}</Button></div> : schedulesQuery.isLoading ? <div className="space-y-2">{[1, 2, 3, 4].map((row) => <div key={row} className="h-16 animate-pulse rounded-[var(--r-md)] bg-surface-2" />)}</div> : activeSchedules.length === 0 ? <EmptyState icon={<CalendarDays className="h-6 w-6" />} title={t('programs.pmSchedules.preventiveTitle')} body={t('programs.pmSchedules.noSchedulesHelp')} action={canEdit ? <Button variant="primary" onClick={onRequestCreate}>{t('programs.pmSchedules.addPreventive')}</Button> : undefined} /> : <>
+      {view === 'today' && <section><div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.today')}</p><h2 className="font-display text-2xl text-ink">{format(now, 'EEEE · MMMM d')}</h2></div><p className="text-sm text-ink3">{todaySchedules.length} {t('programs.pmSchedules.dueCount')}</p></div>{todaySchedules.length ? <div className="rounded-[var(--r-md)] border border-line">{todaySchedules.map((schedule) => <ScheduleRow key={schedule.id} schedule={schedule} now={now} selected={selectedSchedule?.id === schedule.id} onSelect={() => setSelectedSchedule(schedule)} />)}</div> : <EmptyState icon={<CheckCircle2 className="h-6 w-6" />} title={t('programs.pmSchedules.noDueToday')} body={t('programs.pmSchedules.nextMaintenance', { name: activeSchedules[0]?.name ?? '—', date: format(new Date(activeSchedules[0]?.next_due_at ?? now), 'MMM d') })} />}{overdueSchedules.length > 0 && <div className="mt-5"><div className="mb-2 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-[var(--alert)]" /><h3 className="text-xs font-semibold uppercase tracking-[.08em] text-[var(--alert)]">{t('programs.pmSchedules.overdueSection')}</h3></div><div className="rounded-[var(--r-md)] border border-[var(--alert-line)]">{overdueSchedules.map((schedule) => <ScheduleRow key={schedule.id} schedule={schedule} now={now} onSelect={() => setSelectedSchedule(schedule)} />)}</div></div>}</section>}
+      {view === 'week' && <section><div className="mb-3"><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.week')}</p><h2 className="font-display text-2xl text-ink">{format(weekDays[0], 'MMMM d')} – {format(weekDays[6], 'd')}</h2></div><div className="flex gap-2 overflow-x-auto pb-2">{weekDays.map((day) => { const due = activeSchedules.filter((schedule) => isSameDay(new Date(schedule.next_due_at), day)).length; const complete = activeSchedules.filter((schedule) => schedule.last_completed_at && isSameDay(new Date(schedule.last_completed_at), day)).length; const isSelected = isSameDay(day, selectedDay); return <button key={day.toISOString()} type="button" onClick={() => setSelectedDay(day)} className={`min-w-24 rounded-[var(--r-md)] border p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${isSelected ? 'border-ink bg-ink text-paper' : 'border-line bg-surface hover:bg-surface-2'}`}><p className={`text-[10px] font-semibold uppercase tracking-[.08em] ${isSelected ? 'text-paper/70' : 'text-ink3'}`}>{format(day, 'EEE')}</p><p className="mt-1 font-mono text-lg font-semibold">{format(day, 'd')}</p><p className={`mt-2 text-xs ${isSelected ? 'text-paper/80' : 'text-ink2'}`}>{due ? t('programs.pmSchedules.dueShort', { count: due }) : '—'}</p><p className={`mt-1 text-xs ${isSelected ? 'text-paper/70' : 'text-[var(--ready)]'}`}>{complete ? t('programs.pmSchedules.doneShort', { count: complete }) : ''}</p></button> })}</div>{dayList}</section>}
+      {view === 'calendar' && <section><div className="mb-3 flex items-center justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.calendar')}</p><h2 className="font-display text-2xl text-ink">{format(calendarMonth, 'MMMM yyyy')}</h2></div><div className="flex gap-1"><IconButton aria-label={t('programs.pmSchedules.previousMonth')} onClick={() => setCalendarMonth(addDays(startOfMonth(calendarMonth), -1))}><ChevronLeft className="h-4 w-4" /></IconButton><IconButton aria-label={t('programs.pmSchedules.nextMonth')} onClick={() => setCalendarMonth(addDays(endOfMonth(calendarMonth), 1))}><ChevronRight className="h-4 w-4" /></IconButton></div></div><div className="grid grid-cols-7 border-l border-t border-line">{calendarWeekdays.map((label) => <div key={label} className="border-b border-r border-line bg-surface-2 px-2 py-2 text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{label}</div>)}{Array.from({ length: calendarOffset }).map((_, index) => <div key={`blank-${index}`} className="min-h-20 border-b border-r border-line bg-surface-2" />)}{calendarDays.map((day) => { const due = activeSchedules.filter((schedule) => isSameDay(new Date(schedule.next_due_at), day)).length; const overdue = activeSchedules.filter((schedule) => getScheduleState(schedule, now) === 'overdue' && isSameDay(day, new Date(schedule.next_due_at))).length; const completed = activeSchedules.filter((schedule) => schedule.last_completed_at && isSameDay(new Date(schedule.last_completed_at), day)).length; return <button key={day.toISOString()} type="button" onClick={() => setSelectedDay(day)} className={`min-h-20 border-b border-r border-line p-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40 ${isSameDay(day, selectedDay) ? 'bg-accent-soft' : 'bg-surface'}`}><p className="font-mono text-xs font-semibold text-ink">{format(day, 'd')}</p>{due > 0 && <p className="mt-1 text-[10px] font-medium text-ink2">{t('programs.pmSchedules.dueShort', { count: due })}</p>}{overdue > 0 && <p className="text-[10px] font-medium text-[var(--alert)]">{t('programs.pmSchedules.overdueShort', { count: overdue })}</p>}{completed > 0 && <p className="text-[10px] font-medium text-[var(--ready)]">{t('programs.pmSchedules.doneShort', { count: completed })}</p>}</button> })}</div>{dayList}</section>}
+      {view === 'programs' && <section><div className="mb-3"><p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">{t('programs.pmSchedules.programsView')}</p><h2 className="font-display text-2xl text-ink">{t('programs.pmSchedules.preventiveTitle')}</h2></div><div className="divide-y divide-line rounded-[var(--r-md)] border border-line">{activeSchedules.map((schedule) => <button key={schedule.id} type="button" onClick={() => setSelectedSchedule(schedule)} className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40"><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{schedule.name}</p><p className="mt-1 text-xs text-ink3">{assetLabel(schedule, t('programs.pmSchedules.unknownAsset'))} · {formatIntervalLabel(schedule.interval_type, schedule.interval_days, t)}</p></div><div className="shrink-0 text-right"><p className="text-xs font-medium text-ink2">{t('programs.pmSchedules.nextDueLabel', { date: format(new Date(schedule.next_due_at), 'MMM d') })}</p><p className="mt-1 text-xs text-ink3">{schedule.last_completed_at ? t('programs.pmSchedules.lastDoneLabel', { date: format(new Date(schedule.last_completed_at), 'MMM d') }) : t('programs.pmSchedules.never')}</p></div></button>)}</div></section>}
+    </>}
+    {selectedSchedule && <PMDetail schedule={selectedSchedule} canEdit={canEdit} onClose={() => setSelectedSchedule(null)} onComplete={() => { setCompletingSchedule(selectedSchedule); setSelectedSchedule(null) }} onDeactivate={deactivateSelected} />}
+    <PMCompletionModal isOpen={!!completingSchedule} schedule={completingSchedule} onClose={() => setCompletingSchedule(null)} onSuccess={completeSuccess} />
+    <CreatePMScheduleModal isOpen={showCreateModal} onClose={onCloseCreateModal} onSuccess={refresh} />
+  </div>
 }

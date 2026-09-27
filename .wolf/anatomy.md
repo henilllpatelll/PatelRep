@@ -1,1935 +1,921 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-24T16:35:16.456Z
-> Files: 239 tracked | Anatomy hits: 0 | Misses: 0
-
-## ../../
-
-- `.claude.json` (~26810 tok)
-
-## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
-
-
-## ../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/routers/
-
-
-## ../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/services/guest_recovery/
-
-
-## ../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/tests/
-
-
-## ../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/tests/smoke/
-
-
-## ../../../../tmp/sv-05-reviewfix-QJvcXS/apps/web/app/(dashboard)/settings/general/
-
-
-## ../../.claude/
-
-- `settings.json` (~1841 tok)
-
-## ../../.claude/plans/
-
-- `cozy-hatching-toast.md` — Unified Engineering Screen (~2324 tok)
-- `create-a-plan-and-happy-acorn.md` — Tasks screen redesign — Claude Design first, then build (~1529 tok)
-- `create-a-plan-and-vectorized-minsky.md` — Engineering screen redesign: front desk and GM first, every web role (~2588 tok)
-- `i-want-to-completely-velvety-hanrahan.md` — Engineering Redesign — Work-Order Command Center (~2668 tok)
-- `recursive-nibbling-barto.md` — OPERA Cloud SFTP Scheduled-Report Ingestion (~3519 tok)
-
-## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
-
-- `MEMORY.md` — PatelRep Project Memory (~1100 tok)
-- `project_ci_gaps.md` — 2026-09-19: full CI green-up after the 4th Railway account migration (~1502 tok)
-- `project_opera_sftp_report_ingestion.md` — Real ground truth (verified live against a real Opera Cloud property + 2 real downloaded exports — n (~2974 tok)
-- `reference_local_dev_api.md` (~641 tok)
-- `reference_railway.md` — Railway Infrastructure (~1984 tok)
-- `reference_vercel_deployment.md` — Update 2026-09-19: still stale, mitigated not fixed, see [[project_ci_gaps]] (~1349 tok)
-
-## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/06fa4c6b-7583-48f4-8f72-a0f25a37ea13/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/0c3e78d0-cc52-4cdf-8986-c9e43d344aa1/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1ac6ca38-4833-4393-8b43-d2d8d781084c/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/21ced2e6-2ab7-4881-9cb6-d5f2499c699f/scratchpad/
-
-- `tokens.css` — ------------------------------------------- (~1244 tok)
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/2b432236-d805-4ae3-aa94-7243e74da809/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/43800a8c-8f39-4095-b7dc-9e944fe16f8c/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/4903ce40-2f94-494a-a91d-60db57b373f6/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5403344f-9ec2-4ed7-add7-5758369d4935/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5c167adf-2ada-42ee-9785-116c306aece2/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/5d6b3573-406c-4b9f-b67d-242d481be00f/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/61e0709f-ebf7-43db-9c11-03c311147ac7/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/686ef36c-e5b4-4867-85a7-7d43f49217fb/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/690c4508-ebe4-45f9-9fc4-332f025280ab/scratchpad/tasks-redesign/project/
-
-- `canvas.json` (~509 tok)
-- `Create-Task.dc.html` — Create Task Drawer (~2940 tok)
-- `Home-Dark.dc.html` — Tasks — Home (Dark Mode) (~4038 tok)
-- `Home-Table.dc.html` — Tasks — Home (Table) (~5321 tok)
-- `Main.dc.html` — Tasks — Home (Lanes) (~7962 tok)
-- `Mobile.dc.html` — Tasks — Mobile Web (~1887 tok)
-- `States.dc.html` — Tasks — Empty / Loading / Error (~1280 tok)
-- `Task-Detail.dc.html` — Task Detail Drawer (~3083 tok)
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/73cb0913-4810-4d6c-b72d-ba680c59fe81/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/77d3546f-6d6c-4c46-9c4c-bc5fafbb7c80/scratchpad/verify/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/7ac5752a-70b7-4337-b0f2-75f95ad032a5/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/8d284829-02db-49ff-9025-850a150683dd/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/9c1798f7-3da6-40ea-b194-8745fc2bee3e/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/a1e4b068-4abc-4d3e-a1fc-36f3339c3040/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/a1e4b068-4abc-4d3e-a1fc-36f3339c3040/scratchpad/34-08-verify/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/b05610ee-fc7b-410c-90c0-8a68b1724167/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/c4eb5f35-9822-4802-895f-b4d749b9abc0/scratchpad/
-
-- `encrypt_pw.py` (~57 tok)
-- `get_fingerprint.py` (~115 tok)
-- `gibyroom_TEST001.txt` (~57 tok)
-- `test_ingest.py` (~395 tok)
-- `test_sftp.py` (~174 tok)
-- `upload_test_file.py` (~167 tok)
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/cb244cfc-b574-4b29-b09e-2bcc859f101e/scratchpad/eng-design/project/
-
-- `Board.dc.html` — Engineering — Board view (~3043 tok)
-- `canvas.json` (~130 tok)
-- `CreateWorkOrder.dc.html` — Create a work order (~3650 tok)
-- `Main.dc.html` — Engineering — Work Orders (~4637 tok)
-- `Manage.dc.html` — Engineering — Manage (~2900 tok)
-- `ReportIssue.dc.html` — Report an issue (~2798 tok)
-- `WorkOrderDetail.dc.html` — Work order detail (~2711 tok)
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/d54b8745-6c21-494e-b7e4-ee2a6d97bbd9/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/e373cdce-72dc-4ffe-9dca-781914a9320e/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/e4f27a09-115f-4703-975c-d0a5876785a1/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ecb336ba-dc1e-4037-90b1-efc752d21979/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/f6e84128-acd3-4897-9c9d-4355f0716401/scratchpad/
-
-
-## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/fcd100b8-b84f-426a-b2f4-78ab33feb61e/scratchpad/
-
-- `screenshot_hk.mjs` — Declares browser (~242 tok)
-
-## ../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/scripts/
-
-
-## ../../AppData/Local/Temp/sv-23-reviewfix-FWu7y6/apps/api/tests/smoke/
-
-
-## ../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/
-
-
-## ../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/scripts/
-
-
-## ../../AppData/Local/Temp/sv-24-reviewfix-TmMBXn/apps/api/tests/smoke/
-
-
-## ../../AppData/Roaming/Code/User/
-
-- `settings.json` (~369 tok)
-
-## ../PatelRep-web-v2/apps/web/
-
-
-## ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/
-
-
-## ../PatelRep-web-v2/apps/web/components/tasks/
-
-
-## ../PatelRep-web-v2/apps/web/lib/ai/
-
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-27T19:39:25.278Z
+> Files: 530 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
+- `.dockerignore` — Docker ignore rules (~76 tok)
+- `.easignore` (~80 tok)
+- `.expo-metro-smoke.err.log` (~0 tok)
+- `.expo-metro-smoke.out.log` (~110 tok)
 - `.gitignore` — Git ignore rules (~548 tok)
+- `.npmrc` (~6 tok)
+- `AGENTS.md` — OpenWolf (~2148 tok)
+- `cheerful-dancing-elephant.md` — Sidebar Simplification Plan (~1060 tok)
 - `CLAUDE.md` — OpenWolf (~3882 tok)
+- `CompetitiveAnalysis.md` — PatelRep Mobile App Competitive Analysis Report (~5429 tok)
+- `CUsersHenilprojectsPatelRep.wolfmemory.md` (~79 tok)
+- `FRONTEND_AUDIT.md` — Frontend Audit — PatelRep Dashboard (~9362 tok)
+- `FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md` — Frontend Playwright Audit - 2026-05-23 (~2398 tok)
+- `HOTEL_STANDARDS_AUDIT_2026-07-15.md` — PatelRep Web App vs. Current Hotel Procedures and Standards (~10554 tok)
+- `HOTEL_STANDARDS_EXECUTION_PLAN.md` — PatelRep Hotel Standards Execution Plan (~4128 tok)
+- `HOTEL_STANDARDS_GAP_ANALYSIS.md` — PatelRep vs. Modern Hotel Operations Standards — Brutal Gap Analysis (~6188 tok)
+- `notes` — Declares and (~1106 tok)
+- `package-lock.json` — npm lock file (~111736 tok)
+- `package.json` — Node.js package manifest (~409 tok)
+- `playwright.config.ts` — Playwright test configuration (~310 tok)
+- `playwright.mobile.config.ts` — Declares BASE_URL (~242 tok)
+- `railway.toml` (~68 tok)
+- `README.md` — Project documentation (~505 tok)
+- `skills-lock.json` (~3010 tok)
+- `snap-current.yml` (~12421 tok)
+- `tsconfig.json` — TypeScript configuration (~20 tok)
+- `UI_UX_FIXES_BACKLOG.md` — UI/UX Fixes Backlog — PatelRep (~5526 tok)
+- `vercel.json` (~32 tok)
+- `WORKFLOW_AUDIT.md` — PatelRep Web App — Role Workflow Audit (~3208 tok)
+- `youtubeMobileResearch.md` — Declares elements (~9417 tok)
+
+## .agents/skills/animate-expo/
+
+- `RECIPES.md` — Expo Animation Recipes (~4283 tok)
+- `SKILL.md` — Building Animations in Expo (~4512 tok)
+
+## .agents/skills/animate/
+
+- `RECIPES.md` — Animation Recipes (~2063 tok)
+- `SKILL.md` — Building Animations (~2997 tok)
+
+## .agents/skills/animation-vocabulary/
+
+- `SKILL.md` — Animation Vocabulary (~3341 tok)
+
+## .agents/skills/apple-design/
+
+- `SKILL.md` — Apple Design (~5793 tok)
+
+## .agents/skills/ask-sonner/
+
+- `API.md` — Sonner API Reference (~1144 tok)
+- `SKILL.md` — Working With Sonner (~1809 tok)
+
+## .agents/skills/beautiful-article/
+
+- `manifest.json` (~213 tok)
+- `README.md` — Project documentation (~5707 tok)
+- `README.zh-CN.md` — Beautiful Article Skill —— 把任意素材编辑成一篇精美的文章 (~4425 tok)
+- `SKILL.md` — Beautiful Article (~4803 tok)
+
+## .agents/skills/beautiful-article/assets/scaffold-template/
+
+- `.npmrc` (~11 tok)
+- `index.html` — Beautiful Article (~207 tok)
+- `package.json` — Node.js package manifest (~232 tok)
+- `tsconfig.json` — TypeScript configuration (~152 tok)
+- `tsconfig.node.json` (~69 tok)
+- `vite.config.ts` — Vite build configuration (~181 tok)
+
+## .agents/skills/beautiful-article/assets/scaffold-template/article/
+
+- `Article.tsx` — Article.tsx is the ASSEMBLER, owned by the main agent. It imports and orders (~663 tok)
+- `Cover.tsx` — Cover.tsx —— 文章封面（独立于 Article，位于 TOC + 正文 + colophon 之上） (~1645 tok)
+- `main.tsx` — __COVER_IMPORT_BEGIN__  (scaffold.sh 在 --no-cover 时剥掉这一段，连同标记) (~291 tok)
+
+## .agents/skills/beautiful-article/assets/scaffold-template/article/sections/
+
+- `01-opening.tsx` — One Section per file. In parallel builds a single subagent owns this file and (~326 tok)
+
+## .agents/skills/beautiful-article/references/
+
+- `article-types.md` — 文章类型路由 (~580 tok)
+- `asset-policy.md` — 配图与素材策略 (~550 tok)
+- `component-policy.md` — 组件使用政策（reacticle 协议） (~885 tok)
+- `cover.md` — 文章封面（Cover）—— 设计指南 (~1665 tok)
+- `harness.md` — Harness 视角 (~317 tok)
+- `html-output.md` — HTML 输出与构建 (~328 tok)
+- `information-density.md` — 信息密度 (~422 tok)
+- `layout.md` — 版式：宽度模式与 TOC (~307 tok)
+- `pdf-output.md` — PDF 输出（可选） (~1678 tok)
+- `plan-template.md` — plan.md 模板（单一规划文件） (~893 tok)
+- `raw-policy.md` — Raw 政策 (~673 tok)
+- `repair-policy.md` — 修复政策（最小切片） (~190 tok)
+- `review-checklist.md` — 评审清单与 Reviewer (~1098 tok)
+- `scaffold.md` — 脚手架 (~654 tok)
+- `section-build.md` — Section 构建与多 Agent 并行 (~864 tok)
+- `source-to-markdown.md` — Source → Markdown (~919 tok)
+- `theme-selection.md` — 主题选择 (~360 tok)
 
-## .claude/
+## .agents/skills/beautiful-article/references/article-types/
 
+- `briefing.md` — Article Type · briefing (~300 tok)
+- `dialogue.md` — Article Type · dialogue (~283 tok)
+- `essay.md` — Article Type · essay (~273 tok)
+- `explainer.md` — Article Type · explainer (~315 tok)
+- `full-report.md` — Article Type · full-report (~314 tok)
+- `interactive-explainer.md` — Article Type · interactive-explainer (~637 tok)
+- `longform.md` — Article Type · longform (~308 tok)
+- `review.md` — Article Type · review (~315 tok)
+- `tutorial.md` — Article Type · tutorial (~297 tok)
+- `visual-essay.md` — Article Type · visual-essay (~330 tok)
 
-## .claude/rules/
+## .agents/skills/beautiful-article/scripts/
 
+- `html-to-pdf.sh` — ───────────────────────────────────────────────────────────── (~1385 tok)
+- `pdf-print-overrides.css` — Styles: 1 rules, 1 media queries (~1894 tok)
+- `scaffold.sh` — ───────────────────────────────────────────────────────────── (~1743 tok)
+- `source-to-markdown-markitdown.py` — MarkItDown-backed Source -> Markdown helper for Beautiful Article. (~951 tok)
+- `source-to-markdown.py` — Source → Markdown extraction helper for the Beautiful Article skill. (~1721 tok)
 
-## .claude/skills/frontend-design/
+## .agents/skills/beautiful-article/theme-profiles/
 
+- `andy.md` — Theme Profile · andy（Headspace 静谧 / 温柔） (~438 tok)
+- `bayer.md` — Theme Profile · bayer（包豪斯 / 三原色几何） (~405 tok)
+- `bodoni.md` — Theme Profile · bodoni（报刊 / Didone 高反差） (~422 tok)
+- `freddie.md` — Theme Profile · freddie（Mailchimp 暖黄 / 友善） (~452 tok)
+- `fuller.md` — Theme Profile · fuller(蓝图 / 工程制图) (~409 tok)
+- `index.json` (~1312 tok)
+- `knuth.md` — Theme Profile · knuth（学术预印本） (~480 tok)
+- `press.md` — Theme Profile · press(书卷 / 编辑) (~464 tok)
+- `shannon.md` — Theme Profile · shannon（暗色工程证据） (~504 tok)
+- `sottsass.md` — Theme Profile · sottsass（孟菲斯 / 80s 撞色） (~430 tok)
+- `tufte.md` — Theme Profile · tufte（Data-Ink） (~467 tok)
+- `vignelli.md` — Theme Profile · vignelli（瑞士国际主义文档） (~473 tok)
 
-## .claude/skills/patelrep-api/
+## .agents/skills/better-accessibility/
 
+- `focus-and-keyboard.md` — Focus and keyboard (~1611 tok)
+- `forms.md` — Forms (~950 tok)
+- `hit-areas.md` — Hit areas (~1012 tok)
+- `motion-and-zoom.md` — Motion and zoom (~1003 tok)
+- `screen-readers.md` — Screen readers (~1291 tok)
+- `semantics-and-aria.md` — Semantics and ARIA (~1362 tok)
+- `SKILL.md` — Accessibility (~2091 tok)
 
-## .claude/skills/patelrep-mobile/
+## .agents/skills/better-accessibility/agents/
 
+- `openai.yaml` (~36 tok)
 
-## .claude/skills/patelrep-web/
+## .agents/skills/better-colors/
 
+- `color-formats.md` — Color formats (~1150 tok)
+- `color-usage.md` — Color usage (~1488 tok)
+- `contrast.md` — Contrast (~1209 tok)
+- `palette-generation.md` — Palette generation (~1532 tok)
+- `palette-structure.md` — Palette structure (~1329 tok)
+- `SKILL.md` — Colors (~1937 tok)
+- `token-naming.md` — Token naming (~1377 tok)
 
-## .claude/skills/ui-ux-pro-max/
+## .agents/skills/better-colors/agents/
 
+- `openai.yaml` (~33 tok)
 
-## .claude/skills/ui-ux-pro-max/data/
+## .agents/skills/better-interface/
 
+- `review-format.md` — Review output format (~649 tok)
+- `SKILL.md` — Interface review (~2418 tok)
 
-## .claude/skills/ui-ux-pro-max/data/stacks/
+## .agents/skills/better-interface/agents/
 
+- `openai.yaml` — Declares review (~31 tok)
 
-## .claude/skills/ui-ux-pro-max/scripts/
+## .agents/skills/better-layout/
 
+- `grouping-and-alignment.md` — Grouping and alignment (~1383 tok)
+- `SKILL.md` — Layout (~1431 tok)
+- `spacing-and-adaptivity.md` — Spacing and adaptivity (~1691 tok)
 
-## .claude/worktrees/agent-a1bf2e7e264f2b198/.planning/phases/04-maintenance-and-housekeeping-programs/
+## .agents/skills/better-layout/agents/
 
+- `openai.yaml` (~35 tok)
 
-## .claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/
+## .agents/skills/better-typography/
 
+- `choosing-fonts.md` — Choosing fonts (~811 tok)
+- `css-cheat-sheet.md` — CSS cheat sheet (~1004 tok)
+- `details-and-accessibility.md` — Details and accessibility (~1083 tok)
+- `SKILL.md` — Typography (~2751 tok)
+- `spacing-and-sizing.md` — Spacing and sizing (~1103 tok)
+- `variable-fonts-and-opentype.md` — Variable fonts and OpenType (~1102 tok)
+- `wrapping-and-punctuation.md` — Wrapping and punctuation (~831 tok)
 
-## .claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/i18n/locales/
+## .agents/skills/better-typography/agents/
 
+- `openai.yaml` — Declares scales (~33 tok)
 
-## .claude/worktrees/agent-a1deedb1de40cf2d7/.planning/phases/05-guest-recovery-and-management-roi/
+## .agents/skills/better-ui/
 
+- `animations.md` — Animations (~1809 tok)
+- `enter-exit.md` — Enter and exit animations (~989 tok)
+- `icon-transitions.md` — Icon transitions (~1039 tok)
+- `icons.md` — Icons (~1093 tok)
+- `performance.md` — Performance (~754 tok)
+- `SKILL.md` — UI polish (~1816 tok)
+- `surfaces.md` — Surfaces (~1622 tok)
 
-## .claude/worktrees/agent-a1deedb1de40cf2d7/apps/api/services/guest_recovery/
+## .agents/skills/better-ui/agents/
 
+- `openai.yaml` (~34 tok)
 
-## .claude/worktrees/agent-a1deedb1de40cf2d7/apps/api/tests/
+## .agents/skills/better-writing/
 
+- `SKILL.md` — Interface writing (~1634 tok)
 
-## .claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/models/
+## .agents/skills/better-writing/agents/
 
+- `openai.yaml` — Declares copy (~32 tok)
 
-## .claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/routers/
+## .agents/skills/brandkit/
 
+- `SKILL.md` — BRANDKIT IMAGE GENERATION SKILL (~4192 tok)
 
-## .claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/tests/
+## .agents/skills/break/
 
+- `scenarios.md` — Scenario axes (~1100 tok)
+- `SKILL.md` — Break (~1692 tok)
 
-## .claude/worktrees/agent-a24f39a42778580f1/.planning/phases/04-maintenance-and-housekeeping-programs/
+## .agents/skills/break/agents/
 
+- `openai.yaml` (~49 tok)
 
-## .claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/
+## .agents/skills/design-taste-frontend-v1/
 
+- `SKILL.md` — High-Agency Frontend Skill (~5354 tok)
 
-## .claude/worktrees/agent-a24f39a42778580f1/apps/web/i18n/locales/
+## .agents/skills/design-taste-frontend/
 
+- `SKILL.md` — tasteskill: Anti-Slop Frontend Skill (~22083 tok)
 
-## .claude/worktrees/agent-a2bb151da78ecf04f/.planning/phases/05-guest-recovery-and-management-roi/
+## .agents/skills/emil-design-eng/
 
+- `SKILL.md` — Design Engineering (~6926 tok)
 
-## .claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/
+## .agents/skills/explain-interface/
 
+- `find-the-effect.md` — Finding the layers behind an effect (~1279 tok)
+- `from-an-image.md` — Reading a screenshot (~876 tok)
+- `no-browser.md` — Reading a site without a browser (~989 tok)
+- `read-the-system.md` — Reading the whole system (~2012 tok)
+- `SKILL.md` — Interface explanation (~2506 tok)
 
-## .claude/worktrees/agent-a2bb151da78ecf04f/apps/web/lib/api/
+## .agents/skills/explain-interface/agents/
 
+- `openai.yaml` (~48 tok)
 
-## .claude/worktrees/agent-a2c056484e57e516c/apps/web/app/(dashboard)/lost-found/
+## .agents/skills/find-animation-opportunities/
 
+- `SKILL.md` — Finding Animation Opportunities (~2463 tok)
 
-## .claude/worktrees/agent-a2c056484e57e516c/apps/web/lib/api/
+## .agents/skills/full-output-enforcement/
 
+- `SKILL.md` — Full-Output Enforcement (~658 tok)
 
-## .claude/worktrees/agent-a30931930b7adde3e/.planning/phases/04-maintenance-and-housekeeping-programs/
+## .agents/skills/gpt-image-2/
 
+- `manifest.json` (~169 tok)
+- `README.md` — Project documentation (~4815 tok)
+- `README.zh-CN.md` — GPT Image 2 Skill (~3785 tok)
+- `SKILL.md` — GPT Image 2 (~4151 tok)
 
-## .claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/assets/
+## .agents/skills/gpt-image-2/references/
 
+- `prompt-writing.md` — JSON 提示词模板总规范 (~4082 tok)
 
-## .claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/predictions/
+## .agents/skills/gpt-image-2/references/academic-figures/
 
+- `graphical-abstract.md` — Graphical Abstract / 图形摘要模板 (~2000 tok)
+- `mechanism-diagram.md` — 机理示意图模板 (~2209 tok)
+- `method-pipeline-overview.md` — 论文方法 Pipeline 总览图模板 (~2541 tok)
+- `multi-condition-comparison.md` — 多工况 / 多条件结果对比图模板 (~2174 tok)
+- `neural-network-architecture.md` — 神经网络架构图模板 (~2016 tok)
+- `publication-chart.md` — Publication-Ready 数据图表模板 (~2380 tok)
+- `qualitative-comparison-grid.md` — 多方法 Qualitative 对比网格模板 (~1986 tok)
+- `research-overview-poster.md` — 开题 / 答辩 / 汇报研究总览图模板 (~2287 tok)
+- `scientific-schematic.md` — 概念 / 原理示意图模板 (~2211 tok)
 
-## .claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/work-orders/
+## .agents/skills/gpt-image-2/references/assets-and-props/
 
+- `game-screenshot-mockup.md` — 游戏内截图 Mockup 模板 (~1088 tok)
+- `retro-skeuomorphic-icons.md` — 拟物 / 复古图标集模板 (~1013 tok)
 
-## .claude/worktrees/agent-a30931930b7adde3e/apps/web/i18n/locales/
+## .agents/skills/gpt-image-2/references/avatars-and-profile/
 
+- `character-grid-portrait.md` — 角色 n×n 网格肖像模板 (~1121 tok)
+- `cultural-portrait-series.md` — 文化 / 历史人物系列肖像模板 (~919 tok)
+- `sticker-set.md` — 贴纸套装 / Sticker Set 模板 (~968 tok)
+- `style-transfer-selfie.md` — 风格化自拍 / 人设转换模板 (~722 tok)
+- `themed-3d-icon.md` — 主题 3D 图标头像模板 (~901 tok)
 
-## .claude/worktrees/agent-a336ff2453981c47c/.planning/phases/04-maintenance-and-housekeeping-programs/
+## .agents/skills/gpt-image-2/references/branding-and-packaging/
 
+- `beverage-label-design.md` — 饮料 / 食品标签设计模板 (~922 tok)
+- `brand-identity-board.md` — 品牌识别系统板模板 (~1124 tok)
+- `character-merch-board.md` — 角色 IP × 周边商品板模板 (~3039 tok)
+- `cosmetic-packaging.md` — 化妆品 / 护肤品包装模板 (~934 tok)
+- `full-mascot-brand-doc.md` — 18+ 模块吉祥物全流程品牌设计文档模板 (~2629 tok)
+- `mascot-brand-kit.md` — 吉祥物品牌套装模板 (~1008 tok)
 
-## .claude/worktrees/agent-a336ff2453981c47c/apps/web/app/(dashboard)/housekeeping/
+## .agents/skills/gpt-image-2/references/editing-workflows/
 
+- `background-replacement.md` — 背景替换工作流模板 (~473 tok)
+- `local-object-replacement.md` — 局部对象替换工作流模板 (~448 tok)
+- `object-removal.md` — 杂物去除工作流模板 (~364 tok)
+- `portrait-local-edit.md` — 人像局部修改工作流模板 (~439 tok)
+- `product-retouching.md` — 产品精修工作流模板 (~437 tok)
 
-## .claude/worktrees/agent-a336ff2453981c47c/apps/web/app/(dashboard)/housekeeping/assignments/
+## .agents/skills/gpt-image-2/references/grids-and-collages/
 
+- `ad-banner-multi-grid.md` — 跨行业混合广告 Banner 网格模板 (~2127 tok)
+- `anime-pitch-board.md` — 动漫立项 Pitch Board 模板 (~1069 tok)
+- `banner-grid-2x2.md` — 2×2 营销 Banner 网格模板 (~1114 tok)
+- `lookbook-grid.md` — Lookbook / 9 宫格信息图模板 (~1060 tok)
+- `mixed-style-multi-panel.md` — 多风格混合多面板拼贴模板 (~1027 tok)
 
-## .claude/worktrees/agent-a336ff2453981c47c/apps/web/i18n/locales/
+## .agents/skills/gpt-image-2/references/infographics/
 
+- `bento-grid-infographic.md` — 便当格 / 模块化信息图模板 (~1567 tok)
+- `comparison-infographic.md` — 对比信息图模板 (~1249 tok)
+- `hand-drawn-infographic.md` — 手绘风信息图模板 (~1538 tok)
+- `kpi-dashboard-infographic.md` — KPI 仪表盘式信息图模板 (~1524 tok)
+- `legend-heavy-infographic.md` — 高图例密度信息图模板 (~1079 tok)
+- `step-by-step-infographic.md` — 步骤 / 流程信息图模板 (~1288 tok)
 
-## .claude/worktrees/agent-a4812a299da98709b/.planning/phases/04-maintenance-and-housekeeping-programs/
+## .agents/skills/gpt-image-2/references/maps/
 
+- `food-map.md` — 手绘城市美食地图模板 (~1096 tok)
+- `illustrated-city-map.md` — 手绘城市风貌地图模板 (~813 tok)
+- `itinerary-day-trip-map.md` — 一日游 / 单日行程图模板（左侧 stops + 右侧画面地图） (~2712 tok)
+- `store-distribution-map.md` — 门店分布图模板 (~936 tok)
+- `travel-route-map.md` — 旅行路线图模板 (~1008 tok)
 
-## .claude/worktrees/agent-a4812a299da98709b/apps/api/routers/
+## .agents/skills/gpt-image-2/references/portraits-and-characters/
 
+- `character-sheet.md` — 角色设定 / 三视图模板 (~1004 tok)
+- `founder-portrait.md` — 创始人 / 媒体大片肖像模板 (~855 tok)
+- `pose-reference-sheet.md` — 姿势 / 动作参考表 N×N 模板 (~2657 tok)
+- `professional-portrait.md` — 职业肖像模板 (~812 tok)
+- `virtual-host.md` — 虚拟主播 / VTuber 形象模板 (~900 tok)
 
-## .claude/worktrees/agent-a4812a299da98709b/apps/web/app/(dashboard)/engineering/pm-schedules/
+## .agents/skills/gpt-image-2/references/poster-and-campaigns/
 
+- `banner-hero.md` — Web Banner / Hero 模板 (~890 tok)
+- `biomimetic-concept-poster.md` — 仿生 / 工业设计概念海报模板 (~2302 tok)
+- `brand-poster.md` — 品牌主海报模板 (~778 tok)
+- `campaign-kv.md` — Campaign Key Visual 模板 (~906 tok)
+- `character-catalog-poster.md` — 角色清单 / 系列卡片信息图海报模板 (~2614 tok)
+- `editorial-cover.md` — 杂志 / 编辑封面模板 (~926 tok)
+- `lineup-comparison-poster.md` — 系列产品 / 型号 Lineup 对比信息图海报模板 (~2550 tok)
+- `vintage-editorial-infographic.md` — 复古档案 / 编辑式信息图海报模板 (~2637 tok)
 
-## .claude/worktrees/agent-a4812a299da98709b/apps/web/components/engineering/
+## .agents/skills/gpt-image-2/references/product-visuals/
 
+- `ecommerce-marketing-board.md` — 中式电商一图全销售看板模板 (~2765 tok)
+- `exploded-view-poster.md` — 产品爆炸视图海报模板 (~1296 tok)
+- `lifestyle-product-scene.md` — 生活方式产品场景图模板 (~1215 tok)
+- `packaging-showcase.md` — 包装展示图模板 (~1243 tok)
+- `premium-studio-product.md` — 高级影棚产品图模板 (~1134 tok)
+- `white-background-product.md` — 白底电商主图模板 (~1003 tok)
 
-## .claude/worktrees/agent-a4812a299da98709b/apps/web/lib/api/
+## .agents/skills/gpt-image-2/references/scenes-and-illustrations/
 
+- `concept-scene.md` — 概念 / 大场景插画模板 (~794 tok)
+- `healing-scene.md` — 治愈系场景插画模板 (~783 tok)
+- `minimalist-mood-scene.md` — 极简氛围插画模板 (~781 tok)
+- `picture-book-scene.md` — 童书 / 绘本场景插画模板 (~812 tok)
 
-## .claude/worktrees/agent-a514d8908057cd9d5/.planning/phases/05-guest-recovery-and-management-roi/
+## .agents/skills/gpt-image-2/references/slides-and-visual-docs/
 
+- `dense-explainer-slides.md` — 高密度讲解型 Slides 模板 (~951 tok)
+- `educational-diagram-slide.md` — 教学示意 Slide 模板 (~884 tok)
+- `policy-style-slide.md` — 政策 / 政府风说明 Slide 模板 (~1016 tok)
+- `visual-report-page.md` — 商业视觉报告页模板 (~1124 tok)
 
-## .claude/worktrees/agent-a514d8908057cd9d5/apps/api/models/
+## .agents/skills/gpt-image-2/references/storyboards-and-sequences/
 
+- `anime-key-visual.md` — 动漫 Key Visual 单图模板 (~858 tok)
+- `character-relationship-diagram.md` — 人物关系图模板 (~1009 tok)
+- `cinematic-storyboard-grid.md` — 电影感叙事分镜 contact sheet 模板 (~2429 tok)
+- `four-panel-comic.md` — 4 格漫画模板 (~1080 tok)
+- `manga-spread-page.md` — 漫画跨页 / 多分镜页模板 (~1015 tok)
+- `process-photo-board.md` — 真人摄影流程图 / 装备穿戴 / 操作流程板模板 (~2660 tok)
+- `product-tvc-storyboard.md` — 产品 TVC 商业广告分镜板模板 (~2083 tok)
+- `recipe-process-flowchart.md` — 食谱 / 流程步骤图模板 (~1071 tok)
 
-## .claude/worktrees/agent-a514d8908057cd9d5/apps/api/routers/
+## .agents/skills/gpt-image-2/references/technical-diagrams/
 
+- `er-diagram.md` — ER 图 / 数据模型图模板 (~2268 tok)
+- `flowchart-decision.md` — 流程图 / 决策图模板 (~1969 tok)
+- `mind-map-tech.md` — 技术主题思维导图模板 (~1870 tok)
+- `network-topology.md` — 网络拓扑图模板 (~2302 tok)
+- `sequence-diagram.md` — 时序图模板 (~2179 tok)
+- `state-machine.md` — 状态机 / 生命周期图模板 (~2000 tok)
+- `system-architecture.md` — 系统架构图模板 (~2169 tok)
 
-## .claude/worktrees/agent-a514d8908057cd9d5/apps/api/tests/
+## .agents/skills/gpt-image-2/references/typography-and-text-layout/
 
+- `bilingual-layout-visual.md` — 双语 / 多语版式视觉模板 (~997 tok)
+- `title-safe-poster.md` — 大字主张 / Title-Safe 海报模板 (~858 tok)
 
-## .claude/worktrees/agent-a5d3701dd07c9de0a/.planning/phases/05-guest-recovery-and-management-roi/
+## .agents/skills/gpt-image-2/references/ui-mockups/
+
+- `chat-interface-scene.md` — 聊天界面 / 对话气泡场景模板 (~1635 tok)
+- `landing-page-case-study.md` — 长页面 Landing Page / Case Study UI 样机模板 (~2623 tok)
+- `live-commerce-ui.md` — 电商直播 / 社交直播 UI 样机模板 (~1435 tok)
+- `product-card-overlay.md` — 商品卡叠加样机模板 (~1476 tok)
+- `short-video-cover-ui.md` — 短视频封面 / Stream 缩略图 UI 模板 (~1292 tok)
+- `social-interface-mockup.md` — 社交平台界面样机模板 (~1593 tok)
+
+## .agents/skills/gpt-image-2/scripts/
+
+- `check-mode.js` — Declares TRUTHY (~605 tok)
+- `edit.js` — printHelp: parseCli, buildRequestUrl, buildForm, run (~2087 tok)
+- `generate.js` — printHelp: parseCli, buildPayload, buildRequestUrl, run (~1678 tok)
+- `package.json` — Node.js package manifest (~21 tok)
+- `shared.js` — Exports DEFAULT_IMAGE_DIR, DEFAULT_PROMPT_DIR, DEFAULT_MODEL, readEnvFile + 20 more (~1868 tok)
+
+## .agents/skills/gpt-taste/
+
+- `SKILL.md` — CORE DIRECTIVE: AWWWARDS-LEVEL DESIGN ENGINEERING (~1983 tok)
+
+## .agents/skills/hallmark/
+
+- `SKILL.md` — Hallmark (~16786 tok)
+
+## .agents/skills/hallmark/references/
+
+- `anti-patterns.md` — Anti-patterns — the named tells (~6481 tok)
+- `assets.md` — Assets — sourcing canon for icons, logos, illustrations, photography, video (~6395 tok)
+- `color.md` — Colour (~1098 tok)
+- `component-cookbook.md` — Component cookbook (~7661 tok)
+- `contract.md` — Output contract & scope (~511 tok)
+- `copy.md` — Copy (~3052 tok)
+- `custom-craft.md` — Custom craft — how to hand-build hero artwork (~8653 tok)
+- `custom-theme.md` — Custom theme — protocol (~5992 tok)
+- `design-md.md` — design.md — opt-in portable design system (~1723 tok)
+- `export-formats.md` — Export formats (~3724 tok)
+- `floating-nav.md` — Floating nav on scroll — the cross-fade morph (~1329 tok)
+- `hero-enrichment.md` — Hero enrichment — when, what, and how much (~8079 tok)
+- `imagery-kit.md` — Imagery kit — curated abstract assets, hosted, ready (~2158 tok)
+- `interaction-and-states.md` — Interaction and states (~3412 tok)
+- `layout-and-space.md` — Layout and space (~1713 tok)
+- `macrostructures.md` — Macrostructures (~2880 tok)
+- `microinteractions.md` — Microinteractions (~5032 tok)
+- `motion.md` — Motion (~1107 tok)
+- `preview-examples.md` — Preview-block worked examples (~701 tok)
+- `responsive.md` — Responsive (~1504 tok)
+- `slop-test.md` — Slop test — 58 gates + pre-emit self-critique (~7744 tok)
+- `structure.md` — Structure (~3945 tok)
+- `study.md` — Study — extracting design DNA from a screenshot or URL (~10696 tok)
+- `typography.md` — Typography (~4598 tok)
+
+## .agents/skills/hallmark/references/components/
+
+- `c1-outlined-chip.md` — ## C1 · Outlined chip (~119 tok)
+- `c2-inline-form-as-cta.md` — ## C2 · Inline form-as-CTA (~171 tok)
+- `c3-typographic-link.md` — ## C3 · Typographic link (~72 tok)
+- `c4-sticky-bottom-bar.md` — ## C4 · Sticky bottom bar (~171 tok)
+- `f1-bento-grid.md` — ## F1 · Bento grid (~198 tok)
+- `f2-sticky-scroll-stack.md` — ## F2 · Sticky-scroll stack (~229 tok)
+- `f3-tabular-spec-sheet.md` — ## F3 · Tabular spec sheet (~107 tok)
+- `f4-step-sequence.md` — ## F4 · Step sequence (~113 tok)
+- `f5-annotated-screenshot.md` — ## F5 · Annotated screenshot (~105 tok)
+- `f6-product-card-grid.md` — ## F6 · Product card grid (~686 tok)
+- `ft1-mast-headed.md` — ## Ft1 · Mast-headed (~128 tok)
+- `ft2-inline-rule-single-line.md` — ## Ft2 · Inline-rule single line (~92 tok)
+- `ft3-index-style-category-list.md` — ## Ft3 · Index-style category list (~122 tok)
+- `ft4-dense-typographic.md` — ## Ft4 · Dense typographic (~127 tok)
+- `ft5-statement.md` — ## Ft5 · Statement (~330 tok)
+- `ft6-letter-close.md` — ## Ft6 · Letter close (~282 tok)
+- `ft7-newsletter-first.md` — ## Ft7 · Newsletter-first (~444 tok)
+- `ft8-marquee-scroll.md` — ## Ft8 · Marquee scroll (~375 tok)
+- `h1-marquee.md` — ## H1 · Marquee (~131 tok)
+- `h2-split-diptych.md` — ## H2 · Split Diptych (~152 tok)
+- `h3-quote-led.md` — ## H3 · Quote-Led (~107 tok)
+- `h4-stat-led.md` — ## H4 · Stat-Led (~130 tok)
+- `h5-letter-hero.md` — ## H5 · Letter Hero (~92 tok)
+- `h6-photographic-fold.md` — ## H6 · Photographic Fold (~151 tok)
+- `h7-demo-video-clipped-by-viewport-edge.md` — ## H7 · Demo Video — Clipped-by-viewport-edge (~409 tok)
+- `h8-mockup-split-browser-framed.md` — ## H8 · Mockup Split (browser-framed) (~332 tok)
+- `h9-custom-illustration-centerpiece.md` — ## H9 · Custom Illustration Centerpiece (~375 tok)
+- `n1-wordmark-2-links.md` — ## N1 · Wordmark + 2 links (~100 tok)
+- `n10-floating-on-scroll-morph.md` — ## N10 · Floating-on-scroll morph (~350 tok)
+- `n11-mega-menu.md` — ## N11 · Mega-menu panel (~794 tok)
+- `n12-banner-retract.md` — ## N12 · Announcement banner + retracting nav (~715 tok)
+- `n13-inline-cmdk-pill.md` — ## N13 · Inline ⌘K search pill (~826 tok)
+- `n1b-saas-three-section.md` — ## N1b · Canonical SaaS three-section (~765 tok)
+- `n2-floating-chip.md` — ## N2 · Floating chip (~157 tok)
+- `n3-side-rail.md` — ## N3 · Side-rail (~137 tok)
+- `n4-hidden-behind-k.md` — ## N4 · Hidden behind ⌘K (~94 tok)
+- `n5-floating-pill.md` — ## N5 · Floating pill (~360 tok)
+- `n6-newspaper-masthead.md` — ## N6 · Newspaper masthead (~410 tok)
+- `n7-brutal-slab.md` — ## N7 · Brutal slab (~350 tok)
+- `n8-terminal-command.md` — ## N8 · Terminal command (~416 tok)
+- `n9-edge-aligned-minimal.md` — ## N9 · Edge-aligned minimal (~220 tok)
+- `s1-left-margin-numbered.md` — ## S1 · Left-margin numbered (~126 tok)
+- `s2-hanging.md` — ## S2 · Hanging (~92 tok)
+- `s3-sticky-pinned.md` — ## S3 · Sticky pinned (~298 tok)
+- `s4-inline-no-break.md` — ## S4 · Inline (no break) (~111 tok)
+- `s5-bottom-anchored.md` — ## S5 · Bottom-anchored (~92 tok)
+- `t1-pull-quote-with-marginalia.md` — ## T1 · Pull-quote with marginalia (~118 tok)
+- `t2-logo-wall-hairline.md` — ## T2 · Logo wall (hairline) (~188 tok)
+- `t3-single-huge-quote.md` — ## T3 · Single huge quote (~124 tok)
+- `t4-numbered-stat-strip.md` — ## T4 · Numbered stat strip (~121 tok)
 
+## .agents/skills/hallmark/references/genres/
 
-## .claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/models/
+- `atmospheric.md` — Genre — atmospheric (~1270 tok)
+- `editorial.md` — Genre — editorial (default) (~1038 tok)
+- `modern-minimal.md` — Genre — modern-minimal (~1211 tok)
+- `playful.md` — Genre — playful (~1303 tok)
 
+## .agents/skills/hallmark/references/macrostructures/
 
-## .claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/routers/
+- `01-bento-grid.md` — 01 · Bento Grid (~459 tok)
+- `02-long-document.md` — 02 · Long Document (~432 tok)
+- `03-marquee-hero.md` — 03 · Marquee Hero (~415 tok)
+- `04-stat-led.md` — 04 · Stat-Led (~532 tok)
+- `05-workbench.md` — 05 · Workbench (~425 tok)
+- `06-conversational-faq.md` — 06 · Conversational FAQ (~406 tok)
+- `07-manifesto.md` — 07 · Manifesto (~432 tok)
+- `08-photographic.md` — 08 · Photographic (~376 tok)
+- `09-quote-led.md` — 09 · Quote-Led (~456 tok)
+- `10-specimen.md` — 10 · Specimen *(no longer the default)* (~405 tok)
+- `11-catalogue.md` — 11 · Catalogue (~298 tok)
+- `12-letter.md` — 12 · Letter (~315 tok)
+- `13-index-first.md` — 13 · Index-First (~304 tok)
+- `14-narrative-workflow.md` — 14 · Narrative Workflow (~355 tok)
+- `15-split-studio.md` — 15 · Split Studio (~337 tok)
+- `16-feature-stack.md` — 16 · Feature Stack (~349 tok)
+- `17-type-specimen.md` — 17 · Type Specimen (~321 tok)
+- `18-portfolio-grid.md` — 18 · Portfolio Grid (~267 tok)
+- `19-map-diagram.md` — 19 · Map / Diagram (~319 tok)
+- `20-ecosystem-index.md` — 20 · Ecosystem Index (~303 tok)
+- `21-component-playground.md` — 21 · Component Playground (~296 tok)
 
+## .agents/skills/hallmark/references/themes/
 
-## .claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/services/sms/
+- `carnival.md` — Theme — Carnival (~4915 tok)
+- `cobalt.md` — Theme — Cobalt (~2815 tok)
+- `grid.md` — Theme - Grid (~3677 tok)
+- `hum.md` — Theme — Hum (~8106 tok)
+- `lumen.md` — Theme — Lumen (~7098 tok)
 
+## .agents/skills/hallmark/references/verbs/
 
-## .claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/tests/
+- `audit.md` — `hallmark audit` (~700 tok)
+- `redesign.md` — `hallmark redesign` (~3514 tok)
 
+## .agents/skills/high-end-visual-design/
 
-## .claude/worktrees/agent-a5e6ae259dfd58068/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `SKILL.md` — Agent Skill: Principal UI/UX Architect & Motion Choreographer (Awwwards-Tier) (~2661 tok)
 
+## .agents/skills/image-to-code/
 
-## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/models/
+- `SKILL.md` — CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE (~9398 tok)
 
+## .agents/skills/imagegen-frontend-mobile/
 
-## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/routers/
+- `SKILL.md` — CORE DIRECTIVE: PREMIUM MOBILE APP IMAGE DIRECTION (~10438 tok)
 
+## .agents/skills/imagegen-frontend-web/
 
-## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/services/programs/
+- `SKILL.md` — HARD OUTPUT RULE — READ FIRST (~9442 tok)
 
+## .agents/skills/improve-animations/
 
-## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/tests/
+- `AUDIT.md` — Animation Audit Playbook (~1859 tok)
+- `PLAN-TEMPLATE.md` — Plan Template (~787 tok)
+- `SKILL.md` — Improving Animations (~2064 tok)
 
+## .agents/skills/industrial-brutalist-ui/
 
-## .claude/worktrees/agent-a60430966657c8504/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `SKILL.md` — SKILL: Industrial Brutalism & Tactical Telemetry UI (~2136 tok)
 
+## .agents/skills/interface-review/
 
-## .claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/inspections/
+- `removed-signals.md` — Removed signals (~737 tok)
+- `scope-resolution.md` — Scope resolution (~2061 tok)
+- `SKILL.md` — Change review (~2711 tok)
 
+## .agents/skills/interface-review/agents/
 
-## .claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/rooms/
+- `openai.yaml` — Declares review (~47 tok)
 
+## .agents/skills/kb-retriever/
 
-## .claude/worktrees/agent-a60430966657c8504/apps/web/i18n/locales/
+- `manifest.json` (~161 tok)
+- `README.md` — Project documentation (~1817 tok)
+- `README.zh-CN.md` — Kb Retriever Skill — 本地知识库检索 (~1037 tok)
+- `SKILL.md` — 本地知识库检索 Skill（kb-retriever） (~1799 tok)
 
+## .agents/skills/kb-retriever/references/
 
-## .claude/worktrees/agent-a64dbc154accdbfb5/.planning/phases/05-guest-recovery-and-management-roi/
+- `excel_analysis.md` — Excel 数据分析 (~586 tok)
+- `excel_reading.md` — Excel 文件读取 (~312 tok)
+- `pdf_reading.md` — PDF 读取与分析 (~1957 tok)
 
+## .agents/skills/kb-retriever/scripts/
 
-## .claude/worktrees/agent-a64dbc154accdbfb5/apps/web/app/(dashboard)/management-roi/
+- `convert_pdf_to_images.py` — Converts each page of a PDF to a PNG image. (~331 tok)
 
+## .agents/skills/minimalist-ui/
 
-## .claude/worktrees/agent-a64dbc154accdbfb5/apps/web/app/(dashboard)/settings/general/
+- `SKILL.md` — Protocol: Premium Utilitarian Minimalism UI Architect (~1996 tok)
 
+## .agents/skills/mobile-native/
 
-## .claude/worktrees/agent-a64dbc154accdbfb5/apps/web/components/shared/
+- `SKILL.md` — Feeling Native On Mobile (~4275 tok)
 
+## .agents/skills/pick-ui-library/
 
-## .claude/worktrees/agent-a64dbc154accdbfb5/apps/web/lib/api/
+- `SKILL.md` — Picking The Right Library (~1212 tok)
 
+## .agents/skills/prototype/
 
-## .claude/worktrees/agent-a6841454fb42a0a85/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `PICKER.md` — The Picker (~1933 tok)
+- `SKILL.md` — Prototyping Variants (~1968 tok)
 
+## .agents/skills/redesign-existing-projects/
 
-## .claude/worktrees/agent-a6841454fb42a0a85/apps/web/e2e/
+- `SKILL.md` — Redesign Skill (~3803 tok)
 
+## .agents/skills/review-animations/
 
-## .claude/worktrees/agent-a6853cce57da2c8f3/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `SKILL.md` — Reviewing Animations (~2115 tok)
+- `STANDARDS.md` — Animation Standards Reference (~2478 tok)
 
+## .agents/skills/stitch-design-taste/
 
-## .claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/
+- `DESIGN.md` — Design System: Taste Standard (~3021 tok)
+- `SKILL.md` — Stitch Design Taste — Semantic Design System Skill (~2979 tok)
 
+## .agents/skills/variant/
 
-## .claude/worktrees/agent-a6853cce57da2c8f3/apps/web/i18n/locales/
+- `picker.md` — The picker (~703 tok)
+- `SKILL.md` — Variants (~1569 tok)
 
+## .agents/skills/variant/agents/
 
-## .claude/worktrees/agent-a68a054653f5001b9/.planning/phases/07-theme-foundation-primitives/
+- `openai.yaml` (~45 tok)
 
+## .agents/skills/web-design-engineer/
 
-## .claude/worktrees/agent-a68a054653f5001b9/apps/mobile/components/ui/
+- `manifest.json` (~179 tok)
+- `README.md` — Project documentation (~7101 tok)
+- `README.zh-CN.md` — Web Design Engineer Skill (~5078 tok)
+- `SKILL.md` — Web Design Engineer (~8878 tok)
 
+## .agents/skills/web-design-engineer/agents/
 
-## .claude/worktrees/agent-a69e9e7d5fb511518/.github/workflows/
+- `openai.yaml` (~85 tok)
 
+## .agents/skills/web-design-engineer/references/
 
-## .claude/worktrees/agent-a69e9e7d5fb511518/.planning/phases/05-guest-recovery-and-management-roi/
+- `advanced-patterns.md` — Advanced Reference: Component Patterns & Code Templates (~3805 tok)
+- `block-library.md` — Implemented Block Library (~452 tok)
+- `browser-acceptance.md` — Executable Browser Acceptance (~1184 tok)
+- `critique-guide.md` — Critique Mode — Detailed Reference (~2622 tok)
+- `design-calibration.md` — Design Calibration (~1555 tok)
+- `design-directions.md` — Design Direction Advisor — Extended Reference (~3544 tok)
+- `failure-patterns.md` — Contextual Failure Patterns (~1816 tok)
+- `redesign-protocol.md` — Existing UI and Redesign Protocol (~1075 tok)
 
+## .agents/skills/web-design-engineer/references/style-recipes/
 
-## .claude/worktrees/agent-a69e9e7d5fb511518/apps/api/routers/
+- `active-theory.md` — active-theory — Active Theory (Cinematic WebGL) (~653 tok)
+- `aesop.md` — aesop — Aesop Skincare (~705 tok)
+- `apple-hig.md` — apple-hig — Apple Human Interface (~773 tok)
+- `are-na.md` — are-na — Are.na (Honest Web) (~567 tok)
+- `balenciaga-post-2017.md` — balenciaga-post-2017 — Balenciaga (post-Demna era) (~597 tok)
+- `bloomberg-businessweek-turley.md` — bloomberg-businessweek-turley — Bloomberg Businessweek (Turley Era) (~651 tok)
+- `bloomberg-terminal.md` — bloomberg-terminal — Bloomberg Terminal (~702 tok)
+- `dieter-rams-braun.md` — dieter-rams-braun — Dieter Rams / Braun (~656 tok)
+- `field-io.md` — field-io — Field.io (Generative Motion Identity) (~736 tok)
+- `headspace-meditation.md` — headspace-meditation — Headspace / Calm (~673 tok)
+- `INDEX.md` — Style Recipes — Catalog Index (~3033 tok)
+- `linear.md` — linear — Linear (Modern Builder Tool) (~803 tok)
+- `mailchimp-freddie.md` — mailchimp-freddie — Mailchimp (Freddie Era, c. 2018–2022) (~641 tok)
+- `mid-century-modern.md` — mid-century-modern — Mid-Century Modern (Paul Rand / Saul Bass) (~689 tok)
+- `monocle-magazine.md` — monocle-magazine — Monocle Magazine (~660 tok)
+- `muji-kenya-hara.md` — muji-kenya-hara — MUJI / Kenya Hara (~682 tok)
+- `notion-pre-ai.md` — notion-pre-ai — Notion (pre-AI era, c. 2017–2022) (~720 tok)
+- `nyt-the-daily.md` — nyt-the-daily — New York Times Editorial (~678 tok)
+- `pentagram.md` — pentagram — Pentagram / Paula Scher (~715 tok)
+- `raycast.md` — raycast — Raycast (Productivity Tool) (~815 tok)
+- `resn-storytelling.md` — resn-storytelling — Resn (Story Through Scroll) (~616 tok)
+- `stripe-press.md` — stripe-press — Stripe Press (~726 tok)
+- `tufte-dataink.md` — tufte-dataink — Edward Tufte / Maximum Data-Ink (~655 tok)
+- `vercel-mesh.md` — vercel-mesh — Vercel (Gradient Mesh Era) (~749 tok)
+- `vignelli-swiss-helvetica.md` — vignelli-swiss-helvetica — Vignelli / Swiss International (~637 tok)
+- `y2k-retrofuturism.md` — y2k-retrofuturism — Y2K / Frutiger Aero Retrofuturism (~695 tok)
 
+## .agents/skills/web-video-presentation/
 
-## .claude/worktrees/agent-a69e9e7d5fb511518/apps/api/tests/
+- `manifest.json` (~184 tok)
+- `README.md` — Project documentation (~4483 tok)
+- `README.zh-CN.md` — Web Video Presentation Skill (~3514 tok)
+- `SKILL.md` — Web Video Presentation (~3622 tok)
 
+## .agents/skills/web-video-presentation/references/
 
-## .claude/worktrees/agent-a69e9e7d5fb511518/apps/api/tests/smoke/
+- `AUDIO.md` — 音频合成 (~2006 tok)
+- `CHAPTER-CRAFT.md` — 章节开发指引（每章开发必读） (~1410 tok)
+- `OUTLINE-FORMAT.md` — `outline.md` 格式 spec (~1323 tok)
+- `RECORDING.md` — 录制与后期合成 (~437 tok)
+- `SCRIPT-STYLE.md` — 文章 → 口播稿风格指南 (~2176 tok)
+- `THEMES.md` — 主题系统 (~4250 tok)
 
+## .agents/skills/web-video-presentation/references/EXAMPLES/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `README.md` — Project documentation (~776 tok)
 
+## .agents/skills/web-video-presentation/references/EXAMPLES/case-tech-review/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/
+- `outline-snippet.md` — Outline 节选 · 科技测评类 case (~986 tok)
+- `README.md` — Project documentation (~415 tok)
 
+## .agents/skills/web-video-presentation/references/EXAMPLES/hook-chapter/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/app/(dashboard)/engineering/pm-schedules/
+- `chapter.css` — Styles: 27 rules, 4 animations (~1346 tok)
+- `chapter.tsx` — hook-chapter · 完整章节示例 (~1144 tok)
+- `README.md` — Project documentation (~596 tok)
 
+## .agents/skills/web-video-presentation/references/EXAMPLES/list-reveal/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/engineering/
+- `chapter.css` — Styles: 21 rules, 1 animations (~932 tok)
+- `chapter.tsx` — list-reveal · 完整章节示例 (~907 tok)
+- `README.md` — Project documentation (~557 tok)
 
+## .agents/skills/web-video-presentation/scripts/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/programs/
+- `scaffold.sh` — ───────────────────────────────────────────────────────────── (~2331 tok)
 
+## .agents/skills/web-video-presentation/templates/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/e2e/
+- `index.html` — Presentation (~84 tok)
+- `vite.config.ts` — Vite build configuration (~59 tok)
 
+## .agents/skills/web-video-presentation/templates/scripts/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/i18n/locales/
+- `extract-narrations.ts` — extract-narrations.ts — collect every chapter's narration array and emit (~1384 tok)
+- `synthesize-audio.sh` — ──────────────────────────────────────────────────────────────────── (~1351 tok)
 
+## .agents/skills/web-video-presentation/templates/scripts/tts-providers/
 
-## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/scripts/
+- `minimax.sh` — ──────────────────────────────────────────────────────────────────── (~441 tok)
+- `openai.sh` — ──────────────────────────────────────────────────────────────────── (~692 tok)
+- `README.md` — Project documentation (~2526 tok)
 
+## .agents/skills/web-video-presentation/templates/src/
 
-## .claude/worktrees/agent-a72a1739b7dc1ccb4/.planning/phases/05-guest-recovery-and-management-roi/
+- `App.tsx` — Estimate spoken duration of a Chinese narration string. Native pace (~729 tok)
+- `main.tsx` (~63 tok)
 
+## .agents/skills/web-video-presentation/templates/src/chapters/01-example/
 
-## .claude/worktrees/agent-a72a1739b7dc1ccb4/apps/web/app/(dashboard)/settings/
+- `Example.css` — Styles: 14 rules (~502 tok)
+- `Example.tsx` — Reference chapter — replace with your own. (~1127 tok)
+- `narrations.ts` — Per-step narration for this chapter. (~318 tok)
 
+## .agents/skills/web-video-presentation/templates/src/components/
 
-## .claude/worktrees/agent-a72a1739b7dc1ccb4/apps/web/app/(dashboard)/settings/guest-requests/
+- `AutoStartGate.css` — Styles: 7 rules, 1 animations (~362 tok)
+- `AutoStartGate.tsx` — Full-screen overlay shown ONCE when `?auto=1` is loaded. Browsers block (~300 tok)
+- `AutoToggle.css` — Styles: 7 rules (~319 tok)
+- `AutoToggle.tsx` — Hidden-on-hover playback mode toggle, fixed top-right. (~263 tok)
+- `MaskReveal.tsx` — clip-path text wipe. Pair with `.mask-reveal` and `.mask-reveal.in` from (~238 tok)
+- `ProgressBar.css` — Styles: 17 rules (~750 tok)
+- `ProgressBar.tsx` — Optional GitHub link rendered next to the bar; reveals/hides together (~1128 tok)
+- `Stage.tsx` — The 16:9 stage. Click anywhere except interactive children = advance. (~442 tok)
 
+## .agents/skills/web-video-presentation/templates/src/hooks/
 
-## .claude/worktrees/agent-a72a1739b7dc1ccb4/apps/web/app/(dashboard)/settings/rooms/
+- `useAudioPlayer.ts` — Audio file path. `null` = no audio for this step (silent). (~1104 tok)
+- `useAutoMode.ts` — Playback mode state machine + URL sync + keyboard toggle. (~720 tok)
+- `useStageScale.ts` — Compute the scale needed to fit a 1920x1080 stage inside the current (~249 tok)
+- `useStepper.ts` — Bump this when chapter step counts / structure change so old persisted (~1532 tok)
 
+## .agents/skills/web-video-presentation/templates/src/registry/
 
-## .claude/worktrees/agent-a72a1739b7dc1ccb4/apps/web/components/settings/
+- `chapters.ts` — Order = order of presentation. (~242 tok)
+- `types.ts` — One narration entry — the spoken text for that step. (~208 tok)
 
+## .agents/skills/web-video-presentation/templates/src/styles/
 
-## .claude/worktrees/agent-a7a17511541f7712d/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `animations.css` — Styles: 11 rules, 1 vars, 6 animations (~599 tok)
+- `base.css` — Styles: 27 rules, 43 vars (~3812 tok)
+- `fonts.css` — Styles: 13 rules (~535 tok)
 
+## .agents/skills/web-video-presentation/themes/bauhaus-bold/
 
-## .claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/
+- `theme.json` (~192 tok)
+- `tokens.css` — Styles: 35 vars (~707 tok)
 
+## .agents/skills/web-video-presentation/themes/blueprint/
 
-## .claude/worktrees/agent-a7a17511541f7712d/apps/web/i18n/locales/
+- `theme.json` (~192 tok)
+- `tokens.css` — Styles: 34 vars (~761 tok)
 
+## .agents/skills/web-video-presentation/themes/bold-signal/
 
-## .claude/worktrees/agent-a8edd935af30077c8/.planning/phases/04-maintenance-and-housekeeping-programs/
+- `theme.json` (~238 tok)
+- `tokens.css` — Styles: 37 vars (~827 tok)
 
+## .agents/skills/web-video-presentation/themes/chalk-garden/
 
-## .claude/worktrees/agent-a8edd935af30077c8/apps/api/routers/
+- `theme.json` (~182 tok)
+- `tokens.css` — Styles: 36 vars (~750 tok)
 
+## .agents/skills/web-video-presentation/themes/creative-voltage/
 
-## .claude/worktrees/agent-a8edd935af30077c8/apps/api/services/programs/
+- `theme.json` (~231 tok)
+- `tokens.css` — Styles: 37 vars (~799 tok)
 
+## .agents/skills/web-video-presentation/themes/dark-botanical/
 
-## .claude/worktrees/agent-a8edd935af30077c8/apps/api/tests/
+- `theme.json` (~224 tok)
+- `tokens.css` — Styles: 35 vars (~834 tok)
 
+## .agents/skills/web-video-presentation/themes/dune/
 
-## .claude/worktrees/agent-a8f4bed807a0b0e23/.planning/phases/05-guest-recovery-and-management-roi/
+- `theme.json` (~211 tok)
+- `tokens.css` — Styles: 32 vars (~752 tok)
 
+## .agents/skills/web-video-presentation/themes/electric-studio/
 
-## .claude/worktrees/agent-a8f4bed807a0b0e23/apps/api/
+- `theme.json` (~216 tok)
+- `tokens.css` — Styles: 36 vars (~778 tok)
 
+## .agents/skills/web-video-presentation/themes/forest-ink/
 
-## .claude/worktrees/agent-a8f4bed807a0b0e23/apps/api/core/
+- `theme.json` (~220 tok)
+- `tokens.css` — Styles: 36 vars (~870 tok)
 
+## .agents/skills/web-video-presentation/themes/indigo-porcelain/
 
-## .claude/worktrees/agent-a8f4bed807a0b0e23/apps/api/models/
+- `theme.json` (~230 tok)
+- `tokens.css` — Styles: 32 vars (~755 tok)
 
+## .agents/skills/web-video-presentation/themes/kraft-paper/
 
-## .claude/worktrees/agent-a8f4bed807a0b0e23/apps/api/tests/smoke/
+- `theme.json` (~217 tok)
+- `tokens.css` — Styles: 36 vars (~842 tok)
 
+## .agents/skills/web-video-presentation/themes/midnight-press/
 
-## .claude/worktrees/agent-a8f4bed807a0b0e23/supabase/migrations/
+- `theme.json` (~158 tok)
+- `tokens.css` — Styles: 31 vars (~616 tok)
 
+## .agents/skills/web-video-presentation/themes/monochrome-print/
 
-## .claude/worktrees/agent-aabc954161b6dcb94/.planning/phases/07-theme-foundation-primitives/
+- `theme.json` (~207 tok)
+- `tokens.css` — Styles: 32 vars (~704 tok)
 
+## .agents/skills/web-video-presentation/themes/neon-cyber/
 
-## .claude/worktrees/agent-aabc954161b6dcb94/apps/mobile/app/(app)/
+- `theme.json` (~216 tok)
+- `tokens.css` — Styles: 37 vars (~905 tok)
 
+## .agents/skills/web-video-presentation/themes/newsroom/
 
-## .claude/worktrees/agent-aabc954161b6dcb94/apps/mobile/lib/theme/
+- `theme.json` — Declares and (~189 tok)
+- `tokens.css` — Styles: 35 vars (~788 tok)
 
+## .agents/skills/web-video-presentation/themes/paper-press/
 
-## .claude/worktrees/agent-aae22d38509b7f1d1/.planning/phases/07-theme-foundation-primitives/
+- `theme.json` (~158 tok)
+- `tokens.css` — Styles: 36 vars (~751 tok)
 
+## .agents/skills/web-video-presentation/themes/pastel-dream/
 
-## .claude/worktrees/agent-aae22d38509b7f1d1/apps/mobile/components/shared/
+- `theme.json` (~224 tok)
+- `tokens.css` — Styles: 36 vars (~892 tok)
 
+## .agents/skills/web-video-presentation/themes/split-canvas/
 
-## .claude/worktrees/agent-aae22d38509b7f1d1/apps/mobile/components/ui/
+- `theme.json` (~212 tok)
+- `tokens.css` — Styles: 36 vars (~803 tok)
 
+## .agents/skills/web-video-presentation/themes/sunset-zine/
 
-## .claude/worktrees/agent-aaf45efee8be146c4/.planning/phases/05-guest-recovery-and-management-roi/
+- `theme.json` (~192 tok)
+- `tokens.css` — Styles: 36 vars (~808 tok)
 
+## .agents/skills/web-video-presentation/themes/swiss-ikb/
 
-## .claude/worktrees/agent-aaf45efee8be146c4/apps/web/components/guest-requests/
+- `theme.json` (~256 tok)
+- `tokens.css` — Styles: 37 vars (~977 tok)
 
+## .agents/skills/web-video-presentation/themes/terminal-green/
 
-## .claude/worktrees/agent-aaf45efee8be146c4/apps/web/i18n/locales/
+- `theme.json` (~196 tok)
+- `tokens.css` — Styles: 39 vars (~803 tok)
 
+## .agents/skills/web-video-presentation/themes/vintage-editorial/
 
-## .claude/worktrees/agent-ab77d676d75b1b8ba/.planning/phases/05-guest-recovery-and-management-roi/
+- `theme.json` (~230 tok)
+- `tokens.css` — Styles: 36 vars (~852 tok)
 
+## .agents/skills/web-video-presentation/themes/warm-keynote/
 
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/api/models/
-
-
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/api/routers/
-
-
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/api/tests/
-
-
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/
-
-
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/components/guest-requests/
-
-
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/i18n/locales/
-
-
-## .claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/lib/api/
-
-
-## .claude/worktrees/agent-ab83cdaf338d7250d/.planning/phases/05-guest-recovery-and-management-roi/
-
-
-## .claude/worktrees/agent-ab83cdaf338d7250d/apps/api/
-
-
-## .claude/worktrees/agent-ab83cdaf338d7250d/apps/api/routers/
-
-
-## .claude/worktrees/agent-ab83cdaf338d7250d/apps/api/tests/
-
-
-## .claude/worktrees/agent-ab83cdaf338d7250d/apps/api/tests/smoke/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/.planning/phases/04-maintenance-and-housekeeping-programs/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/.wolf/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/apps/api/models/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/apps/api/routers/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/apps/api/services/programs/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/apps/api/tests/
-
-
-## .claude/worktrees/agent-ac238caebe6e13063/supabase/migrations/
-
-
-## .claude/worktrees/agent-ac54fef4f965eb79f/.planning/phases/05-guest-recovery-and-management-roi/
-
-
-## .claude/worktrees/agent-ac54fef4f965eb79f/apps/web/
-
-
-## .claude/worktrees/agent-ac54fef4f965eb79f/apps/web/components/guest-requests/
-
-
-## .claude/worktrees/agent-ac54fef4f965eb79f/apps/web/i18n/locales/
-
-
-## .claude/worktrees/agent-ac54fef4f965eb79f/apps/web/lib/api/
-
-
-## .claude/worktrees/agent-ac611b03287caadc4/apps/web/app/(dashboard)/programs/
-
-
-## .claude/worktrees/agent-ac611b03287caadc4/apps/web/components/programs/
-
-
-## .claude/worktrees/agent-ac611b03287caadc4/apps/web/lib/api/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/.planning/phases/04-maintenance-and-housekeeping-programs/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/engineering/pm-schedules/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/housekeeping/assignments/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/housekeeping/rooms/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/tasks/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/components/engineering/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/components/housekeeping/
-
-
-## .claude/worktrees/agent-acae1ebfaff589201/apps/web/i18n/locales/
-
-
-## .claude/worktrees/agent-ace50b85e43800034/.planning/phases/04-maintenance-and-housekeeping-programs/
-
-
-## .claude/worktrees/agent-ace50b85e43800034/.wolf/
-
-
-## .claude/worktrees/agent-ace50b85e43800034/apps/api/routers/
-
-
-## .claude/worktrees/agent-ace50b85e43800034/apps/api/tests/
-
-
-## .claude/worktrees/agent-ad1bc7b7/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/patelrep-api/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/patelrep-mobile/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/patelrep-web/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/ui-ux-pro-max/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/ui-ux-pro-max/data/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/ui-ux-pro-max/data/stacks/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.claude/skills/ui-ux-pro-max/scripts/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.github/workflows/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/codebase/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/phases/01-foundation/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/phases/02-housekeeper-workflow/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/phases/03-engineer-workflow-push-eas/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/phases/mvp1-full/
-
-
-## .claude/worktrees/agent-ad1bc7b7/.planning/research/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/core/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/middleware/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/models/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/routers/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/services/ai/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/services/opera/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/tests/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/api/tests/smoke/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/__tests__/components/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/__tests__/lib/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/__tests__/lib/api/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/__tests__/lib/offline/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/__tests__/screens/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(app)/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(app)/copilot/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(app)/my-rooms/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(app)/profile/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(app)/tasks/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(app)/work-orders/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(auth)/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/app/(auth)/auth/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/components/housekeeping/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/components/shared/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/i18n/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/i18n/locales/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/lib/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/lib/api/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/lib/offline/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/mobile/stores/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(auth)/login/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/ai/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/billing/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/dashboard/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/engineering/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/engineering/assets/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/engineering/pm-schedules/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/engineering/predictions/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/guest-requests/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/housekeeping/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/housekeeping/assignments/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/housekeeping/inspections/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/housekeeping/rooms/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/logbook/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/lost-found/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/onboarding/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/reports/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/scheduling/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/settings/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/settings/billing/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/settings/integrations/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/sop/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/staff/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/(dashboard)/tasks/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/auth/callback/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/app/auth/reset-password/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/components/ai/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/components/dashboard/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/components/engineering/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/components/housekeeping/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/components/shared/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/components/ui/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/i18n/locales/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/lib/api/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/lib/hooks/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/lib/supabase/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/lib/utils/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/public/
-
-
-## .claude/worktrees/agent-ad1bc7b7/apps/web/stores/
-
-
-## .claude/worktrees/agent-ad1bc7b7/docs/superpowers/plans/
-
-
-## .claude/worktrees/agent-ad1bc7b7/docs/superpowers/specs/
-
-
-## .claude/worktrees/agent-ad1bc7b7/patches/
-
-
-## .claude/worktrees/agent-ad1bc7b7/spec/
-
-
-## .claude/worktrees/agent-ad1bc7b7/supabase/
-
-
-## .claude/worktrees/agent-ad1bc7b7/supabase/migrations/
-
-
-## .claude/worktrees/agent-ad340f5a/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/patelrep-api/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/patelrep-mobile/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/patelrep-web/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/ui-ux-pro-max/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/ui-ux-pro-max/data/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/ui-ux-pro-max/data/stacks/
-
-
-## .claude/worktrees/agent-ad340f5a/.claude/skills/ui-ux-pro-max/scripts/
-
-
-## .claude/worktrees/agent-ad340f5a/.github/workflows/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/codebase/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/phases/01-foundation/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/phases/02-housekeeper-workflow/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/phases/03-engineer-workflow-push-eas/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/phases/mvp1-full/
-
-
-## .claude/worktrees/agent-ad340f5a/.planning/research/
-
-
-## .claude/worktrees/agent-ad340f5a/apps/api/
-
-
-## .claude/worktrees/agent-ad340f5a/apps/api/core/
-
-
-## .claude/worktrees/agent-ad340f5a/apps/api/middleware/
-
-
-## .claude/worktrees/agent-ad340f5a/apps/api/models/
-
-
-## .claude/worktrees/agent-ad340f5a/apps/api/routers/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/.planning/phases/04-maintenance-and-housekeeping-programs/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/models/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/routers/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/services/programs/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/tests/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/tests/smoke/
-
-
-## .claude/worktrees/agent-ad63a662cd950eaee/supabase/migrations/
-
-
-## .claude/worktrees/agent-af573ee409c8e2e3d/apps/api/tests/
-
-
-## .githooks/
-
-
-## .github/
-
-
-## .github/workflows/
-
-- `ci.yml` — CI: CI (~2920 tok)
-- `deploy-check.yml` — CI: Deploy Health Check (~1118 tok)
-
-## .planning/
-
-- `ROADMAP.md` — Roadmap: PatelRep (~7035 tok)
-- `STATE.md` — GSD State (~72595 tok)
-
-## .planning/UI-REFRESH-PLAN.md
-
-
-## .planning/milestones/
-
-
-## .planning/phases/03-texas-compliance-and-staff-safety/
-
-
-## .planning/phases/04-maintenance-and-housekeeping-programs/
-
-
-## .planning/phases/05-guest-recovery-and-management-roi/
-
-
-## .planning/phases/06-pms-and-ai-expansion/
-
-
-## .planning/phases/07-theme-foundation-primitives/
-
-
-## .planning/phases/17-backlog-cleanup/
-
-
-## .planning/phases/19-rbac-audit-and-normalization/
-
-
-## .planning/phases/20-close-deferred-v1-3-verification-items/
-
-
-## .planning/phases/21-dev-qa-test-data-hygiene/
-
-
-## .planning/phases/22-expo-sdk-54-57-bump/
-
-
-## .planning/phases/23-route-role-permission-matrix/
-
-
-## .planning/phases/24-ci-guard-bare-role-comparisons/
-
-
-## .planning/phases/25-failure-prediction-proactive-push-dedup/
-
-
-## .planning/phases/26-deep-linked-alert-surfaces/
-
-
-## .planning/phases/27-room-readiness-one-click-reassign-escalate-acknowledge/
-
-
-## .planning/phases/28-batch-actions/
-
-
-## .planning/phases/29-escalation-to-gm/
-
-
-## .planning/phases/30-additive-foundation-regression-harness/
-
-
-## .planning/phases/31-shell-navigation-redesign/
-
-
-## .planning/phases/32-role-dashboard-homes/
-
-
-## .planning/phases/33-core-operational-sections/
-
-
-## .planning/phases/34-management-admin-sections/
-
-
-## .planning/phases/35-engineering-section-chrome/
-
-
-## .planning/phases/36-housekeeping-section-chrome/
-
-
-## .planning/phases/37-final-qa-rollout/
-
-
-## .planning/phases/38-engineering-work-order-labor-and-cost-capture/
-
-- `38-02-SUMMARY.md` — Phase 38 Plan 02: Work Order Cost Capture Summary (~1880 tok)
-- `38-03-SUMMARY.md` — Phase 38 Plan 03: unit_cost / hourly_rate Write + RBAC Summary (~1498 tok)
-- `38-04-SUMMARY.md` — Dependency graph (~1322 tok)
-- `38-05-SUMMARY.md` — Phase 38 Plan 05: Full-Suite + Live Golden-Path Verification Summary (~2965 tok)
-- `deferred-items.md` — Deferred Items — Phase 38 (~208 tok)
-
-## .planning/phases/39-ai-shift-handover-and-gm-morning-brief/
-
-- `39-01-PLAN.md` — FROM: it (~2256 tok)
-- `39-01-SUMMARY.md` — Phase 39 Plan 01: Migration 105 — Shift Summary Acknowledgment Columns Summary (~705 tok)
-- `39-02-PLAN.md` (~3082 tok)
-- `39-02-SUMMARY.md` — Phase 39 Plan 02: Shift-Summary AI Enrichment Summary (~1418 tok)
-- `39-03-PLAN.md` — Declares carries (~2825 tok)
-- `39-03-SUMMARY.md` — Phase 39 Plan 03: Shift-Summary Acknowledgment Endpoint + Web Client Summary (~1145 tok)
-- `39-04-PLAN.md` — Declares extended (~3180 tok)
-- `39-04-SUMMARY.md` — Dependency graph (~1541 tok)
-- `39-05-PLAN.md` — Declares of (~2911 tok)
-- `39-05-SUMMARY.md` — Phase 39 Plan 05: Full-Suite + Live Verification Summary (~3497 tok)
-- `39-CONTEXT.md` — Phase 39: AI Shift-Handover + GM Morning Brief - Context (~2537 tok)
-
-## .planning/phases/40-gm-morning-brief-dashboard-wiring/
-
-- `40-01-PLAN.md` — NON-REGRESSION: SimplifiedDashboard.tsx is a ~950-line, live, shared-across-all-roles (~3039 tok)
-- `40-01-SUMMARY.md` — Phase 40 Plan 01: Wire OvernightRecapStrip into the Live GM Dashboard Summary (~1390 tok)
-- `40-CONTEXT.md` — Phase 40: GM Morning Brief Dashboard Wiring - Context (~2387 tok)
-
-## .planning/research/
-
-
-## .wolf/
-
-
-## .wolf/runtime-logs/
-
-
-## Dashboard briefing interaction (2026-09-17)
-
-- `apps/web/components/dashboard/BriefingChat.tsx` — Inline shift-briefing conversation, shared composer layout, focus and reduced-motion handling; uses existing shared copilot store. (~2300 tok)
-- `apps/web/e2e/dashboard-briefing.spec.ts` — Authenticated inline-chat interaction checks for sending, focus restoration, reopening, stable totals, and rapid close. (~900 tok)
-- `apps/web/e2e/global-setup.ts` — Existing GM/supervisor fixture sign-in and browser storage state creation. (~1100 tok)
-- `apps/web/lib/ai/briefingFastPath.ts` — Local answers grounded in dashboard board statistics. (~1100 tok)
-- `apps/web/playwright.briefing.config.ts` — Localhost briefing suite for desktop, mobile, and reduced motion using existing fixture auth. (~350 tok)
-- `apps/web/stores/copilotThreadStore.ts` — Shared per-user daily conversation and API/local answer pipeline. (~1500 tok)
-
-## Docker Context Additions
-
-
-## External task visualization: engineering design alternatives (2026-09-18)
-
-
-## Housekeeper Home redesign (claude.ai/design import, 2026-08-23)
-
-
-## Phase 3 session additions
-
-
-## Phase 39 resume references (2026-09-16)
-
-
-## Session Additions 2026-05-24 Assignment Fix
-
-
-## Session Additions 2026-05-24 Clean Type Pickup Display
-
-
-## Session Additions 2026-05-24 Room Status Contract
-
-
-## Session Additions 2026-05-31 Occupied Assignment Clean Type
-
-
-## Session Additions 2026-06-04 Mobile Handoff Port
-
-
-## Session Additions 2026-06-09 Mobile My Rooms Workflow
-
-
-## Session additions 2026-09-21: room unavailability
-
-- `apps/api/routers/room_unavailability.py` — Hotel-wide OOO lifecycle API; scoped reads and management-only mutations call transactional RPCs. (~2600 tok)
-- `apps/api/services/room_unavailability.py` — Pure ETA policy helpers for derived past-ETA state and delayed-ETA validation. (~300 tok)
-- `apps/api/tests/test_room_unavailability_contracts.py` — Focused OOO ETA-policy regression coverage. (~300 tok)
-- `apps/web/app/(dashboard)/housekeeping/out-of-order/page.tsx` — Additive OOO active/history, create, ETA, and release page beside the Room Board. (~3600 tok)
-- `supabase/migrations/108_room_unavailability_schema.sql` — OOO schema, RLS, partial active-episode uniqueness, and transactional lifecycle RPCs. (~3300 tok)
-- `supabase/migrations/109_room_unavailability_seed.sql` — Tenant reason defaults and non-destructive legacy OOO backfill. (~500 tok)
-
-## apps/api/
-
-- `rbac_bare_comparison_allowlist.json` (~2520 tok)
-- `requirements.txt` — Python dependencies (~113 tok)
-
-## apps/api/core/
-
-- `scheduler.py` — In-process cron scheduler. (~1416 tok)
-
-## apps/api/core/scheduler.py
-
-
-## apps/api/middleware/
-
-
-## apps/api/models/
-
-- `requests.py` — Pydantic: SanitizedBaseModel (~15924 tok)
-
-## apps/api/routers/
-
-- `ai_copilot.py` — API: 1 endpoints (~15597 tok)
-- `assets.py` — API: 8 endpoints (~7165 tok)
-- `clean_sessions.py` — API: 5 endpoints (~6728 tok)
-- `housekeeping.py` — Declares from (~29335 tok)
-- `integrations.py` — API: 10 endpoints (~3827 tok)
-- `internal.py` — API: 5 endpoints (~10741 tok)
-- `logbook.py` — API: 8 endpoints (~3610 tok)
-- `management_roi.py` — Phase 5 management ROI aggregation. GM-only (D-06). Math lives in contracts.py. (~5614 tok)
-- `room_unavailability.py` — Hotel-wide Out-of-Order lifecycle API. (~2046 tok)
-- `tasks.py` — API: 6 endpoints (~4146 tok)
-- `work_orders.py` — API: 2 endpoints (~14738 tok)
-
-## apps/api/scripts/
-
-
-## apps/api/services/
-
-- `inventory.py` — Engineering spare-parts stock movements (migration 102). (~1727 tok)
-
-## apps/api/services/ai/
-
-- `providers.py` — Creates the configured OpenAI and Anthropic provider clients. (~300 tok)
-- `shift_summary.py` — generate_shift_summary (~2594 tok)
-
-## apps/api/services/guest_recovery/
-
-- `contracts.py` — Pure Phase 5 guest recovery, custody, and ROI policy contracts. (~6069 tok)
-
-## apps/api/services/opera/
-
-- `__init__.py` (~199 tok)
-- `crypto.py` — encrypt_secret, decrypt_secret, encrypt_opera_secrets, decrypt_opera_secrets (~546 tok)
-- `report_columns.py` — Column and report-type resolution for Opera Cloud scheduled-report ingestion. (~1369 tok)
-- `report_ingest.py` — Opera Cloud SFTP scheduled-report ingestion. (~3695 tok)
-- `report_parser.py` — Parser for Opera Cloud "Delimited Data" scheduled-report exports. (~971 tok)
-- `sftp_client.py` — SftpConnectionError: test_connection, list_report_files, download_file (~1414 tok)
-- `sync.py` — ohip_request, map_opera_reservation, has_reservation_conflict, upsert_opera_reservation (~3404 tok)
-
-## apps/api/services/programs/
-
-
-## apps/api/services/safety/
-
-
-## apps/api/services/work_orders/
-
-
-## apps/api/tests/
-
-- `test_ai_copilot_briefings.py` — Tests for the 4 new per-role mobile copilot briefing endpoints (supervisor, (~2831 tok)
-- `test_ai_copilot_rbac.py` — RBAC matrix + tenant-isolation + confirm_tasks validation tests for ai_copilot.py. (~4038 tok)
-- `test_ai_provider_configuration.py` — Provider credential and configuration regression coverage. (~500 tok)
-- `test_clean_sessions_timezone.py` — Clean-sessions hotel-local timezone regression test. (~734 tok)
-- `test_cron_scheduler.py` — The in-process cron scheduler must register every job with the right schedule (~708 tok)
-- `test_inventory.py` — Engineering spare-parts inventory (migration 102): items, locations, (~3431 tok)
-- `test_logbook_timezone.py` — Logbook hotel-local timezone tests (LOGBOOK-01). (~1949 tok)
-- `test_management_roi.py` — Fixture-reconcilable coverage for Phase 5 management ROI calculators. (~9731 tok)
-- `test_opera_pilot_gate.py` — test_opera_connect_403_when_pilot_not_enabled, test_opera_status_403_when_pilot_not_enabled, test_op (~2638 tok)
-- `test_opera_report_columns.py` — Unit tests for services/opera/report_columns.py. (~738 tok)
-- `test_opera_report_ingest.py` — Unit tests for services/opera/report_ingest.py using the in-memory FakeDB. (~2565 tok)
-- `test_opera_report_parser.py` — Unit tests for services/opera/report_parser.py. (~1121 tok)
-- `test_recurring_issues.py` — Tests for GET /assets/recurring-issues (recurring-failure radar). (~1601 tok)
-- `test_risk_alerts_exceptions.py` — Tests for GET /ai/risk-alerts' three new exception categories (proactive (~1229 tok)
-- `test_shift_summary_acknowledgment.py` — Shift-summary acknowledgment tests (39-03). (~1482 tok)
-- `test_shift_summary_enrichment.py` — Enrichment coverage for generate_shift_summary (Phase 39-02): VIP arrivals, (~3051 tok)
-- `test_shift_summary_generate.py` — Shift-summary generate/lookup tests. (~2516 tok)
-- `test_task_claim.py` — Housekeeping tasks left unassigned are a broadcast pool: any housekeeper can (~1882 tok)
-- `test_work_order_archive.py` — Phase 15 contract tests for work-order bulk-archive. (~5158 tok)
-- `test_work_order_console_features.py` — Contract tests for the Work Order Console panel redesign (migration 110): (~3885 tok)
-- `test_work_order_parts_consumption.py` — Closing a work order can consume engineering spare parts (migration 102): (~1884 tok)
-- `test_work_order_room_out_of_order.py` — Contract tests for the create-work-order "room can't be sold right now" (~1310 tok)
-- `test_work_order_stats.py` — Contract tests for GET /work-orders/stats (engineering command-center KPIs). (~2012 tok)
-- `test_work_order_transitions.py` — Phase 1 contract tests for work-order transitions. (~3914 tok)
-
-## apps/api/tests/load/
-
-
-## apps/api/tests/smoke/
-
-- `fake_supabase.py` — Richer in-memory Supabase fake for clean-sessions / checklists / shifts tests. (~2480 tok)
-- `test_opera_report_routes.py` — Router-level tests for the new Opera SFTP report-ingestion endpoints. (~2464 tok)
-- `test_opera_sftp_client.py` — Connectivity/error-handling SHAPE tests for services/opera/sftp_client.py. (~774 tok)
-- `test_room_sequencing.py` — test_single_room_gets_sequence_one, test_empty_list_returns_empty, test_same_floor_rooms_ordered_by_ (~574 tok)
-- `test_tenant_isolation.py` — _FakeAdminAuth: list_users, invite_user_by_email, table, b_row + 17 more (~10846 tok)
-
-## apps/api/tests/smoke/test_auth_decode.py
-
-
-## apps/api/tests/smoke/test_load_auth_state.py
-
-
-## apps/api/tests/smoke/test_sop_security.py
-
-
-## apps/api/tests/smoke/test_webhooks_and_transitions.py
-
-
-## apps/api/tests/test_cron_health_status.py
-
-
-## apps/api/tests/test_cron_scheduler.py
-
-
-## apps/api/tests/test_work_order_transitions.py
-
-
-## apps/mobile/
-
-
-## apps/mobile/__tests__/components/
-
-
-## apps/mobile/__tests__/lib/
-
-
-## apps/mobile/__tests__/lib/api/
-
-
-## apps/mobile/__tests__/lib/offline/
-
-
-## apps/mobile/__tests__/lib/roomWorkflow.test.ts
-
-
-## apps/mobile/__tests__/lib/theme/
-
-
-## apps/mobile/__tests__/screens/
-
-
-## apps/mobile/android/
-
-
-## apps/mobile/android/app/
-
-
-## apps/mobile/android/gradle/wrapper/
-
-
-## apps/mobile/app/
-
-
-## apps/mobile/app/(app)/
-
-
-## apps/mobile/app/(app)/alerts/
-
-
-## apps/mobile/app/(app)/assets/
-
-
-## apps/mobile/app/(app)/assignments/
-
-
-## apps/mobile/app/(app)/clean/
-
-
-## apps/mobile/app/(app)/copilot/
-
-
-## apps/mobile/app/(app)/guest-requests/
-
-
-## apps/mobile/app/(app)/home/
-
-
-## apps/mobile/app/(app)/home/index.tsx
-
-
-## apps/mobile/app/(app)/inspect/
-
-
-## apps/mobile/app/(app)/logbook/
-
-
-## apps/mobile/app/(app)/lost-found/
-
-
-## apps/mobile/app/(app)/my-rooms/
-
-
-## apps/mobile/app/(app)/my-rooms/[roomId].tsx
-
-
-## apps/mobile/app/(app)/notifications/
-
-
-## apps/mobile/app/(app)/pm-schedules/
-
-
-## apps/mobile/app/(app)/profile/
-
-
-## apps/mobile/app/(app)/room-board/
-
-
-## apps/mobile/app/(app)/room-status/
-
-
-## apps/mobile/app/(app)/scheduling/
-
-
-## apps/mobile/app/(app)/sop/
-
-
-## apps/mobile/app/(app)/staff/
-
-
-## apps/mobile/app/(app)/tasks/
-
-- `index.tsx` — BUCKET_TITLES (~4748 tok)
-
-## apps/mobile/app/(app)/work-orders/
-
-
-## apps/mobile/app/(auth)/
-
-
-## apps/mobile/app/(auth)/auth/
-
-
-## apps/mobile/components/engineering/
-
-
-## apps/mobile/components/home/
-
-
-## apps/mobile/components/home/SupervisorHome.tsx
-
-
-## apps/mobile/components/housekeeping/
-
-
-## apps/mobile/components/housekeeping/FoundItemModal.tsx
-
-
-## apps/mobile/components/housekeeping/ReportIssueModal.tsx
-
-
-## apps/mobile/components/housekeeping/SupplyRequestModal.tsx
-
-
-## apps/mobile/components/shared/
-
-
-## apps/mobile/components/supervisor/
-
-
-## apps/mobile/components/supervisor/HousekeeperPicker.tsx
-
-
-## apps/mobile/components/supervisor/RoomDetailSheet.tsx
-
-
-## apps/mobile/components/supervisor/atoms.tsx
-
-
-## apps/mobile/components/tasks/
-
-- `TaskCard.tsx` — TYPE_META is consumed as a plain object (no hook) — sourced from the static (~3093 tok)
-
-## apps/mobile/components/ui/
-
-
-## apps/mobile/i18n/
-
-
-## apps/mobile/i18n/locales/
-
-- `en.json` (~13262 tok)
-- `es.json` (~14160 tok)
-
-## apps/mobile/lib/
-
-
-## apps/mobile/lib/ai/
-
-- `tasks.ts` — null = open housekeeping broadcast pool — any housekeeper can claim it. (~1617 tok)
-
-## apps/mobile/lib/api/
-
-
-## apps/mobile/lib/api/housekeepingSupervisor.ts
-
-
-## apps/mobile/lib/auth/
-
-
-## apps/mobile/lib/engineering/
-
-
-## apps/mobile/lib/housekeeping/
-
-
-## apps/mobile/lib/housekeeping/roomWorkflow.ts
-
-
-## apps/mobile/lib/housekeeping/supervisor.ts
-
-
-## apps/mobile/lib/navigation/
-
-
-## apps/mobile/lib/offline/
-
-
-## apps/mobile/lib/offline/db.ts
-
-
-## apps/mobile/lib/offline/sync.ts
-
-
-## apps/mobile/lib/theme/
-
-
-## apps/mobile/lib/utils/
-
-
-## apps/mobile/lib/voice/
-
-
-## apps/mobile/package.json
-
-
-## apps/mobile/stores/
-
-
-## apps/mobile/stores/appStore.ts
-
-
-## apps/web/
-
-- `.scratch-screenshot.mjs` — Declares browser (~227 tok)
-- `frozen-files-allowlist.json` — Declares on (~6188 tok)
-- `frozen-files.json` (~1299 tok)
-- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~819 tok)
-- `package.json` — Node.js package manifest (~834 tok)
-
-## apps/web/app/
-
-
-## apps/web/app/(auth)/login/
-
-
-## apps/web/app/(dashboard)/
-
-
-## apps/web/app/(dashboard)/ai/
-
-
-## apps/web/app/(dashboard)/billing/
-
-
-## apps/web/app/(dashboard)/dashboard/
-
-
-## apps/web/app/(dashboard)/dev/ui/
-
-
-## apps/web/app/(dashboard)/engineering/
-
-- `luxury.css` — Styles: 44 rules, 77 vars (~2856 tok)
-- `page.tsx` — dynamic (~3136 tok)
-
-## apps/web/app/(dashboard)/engineering/assets/
-
-- `page.tsx` — AssetsRedirect (~37 tok)
-
-## apps/web/app/(dashboard)/engineering/pm-schedules/
-
-- `page.tsx` — PMSchedulesRedirect (~40 tok)
-
-## apps/web/app/(dashboard)/engineering/predictions/
-
-- `page.tsx` — PredictionsRedirect (~120 tok)
-
-## apps/web/app/(dashboard)/engineering/work-orders/
-
-- `page.tsx` — SUB_TABS (~181 tok)
-
-## apps/web/app/(dashboard)/evidence/
-
-
-## apps/web/app/(dashboard)/guest-requests/
-
-- `page.tsx` — GuestRequestsRedirect (~205 tok)
-
-## apps/web/app/(dashboard)/housekeeping/
-
-- `page.tsx` — CLEAN_TYPE_TEXT_COLOR (~8967 tok)
-
-## apps/web/app/(dashboard)/housekeeping/assignments/
-
-- `page.tsx` — Legacy assignment URL redirect to the Room Board. (~100 tok)
-
-## apps/web/app/(dashboard)/housekeeping/inspections/
-
-- `page.tsx` — Legacy inspection URL to be redirected to the Room Board. (~100 tok)
-
-## apps/web/app/(dashboard)/housekeeping/rooms/
-
-
-## apps/web/app/(dashboard)/housekeeping/routes/
-
-- `page.tsx` — Legacy standalone Routes page; will redirect to the Room Board. (~100 tok)
-
-## apps/web/app/(dashboard)/logbook/
-
-- `page.tsx` — todayIso (~11494 tok)
-
-## apps/web/app/(dashboard)/lost-found/
-
-
-## apps/web/app/(dashboard)/management-roi/
-
-- `page.tsx` — toLocalDateStr (~6298 tok)
-
-## apps/web/app/(dashboard)/onboarding/
-
-
-## apps/web/app/(dashboard)/programs/
-
-
-## apps/web/app/(dashboard)/reports/
-
-
-## apps/web/app/(dashboard)/safety/
-
-
-## apps/web/app/(dashboard)/scheduling/
-
-
-## apps/web/app/(dashboard)/settings/
-
-
-## apps/web/app/(dashboard)/settings/billing/
-
-
-## apps/web/app/(dashboard)/settings/departments/
-
-
-## apps/web/app/(dashboard)/settings/feedback/
-
-
-## apps/web/app/(dashboard)/settings/front-desk/
-
-
-## apps/web/app/(dashboard)/settings/general/
-
-
-## apps/web/app/(dashboard)/settings/guest-requests/
-
-
-## apps/web/app/(dashboard)/settings/housekeeping/
-
-
-## apps/web/app/(dashboard)/settings/inspections/
-
-
-## apps/web/app/(dashboard)/settings/integrations/
-
-
-## apps/web/app/(dashboard)/settings/programs/
-
-- `page.tsx` — Renders the operational Programs workspace within the Settings layout. (~20 tok)
-
-## apps/web/app/(dashboard)/settings/roles/
-
-
-## apps/web/app/(dashboard)/settings/rooms/
-
-
-## apps/web/app/(dashboard)/settings/sop/
-
-- `page.tsx` — Renders the SOP Library within the Settings layout. (~20 tok)
-
-## apps/web/app/(dashboard)/sop/
-
-
-## apps/web/app/(dashboard)/staff/
-
-- `page.tsx` — ROLE_OPTIONS (~15331 tok)
-
-## apps/web/app/(dashboard)/tasks/
-
-- `page.tsx` — VIEW_TABS — renders form (~6274 tok)
-
-## apps/web/app/auth/callback/
-
-
-## apps/web/app/auth/reset-password/
-
-
-## apps/web/components/ai/
-
-- `AICopilotBubble.tsx` — ConfirmView (~5178 tok)
-
-## apps/web/components/dashboard/
-
-- `AIRiskAlertsPanel.tsx` — AIRiskAlertsPanel (~2954 tok)
-- `DashboardGreeting.tsx` — Time-aware dashboard greeting title and date/meta line. (~600 tok)
-- `OvernightRecapStrip.tsx` — OvernightRecapStrip (~695 tok)
-- `RoomBlockersList.tsx` — VISIBLE_CAP (~1008 tok)
-- `SimplifiedDashboard.tsx` — Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'` (~12254 tok)
-
-## apps/web/components/engineering/
-
-- `AssetDetailModal.tsx` — formatCurrency (~5245 tok)
-- `CreateAssetModal.tsx` — CreateAssetModal (~3263 tok)
-- `CreatePMScheduleModal.tsx` — INTERVAL_LABEL_KEYS (~3295 tok)
-- `CreateWorkOrderDrawer.tsx` — getCategories (~6256 tok)
-- `EngineeringNav.ts` — Shared Engineering section navigation. Renders as the PageHeader tab bar on (~308 tok)
-- `PartsPanel.tsx` — LOCATIONS_KEY — renders form (~4400 tok)
-- `RecurringIssuesSidebar.tsx` — SkeletonItem (~1260 tok)
-- `WorkOrderCard.tsx` — CATEGORY_ICONS (~1401 tok)
-- `WorkOrderDetailDrawer.tsx` — Pre-opens the matching inline action (kanban drag-to-column shortcuts) instead of a silent status ch (~678 tok)
-- `WorkOrderListToolbar.tsx` — user id, 'all', or 'unassigned' (~2075 tok)
-- `WorkOrderRecord.tsx` — ids here are staff/system UUIDs, not display names -- there is no client-side name lookup. (~20992 tok)
-- `WorkOrderRow.tsx` — PRIORITY_TONE (~1624 tok)
-- `WorkOrderStatsRow.tsx` — formatDuration (~1392 tok)
-- `WorkOrderTable.tsx` — PER_PAGE (~1462 tok)
-
-## apps/web/components/engineering/board/
-
-- `EngineeringBoardView.tsx` — assigned_to is a staff UUID, not a display name -- there is no client-side name lookup, so this mirr (~4656 tok)
-- `EngineeringConsoleView.tsx` — assigned_to is a staff UUID, not a display name -- there is no client-side name lookup here. (~1724 tok)
-- `EngineeringCopilotPanel.tsx` — Groups same-location, same-trade open work so a chief engineer can spot a (~2281 tok)
-- `EngineeringCopilotSuggestions.tsx` — Groups same-location, same-trade open work so a chief engineer can spot a (~1319 tok)
-- `PMWeekGlance.tsx` — MAX_ROWS (~1407 tok)
-
-## apps/web/components/engineering/luxury/
-
-- `LuxuryPrimitives.tsx` — LuxuryButton (~1037 tok)
-
-## apps/web/components/engineering/tabs/
-
-- `AssetsTab.tsx` — getRiskFilters — renders table (~3232 tok)
-- `PMSchedulesTab.tsx` — getScheduleStatus — renders table (~5938 tok)
-- `PredictionsTab.tsx` — getAvgScoreColorVar (~7968 tok)
-- `WorkOrdersTab.tsx` — CATEGORIES — renders modal (~6047 tok)
-
-## apps/web/components/guest-requests/
-
-- `GuestRequestDrawer.tsx` — MESSAGE_ROLES (~6919 tok)
-
-## apps/web/components/housekeeping/
-
-- `AssignmentSidebar.tsx` — AssignmentSidebar (~1298 tok)
-- `AssignmentSuggestionsDrawer.tsx` — AssignmentSuggestionsDrawer (~1896 tok)
-- `HousekeepingRoutes.tsx` — Housekeeping · Routes — supervisor timeline board (real data). (~12288 tok)
-- `OccupancyImportModal.tsx` — OPERA occupancy import modal used by housekeeping workflows. (~1100 tok)
-- `RoomDetailDrawer.tsx` — Standard hotel checkout. Departure rooms with no explicit checkout_time set (~15547 tok)
-
-## apps/web/components/programs/
-
-
-## apps/web/components/safety/
-
-
-## apps/web/components/settings/
-
-
-## apps/web/components/shared/
-
-- `CommandPalette.tsx` — Global ⌘K / Ctrl-K palette. Lists the current user's allowed nav routes — (~3570 tok)
-- `MobileFloorNav.tsx` — Bottom tab bar for floor roles only — managers keep the sidebar + mobile drawer. (~854 tok)
-- `PageHeader.tsx` — Per-tab override — see PageHeaderProps.dataI18nSkip. Independent of the page-level prop since some c (~1111 tok)
-- `Providers.tsx` — Hydrates authenticated user and profile data into the auth store. (~2300 tok)
-- `Sidebar.tsx` — Dashboard sidebar grouping and visible primary navigation links. (~2800 tok)
-
-## apps/web/components/tasks/
-
-- `CreateTaskDrawer.tsx` — SLA_MINUTES — renders form (~2917 tok)
-- `TaskDetailDrawer.tsx` — Start/Mark Complete/Cancel — limited to roles who could actually be doing (or standing (~4041 tok)
-- `taskDisplay.tsx` — Raw backend TaskStatus → Pill tone (distinct from UnifiedDisplayStatus, which collapses several of t (~1458 tok)
-- `TaskLaneCard.tsx` — TaskLaneCard (~867 tok)
-- `TasksBoardView.tsx` — LANE_DOT (~536 tok)
-- `TasksTableView.tsx` — LANE_TEXT (~544 tok)
-- `TaskTimeline.tsx` — Built only from fields the backend actually populates — no invented timestamps. (~1421 tok)
-- `UnifiedTaskRow.tsx` — displayStatusLabel (~778 tok)
-
-## apps/web/components/ui/
-
-
-## apps/web/e2e/
-
-- `phase1-work-orders.spec.ts` — Phase 1 — Authenticated E2E tests (~4581 tok)
-- `phase4-programs.spec.ts` — Phase 4 Plan 08 (Slice 4C) — bilingual floor-contract E2E coverage. (~2000 tok)
-- `room-board-baseline.spec.ts` — FOUND-03 — Regression pixel-diff baseline for the housekeeping Room Board (~1961 tok)
-
-## apps/web/e2e/fixtures/
-
-
-## apps/web/i18n/
-
-
-## apps/web/i18n/locales/
-
-- `en.ts` — Declares en (~27229 tok)
-- `es.ts` — Declares es (~29885 tok)
-
-## apps/web/lib/ai/
-
-
-## apps/web/lib/api/
-
-- `ai.ts` — ── Types ──────────────────────────────────────────────────────────────────── (~1624 tok)
-- `client.ts` — Exports resolvedApiUrl, ApiClientError, apiClient (~1827 tok)
-- `engineering.ts` — GM/engineering command-center KPIs. `cost_this_month` is null for non-GM roles. (~4194 tok)
-- `housekeeping.ts` — Hotel-wide average clean time for today plus the 7-day trend (dashboard hero). (~2967 tok)
-- `inventory.ts` — Mirrors apps/api/routers/inventory.py / models/requests.py (migration 102). (~911 tok)
-- `logbook.ts` — API routes: GET, POST, PATCH, DELETE (9 endpoints) (~868 tok)
-- `managementRoi.ts` — API routes: GET (7 endpoints) (~1066 tok)
-- `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1238 tok)
-- `tasks.ts` — ── Types ───────────────────────────────────────────────────────────────────── (~787 tok)
-
-## apps/web/lib/hooks/
-
-- `useArrivalReadiness.ts` — Exports BlockerRow, ShiftTile, PaceProjection, OvernightSummary, useArrivalReadiness (~4260 tok)
-
-## apps/web/lib/supabase/
-
-
-## apps/web/lib/utils/
-
-- `copilotRoute.test.ts` — Regression coverage that retires the legacy Copilot route and dashboard entry points. (~250 tok)
-- `engineering.ts` — Single source of truth for the 70/40 risk-score thresholds used across (~706 tok)
-- `housekeepingNavigation.test.ts` — Unit coverage for role-based housekeeping sub-navigation. (~600 tok)
-- `housekeepingNavigation.ts` — Housekeeping sub-navigation by role. (~600 tok)
-- `navigation.ts` — Role-based desktop navigation definitions and allowed-route helpers. (~1200 tok)
-- `routeGuard.ts` — Role-aware route access rules and mobile-only role redirects. (~1000 tok)
-- `taskCapabilities.ts` — UI capabilities intentionally narrow the backend's broad task PATCH endpoint. (~484 tok)
-- `taskWorkspace.test.ts` — Declares item (~1325 tok)
-- `taskWorkspace.ts` — '' = both. Replaces the old separate Guest Requests / Internal tabs. (~1098 tok)
-- `unifiedTasks.test.ts` — makeTask: makeGuestRequest (~1622 tok)
-- `unifiedTasks.ts` — A Guest Request auto-creates a linked Task (`guest_requests.task_id -> tasks.id`). (~1845 tok)
-- `userGreeting.test.ts` — Regression coverage for dashboard display-name and nameless-greeting fallbacks. (~300 tok)
-- `userGreeting.ts` — Resolves a safe first-name greeting and formats the optional suffix. (~250 tok)
-
-## apps/web/playwright.phase0.config.ts
-
-
-## apps/web/scripts/
-
-
-## apps/web/stores/
-
-
-## design_handoff_frontend_rework/
-
-
-## design_handoff_mobile/
-
-
-## e2e/
-
-
-## e2e/agent-browser/
-
-
-## e2e/agent-browser/scripts/
-
-
-## e2e/golden-paths/
-
-
-## e2e/helpers/
-
-
-## graphify-out/
-
-
-## infra/opera-sftp/
-
-- `Dockerfile` — Docker container definition (~165 tok)
-- `railway.toml` (~21 tok)
-
-## schema/
-
-
-## scripts/
-
-
-## supabase/
-
-
-## supabase/migrations/
-
-- `105_shift_summary_acknowledgment.sql` — ============================================================================= (~369 tok)
-- `106_room_assignment_sequence.sql` — ============================================================================= (~219 tok)
-- `107_opera_sftp_report_ingestion.sql` — Opera Cloud SFTP scheduled-report ingestion: a parallel connection mode to the (~1280 tok)
-- `110_work_order_console_features.sql` — ============================================================================= (~1914 tok)
-
-## youtubeMobileResearch.md
-
+- `theme.json` (~176 tok)
+- `tokens.css` — Styles: 36 vars (~731 tok)

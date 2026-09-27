@@ -49,10 +49,13 @@ export interface PMCompletionPayload {
   verifier_id?: string
   measurements?: Record<string, unknown>
   meter_readings?: Record<string, unknown>
+  /** Explicit first-class meter links; legacy meter_readings JSON remains evidence. */
+  condition_readings?: Array<{ meter_id: string; value: number; notes?: string }>
   photos?: string[]
   labor_minutes?: number
   parts_used?: PMPart[]
   defects?: PMDefect[]
+  vendor_id?: string
   vendor_name?: string
   certificate_attachments?: string[]
   notes?: string
@@ -78,11 +81,13 @@ export interface PMCompletionRecord {
   labor_minutes?: number
   parts_used?: PMPart[]
   defects?: PMDefect[]
+  vendor_id?: string | null
   vendor_name?: string | null
   certificate_attachments?: string[]
   notes?: string | null
   completed_at?: string
   items?: PMCompletionItemRecord[]
+  corrective_work_orders?: Array<{ id: string; title: string }>
 }
 
 export interface PMDeferralPayload {
@@ -245,6 +250,9 @@ export const programsApi = {
 
   getPMCompletion: (scheduleId: string, completionId: string) =>
     apiClient.get(`/assets/pm-schedules/${scheduleId}/completions/${completionId}`) as Promise<{ data: PMCompletionRecord }>,
+
+  listPMCompletions: (scheduleId: string) =>
+    apiClient.get(`/assets/pm-schedules/${scheduleId}/completions`) as Promise<{ data: PMCompletionRecord[] }>,
 
   deferPM: (scheduleId: string, payload: PMDeferralPayload) =>
     apiClient.post(`/programs/pm-schedules/${scheduleId}/deferrals`, payload) as Promise<{ data: PMDeferralRecord }>,

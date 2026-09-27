@@ -6,6 +6,7 @@ new work order, using the same RPC the dedicated Out-of-Order screen uses.
 from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 
 from middleware.auth import CurrentUser
 from models.requests import CreateWorkOrderRequest
@@ -61,6 +62,7 @@ async def test_create_work_order_marks_room_out_of_order_when_flagged(monkeypatc
     assert params["p_room_id"] == "11111111-1111-4111-8111-111111111111"
     assert params["p_tenant_id"] == "hotel-1"
     assert params["p_reason_code"] == "ELECTRICAL"
+    assert params["p_type"] == "OUT_OF_ORDER"
     assert params["p_work_order_id"] == response["data"]["id"]
     assert params["p_created_by"] == "fd-1"
 
@@ -114,20 +116,49 @@ async def test_create_work_order_flag_without_room_is_a_no_op(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_create_work_order_out_of_order_rpc_failure_does_not_block_creation(monkeypatch):
+async def test_create_work_order_room_down_failure_rolls_back_the_work_order(monkeypatch):
     db = DBWithRpc(FakeDB(dict(ROOM_ROWS)), raise_on_rpc=True)
+    monkeypatch.setattr(work_orders_router, "supabase", db)
+
+    with pytest.raises(HTTPException, match="work order was not created"):
+        await work_orders_router.create_work_order(
+            CreateWorkOrderRequest(
+                title="No power in room",
+                category="electrical",
+                priority="emergency",
+                room_id="11111111-1111-4111-8111-111111111111",
+                mark_room_out_of_order=True,
+            ),
+            FRONT_DESK,
+        )
+
+    assert db.rows.get("work_orders", []) == []
+
+
+@pytest.mark.asyncio
+async def test_create_work_order_preserves_explicit_room_down_type_and_reason(monkeypatch):
+    db = DBWithRpc(FakeDB(dict(ROOM_ROWS)))
     monkeypatch.setattr(work_orders_router, "supabase", db)
 
     response = await work_orders_router.create_work_order(
         CreateWorkOrderRequest(
-            title="No power in room",
-            category="electrical",
-            priority="emergency",
+            title="PTAC will not start",
+            category="hvac",
+            priority="urgent",
             room_id="11111111-1111-4111-8111-111111111111",
-            mark_room_out_of_order=True,
+            room_unavailability={
+                "room_id": "11111111-1111-4111-8111-111111111111",
+                "type": "OUT_OF_SERVICE",
+                "reason_code": "HVAC",
+                "reason_label": "HVAC / no cooling",
+                "expected_return_at": "2026-09-27T12:00:00Z",
+                "details": "Compressor will not start",
+            },
         ),
         FRONT_DESK,
     )
 
-    assert response["data"] is not None
-    assert response["room_marked_out_of_order"] is False
+    _, params = db.rpc_calls[0]
+    assert response["room_marked_out_of_order"] is True
+    assert params["p_type"] == "OUT_OF_SERVICE"
+    assert params["p_reason_label"] == "HVAC / no cooling"

@@ -174,6 +174,23 @@ def test_pm_completion_returns_signed_urls(monkeypatch):
     assert "storage_path" not in read_response.text
 
 
+def test_selected_pm_history_is_tenant_scoped(monkeypatch):
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+        "pm_completion_records": [
+            {"id": "completion-a", "tenant_id": "hotel-a", "pm_schedule_id": "sched-1", "completed_at": "2026-09-27T12:00:00Z"},
+            {"id": "completion-b", "tenant_id": "hotel-b", "pm_schedule_id": "sched-1", "completed_at": "2026-09-28T12:00:00Z"},
+        ],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get("/v1/assets/pm-schedules/sched-1/completions", headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()["data"]] == ["completion-a"]
+
+
 def test_cross_tenant_evidence_rejected(monkeypatch):
     """An evidence_record owned by tenant B cannot be attached to a tenant-A completion."""
     db = FakeDB({

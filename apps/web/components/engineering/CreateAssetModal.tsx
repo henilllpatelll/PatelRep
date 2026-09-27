@@ -1,293 +1,347 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Plus, AlertTriangle, X, Loader2 } from 'lucide-react'
-import { engineeringApi } from '@/lib/api/engineering'
-import { Button, IconButton } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, Loader2, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { engineeringApi, type Asset } from "@/lib/api/engineering";
+import { roomsApi } from "@/lib/api/rooms";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { EngineeringDrawer } from "@/components/engineering/EngineeringDrawer";
 
-interface CreateAssetModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => void
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  asset?: Asset;
 }
+const empty = {
+  name: "",
+  category_id: "",
+  room_id: "",
+  location_text: "",
+  asset_tag: "",
+  manufacturer: "",
+  model: "",
+  serial_number: "",
+  installation_date: "",
+  purchase_date: "",
+  warranty_expires: "",
+  expected_lifespan_years: "",
+  replacement_cost: "",
+  notes: "",
+};
 
-export function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps) {
-  const { t } = useTranslation()
-  const [fields, setFields] = useState({
-    name: '',
-    category_id: '',
-    location_text: '',
-    manufacturer: '',
-    model: '',
-    serial_number: '',
-    purchase_date: '',
-    warranty_expires: '',
-    expected_lifespan_years: '',
-    replacement_cost: '',
-  })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function CreateAssetModal({ isOpen, onClose, onSuccess, asset }: Props) {
+  const { t } = useTranslation();
+  const [fields, setFields] = useState(empty);
+  const [locationType, setLocationType] = useState<"room" | "area">("area");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const categories = useQuery({
+    queryKey: ["asset-categories"],
+    queryFn: engineeringApi.listAssetCategories,
+    enabled: isOpen,
+    staleTime: 300_000,
+  });
+  const rooms = useQuery({
+    queryKey: ["rooms-picker"],
+    queryFn: () => roomsApi.list(),
+    enabled: isOpen,
+    staleTime: 300_000,
+  });
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !saving) onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen, saving, onClose])
+    if (!isOpen) return;
+    setFields(
+      asset
+        ? {
+            name: asset.name,
+            category_id: asset.category_id,
+            room_id: asset.room_id ?? "",
+            location_text: asset.location_text ?? "",
+            asset_tag: asset.asset_tag ?? "",
+            manufacturer: asset.manufacturer ?? "",
+            model: asset.model ?? "",
+            serial_number: asset.serial_number ?? "",
+            installation_date: asset.installation_date ?? "",
+            purchase_date: asset.purchase_date ?? "",
+            warranty_expires: asset.warranty_expires ?? "",
+            expected_lifespan_years:
+              asset.expected_lifespan_years?.toString() ?? "",
+            replacement_cost: asset.replacement_cost?.toString() ?? "",
+            notes: asset.notes ?? "",
+          }
+        : empty,
+    );
+    setLocationType(asset?.room_id ? "room" : "area");
+    setError(null);
+  }, [asset, isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setFields({
-        name: '',
-        category_id: '',
-        location_text: '',
-        manufacturer: '',
-        model: '',
-        serial_number: '',
-        purchase_date: '',
-        warranty_expires: '',
-        expected_lifespan_years: '',
-        replacement_cost: '',
-      })
-      setError(null)
-    }
-  }, [isOpen])
-
-  if (!isOpen) return null
-
-  function set(key: keyof typeof fields, value: string) {
-    setFields((prev) => ({ ...prev, [key]: value }))
+  function set(key: keyof typeof empty, value: string) {
+    setFields((current) => ({ ...current, [key]: value }));
   }
-
-  async function handleCreate() {
-    if (!fields.name.trim()) {
-      setError(t('engineering.assetsPage.createNameRequired'))
-      return
+  async function save() {
+    if (!fields.name.trim() || !fields.category_id) {
+      setError(
+        !fields.name.trim()
+          ? t("engineering.assetsPage.createNameRequired")
+          : t("engineering.assetsPage.categoryRequired"),
+      );
+      return;
     }
-    setSaving(true)
-    setError(null)
+    const payload = {
+      name: fields.name.trim(),
+      category_id: fields.category_id,
+      room_id:
+        locationType === "room" ? fields.room_id || undefined : undefined,
+      location_text:
+        locationType === "area"
+          ? fields.location_text.trim() || undefined
+          : undefined,
+      asset_tag: fields.asset_tag.trim() || undefined,
+      manufacturer: fields.manufacturer.trim() || undefined,
+      model: fields.model.trim() || undefined,
+      serial_number: fields.serial_number.trim() || undefined,
+      installation_date: fields.installation_date || undefined,
+      purchase_date: fields.purchase_date || undefined,
+      warranty_expires: fields.warranty_expires || undefined,
+      expected_lifespan_years: fields.expected_lifespan_years
+        ? Number(fields.expected_lifespan_years)
+        : undefined,
+      replacement_cost: fields.replacement_cost
+        ? Number(fields.replacement_cost)
+        : undefined,
+      notes: fields.notes.trim() || undefined,
+    };
+    setSaving(true);
+    setError(null);
     try {
-      await engineeringApi.createAsset({
-        name: fields.name.trim(),
-        category_id: fields.category_id.trim(),
-        location_text: fields.location_text.trim() || undefined,
-        manufacturer: fields.manufacturer.trim() || undefined,
-        model: fields.model.trim() || undefined,
-        serial_number: fields.serial_number.trim() || undefined,
-        purchase_date: fields.purchase_date || undefined,
-        expected_lifespan_years: fields.expected_lifespan_years
-          ? Number(fields.expected_lifespan_years)
-          : undefined,
-        replacement_cost: fields.replacement_cost
-          ? Number(fields.replacement_cost)
-          : undefined,
-      })
-      onSuccess()
-      onClose()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('engineering.assetsPage.createError'))
+      if (asset) await engineeringApi.updateAsset(asset.id, payload);
+      else await engineeringApi.createAsset(payload);
+      onSuccess();
+      onClose();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : t("engineering.assetsPage.createError"),
+      );
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
+  const input = (label: string, key: keyof typeof empty, type = "text") => (
+    <label>
+      <span className="mb-1.5 block text-sm font-medium text-ink2">
+        {label}
+      </span>
+      <Input
+        type={type}
+        min={type === "number" ? 0 : undefined}
+        value={fields[key]}
+        onChange={(event) => set(key, event.target.value)}
+      />
+    </label>
+  );
 
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
-        onClick={!saving ? onClose : undefined}
-        aria-hidden="true"
-      />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('engineering.assetsPage.createAriaLabel')}
-          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
-                <Plus size={16} className="text-white" />
-              </div>
-              <h2 className="text-base font-bold text-ink">{t('engineering.assetsPage.addAsset')}</h2>
-            </div>
-            {!saving && (
-              <IconButton variant="ghost" onClick={onClose} aria-label={t('engineering.assetsPage.close')}>
-                <X size={18} />
-              </IconButton>
+    <EngineeringDrawer
+      open={isOpen}
+      onClose={onClose}
+      closeDisabled={saving}
+      closeLabel={t("engineering.assetsPage.close")}
+      title={
+        asset
+          ? t("engineering.assetsPage.editAsset")
+          : t("engineering.assetsPage.addAsset")
+      }
+      width="wide"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            {t("common.cancel")}
+          </Button>
+          <Button variant="primary" onClick={save} disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                {t("engineering.assetsPage.saving")}
+              </>
+            ) : (
+              <>
+                <Plus size={14} />
+                {asset
+                  ? t("engineering.assetsPage.saveChanges")
+                  : t("engineering.assetsPage.addAsset")}
+              </>
             )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Name */}
-            <div>
-              <label htmlFor="asset-create-name" className="block text-sm font-medium text-ink2 mb-1.5">
-                {t('engineering.assetsPage.createNameLabel')} <span className="text-[var(--alert)]">*</span>
-              </label>
-              <Input
-                id="asset-create-name"
-                type="text"
-                value={fields.name}
-                onChange={(e) => set('name', e.target.value)}
-                placeholder={t('engineering.assetsPage.createNamePlaceholder')}
-              />
-            </div>
-
-            {/* Category ID */}
-            <div>
-              <label htmlFor="asset-create-category-id" className="block text-sm font-medium text-ink2 mb-1.5">
-                {t('engineering.assetsPage.createCategoryIdLabel')}{' '}
-                <span className="text-ink3 font-normal">{t('engineering.assetsPage.createCategoryIdHint')}</span>
-              </label>
-              <Input
-                id="asset-create-category-id"
-                type="text"
-                value={fields.category_id}
-                onChange={(e) => set('category_id', e.target.value)}
-                placeholder={t('engineering.assetsPage.createCategoryIdPlaceholder')}
-                className="font-mono"
-              />
-              <p className="text-xs text-ink3 mt-1">
-                {t('engineering.assetsPage.createCategoryIdHelp')}
-              </p>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label htmlFor="asset-create-location" className="block text-sm font-medium text-ink2 mb-1.5">
-                {t('engineering.assetsPage.createLocationLabel')}{' '}
-                <span className="text-ink3 font-normal">{t('engineering.assetsPage.optional')}</span>
-              </label>
-              <Input
-                id="asset-create-location"
-                type="text"
-                value={fields.location_text}
-                onChange={(e) => set('location_text', e.target.value)}
-                placeholder={t('engineering.assetsPage.createLocationPlaceholder')}
-              />
-            </div>
-
-            {/* Manufacturer + Model */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="asset-create-manufacturer" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.manufacturer')}</label>
-                <Input
-                  id="asset-create-manufacturer"
-                  type="text"
-                  value={fields.manufacturer}
-                  onChange={(e) => set('manufacturer', e.target.value)}
-                  placeholder={t('engineering.assetsPage.createManufacturerPlaceholder')}
-                />
-              </div>
-              <div>
-                <label htmlFor="asset-create-model" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.model')}</label>
-                <Input
-                  id="asset-create-model"
-                  type="text"
-                  value={fields.model}
-                  onChange={(e) => set('model', e.target.value)}
-                  placeholder={t('engineering.assetsPage.createModelPlaceholder')}
-                />
-              </div>
-            </div>
-
-            {/* Serial */}
-            <div>
-              <label htmlFor="asset-create-serial" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.serialNumber')}</label>
-              <Input
-                id="asset-create-serial"
-                type="text"
-                value={fields.serial_number}
-                onChange={(e) => set('serial_number', e.target.value)}
-                placeholder={t('engineering.assetsPage.createSerialPlaceholder')}
-                className="font-mono"
-              />
-            </div>
-
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="asset-create-purchase-date" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.purchaseDate')}</label>
-                <Input
-                  id="asset-create-purchase-date"
-                  type="date"
-                  value={fields.purchase_date}
-                  onChange={(e) => set('purchase_date', e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="asset-create-warranty-expires" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.createWarrantyExpiresLabel')}</label>
-                <Input
-                  id="asset-create-warranty-expires"
-                  type="date"
-                  value={fields.warranty_expires}
-                  onChange={(e) => set('warranty_expires', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Lifespan + Cost */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="asset-create-lifespan" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.fieldLifespan')}</label>
-                <Input
-                  id="asset-create-lifespan"
-                  type="number"
-                  min={0}
-                  value={fields.expected_lifespan_years}
-                  onChange={(e) => set('expected_lifespan_years', e.target.value)}
-                  placeholder={t('engineering.assetsPage.createLifespanPlaceholder')}
-                />
-              </div>
-              <div>
-                <label htmlFor="asset-create-replacement-cost" className="block text-sm font-medium text-ink2 mb-1.5">{t('engineering.assetsPage.fieldReplacementCost')}</label>
-                <Input
-                  id="asset-create-replacement-cost"
-                  type="number"
-                  min={0}
-                  value={fields.replacement_cost}
-                  onChange={(e) => set('replacement_cost', e.target.value)}
-                  placeholder={t('engineering.assetsPage.createCostPlaceholder')}
-                />
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200 text-sm text-red-700">
-                <AlertTriangle size={14} className="shrink-0" />
-                {error}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
-            <Button variant="ghost" onClick={onClose} disabled={saving}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="primary" onClick={handleCreate} disabled={saving || !fields.name.trim()}>
-              {saving ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  {t('engineering.assetsPage.creating')}
-                </>
-              ) : (
-                <>
-                  <Plus size={14} />
-                  {t('engineering.assetsPage.addAsset')}
-                </>
-              )}
-            </Button>
-          </div>
+          </Button>
         </div>
+      }
+    >
+      <div className="space-y-5">
+        <section>
+          <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+            {t("engineering.assetsPage.basics")}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-medium text-ink2">
+                {t("engineering.assetsPage.createNameLabel")} *
+              </span>
+              <Input
+                value={fields.name}
+                onChange={(event) => set("name", event.target.value)}
+                placeholder={t("engineering.assetsPage.createNamePlaceholder")}
+              />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-medium text-ink2">
+                {t("engineering.assetsPage.category")} *
+              </span>
+              <select
+                value={fields.category_id}
+                onChange={(event) => set("category_id", event.target.value)}
+                className="w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink"
+              >
+                <option value="">
+                  {t("engineering.assetsPage.chooseCategory")}
+                </option>
+                {(categories.data?.data ?? []).map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {input(t("engineering.assetsPage.assetTag"), "asset_tag")}
+          </div>
+        </section>
+        <section>
+          <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+            {t("engineering.assetsPage.location")}
+          </p>
+          <div className="mt-3">
+            <div
+              className="mb-3 flex gap-2"
+              role="group"
+              aria-label={t("engineering.assetsPage.locationType")}
+            >
+              {(["room", "area"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  aria-pressed={locationType === type}
+                  onClick={() => setLocationType(type)}
+                  className={`rounded-[var(--r-sm)] border px-3 py-2 text-sm font-medium ${locationType === type ? "border-accent bg-accent-soft text-accent" : "border-line text-ink2"}`}
+                >
+                  {t(
+                    `engineering.assetsPage.location${type === "room" ? "Room" : "Area"}`,
+                  )}
+                </button>
+              ))}
+            </div>
+            {locationType === "room" ? (
+              <select
+                value={fields.room_id}
+                onChange={(event) => set("room_id", event.target.value)}
+                className="w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink"
+              >
+                <option value="">
+                  {t("engineering.assetsPage.chooseRoom")}
+                </option>
+                {((rooms.data as any)?.data ?? []).map((room: any) => (
+                  <option key={room.room_id} value={room.room_id}>
+                    {room.rooms?.room_number
+                      ? `${t("engineering.workOrderCard.room")} ${room.rooms.room_number}`
+                      : room.room_id}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                value={fields.location_text}
+                onChange={(event) => set("location_text", event.target.value)}
+                placeholder={t(
+                  "engineering.assetsPage.createLocationPlaceholder",
+                )}
+              />
+            )}
+          </div>
+        </section>
+        <section>
+          <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+            {t("engineering.assetsPage.equipment")}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {input(t("engineering.assetsPage.manufacturer"), "manufacturer")}
+            {input(t("engineering.assetsPage.model"), "model")}
+            <div className="sm:col-span-2">
+              {input(t("engineering.assetsPage.serialNumber"), "serial_number")}
+            </div>
+          </div>
+        </section>
+        <section>
+          <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+            {t("engineering.assetsPage.lifecycle")}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {input(
+              t("engineering.assetsPage.installationDate"),
+              "installation_date",
+              "date",
+            )}
+            {input(
+              t("engineering.assetsPage.purchaseDate"),
+              "purchase_date",
+              "date",
+            )}
+            {input(
+              t("engineering.assetsPage.fieldLifespan"),
+              "expected_lifespan_years",
+              "number",
+            )}
+            {input(
+              t("engineering.assetsPage.fieldReplacementCost"),
+              "replacement_cost",
+              "number",
+            )}
+          </div>
+        </section>
+        <section>
+          <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+            {t("engineering.assetsPage.warranty")}
+          </p>
+          <div className="mt-3">
+            {input(
+              t("engineering.assetsPage.createWarrantyExpiresLabel"),
+              "warranty_expires",
+              "date",
+            )}
+          </div>
+        </section>
+        <section>
+          <label>
+            <span className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+              {t("engineering.assetsPage.notes")}
+            </span>
+            <textarea
+              value={fields.notes}
+              onChange={(event) => set("notes", event.target.value)}
+              rows={3}
+              className="mt-3 w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink"
+            />
+          </label>
+        </section>
+        {error && (
+          <p className="flex gap-2 rounded-[var(--r-sm)] border border-alert-line bg-alert-soft p-3 text-sm text-alert">
+            <AlertTriangle size={15} />
+            {error}
+          </p>
+        )}
       </div>
-    </>
-  )
+    </EngineeringDrawer>
+  );
 }

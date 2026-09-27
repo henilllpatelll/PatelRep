@@ -5,19 +5,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { X, Loader2, Sparkles, ImagePlus, UserRound, ChevronDown } from 'lucide-react'
-import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
-import { roomsApi } from '@/lib/api/rooms'
+import { engineeringApi, type RepairCode, WorkOrder } from '@/lib/api/engineering'
+import { roomsApi, roomUnavailabilityApi } from '@/lib/api/rooms'
 import { staffApi } from '@/lib/api/staff'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
+import { RepairCodePicker } from '@/components/engineering/RepairCodePicker'
 
 interface Props {
   isOpen: boolean
   onClose: () => void
   onCreate: (wo: WorkOrder) => void
+  initialRoomId?: string
+  initialAssetId?: string
 }
 
 export function getCategories(t: TFunction) {
@@ -72,7 +75,7 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
   )
 }
 
-export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
+export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId, initialAssetId }: Props) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -85,13 +88,23 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
   const [category, setCategory] = useState<string>('general')
   const [priority, setPriority] = useState<string>('normal')
   const [selectedRoomId, setSelectedRoomId] = useState('')
+  const [locationMode, setLocationMode] = useState<'room' | 'area'>('room')
+  const [propertyArea, setPropertyArea] = useState('')
   const [locationText, setLocationText] = useState('')
   const [useAI, setUseAI] = useState(false)
   const [nlInput, setNlInput] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [guestReported, setGuestReported] = useState(false)
   const [markRoomOutOfOrder, setMarkRoomOutOfOrder] = useState(false)
+  const [roomDownType, setRoomDownType] = useState<'OUT_OF_ORDER' | 'OUT_OF_SERVICE'>('OUT_OF_ORDER')
+  const [roomDownReason, setRoomDownReason] = useState('')
+  const [roomDownEta, setRoomDownEta] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
+  const [assetId, setAssetId] = useState('')
+  const [assetImpact, setAssetImpact] = useState<'operating' | 'degraded' | 'out_of_service'>('operating')
+  const [problemCode, setProblemCode] = useState<RepairCode | null>(null)
+  const [problemOtherText, setProblemOtherText] = useState('')
+  const [repeatParentId, setRepeatParentId] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
@@ -114,6 +127,15 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
     staleTime: 300_000,
     enabled: isOpen,
   })
+  const reasonsQuery = useQuery({ queryKey: ['room-unavailability-reasons'], queryFn: roomUnavailabilityApi.reasons, staleTime: 300_000, enabled: isOpen && markRoomOutOfOrder })
+  const assetsQuery = useQuery({ queryKey: ['engineering-assets-picker'], queryFn: () => engineeringApi.listAssets(), staleTime: 300_000, enabled: isOpen })
+  const selectedAsset = (assetsQuery.data?.data ?? []).find((asset) => asset.id === assetId)
+  const repeatSuggestionQuery = useQuery({
+    queryKey: ['work-order-repeat-suggestion', assetId, problemCode?.id],
+    queryFn: () => engineeringApi.getRepeatSuggestion(assetId, problemCode!.id),
+    enabled: isOpen && Boolean(assetId && problemCode?.id),
+    staleTime: 60_000,
+  })
   const assignableStaff = (staffData?.data.staff ?? []).filter(
     (s) => s.status === 'active' && (s.role === 'engineer' || s.role === 'chief_engineer')
   )
@@ -130,18 +152,28 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
       setTitle('')
       setCategory('general')
       setPriority('normal')
-      setSelectedRoomId('')
+      setSelectedRoomId(initialRoomId ?? '')
+      setLocationMode('room')
+      setPropertyArea('')
       setLocationText('')
       setUseAI(false)
       setNlInput('')
       setValidationError(null)
       setGuestReported(false)
       setMarkRoomOutOfOrder(false)
+      setRoomDownType('OUT_OF_ORDER')
+      setRoomDownReason('')
+      setRoomDownEta('')
       setAssignedTo('')
+      setAssetId(initialAssetId ?? '')
+      setAssetImpact('operating')
+      setProblemCode(null)
+      setProblemOtherText('')
+      setRepeatParentId('')
       setPhotoFile(null)
       setPhotoPreview(null)
     }
-  }, [isOpen])
+  }, [initialAssetId, initialRoomId, isOpen])
 
   // Room out-of-order only makes sense against a specific room — clear it if the room is cleared.
   useEffect(() => {
@@ -167,12 +199,28 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
         category,
         priority,
         room_id: selectedRoomId || undefined,
-        location_text: selectedRoomId
+        location_text: locationMode === 'room' && selectedRoomId
           ? (locationText.trim() || (roomNumber ? `Room ${roomNumber}` : undefined))
-          : locationText.trim() || undefined,
+          : [propertyArea, locationText.trim()].filter(Boolean).join(' · ') || undefined,
         assigned_to: assignedTo || undefined,
+        asset_id: assetId || undefined,
+        asset_impact: assetId ? assetImpact : undefined,
+        problem_code_id: problemCode?.id,
+        problem_other_text: problemOtherText.trim() || undefined,
+        repeat_of_work_order_id: repeatParentId || undefined,
         guest_reported: guestReported,
         mark_room_out_of_order: markRoomOutOfOrder && !!selectedRoomId,
+      }
+      if (markRoomOutOfOrder && selectedRoomId) {
+        const reason = reasonsQuery.data?.data.find((item) => item.code === roomDownReason)
+        payload.room_unavailability = {
+          room_id: selectedRoomId,
+          type: roomDownType,
+          reason_code: roomDownReason || (category === 'hvac' ? 'HVAC' : 'OTHER'),
+          reason_label: reason?.label ?? (category === 'hvac' ? 'HVAC' : 'Other'),
+          expected_return_at: new Date(roomDownEta).toISOString(),
+          details: locationText.trim() || undefined,
+        }
       }
       if (useAI) {
         payload.nl_input = nlInput.trim()
@@ -210,8 +258,12 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
       setValidationError(t('engineering.createWorkOrder.describeRequired'))
       return
     }
-    if (!selectedRoomId && !locationText.trim()) {
+    if ((locationMode === 'room' && !selectedRoomId) || (locationMode === 'area' && !propertyArea)) {
       setValidationError(t('engineering.createWorkOrder.locationRequired'))
+      return
+    }
+    if (markRoomOutOfOrder && !roomDownEta) {
+      setValidationError(t('engineering.createWorkOrder.roomDownEtaRequired'))
       return
     }
 
@@ -262,6 +314,12 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-ink4 mb-2.5">{t('engineering.createWorkOrder.whereLabel')}</p>
             <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('engineering.createWorkOrder.locationMode')}>
+                <button type="button" aria-pressed={locationMode === 'room'} onClick={() => setLocationMode('room')} className={`rounded-[var(--r-sm)] border px-3 py-2 text-sm font-medium ${locationMode === 'room' ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink2'}`}>{t('engineering.createWorkOrder.roomMode')}</button>
+                <button type="button" aria-pressed={locationMode === 'area'} onClick={() => { setLocationMode('area'); setSelectedRoomId('') }} className={`rounded-[var(--r-sm)] border px-3 py-2 text-sm font-medium ${locationMode === 'area' ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink2'}`}>{t('engineering.createWorkOrder.areaMode')}</button>
+              </div>
+              {locationMode === 'area' && <label className="block text-xs font-medium text-ink2">{t('engineering.createWorkOrder.areaLabel')}<select value={propertyArea} onChange={(event) => setPropertyArea(event.target.value)} className="mt-1 w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink"><option value="">{t('engineering.createWorkOrder.chooseArea')}</option>{['Lobby', 'Pool', 'Laundry', 'Boiler Room', 'Mechanical Room', 'Kitchen / Breakfast', 'Fitness Center', 'Hallway', 'Elevator', 'Exterior', 'Parking', 'Roof', 'Other'].map((area) => <option key={area} value={area}>{t(`engineering.createWorkOrder.area_${area.replace(/[^a-z]/gi, '').toLowerCase()}`)}</option>)}</select></label>}
+              {locationMode === 'room' && <>
               <div>
                 <label className="block text-xs font-medium text-ink2 mb-1">
                   {t('engineering.workOrderCard.room')} <span className="text-alert">*</span>
@@ -287,16 +345,16 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
                   </select>
                 )}
               </div>
+              </>}
               <div>
                 <label className="block text-xs font-medium text-ink2 mb-1">
-                  {selectedRoomId ? t('engineering.createWorkOrder.locationDetailLabel') : t('engineering.createWorkOrder.otherLocationLabel')}{' '}
-                  {!selectedRoomId && <span className="text-alert">*</span>}
+                  {locationMode === 'room' && selectedRoomId ? t('engineering.createWorkOrder.locationDetailLabel') : t('engineering.createWorkOrder.specificLocationLabel')}
                 </label>
                 <Input
                   type="text"
                   value={locationText}
                   onChange={(e) => setLocationText(e.target.value)}
-                  placeholder={selectedRoomId ? t('engineering.createWorkOrder.locationDetailPlaceholder') : t('engineering.createWorkOrder.otherLocationPlaceholder')}
+                  placeholder={locationMode === 'room' && selectedRoomId ? t('engineering.createWorkOrder.locationDetailPlaceholder') : t('engineering.createWorkOrder.otherLocationPlaceholder')}
                 />
               </div>
             </div>
@@ -333,7 +391,7 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
                   key={c.value}
                   type="button"
                   aria-pressed={category === c.value}
-                  onClick={() => setCategory(c.value)}
+                  onClick={() => { setCategory(c.value); setProblemCode(null); setProblemOtherText(''); setRepeatParentId('') }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                     category === c.value
                       ? 'bg-accent-soft border-accent text-accent font-semibold'
@@ -344,6 +402,44 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3">
+            <RepairCodePicker
+              codeType="problem"
+              category={category}
+              assetCategoryId={selectedAsset?.category_id}
+              value={problemCode?.id}
+              onChange={(code) => { setProblemCode(code); setProblemOtherText(''); setRepeatParentId('') }}
+              label={t('engineering.createWorkOrder.problemLabel')}
+              searchPlaceholder={t('engineering.repair.searchProblem')}
+              emptyLabel={t('engineering.repair.noCodes')}
+              clearLabel={t('engineering.repair.clearSelection')}
+            />
+            {problemCode?.code.startsWith('other') && (
+              <Input
+                value={problemOtherText}
+                onChange={(event) => setProblemOtherText(event.target.value)}
+                placeholder={t('engineering.repair.describeProblem')}
+                className="mt-2"
+              />
+            )}
+            {repeatSuggestionQuery.data?.data && (
+              <div className="mt-3 rounded-[var(--r-sm)] border border-caution-line bg-caution-soft p-3">
+                <p className="text-xs font-semibold text-caution">{t('engineering.repair.possibleRepeat')}</p>
+                <p className="mt-1 text-sm font-medium text-ink">
+                  {t('engineering.repair.repeatSummary', { number: repeatSuggestionQuery.data.data.work_order_number, title: repeatSuggestionQuery.data.data.title })}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant={repeatParentId ? 'primary' : 'outline'} onClick={() => setRepeatParentId(repeatSuggestionQuery.data!.data!.id)}>
+                    {t('engineering.repair.linkRepeat')}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setRepeatParentId('')}>
+                    {t('engineering.repair.notRelated')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* How urgent */}
@@ -366,6 +462,33 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
             </div>
           </div>
 
+          <div>
+            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-ink4">{t('engineering.createWorkOrder.assetLabel')}</p>
+            <select value={assetId} onChange={(event) => setAssetId(event.target.value)} className="w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink">
+              <option value="">{t('engineering.createWorkOrder.noAsset')}</option>
+              {(assetsQuery.data?.data ?? []).filter((asset) => !selectedRoomId || asset.room_id === selectedRoomId).map((asset) => <option key={asset.id} value={asset.id}>{asset.name}{asset.rooms?.room_number ? ` · ${asset.rooms.room_number}` : ''}</option>)}
+            </select>
+            {assetId && (
+              <fieldset className="mt-3 rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
+                <legend className="px-1 text-xs font-semibold text-ink">
+                  {t('engineering.assetsPage.impactLevel')}
+                </legend>
+                <div className="mt-1 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t('engineering.assetsPage.impactLevel')}>
+                  {([
+                    ['operating', 'assetStillOperating'],
+                    ['degraded', 'assetDegraded'],
+                    ['out_of_service', 'assetUnavailable'],
+                  ] as const).map(([value, key]) => (
+                    <label key={value} className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-[var(--r-sm)] border px-2.5 py-2 text-xs font-medium ${assetImpact === value ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-surface text-ink2'}`}>
+                      <input type="radio" name="asset-impact" value={value} checked={assetImpact === value} onChange={() => setAssetImpact(value)} />
+                      {t(`engineering.assetsPage.${key}`)}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          </div>
+
           {/* Impact toggles */}
           <div className="bg-surface border border-line rounded-[var(--r-md)] divide-y divide-line-2">
             <div className="p-3.5 flex items-center justify-between gap-3">
@@ -381,6 +504,16 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate }: Props) {
                 disabled={!selectedRoomId}
               />
             </div>
+            {markRoomOutOfOrder && selectedRoomId && (
+              <div className="space-y-3 bg-surface-2 p-3.5">
+                <p className="text-xs font-semibold text-ink">{t('engineering.createWorkOrder.roomAvailability')}</p>
+                <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('engineering.createWorkOrder.roomAvailabilityType')}>
+                  {(['OUT_OF_ORDER', 'OUT_OF_SERVICE'] as const).map((type) => <button key={type} type="button" aria-pressed={roomDownType === type} onClick={() => setRoomDownType(type)} className={`rounded-[var(--r-sm)] border px-2 py-2 text-xs font-medium ${roomDownType === type ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink2'}`}>{type === 'OUT_OF_ORDER' ? t('roomUnavailability.outOfOrder') : t('roomUnavailability.outOfService')}</button>)}
+                </div>
+                <label className="block text-xs font-medium text-ink2">{t('roomUnavailability.reason')}<select value={roomDownReason} onChange={(event) => setRoomDownReason(event.target.value)} className="mt-1 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm text-ink"><option value="">{t('roomUnavailability.chooseReason')}</option>{(reasonsQuery.data?.data ?? []).map((reason) => <option key={reason.id} value={reason.code}>{reason.label}</option>)}</select></label>
+                <label className="block text-xs font-medium text-ink2">{t('roomUnavailability.expectedReturn')}<Input type="datetime-local" value={roomDownEta} onChange={(event) => setRoomDownEta(event.target.value)} className="mt-1" /></label>
+              </div>
+            )}
             <div className="p-3.5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-ink">{t('engineering.createWorkOrder.guestReportedLabel')}</p>

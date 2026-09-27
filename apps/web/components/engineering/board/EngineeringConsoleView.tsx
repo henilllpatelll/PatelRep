@@ -1,146 +1,100 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react'
+import { ChevronRight } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import type { WorkOrder } from '@/lib/api/engineering'
+import type { RoomUnavailabilityPeriod } from '@/lib/api/rooms'
+import type { WorkOrderQueueGroup } from '@/lib/utils/workOrderQueue'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { WorkOrderRecord } from '@/components/engineering/WorkOrderRecord'
 
-/** assigned_to is a staff UUID, not a display name -- there is no client-side name lookup here. */
-function shortId(id: string): string {
-  return id.slice(0, 2).toUpperCase()
+function dueLabel(workOrder: WorkOrder): string | null {
+  if (!workOrder.due_at) return null
+  try { return formatDistanceToNowStrict(new Date(workOrder.due_at), { addSuffix: true }) } catch { return null }
 }
-
-function timeAgo(iso: string): string {
-  try {
-    return formatDistanceToNowStrict(new Date(iso), { addSuffix: true })
-  } catch {
-    return ''
-  }
-}
-
-const GROUP_ORDER: { statuses: WorkOrder['status'][]; titleKey: string }[] = [
-  { statuses: ['escalated'], titleKey: 'engineering.workOrdersPage.columnEscalated' },
-  { statuses: ['open'], titleKey: 'engineering.workOrdersPage.columnOpen' },
-  { statuses: ['in_progress'], titleKey: 'engineering.workOrdersPage.columnInProgress' },
-  { statuses: ['on_hold'], titleKey: 'engineering.workOrdersPage.columnReview' },
-  { statuses: ['completed'], titleKey: 'engineering.workOrdersPage.columnCompleted' },
-]
 
 interface QueueRowProps {
-  wo: WorkOrder
+  workOrder: WorkOrder
   selected: boolean
+  staffNames: Map<string, string>
   onClick: () => void
 }
 
-function QueueRow({ wo, selected, onClick }: QueueRowProps) {
+function QueueRow({ workOrder, selected, staffNames, onClick }: QueueRowProps) {
   const { t } = useTranslation()
   const [now] = useState(() => Date.now())
-  const location = wo.rooms?.room_number
-    ? `${t('engineering.workOrderCard.room')} ${wo.rooms.room_number}`
-    : (wo.location_text ?? `WO-${wo.work_order_number}`)
-  const overdue = !!wo.due_at && wo.status !== 'completed' && new Date(wo.due_at).getTime() < now
+  const overdue = Boolean(workOrder.due_at && workOrder.status !== 'completed' && new Date(workOrder.due_at).getTime() < now)
+  const location = workOrder.rooms?.room_number
+    ? `${t('engineering.workOrderCard.room')} ${workOrder.rooms.room_number}`
+    : workOrder.location_text ?? `WO-${workOrder.work_order_number}`
+  const assignee = workOrder.assigned_to ? staffNames.get(workOrder.assigned_to) : null
+  const state = workOrder.status === 'on_hold'
+    ? t('engineering.workOrdersPage.queueWaiting')
+    : workOrder.status === 'escalated'
+      ? t('engineering.workOrdersPage.columnEscalated')
+      : t(`engineering.commandCenter.priority_${workOrder.priority}`)
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full border-b border-line px-4 py-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 ${selected ? 'bg-[var(--accent-soft)]' : 'bg-surface hover:bg-surface-2'}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-ink3">{location}</p>
-          <p className="mt-0.5 truncate text-sm font-semibold text-ink">{wo.title}</p>
-          <p className="mt-1 truncate text-xs text-ink3">
-            {wo.assigned_to ? shortId(wo.assigned_to) : t('engineering.workOrdersPage.unassigned')} · {wo.category}
-          </p>
-        </div>
-        <span className={`shrink-0 text-xs ${overdue ? 'font-medium text-[var(--alert)]' : 'text-ink3'}`}>
-          {wo.priority === 'emergency' ? t('engineering.workOrdersPage.priorityEmergency') : (wo.due_at ? timeAgo(wo.due_at) : '')}
-        </span>
+  return <button type="button" onClick={onClick} aria-pressed={selected} className={`w-full border-b border-line px-4 py-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40 ${selected ? 'bg-[var(--accent-soft)]' : 'bg-surface hover:bg-surface-2'}`}>
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-ink3">{location}</p>
+        <p className="mt-0.5 truncate text-sm font-semibold leading-snug text-ink">{workOrder.title}</p>
+        <p className="mt-1 truncate text-xs text-ink3">{state} · {assignee ?? t('engineering.workOrdersPage.unassigned')}</p>
       </div>
-    </button>
-  )
+      <span className={`shrink-0 text-xs ${overdue ? 'font-semibold text-[var(--alert)]' : 'text-ink3'}`}>{overdue ? t('engineering.workOrderCard.slaBreached') : dueLabel(workOrder)}</span>
+    </div>
+  </button>
 }
 
 interface EngineeringConsoleViewProps {
   workOrders: WorkOrder[]
+  groups: WorkOrderQueueGroup[]
   isLoading: boolean
   isError: boolean
   onRetry: () => void
   selected: WorkOrder | null
-  onSelect: (wo: WorkOrder) => void
+  onSelect: (workOrder: WorkOrder) => void
   onUpdate: () => void
-  roomUnavailabilityReason?: string | null
+  roomUnavailability: RoomUnavailabilityPeriod | null
+  staffNames: Map<string, string>
+  completedExpanded: boolean
+  onCompletedExpandedChange: (expanded: boolean) => void
 }
 
-export function EngineeringConsoleView({
-  workOrders,
-  isLoading,
-  isError,
-  onRetry,
-  selected,
-  onSelect,
-  onUpdate,
-  roomUnavailabilityReason,
-}: EngineeringConsoleViewProps) {
+const groupLabelKeys = {
+  attention: 'engineering.workOrdersPage.queueNeedsAttention',
+  in_progress: 'engineering.workOrdersPage.queueInProgress',
+  waiting: 'engineering.workOrdersPage.queueWaiting',
+  completed: 'engineering.workOrdersPage.queueCompletedToday',
+} as const
+
+export function EngineeringConsoleView({ workOrders, groups, isLoading, isError, onRetry, selected, onSelect, onUpdate, roomUnavailability, staffNames, completedExpanded, onCompletedExpandedChange }: EngineeringConsoleViewProps) {
   const { t } = useTranslation()
 
-  const groups = useMemo(
-    () => GROUP_ORDER
-      .map((g) => ({ ...g, rows: workOrders.filter((wo) => g.statuses.includes(wo.status)) }))
-      .filter((g) => g.rows.length > 0),
-    [workOrders]
-  )
-
-  return (
-    <div className="grid h-[calc(100vh-268px)] min-h-[440px] overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface lg:grid-cols-[minmax(20rem,42%)_minmax(0,1fr)]">
-      <section className="flex min-h-0 flex-col border-b border-line lg:border-b-0 lg:border-r" aria-label={t('engineering.workOrdersPage.queueTitle')}>
-        <div className="shrink-0 border-b border-line px-3 py-2.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.workOrdersPage.queueTitle')}</span>
-          <span className="ml-2 font-mono text-[11px] text-ink3">{workOrders.length}</span>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="space-y-2 p-3">{[1, 2, 3, 4].map((id) => <Skeleton key={id} className="h-20" />)}</div>
-          ) : isError ? (
-            <StateBlock status="error" error={{ message: t('engineering.workOrderList.loadError'), onRetry }} />
-          ) : groups.length === 0 ? (
-            <StateBlock status="empty" empty={{ title: t('engineering.workOrdersPage.emptyColumn', { label: '' }) }} />
-          ) : (
-            groups.map((g) => (
-              <div key={g.titleKey}>
-                <div className="sticky top-0 z-[1] flex items-center gap-2 border-b border-line-2 bg-surface-2 px-4 py-1.5">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink3">{t(g.titleKey)}</span>
-                  <span className="font-mono text-[10.5px] text-ink4">{g.rows.length}</span>
+  return <div className="grid min-h-[440px] overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface lg:h-[calc(100vh-248px)] lg:grid-cols-[minmax(20rem,40%)_minmax(0,1fr)]">
+    <section className="flex min-h-0 flex-col border-b border-line lg:border-b-0 lg:border-r" aria-label={t('engineering.workOrdersPage.queueTitle')}>
+      <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-2.5"><span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.workOrdersPage.queueTitle')}</span><span className="font-mono text-[11px] text-ink3">{workOrders.length}</span></div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {isLoading ? <div className="space-y-2 p-3">{[1, 2, 3, 4].map((id) => <Skeleton key={id} className="h-20" />)}</div>
+          : isError ? <StateBlock status="error" error={{ message: t('engineering.workOrderList.loadError'), onRetry }} />
+            : groups.length === 0 ? <StateBlock status="empty" empty={{ title: t('engineering.workOrdersPage.emptyColumn', { label: '' }) }} />
+              : groups.map((group) => {
+                const isCompleted = group.key === 'completed'
+                const isCollapsed = isCompleted && !completedExpanded
+                return <div key={group.key}>
+                  <button type="button" onClick={() => isCompleted && onCompletedExpandedChange(!completedExpanded)} disabled={!isCompleted} aria-expanded={isCompleted ? completedExpanded : undefined} className={`sticky top-0 z-[1] flex w-full items-center gap-2 border-b border-line-2 bg-surface-2 px-4 py-1.5 text-left ${isCompleted ? 'cursor-pointer hover:bg-surface-3' : 'cursor-default'}`}>
+                    <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink3">{t(groupLabelKeys[group.key])}</span><span className="font-mono text-[10.5px] text-ink4">{group.items.length}</span>{isCompleted && <ChevronRight className={`ml-auto h-3.5 w-3.5 text-ink3 transition-transform ${completedExpanded ? 'rotate-90' : ''}`} />}
+                  </button>
+                  {!isCollapsed && group.items.map((workOrder) => <QueueRow key={workOrder.id} workOrder={workOrder} selected={selected?.id === workOrder.id} staffNames={staffNames} onClick={() => onSelect(workOrder)} />)}
                 </div>
-                {g.rows.map((wo) => (
-                  <QueueRow key={wo.id} wo={wo} selected={selected?.id === wo.id} onClick={() => onSelect(wo)} />
-                ))}
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-      <section className="h-full min-h-0 overflow-hidden" aria-live="polite">
-        {selected ? (
-          <WorkOrderRecord
-            key={selected.id}
-            wo={selected}
-            onUpdate={onUpdate}
-            roomUnavailabilityReason={roomUnavailabilityReason}
-          />
-        ) : (
-          <div className="flex h-full min-h-64 items-center justify-center bg-surface-2 text-center">
-            <div>
-              <p className="font-medium text-ink">{t('engineering.workOrdersPage.selectWorkOrder')}</p>
-              <p className="mt-1 text-sm text-ink3">{t('engineering.workOrdersPage.selectWorkOrderHint')}</p>
-            </div>
-          </div>
-        )}
-      </section>
-    </div>
-  )
+              })}
+      </div>
+    </section>
+    <section className="hidden h-full min-h-0 overflow-hidden lg:block" aria-live="polite">
+      {selected ? <WorkOrderRecord key={selected.id} wo={selected} onUpdate={onUpdate} roomUnavailability={roomUnavailability} /> : <div className="flex h-full min-h-64 items-center justify-center bg-surface-2 text-center"><div><p className="font-medium text-ink">{t('engineering.workOrdersPage.selectWorkOrder')}</p><p className="mt-1 text-sm text-ink3">{t('engineering.workOrdersPage.selectWorkOrderHint')}</p></div></div>}
+    </section>
+  </div>
 }

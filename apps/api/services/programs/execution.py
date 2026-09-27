@@ -7,9 +7,10 @@ from typing import Any
 
 from services.programs.contracts import (
     build_corrective_work_order,
-    next_recurrence_date,
     validate_completion_items,
 )
+from services.pm_schedules import compute_next_due_at
+from services.condition_monitoring import persist_condition_reading
 
 
 def _collect_evidence_ids(payload: dict[str, Any], items: list[dict[str, Any]]) -> list[str]:
@@ -120,12 +121,28 @@ def persist_pm_completion(
     completion is written, then linked to the completion via a post-insert UPDATE.
     """
     items = payload.get("items") or []
+    condition_readings = payload.get("condition_readings") or []
+    meter_ids = [str(reading["meter_id"]) for reading in condition_readings]
+    meters_by_id: dict[str, dict[str, Any]] = {}
+    if meter_ids:
+        meters = db.table("asset_meters").select("*").eq("tenant_id", tenant_id).in_("id", meter_ids).execute().data or []
+        meters_by_id = {str(meter["id"]): meter for meter in meters}
+        if len(meters_by_id) != len(set(meter_ids)):
+            raise ValueError("One or more condition meters were not found")
+        if any(meter.get("asset_id") != schedule.get("asset_id") for meter in meters_by_id.values()):
+            raise ValueError("Condition meter must belong to this PM asset")
     validate_completion_items(items)
     _validate_verifier(
         db=db, tenant_id=tenant_id, user_id=user_id, verifier_id=payload.get("verifier_id"),
     )
     evidence_ids = _collect_evidence_ids(payload, items)
     _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
+    if payload.get("vendor_id"):
+        vendor = db.table("engineering_vendors").select("id, name").eq("id", str(payload["vendor_id"])).eq("tenant_id", tenant_id).maybe_single().execute()
+        if not vendor or not vendor.data:
+            raise ValueError("Vendor not found")
+        # Retain the readable snapshot even if the vendor name changes later.
+        payload["vendor_name"] = payload.get("vendor_name") or vendor.data["name"]
     completed_at = datetime.now(timezone.utc)
     completion_payload = {
         "tenant_id": tenant_id,
@@ -141,6 +158,7 @@ def persist_pm_completion(
         "labor_minutes": payload.get("labor_minutes", 0),
         "parts_used": payload.get("parts_used") or [],
         "defects": payload.get("defects") or [],
+        "vendor_id": str(payload["vendor_id"]) if payload.get("vendor_id") else None,
         "vendor_name": payload.get("vendor_name"),
         "certificate_attachments": payload.get("certificate_attachments") or [],
         "notes": payload.get("notes"),
@@ -164,7 +182,22 @@ def persist_pm_completion(
     if item_rows:
         db.table("pm_completion_items").insert(item_rows).execute()
 
+    for condition_reading in condition_readings:
+        meter = meters_by_id[str(condition_reading["meter_id"])]
+        persist_condition_reading(
+            db=db,
+            meter=meter,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            value=float(condition_reading["value"]),
+            source="pm",
+            recorded_at=condition_reading.get("recorded_at"),
+            pm_completion_id=completion["id"],
+            notes=condition_reading.get("notes"),
+        )
+
     failed_items = [item for item in items if item["result"] == "failed"]
+    corrective_work_orders: list[dict[str, str]] = []
     if failed_items:
         criticality = _fetch_asset_criticality(
             db=db, tenant_id=tenant_id, asset_id=schedule.get("asset_id"),
@@ -182,6 +215,8 @@ def persist_pm_completion(
             wo_result = db.table("work_orders").insert(work_order).execute()
             wo_rows = wo_result.data if wo_result else None
             work_order_id = wo_rows[0]["id"] if wo_rows else None
+            if work_order_id:
+                corrective_work_orders.append({"id": work_order_id, "title": work_order["title"]})
             _record_containment_audit(
                 db=db,
                 tenant_id=tenant_id,
@@ -192,11 +227,17 @@ def persist_pm_completion(
                 work_order_id=work_order_id,
             )
 
-    interval_days = schedule.get("interval_days") or {
-        "daily": 1, "weekly": 7, "monthly": 30, "quarterly": 90, "annual": 365,
-    }.get(schedule.get("interval_type"), 30)
+    scheduled_due_at = schedule.get("next_due_at")
+    recurrence_base = (
+        completed_at
+        if schedule.get("recurrence_basis") == "completion_date" or not scheduled_due_at
+        else datetime.fromisoformat(scheduled_due_at)
+    )
     db.table("pm_schedules").update({
         "last_completed_at": completed_at.isoformat(),
-        "next_due_at": next_recurrence_date(completed_at.date(), interval_days).isoformat(),
+        "next_due_at": compute_next_due_at(
+            recurrence_base, schedule.get("interval_type", "monthly"), schedule.get("interval_days"),
+        ).isoformat(),
     }).eq("id", schedule["id"]).eq("tenant_id", tenant_id).execute()
+    completion["corrective_work_orders"] = corrective_work_orders
     return completion

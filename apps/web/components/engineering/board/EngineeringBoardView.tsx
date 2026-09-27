@@ -9,13 +9,7 @@ import { AILabel, Bar, Pill, SparkIcon, Stat } from '@/components/ui/primitives'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StateBlock } from '@/components/ui/StateBlock'
-import { getAvatarColor } from '@/lib/utils/avatar'
 import { CopilotSuggestionsCard } from './EngineeringCopilotSuggestions'
-
-/** assigned_to is a staff UUID, not a display name -- there is no client-side name lookup, so this mirrors the short-id convention used elsewhere in this tab. */
-function shortId(id: string): string {
-  return id.slice(0, 2).toUpperCase()
-}
 
 export type KanbanColumnKey = 'open' | 'in_progress' | 'on_hold' | 'completed'
 export type DrawerAutoAction = 'complete' | 'hold' | 'cancel' | 'reopen'
@@ -82,12 +76,13 @@ interface KanbanCardProps {
   selected: boolean
   dragging: boolean
   aiTriageActive: boolean
+  staffNames: Map<string, string>
   onClick: () => void
   onDragStart: () => void
   onDragEnd: () => void
 }
 
-function KanbanCard({ wo, selected, dragging, aiTriageActive, onClick, onDragStart, onDragEnd }: KanbanCardProps) {
+function KanbanCard({ wo, selected, dragging, aiTriageActive, staffNames, onClick, onDragStart, onDragEnd }: KanbanCardProps) {
   const { t } = useTranslation()
   const [now] = useState(() => Date.now())
   const location = wo.rooms?.room_number
@@ -118,7 +113,7 @@ function KanbanCard({ wo, selected, dragging, aiTriageActive, onClick, onDragSta
       style={{ opacity: dragging ? 0.45 : 1 }}
     >
       <div className="flex items-center gap-1.5">
-        <Pill tone={PRIORITY_TONE[wo.priority] ?? 'neutral'} size="sm">{wo.priority}</Pill>
+        <Pill tone={PRIORITY_TONE[wo.priority] ?? 'neutral'} size="sm">{t(`engineering.commandCenter.priority_${wo.priority}`)}</Pill>
         {wo.status === 'escalated' && (
           <Pill tone="alert" size="sm">
             <AlertTriangle className="h-2.5 w-2.5" /> {t('engineering.commandCenter.status_escalated')}
@@ -144,13 +139,9 @@ function KanbanCard({ wo, selected, dragging, aiTriageActive, onClick, onDragSta
       )}
       <div className="flex items-center gap-1.5">
         <span className="rounded bg-surface-3 px-1 py-px text-[10px] text-ink3">#{wo.category}</span>
-        {wo.assigned_to && (
-          <span
-            className={`ml-auto flex h-[18px] w-[18px] items-center justify-center rounded-full text-[8px] font-semibold text-white ${getAvatarColor(wo.assigned_to)}`}
-          >
-            {shortId(wo.assigned_to)}
-          </span>
-        )}
+        <span className="ml-auto max-w-[8rem] truncate text-[10px] text-ink3" title={wo.assigned_to ? staffNames.get(wo.assigned_to) : undefined}>
+          {wo.assigned_to ? staffNames.get(wo.assigned_to) ?? t('engineering.workOrdersPage.unassigned') : t('engineering.workOrdersPage.unassigned')}
+        </span>
       </div>
     </div>
   )
@@ -172,6 +163,7 @@ interface EngineeringBoardViewProps {
   onDrop: (wo: WorkOrder, outcome: DropOutcome) => void
   showRail?: boolean
   aiTriageActive?: boolean
+  staffNames?: Map<string, string>
 }
 
 const COLUMN_ORDER: { key: KanbanColumnKey; titleKey: string; hintKey: string; dot: string }[] = [
@@ -197,6 +189,7 @@ export function EngineeringBoardView({
   onDrop,
   showRail = true,
   aiTriageActive = false,
+  staffNames = new Map(),
 }: EngineeringBoardViewProps) {
   const { t } = useTranslation()
   const [dragId, setDragId] = useState<string | null>(null)
@@ -267,6 +260,7 @@ export function EngineeringBoardView({
                         selected={selectedId === wo.id}
                         dragging={dragId === wo.id}
                         aiTriageActive={aiTriageActive}
+                        staffNames={staffNames}
                         onClick={() => onSelect(wo)}
                         onDragStart={() => setDragId(wo.id)}
                         onDragEnd={() => setDragId(null)}

@@ -17,11 +17,15 @@ from models.requests import (
     CreateChecklistItemRequest,
     UpdateChecklistItemRequest,
     MergeWorkOrderRequest,
+    UpdateDiagnosisRequest,
+    LinkWorkOrderRequest,
 )
 from core.database import supabase
 from core.config import settings
+from core.roles import GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
+from services.asset_reliability import restore_active_work_order_downtime, start_asset_downtime
 
 ALLOWED_PHOTO_TYPES = {
     "image/jpeg": "jpg",
@@ -37,6 +41,12 @@ router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
 SLA_MINUTES = {"urgent": 60, "emergency": 30, "normal": 240, "low": 480}
 _ARCHIVABLE_STATUSES = {"completed", "cancelled"}
+_REPAIR_CODE_TYPES = {"problem", "cause", "resolution"}
+_REPAIR_CODE_FIELDS = {
+    "problem": "problem_code_id",
+    "cause": "cause_code_id",
+    "resolution": "resolution_code_id",
+}
 
 # Best-effort category → room-unavailability reason mapping (migration 108/109
 # seeds these codes for every tenant). Categories with no clean match fall
@@ -54,36 +64,30 @@ _OOO_DEFAULT_WINDOW_HOURS = 24
 
 def _mark_room_out_of_order(wo: dict, request: CreateWorkOrderRequest, current_user: CurrentUser) -> bool:
     """Open a room-unavailability period linked to this new work order (the
-    same RPC the dedicated Out-of-Order screen uses, migration 108). Never
-    blocks work order creation — a failure here is logged and swallowed."""
-    if not request.room_id:
+    same RPC the dedicated Out-of-Order screen uses. Fail loudly so the caller
+    can compensate for the just-created work order rather than splitting the
+    operational record from its room-down episode."""
+    room_down = request.room_unavailability
+    if not request.room_id and not room_down:
         return False
     reason_code, reason_label = _OOO_REASON_BY_CATEGORY.get(request.category, _OOO_DEFAULT_REASON)
-    expected_return_at = datetime.now(timezone.utc) + timedelta(hours=_OOO_DEFAULT_WINDOW_HOURS)
-    try:
-        supabase.rpc(
-            "create_room_unavailability",
-            {
-                "p_room_id": str(request.room_id),
-                "p_tenant_id": current_user.hotel_id,
-                "p_reason_code": reason_code,
-                "p_reason_label": reason_label,
-                "p_details": f"Reported via work order: {wo.get('title') or 'Untitled'}",
-                "p_expected_return_at": expected_return_at.isoformat(),
-                "p_owner_id": None,
-                "p_work_order_id": wo["id"],
-                "p_created_by": current_user.user_id,
-                "p_source": "WEB",
-            },
-        ).execute()
-        return True
-    except Exception:
-        logger.exception(
-            "Failed to mark room %s out of order for work order %s",
-            request.room_id,
-            wo.get("id"),
-        )
-        return False
+    supabase.rpc(
+        "create_room_unavailability",
+        {
+            "p_room_id": str(room_down.room_id if room_down else request.room_id),
+            "p_tenant_id": current_user.hotel_id,
+            "p_type": room_down.type if room_down else "OUT_OF_ORDER",
+            "p_reason_code": room_down.reason_code if room_down else reason_code,
+            "p_reason_label": room_down.reason_label if room_down else reason_label,
+            "p_details": (room_down.details if room_down else None) or f"Reported via work order: {wo.get('title') or 'Untitled'}",
+            "p_expected_return_at": (room_down.expected_return_at if room_down else datetime.now(timezone.utc) + timedelta(hours=_OOO_DEFAULT_WINDOW_HOURS)).isoformat(),
+            "p_owner_id": None,
+            "p_work_order_id": wo["id"],
+            "p_created_by": current_user.user_id,
+            "p_source": "WEB",
+        },
+    ).execute()
+    return True
 
 
 def _ensure_engineer_can_update_work_order(
@@ -164,6 +168,69 @@ def _validate_work_order_references(
         _ensure_tenant_row("assets", str(request.asset_id), hotel_id, "Asset")
     if request.assigned_to:
         _ensure_tenant_staff(str(request.assigned_to), hotel_id)
+    if request.room_unavailability:
+        _ensure_tenant_row("rooms", str(request.room_unavailability.room_id), hotel_id, "Room")
+        if request.room_id and request.room_id != request.room_unavailability.room_id:
+            raise HTTPException(status_code=422, detail="Room-down room must match the work order room")
+
+
+def _validate_repair_codes(*, payload: dict, category: str, hotel_id: str) -> None:
+    """Validate that submitted repair-code IDs are active, tenant-visible, and
+    describe the correct part of the repair story. Labels are always resolved
+    from stable IDs, never trusted from a client payload."""
+    requested = {
+        code_type: str(payload[field])
+        for code_type, field in _REPAIR_CODE_FIELDS.items()
+        if payload.get(field)
+    }
+    if not requested:
+        return
+    rows = (
+        supabase.table("engineering_repair_codes")
+        .select("id, tenant_id, code_type, code, engineering_category, asset_category_id, is_active")
+        .in_("id", list(requested.values()))
+        .execute()
+    ).data or []
+    by_id = {str(row["id"]): row for row in rows}
+    for code_type, code_id in requested.items():
+        row = by_id.get(code_id)
+        if not row or row.get("tenant_id") not in (None, hotel_id):
+            raise HTTPException(status_code=422, detail=f"Invalid {code_type} code")
+        if not row.get("is_active") or row.get("code_type") != code_type:
+            raise HTTPException(status_code=422, detail=f"Invalid {code_type} code")
+        code_category = row.get("engineering_category")
+        if code_category and code_category != category:
+            raise HTTPException(status_code=422, detail=f"{code_type.title()} code does not match this work order category")
+        other_field = f"{code_type}_other_text"
+        if str(row.get("code", "")).startswith("other") and not str(payload.get(other_field) or "").strip():
+            raise HTTPException(status_code=422, detail=f"Describe the selected Other {code_type}")
+
+
+def _record_repair_audit(*, work_order_id: str, current_user: CurrentUser, action: str, old_state: dict, new_state: dict) -> None:
+    supabase.table("operational_audit_events").insert({
+        "tenant_id": current_user.hotel_id,
+        "resource_type": "work_order",
+        "resource_id": work_order_id,
+        "action": action,
+        "actor_id": current_user.user_id,
+        "actor_role": current_user.role,
+        "old_state": old_state,
+        "new_state": new_state,
+        "source": "api",
+    }).execute()
+
+
+def _link_work_orders(*, parent_work_order_id: str, child_work_order_id: str, relationship_type: str, current_user: CurrentUser) -> None:
+    if parent_work_order_id == child_work_order_id:
+        raise HTTPException(status_code=422, detail="A work order cannot be related to itself")
+    _ensure_tenant_row("work_orders", parent_work_order_id, current_user.hotel_id, "Related work order")
+    supabase.table("work_order_relationships").upsert({
+        "tenant_id": current_user.hotel_id,
+        "parent_work_order_id": parent_work_order_id,
+        "child_work_order_id": child_work_order_id,
+        "relationship_type": relationship_type,
+        "created_by": current_user.user_id,
+    }, on_conflict="parent_work_order_id,child_work_order_id,relationship_type").execute()
 
 
 def _execute_work_order_transition(
@@ -206,6 +273,29 @@ def _execute_work_order_transition(
     return result
 
 
+def _apply_timing_action(wo_id: str, current_user: CurrentUser, action: str):
+    """Run the DB-owned, idempotent timing/labor mutation.
+
+    The RPC locks the work order and enforces the active-session uniqueness
+    constraint, so rapid web/mobile taps cannot double-count labor.
+    """
+    try:
+        return supabase.rpc(
+            "apply_work_order_timing_action",
+            {
+                "p_work_order_id": wo_id,
+                "p_tenant_id": current_user.hotel_id,
+                "p_actor_id": current_user.user_id,
+                "p_action": action,
+            },
+        ).execute()
+    except Exception as exc:
+        message = str(exc)
+        if "active labor session exists" in message:
+            raise HTTPException(status_code=409, detail="You already have a running labor timer on another work order") from exc
+        raise
+
+
 @router.post("")
 async def create_work_order(
     request: CreateWorkOrderRequest,
@@ -213,7 +303,14 @@ async def create_work_order(
 ):
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = datetime.now(timezone.utc) + timedelta(minutes=sla)
+    if request.asset_impact != "operating" and not request.asset_id:
+        raise HTTPException(status_code=422, detail="Asset impact requires a linked asset")
     _validate_work_order_references(request, current_user.hotel_id)
+    _validate_repair_codes(
+        payload=request.model_dump(exclude_none=True),
+        category=request.category,
+        hotel_id=current_user.hotel_id,
+    )
 
     wo_data = {
         "tenant_id": current_user.hotel_id,
@@ -230,15 +327,51 @@ async def create_work_order(
         "sla_minutes": sla,
         "due_at": due_at.isoformat(),
         "guest_reported": request.guest_reported,
+        "problem_code_id": str(request.problem_code_id) if request.problem_code_id else None,
+        "problem_other_text": request.problem_other_text,
     }
     result = supabase.table("work_orders").insert(wo_data).execute()
     wo = result.data[0] if result.data else None
     room_marked_out_of_order = False
+    asset_downtime = None
     if wo:
         _seed_checklist_from_template(wo["id"], request.category, current_user.hotel_id)
-        if request.mark_room_out_of_order:
-            room_marked_out_of_order = _mark_room_out_of_order(wo, request, current_user)
-    return {"data": wo, "room_marked_out_of_order": room_marked_out_of_order}
+        if request.asset_impact != "operating":
+            try:
+                asset_downtime = start_asset_downtime(
+                    db=supabase,
+                    asset_id=str(request.asset_id),
+                    tenant_id=current_user.hotel_id,
+                    actor_id=current_user.user_id,
+                    payload={
+                        "work_order_id": wo["id"],
+                        "downtime_type": "unplanned",
+                        "impact_level": request.asset_impact,
+                        "notes": request.description,
+                    },
+                )
+            except Exception as exc:
+                supabase.table("work_orders").delete().eq("id", wo["id"]).eq("tenant_id", current_user.hotel_id).execute()
+                logger.exception("Asset downtime creation failed; rolled back work order %s", wo["id"])
+                raise HTTPException(status_code=502, detail="Unable to record asset downtime. The work order was not created.") from exc
+        if request.repeat_of_work_order_id:
+            _link_work_orders(
+                parent_work_order_id=str(request.repeat_of_work_order_id),
+                child_work_order_id=wo["id"],
+                relationship_type="repeat_failure",
+                current_user=current_user,
+            )
+        if request.mark_room_out_of_order or request.room_unavailability:
+            try:
+                room_marked_out_of_order = _mark_room_out_of_order(wo, request, current_user)
+            except Exception as exc:
+                # The two systems cannot share a database transaction through
+                # the SDK. Compensate before returning an error so users never
+                # see a work order whose requested room-down action vanished.
+                supabase.table("work_orders").delete().eq("id", wo["id"]).eq("tenant_id", current_user.hotel_id).execute()
+                logger.exception("Room-down creation failed; rolled back work order %s", wo["id"])
+                raise HTTPException(status_code=502, detail="Unable to place the room down. The work order was not created.") from exc
+    return {"data": wo, "room_marked_out_of_order": room_marked_out_of_order, "asset_downtime": asset_downtime}
 
 
 def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> None:
@@ -300,6 +433,10 @@ async def list_work_orders(
     priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
     room_id: Optional[str] = Query(None),
+    asset_id: Optional[str] = None,
+    problem_code_id: Optional[str] = None,
+    cause_code_id: Optional[str] = None,
+    resolution_code_id: Optional[str] = None,
     q: Optional[str] = Query(None),
     sort_by: Literal["created_at", "due_at", "priority"] = Query("created_at"),
     sort_dir: Literal["asc", "desc"] = Query("desc"),
@@ -325,7 +462,7 @@ async def list_work_orders(
         def _base():
             query = (
                 supabase.table("work_orders")
-                .select("*, rooms(room_number), assets(name)")
+                .select("*, rooms(room_number), assets(name), problem_code:engineering_repair_codes!work_orders_problem_code_id_fkey(id, code, label), cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(id, code, label), resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(id, code, label)")
                 .eq("tenant_id", current_user.hotel_id)
                 .order(order_col, desc=order_desc)
                 .range(0, fetch_up_to - 1)
@@ -342,6 +479,14 @@ async def list_work_orders(
                 query = query.eq("priority", priority)
             if room_id:
                 query = query.eq("room_id", room_id)
+            if asset_id:
+                query = query.eq("asset_id", asset_id)
+            if problem_code_id:
+                query = query.eq("problem_code_id", problem_code_id)
+            if cause_code_id:
+                query = query.eq("cause_code_id", cause_code_id)
+            if resolution_code_id:
+                query = query.eq("resolution_code_id", resolution_code_id)
             if q:
                 query = query.ilike("title", f"%{q}%")
             if overdue:
@@ -369,7 +514,7 @@ async def list_work_orders(
 
     query = (
         supabase.table("work_orders")
-        .select("*, rooms(room_number), assets(name)")
+        .select("*, rooms(room_number), assets(name), problem_code:engineering_repair_codes!work_orders_problem_code_id_fkey(id, code, label), cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(id, code, label), resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(id, code, label)")
         .eq("tenant_id", current_user.hotel_id)
         .order(order_col, desc=order_desc)
         .range((page - 1) * per_page, page * per_page - 1)
@@ -391,6 +536,14 @@ async def list_work_orders(
         query = query.is_("assigned_to", "null")
     if room_id:
         query = query.eq("room_id", room_id)
+    if asset_id:
+        query = query.eq("asset_id", asset_id)
+    if problem_code_id:
+        query = query.eq("problem_code_id", problem_code_id)
+    if cause_code_id:
+        query = query.eq("cause_code_id", cause_code_id)
+    if resolution_code_id:
+        query = query.eq("resolution_code_id", resolution_code_id)
     if q:
         query = query.ilike("title", f"%{q}%")
     if overdue:
@@ -520,6 +673,55 @@ async def work_order_stats(current_user: CurrentUser = Depends(get_current_user)
     return {"data": stats}
 
 
+@router.get("/repair-codes")
+async def list_repair_codes(
+    code_type: Optional[Literal["problem", "cause", "resolution"]] = Query(None, alias="type"),
+    category: Optional[str] = Query(None),
+    asset_category_id: Optional[str] = Query(None),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Return only active global codes plus this hotel's future custom codes.
+    Category-neutral codes intentionally remain available alongside the
+    current trade so resolution lists stay compact without duplication."""
+    result = supabase.table("engineering_repair_codes").select(
+        "id, tenant_id, code_type, code, label, engineering_category, asset_category_id, sort_order"
+    ).eq("is_active", True).execute()
+    codes = [
+        row for row in (result.data or [])
+        if row.get("tenant_id") in (None, current_user.hotel_id)
+        and (code_type is None or row.get("code_type") == code_type)
+        and (category is None or row.get("engineering_category") in (None, category))
+        and (asset_category_id is None or row.get("asset_category_id") in (None, asset_category_id))
+    ]
+    codes.sort(key=lambda row: (row.get("engineering_category") is None, row.get("sort_order", 0), row.get("label", "")))
+    return {"data": codes}
+
+
+@router.get("/repeat-suggestion")
+async def get_repeat_suggestion(
+    asset_id: str = Query(...),
+    problem_code_id: str = Query(...),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Deterministic, opt-in repeat-failure suggestion. The caller decides
+    whether to link; no similarity score silently creates a relationship."""
+    _ensure_tenant_row("assets", asset_id, current_user.hotel_id, "Asset")
+    since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    result = (
+        supabase.table("work_orders")
+        .select("id, work_order_number, title, completed_at, cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(label), resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(label)")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("asset_id", asset_id)
+        .eq("problem_code_id", problem_code_id)
+        .eq("status", "completed")
+        .gte("completed_at", since)
+        .order("completed_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return {"data": (result.data or [None])[0]}
+
+
 @router.get("/{wo_id}")
 async def get_work_order(
     wo_id: str, current_user: CurrentUser = Depends(get_current_user)
@@ -527,7 +729,7 @@ async def get_work_order(
     result = (
         supabase.table("work_orders")
         .select(
-            "*, rooms(room_number, floor), assets(*), work_order_photos(*), work_order_comments(*)"
+            "*, rooms(room_number, floor), assets(*, asset_categories(id, name, code)), work_order_photos(*), work_order_comments(*), problem_code:engineering_repair_codes!work_orders_problem_code_id_fkey(id, code, label), cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(id, code, label), resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(id, code, label)"
         )
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
@@ -644,6 +846,7 @@ async def claim_work_order(
         source="api",
         assigned_to=current_user.user_id,
     )
+    _apply_timing_action(wo_id, current_user, "claim")
     wo = result.data[0] if result.data else None
     if wo:
         asyncio.create_task(
@@ -652,6 +855,127 @@ async def claim_work_order(
             )
         )
     return {"data": wo}
+
+
+def _timing_work_order_or_404(wo_id: str, current_user: CurrentUser) -> dict:
+    result = (
+        supabase.table("work_orders")
+        .select("id, assigned_to, status")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    _ensure_engineer_can_update_work_order(current_user, result.data)
+    return result.data
+
+
+@router.post("/{wo_id}/acknowledge")
+async def acknowledge_work_order(wo_id: str, current_user: CurrentUser = Depends(require_role("engineer", "gm"))):
+    _timing_work_order_or_404(wo_id, current_user)
+    _apply_timing_action(wo_id, current_user, "acknowledge")
+    return {"data": {"work_order_id": wo_id, "action": "acknowledged"}}
+
+
+@router.post("/{wo_id}/arrive")
+async def arrive_at_work_order(wo_id: str, current_user: CurrentUser = Depends(require_role("engineer", "gm"))):
+    _timing_work_order_or_404(wo_id, current_user)
+    _apply_timing_action(wo_id, current_user, "arrive")
+    return {"data": {"work_order_id": wo_id, "action": "arrived"}}
+
+
+@router.post("/{wo_id}/labor/start")
+async def start_work_order_labor(wo_id: str, current_user: CurrentUser = Depends(require_role("engineer", "gm"))):
+    work_order = _timing_work_order_or_404(wo_id, current_user)
+    if work_order["status"] == "open":
+        decision = validate_work_order_transition(
+            current_status="open", request=TransitionRequest(status="in_progress"), actor_role=current_user.role
+        )
+        _execute_work_order_transition(
+            work_order_id=wo_id, current_user=current_user, decision=decision, source="api", assigned_to=current_user.user_id
+        )
+        _apply_timing_action(wo_id, current_user, "claim")
+    result = _apply_timing_action(wo_id, current_user, "start")
+    return {"data": result.data}
+
+
+@router.post("/{wo_id}/labor/pause")
+async def pause_work_order_labor(wo_id: str, current_user: CurrentUser = Depends(require_role("engineer", "gm"))):
+    _timing_work_order_or_404(wo_id, current_user)
+    result = _apply_timing_action(wo_id, current_user, "pause")
+    return {"data": result.data}
+
+
+@router.get("/{wo_id}/events")
+async def get_work_order_events(wo_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    _timing_work_order_or_404(wo_id, current_user)
+    result = supabase.table("work_order_events").select("*").eq("tenant_id", current_user.hotel_id).eq("work_order_id", wo_id).order("occurred_at").execute()
+    return {"data": result.data or []}
+
+
+@router.get("/{wo_id}/labor")
+async def get_work_order_labor(wo_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    _timing_work_order_or_404(wo_id, current_user)
+    result = supabase.table("work_order_labor_sessions").select("*").eq("tenant_id", current_user.hotel_id).eq("work_order_id", wo_id).order("started_at").execute()
+    return {"data": result.data or []}
+
+
+@router.patch("/{wo_id}/diagnosis")
+async def update_work_order_diagnosis(
+    wo_id: str,
+    request: UpdateDiagnosisRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    work_order = (
+        supabase.table("work_orders")
+        .select("id, assigned_to, status, category, problem_code_id, cause_code_id, problem_other_text, cause_other_text")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not work_order or not work_order.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    if work_order.data["status"] == "completed" and current_user.role not in GM_ONLY_ROLES:
+        raise HTTPException(status_code=403, detail="Only a GM can correct completed repair coding")
+    _ensure_engineer_can_update_work_order(current_user, work_order.data)
+    update_data = request.model_dump(exclude_none=True)
+    _validate_repair_codes(payload=update_data, category=work_order.data["category"], hotel_id=current_user.hotel_id)
+    if not update_data:
+        return {"data": work_order.data}
+    result = (
+        supabase.table("work_orders").update({
+            key: str(value) if key.endswith("_code_id") else value
+            for key, value in update_data.items()
+        }).eq("id", wo_id).eq("tenant_id", current_user.hotel_id).execute()
+    )
+    _record_repair_audit(
+        work_order_id=wo_id,
+        current_user=current_user,
+        action="work_order.diagnosis_updated",
+        old_state={key: work_order.data.get(key) for key in update_data},
+        new_state=update_data,
+    )
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.post("/{wo_id}/relationships")
+async def link_work_order(
+    wo_id: str,
+    request: LinkWorkOrderRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    child = _timing_work_order_or_404(wo_id, current_user)
+    _ensure_engineer_can_update_work_order(current_user, child)
+    _link_work_orders(
+        parent_work_order_id=str(request.parent_work_order_id),
+        child_work_order_id=wo_id,
+        relationship_type=request.relationship_type,
+        current_user=current_user,
+    )
+    return {"data": {"parent_work_order_id": str(request.parent_work_order_id), "child_work_order_id": wo_id, "relationship_type": request.relationship_type}}
 
 
 @router.post("/{wo_id}/complete")
@@ -664,7 +988,7 @@ async def complete_work_order(
 ):
     wo_check = (
         supabase.table("work_orders")
-        .select("id, assigned_to, status, title, guest_request_id")
+        .select("id, assigned_to, status, title, guest_request_id, category, problem_code_id, cause_code_id, resolution_code_id, problem_other_text, cause_other_text, resolution_other_text, verification_result, verification_notes")
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -674,6 +998,46 @@ async def complete_work_order(
         raise HTTPException(status_code=404, detail="Work order not found")
     _ensure_engineer_can_complete_work_order(current_user, wo_check.data)
 
+    repair_payload = request.model_dump(exclude_none=True)
+    _validate_repair_codes(
+        payload=repair_payload,
+        category=wo_check.data.get("category", "general"),
+        hotel_id=current_user.hotel_id,
+    )
+    repair_updates = {
+        key: (str(value) if key.endswith("_code_id") else value)
+        for key, value in repair_payload.items()
+        if key in {
+            "problem_code_id", "cause_code_id", "resolution_code_id", "problem_other_text",
+            "cause_other_text", "resolution_other_text", "verification_result", "verification_notes",
+        }
+    }
+    if request.verification_result:
+        repair_updates["verified_at"] = datetime.now(timezone.utc).isoformat()
+        repair_updates["verified_by"] = current_user.user_id
+
+    # A failed test is a repair outcome, not a completed work order. Preserve
+    # the diagnosis/verification for the next technician and keep the current
+    # operational state in progress instead of creating a misleading close.
+    if request.verification_result == "failed":
+        (
+            supabase.table("work_orders").update(repair_updates)
+            .eq("id", wo_id).eq("tenant_id", current_user.hotel_id).execute()
+        )
+        _record_repair_audit(
+            work_order_id=wo_id,
+            current_user=current_user,
+            action="work_order.repair_verification_failed",
+            old_state={key: wo_check.data.get(key) for key in repair_updates},
+            new_state=repair_updates,
+        )
+        raise HTTPException(status_code=409, detail="Repair verification failed. The work order remains in progress.")
+
+    decision = validate_work_order_transition(
+        current_status=wo_check.data["status"],
+        request=TransitionRequest(status="completed"),
+        actor_role=current_user.role,
+    )
     if request.parts_consumed:
         from services.inventory import ensure_sufficient_stock
 
@@ -682,11 +1046,29 @@ async def complete_work_order(
             current_user.hotel_id,
         )
 
+    # Close any running sessions only after every preflight has accepted the
+    # completion. Server timestamps are authoritative; manual hours remain
+    # only for work orders with no tracked sessions.
+    _apply_timing_action(wo_id, current_user, "complete")
+    sessions_result = (
+        supabase.table("work_order_labor_sessions")
+        .select("duration_minutes, labor_cost")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("work_order_id", wo_id)
+        .execute()
+    )
+    sessions = sessions_result.data or []
+
     # --- Cost computation (Phase 38) -----------------------------------
     # Labor: assignee's hourly_rate (fallback: whoever is completing the WO)
     # times labor_hours. NULL (never 0) if no rate is on file anywhere.
     labor_cost = None
-    if request.labor_hours is not None:
+    labor_hours = request.labor_hours
+    if sessions:
+        labor_hours = round(sum(float(row.get("duration_minutes") or 0) for row in sessions) / 60, 2)
+        known_costs = [float(row["labor_cost"]) for row in sessions if row.get("labor_cost") is not None]
+        labor_cost = round(sum(known_costs), 2) if known_costs else None
+    elif request.labor_hours is not None:
         labor_user_id = wo_check.data.get("assigned_to") or current_user.user_id
         rate_row = (
             supabase.table("user_roles")
@@ -730,29 +1112,24 @@ async def complete_work_order(
         total_cost = round((labor_cost or 0) + (parts_cost or 0), 2)
     # ---------------------------------------------------------------------
 
-    decision = validate_work_order_transition(
-        current_status=wo_check.data["status"],
-        request=TransitionRequest(status="completed"),
-        actor_role=current_user.role,
-    )
     _execute_work_order_transition(
         work_order_id=wo_id,
         current_user=current_user,
         decision=decision,
         source="api",
     )
+    completion_update = {
+        "notes": request.notes,
+        "labor_hours": labor_hours,
+        "parts_used": request.parts_used,
+        "labor_cost": labor_cost,
+        "parts_cost": parts_cost,
+        "total_cost": total_cost,
+        **repair_updates,
+    }
     result = (
         supabase.table("work_orders")
-        .update(
-            {
-                "notes": request.notes,
-                "labor_hours": request.labor_hours,
-                "parts_used": request.parts_used,
-                "labor_cost": labor_cost,
-                "parts_cost": parts_cost,
-                "total_cost": total_cost,
-            }
-        )
+        .update(completion_update)
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .execute()
@@ -779,7 +1156,24 @@ async def complete_work_order(
             wo_title=wo_check.data.get("title") or "Work order",
         )
 
-    return {"data": result.data[0] if result.data else None}
+    if repair_updates:
+        _record_repair_audit(
+            work_order_id=wo_id,
+            current_user=current_user,
+            action="work_order.repair_completed",
+            old_state={key: wo_check.data.get(key) for key in repair_updates},
+            new_state=repair_updates,
+        )
+
+    asset_downtime = None
+    if request.asset_restoration == "restore":
+        asset_downtime = restore_active_work_order_downtime(
+            db=supabase,
+            work_order_id=wo_id,
+            tenant_id=current_user.hotel_id,
+            actor_id=current_user.user_id,
+        )
+    return {"data": result.data[0] if result.data else None, "asset_downtime": asset_downtime}
 
 
 @router.post("/{wo_id}/transition")
@@ -818,6 +1212,8 @@ async def transition_work_order(
         decision=decision,
         source=request.source,
     )
+    if decision.status == "open" and work_order.data.get("status") == "completed":
+        _apply_timing_action(wo_id, current_user, "reopen")
     return {"data": result.data[0] if result.data else None}
 
 
@@ -1259,7 +1655,7 @@ async def get_duplicate_signal(
 ):
     wo = (
         supabase.table("work_orders")
-        .select("id, work_order_number, asset_id, room_id, category, status, created_at")
+        .select("id, work_order_number, asset_id, room_id, category, problem_code_id, status, created_at")
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -1297,7 +1693,7 @@ async def get_duplicate_signal(
     since = (datetime.now(timezone.utc) - timedelta(days=_DUPLICATE_SIGNAL_WINDOW_DAYS)).isoformat()
     candidates = (
         supabase.table("work_orders")
-        .select("id, work_order_number, title, asset_id, status, created_at, rooms(room_number)")
+        .select("id, work_order_number, title, asset_id, category, problem_code_id, status, created_at, rooms(room_number)")
         .eq("tenant_id", current_user.hotel_id)
         .in_("asset_id", zoned_asset_ids)
         .in_("status", list(_OPEN_STATUSES))
@@ -1309,6 +1705,19 @@ async def get_duplicate_signal(
     signals = candidates.data or []
     if not signals:
         return {"data": None}
+
+    # Structured matches are stronger than text/category proximity, while
+    # uncoded historical work orders retain the established fallback signal.
+    if source.get("problem_code_id"):
+        signals.sort(
+            key=lambda candidate: (
+                candidate.get("asset_id") == source["asset_id"],
+                candidate.get("problem_code_id") == source["problem_code_id"],
+                candidate.get("category") == source.get("category"),
+                candidate.get("created_at") or "",
+            ),
+            reverse=True,
+        )
 
     same_asset_count = sum(1 for c in signals if c.get("asset_id") == source["asset_id"])
     # Deterministic heuristic, not a model score: base confidence for any
@@ -1393,6 +1802,13 @@ async def merge_work_order(
         current_user=current_user,
         decision=decision,
         source="web",
+    )
+
+    _link_work_orders(
+        parent_work_order_id=target_id,
+        child_work_order_id=wo_id,
+        relationship_type="duplicate",
+        current_user=current_user,
     )
 
     supabase.table("work_order_comments").insert(

@@ -179,6 +179,7 @@ class UpdateRoomStatusRequest(SanitizedBaseModel):
 
 class CreateRoomUnavailabilityRequest(SanitizedBaseModel):
     room_id: UUID4
+    type: Literal["OUT_OF_ORDER", "OUT_OF_SERVICE"] = "OUT_OF_ORDER"
     reason_code: str = Field(min_length=1, max_length=64)
     reason_label: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     expected_return_at: datetime
@@ -298,12 +299,17 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     room_id: Optional[UUID4] = None
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     asset_id: Optional[UUID4] = None
+    asset_impact: Literal["operating", "degraded", "out_of_service"] = "operating"
     assigned_to: Optional[UUID4] = None
     nl_input: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     use_ai: bool = False
     guest_reported: bool = False
     source: Literal["guest", "staff_patrol", "pm", "self"] = "self"
     mark_room_out_of_order: bool = False
+    room_unavailability: Optional[CreateRoomUnavailabilityRequest] = None
+    problem_code_id: Optional[UUID4] = None
+    problem_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    repeat_of_work_order_id: Optional[UUID4] = None
 
 
 class ConsumedPartItem(SanitizedBaseModel):
@@ -319,6 +325,27 @@ class CompleteWorkOrderRequest(SanitizedBaseModel):
     labor_hours: Optional[float] = Field(default=None, ge=0, le=24)
     parts_used: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     parts_consumed: List[ConsumedPartItem] = Field(default_factory=list, max_length=50)
+    problem_code_id: Optional[UUID4] = None
+    cause_code_id: Optional[UUID4] = None
+    resolution_code_id: Optional[UUID4] = None
+    problem_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    cause_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    resolution_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    verification_result: Optional[Literal["passed", "failed", "follow_up_required"]] = None
+    verification_notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    asset_restoration: Optional[Literal["keep_unavailable", "restore"]] = None
+
+
+class UpdateDiagnosisRequest(SanitizedBaseModel):
+    problem_code_id: Optional[UUID4] = None
+    cause_code_id: Optional[UUID4] = None
+    problem_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    cause_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class LinkWorkOrderRequest(SanitizedBaseModel):
+    parent_work_order_id: UUID4
+    relationship_type: Literal["repeat_failure", "follow_up", "duplicate", "related"]
 
 
 class TransitionWorkOrderRequest(SanitizedBaseModel):
@@ -376,6 +403,57 @@ class UpdateWorkOrderRequest(SanitizedBaseModel):
 
 class SnoozeWorkOrderRequest(SanitizedBaseModel):
     hours: float = Field(default=1, gt=0, le=72)
+
+
+VendorTrade = Literal[
+    "hvac", "plumbing", "electrical", "elevator", "fire_life_safety", "pool",
+    "roofing", "locksmith_doors", "appliance", "laundry_equipment", "refrigeration",
+    "general_contractor", "landscaping", "pest_control", "other",
+]
+
+
+class CreateEngineeringVendorRequest(SanitizedBaseModel):
+    name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    trades: List[VendorTrade] = Field(default_factory=list, max_length=8)
+    contact_name: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    phone: Optional[str] = Field(default=None, max_length=32)
+    email: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    emergency_phone: Optional[str] = Field(default=None, max_length=32)
+    offers_24h_service: bool = False
+    insurance_expires_at: Optional[date] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class UpdateEngineeringVendorRequest(SanitizedBaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=MEDIUM_TEXT_MAX)
+    trades: Optional[List[VendorTrade]] = Field(default=None, max_length=8)
+    contact_name: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    phone: Optional[str] = Field(default=None, max_length=32)
+    email: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    emergency_phone: Optional[str] = Field(default=None, max_length=32)
+    offers_24h_service: Optional[bool] = None
+    insurance_expires_at: Optional[date] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    is_active: Optional[bool] = None
+
+
+class CreateVendorEngagementRequest(SanitizedBaseModel):
+    vendor_id: UUID4
+    service_type: Literal["standard", "emergency"] = "standard"
+    expected_arrival_at: Optional[datetime] = None
+    quote_amount: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    reference_number: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    mark_work_order_waiting: bool = False
+
+
+class UpdateVendorEngagementRequest(SanitizedBaseModel):
+    status: Optional[Literal["requested", "accepted", "en_route", "on_site", "completed", "cancelled"]] = None
+    expected_arrival_at: Optional[datetime] = None
+    quote_amount: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    invoice_amount: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    reference_number: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
 class CreateChecklistItemRequest(SanitizedBaseModel):
@@ -652,20 +730,95 @@ class CreateAssetRequest(SanitizedBaseModel):
     model: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     serial_number: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     purchase_date: Optional[date] = None
+    installation_date: Optional[date] = None
+    warranty_expires: Optional[date] = None
+    asset_tag: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     expected_lifespan_years: Optional[int] = Field(default=None, ge=1, le=100)
     replacement_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000)
 
 
+class StartAssetDowntimeRequest(SanitizedBaseModel):
+    downtime_type: Literal["unplanned", "planned"] = "unplanned"
+    impact_level: Literal["degraded", "out_of_service"] = "out_of_service"
+    work_order_id: Optional[UUID4] = None
+    reason_code: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class RestoreAssetDowntimeRequest(SanitizedBaseModel):
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
 class UpdateAssetRequest(SanitizedBaseModel):
     name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    category_id: Optional[UUID4] = None
+    room_id: Optional[UUID4] = None
+    asset_tag: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     manufacturer: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     model: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     is_active: Optional[bool] = None
     failure_risk_score: Optional[int] = Field(default=None, ge=0, le=100)
     warranty_expires: Optional[date] = None
+    purchase_date: Optional[date] = None
+    installation_date: Optional[date] = None
+    expected_lifespan_years: Optional[int] = Field(default=None, ge=1, le=100)
+    replacement_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000)
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     zone: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+
+
+MeterType = Literal[
+    "temperature", "pressure", "voltage", "current", "runtime_hours",
+    "cycle_count", "ph", "chlorine", "humidity", "flow", "energy", "water", "custom",
+]
+
+
+class MeterThresholdsRequest(SanitizedBaseModel):
+    warning_low: Optional[float] = None
+    warning_high: Optional[float] = None
+    critical_low: Optional[float] = None
+    critical_high: Optional[float] = None
+
+    @model_validator(mode="after")
+    def validate_threshold_order(self):
+        if self.critical_low is not None and self.warning_low is not None and self.critical_low > self.warning_low:
+            raise ValueError("critical_low must be less than or equal to warning_low")
+        if self.warning_high is not None and self.critical_high is not None and self.warning_high > self.critical_high:
+            raise ValueError("warning_high must be less than or equal to critical_high")
+        return self
+
+
+class CreateMeterRequest(MeterThresholdsRequest):
+    name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    meter_type: MeterType
+    unit: str = Field(min_length=1, max_length=32)
+    location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    stale_after_hours: Optional[int] = Field(default=None, ge=1, le=8760)
+    source_type: Literal["manual", "pm", "iot"] = "manual"
+    critical_action: Literal["none", "create_work_order"] = "none"
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class UpdateMeterRequest(MeterThresholdsRequest):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=SHORT_TEXT_MAX)
+    unit: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    stale_after_hours: Optional[int] = Field(default=None, ge=1, le=8760)
+    critical_action: Optional[Literal["none", "create_work_order"]] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    is_active: Optional[bool] = None
+
+
+class RecordMeterReadingRequest(SanitizedBaseModel):
+    value: float = Field(ge=-1_000_000_000, le=1_000_000_000)
+    recorded_at: Optional[datetime] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class PMConditionReadingInput(RecordMeterReadingRequest):
+    meter_id: UUID4
 
 
 # --- PM Schedules ---
@@ -679,6 +832,7 @@ class CreatePMScheduleRequest(SanitizedBaseModel):
     interval_days: Optional[int] = Field(default=None, ge=1, le=3650)
     estimated_minutes: int = Field(default=30, ge=1, le=1440)
     next_due_at: datetime
+    recurrence_basis: Literal["scheduled_date", "completion_date"] = "scheduled_date"
 
 
 # --- Operational programs (Phase 4) ---
@@ -708,10 +862,14 @@ class CompletePMProgramRequest(SanitizedBaseModel):
     verifier_id: Optional[str] = Field(default=None, max_length=100)
     measurements: dict[str, Any] = Field(default_factory=dict)
     meter_readings: dict[str, Any] = Field(default_factory=dict)
+    # Explicit references only. Legacy JSON fields above remain intact and are
+    # never reverse-mapped by label into condition history.
+    condition_readings: List[PMConditionReadingInput] = Field(default_factory=list, max_length=50)
     photos: List[str] = Field(default_factory=list, max_length=20)
     labor_minutes: int = Field(default=0, ge=0, le=1440)
     parts_used: List[dict[str, Any]] = Field(default_factory=list, max_length=100)
     defects: List[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    vendor_id: Optional[UUID4] = None
     vendor_name: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     certificate_attachments: List[str] = Field(default_factory=list, max_length=20)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)

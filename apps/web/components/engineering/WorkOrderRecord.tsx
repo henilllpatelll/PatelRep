@@ -30,24 +30,26 @@ import Link from 'next/link'
 import {
   engineeringApi,
   type TransitionWorkOrderPayload,
+  type RepairCode,
   type WorkOrder,
   type WorkOrderComment,
+  type WorkOrderLaborSession,
   type WorkOrderStatus,
+  type VendorEngagement,
 } from '@/lib/api/engineering'
 import { tasksApi } from '@/lib/api/tasks'
 import { inventoryApi } from '@/lib/api/inventory'
+import { roomUnavailabilityApi, type RoomUnavailabilityPeriod } from '@/lib/api/rooms'
+import { staffApi } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Pill, AILabel, SectionLabel } from '@/components/ui/primitives'
-import { getAvatarColor } from '@/lib/utils/avatar'
-
-/** ids here are staff/system UUIDs, not display names -- there is no client-side name lookup. */
-function shortId(id: string): string {
-  return id.slice(0, 2).toUpperCase()
-}
+import { RepairCodePicker } from '@/components/engineering/RepairCodePicker'
+import { formatReliabilityDuration } from '@/lib/utils/assetReliability'
+import { VendorEngagementDrawer } from '@/components/engineering/VendorEngagementDrawer'
 
 interface Props {
   wo: WorkOrder
@@ -57,8 +59,8 @@ interface Props {
   startInEditMode?: boolean
   /** Pre-opens the matching inline action (kanban drag-to-column shortcuts) instead of a silent status change, since hold/cancel/reopen require a reason and completion requires notes/labor/parts. */
   autoAction?: 'complete' | 'hold' | 'cancel' | 'reopen'
-  /** Active out-of-order reason for the WO's room, if any -- computed by the caller (a single shared query keyed on whichever WO is selected). */
-  roomUnavailabilityReason?: string | null
+  /** Active room impact for the selected work order's room. */
+  roomUnavailability?: RoomUnavailabilityPeriod | null
 }
 
 type RecordTab = 'details' | 'timeline' | 'parts'
@@ -109,6 +111,12 @@ function isSnoozedNow(snoozedUntil: string | undefined | null): boolean {
   return !!snoozedUntil && new Date(snoozedUntil).getTime() > Date.now()
 }
 
+function formatTimer(startedAt: string, now: number): string {
+  const seconds = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000))
+  return [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60]
+    .map((value) => String(value).padStart(2, '0')).join(':')
+}
+
 function slaDisplay(dueAt: string, status: string, t: TFunction): { text: string; overdue: boolean } | null {
   if (status === 'completed' || status === 'cancelled') return null
   const diff = new Date(dueAt).getTime() - Date.now()
@@ -137,7 +145,7 @@ function getPhotoUrl(storagePath: string, photoUrl?: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/work-order-photos/${storagePath}`
 }
 
-export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAction, roomUnavailabilityReason }: Props) {
+export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAction, roomUnavailability }: Props) {
   const { t } = useTranslation()
   const { role, isGM } = useRole()
   const queryClient = useQueryClient()
@@ -152,13 +160,33 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
 
   // Completion form state
   const [showCompleteForm, setShowCompleteForm] = useState(false)
+  const [showDiagnosisForm, setShowDiagnosisForm] = useState(false)
+  const [diagnosisProblem, setDiagnosisProblem] = useState<RepairCode | null>(null)
+  const [diagnosisCause, setDiagnosisCause] = useState<RepairCode | null>(null)
+  const [diagnosisProblemOther, setDiagnosisProblemOther] = useState('')
+  const [diagnosisCauseOther, setDiagnosisCauseOther] = useState('')
+  const [completionProblem, setCompletionProblem] = useState<RepairCode | null>(null)
+  const [completionCause, setCompletionCause] = useState<RepairCode | null>(null)
+  const [completionResolution, setCompletionResolution] = useState<RepairCode | null>(null)
+  const [completionProblemOther, setCompletionProblemOther] = useState('')
+  const [completionCauseOther, setCompletionCauseOther] = useState('')
+  const [completionResolutionOther, setCompletionResolutionOther] = useState('')
+  const [verificationResult, setVerificationResult] = useState<'passed' | 'follow_up_required'>('passed')
+  const [verificationNotes, setVerificationNotes] = useState('')
   const [completionNotes, setCompletionNotes] = useState('')
   const [laborHours, setLaborHours] = useState('')
   const [partsUsed, setPartsUsed] = useState('')
   const [partsConsumed, setPartsConsumed] = useState<Array<{ part_id: string; location_id: string; quantity: number }>>([])
+  const [returnRoomAfterCompletion, setReturnRoomAfterCompletion] = useState(false)
+  const [assetRestoration, setAssetRestoration] = useState<'keep_unavailable' | 'restore'>('restore')
+  const [roomAction, setRoomAction] = useState<'eta' | 'release' | null>(null)
+  const [roomActionNote, setRoomActionNote] = useState('')
+  const [roomEta, setRoomEta] = useState('')
   const [pendingTransition, setPendingTransition] = useState<WorkOrderStatus | null>(null)
   const [transitionReason, setTransitionReason] = useState('')
   const [transitionNote, setTransitionNote] = useState('')
+  const [timerNow, setTimerNow] = useState(() => Date.now())
+  const [vendorDrawerOpen, setVendorDrawerOpen] = useState(false)
 
   // Comment state
   const [commentText, setCommentText] = useState('')
@@ -204,8 +232,29 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
   })
 
   const fullWo: WorkOrder = (woDetail?.data ?? wo) as WorkOrder
+  const assetReliabilityQuery = useQuery({
+    queryKey: ['work-order-asset-reliability', fullWo.asset_id],
+    queryFn: () => engineeringApi.getAssetReliability(fullWo.asset_id!),
+    enabled: Boolean(fullWo.asset_id),
+    staleTime: 5_000,
+  })
+  const activeAssetDowntime = assetReliabilityQuery.data?.data.active_downtime
   const comments: WorkOrderComment[] = fullWo?.work_order_comments ?? []
   const photos = fullWo?.work_order_photos ?? []
+  const staffQuery = useQuery({ queryKey: ['staff-picker'], queryFn: () => staffApi.list(), staleTime: 300_000 })
+  const staffNames = new Map((staffQuery.data?.data.staff ?? []).map((staff) => [staff.user_id, staff.full_name]))
+  const timingQuery = useQuery({ queryKey: ['work-order-events', wo.id], queryFn: () => engineeringApi.getWorkOrderEvents(wo.id), staleTime: 5_000 })
+  const vendorEngagementsQuery = useQuery({ queryKey: ['work-order-vendor-engagements', wo.id], queryFn: () => engineeringApi.listVendorEngagements(wo.id), staleTime: 5_000 })
+  const vendorEngagements = vendorEngagementsQuery.data?.data ?? []
+  const vendorStatusMutation = useMutation({ mutationFn: ({ engagementId, status }: { engagementId: string; status: VendorEngagement['status'] }) => engineeringApi.updateVendorEngagement(engagementId, { status }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['work-order-vendor-engagements', wo.id] }); queryClient.invalidateQueries({ queryKey: ['work-order-detail', wo.id] }); onUpdate() } })
+  const laborQuery = useQuery({ queryKey: ['work-order-labor', wo.id], queryFn: () => engineeringApi.getWorkOrderLabor(wo.id), staleTime: 5_000 })
+  const laborSessions = laborQuery.data?.data ?? []
+  const activeSession = laborSessions.find((session) => !session.ended_at)
+  useEffect(() => {
+    if (!activeSession) return
+    const interval = window.setInterval(() => setTimerNow(Date.now()), 1_000)
+    return () => window.clearInterval(interval)
+  }, [activeSession])
 
   // Only fetched once the completion form is actually open -- avoids a
   // network call on every record view for work orders nobody is closing.
@@ -306,37 +355,105 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
   // Backend allows escalated -> in_progress directly (no reason code) -- same rule the
   // board's drag-and-drop already relies on -- but no button surfaced it until now.
   const canResumeFromEscalated = (isEngineer || isChief || isGM) && fullWo?.status === 'escalated'
+  const canTime = (isEngineer || isChief || isGM) && !['completed', 'cancelled'].includes(fullWo.status)
+  const canStartLabor = canTime && fullWo.status === 'in_progress'
 
   // Mutations
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['work-orders'] })
     queryClient.invalidateQueries({ queryKey: ['work-order-detail', wo.id] })
+    queryClient.invalidateQueries({ queryKey: ['work-order-events', wo.id] })
+    queryClient.invalidateQueries({ queryKey: ['work-order-labor', wo.id] })
   }
 
   const claimMutation = useMutation({
     mutationFn: () => engineeringApi.claimWorkOrder(wo.id),
     onSuccess: () => { invalidate(); onUpdate() },
   })
+  const acknowledgeMutation = useMutation({ mutationFn: () => engineeringApi.acknowledgeWorkOrder(wo.id), onSuccess: () => { invalidate(); onUpdate() } })
+  const arriveMutation = useMutation({ mutationFn: () => engineeringApi.arriveAtWorkOrder(wo.id), onSuccess: () => { invalidate(); onUpdate() } })
+  const startLaborMutation = useMutation({ mutationFn: () => engineeringApi.startWorkOrderLabor(wo.id), onSuccess: () => { invalidate(); onUpdate() } })
+  const pauseLaborMutation = useMutation({ mutationFn: () => engineeringApi.pauseWorkOrderLabor(wo.id), onSuccess: () => { invalidate(); onUpdate() } })
 
   const completeMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const validPartsConsumed = partsConsumed.filter((row) => row.part_id && row.location_id && row.quantity > 0)
-      return engineeringApi.completeWorkOrder(wo.id, {
+      const result = await engineeringApi.completeWorkOrder(wo.id, {
         notes: completionNotes.trim() || undefined,
         labor_hours: laborHours ? parseFloat(laborHours) : undefined,
         parts_used: partsUsed.trim() || undefined,
         parts_consumed: validPartsConsumed.length ? validPartsConsumed : undefined,
+        problem_code_id: completionProblem?.id ?? fullWo.problem_code_id,
+        cause_code_id: completionCause?.id ?? fullWo.cause_code_id,
+        resolution_code_id: completionResolution?.id ?? fullWo.resolution_code_id,
+        problem_other_text: completionProblemOther.trim() || undefined,
+        cause_other_text: completionCauseOther.trim() || undefined,
+        resolution_other_text: completionResolutionOther.trim() || undefined,
+        verification_result: verificationResult,
+        verification_notes: verificationNotes.trim() || undefined,
+        asset_restoration: activeAssetDowntime ? assetRestoration : null,
       })
+      if (returnRoomAfterCompletion && roomUnavailability) await roomUnavailabilityApi.release(roomUnavailability.id, completionNotes.trim() || undefined)
+      return result
     },
     onSuccess: () => {
       setShowCompleteForm(false)
       setCompletionNotes('')
+      setCompletionProblem(null)
+      setCompletionCause(null)
+      setCompletionResolution(null)
+      setCompletionProblemOther('')
+      setCompletionCauseOther('')
+      setCompletionResolutionOther('')
+      setVerificationResult('passed')
+      setVerificationNotes('')
       setLaborHours('')
       setPartsUsed('')
       setPartsConsumed([])
+      setReturnRoomAfterCompletion(false)
+      setAssetRestoration('restore')
+      queryClient.invalidateQueries({ queryKey: ['room-unavailability'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+      queryClient.invalidateQueries({ queryKey: ['asset', fullWo.asset_id] })
+      queryClient.invalidateQueries({ queryKey: ['asset-downtime', fullWo.asset_id] })
+      queryClient.invalidateQueries({ queryKey: ['asset-reliability', fullWo.asset_id] })
+      queryClient.invalidateQueries({ queryKey: ['work-order-asset-reliability', fullWo.asset_id] })
       invalidate()
       onUpdate()
       onClose?.()
+    },
+  })
+
+  const diagnosisMutation = useMutation({
+    mutationFn: () => engineeringApi.updateWorkOrderDiagnosis(wo.id, {
+      problem_code_id: diagnosisProblem?.id ?? fullWo.problem_code_id,
+      cause_code_id: diagnosisCause?.id ?? fullWo.cause_code_id,
+      problem_other_text: diagnosisProblemOther.trim() || undefined,
+      cause_other_text: diagnosisCauseOther.trim() || undefined,
+    }),
+    onSuccess: () => {
+      setShowDiagnosisForm(false)
+      setDiagnosisProblem(null)
+      setDiagnosisCause(null)
+      setDiagnosisProblemOther('')
+      setDiagnosisCauseOther('')
+      invalidate()
+      onUpdate()
+    },
+  })
+
+  const roomActionMutation = useMutation({
+    mutationFn: async () => {
+      if (!roomUnavailability) throw new Error('No active room-unavailability period')
+      if (roomAction === 'eta') return roomUnavailabilityApi.updateEta(roomUnavailability.id, new Date(roomEta).toISOString(), roomActionNote.trim() || undefined)
+      return roomUnavailabilityApi.release(roomUnavailability.id, roomActionNote.trim() || undefined)
+    },
+    onSuccess: () => {
+      setRoomAction(null); setRoomActionNote(''); setRoomEta('')
+      queryClient.invalidateQueries({ queryKey: ['room-unavailability'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      onUpdate()
     },
   })
 
@@ -356,6 +473,26 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
     setPendingTransition(status)
     setTransitionReason('')
     setTransitionNote('')
+  }
+
+  const openCompletionForm = () => {
+    setCompletionProblem(null)
+    setCompletionCause(null)
+    setCompletionResolution(null)
+    setCompletionProblemOther(fullWo.problem_other_text ?? '')
+    setCompletionCauseOther(fullWo.cause_other_text ?? '')
+    setCompletionResolutionOther(fullWo.resolution_other_text ?? '')
+    setVerificationResult(fullWo.verification_result === 'follow_up_required' ? 'follow_up_required' : 'passed')
+    setVerificationNotes(fullWo.verification_notes ?? '')
+    setShowCompleteForm(true)
+  }
+
+  const openDiagnosisForm = () => {
+    setDiagnosisProblem(null)
+    setDiagnosisCause(null)
+    setDiagnosisProblemOther(fullWo.problem_other_text ?? '')
+    setDiagnosisCauseOther(fullWo.cause_other_text ?? '')
+    setShowDiagnosisForm(true)
   }
 
   const submitTransition = () => {
@@ -440,7 +577,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
     })
 
     if (autoAction === 'complete' && wo.status === 'in_progress') {
-      setShowCompleteForm(true)
+      openCompletionForm()
     } else if (autoAction === 'hold' && (wo.status === 'in_progress' || wo.status === 'escalated')) {
       setPendingTransition('on_hold')
     } else if (autoAction === 'cancel' && (wo.status === 'open' || wo.status === 'on_hold' || wo.status === 'escalated' || wo.status === 'in_progress')) {
@@ -461,6 +598,11 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
     : fullWo.location_text ?? null
   const locationShort = fullWo.rooms?.room_number ? `R-${fullWo.rooms.room_number}` : location
   const zone = fullWo.assets?.zone
+  const reporterName = staffNames.get(fullWo.created_by) ?? t('engineering.workOrderDetail.unknownReporter')
+  const assigneeName = fullWo.assigned_to ? staffNames.get(fullWo.assigned_to) : null
+  const roomImpactDuration = roomUnavailability?.started_at
+    ? formatDistanceToNowStrict(new Date(roomUnavailability.started_at), { addSuffix: false })
+    : null
 
   // AI insight: show if ai_created with description or notes resembling insight text
   const aiInsightText = fullWo.is_ai_created ? (fullWo.description ?? fullWo.notes ?? null) : null
@@ -479,6 +621,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
   const isSnoozed = isSnoozedNow(fullWo.snoozed_until)
   const canSnooze = (isEngineer || isChief || isGM) && !['completed', 'cancelled'].includes(fullWo.status)
   const canMerge = (isChief || isGM) && !!duplicateSignal
+  const canEngageVendor = (isEngineer || isChief || isGM) && !['completed', 'cancelled'].includes(fullWo.status)
 
   return (
     <div className="flex h-full flex-col bg-surface">
@@ -486,9 +629,9 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
       <div className="shrink-0 border-b border-line px-5 pt-4 pb-3.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill tone={PRIORITY_TONE[fullWo.priority] ?? 'caution'} size="sm">{fullWo.priority}</Pill>
+            <Pill tone={PRIORITY_TONE[fullWo.priority] ?? 'caution'} size="sm">{t(`engineering.commandCenter.priority_${fullWo.priority}`)}</Pill>
             <span className="font-mono text-[12px] text-ink3">WO-{fullWo.work_order_number}</span>
-            <Pill tone={STATUS_TONE[fullWo.status] ?? 'neutral'} size="sm">{fullWo.status.replace(/_/g, ' ')}</Pill>
+            <Pill tone={STATUS_TONE[fullWo.status] ?? 'neutral'} size="sm">{t(`engineering.commandCenter.status_${fullWo.status}`)}</Pill>
             {fullWo.is_pm_generated && <Pill tone="ready" size="sm">{t('engineering.workOrderCard.pm')}</Pill>}
             {fullWo.is_ai_created && <AILabel>{t('engineering.workOrderDetail.ai')}</AILabel>}
           </div>
@@ -686,23 +829,46 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                 )}
 
                 {fullWo.description && <p className="text-sm leading-relaxed text-ink2">{fullWo.description}</p>}
+                <section className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3" aria-label={t('engineering.repair.diagnosisRepair')}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.repair.diagnosisRepair')}</p>
+                    {(isEngineer || isChief || isGM) && !['cancelled'].includes(fullWo.status) && <Button type="button" variant="ghost" size="sm" onClick={() => showDiagnosisForm ? setShowDiagnosisForm(false) : openDiagnosisForm()}>{showDiagnosisForm ? t('common.cancel') : t('engineering.repair.updateDiagnosis')}</Button>}
+                  </div>
+                  <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                    <dt className="text-ink3">{t('engineering.repair.problem')}</dt><dd className="text-ink">{fullWo.problem_code?.label ?? fullWo.problem_other_text ?? t('engineering.repair.notClassified')}</dd>
+                    <dt className="text-ink3">{t('engineering.repair.cause')}</dt><dd className="text-ink">{fullWo.cause_code?.label ?? fullWo.cause_other_text ?? t('engineering.repair.notDiagnosed')}</dd>
+                    <dt className="text-ink3">{t('engineering.repair.resolution')}</dt><dd className="text-ink">{fullWo.resolution_code?.label ?? fullWo.resolution_other_text ?? t('engineering.repair.notCompleted')}</dd>
+                    {fullWo.verification_result && <><dt className="text-ink3">{t('engineering.repair.verification')}</dt><dd className={fullWo.verification_result === 'passed' ? 'font-medium text-[var(--ready)]' : 'font-medium text-[var(--caution)]'}>{t(`engineering.repair.verification_${fullWo.verification_result}`)}</dd></>}
+                  </dl>
+                  {showDiagnosisForm && <div className="mt-3 space-y-3 border-t border-line pt-3">
+                    <RepairCodePicker codeType="problem" category={fullWo.category} assetCategoryId={fullWo.assets?.category_id} value={diagnosisProblem?.id ?? fullWo.problem_code_id} onChange={(code) => { setDiagnosisProblem(code); setDiagnosisProblemOther('') }} label={t('engineering.repair.problem')} searchPlaceholder={t('engineering.repair.searchProblem')} emptyLabel={t('engineering.repair.noCodes')} clearLabel={t('engineering.repair.clearSelection')} />
+                    {(diagnosisProblem ?? fullWo.problem_code)?.code.startsWith('other') && <textarea value={diagnosisProblemOther} onChange={(event) => setDiagnosisProblemOther(event.target.value)} rows={2} placeholder={t('engineering.repair.describeProblem')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm" />}
+                    <RepairCodePicker codeType="cause" category={fullWo.category} assetCategoryId={fullWo.assets?.category_id} value={diagnosisCause?.id ?? fullWo.cause_code_id} onChange={(code) => { setDiagnosisCause(code); setDiagnosisCauseOther('') }} label={t('engineering.repair.cause')} searchPlaceholder={t('engineering.repair.searchCause')} emptyLabel={t('engineering.repair.noCodes')} clearLabel={t('engineering.repair.clearSelection')} />
+                    {(diagnosisCause ?? fullWo.cause_code)?.code.startsWith('other') && <textarea value={diagnosisCauseOther} onChange={(event) => setDiagnosisCauseOther(event.target.value)} rows={2} placeholder={t('engineering.repair.describeCause')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm" />}
+                    {diagnosisMutation.isError && <p className="text-xs text-[var(--alert)]">{t('engineering.repair.diagnosisError')}</p>}
+                    <div className="flex justify-end gap-2"><Button type="button" variant="ghost" size="sm" onClick={() => setShowDiagnosisForm(false)}>{t('common.cancel')}</Button><Button type="button" variant="primary" size="sm" onClick={() => diagnosisMutation.mutate()} disabled={diagnosisMutation.isPending}>{diagnosisMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{t('engineering.repair.saveDiagnosis')}</Button></div>
+                  </div>}
+                </section>
+                <section className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3" aria-label={t('engineering.workOrderDetail.timingHeading')}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.workOrderDetail.timingHeading')}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <span className="text-ink3">{t('engineering.workOrderDetail.reported')}</span><span className="text-right text-ink">{formatTs(fullWo.created_at, t)}</span>
+                    <span className="text-ink3">{t('engineering.workOrderDetail.acknowledged')}</span><span className="text-right text-ink">{formatTs(fullWo.acknowledged_at, t) ?? '—'}</span>
+                    <span className="text-ink3">{t('engineering.workOrderDetail.arrived')}</span><span className="text-right text-ink">{formatTs(fullWo.arrived_at, t) ?? '—'}</span>
+                    {activeSession && <><span className="font-medium text-[var(--ready)]">{t('engineering.workOrderDetail.working')}</span><span className="text-right font-mono font-semibold text-[var(--ready)]">{formatTimer(activeSession.started_at, timerNow)}</span></>}
+                  </div>
+                  {laborSessions.length > 0 && <div className="mt-3 border-t border-line pt-2 text-xs"><p className="font-semibold text-ink">{t('engineering.workOrderDetail.laborHeading')}</p>{laborSessions.map((session: WorkOrderLaborSession) => <p key={session.id} className="mt-1 flex justify-between text-ink2"><span>{staffNames.get(session.staff_user_id) ?? t('engineering.workOrderDetail.unknownTechnician')}</span><span>{session.ended_at ? t('engineering.workOrderDetail.minutes', { count: Math.round(session.duration_minutes ?? 0) }) : `${t('engineering.workOrderDetail.running')} · ${formatTimer(session.started_at, timerNow)}`}</span></p>)}</div>}
+                </section>
+                {vendorEngagements.length > 0 && <section className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3" aria-label={t('vendors.title')}><div className="flex items-center justify-between gap-3"><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('vendors.title')}</p><Button variant="ghost" size="sm" onClick={() => setVendorDrawerOpen(true)}>{t('vendors.contactVendor')}</Button></div><ul className="mt-2 space-y-2">{vendorEngagements.map((engagement) => { const next: Partial<Record<VendorEngagement['status'], VendorEngagement['status']>> = { requested: 'accepted', accepted: 'en_route', en_route: 'on_site', on_site: 'completed' }; return <li key={engagement.id} className="border-t border-line pt-2 text-xs"><div className="flex items-center justify-between gap-2"><span className="font-medium text-ink">{engagement.engineering_vendors?.name ?? t('vendors.title')}</span><span className="text-ink2">{t(`vendors.status.${engagement.status}`)}</span></div>{engagement.expected_arrival_at && <p className="mt-1 text-ink3">{t('vendors.expectedArrival')}: {formatTs(engagement.expected_arrival_at, t)}</p>}{next[engagement.status] && canEngageVendor && <Button variant="ghost" size="sm" className="mt-1" disabled={vendorStatusMutation.isPending} onClick={() => vendorStatusMutation.mutate({ engagementId: engagement.id, status: next[engagement.status]! })}>{t(`vendors.status.${next[engagement.status]}`)}</Button>}</li> })}</ul></section>}
                 <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2.5 text-[13px]">
                   <dt className="text-ink3">{t('engineering.workOrderDetail.reporterLabel')}</dt>
-                  <dd className="flex items-center gap-2 text-ink">
-                    <span className={`flex h-[20px] w-[20px] items-center justify-center rounded-full text-[8px] font-semibold text-white ${getAvatarColor(fullWo.created_by)}`}>{shortId(fullWo.created_by)}</span>
-                    {shortId(fullWo.created_by)}
+                  <dd className="text-ink">
+                    {reporterName}
                     {fullWo.guest_reported && <span className="text-ink3">({t('engineering.commandCenter.guest')})</span>}
                   </dd>
                   <dt className="text-ink3">{t('engineering.workOrderDetail.assigneeLabel')}</dt>
-                  <dd className="flex items-center gap-2 text-ink">
-                    {fullWo.assigned_to ? (
-                      <>
-                        <span className={`flex h-[20px] w-[20px] items-center justify-center rounded-full text-[8px] font-semibold text-white ${getAvatarColor(fullWo.assigned_to)}`}>{shortId(fullWo.assigned_to)}</span>
-                        {shortId(fullWo.assigned_to)}
-                      </>
-                    ) : (
-                      <span className="text-ink3">{t('engineering.workOrdersPage.unassigned')}</span>
-                    )}
+                  <dd className="text-ink">
+                    {assigneeName ?? <span className="text-ink3">{t('engineering.workOrdersPage.unassigned')}</span>}
                   </dd>
                   {fullWo.assets && (
                     <>
@@ -766,13 +932,45 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                     </>
                   )}
                 </dl>
-                {roomUnavailabilityReason && (
+                {roomUnavailability && (
                   <div className="rounded-[var(--r-md)] border border-[var(--blocked-line)] bg-[var(--blocked-soft)] p-3 text-sm">
-                    <p className="font-semibold text-ink">{t('engineering.workOrdersPage.roomOutOfOrder')}</p>
-                    <p className="mt-1 text-ink2">{roomUnavailabilityReason}</p>
-                    <Link href="/housekeeping/out-of-order" className="mt-2 inline-block text-[var(--accent)] hover:underline">
-                      {t('engineering.workOrdersPage.viewOoo')}
-                    </Link>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.workOrderDetail.roomImpact')}</p>
+                    <p className="mt-1 font-semibold text-ink">{t('engineering.workOrderCard.room')} {roomUnavailability.rooms?.room_number ?? fullWo.rooms?.room_number} · {roomUnavailability.type === 'OUT_OF_ORDER' ? t('engineering.workOrderDetail.outOfOrder') : t('engineering.workOrderDetail.outOfService')}</p>
+                    <p className="mt-1 text-ink2">{roomUnavailability.reason_label}</p>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink3">
+                      {roomImpactDuration && <span>{t('engineering.workOrderDetail.downFor', { duration: roomImpactDuration })}</span>}
+                      {roomUnavailability.expected_return_at && <span className={roomUnavailability.is_past_eta ? 'font-medium text-[var(--alert)]' : undefined}>{t('engineering.workOrderDetail.expectedReturn', { time: formatTs(roomUnavailability.expected_return_at, t) })}</span>}
+                    </div>
+                    {(isEngineer || isChief || isGM) && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={() => { setRoomAction('eta'); setRoomEta(roomUnavailability.expected_return_at ? format(new Date(roomUnavailability.expected_return_at), "yyyy-MM-dd'T'HH:mm") : '') }}>{t('engineering.workOrderDetail.updateReturnTime')}</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setRoomAction('release')}>{t('engineering.workOrderDetail.returnRoomToService')}</Button>
+                      </div>
+                    )}
+                    {roomAction && (
+                      <div className="mt-3 space-y-3 border-t border-[var(--blocked-line)] pt-3">
+                        <p className="text-xs font-semibold text-ink">{roomAction === 'eta' ? t('engineering.workOrderDetail.updateReturnTime') : t('engineering.workOrderDetail.returnRoomToService')}</p>
+                        {roomAction === 'eta' && <input type="datetime-local" required value={roomEta} onChange={(event) => setRoomEta(event.target.value)} className="w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm text-ink" />}
+                        {roomAction === 'release' && <p className="text-xs text-ink3">{t('engineering.workOrderDetail.returnDirtyNotice')}</p>}
+                        <textarea value={roomActionNote} onChange={(event) => setRoomActionNote(event.target.value)} rows={2} placeholder={t('engineering.workOrderDetail.roomActionNotePlaceholder')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm text-ink" />
+                        {roomActionMutation.isError && <p className="text-xs text-[var(--alert)]">{t('engineering.workOrderDetail.roomActionError')}</p>}
+                        <div className="flex justify-end gap-2"><Button type="button" variant="ghost" size="sm" onClick={() => setRoomAction(null)}>{t('common.cancel')}</Button><Button type="button" variant="primary" size="sm" disabled={roomActionMutation.isPending || (roomAction === 'eta' && !roomEta)} onClick={() => roomActionMutation.mutate()}>{roomActionMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{roomAction === 'eta' ? t('engineering.workOrderDetail.updateReturnTime') : t('engineering.workOrderDetail.returnRoomToService')}</Button></div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {fullWo.assets && (
+                  <div className="rounded-[var(--r-md)] border border-line bg-surface-2 p-3 text-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.workOrderDetail.assetContext')}</p>
+                    <p className="mt-1 font-medium text-ink">{fullWo.assets.name}{(fullWo.assets.manufacturer || fullWo.assets.model) && <span className="font-normal text-ink3"> · {[fullWo.assets.manufacturer, fullWo.assets.model].filter(Boolean).join(' ')}</span>}</p>
+                    {fullWo.assets.failure_risk_score >= 70 && <p className="mt-1 text-xs text-[var(--alert)]">{t('engineering.workOrderDetail.assetHighRisk', { score: fullWo.assets.failure_risk_score })}</p>}
+                    {activeAssetDowntime && (
+                      <div className="mt-3 rounded-[var(--r-sm)] border border-[var(--alert-line)] bg-[var(--alert-soft)] px-3 py-2">
+                        <p className="text-xs font-semibold text-[var(--alert)]">{t('engineering.assetsPage.outOfService')}</p>
+                        <p className="mt-1 text-xs text-ink2">{t('engineering.assetsPage.downFor', { duration: formatReliabilityDuration(activeAssetDowntime.elapsed_minutes ?? activeAssetDowntime.downtime_minutes) ?? '—' })}</p>
+                      </div>
+                    )}
+                    <Link href={`/engineering/assets?asset=${fullWo.assets.id}`} className="mt-2 inline-block text-xs font-medium text-[var(--accent)] hover:underline">{t('engineering.workOrderDetail.viewAsset')}</Link>
                   </div>
                 )}
               </div>
@@ -897,8 +1095,20 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                       {t('engineering.workOrderDetail.claimWorkOrder')}
                     </Button>
                   )}
+                  {canTime && !fullWo.acknowledged_at && !canClaim && (
+                    <Button variant="secondary" onClick={() => acknowledgeMutation.mutate()} disabled={acknowledgeMutation.isPending}>{t('engineering.workOrderDetail.acknowledge')}</Button>
+                  )}
+                  {canTime && !fullWo.arrived_at && (
+                    <Button variant="secondary" onClick={() => arriveMutation.mutate()} disabled={arriveMutation.isPending}>{t('engineering.workOrderDetail.arrive')}</Button>
+                  )}
+                  {canStartLabor && !activeSession && (
+                    <Button variant="primary" onClick={() => startLaborMutation.mutate()} disabled={startLaborMutation.isPending}>{t('engineering.workOrderDetail.startWork')}</Button>
+                  )}
+                  {canStartLabor && activeSession && (
+                    <Button variant="secondary" onClick={() => pauseLaborMutation.mutate()} disabled={pauseLaborMutation.isPending}>{t('engineering.workOrderDetail.pauseWork')}</Button>
+                  )}
                   {canComplete && (
-                    <Button variant="secondary" onClick={() => setShowCompleteForm((v) => !v)} className="border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100">
+                    <Button variant="secondary" onClick={() => showCompleteForm ? setShowCompleteForm(false) : openCompletionForm()} className="border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100">
                       <CheckCircle className="w-3.5 h-3.5" />
                       {t('engineering.workOrderDetail.markComplete')}
                     </Button>
@@ -979,6 +1189,16 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                 {showCompleteForm && (
                   <div className="mt-4 space-y-3 rounded-xl border border-[var(--ready-line)] bg-[var(--ready-soft)] p-4">
                     <p className="text-sm font-semibold text-[var(--ready)]">{t('engineering.workOrderDetail.completeWorkOrderHeading')}</p>
+                    <div className="space-y-3 border-b border-[var(--ready-line)] pb-3">
+                      <p className="text-xs font-semibold text-[var(--ready)]">{t('engineering.repair.diagnosisRepair')}</p>
+                      <RepairCodePicker codeType="problem" category={fullWo.category} assetCategoryId={fullWo.assets?.category_id} value={completionProblem?.id ?? fullWo.problem_code_id} onChange={(code) => { setCompletionProblem(code); setCompletionProblemOther('') }} label={t('engineering.repair.problem')} searchPlaceholder={t('engineering.repair.searchProblem')} emptyLabel={t('engineering.repair.noCodes')} clearLabel={t('engineering.repair.clearSelection')} />
+                      {(completionProblem ?? fullWo.problem_code)?.code.startsWith('other') && <textarea value={completionProblemOther} onChange={(event) => setCompletionProblemOther(event.target.value)} rows={2} placeholder={t('engineering.repair.describeProblem')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm" />}
+                      <RepairCodePicker codeType="cause" category={fullWo.category} assetCategoryId={fullWo.assets?.category_id} value={completionCause?.id ?? fullWo.cause_code_id} onChange={(code) => { setCompletionCause(code); setCompletionCauseOther('') }} label={t('engineering.repair.cause')} searchPlaceholder={t('engineering.repair.searchCause')} emptyLabel={t('engineering.repair.noCodes')} clearLabel={t('engineering.repair.clearSelection')} />
+                      {(completionCause ?? fullWo.cause_code)?.code.startsWith('other') && <textarea value={completionCauseOther} onChange={(event) => setCompletionCauseOther(event.target.value)} rows={2} placeholder={t('engineering.repair.describeCause')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm" />}
+                      <p className="pt-1 text-xs font-semibold text-[var(--ready)]">{t('engineering.repair.repair')}</p>
+                      <RepairCodePicker codeType="resolution" category={fullWo.category} assetCategoryId={fullWo.assets?.category_id} value={completionResolution?.id ?? fullWo.resolution_code_id} onChange={(code) => { setCompletionResolution(code); setCompletionResolutionOther('') }} label={t('engineering.repair.resolution')} searchPlaceholder={t('engineering.repair.searchResolution')} emptyLabel={t('engineering.repair.noCodes')} clearLabel={t('engineering.repair.clearSelection')} />
+                      {(completionResolution ?? fullWo.resolution_code)?.code === 'other' && <textarea value={completionResolutionOther} onChange={(event) => setCompletionResolutionOther(event.target.value)} rows={2} placeholder={t('engineering.repair.describeResolution')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm" />}
+                    </div>
                     <div>
                       <label className="mb-1 block font-mono text-[11px] text-ink3">
                         {t('programs.pmCompletion.notesLabel')} <span className="font-normal">{t('programs.pmCompletion.optionalTag')}</span>
@@ -991,6 +1211,11 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                         className="w-full resize-none rounded-lg border border-line bg-surface/70 px-3 py-2 text-sm backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[var(--ready-line)]"
                       />
                     </div>
+                    <fieldset className="space-y-2 border-t border-[var(--ready-line)] pt-3">
+                      <legend className="text-xs font-semibold text-[var(--ready)]">{t('engineering.repair.verification')}</legend>
+                      <label className="block text-xs font-medium text-ink2">{t('engineering.repair.repairTested')}<select value={verificationResult} onChange={(event) => setVerificationResult(event.target.value as 'passed' | 'follow_up_required')} className="mt-1 w-full rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm text-ink"><option value="passed">{t('engineering.repair.verification_passed')}</option><option value="follow_up_required">{t('engineering.repair.verification_follow_up_required')}</option></select></label>
+                      <textarea value={verificationNotes} onChange={(event) => setVerificationNotes(event.target.value)} rows={2} placeholder={t('engineering.repair.verificationNotes')} className="w-full resize-none rounded-[var(--r-sm)] border border-line bg-surface px-3 py-2 text-sm" />
+                    </fieldset>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="mb-1 block font-mono text-[11px] text-ink3">
@@ -1061,13 +1286,29 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                         </Button>
                       </div>
                     )}
+                    {roomUnavailability && (
+                      <fieldset className="space-y-2 border-t border-[var(--ready-line)] pt-3">
+                        <legend className="text-xs font-semibold text-[var(--ready)]">{t('engineering.workOrderDetail.roomDownCompletionHeading', { room: roomUnavailability.rooms?.room_number ?? fullWo.rooms?.room_number })}</legend>
+                        <label className="flex items-start gap-2 text-sm text-ink2"><input type="radio" name="room-release" checked={!returnRoomAfterCompletion} onChange={() => setReturnRoomAfterCompletion(false)} />{t('engineering.workOrderDetail.keepRoomUnavailable')}</label>
+                        <label className="flex items-start gap-2 text-sm text-ink2"><input type="radio" name="room-release" checked={returnRoomAfterCompletion} onChange={() => setReturnRoomAfterCompletion(true)} />{t('engineering.workOrderDetail.returnRoomAfterCompletion')}</label>
+                        {returnRoomAfterCompletion && <p className="text-xs text-ink3">{t('engineering.workOrderDetail.returnDirtyNotice')}</p>}
+                      </fieldset>
+                    )}
+                    {activeAssetDowntime && (
+                      <fieldset className="space-y-2 border-t border-[var(--ready-line)] pt-3">
+                        <legend className="text-xs font-semibold text-[var(--ready)]">{t('engineering.assetsPage.outOfService')}</legend>
+                        <p className="text-xs text-ink3">{t('engineering.assetsPage.restoreAssetHelp')}</p>
+                        <label className="flex items-start gap-2 text-sm text-ink2"><input type="radio" name="asset-restore" checked={assetRestoration === 'keep_unavailable'} onChange={() => setAssetRestoration('keep_unavailable')} />{t('engineering.assetsPage.keepUnavailable')}</label>
+                        <label className="flex items-start gap-2 text-sm text-ink2"><input type="radio" name="asset-restore" checked={assetRestoration === 'restore'} onChange={() => setAssetRestoration('restore')} />{t('engineering.assetsPage.restoreOnComplete')}</label>
+                      </fieldset>
+                    )}
                     {completeMutation.isError && (
                       <p className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-3 py-2 text-xs text-[var(--alert)]">
                         {t('engineering.workOrderDetail.completeError')}
                       </p>
                     )}
                     <div className="flex items-center gap-2">
-                      <Button variant="secondary" onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending} className="border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100">
+                      <Button variant="secondary" onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending || !(completionProblem?.id ?? fullWo.problem_code_id) || !(completionCause?.id ?? fullWo.cause_code_id) || !(completionResolution?.id ?? fullWo.resolution_code_id)} className="border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100">
                         {completeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                         {t('engineering.workOrderDetail.submitCompletion')}
                       </Button>
@@ -1261,8 +1502,9 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
           </button>
         </div>
 
-        {(hasActions || canSnooze) && (
+        {(hasActions || canSnooze || canEngageVendor) && (
           <div className="flex items-center gap-2">
+            {canEngageVendor && <Button variant="outline" onClick={() => setVendorDrawerOpen(true)}>{t('vendors.contactVendor')}</Button>}
             {canSnooze && (
               isSnoozed ? (
                 <Button variant="outline" disabled className="shrink-0">
@@ -1283,7 +1525,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
               </Button>
             )}
             {canComplete && (
-              <Button variant="secondary" onClick={() => setShowCompleteForm((v) => !v)} className="flex-1 border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100">
+              <Button variant="secondary" onClick={() => showCompleteForm ? setShowCompleteForm(false) : openCompletionForm()} className="flex-1 border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100">
                 <CheckCircle className="w-3.5 h-3.5" />
                 {t('engineering.workOrderDetail.complete')}
               </Button>
@@ -1322,6 +1564,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
           </div>
         )}
       </div>
+      <VendorEngagementDrawer open={vendorDrawerOpen} workOrderId={fullWo.id} onClose={() => setVendorDrawerOpen(false)} />
     </div>
   )
 }

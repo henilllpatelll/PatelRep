@@ -49,12 +49,10 @@ async function loginAsGM(page: Page): Promise<void> {
 
 async function navigateToWorkOrders(page: Page): Promise<void> {
   await page.goto('/engineering?tab=work-orders')
-  // Wait for the Kanban board to render
-  await page.waitForSelector('[role="button"]', { timeout: 15000 }).catch(() => {
-    // Board may be empty — that's fine
-  })
-  // Give React Query time to populate columns
+  // Queue is the primary all-day view; Board remains an intentional secondary switch.
+  await expect(page.getByRole('button', { name: 'Queue', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 15000 })
   await page.waitForTimeout(1500)
+  await page.getByRole('button', { name: 'Board', exact: true }).click()
 }
 
 /** Open the "New Work Order" modal. */
@@ -155,7 +153,7 @@ test.describe('Phase 1 — Work Orders', () => {
 
   // ── 2. Escalated visibility ───────────────────────────────────────────────
 
-  test('escalating an open WO moves it into the Escalated column', async ({ page }) => {
+  test('escalating an open WO keeps it visibly escalated on the secondary board', async ({ page }) => {
     await loginAsGM(page)
     await navigateToWorkOrders(page)
     await openCreateModal(page)
@@ -193,10 +191,10 @@ test.describe('Phase 1 — Work Orders', () => {
     // Allow board to refresh
     await page.waitForTimeout(2000)
 
-    // The card should now appear in the Escalated column.
-    const escalatedColumn = page.getByTestId('work-order-column-escalated')
-    const escalatedCard = escalatedColumn.locator('[role="button"]').filter({ hasText: uniqueTitle })
+    // Escalated orders share the active/Open board lane but retain their clear state badge.
+    const escalatedCard = page.locator('[role="button"]').filter({ hasText: uniqueTitle })
     await expect(escalatedCard).toBeVisible({ timeout: 10000 })
+    await expect(escalatedCard.getByText(/escalated/i)).toBeVisible()
   })
 
   // ── 3. Hold with structured reason ───────────────────────────────────────
@@ -258,9 +256,8 @@ test.describe('Phase 1 — Work Orders', () => {
       saveBtn.click(),
     ])
 
-    // The drawer should update — verify the status shows "on hold"
-    const statusPill = page.locator('[class*="Pill"]').filter({ hasText: /on hold/i }).first()
-      .or(page.locator('span').filter({ hasText: /on hold/i }).first())
+    // The UI uses the staff-facing Waiting terminology while the backend remains on_hold.
+    const statusPill = page.locator('span').filter({ hasText: /waiting/i }).first()
     await expect(statusPill).toBeVisible({ timeout: 10000 })
   })
 
@@ -295,7 +292,7 @@ test.describe('Phase 1 — Work Orders', () => {
       claimBtn.click(),
     ])
 
-    // Put on hold
+    // Put on hold (shown as Waiting in the UI)
     const holdBtn = page.getByRole('button', { name: /put on hold/i })
     await holdBtn.waitFor({ state: 'visible', timeout: 10000 })
     await holdBtn.click()

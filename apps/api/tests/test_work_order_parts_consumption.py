@@ -113,6 +113,8 @@ class _CompleteDatabase:
 
     def rpc(self, function_name, payload):
         self.rpc_calls.append((function_name, payload))
+        if function_name == "apply_work_order_timing_action":
+            return SimpleNamespace(execute=lambda: SimpleNamespace(data={"status": payload["p_action"]}))
         wo = self.tables["work_orders"][0]
         wo["status"] = payload["p_new_status"]
         result = SimpleNamespace(data=[wo])

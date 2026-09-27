@@ -1,333 +1,356 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
-import { Search, ChevronRight, Plus } from 'lucide-react'
-import { engineeringApi, type Asset } from '@/lib/api/engineering'
-import { getRiskBadge, getRiskTone, getWarrantyLabel } from '@/lib/utils/engineering'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { StateBlock } from '@/components/ui/StateBlock'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { Pill, Bar, Stat } from '@/components/ui/primitives'
-import { AssetDetailModal } from '@/components/engineering/AssetDetailModal'
-import { CreateAssetModal } from '@/components/engineering/CreateAssetModal'
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Search, ChevronRight, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import {
+  engineeringApi,
+  type Asset,
+  type PMSchedule,
+  type WorkOrder,
+} from "@/lib/api/engineering";
+import {
+  assetMetrics,
+  sortAssetsForOperations,
+} from "@/lib/utils/assetWorkspace";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { StateBlock } from "@/components/ui/StateBlock";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { AssetDetailPanel } from "@/components/engineering/AssetDetailPanel";
+import { CreateAssetModal } from "@/components/engineering/CreateAssetModal";
 
-type RiskFilter = 'all' | 'highRisk' | 'medium' | 'low'
-
-function getRiskFilters(t: TFunction): { key: RiskFilter; label: string }[] {
-  return [
-    { key: 'all', label: t('engineering.assetsPage.filterAll') },
-    { key: 'highRisk', label: t('engineering.assetsPage.filterHighRisk') },
-    { key: 'medium', label: t('engineering.assetsPage.filterMedium') },
-    { key: 'low', label: t('engineering.assetsPage.filterLow') },
-  ]
+type Filter = "all" | "risk" | "open" | "pm" | "warranty";
+interface Props {
+  canEdit: boolean;
+  showCreateModal: boolean;
+  onCloseCreateModal: () => void;
+  onRequestCreate: () => void;
+  initialAssetId?: string | null;
 }
 
-function formatCurrency(value?: number): string {
-  if (value == null) return '—'
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+function formatCurrency(value: number | null) {
+  return value == null
+    ? "—"
+    : new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(value);
 }
 
-function SkeletonRow() {
-  return (
-    <tr className="animate-pulse border-b border-[var(--caution-line)]">
-      <td className="px-4 py-3">
-        <Skeleton variant="text" className="h-4 w-3/4 mb-1.5" />
-        <Skeleton variant="text" className="h-3 w-1/3" />
-      </td>
-      <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-20" /></td>
-      <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-24" /></td>
-      <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-28" /></td>
-      <td className="px-4 py-3"><Skeleton variant="text" className="h-4 w-24" /></td>
-      <td className="px-4 py-3"><Skeleton variant="text" className="h-5 w-16" /></td>
-      <td className="px-4 py-3"><Skeleton variant="text" className="h-7 w-14" /></td>
-    </tr>
-  )
-}
-
-interface AssetsTabProps {
-  canEdit: boolean
-  showCreateModal: boolean
-  onCloseCreateModal: () => void
-  onRequestCreate: () => void
-}
-
-export function AssetsTab({ canEdit, showCreateModal, onCloseCreateModal, onRequestCreate }: AssetsTabProps) {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const RISK_FILTERS = getRiskFilters(t)
-
-  const [search, setSearch] = useState('')
-  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null)
-
-  const { data: assetsData, isLoading, isError } = useQuery({
-    queryKey: ['assets'],
+export function AssetsTab({
+  canEdit,
+  showCreateModal,
+  onCloseCreateModal,
+  onRequestCreate,
+  initialAssetId,
+}: Props) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
+    initialAssetId ?? null,
+  );
+  const assetsQuery = useQuery({
+    queryKey: ["assets"],
     queryFn: () => engineeringApi.listAssets(),
-    select: (res) => res.data as Asset[],
-  })
+    select: (response) => response.data as Asset[],
+  });
+  const workOrdersQuery = useQuery({
+    queryKey: ["asset-workspace-work-orders"],
+    queryFn: () => engineeringApi.listWorkOrders({ per_page: 100 }),
+    select: (response) => response.data as WorkOrder[],
+  });
+  const schedulesQuery = useQuery({
+    queryKey: ["pm-schedules"],
+    queryFn: engineeringApi.listPMSchedules,
+    select: (response) => response.data as PMSchedule[],
+  });
+  const assets = useMemo(() => assetsQuery.data ?? [], [assetsQuery.data]);
+  const workOrders = useMemo(
+    () => workOrdersQuery.data ?? [],
+    [workOrdersQuery.data],
+  );
+  const schedules = useMemo(
+    () => schedulesQuery.data ?? [],
+    [schedulesQuery.data],
+  );
+  const metrics = useMemo(
+    () =>
+      new Map(
+        assets.map((asset) => [
+          asset.id,
+          assetMetrics(asset, workOrders, schedules),
+        ]),
+      ),
+    [assets, schedules, workOrders],
+  );
 
-  const assets = assetsData ?? []
+  useEffect(() => {
+    if (initialAssetId && assets.some((asset) => asset.id === initialAssetId))
+      setSelectedAssetId(initialAssetId);
+  }, [assets, initialAssetId]);
 
-  const activeAssets = assets.filter((a) => a.is_active)
-  const highRiskCount = assets.filter((a) => a.failure_risk_score >= 70).length
-  const underWarrantyCount = assets.filter(
-    (a) => a.warranty_expires && new Date(a.warranty_expires) > new Date(),
-  ).length
-  const totalValue = assets.reduce((sum, a) => sum + (a.replacement_cost ?? 0), 0)
+  const filtered = useMemo(
+    () =>
+      sortAssetsForOperations(assets, metrics).filter((asset) => {
+        const data = metrics.get(asset.id);
+        const query = search.trim().toLowerCase();
+        const matchesSearch =
+          !query ||
+          [
+            asset.name,
+            asset.asset_tag,
+            asset.location_text,
+            asset.model,
+            asset.serial_number,
+            asset.rooms?.room_number,
+          ].some((value) => value?.toLowerCase().includes(query));
+        const matchesFilter =
+          filter === "all" ||
+          (filter === "risk" && asset.failure_risk_score >= 70) ||
+          (filter === "open" && Boolean(data?.openWorkOrders)) ||
+          (filter === "pm" && Boolean(data?.pmOverdue)) ||
+          (filter === "warranty" &&
+            Boolean(
+              asset.warranty_expires &&
+              new Date(asset.warranty_expires) > new Date(),
+            ));
+        return matchesSearch && matchesFilter;
+      }),
+    [assets, filter, metrics, search],
+  );
 
-  const filtered = assets.filter((a) => {
-    const q = search.toLowerCase()
-    const matchesSearch =
-      !q ||
-      a.name.toLowerCase().includes(q) ||
-      (a.location_text ?? '').toLowerCase().includes(q) ||
-      (a.asset_tag ?? '').toLowerCase().includes(q) ||
-      (a.rooms?.room_number ?? '').toLowerCase().includes(q)
-
-    const matchesRisk =
-      riskFilter === 'all' ||
-      (riskFilter === 'highRisk' && a.failure_risk_score >= 70) ||
-      (riskFilter === 'medium' && a.failure_risk_score >= 40 && a.failure_risk_score < 70) ||
-      (riskFilter === 'low' && a.failure_risk_score < 40)
-
-    return matchesSearch && matchesRisk
-  })
-
-  function handleCreateSuccess() {
-    queryClient.invalidateQueries({ queryKey: ['assets'] })
-  }
+  const highRisk = assets.filter(
+    (asset) => asset.failure_risk_score >= 70,
+  ).length;
+  const openRepairs = [...metrics.values()].reduce(
+    (sum, metric) => sum + metric.openWorkOrders,
+    0,
+  );
+  const pmOverdue = [...metrics.values()].filter(
+    (metric) => metric.pmOverdue,
+  ).length;
+  const ytdCostRows = workOrders.filter(
+    (workOrder) =>
+      workOrder.status === "completed" &&
+      workOrder.completed_at &&
+      new Date(workOrder.completed_at).getFullYear() ===
+        new Date().getFullYear() &&
+      workOrder.asset_id &&
+      workOrder.total_cost != null,
+  );
+  const ytdCost = ytdCostRows.length
+    ? ytdCostRows.reduce(
+        (sum, workOrder) => sum + (workOrder.total_cost ?? 0),
+        0,
+      )
+    : null;
+  const filterItems: Array<{ key: Filter; label: string }> = [
+    { key: "all", label: t("engineering.assetsPage.filterAll") },
+    { key: "risk", label: t("engineering.assetsPage.filterHighRisk") },
+    { key: "open", label: t("engineering.assetsPage.filterOpenWo") },
+    { key: "pm", label: t("engineering.assetsPage.filterPmDue") },
+    { key: "warranty", label: t("engineering.assetsPage.filterWarranty") },
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label={t('engineering.assetsPage.statTotalAssets')} value={activeAssets.length} hint={t('engineering.assetsPage.statActive')} />
-        <Stat
-          label={t('engineering.assetsPage.statHighRisk')}
-          value={<span className={highRiskCount > 0 ? 'text-[var(--alert)]' : undefined}>{highRiskCount}</span>}
-          hint={t('engineering.assetsPage.statHighRiskSub')}
-        />
-        <Stat
-          label={t('engineering.assetsPage.statUnderWarranty')}
-          value={underWarrantyCount}
-          hint={t('engineering.assetsPage.statUnderWarrantySub')}
-        />
-        <Stat
-          label={t('engineering.assetsPage.statTotalValue')}
-          value={formatCurrency(totalValue)}
-          hint={t('engineering.assetsPage.statTotalValueSub')}
-        />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-y border-line py-3 sm:grid-cols-4">
+        <div>
+          <p className="text-lg font-semibold tabular-nums text-alert">
+            {highRisk}
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
+            {t("engineering.assetsPage.statHighRisk")}
+          </p>
+        </div>
+        <div>
+          <p className="text-lg font-semibold tabular-nums text-caution">
+            {openRepairs}
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
+            {t("engineering.assetsPage.openRepairs")}
+          </p>
+        </div>
+        <div>
+          <p className="text-lg font-semibold tabular-nums text-alert">
+            {pmOverdue}
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
+            {t("engineering.assetsPage.pmOverdue")}
+          </p>
+        </div>
+        <div>
+          <p className="text-lg font-semibold tabular-nums text-ink">
+            {formatCurrency(ytdCost)}
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
+            {t("engineering.assetsPage.maintenanceCostYtd")}
+          </p>
+        </div>
       </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[14rem] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink3" />
           <Input
-            type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label={t('engineering.assetsPage.searchAriaLabel')}
-            placeholder={t('engineering.assetsPage.searchPlaceholder')}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label={t("engineering.assetsPage.searchAriaLabel")}
+            placeholder={t(
+              "engineering.assetsPage.searchOperationalPlaceholder",
+            )}
             className="pl-9"
           />
         </div>
-
-        <div className="flex items-center gap-1 flex-wrap">
-          {RISK_FILTERS.map((f) => (
+        <div className="flex flex-wrap gap-1">
+          {filterItems.map((item) => (
             <button
-              key={f.key}
-              onClick={() => setRiskFilter(f.key)}
-              aria-pressed={riskFilter === f.key}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                riskFilter === f.key
-                  ? 'bg-[var(--caution)] text-white'
-                  : 'bg-surface/70 border border-[var(--caution-line)]/40 backdrop-blur-sm text-ink2 hover:bg-[var(--caution-soft)]'
-              }`}
+              key={item.key}
+              type="button"
+              aria-pressed={filter === item.key}
+              onClick={() => setFilter(item.key)}
+              className={`rounded-[var(--r-sm)] border px-2.5 py-1.5 text-xs font-medium ${filter === item.key ? "border-accent bg-accent-soft text-accent" : "border-line text-ink2 hover:bg-surface-2"}`}
             >
-              {f.label}
+              {item.label}
             </button>
           ))}
         </div>
       </div>
-
-      {/* Table */}
-      <Card className="p-0 overflow-hidden">
-        {isError ? (
-          <StateBlock
-            status="error"
-            error={{
-              message: t('engineering.assetsPage.loadError'),
-              onRetry: () => queryClient.invalidateQueries({ queryKey: ['assets'] }),
-            }}
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-amber-100 bg-[var(--caution-soft)]/60">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">
-                    {t('engineering.assetsPage.colAsset')}
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">
-                    {t('engineering.assetsPage.category')}
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">
-                    {t('engineering.assetsPage.location')}
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">
-                    {t('engineering.assetsPage.colRiskScore')}
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">
-                    {t('engineering.assetsPage.warranty')}
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-ink3 uppercase tracking-wide">
-                    {t('engineering.assetsPage.colStatus')}
-                  </th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-14 text-sm text-ink3">
-                      {assets.length === 0 ? (
-                        <div className="mx-auto max-w-2xl">
-                          <p className="text-[14px] font-medium text-ink">
-                            {t('engineering.assetsPage.emptyHeading')}
-                          </p>
-                          <p className="mt-1 text-[13px] leading-relaxed text-ink3">
-                            {t('engineering.assetsPage.emptyHelp')}
-                          </p>
-                          <div className="mt-5 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
-                            {[
-                              t('engineering.assetsPage.emptySampleHvac'),
-                              t('engineering.assetsPage.emptySampleLaundry'),
-                              t('engineering.assetsPage.emptySampleElevators'),
-                            ].map((item) => (
-                              <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
-                                <p className="text-sm font-semibold text-ink">{item}</p>
-                                <p className="mt-1 text-xs text-ink3">{t('engineering.assetsPage.emptySampleSub')}</p>
-                              </div>
-                            ))}
-                          </div>
-                          {canEdit && (
-                            <Button variant="primary" onClick={onRequestCreate} className="mt-5">
-                              <Plus size={14} />
-                              {t('engineering.assetsPage.addAsset')}
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        t('engineering.assetsPage.noMatchFilters')
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((asset) => {
-                    const risk = getRiskBadge(asset.failure_risk_score, t)
-                    const warranty = getWarrantyLabel(asset.warranty_expires, t)
-                    const location = asset.rooms?.room_number
-                      ? `${t('engineering.workOrderCard.room')} ${asset.rooms.room_number}`
-                      : (asset.location_text ?? '—')
-                    return (
-                      <tr
-                        key={asset.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedAssetId(asset.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setSelectedAssetId(asset.id)
-                          }
-                        }}
-                        className="border-b border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/40 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
-                      >
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-ink leading-tight">{asset.name}</p>
-                          {asset.asset_tag && (
-                            <p className="text-xs font-mono text-ink3 mt-0.5">{asset.asset_tag}</p>
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3 text-ink2">
-                          {asset.asset_categories?.name ?? <span className="text-ink4">—</span>}
-                        </td>
-
-                        <td className="px-4 py-3 text-ink2 max-w-[160px] truncate">
-                          {location}
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Bar value={asset.failure_risk_score} tone={getRiskTone(asset.failure_risk_score)} className="w-20 shrink-0" />
-                            <Pill tone={risk.tone} size="sm">{risk.label}</Pill>
-                          </div>
-                        </td>
-
-                        <td className={`px-4 py-3 text-xs ${warranty.cls}`}>
-                          {warranty.text}
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <Pill tone={asset.is_active ? 'ready' : 'neutral'} size="sm">
-                            {asset.is_active ? t('engineering.assetsPage.active') : t('engineering.assetsPage.inactive')}
-                          </Pill>
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <Button
-                            variant="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedAssetId(asset.id)
-                            }}
-                            className="text-xs px-3 py-1.5"
-                          >
-                            {t('engineering.assetsPage.viewButton')}
-                            <ChevronRight size={13} />
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!isLoading && !isError && filtered.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-[var(--caution-line)] bg-[var(--caution-soft)]/40">
-            <p className="text-xs text-ink3">
-              {t('engineering.assetsPage.footerCount', { filtered: filtered.length, total: assets.length })}
-            </p>
-          </div>
-        )}
-      </Card>
-
-      {/* Modals */}
-      {selectedAssetId && (
-        <AssetDetailModal
-          assetId={selectedAssetId}
-          onClose={() => setSelectedAssetId(null)}
-          canEdit={canEdit}
+      {assetsQuery.isError ? (
+        <StateBlock
+          status="error"
+          error={{
+            message: t("engineering.assetsPage.loadError"),
+            onRetry: () =>
+              queryClient.invalidateQueries({ queryKey: ["assets"] }),
+          }}
         />
+      ) : (
+        <div className="overflow-hidden rounded-[var(--r-md)] border border-line bg-surface md:grid md:grid-cols-[minmax(18rem,38%)_1fr]">
+          <aside className={selectedAssetId ? "hidden md:block" : ""}>
+            <div className="border-b border-line px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
+                {t("engineering.assetsPage.assetsList")}
+              </p>
+              <p className="mt-1 text-xs text-ink3">
+                {t("engineering.assetsPage.footerCount", {
+                  filtered: filtered.length,
+                  total: assets.length,
+                })}
+              </p>
+            </div>
+            {assetsQuery.isLoading ? (
+              <div className="space-y-3 p-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton
+                    key={index}
+                    variant="text"
+                    className="h-16 w-full"
+                  />
+                ))}
+              </div>
+            ) : filtered.length ? (
+              <div className="max-h-[42rem] overflow-y-auto">
+                {filtered.map((asset) => {
+                  const item = metrics.get(asset.id)!;
+                  const location = asset.rooms?.room_number
+                    ? `${t("engineering.workOrderCard.room")} ${asset.rooms.room_number}`
+                    : asset.location_text;
+                  return (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => setSelectedAssetId(asset.id)}
+                      className={`flex w-full items-start gap-3 border-b border-line px-4 py-3 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${selectedAssetId === asset.id ? "bg-accent-soft" : ""}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-ink">
+                          {asset.name}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-ink3">
+                          {[asset.asset_categories?.name, location]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                        <p className="mt-2 text-xs text-ink2">
+                          {t("engineering.assetsPage.assetListRiskSummary", {
+                            score: asset.failure_risk_score,
+                            repairs: item.openWorkOrders
+                              ? t("engineering.assetsPage.openRepairCount", {
+                                  count: item.openWorkOrders,
+                                })
+                              : t("engineering.assetsPage.noOpenWork"),
+                          })}
+                        </p>
+                        {asset.active_downtime && (
+                          <p className={`mt-1 text-xs font-semibold ${asset.active_downtime.impact_level === "out_of_service" ? "text-alert" : "text-caution"}`}>
+                            {asset.active_downtime.impact_level === "out_of_service"
+                              ? t("engineering.assetsPage.outOfService")
+                              : t("engineering.assetsPage.degraded")}
+                          </p>
+                        )}
+                        {asset.condition_status === "critical" && (
+                          <p className="mt-1 text-xs font-semibold text-alert">
+                            ⚠ {t("condition.criticalReading")}
+                          </p>
+                        )}
+                        <p
+                          className={`mt-1 text-xs ${item.pmOverdue ? "font-medium text-alert" : "text-ink3"}`}
+                        >
+                          {item.pmSchedule
+                            ? `${t("engineering.assetsPage.nextPm")} ${new Date(item.pmSchedule.next_due_at).toLocaleDateString()}`
+                            : "—"}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        size={16}
+                        className="mt-3 shrink-0 text-ink3"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-sm font-semibold text-ink">
+                  {assets.length
+                    ? t("engineering.assetsPage.noMatchFilters")
+                    : t("engineering.assetsPage.emptyHeading")}
+                </p>
+                <p className="mt-1 text-sm text-ink3">
+                  {assets.length ? "" : t("engineering.assetsPage.emptyHelp")}
+                </p>
+                {!assets.length && canEdit && (
+                  <Button
+                    variant="primary"
+                    onClick={onRequestCreate}
+                    className="mt-4"
+                  >
+                    <Plus size={15} />
+                    {t("engineering.assetsPage.addAsset")}
+                  </Button>
+                )}
+              </div>
+            )}
+          </aside>
+          <AssetDetailPanel
+            assetId={selectedAssetId}
+            canEdit={canEdit}
+            onClose={() => setSelectedAssetId(null)}
+          />
+        </div>
       )}
-
       <CreateAssetModal
         isOpen={showCreateModal}
         onClose={onCloseCreateModal}
-        onSuccess={handleCreateSuccess}
+        onSuccess={() =>
+          queryClient.invalidateQueries({ queryKey: ["assets"] })
+        }
       />
     </div>
-  )
+  );
 }

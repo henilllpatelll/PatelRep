@@ -74,9 +74,27 @@ export interface RoomUnavailabilityPeriod {
   actual_return_at?: string | null
   started_at: string
   release_notes?: string | null
+  owner_id?: string | null
   is_past_eta: boolean
-  rooms?: { room_number: string; floor?: number }
-  work_orders?: { work_order_number: number; title: string } | null
+  rooms?: { room_number: string; floor?: number; room_types?: { name: string; code: string } | null }
+  work_orders?: {
+    id: string
+    work_order_number: number
+    title: string
+    priority: 'emergency' | 'urgent' | 'normal' | 'low'
+    status: 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+    assigned_to: string | null
+    created_at: string
+  } | null
+  room_unavailability_events?: {
+    id: string
+    event_type: string
+    old_expected_return_at?: string | null
+    new_expected_return_at?: string | null
+    note?: string | null
+    actor_id?: string | null
+    created_at: string
+  }[]
 }
 
 export interface RoomUnavailabilityReason { id: string; code: string; label: string }
@@ -162,13 +180,13 @@ export const roomsApi = {
 }
 
 export const roomUnavailabilityApi = {
-  list: (status?: 'ACTIVE' | 'RELEASED' | 'CANCELLED') =>
-    apiClient.get('/room-unavailability', { params: status ? { status } : undefined }) as Promise<{ data: RoomUnavailabilityPeriod[] }>,
+  list: (status?: 'ACTIVE' | 'RELEASED' | 'CANCELLED', filters?: { room_id?: string; returned_today?: boolean }) =>
+    apiClient.get('/room-unavailability', { params: { ...(status ? { status } : {}), ...filters } }) as Promise<{ data: RoomUnavailabilityPeriod[] }>,
   summary: () => apiClient.get('/room-unavailability/summary') as Promise<{ data: { active: number; past_eta: number } }>,
   reasons: () => apiClient.get('/room-unavailability/reasons') as Promise<{ data: RoomUnavailabilityReason[] }>,
   get: (id: string) => apiClient.get(`/room-unavailability/${id}`) as Promise<{ data: RoomUnavailabilityPeriod }>,
   getActiveForRoom: (roomId: string) => apiClient.get(`/room-unavailability/room/${roomId}/active`) as Promise<{ data: RoomUnavailabilityPeriod | null }>,
-  create: (payload: { room_id: string; reason_code: string; reason_label: string; expected_return_at: string; details?: string }) =>
+  create: (payload: { room_id: string; type?: 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'; reason_code: string; reason_label: string; expected_return_at: string; details?: string; primary_work_order_id?: string }) =>
     apiClient.post('/room-unavailability', payload) as Promise<{ data: { period: RoomUnavailabilityPeriod } }>,
   updateEta: (id: string, expected_return_at: string, note?: string) =>
     apiClient.patch(`/room-unavailability/${id}/expected-return`, { expected_return_at, note }) as Promise<{ data: RoomUnavailabilityPeriod }>,

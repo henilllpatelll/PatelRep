@@ -4,13 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  X,
   Loader2,
   CheckCircle,
   AlertTriangle,
   Paperclip,
   Plus,
   Trash2,
+  X,
 } from 'lucide-react'
 import {
   programsApi,
@@ -19,8 +19,9 @@ import {
   type PMPart,
   type PMDefect,
   type PMCompletionPayload,
+  type PMCompletionRecord,
 } from '@/lib/api/programs'
-import type { PMSchedule } from '@/lib/api/engineering'
+import { engineeringApi, type PMSchedule } from '@/lib/api/engineering'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { Button, IconButton } from '@/components/ui/Button'
@@ -29,6 +30,7 @@ import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { meterPreviewStatus } from '@/lib/utils/conditionMonitoring'
 
 // ─── Local (form-only) types ────────────────────────────────────────────────
 // LocalItem mirrors PMChecklistItemInput but tracks an unset result ('') so the
@@ -99,7 +101,7 @@ interface PMCompletionModalProps {
   isOpen: boolean
   onClose: () => void
   schedule: PMSchedule | null
-  onSuccess: () => void
+  onSuccess: (record: PMCompletionRecord) => void
 }
 
 export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCompletionModalProps) {
@@ -114,16 +116,20 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
   const [verifierId, setVerifierId] = useState('')
   const [measurementRows, setMeasurementRows] = useState<{ localId: string; key: string; value: string }[]>([])
   const [meterRows, setMeterRows] = useState<{ localId: string; key: string; value: string }[]>([])
+  const [conditionRows, setConditionRows] = useState<Record<string, { value: string; note: string }>>({})
   const [laborMinutes, setLaborMinutes] = useState('')
   const [parts, setParts] = useState<(PMPart & { localId: string })[]>([])
   const [defects, setDefects] = useState<(PMDefect & { localId: string })[]>([])
   const [vendorName, setVendorName] = useState('')
+  const [vendorId, setVendorId] = useState('')
+  const vendorsQuery = useQuery({ queryKey: ['engineering-vendors'], queryFn: () => engineeringApi.listVendors(), enabled: isOpen })
   const [certificates, setCertificates] = useState<EvidenceAttachment[]>([])
   const [photos, setPhotos] = useState<EvidenceAttachment[]>([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadingGeneral, setUploadingGeneral] = useState<'photo' | 'certificate' | null>(null)
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   const { data: overviewData, isLoading: overviewLoading } = useQuery({
     queryKey: ['program-overview-for-pm-completion'],
@@ -145,6 +151,13 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
   const verifierOptions: StaffMember[] = (staffData?.data.staff ?? []).filter(
     (member) => member.status === 'active' && member.user_id !== user?.id,
   )
+  const { data: metersData } = useQuery({
+    queryKey: ['asset-meters', schedule?.asset_id],
+    queryFn: () => engineeringApi.listAssetMeters(schedule!.asset_id),
+    enabled: isOpen && Boolean(schedule?.asset_id),
+    staleTime: 30_000,
+  })
+  const pmMeters = (metersData?.data ?? []).filter((meter) => meter.is_active && meter.source_type === 'pm')
 
   // Reset on open
   useEffect(() => {
@@ -154,15 +167,18 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
       setVerifierId('')
       setMeasurementRows([])
       setMeterRows([])
+      setConditionRows({})
       setLaborMinutes('')
       setParts([])
       setDefects([])
       setVendorName('')
+      setVendorId('')
       setCertificates([])
       setPhotos([])
       setNotes('')
       setError(null)
       setSaving(false)
+      setExpandedItems([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is stable from i18next; re-running this reset on language change would wipe in-progress form state
   }, [isOpen])
@@ -269,6 +285,9 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
         verifier_id: verifierId || undefined,
         measurements: rowsToObject(measurementRows),
         meter_readings: rowsToObject(meterRows),
+        condition_readings: pmMeters
+          .map((meter) => ({ meter_id: meter.id, value: Number(conditionRows[meter.id]?.value), notes: conditionRows[meter.id]?.note.trim() || undefined }))
+          .filter((reading) => Number.isFinite(reading.value)),
         photos: photos.map((p) => p.id),
         labor_minutes: laborMinutes ? Number(laborMinutes) : 0,
         parts_used: parts
@@ -277,6 +296,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
         defects: defects
           .filter((d) => d.description.trim())
           .map(({ localId: _localId, ...rest }) => rest),
+        vendor_id: vendorId || undefined,
         vendor_name: vendorName.trim() || undefined,
         certificate_attachments: certificates.map((c) => c.id),
         notes: notes.trim() || undefined,
@@ -289,9 +309,9 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
           note: it.note.trim() || undefined,
         })),
       }
-      await programsApi.completePM(schedule.id, payload)
+      const response = await programsApi.completePM(schedule.id, payload)
       queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
-      onSuccess()
+      onSuccess(response.data)
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('programs.pmCompletion.errorComplete'))
@@ -300,32 +320,34 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
     }
   }
 
+  const completedCount = items.filter((item) => item.result).length
+
   return (
     <>
       <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 z-drawer bg-[rgba(26,24,21,0.28)]"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-y-0 right-0 z-drawer flex w-full justify-end">
         <div
           ref={modalRef}
           role="dialog"
           aria-modal="true"
           aria-label={t('programs.pmCompletion.title')}
           data-i18n-skip="true"
-          className="bg-surface/[0.92] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+          className="flex h-[100dvh] w-full max-w-full flex-col border-l border-line bg-surface shadow-[var(--shadow-pop)] sm:w-[min(720px,94vw)]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
+          <div className="flex items-center justify-between border-b border-line bg-surface px-5 py-4 shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shrink-0">
                 <CheckCircle size={16} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-gray-900">{t('programs.pmCompletion.title')}</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <h2 className="font-display text-xl text-ink">{t('programs.pmCompletion.title')}</h2>
+                <p className="mt-0.5 text-xs text-ink3">
                   {schedule.assets?.name ?? t('programs.pmCompletion.unknownAsset')} — {schedule.name}
                 </p>
               </div>
@@ -338,7 +360,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+          <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
             {/* Template selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -362,11 +384,19 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
 
             {/* Checklist items */}
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">{t('programs.pmCompletion.checklistResults')}</p>
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-ink">{t('programs.pmCompletion.checklistResults')}</p>
+                  <p className="text-xs font-medium text-ink3">{completedCount} / {items.length}</p>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                  <div className="h-full bg-[var(--ready)] transition-[width]" style={{ width: `${items.length ? (completedCount / items.length) * 100 : 0}%` }} />
+                </div>
+              </div>
               {items.map((item) => (
-                <div key={item.localId} className="rounded-lg border border-[var(--caution-line)]/50 p-3 space-y-2">
+                <div key={item.localId} className="space-y-2 border-b border-line py-3 last:border-b-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-800">{item.label}</p>
+                    <p className="text-sm font-medium text-ink">{item.label}</p>
                     {item.requires_evidence && (
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 shrink-0">
                         {t('programs.pmCompletion.evidenceRequiredBadge')}
@@ -402,13 +432,14 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
                       {t('programs.pmCompletion.correctiveNotice')}
                     </p>
                   )}
-                  <textarea
+                  <button type="button" onClick={() => setExpandedItems((current) => current.includes(item.localId) ? current.filter((id) => id !== item.localId) : [...current, item.localId])} className="text-xs font-medium text-ink3 underline underline-offset-2 hover:text-ink">{t('programs.pmCompletion.notesLabel')}</button>
+                  {(expandedItems.includes(item.localId) || item.result === 'failed' || item.requires_evidence) && <textarea
                     value={item.note}
                     onChange={(e) => updateItem(item.localId, { note: e.target.value })}
                     placeholder={t('programs.pmCompletion.notePlaceholder')}
                     rows={1}
-                    className="w-full border border-gray-200 rounded-md px-2.5 py-1.5 text-xs bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/40 resize-none"
-                  />
+                    className="w-full border border-line rounded-md bg-surface px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+                  />}
                   {item.requires_evidence && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <label className="inline-flex items-center gap-1.5 min-h-[32px] px-2.5 py-1 rounded-md border border-dashed border-gray-300 text-xs text-gray-600 hover:bg-gray-50 cursor-pointer">
@@ -469,6 +500,19 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
                 onChange={(id, field, value) => setMeterRows((prev) => prev.map((r) => (r.localId === id ? { ...r, [field]: value } : r)))}
               />
             </div>
+            {pmMeters.length > 0 && (
+              <section className="rounded-[var(--r-sm)] border border-line bg-surface-2 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">{t('condition.readings')}</p>
+                <p className="mt-1 text-xs text-ink3">{t('condition.pmReadingsHelp')}</p>
+                <div className="mt-3 space-y-3">
+                  {pmMeters.map((meter) => {
+                    const value = conditionRows[meter.id]?.value ?? ''
+                    const preview = value.trim() && Number.isFinite(Number(value)) ? meterPreviewStatus(meter, Number(value)) : null
+                    return <div key={meter.id} className="grid grid-cols-[1fr_minmax(100px,140px)] items-end gap-3"><div><p className="text-sm font-medium text-ink">{meter.name}</p>{preview && <p className={`mt-1 text-xs font-semibold ${preview === 'critical' ? 'text-alert' : preview === 'warning' ? 'text-caution' : 'text-ready'}`}>{t(`condition.preview.${preview}`)}</p>}</div><label className="text-xs text-ink3">{meter.unit}<Input type="number" inputMode="decimal" value={value} onChange={(event) => setConditionRows((rows) => ({ ...rows, [meter.id]: { value: event.target.value, note: rows[meter.id]?.note ?? '' } }))} /></label></div>
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* Labor minutes */}
             <div>
@@ -534,6 +578,10 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
             {/* Vendor + certificate */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('programs.pmCompletion.vendorNameLabel')} <span className="text-gray-400 font-normal">{t('programs.pmCompletion.optionalTag')}</span></label>
+              <select value={vendorId} onChange={(event) => setVendorId(event.target.value)} aria-label={t('vendors.title')} className="mb-2 min-h-10 w-full rounded-md border border-gray-300 bg-surface px-3 text-sm">
+                <option value="">{t('vendors.title')}</option>
+                {(vendorsQuery.data?.data ?? []).map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}
+              </select>
               <Input value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder={t('programs.pmCompletion.vendorNamePlaceholder')} />
               <div className="flex items-center gap-2 flex-wrap mt-2">
                 <label className="inline-flex items-center gap-1.5 min-h-[32px] px-2.5 py-1 rounded-md border border-dashed border-gray-300 text-xs text-gray-600 hover:bg-gray-50 cursor-pointer">
@@ -578,7 +626,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-white/60 shrink-0">
+          <div className="flex items-center justify-end gap-3 border-t border-line bg-surface px-5 py-4 shrink-0">
             <Button variant="ghost" onClick={onClose} disabled={saving}>{t('programs.pmCompletion.cancel')}</Button>
             <Button
               variant="secondary"

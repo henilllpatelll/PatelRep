@@ -3,11 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreatePMScheduleRequest, UpdateAssetRequest
+from models.requests import BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
 from core.database import supabase
 from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
 from services.programs.execution import persist_pm_completion
+from services.asset_reliability import calculate_asset_reliability, restore_asset_downtime as restore_asset_downtime_service, start_asset_downtime as start_asset_downtime_service, with_elapsed_minutes
+from services.condition_monitoring import meter_freshness_status, persist_condition_reading
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
@@ -37,7 +39,31 @@ async def list_assets(
         query = query.gte("failure_risk_score", risk_score_min)
 
     result = query.execute()
-    return {"data": result.data}
+    assets = result.data or []
+    active_result = supabase.table("asset_downtime_periods").select(
+        "id, asset_id, started_at, downtime_type, impact_level, work_order_id"
+    ).eq("tenant_id", current_user.hotel_id).is_("restored_at", "null").execute()
+    active_by_asset = {row["asset_id"]: with_elapsed_minutes(row) for row in (active_result.data or [])}
+    active_meters = supabase.table("asset_meters").select("*").eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("is_active", True).execute().data or []
+    meters_by_asset: dict[str, list[dict]] = {}
+    for meter in active_meters:
+        if meter.get("asset_id"):
+            meters_by_asset.setdefault(str(meter["asset_id"]), []).append(
+                _meter_with_latest(meter, current_user)
+            )
+    for asset in assets:
+        asset["active_downtime"] = active_by_asset.get(asset["id"])
+        statuses = [meter["current_status"] for meter in meters_by_asset.get(asset["id"], [])]
+        asset["condition_status"] = "critical" if "critical" in statuses else "warning" if "warning" in statuses else "stale" if "stale" in statuses else None
+    assets.sort(key=lambda asset: (
+        0 if (asset.get("active_downtime") or {}).get("impact_level") == "out_of_service" else 1,
+        0 if asset.get("condition_status") == "critical" else 1,
+        0 if asset.get("condition_status") == "warning" else 1,
+        -(asset.get("failure_risk_score") or 0),
+    ))
+    return {"data": assets}
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +83,9 @@ async def create_asset(
         asset_data["category_id"] = str(asset_data["category_id"])
     if "room_id" in asset_data:
         asset_data["room_id"] = str(asset_data["room_id"])
+    for date_field in ("purchase_date", "installation_date", "warranty_expires"):
+        if date_field in asset_data:
+            asset_data[date_field] = str(asset_data[date_field])
 
     result = supabase.table("assets").insert(asset_data).execute()
     return {"data": result.data[0] if result.data else None}
@@ -412,6 +441,29 @@ async def complete_pm_schedule(
 
 
 # ---------------------------------------------------------------------------
+# 10. GET /pm-schedules/{schedule_id}/completions — selected-PM history
+# ---------------------------------------------------------------------------
+
+@router.get("/pm-schedules/{schedule_id}/completions")
+async def list_pm_schedule_completions(
+    schedule_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Recent immutable completion records for one selected schedule only."""
+    schedule = supabase.table("pm_schedules").select("id").eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not schedule or not schedule.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    records = supabase.table("pm_completion_records").select(
+        "*, pm_completion_items(*)"
+    ).eq("tenant_id", current_user.hotel_id).eq("pm_schedule_id", schedule_id).order(
+        "completed_at", desc=True
+    ).limit(12).execute()
+    return {"data": records.data or []}
+
+
+# ---------------------------------------------------------------------------
 # 10. PATCH /pm-schedules/{schedule_id}  — update PM schedule (NEW)
 # ---------------------------------------------------------------------------
 
@@ -424,7 +476,7 @@ async def update_pm_schedule(
     """Update a PM schedule (reschedule, deactivate, change interval)."""
     body = await request.json()
     allowed = {"name", "description", "interval_type", "interval_days",
-               "estimated_minutes", "next_due_at", "is_active", "assigned_to_role"}
+               "estimated_minutes", "next_due_at", "is_active", "assigned_to_role", "recurrence_basis"}
     update_data = {k: v for k, v in body.items() if k in allowed}
 
     if not update_data:
@@ -496,6 +548,216 @@ async def create_asset_category(
 # 14. GET /{asset_id}  — get single asset
 # ---------------------------------------------------------------------------
 
+def _asset_or_404(asset_id: str, current_user: CurrentUser) -> dict:
+    result = supabase.table("assets").select("id").eq("id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return result.data
+
+
+@router.get("/{asset_id}/downtime")
+async def list_asset_downtime(asset_id: str, limit: int = Query(25, ge=1, le=100), current_user: CurrentUser = Depends(get_current_user)):
+    _asset_or_404(asset_id, current_user)
+    result = supabase.table("asset_downtime_periods").select("*").eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("asset_id", asset_id).order("started_at", desc=True).limit(limit).execute()
+    return {"data": [with_elapsed_minutes(row) for row in (result.data or [])]}
+
+
+@router.post("/{asset_id}/downtime")
+async def start_asset_downtime(asset_id: str, request: StartAssetDowntimeRequest, current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))):
+    _asset_or_404(asset_id, current_user)
+    if request.work_order_id:
+        work_order = supabase.table("work_orders").select("asset_id").eq("id", str(request.work_order_id)).eq(
+            "tenant_id", current_user.hotel_id
+        ).maybe_single().execute()
+        if not work_order or not work_order.data:
+            raise HTTPException(status_code=404, detail="Work order not found")
+        if str(work_order.data.get("asset_id") or "") != asset_id:
+            raise HTTPException(status_code=422, detail="Work order must be linked to this asset")
+    return {"data": start_asset_downtime_service(
+        db=supabase, asset_id=asset_id, tenant_id=current_user.hotel_id, actor_id=current_user.user_id,
+        payload=request.model_dump(mode="json", exclude_none=True),
+    )}
+
+
+@router.post("/{asset_id}/downtime/{downtime_id}/restore")
+async def restore_asset_downtime(asset_id: str, downtime_id: str, request: RestoreAssetDowntimeRequest, current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))):
+    _asset_or_404(asset_id, current_user)
+    return {"data": restore_asset_downtime_service(
+        db=supabase, asset_id=asset_id, downtime_id=downtime_id, tenant_id=current_user.hotel_id,
+        actor_id=current_user.user_id, notes=request.notes,
+    )}
+
+
+@router.get("/{asset_id}/reliability")
+async def get_asset_reliability(asset_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    _asset_or_404(asset_id, current_user)
+    periods = supabase.table("asset_downtime_periods").select(
+        "id, started_at, restored_at, downtime_type, impact_level, work_order_id"
+    ).eq("tenant_id", current_user.hotel_id).eq("asset_id", asset_id).execute().data or []
+    work_orders = supabase.table("work_orders").select("id, completed_at, verification_result").eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("asset_id", asset_id).eq("status", "completed").execute().data or []
+    work_order_ids = [row["id"] for row in work_orders]
+    relationships, reopen_events = [], []
+    if work_order_ids:
+        relationships = supabase.table("work_order_relationships").select("parent_work_order_id, relationship_type").eq(
+            "tenant_id", current_user.hotel_id
+        ).in_("parent_work_order_id", work_order_ids).execute().data or []
+        reopen_events = supabase.table("work_order_events").select("work_order_id, event_type").eq(
+            "tenant_id", current_user.hotel_id
+        ).in_("work_order_id", work_order_ids).eq("event_type", "reopened").execute().data or []
+    return {"data": calculate_asset_reliability(
+        periods=periods, work_orders=work_orders, relationships=relationships, reopen_events=reopen_events,
+    )}
+
+
+def _meter_with_latest(meter: dict, current_user: CurrentUser) -> dict:
+    latest_result = supabase.table("meter_readings").select("*").eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("meter_id", meter["id"]).order("recorded_at", desc=True).limit(1).execute()
+    latest = (latest_result.data or [None])[0]
+    meter["latest_reading"] = latest
+    meter["current_status"] = meter_freshness_status(
+        latest.get("recorded_at") if latest else None, meter.get("stale_after_hours"),
+    ) or (latest.get("status_at_recording") if latest else "no_readings")
+    return meter
+
+
+def _meter_or_404(meter_id: str, current_user: CurrentUser) -> dict:
+    result = supabase.table("asset_meters").select("*").eq("id", meter_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Meter not found")
+    return result.data
+
+
+@router.post("/meters")
+async def create_property_meter(
+    request: CreateMeterRequest,
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
+):
+    """Create a location-owned meter without inventing an equipment asset."""
+    if not request.location_text:
+        raise HTTPException(status_code=422, detail="Location is required for a property meter")
+    try:
+        result = supabase.table("asset_meters").insert({
+            **request.model_dump(exclude_none=True), "tenant_id": current_user.hotel_id,
+        }).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail="A meter with this name already exists at this location") from exc
+    return {"data": result.data[0]}
+
+
+@router.get("/meters/{meter_id}")
+async def get_meter(meter_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": _meter_with_latest(_meter_or_404(meter_id, current_user), current_user)}
+
+
+@router.patch("/meters/{meter_id}")
+async def update_meter(
+    meter_id: str,
+    request: UpdateMeterRequest,
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
+):
+    meter = _meter_or_404(meter_id, current_user)
+    update_data = request.model_dump(exclude_none=True)
+    if "unit" in update_data and update_data["unit"] != meter["unit"]:
+        existing = supabase.table("meter_readings").select("id").eq("tenant_id", current_user.hotel_id).eq(
+            "meter_id", meter_id
+        ).limit(1).execute().data or []
+        if existing:
+            raise HTTPException(status_code=422, detail="Unit cannot change after a meter has readings")
+    if not update_data:
+        return {"data": meter}
+    result = supabase.table("asset_meters").update({
+        **update_data, "updated_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", meter_id).eq("tenant_id", current_user.hotel_id).execute()
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.get("/meters/{meter_id}/readings")
+async def list_meter_readings(
+    meter_id: str,
+    start: Optional[datetime] = Query(None),
+    end: Optional[datetime] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _meter_or_404(meter_id, current_user)
+    query = supabase.table("meter_readings").select("*").eq("tenant_id", current_user.hotel_id).eq(
+        "meter_id", meter_id
+    ).order("recorded_at", desc=True).limit(limit)
+    if start:
+        query = query.gte("recorded_at", start.isoformat())
+    if end:
+        query = query.lte("recorded_at", end.isoformat())
+    return {"data": query.execute().data or []}
+
+
+@router.post("/meters/{meter_id}/readings")
+async def record_meter_reading(
+    meter_id: str,
+    request: RecordMeterReadingRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm")),
+):
+    meter = _meter_or_404(meter_id, current_user)
+    recorded_at = request.recorded_at
+    now = datetime.now(timezone.utc)
+    if recorded_at and (recorded_at > now + timedelta(minutes=5) or recorded_at < now - timedelta(days=365 * 20)):
+        raise HTTPException(status_code=422, detail="Recorded time must be within the last 20 years and no more than five minutes in the future")
+    asset = _asset_or_404(str(meter["asset_id"]), current_user) if meter.get("asset_id") else None
+    return {"data": persist_condition_reading(
+        db=supabase, meter=meter, tenant_id=current_user.hotel_id, user_id=current_user.user_id,
+        value=request.value, source="manual", recorded_at=recorded_at, notes=request.notes, asset=asset,
+    )}
+
+
+@router.get("/{asset_id}/meters")
+async def list_asset_meters(asset_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    _asset_or_404(asset_id, current_user)
+    meters = supabase.table("asset_meters").select("*").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).order("name").execute().data or []
+    return {"data": [_meter_with_latest(meter, current_user) for meter in meters]}
+
+
+@router.post("/{asset_id}/meters")
+async def create_asset_meter(
+    asset_id: str,
+    request: CreateMeterRequest,
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
+):
+    _asset_or_404(asset_id, current_user)
+    payload = request.model_dump(exclude_none=True)
+    payload.update({"tenant_id": current_user.hotel_id, "asset_id": asset_id})
+    try:
+        result = supabase.table("asset_meters").insert(payload).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail="A meter with this name already exists for this asset") from exc
+    return {"data": result.data[0]}
+
+
+@router.get("/{asset_id}/condition-summary")
+async def asset_condition_summary(asset_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    _asset_or_404(asset_id, current_user)
+    meters = supabase.table("asset_meters").select("*").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).eq("is_active", True).execute().data or []
+    hydrated = [_meter_with_latest(meter, current_user) for meter in meters]
+    summary = {"total_meters": len(hydrated), "normal_count": 0, "warning_count": 0, "critical_count": 0, "stale_count": 0, "no_readings_count": 0}
+    for meter in hydrated:
+        key = f"{meter['current_status']}_count"
+        if key in summary:
+            summary[key] += 1
+    summary["meters"] = hydrated
+    return {"data": summary}
+
+
 @router.get("/{asset_id}")
 async def get_asset(
     asset_id: str,
@@ -508,7 +770,14 @@ async def get_asset(
         .execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Asset not found")
-    return {"data": result.data[0]}
+    asset = result.data[0]
+    active = supabase.table("asset_downtime_periods").select(
+        "id, started_at, downtime_type, impact_level, work_order_id"
+    ).eq("tenant_id", current_user.hotel_id).eq("asset_id", asset_id).is_(
+        "restored_at", "null"
+    ).maybe_single().execute()
+    asset["active_downtime"] = with_elapsed_minutes(active.data) if active and active.data else None
+    return {"data": asset}
 
 
 # ---------------------------------------------------------------------------
@@ -522,8 +791,12 @@ async def update_asset(
     current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     update_data = request.model_dump(exclude_none=True)
-    if "warranty_expires" in update_data and update_data["warranty_expires"]:
-        update_data["warranty_expires"] = str(update_data["warranty_expires"])
+    for field in ("category_id", "room_id"):
+        if field in update_data:
+            update_data[field] = str(update_data[field])
+    for field in ("purchase_date", "installation_date", "warranty_expires"):
+        if field in update_data:
+            update_data[field] = str(update_data[field])
 
     result = supabase.table("assets") \
         .update(update_data) \

@@ -210,6 +210,9 @@ class _TransitionDatabase:
 
     def rpc(self, function_name: str, payload: dict):
         self.rpc_calls.append((function_name, payload))
+        if function_name == "apply_work_order_timing_action":
+            result = type("Result", (), {"data": {"status": payload["p_action"]}})()
+            return type("RpcQuery", (), {"execute": lambda _self: result})()
         work_order = self.tables["work_orders"][0]
         old_status = work_order["status"]
         work_order["status"] = payload["p_new_status"]
@@ -281,6 +284,27 @@ async def test_claim_uses_the_atomic_transition_audit_rpc(monkeypatch):
     assert response["data"]["status"] == "in_progress"
     assert database.rpc_calls[0][0] == "transition_work_order_with_audit"
     assert database.rpc_calls[0][1]["p_new_status"] == "in_progress"
+    assert database.rpc_calls[1][0] == "apply_work_order_timing_action"
+    assert database.rpc_calls[1][1]["p_action"] == "claim"
+
+
+@pytest.mark.asyncio
+async def test_start_work_claims_open_order_before_starting_labor(monkeypatch):
+    database = _TransitionDatabase()
+    monkeypatch.setattr(work_orders_router, "supabase", database)
+
+    response = await work_orders_router.start_work_order_labor(
+        "work-order-1",
+        CurrentUser(user_id="engineer-1", hotel_id="hotel-1", role="engineer", email="engineer@example.com"),
+    )
+
+    assert response["data"]["status"] == "start"
+    assert [call[0] for call in database.rpc_calls] == [
+        "transition_work_order_with_audit",
+        "apply_work_order_timing_action",
+        "apply_work_order_timing_action",
+    ]
+    assert [call[1].get("p_action") for call in database.rpc_calls[1:]] == ["claim", "start"]
 
 
 @pytest.mark.asyncio

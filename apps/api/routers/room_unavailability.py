@@ -4,7 +4,7 @@ This router deliberately owns availability episodes, while ``room_status``
 continues to answer only the room's current operational state.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -57,11 +57,21 @@ async def list_reasons(current_user: CurrentUser = Depends(get_current_user)):
 @router.get("")
 async def list_periods(
     status: Literal["ACTIVE", "RELEASED", "CANCELLED"] | None = Query(None),
+    room_id: str | None = Query(None),
+    returned_today: bool = Query(False),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    query = supabase.table("room_unavailability_periods").select("*, rooms(room_number, floor), work_orders(work_order_number, title)").eq("tenant_id", current_user.hotel_id).order("started_at", desc=True)
+    query = supabase.table("room_unavailability_periods").select(
+        "*, rooms(room_number, floor, room_types(name, code)), "
+        "work_orders(id, work_order_number, title, priority, status, assigned_to, created_at)"
+    ).eq("tenant_id", current_user.hotel_id).order("started_at", desc=True)
     if status:
         query = query.eq("status", status)
+    if room_id:
+        query = query.eq("room_id", room_id)
+    if returned_today:
+        start_of_today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        query = query.eq("status", "RELEASED").gte("actual_return_at", start_of_today.isoformat())
     rows = query.execute().data or []
     limited = current_user.role in LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES
     return {"data": [_serialize(row, limited) for row in rows]}
@@ -75,7 +85,10 @@ async def get_summary(current_user: CurrentUser = Depends(get_current_user)):
 
 @router.get("/room/{room_id}/active")
 async def get_active_room_period(room_id: str, current_user: CurrentUser = Depends(get_current_user)):
-    result = supabase.table("room_unavailability_periods").select("*, work_orders(work_order_number, title)").eq("tenant_id", current_user.hotel_id).eq("room_id", room_id).eq("status", "ACTIVE").maybe_single().execute()
+    result = supabase.table("room_unavailability_periods").select(
+        "*, rooms(room_number, floor, room_types(name, code)), "
+        "work_orders(id, work_order_number, title, priority, status, assigned_to, created_at)"
+    ).eq("tenant_id", current_user.hotel_id).eq("room_id", room_id).eq("status", "ACTIVE").maybe_single().execute()
     if not result or not result.data:
         return {"data": None}
     return {"data": _serialize(result.data, current_user.role in LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES)}
@@ -83,7 +96,10 @@ async def get_active_room_period(room_id: str, current_user: CurrentUser = Depen
 
 @router.get("/{period_id}")
 async def get_period(period_id: str, current_user: CurrentUser = Depends(get_current_user)):
-    result = supabase.table("room_unavailability_periods").select("*, rooms(room_number, floor), work_orders(work_order_number, title), room_unavailability_events(*)").eq("id", period_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    result = supabase.table("room_unavailability_periods").select(
+        "*, rooms(room_number, floor, room_types(name, code)), "
+        "work_orders(id, work_order_number, title, priority, status, assigned_to, created_at), room_unavailability_events(*)"
+    ).eq("id", period_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
     if not result or not result.data:
         raise HTTPException(status_code=404, detail="Out-of-order period not found")
     return {"data": _serialize(result.data, current_user.role in LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES)}
@@ -98,6 +114,7 @@ async def create_period(
     result = supabase.rpc("create_room_unavailability", {
         "p_room_id": str(request.room_id), "p_tenant_id": current_user.hotel_id,
         "p_reason_code": request.reason_code, "p_reason_label": request.reason_label,
+        "p_type": request.type,
         "p_details": request.details, "p_expected_return_at": request.expected_return_at.isoformat(),
         "p_owner_id": str(request.owner_id) if request.owner_id else None,
         "p_work_order_id": str(request.primary_work_order_id) if request.primary_work_order_id else None,

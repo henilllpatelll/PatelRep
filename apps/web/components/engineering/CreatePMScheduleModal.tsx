@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { Calendar, Plus, AlertTriangle, X, Loader2 } from 'lucide-react'
+import { Plus, AlertTriangle, Loader2 } from 'lucide-react'
 import { engineeringApi, type PMSchedule } from '@/lib/api/engineering'
-import { Button, IconButton } from '@/components/ui/Button'
+import { programsApi, type ProgramTemplate } from '@/lib/api/programs'
+import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { EngineeringDrawer } from '@/components/engineering/EngineeringDrawer'
 
 const INTERVAL_LABEL_KEYS: Record<string, string> = {
   daily: 'intervalDaily',
@@ -44,9 +46,10 @@ interface CreatePMScheduleModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  initialAssetId?: string
 }
 
-export function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleModalProps) {
+export function CreatePMScheduleModal({ isOpen, onClose, onSuccess, initialAssetId }: CreatePMScheduleModalProps) {
   const { t } = useTranslation()
   const [fields, setFields] = useState({
     asset_id: '',
@@ -56,32 +59,45 @@ export function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMSc
     interval_days: '',
     estimated_minutes: '',
     next_due_at: '',
+    recurrence_basis: 'scheduled_date' as 'scheduled_date' | 'completion_date',
   })
+  const [mode, setMode] = useState<'template' | 'custom'>('template')
+  const [templateId, setTemplateId] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const modalRef = useRef<HTMLDivElement>(null!)
-  useModalFocusTrap(modalRef, isOpen, () => { if (!saving) onClose() })
+  const assetsQuery = useQuery({ queryKey: ['assets'], queryFn: () => engineeringApi.listAssets(), enabled: isOpen, staleTime: 60_000 })
+  const templatesQuery = useQuery({ queryKey: ['program-overview-for-pm-create'], queryFn: programsApi.overview, enabled: isOpen, staleTime: 60_000 })
+  const templates = useMemo(() => (templatesQuery.data?.data.templates ?? []).filter((template) => template.program_area === 'engineering'), [templatesQuery.data])
 
   useEffect(() => {
     if (isOpen) {
       setFields({
-        asset_id: '',
+        asset_id: initialAssetId ?? '',
         name: '',
         description: '',
         interval_type: 'monthly',
         interval_days: '',
         estimated_minutes: '',
         next_due_at: '',
+        recurrence_basis: 'scheduled_date',
       })
+      setMode('template')
+      setTemplateId('')
       setError(null)
     }
-  }, [isOpen])
+  }, [initialAssetId, isOpen])
 
   if (!isOpen) return null
 
   function set<K extends keyof typeof fields>(key: K, value: (typeof fields)[K]) {
     setFields((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function selectTemplate(nextTemplateId: string) {
+    setTemplateId(nextTemplateId)
+    const template = templates.find((candidate) => candidate.id === nextTemplateId) as ProgramTemplate | undefined
+    if (template && !fields.name.trim()) set('name', template.name)
   }
 
   async function handleCreate() {
@@ -107,6 +123,7 @@ export function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMSc
             : undefined,
         estimated_minutes: fields.estimated_minutes ? Number(fields.estimated_minutes) : undefined,
         next_due_at: fields.next_due_at,
+        recurrence_basis: fields.recurrence_basis,
       })
       onSuccess()
       onClose()
@@ -118,54 +135,22 @@ export function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMSc
   }
 
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
-        onClick={!saving ? onClose : undefined}
-        aria-hidden="true"
-      />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          ref={modalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('programs.pmSchedules.addModal.title')}
-          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
-                <Calendar size={16} className="text-white" />
-              </div>
-              <h2 className="text-base font-bold text-ink">{t('programs.pmSchedules.addModal.title')}</h2>
-            </div>
-            {!saving && (
-              <IconButton variant="ghost" onClick={onClose} aria-label={t('programs.pmSchedules.addModal.close')}>
-                <X size={18} />
-              </IconButton>
-            )}
+    <EngineeringDrawer open={isOpen} onClose={onClose} closeDisabled={saving} closeLabel={t('programs.pmSchedules.addModal.close')} title={t('programs.pmSchedules.addModal.title')} width="wide" footer={<div className="flex items-center justify-end gap-3"><Button variant="outline" onClick={onClose} disabled={saving}>{t('programs.pmSchedules.cancel')}</Button><Button variant="primary" onClick={handleCreate} disabled={saving || !fields.name.trim() || !fields.asset_id || !fields.next_due_at}>{saving ? <><Loader2 size={13} className="animate-spin" />{t('programs.pmSchedules.addModal.creating')}</> : <><Plus size={14} />{t('programs.pmSchedules.addSchedule')}</>}</Button></div>}>
+      <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('programs.pmSchedules.addModal.startFrom')}>
+            {(['template', 'custom'] as const).map((value) => <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)} className={`rounded-[var(--r-sm)] border px-3 py-2 text-sm font-medium transition-colors ${mode === value ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink2 hover:bg-surface-2'}`}>{t(`programs.pmSchedules.addModal.mode${value === 'template' ? 'Template' : 'Custom'}`)}</button>)}
           </div>
-
-          <div className="space-y-4">
+          {mode === 'template' && <div><label className="mb-1.5 block text-sm font-medium text-ink2">{t('programs.pmSchedules.addModal.templateLabel')}</label><select value={templateId} onChange={(event) => selectTemplate(event.target.value)} className="w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink"><option value="">{t('programs.pmSchedules.addModal.chooseTemplate')}</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select><p className="mt-1 text-xs text-ink3">{t('programs.pmSchedules.addModal.templateHelp')}</p></div>}
             {/* Asset ID */}
             <div>
-              <label htmlFor="pm-create-asset-id" className="block text-sm font-medium text-ink2 mb-1.5">
-                {t('programs.pmSchedules.addModal.assetIdLabel')}{' '}
-                <span className="text-ink3 font-normal">{t('programs.pmSchedules.addModal.assetIdUuid')}</span>
-              </label>
-              <Input
+              <label htmlFor="pm-create-asset-id" className="block text-sm font-medium text-ink2 mb-1.5">{t('programs.pmSchedules.addModal.assetLabel')} <span className="text-[var(--alert)]">*</span></label>
+              <select
                 id="pm-create-asset-id"
-                type="text"
                 value={fields.asset_id}
                 onChange={(e) => set('asset_id', e.target.value)}
-                placeholder={t('programs.pmSchedules.addModal.assetIdPlaceholder')}
-                className="font-mono"
-              />
-              <p className="text-xs text-ink3 mt-1">
-                {t('programs.pmSchedules.addModal.assetIdHelp')}
-              </p>
+                className="w-full rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 text-sm text-ink"
+              ><option value="">{t('programs.pmSchedules.addModal.chooseAsset')}</option>{(assetsQuery.data?.data ?? []).map((asset) => <option key={asset.id} value={asset.id}>{asset.name}{asset.asset_tag ? ` · ${asset.asset_tag}` : ''}{asset.rooms?.room_number ? ` · ${t('programs.pmSchedules.addModal.room', { number: asset.rooms.room_number })}` : ''}</option>)}</select>
+              <p className="text-xs text-ink3 mt-1">{t('programs.pmSchedules.addModal.assetHelp')}</p>
             </div>
 
             {/* Schedule name */}
@@ -236,6 +221,13 @@ export function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMSc
               )}
             </div>
 
+            <div>
+              <p className="mb-2 text-sm font-medium text-ink2">{t('programs.pmSchedules.addModal.basedOn')}</p>
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('programs.pmSchedules.addModal.basedOn')}>
+                {(['scheduled_date', 'completion_date'] as const).map((basis) => <button key={basis} type="button" aria-pressed={fields.recurrence_basis === basis} onClick={() => set('recurrence_basis', basis)} className={`rounded-[var(--r-sm)] border px-3 py-2 text-left text-xs font-medium ${fields.recurrence_basis === basis ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-surface text-ink2'}`}><span className="block">{t(`programs.pmSchedules.addModal.${basis}`)}</span><span className="mt-0.5 block font-normal text-ink3">{t(`programs.pmSchedules.addModal.${basis}Help`)}</span></button>)}
+              </div>
+            </div>
+
             {/* Estimated minutes + next due */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -271,29 +263,7 @@ export function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMSc
                 {error}
               </div>
             )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
-            <Button variant="ghost" onClick={onClose} disabled={saving}>
-              {t('programs.pmSchedules.cancel')}
-            </Button>
-            <Button variant="primary" onClick={handleCreate} disabled={saving || !fields.name.trim() || !fields.next_due_at}>
-              {saving ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  {t('programs.pmSchedules.addModal.creating')}
-                </>
-              ) : (
-                <>
-                  <Plus size={14} />
-                  {t('programs.pmSchedules.addSchedule')}
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
       </div>
-    </>
+    </EngineeringDrawer>
   )
 }
