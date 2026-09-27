@@ -31,28 +31,36 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/outcome | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1195] |
 | ai_copilot.py | /v1/ai/model-routes/{purpose} | PUT | gm | require_role('gm') [L1217] |
 | assets.py | /v1/assets | GET | none |  |
-| assets.py | /v1/assets | POST | engineer, gm | require_role('gm', 'engineer') [L62] |
+| assets.py | /v1/assets | POST | engineer, gm | require_role('gm', 'engineer') [L76] |
 | assets.py | /v1/assets/failure-predictions | GET | none |  |
 | assets.py | /v1/assets/failure-predictions/history | GET | none |  |
-| assets.py | /v1/assets/failure-predictions/{prediction_id}/acknowledge | POST | engineer, gm | require_role('gm', 'engineer') [L129] |
-| assets.py | /v1/assets/failure-predictions/batch-acknowledge | POST | engineer, gm | require_role('gm', 'engineer') [L152] |
-| assets.py | /v1/assets/failure-predictions/{prediction_id}/create-work-order | POST | engineer, gm | require_role('gm', 'engineer') [L182] |
+| assets.py | /v1/assets/failure-predictions/{prediction_id}/acknowledge | POST | engineer, gm | require_role('gm', 'engineer') [L143] |
+| assets.py | /v1/assets/failure-predictions/batch-acknowledge | POST | engineer, gm | require_role('gm', 'engineer') [L166] |
+| assets.py | /v1/assets/failure-predictions/{prediction_id}/create-work-order | POST | engineer, gm | require_role('gm', 'engineer') [L196] |
 | assets.py | /v1/assets/recurring-issues | GET | none |  |
 | assets.py | /v1/assets/pm-schedules | GET | none |  |
-| assets.py | /v1/assets/pm-schedules | POST | chief_engineer, engineer, gm | require_role('gm', 'engineer', 'chief_engineer') [L384] |
-| assets.py | /v1/assets/pm-schedules/{schedule_id}/complete | POST | chief_engineer, engineer, gm | require_role('engineer', 'gm', 'chief_engineer') [L401] |
+| assets.py | /v1/assets/pm-schedules | POST | chief_engineer, engineer, gm | require_role('gm', 'engineer', 'chief_engineer') [L398] |
+| assets.py | /v1/assets/pm-schedules/{schedule_id}/complete | POST | chief_engineer, engineer, gm | require_role('engineer', 'gm', 'chief_engineer') [L415] |
 | assets.py | /v1/assets/pm-schedules/{schedule_id}/completions | GET | none |  |
-| assets.py | /v1/assets/pm-schedules/{schedule_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L460] |
-| assets.py | /v1/assets/pm-schedules/{schedule_id} | DELETE | engineer, gm | require_role('engineer', 'gm') [L487] |
+| assets.py | /v1/assets/pm-schedules/{schedule_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L474] |
+| assets.py | /v1/assets/pm-schedules/{schedule_id} | DELETE | engineer, gm | require_role('engineer', 'gm') [L501] |
 | assets.py | /v1/assets/categories | GET | none |  |
-| assets.py | /v1/assets/categories | POST | engineer, gm | require_role('gm', 'engineer') [L521] |
+| assets.py | /v1/assets/categories | POST | engineer, gm | require_role('gm', 'engineer') [L535] |
 | assets.py | /v1/assets/{asset_id}/downtime | GET | none |  |
-| assets.py | /v1/assets/{asset_id}/downtime | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L556] |
-| assets.py | /v1/assets/{asset_id}/downtime/{downtime_id}/restore | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L573] |
+| assets.py | /v1/assets/{asset_id}/downtime | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L570] |
+| assets.py | /v1/assets/{asset_id}/downtime/{downtime_id}/restore | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L587] |
 | assets.py | /v1/assets/{asset_id}/reliability | GET | none |  |
+| assets.py | /v1/assets/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L642] |
+| assets.py | /v1/assets/meters/{meter_id} | GET | none |  |
+| assets.py | /v1/assets/meters/{meter_id} | PATCH | chief_engineer, gm | require_role('chief_engineer', 'gm') [L665] |
+| assets.py | /v1/assets/meters/{meter_id}/readings | GET | none |  |
+| assets.py | /v1/assets/meters/{meter_id}/readings | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L706] |
+| assets.py | /v1/assets/{asset_id}/meters | GET | none |  |
+| assets.py | /v1/assets/{asset_id}/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L733] |
+| assets.py | /v1/assets/{asset_id}/condition-summary | GET | none |  |
 | assets.py | /v1/assets/{asset_id} | GET | none |  |
-| assets.py | /v1/assets/{asset_id} | PATCH | engineer, gm | require_role('gm', 'engineer') [L634] |
-| assets.py | /v1/assets/{asset_id}/run-prediction | POST | engineer, gm | require_role('gm', 'engineer') [L659] |
+| assets.py | /v1/assets/{asset_id} | PATCH | engineer, gm | require_role('gm', 'engineer') [L791] |
+| assets.py | /v1/assets/{asset_id}/run-prediction | POST | engineer, gm | require_role('gm', 'engineer') [L816] |
 | assets.py | /v1/assets/pm-schedules/{schedule_id}/completions/{completion_id} | GET | none |  |
 | auth.py | /v1/auth/me | GET | none |  |
 | auth.py | /v1/auth/hotel-context | POST | none |  |
@@ -74,6 +82,7 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | cleaning_checklists.py | /v1/housekeeping/checklists | GET | none |  |
 | cleaning_checklists.py | /v1/housekeeping/checklists/{clean_type} | PUT | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L146] |
 | cleaning_checklists.py | /v1/housekeeping/checklists/{clean_type}/reset | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L200] |
+| engineering_insights.py | /v1/engineering/insights | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L47] |
 | evidence.py | /v1/evidence/applicability | GET | none |  |
 | evidence.py | /v1/evidence/applicability | PUT | gm | require_role('gm') [L234] |
 | evidence.py | /v1/evidence/documents | GET | none |  |
@@ -323,6 +332,13 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | tasks.py | /v1/tasks/{task_id} | DELETE | none |  |
 | tasks.py | /v1/tasks/{task_id}/comments | POST | none |  |
 | tasks.py | /v1/tasks/batch | POST | none |  |
+| vendors.py | /v1/engineering/vendors | GET | none |  |
+| vendors.py | /v1/engineering/vendors | POST | chief_engineer, gm | require_role(*MANAGE_VENDOR_ROLES) [L95] |
+| vendors.py | /v1/engineering/vendors/{vendor_id} | GET | none |  |
+| vendors.py | /v1/engineering/vendors/{vendor_id} | PATCH | chief_engineer, gm | require_role(*MANAGE_VENDOR_ROLES) [L114] |
+| vendors.py | /v1/engineering/vendors/work-orders/{work_order_id}/engagements | GET | none |  |
+| vendors.py | /v1/engineering/vendors/work-orders/{work_order_id}/engagements | POST | chief_engineer, engineer, gm | require_role(*ENGAGEMENT_ROLES) [L136] |
+| vendors.py | /v1/engineering/vendors/engagements/{engagement_id} | PATCH | chief_engineer, engineer, gm | require_role(*ENGAGEMENT_ROLES) [L155] |
 | webhooks.py | /v1/webhooks/opera | POST | UNVERIFIED (no auth dependency detected) |  |
 | webhooks.py | /v1/webhooks/stripe | POST | UNVERIFIED (no auth dependency detected) |  |
 | webhooks.py | /v1/webhooks/twilio-sms | POST | UNVERIFIED (no auth dependency detected) |  |
@@ -359,4 +375,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
 
-**32 routers, 348 routes.**
+**34 routers, 364 routes.**
