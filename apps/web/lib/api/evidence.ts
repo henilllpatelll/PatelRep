@@ -104,6 +104,7 @@ export interface EvidenceRecord {
   collected_by: string | null
   collected_at: string | null
   created_at: string
+  collector_profile?: { preferred_name?: string | null; full_name?: string | null } | null
 }
 
 export interface EvidenceRecordInput {
@@ -140,7 +141,7 @@ export const evidenceApi = {
   listMyAcknowledgements: (): Promise<{ data: DocumentAcknowledgement[] }> => apiClient.get('/evidence/my-acknowledgements'),
   acknowledgeDocument: (assignmentId: string): Promise<{ data: DocumentAcknowledgement }> => apiClient.post(`/evidence/acknowledgements/${assignmentId}/acknowledge`),
   evaluateCompetency: (assignmentId: string, payload: { assessment_method: 'observed' | 'quiz'; outcome: 'passed' | 'failed'; notes?: string }): Promise<{ data: DocumentAcknowledgement }> => apiClient.post(`/evidence/acknowledgements/${assignmentId}/competency`, payload),
-  listRecords: (): Promise<{ data: EvidenceRecord[] }> => apiClient.get('/evidence/records'),
+  listRecords: (filters?: { related_entity_type?: RelatedEvidenceEntityType; related_entity_id?: string }): Promise<{ data: EvidenceRecord[] }> => apiClient.get('/evidence/records', { params: filters }),
   getRecord: (recordId: string): Promise<{ data: EvidenceRecord }> => apiClient.get(`/evidence/records/${recordId}`),
   createRecord: (payload: EvidenceRecordInput): Promise<{ data: EvidenceRecord }> => apiClient.post('/evidence/records', payload),
   uploadRecordFile: (recordId: string, file: File): Promise<{ data: EvidenceRecord }> => {

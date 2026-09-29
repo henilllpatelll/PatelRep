@@ -13,6 +13,7 @@ from models.requests import (
     UpsertAccessibleRoomFeatureRequest,
 )
 from core.database import supabase
+from core.roles import MANAGER_ROLES
 from datetime import datetime, timedelta, timezone
 from services.guest_recovery.contracts import (
     AccessibilityPriorityError,
@@ -38,7 +39,6 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
 # state machine and _status_timestamp() ROI stamping are never bypassed.
 MESSAGE_ROLES = ("front_desk", "housekeeping_supervisor", "engineer", "gm")
 SATISFACTION_STATUSES = ("resolved", "verified")
-SLA_POLICY_ROLES = {"gm", "housekeeping_supervisor"}
 WORK_ORDER_BRIDGE_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
 # A request is only bridgeable to a WO while it's still "in flight" toward
 # dispatch; resolved/verified/cancelled requests must be reopened first so the
@@ -105,6 +105,18 @@ async def create_guest_request(
     """Create a new guest request and auto-create a task."""
     if request.category == "accessibility" and request.priority != "urgent":
         raise HTTPException(status_code=422, detail="Accessibility-related requests must use urgent priority")
+    if request.assigned_to:
+        staff_check = (
+            supabase.table("user_roles")
+            .select("id")
+            .eq("user_id", str(request.assigned_to))
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+        if not staff_check.data:
+            raise HTTPException(status_code=404, detail="Staff member not found")
     policies = supabase.table("guest_request_sla_policies").select(
         "category, priority, guest_impact, sla_minutes"
     ).eq("tenant_id", current_user.hotel_id).execute().data or []
@@ -146,6 +158,8 @@ async def create_guest_request(
             "task_type": "guest_request",
             "priority": request.priority or "normal",
             "room_id": str(request.room_id) if request.room_id else None,
+            "assigned_to": str(request.assigned_to) if request.assigned_to else None,
+            "assigned_by": current_user.user_id if request.assigned_to else None,
             "created_by": current_user.user_id,
             "sla_minutes": sla_minutes,
             "due_at": (now + timedelta(minutes=sla_minutes)).isoformat(),
@@ -191,6 +205,10 @@ async def transition_guest_request(
     request: TransitionGuestRequestRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    # Bulk cancellation is a management action. The UI is not an authorization
+    # boundary, so the underlying lifecycle route enforces it as well.
+    if request.status == "cancelled" and current_user.role not in MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to cancel guest requests")
     existing = supabase.table("guest_requests").select("*").eq("id", request_id).eq(
         "tenant_id", current_user.hotel_id
     ).maybe_single().execute().data
@@ -578,7 +596,7 @@ async def create_guest_request_sla_policy(
     request: CreateGuestRequestSlaPolicyRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    if current_user.role not in SLA_POLICY_ROLES:
+    if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
     if request.category is None and request.priority is None and request.guest_impact is None:
         raise HTTPException(
@@ -610,7 +628,7 @@ async def delete_guest_request_sla_policy(
     policy_id: str,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    if current_user.role not in SLA_POLICY_ROLES:
+    if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
     existing = supabase.table("guest_request_sla_policies").select("id").eq(
         "id", policy_id
@@ -727,7 +745,7 @@ async def delete_guest_request(
     request_id: str,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    if current_user.role not in SLA_POLICY_ROLES:
+    if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to delete guest requests")
 
     gr = supabase.table("guest_requests") \

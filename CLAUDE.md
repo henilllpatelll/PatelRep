@@ -175,6 +175,7 @@ account.
 | `opera.sync-reservations` | `*/30 * * * *` | Opera reservation sync |
 | `escalations.check` | `*/30 * * * *` | WO/task SLA escalation ladder + DND welfare |
 | `pm.check-due` | `0 6 * * *` | PM schedule due check |
+| `tasks.generate-recurring` | `0 6 * * *` | Recurring Internal Task generation |
 | `reports.daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
 | `evidence.reminders` | `0 6 * * *` | Controlled-doc acknowledgement reminders |
 | `safety.training-assignments` | `0 6 * * *` | Safety training assignment/reminders |

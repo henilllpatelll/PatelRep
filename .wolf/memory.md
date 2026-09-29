@@ -142,7 +142,17 @@
 ## Session: 2026-04-09 10:31
 
 | Time | Action | File(s) | Outcome | ~Tokens |
+| 21:25 | Implemented Tasks Phase 3 inline operations. | Tasks action utility/component, board/list views, page mutations, i18n | Added one shared contextual action per active item, role-aware fast assignment with derived active-work counts, optional completion notes, toasts, exact-action loading, and cache refresh. Unit/API/type/lint/i18n/build checks pass; live card QA is blocked by the stale local API workspace route. | ~17k |
+| 21:12 | Began Tasks Phase 3 discovery. | Tasks workspace, lifecycle APIs, current Phase 1/2 diff | Confirmed complete workspace fetch, three active lanes, collapsed Done Today, Board/List, filters, real guest lifecycle, and atomic housekeeper claim are already present as preserved work. | ~9k |
 |------|--------|---------|---------|--------|
+| 21:05 | Started Tasks Phase 2 discovery and verified Phase 1 workspace data changes are present as user work. | .wolf, apps/web/tasks, task utilities | Scoped the redesign to Board/List workspace chrome and cards; drawers remain protected. | ~5k |
+| 21:43 | Implemented Tasks Phase 2 board workspace. | tasks page, board/list cards, workspace utilities, EN/ES locales | Added three active lanes, collapsed Done Today, visible priority/SLA/source/owner, filter controls, and removed duplicate Quick Add/AI chrome. | ~13k |
+| 21:45 | Verified focused Tasks behavior. | taskWorkspace tests, TypeScript, i18n parity, focused lint, localhost Tasks | 65 unit tests, type-check and translation parity pass; browser shell checked at narrow width, but data-board verification is blocked by the stale local API missing `/v1/tasks/workspace`. | ~6k |
+| 21:52 | Completed Tasks Phase 2 final static gates and visual shell review. | apps/web Tasks workspace | Full 65-test unit suite, type-check, i18n parity, contrast, frozen-file guard, and diff check passed; laptop and mobile shells show no clipping. Production build remains blocked by an existing Next build lock. | ~6k |
+| 21:53 | Completed desktop viewport shell check. | localhost Tasks | Desktop, laptop, and mobile chrome has no control overlap or horizontal overflow; card-level visual acceptance remains blocked by the stale Tasks workspace API route. | ~2k |
+| 20:50 | Completed Tasks Phase 1 behavior/data-model work. | Tasks API/workspace, web utilities/drawer/locales/tests | Active records are paged to completion, history retains final outcomes, and guest creation uses domain values; focused checks passed. | ~30k |
+| 20:33 | Began Tasks Phase 1 investigation. | tasks/guest-request API, workspace utilities, i18n, tests | Confirmed scope: active-work completeness, refresh behavior, history outcomes, and creation-domain fields. | ~10k |
+| 20:38 | Added Tasks Phase 1 regression tests before implementation. | task workspace API test, unified-task/history utility tests | Focused web tests fail as expected for missing terminal outcomes/date groups. | ~4k |
 | 22:48 | Added OPERA hardening tests | apps/api/tests/smoke/test_integrations_security.py, test_opera_auth_contract.py, test_opera_workflows.py | Tests initially failed for plaintext storage, missing preflight, missing crypto helper, vague sync errors | ~1800 |
 | 22:49 | Implemented encrypted OPERA credential storage and preflight | apps/api/core/config.py, routers/integrations.py, services/opera/{auth,crypto}.py | Secrets now stored with enc:v1 Fernet envelope; production requires OPERA_CREDENTIAL_ENCRYPTION_KEY; /opera/preflight added | ~2300 |
 | 22:50 | Improved OPERA request failure visibility | apps/api/services/opera/sync.py | OHIP timeout/auth/not-found errors now log safe metadata and return actionable sync errors | ~1300 |
@@ -14267,3 +14277,160 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:37 | Implemented Phase 10 vendor operations and Engineering Insights. | migration 115, API vendors/insights, Engineering web routes | Added tenant-safe vendors/engagements, invoice cost rollup, PM vendor relation, and server-computed management metrics; focused tests, type-check, lint, i18n parity, and build pass. | ~22k |
 | 14:42 | Completed Phase 10 work-order integration and final build. | WorkOrderRecord, VendorEngagementDrawer, apps/web | Work orders now render vendor status/ETA and advance operational status; final type-check, focused lint, API tests, i18n parity, and production build pass. Authenticated screenshot review remains blocked by the local login redirect. | ~4k |
 | 14:39 | designqc: captured 4 screenshots (123KB, ~10000 tok) | /engineering/vendors, /engineering/insights | ready for eval | ~0 |
+
+## Session: 2026-09-27 14:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-29 22:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:54 | Edited apps/api/routers/tasks.py | modified _attach_comment_profiles() | ~256 |
+| 22:54 | Edited apps/api/routers/tasks.py | 6→7 lines | ~78 |
+| 22:54 | Edited apps/api/routers/evidence.py | modified _attach_collector_profiles() | ~260 |
+| 22:54 | Edited apps/api/routers/evidence.py | modified list_evidence_records() | ~190 |
+| 22:55 | Edited apps/api/routers/evidence.py | added 1 import(s) | ~50 |
+| 22:55 | Edited apps/web/lib/api/tasks.ts | 8→9 lines | ~66 |
+| 22:55 | Edited apps/web/lib/api/evidence.ts | 4→5 lines | ~50 |
+| 22:55 | Edited apps/web/lib/api/evidence.ts | inline fix | ~58 |
+| 22:55 | Created apps/web/components/tasks/TaskCommentsPanel.tsx | — | ~1030 |
+| 22:55 | Edited apps/web/components/tasks/TaskCommentsPanel.tsx | "tasks.detail.comments_.un" → "tasks.detail.unknownAutho" | ~34 |
+| 22:56 | Created apps/web/components/tasks/TaskFilesPanel.tsx | — | ~1412 |
+| 22:57 | Created apps/web/components/tasks/TaskDetailDrawer.tsx | — | ~4580 |
+| 22:57 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added nullish coalescing | ~108 |
+| 22:57 | Edited apps/web/app/(dashboard)/tasks/page.tsx | modified setDeleteTarget() | ~180 |
+| 22:57 | Edited apps/web/i18n/locales/en.ts | expanded (+27 lines) | ~493 |
+| 22:58 | Edited apps/web/i18n/locales/es.ts | expanded (+27 lines) | ~469 |
+| 22:59 | Edited apps/api/tests/test_task_workspace.py | 4→4 lines | ~72 |
+| 23:02 | Edited apps/api/rbac_bare_comparison_allowlist.json | expanded (+6 lines) | ~134 |
+| 23:07 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/39c736e1-55ed-4565-ac9d-f932f6779ed7/scratchpad/verify_phase4.mjs | — | ~1255 |
+| 23:08 | Edited apps/web/.tmp-qa/verify_phase4.mjs | inline fix | ~19 |
+| 23:09 | Edited apps/web/.tmp-qa/verify_phase4.mjs | added error handling | ~98 |
+| 23:09 | Edited apps/web/.tmp-qa/verify_phase4.mjs | 2→2 lines | ~31 |
+| 23:10 | Created apps/web/.tmp-qa/debug_workspace.mjs | — | ~283 |
+| 23:19 | Edited apps/web/components/tasks/TaskDetailDrawer.tsx | 8→8 lines | ~112 |
+| 23:20 | Created apps/web/.tmp-qa/verify_phase4b.mjs | — | ~670 |
+| 23:21 | Created apps/web/.tmp-qa/verify_mobile_drawer.mjs | — | ~322 |
+| 23:23 | Tasks Phase 4 complete: Task Detail Drawer redesign (tabs, comments w/ author, evidence-backed Files tab, overflow menu), z-index + stale-dev-server bugs fixed | apps/api/routers/{tasks,evidence}.py, apps/web/components/tasks/*, apps/web/app/(dashboard)/tasks/page.tsx, i18n | verified: 861 pytest + 71 node tests pass, tsc/eslint/i18n-parity clean, browser QA green | ~large |
+| 23:24 | Session end: 26 writes across 16 files (tasks.py, evidence.py, tasks.ts, evidence.ts, TaskCommentsPanel.tsx) | 38 reads | ~33276 tok |
+
+## Session: 2026-09-29 23:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:33 | Created supabase/migrations/116_task_recurrence.sql | — | ~1070 |
+| 23:33 | Created apps/api/services/task_schedules.py | — | ~1155 |
+| 23:33 | Edited apps/api/models/requests.py | modified interval_days_required_for_custom() | ~493 |
+| 23:33 | Edited apps/api/models/requests.py | 2→3 lines | ~48 |
+| 23:33 | Edited apps/api/routers/guest_requests.py | expanded (+12 lines) | ~213 |
+| 23:34 | Edited apps/api/routers/guest_requests.py | 7→9 lines | ~149 |
+| 23:34 | Edited apps/api/routers/tasks.py | 6→11 lines | ~113 |
+| 23:34 | Edited apps/api/routers/tasks.py | modified create_task_schedule() | ~793 |
+| 23:34 | Edited apps/api/routers/internal.py | modified check_due_task_schedules() | ~279 |
+| 23:34 | Edited apps/api/core/scheduler.py | 2→3 lines | ~35 |
+| 23:34 | Edited apps/api/core/scheduler.py | 1→2 lines | ~34 |
+| 23:35 | Created apps/api/tests/test_task_recurrence.py | — | ~3122 |
+| 23:36 | Created apps/api/tests/test_guest_request_creation_assignment.py | — | ~793 |
+| 23:36 | Edited apps/api/tests/test_guest_request_creation_assignment.py | modified _base_rows() | ~139 |
+| 23:36 | Edited apps/api/tests/test_guest_request_creation_assignment.py | 11→11 lines | ~112 |
+| 23:36 | Edited apps/api/tests/test_guest_request_creation_assignment.py | 5→5 lines | ~54 |
+| 23:36 | Edited apps/api/tests/test_guest_request_creation_assignment.py | 5→5 lines | ~45 |
+| 23:38 | Edited apps/api/tests/test_cron_scheduler.py | 2→3 lines | ~25 |
+| 23:39 | Edited CLAUDE.md | 1→2 lines | ~37 |
+| 23:39 | Edited apps/web/lib/api/tasks.ts | expanded (+38 lines) | ~276 |
+| 23:39 | Edited apps/web/lib/api/tasks.ts | expanded (+6 lines) | ~114 |
+| 23:39 | Edited apps/web/lib/api/guest_requests.ts | 3→4 lines | ~41 |
+| 23:40 | Created apps/web/lib/utils/taskCreation.ts | — | ~2903 |
+| 23:40 | Created apps/web/lib/utils/taskCreation.test.ts | — | ~2895 |
+| 23:42 | Created apps/web/components/tasks/AssigneePicker.tsx | — | ~1579 |
+| 23:42 | Edited apps/web/components/tasks/TaskNextAction.tsx | added 1 import(s) | ~83 |
+| 23:42 | Edited apps/web/components/tasks/TaskNextAction.tsx | 6→5 lines | ~179 |
+| 23:42 | Created apps/web/components/tasks/RoomPicker.tsx | — | ~1574 |
+| 23:46 | Created apps/web/components/tasks/CreateTaskDrawer.tsx | — | ~8100 |
+| 23:47 | Edited apps/web/i18n/locales/en.ts | expanded (+75 lines) | ~915 |
+| 23:47 | Edited apps/web/i18n/locales/en.ts | expanded (+11 lines) | ~162 |
+| 23:47 | Edited apps/web/i18n/locales/es.ts | expanded (+75 lines) | ~1014 |
+| 23:47 | Edited apps/web/i18n/locales/es.ts | expanded (+11 lines) | ~141 |
+| 23:48 | Edited apps/web/app/(dashboard)/tasks/page.tsx | expanded (+9 lines) | ~119 |
+| 23:51 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | now() → getTime() | ~50 |
+| 23:51 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | inline fix | ~23 |
+| 23:51 | Edited apps/web/lib/utils/taskCreation.ts | modified minutesFromNowAt() | ~105 |
+| 23:51 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | 9→10 lines | ~72 |
+| 23:51 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | CSS: purity | ~146 |
+| 23:51 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | modified endOfShiftDate() | ~58 |
+| 23:52 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | getTime() → minutesFromNowAt() | ~282 |
+| 23:52 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | 2→2 lines | ~73 |
+| 23:54 | Created apps/web/.tmp-qa/verify_phase5.mjs | — | ~1201 |
+| 23:55 | Created apps/web/.tmp-qa/debug_login.mjs | — | ~241 |
+| 23:56 | Edited apps/web/.tmp-qa/verify_phase5.mjs | 3→3 lines | ~38 |
+| 00:18 | Created apps/web/.tmp-qa/debug_recurrence.mjs | — | ~414 |
+| 00:19 | Edited apps/web/components/tasks/AssigneePicker.tsx | modified if() | ~96 |
+| 00:19 | Edited apps/web/components/tasks/AssigneePicker.tsx | modified if() | ~155 |
+| 00:19 | Edited apps/web/components/tasks/RoomPicker.tsx | modified if() | ~155 |
+| 00:19 | Edited apps/web/components/tasks/TaskNextAction.tsx | modified if() | ~182 |
+| 00:20 | Edited apps/web/.tmp-qa/debug_recurrence.mjs | 2→4 lines | ~60 |
+| 00:20 | Edited apps/web/.tmp-qa/debug_recurrence.mjs | 5→7 lines | ~116 |
+| 00:22 | Edited apps/web/components/tasks/AssigneePicker.tsx | inline fix | ~64 |
+| 00:23 | Edited apps/web/.tmp-qa/debug_recurrence.mjs | added optional chaining | ~103 |
+| 00:24 | Edited apps/web/lib/hooks/useModalFocusTrap.ts | added 1 condition(s) | ~120 |
+| 00:24 | Edited apps/web/components/tasks/AssigneePicker.tsx | inline fix | ~44 |
+| 00:25 | Created apps/web/.tmp-qa/debug_recur_submit.mjs | — | ~494 |
+| 00:29 | Edited apps/web/.tmp-qa/debug_recur_submit.mjs | added error handling | ~52 |
+| 00:31 | Edited apps/web/.tmp-qa/verify_phase5.mjs | 3→3 lines | ~50 |
+| 00:32 | Created apps/web/.tmp-qa/verify_phase5.mjs | — | ~1311 |
+| 00:32 | Edited apps/web/.tmp-qa/verify_phase5.mjs | added 1 condition(s) | ~110 |
+| 00:33 | Created apps/web/.tmp-qa/verify_room_picker.mjs | — | ~680 |
+| 00:34 | Created apps/web/.tmp-qa/verify_mobile_es.mjs | — | ~561 |
+| 00:35 | Edited apps/web/.tmp-qa/verify_mobile_es.mjs | 9→7 lines | ~120 |
+| 00:36 | Edited apps/web/.tmp-qa/verify_mobile_es.mjs | "i18nextLng" → "patelrep-language" | ~22 |
+| 00:36 | Edited apps/web/.tmp-qa/verify_mobile_es.mjs | "div[role=" → "#task-create-title" | ~26 |
+| 00:40 | Deleted apps/web/.tmp-qa/ (10 throwaway Playwright scripts + screenshots) | — | scratch verification artifacts cleaned up after use | ~0 |
+| 00:41 | Tasks Phase 5 complete: mode-aware CreateTaskDrawer redesign, shared AssigneePicker/RoomPicker, custom due-date/end-of-shift, recurring Internal Tasks (migration 116 + services/task_schedules.py + tasks.generate-recurring cron), Guest Request domain-correct fields incl. assigned_to | apps/api/{models/requests,routers/tasks,routers/guest_requests,routers/internal,core/scheduler,services/task_schedules}.py, apps/web/components/tasks/{CreateTaskDrawer,AssigneePicker,RoomPicker,TaskNextAction}.tsx, apps/web/lib/{api,utils}/*, apps/web/lib/hooks/useModalFocusTrap.ts, i18n, migration 116 | verified: 879 pytest + 88 node tests pass, tsc/eslint/i18n-parity/production-build/frozen-files clean, migration applied to live Supabase, full Playwright browser verification (internal + recurring + guest request creation, mobile viewport, Spanish locale) green with zero console errors; found+fixed a pre-existing Escape-key nested-popover bug in useModalFocusTrap (bug-1669) | ~large |
+| 00:41 | Session end: large multi-file backend+frontend feature (Tasks Phase 5) | many reads | ~huge |
+| 00:40 | Session end: 66 writes across 29 files (116_task_recurrence.sql, task_schedules.py, requests.py, guest_requests.py, tasks.py) | 45 reads | ~138101 tok |
+| 00:40 | Session end: 66 writes across 29 files (116_task_recurrence.sql, task_schedules.py, requests.py, guest_requests.py, tasks.py) | 45 reads | ~138101 tok |
+| 00:51 | Edited apps/web/components/tasks/CreateTaskDrawer.tsx | 3→7 lines | ~140 |
+| 00:52 | Edited apps/web/components/tasks/AssigneePicker.tsx | modified StaffAvatar() | ~438 |
+| 00:52 | Edited apps/web/components/tasks/AssigneePicker.tsx | 5→8 lines | ~153 |
+| 00:53 | Created apps/web/.tmp-qa/verify_gaps.mjs | — | ~642 |
+| 00:53 | Edited apps/web/.tmp-qa/verify_gaps.mjs | 2→6 lines | ~108 |
+| 00:54 | Edited apps/web/.tmp-qa/verify_gaps.mjs | 2→3 lines | ~42 |
+| 00:56 | Session end: 72 writes across 30 files (116_task_recurrence.sql, task_schedules.py, requests.py, guest_requests.py, tasks.py) | 46 reads | ~139739 tok |
+
+## Session: 2026-09-29 00:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:11 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | 2→2 lines | ~39 |
+| 01:11 | Edited apps/web/i18n/locales/en.ts | 9→13 lines | ~98 |
+| 01:11 | Edited apps/web/i18n/locales/es.ts | 9→13 lines | ~100 |
+| 01:12 | Edited apps/api/routers/tasks.py | modified _escape_ilike() | ~447 |
+| 01:12 | Edited apps/api/routers/tasks.py | modified get_task_workspace() | ~594 |
+| 01:12 | Edited apps/web/lib/api/tasks.ts | expanded (+7 lines) | ~103 |
+| 01:12 | Edited apps/web/lib/api/tasks.ts | 2→2 lines | ~38 |
+| 01:13 | Edited apps/api/tests/test_task_workspace.py | modified __init__() | ~773 |
+| 01:13 | Edited apps/api/tests/test_task_workspace.py | modified test_workspace_history_search_filters_the_history_page_not_active_work() | ~628 |
+| 01:14 | Edited apps/api/routers/tasks.py | 6→9 lines | ~184 |
+| 01:14 | Edited apps/api/routers/tasks.py | 10→10 lines | ~122 |
+| 01:16 | Created apps/web/lib/utils/taskViews.ts | — | ~2168 |
+| 01:16 | Created apps/web/lib/utils/taskBulkActions.ts | — | ~894 |
+| 01:16 | Created apps/web/lib/utils/taskViews.test.ts | — | ~1423 |
+| 01:17 | Created apps/web/lib/utils/taskBulkActions.test.ts | — | ~1086 |
+| 01:17 | Edited apps/web/package.json | inline fix | ~162 |
+| 01:17 | Edited apps/web/lib/utils/taskWorkspace.ts | modified searchableValues() | ~469 |
+| 01:17 | Edited apps/web/lib/utils/taskWorkspace.test.ts | modified for() | ~319 |
+| 01:18 | Edited apps/web/components/tasks/UnifiedTaskRow.tsx | added optional chaining | ~536 |
+| 01:18 | Edited apps/web/components/tasks/TasksTableView.tsx | added optional chaining | ~802 |
+| 01:19 | Created apps/web/components/tasks/BulkActionBar.tsx | — | ~1986 |
+| 01:19 | Created apps/web/components/tasks/SavedViewsMenu.tsx | — | ~2026 |
+| 01:22 | Audited Phase 6 working-tree foundation | Tasks workspace + saved-view/bulk utilities | Found unintegrated Phase 6 UI components; proceeding with targeted integration and verification | ~1800 |
+| 01:24 | Hardened saved-view deserialization | apps/web/lib/utils/taskViews.ts + test | Invalid saved filters now normalize safely; focused unit test passes | ~600 |
+| 01:31 | Integrated Phase 6 Tasks controls | apps/web/app/(dashboard)/tasks/page.tsx + task i18n/API types | URL views, saved views, bulk actions, history search and shortcuts connected; type-check passes | ~4200 |
+| 01:35 | Added server-side bulk mutation RBAC | task/guest-request routers + test_task_bulk_rbac.py | Front desk cannot reprioritize/cancel through direct API; focused API tests pass | ~1300 |
+| 01:48 | Ran Phase 6 final verification | web/API checks + localhost Tasks route | Tests/types/lint/i18n/diff checks passed; production build blocked by an existing Next build lock and browser surface could not attach | ~1200 |
+| 02:27 | Ran full API verification before commit | apps/api/tests | 878 passed; logged four task RBAC/RBAC-artifact regressions for repair | ~900 |
+| 02:30 | Repaired task RBAC verification regressions | apps/api/core/roles.py + task/guest-request routers + RBAC matrix | Focused tests 50/50 and full API suite 882/882 pass | ~1100 |
+| 02:32 | Ran final web verification | apps/web | Type-check, lint, 112 unit tests, and production build pass | ~1100 |
+| 02:34 | Committed unified Tasks workspace | complete staged working tree | Created after clean API/web verification | ~350 |

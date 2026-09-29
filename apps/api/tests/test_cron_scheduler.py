@@ -16,6 +16,7 @@ EXPECTED_JOBS = {
     "escalations.check",
     "predictions.escalation-check",
     "pm.check-due",
+    "tasks.generate-recurring",
     "reports.daily-summary-email",
     "evidence.reminders",
     "safety.training-assignments",

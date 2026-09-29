@@ -1,7 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-27T19:39:25.278Z
-> Files: 530 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-29T06:19:37.321Z
+> Files: 573 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/39c736e1-55ed-4565-ac9d-f932f6779ed7/scratchpad/
+
+- `verify_phase4.mjs` — Declares BASE (~1255 tok)
 
 ## ./
 
@@ -13,7 +17,7 @@
 - `.npmrc` (~6 tok)
 - `AGENTS.md` — OpenWolf (~2148 tok)
 - `cheerful-dancing-elephant.md` — Sidebar Simplification Plan (~1060 tok)
-- `CLAUDE.md` — OpenWolf (~3882 tok)
+- `CLAUDE.md` — OpenWolf (~3903 tok)
 - `CompetitiveAnalysis.md` — PatelRep Mobile App Competitive Analysis Report (~5429 tok)
 - `CUsersHenilprojectsPatelRep.wolfmemory.md` (~79 tok)
 - `FRONTEND_AUDIT.md` — Frontend Audit — PatelRep Dashboard (~9362 tok)
@@ -919,3 +923,97 @@
 
 - `theme.json` (~176 tok)
 - `tokens.css` — Styles: 36 vars (~731 tok)
+
+## Task workspace Phase 1 reference files (2026-09-28)
+
+
+## apps/api/
+
+- `rbac_bare_comparison_allowlist.json` (~2601 tok)
+
+## apps/api/core/
+
+- `scheduler.py` — In-process cron scheduler. (~1453 tok)
+
+## apps/api/models/
+
+- `requests.py` — Pydantic: SanitizedBaseModel (~18760 tok)
+
+## apps/api/routers/
+
+- `evidence.py` — Tenant-scoped controlled documents, proof, acknowledgements, and exceptions. (~9538 tok)
+- `guest_requests.py` — API: 3 endpoints (~9674 tok)
+- `internal.py` — API: 5 endpoints (~11018 tok)
+- `tasks.py` — API: 4 endpoints (~6585 tok)
+
+## apps/api/services/
+
+- `task_schedules.py` — Recurring Internal Task advancement. (~1155 tok)
+
+## apps/api/tests/
+
+- `test_cron_scheduler.py` — The in-process cron scheduler must register every job with the right schedule (~717 tok)
+- `test_guest_request_creation_assignment.py` — POST /guest-requests now accepts assigned_to (Tasks Phase 5): assignment for (~841 tok)
+- `test_task_recurrence.py` — Recurring Internal Task generation (migration 116): mirrors (~3122 tok)
+- `test_task_workspace.py` — Task workspace contract: active work is complete, history is separately paginated. (~2065 tok)
+- `test_task_bulk_rbac.py` — Guards list-view bulk priority and cancellation mutations by role. (~350 tok)
+
+## apps/web/
+
+- `package.json` — Node.js package manifest (~919 tok)
+
+## apps/web/.tmp-qa/
+
+- `verify_gaps.mjs` — Declares BASE (~718 tok)
+
+## apps/web/app/(dashboard)/tasks/
+
+- `page.tsx` — VIEW_TABS (~8834 tok)
+
+## apps/web/components/guest-requests/
+
+- `GuestRequestDrawer.tsx` — MESSAGE_ROLES (~6920 tok)
+
+## apps/web/components/tasks/
+
+- `AssigneePicker.tsx` — Small initials avatar, same visual language as the header's own account avatar. (~1824 tok)
+- `BulkActionBar.tsx` — BulkActionBar (~1986 tok)
+- `CreateTaskDrawer.tsx` — DUE_PRESET_ORDER (~8265 tok)
+- `RoomPicker.tsx` — Searchable, floor-grouped room combobox — replaces a raw <select> that would (~1579 tok)
+- `SavedViewsMenu.tsx` — SavedViewsMenu — renders form (~2026 tok)
+- `TaskCommentsPanel.tsx` — Comment list + composer for the Comments tab — extracted so TaskDetailDrawer stays under the file-si (~1028 tok)
+- `TaskDetailDrawer.tsx` — The corresponding unified board item, when one exists — drives the shared (~4582 tok)
+- `TaskFilesPanel.tsx` — Files/Evidence tab — reuses the existing evidence_records system (label + optional (~1412 tok)
+- `TaskNextAction.tsx` — Shared card/row control: one primary lifecycle action plus a lightweight assignment control when app (~2087 tok)
+- `TasksTableView.tsx` — Bulk selection (Phase 6) — omit entirely to render the plain read-only list. (~939 tok)
+- `UnifiedTaskRow.tsx` — List-view bulk selection (Phase 6) — never shown on the Kanban board. (~1291 tok)
+
+## apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~34143 tok)
+- `es.ts` — Declares es (~37702 tok)
+
+## apps/web/lib/api/
+
+- `evidence.ts` — API routes: GET, POST, PUT (20 endpoints) (~2327 tok)
+- `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE, PUT (16 endpoints) (~1853 tok)
+- `tasks.ts` — Server-side title/description(/guest_name) search — History only, since Active is always fetched in (~1413 tok)
+
+## apps/web/lib/hooks/
+
+- `useModalFocusTrap.ts` — Exports useModalFocusTrap (~621 tok)
+
+## apps/web/lib/utils/
+
+- `taskBulkActions.test.ts` — Declares item (~1086 tok)
+- `taskBulkActions.ts` — Assignment is always written to the backing Task (see taskNextAction.ts) — a (~894 tok)
+- `taskCreation.test.ts` — Declares payload (~2895 tok)
+- `taskCreation.ts` — Builds the real guest-request domain payload without translating user selections. (~2986 tok)
+- `taskViews.test.ts` — API routes: GET (2 endpoints) (~1423 tok)
+- `taskViews.ts` — '__me__' and '__unassigned__' are portable sentinels — '__me__' resolves against (~2168 tok)
+- `taskWorkspace.test.ts` — Declares item (~2378 tok)
+- `taskWorkspace.ts` — '' = both. Replaces the old separate Guest Requests / Internal tabs. (~1892 tok)
+
+## supabase/migrations/
+
+- `116_task_recurrence.sql` — ============================================================================= (~1070 tok)

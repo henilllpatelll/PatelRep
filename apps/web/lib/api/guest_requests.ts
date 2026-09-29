@@ -106,6 +106,7 @@ export const guestRequestsApi = {
       guest_impact?: GuestRequest['guest_impact']
       contact_preference?: 'sms' | 'call' | 'email' | 'in_person' | 'none'
       contact_consent?: boolean
+      assigned_to?: string
   }) =>
     apiClient.post('/guest-requests', payload) as Promise<{ data: GuestRequest }>,
 
@@ -116,6 +117,7 @@ export const guestRequestsApi = {
       description?: string
       room_id?: string
       guest_name?: string
+      priority?: GuestRequest['priority']
       status?: GuestRequestStatus
       notes?: string
       resolved_at?: string

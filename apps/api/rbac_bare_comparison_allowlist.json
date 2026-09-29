@@ -135,9 +135,15 @@
     },
     {
       "router": "tasks.py",
-      "line": 142,
+      "line": 136,
       "code": "current_user.role == 'housekeeper'",
       "reason": "Self-scope narrowing (RBAC-AUDIT.md: \"Mixed -- legitimate\")."
+    },
+    {
+      "router": "tasks.py",
+      "line": 248,
+      "code": "current_user.role == 'housekeeper'",
+      "reason": "Same self-scope narrowing as _task_workspace_task_query, applied to the plain GET /tasks list endpoint (RBAC-AUDIT.md: \"Mixed -- legitimate\")."
     },
     {
       "router": "work_orders.py",

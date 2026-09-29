@@ -771,3 +771,35 @@ async def test_inspector_export_is_gm_only_tenant_scoped_and_includes_mixed_stat
     role_check = route.dependant.dependencies[0].call
     with pytest.raises(HTTPException, match="not authorized"):
         await role_check(CurrentUser(user_id="staff-1", hotel_id="hotel-1", role="housekeeper"))
+
+
+@pytest.mark.asyncio
+async def test_list_evidence_records_filters_by_related_entity_and_attaches_collector_name():
+    """Task Detail Drawer Files tab (Phase 4) scopes evidence to one task and needs
+    a display name for the collector, not a raw auth.users id."""
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "evidence_records": [
+            {"id": "evidence-1", "tenant_id": "hotel-1", "label": "Before repair.jpg", "evidence_type": "photo",
+             "related_entity_type": "task", "related_entity_id": "task-1", "collected_by": "staff-1", "collected_at": "2026-07-16T10:00:00Z"},
+            {"id": "evidence-2", "tenant_id": "hotel-1", "label": "Unrelated asset photo", "evidence_type": "photo",
+             "related_entity_type": "asset", "related_entity_id": "asset-9", "collected_by": "staff-1", "collected_at": "2026-07-16T09:00:00Z"},
+            {"id": "evidence-3", "tenant_id": "hotel-1", "label": "Other task's photo", "evidence_type": "photo",
+             "related_entity_type": "task", "related_entity_id": "task-2", "collected_by": "staff-1", "collected_at": "2026-07-16T08:00:00Z"},
+        ],
+        "user_profiles": [{"id": "staff-1", "tenant_id": "hotel-1", "full_name": "David Kim", "preferred_name": None}],
+    })
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(evidence_router, "supabase", db)
+    try:
+        response = await evidence_router.list_evidence_records(
+            related_entity_type="task",
+            related_entity_id="task-1",
+            current_user=_gm(),
+        )
+    finally:
+        monkeypatch.undo()
+
+    assert [r["id"] for r in response["data"]] == ["evidence-1"]
+    assert response["data"][0]["collector_profile"] == {"id": "staff-1", "tenant_id": "hotel-1", "full_name": "David Kim", "preferred_name": None}

@@ -26128,7 +26128,12 @@
       "file": "apps/api/models/requests.py",
       "root_cause": "The create request model and web API payload did not include lifecycle fields, while UpdateAssetRequest also could not persist several editable fields.",
       "fix": "Added the fields to the create and update contracts, serialized dates at the asset router boundary, and verified the contract with a focused pytest.",
-      "tags": ["engineering", "assets", "warranty", "lifecycle"],
+      "tags": [
+        "engineering",
+        "assets",
+        "warranty",
+        "lifecycle"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T05:10:00-05:00"
@@ -26140,19 +26145,30 @@
       "file": "apps/web/components/engineering/AssetDetailPanel.tsx",
       "root_cause": "The new code used an unsupported `danger` variant and passed API functions with optional parameters directly as query functions.",
       "fix": "Used the existing `destructive` variant and wrapped parameterized API functions in zero-argument query callbacks; type-check and focused lint now pass.",
-      "tags": ["engineering", "assets", "typescript", "react-query"],
-      "related_bugs": ["bug-1602"],
+      "tags": [
+        "engineering",
+        "assets",
+        "typescript",
+        "react-query"
+      ],
+      "related_bugs": [
+        "bug-1602"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T05:35:00-05:00"
-    }
-    ,{
+    },
+    {
       "id": "bug-1592",
       "timestamp": "2026-09-26T19:08:00-05:00",
       "error_message": "OpenWolf memory append failed because the table header differed from the assumed template.",
       "file": ".wolf/memory.md",
       "root_cause": "The existing table uses Time/Action headers and has no HH:MM template row.",
       "fix": "Inspected the tail of the file and appended the entry using the actual table structure.",
-      "tags": ["openwolf", "documentation", "patch"],
+      "tags": [
+        "openwolf",
+        "documentation",
+        "patch"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-26T19:08:00-05:00"
@@ -26164,7 +26180,11 @@
       "file": "apps/web/lib/utils/workOrderQueue.test.ts",
       "root_cause": "The test was deliberately added before the queue-ranking utility existed.",
       "fix": "Implement the focused deterministic queue utility and rerun the test before integrating it into the screen.",
-      "tags": ["engineering", "test-first", "work-orders"],
+      "tags": [
+        "engineering",
+        "test-first",
+        "work-orders"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-26T19:13:00-05:00"
@@ -26176,8 +26196,14 @@
       "file": "apps/web/components/engineering/tabs/WorkOrdersTab.tsx",
       "root_cause": "Overly compressed JSX obscured a mismatched expression delimiter.",
       "fix": "Expanded the queue/board view switcher to readable semantic JSX before continuing.",
-      "tags": ["engineering", "typescript", "jsx"],
-      "related_bugs": ["bug-1593"],
+      "tags": [
+        "engineering",
+        "typescript",
+        "jsx"
+      ],
+      "related_bugs": [
+        "bug-1593"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-26T19:22:00-05:00"
     },
@@ -26188,7 +26214,11 @@
       "file": "apps/web/e2e/phase1-work-orders.spec.ts",
       "root_cause": "Working-directory and PowerShell path parsing mistakes during verification.",
       "fix": "Read the test from apps/web and use quoted paths for PowerShell commands containing parentheses.",
-      "tags": ["verification", "powershell", "e2e"],
+      "tags": [
+        "verification",
+        "powershell",
+        "e2e"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-26T19:30:00-05:00"
@@ -26200,8 +26230,14 @@
       "file": ".wolf/anatomy.md, .agents/skills/web-design-engineer/SKILL.md",
       "root_cause": "PowerShell expressions were passed without robust grouping/quoting through a nested command invocation.",
       "fix": "Use rg for indexed text lookup and single-quoted nested PowerShell commands when a literal variable is needed.",
-      "tags": ["powershell", "rtk", "discovery"],
-      "related_bugs": ["bug-1595"],
+      "tags": [
+        "powershell",
+        "rtk",
+        "discovery"
+      ],
+      "related_bugs": [
+        "bug-1595"
+      ],
       "occurrences": 2,
       "last_seen": "2026-09-26T00:00:00-05:00"
     },
@@ -26212,7 +26248,11 @@
       "file": "apps/api/tests/test_work_order_room_out_of_order.py",
       "root_cause": "The active Python environment provides pytest as a module but does not put its executable on PATH.",
       "fix": "Run the suite with `python -m pytest`; the focused room-down contract suite then passed 6 tests.",
-      "tags": ["pytest", "environment", "verification"],
+      "tags": [
+        "pytest",
+        "environment",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-26T00:00:00-05:00"
@@ -26224,7 +26264,11 @@
       "file": "apps/web/components/engineering/CreateWorkOrderDrawer.tsx",
       "root_cause": "A dynamic expected-return fallback was created in a component-scoped mutation closure, which React's purity lint treats as render-visible state.",
       "fix": "Require staff to choose the expected return whenever room inventory is blocked; type-check, parity, lint, API tests, and diff check then passed.",
-      "tags": ["react", "lint", "room-unavailability"],
+      "tags": [
+        "react",
+        "lint",
+        "room-unavailability"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-26T00:00:00-05:00"
@@ -26236,12 +26280,16 @@
       "file": "apps/api/services/programs/execution.py",
       "root_cause": "Direct PM completion assumed every schedule row contained next_due_at; older fixture and legacy data paths do not guarantee that field.",
       "fix": "Use the scheduled due date only when present, otherwise safely use completion time; the focused PM route suite then passed 24 tests.",
-      "tags": ["pm", "recurrence", "pytest", "legacy-data"],
+      "tags": [
+        "pm",
+        "recurrence",
+        "pytest",
+        "legacy-data"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T01:20:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1600",
       "timestamp": "2026-09-27T01:45:00-05:00",
@@ -26249,12 +26297,15 @@
       "file": ".wolf/anatomy.md",
       "root_cause": "The diagnostic expression reused an automatic PowerShell variable instead of naming the pipeline value explicitly.",
       "fix": "Stopped the failing diagnostic and used a narrow, plain-text anatomy update; no product code or data was affected.",
-      "tags": ["documentation", "powershell", "tooling"],
+      "tags": [
+        "documentation",
+        "powershell",
+        "tooling"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T01:45:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1601",
       "timestamp": "2026-09-27T01:55:00-05:00",
@@ -26262,7 +26313,11 @@
       "file": ".wolf/buglog.json",
       "root_cause": "The commands combined checks belonging to different package roots.",
       "fix": "Run web checks from apps/web and API checks from apps/api; both focused suites subsequently passed.",
-      "tags": ["verification", "working-directory", "tooling"],
+      "tags": [
+        "verification",
+        "working-directory",
+        "tooling"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T01:55:00-05:00"
@@ -26274,7 +26329,12 @@
       "file": "apps/web/components/engineering/AssetDetailPanel.tsx",
       "root_cause": "Failure prediction prose is backend-generated and may not match the active UI locale, so direct rendering bypassed the staff-facing Spanish contract.",
       "fix": "Use a localized operational recommendation in Spanish mode and suppress raw AI reasoning there; retain raw contextual text in English mode.",
-      "tags": ["engineering", "assets", "i18n", "ai"],
+      "tags": [
+        "engineering",
+        "assets",
+        "i18n",
+        "ai"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T06:05:00-05:00"
@@ -26286,8 +26346,15 @@
       "file": "apps/api/tests/test_work_order_transitions.py, apps/api/tests/test_work_order_parts_consumption.py",
       "root_cause": "The new timing action RPC has a deliberately different payload and returns an action result, while the existing fakes had a single hardcoded RPC shape.",
       "fix": "Extended the fakes to recognize apply_work_order_timing_action without simulating a status transition; strengthened the claim contract assertion to verify the timing action follows assignment.",
-      "tags": ["engineering", "work-orders", "testing", "supabase-fake"],
-      "related_bugs": ["bug-1593"],
+      "tags": [
+        "engineering",
+        "work-orders",
+        "testing",
+        "supabase-fake"
+      ],
+      "related_bugs": [
+        "bug-1593"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T06:25:00-05:00"
     },
@@ -26298,8 +26365,16 @@
       "file": "apps/api/routers/work_orders.py",
       "root_cause": "The Phase 6 completion timing RPC was invoked before the existing inventory preflight, creating an unintended mutation on a request that later failed validation.",
       "fix": "Moved the timing close and subsequent session-cost read after ensure_sufficient_stock, preserving the all-or-nothing preflight behavior.",
-      "tags": ["engineering", "work-orders", "labor", "inventory", "atomicity"],
-      "related_bugs": ["bug-1605"],
+      "tags": [
+        "engineering",
+        "work-orders",
+        "labor",
+        "inventory",
+        "atomicity"
+      ],
+      "related_bugs": [
+        "bug-1605"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T06:30:00-05:00"
     },
@@ -26310,8 +26385,15 @@
       "file": "apps/web/package.json",
       "root_cause": "The project has independent package roots and flat-config ESLint rejects legacy file-selection flags.",
       "fix": "Ran npm run type-check and npm run build from apps/web, then invoked npx eslint with explicit file paths; all passed after the timer-hook dependency correction.",
-      "tags": ["verification", "tooling", "eslint", "working-directory"],
-      "related_bugs": ["bug-1601"],
+      "tags": [
+        "verification",
+        "tooling",
+        "eslint",
+        "working-directory"
+      ],
+      "related_bugs": [
+        "bug-1601"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T06:40:00-05:00"
     },
@@ -26322,8 +26404,15 @@
       "file": "apps/api/tests/test_repair_intelligence_contract.py",
       "root_cause": "The repository keeps pytest in apps/api/.venv rather than exposing it as a global executable.",
       "fix": "Run tests through apps/api/.venv/Scripts/python.exe -m pytest.",
-      "tags": ["verification", "tooling", "python", "pytest"],
-      "related_bugs": ["bug-1607"],
+      "tags": [
+        "verification",
+        "tooling",
+        "python",
+        "pytest"
+      ],
+      "related_bugs": [
+        "bug-1607"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T07:43:00-05:00"
     },
@@ -26334,8 +26423,15 @@
       "file": "local development process configuration",
       "root_cause": "Port 8000 is occupied by a non-PatelRep service. Port 8003 serves PatelRep, but it is an older development process whose OpenAPI schema does not include Phase 7 routes.",
       "fix": "Do not restart or alter either user-owned process. Launch this checkout temporarily on an isolated port for API verification, then stop only that temporary server.",
-      "tags": ["verification", "localhost", "api", "ports"],
-      "related_bugs": ["bug-1608"],
+      "tags": [
+        "verification",
+        "localhost",
+        "api",
+        "ports"
+      ],
+      "related_bugs": [
+        "bug-1608"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T08:05:00-05:00"
     },
@@ -26346,8 +26442,15 @@
       "file": "apps/api/routers/work_orders.py",
       "root_cause": "The completed-record exception was implemented as a literal role comparison inside an otherwise engineer-accessible route, violating the repository RBAC comparison guard.",
       "fix": "Added the canonical GM_ONLY_ROLES role set in core/roles.py and used it for the exception. The smoke guard and repair contract tests pass.",
-      "tags": ["engineering", "rbac", "verification", "work-orders"],
-      "related_bugs": ["bug-1608"],
+      "tags": [
+        "engineering",
+        "rbac",
+        "verification",
+        "work-orders"
+      ],
+      "related_bugs": [
+        "bug-1608"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T08:18:00-05:00"
     },
@@ -26358,7 +26461,12 @@
       "file": "apps/web/.next",
       "root_cause": "A prior build launched for this verification had not yet released its lock when the retry started.",
       "fix": "Leave the existing build process untouched, wait briefly for it to finish, then retry the build once.",
-      "tags": ["verification", "nextjs", "build", "concurrency"],
+      "tags": [
+        "verification",
+        "nextjs",
+        "build",
+        "concurrency"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:40:00-05:00"
@@ -26370,8 +26478,15 @@
       "file": "apps/web/package.json",
       "root_cause": "A combined final-diff command inherited the repository root rather than the web package root.",
       "fix": "Run npm run check:i18n-parity from apps/web; it had already passed from the correct package root earlier in this phase.",
-      "tags": ["verification", "tooling", "working-directory", "i18n"],
-      "related_bugs": ["bug-1601"],
+      "tags": [
+        "verification",
+        "tooling",
+        "working-directory",
+        "i18n"
+      ],
+      "related_bugs": [
+        "bug-1601"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:38:00-05:00"
     },
@@ -26382,8 +26497,16 @@
       "file": "apps/api/tests/test_asset_downtime_reliability.py",
       "root_cause": "The virtual-environment path was duplicated after changing the command working directory.",
       "fix": "Run .venv/Scripts/python.exe -m pytest from apps/api.",
-      "tags": ["engineering", "verification", "powershell", "pytest"],
-      "related_bugs": ["bug-1608", "bug-1601"],
+      "tags": [
+        "engineering",
+        "verification",
+        "powershell",
+        "pytest"
+      ],
+      "related_bugs": [
+        "bug-1608",
+        "bug-1601"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:34:00-05:00"
     },
@@ -26394,8 +26517,15 @@
       "file": "apps/web/lib/api/engineering.ts, apps/web/lib/utils/assetWorkspace.test.ts",
       "root_cause": "A broad patch context matched the first asset_id occurrence rather than the create-work-order request contract; the fixture modeled only the one field it needed.",
       "fix": "Move asset_impact to the create payload and make the fixture a complete AssetDowntimePeriod-shaped record.",
-      "tags": ["engineering", "typescript", "api-contract", "tests"],
-      "related_bugs": ["bug-1615"],
+      "tags": [
+        "engineering",
+        "typescript",
+        "api-contract",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-1615"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:30:00-05:00"
     },
@@ -26406,8 +26536,15 @@
       "file": "apps/web/lib/utils/assetWorkspace.ts",
       "root_cause": "The Phase 5 operation sort considered only risk, open work, PM due, and repair count; it had no operational-downtime signal.",
       "fix": "Make active complete asset downtime the highest explicit queue-ranking signal and cover it with a deterministic unit test.",
-      "tags": ["engineering", "assets", "downtime", "queue"],
-      "related_bugs": ["bug-1614"],
+      "tags": [
+        "engineering",
+        "assets",
+        "downtime",
+        "queue"
+      ],
+      "related_bugs": [
+        "bug-1614"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:20:00-05:00"
     },
@@ -26418,8 +26555,15 @@
       "file": "apps/web/lib/utils/assetReliability.test.ts",
       "root_cause": "Test-first coverage was added before the focused reliability presentation utility.",
       "fix": "Implement the deterministic duration and operational-status helpers, then rerun the focused test.",
-      "tags": ["engineering", "assets", "reliability", "test-first"],
-      "related_bugs": ["bug-1593"],
+      "tags": [
+        "engineering",
+        "assets",
+        "reliability",
+        "test-first"
+      ],
+      "related_bugs": [
+        "bug-1593"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:14:00-05:00"
     },
@@ -26430,8 +26574,15 @@
       "file": "apps/web/components/engineering/WorkOrderRecord.tsx",
       "root_cause": "A shell-quoted alternation included unbalanced quoting and was parsed as an unterminated regular expression.",
       "fix": "Use fixed-string rg patterns for multi-term TypeScript discovery under the PowerShell wrapper.",
-      "tags": ["engineering", "tooling", "powershell", "rg"],
-      "related_bugs": ["bug-1596"],
+      "tags": [
+        "engineering",
+        "tooling",
+        "powershell",
+        "rg"
+      ],
+      "related_bugs": [
+        "bug-1596"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:08:00-05:00"
     },
@@ -26442,7 +26593,12 @@
       "file": "apps/web/lib/api/engineering.ts",
       "root_cause": "Asset contracts are co-located in the engineering API client rather than a dedicated assets client.",
       "fix": "Use apps/web/lib/api/engineering.ts as the canonical frontend asset API surface for this phase.",
-      "tags": ["engineering", "assets", "discovery", "tooling"],
+      "tags": [
+        "engineering",
+        "assets",
+        "discovery",
+        "tooling"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:06:00-05:00"
@@ -26454,8 +26610,17 @@
       "file": "apps/api/RBAC-MATRIX.md, apps/api/tests/test_work_order_cost_capture.py, apps/api/routers/work_orders.py",
       "root_cause": "The generated route matrix had not been refreshed; one older fake assumed every RPC was a status transition; direct unit callers received FastAPI Query objects for newly optional filters.",
       "fix": "Regenerated RBAC-MATRIX.md, taught the cost fixture to recognize apply_work_order_timing_action, and used plain None defaults for optional asset/repair-code filters. The affected test group passes.",
-      "tags": ["engineering", "testing", "rbac", "work-orders", "fixtures"],
-      "related_bugs": ["bug-1606", "bug-1610"],
+      "tags": [
+        "engineering",
+        "testing",
+        "rbac",
+        "work-orders",
+        "fixtures"
+      ],
+      "related_bugs": [
+        "bug-1606",
+        "bug-1610"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T08:24:00-05:00"
     },
@@ -26466,7 +26631,11 @@
       "file": "local command invocation",
       "root_cause": "RTK proxies executables and cannot resolve PowerShell cmdlets directly.",
       "fix": "Use `rtk proxy powershell -NoProfile -Command ...` for PowerShell built-ins while retaining RTK command routing.",
-      "tags": ["tooling", "rtk", "discovery"],
+      "tags": [
+        "tooling",
+        "rtk",
+        "discovery"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:15:00-05:00"
@@ -26478,7 +26647,12 @@
       "file": "apps/api/tests/test_asset_downtime_reliability.py",
       "root_cause": "The initial fixture conflated clipped downtime duration with failure-event timing.",
       "fix": "Kept duration clipping but scoped failure count and MTBF events to unplanned starts in the reporting window, then documented and asserted that distinction.",
-      "tags": ["engineering", "reliability", "metrics", "tests"],
+      "tags": [
+        "engineering",
+        "reliability",
+        "metrics",
+        "tests"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:40:00-05:00"
@@ -26490,12 +26664,19 @@
       "file": "apps/api/routers/work_orders.py, apps/api/RBAC-MATRIX.md",
       "root_cause": "Several work-order handlers share the same response shape, so a broad patch matched the earlier diagnosis handler rather than completion.",
       "fix": "Removed the restore block from diagnosis, attached it after successful completion only, regenerated the route matrix, and reran adjacent work-order and RBAC tests.",
-      "tags": ["engineering", "downtime", "work-orders", "rbac", "regression"],
-      "related_bugs": ["bug-1611"],
+      "tags": [
+        "engineering",
+        "downtime",
+        "work-orders",
+        "rbac",
+        "regression"
+      ],
+      "related_bugs": [
+        "bug-1611"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T09:50:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1616",
       "timestamp": "2026-09-27T10:35:00-05:00",
@@ -26503,12 +26684,15 @@
       "file": "local skill discovery",
       "root_cause": "The skill catalogue path was transcribed without its plugin namespace and the project-local skills did not contain frontend-design.",
       "fix": "Use the supplied absolute skill path for redesign-existing-projects; do not infer unlisted project skill paths.",
-      "tags": ["tooling", "skills", "discovery"],
+      "tags": [
+        "tooling",
+        "skills",
+        "discovery"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T10:35:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1617",
       "timestamp": "2026-09-27T10:38:00-05:00",
@@ -26516,12 +26700,17 @@
       "file": "local search invocation",
       "root_cause": "PowerShell did not expand the shell-style contracts* glob passed to rg.",
       "fix": "Pass explicit filenames or let rg recurse through the directory with a --glob filter.",
-      "tags": ["tooling", "powershell", "discovery"],
-      "related_bugs": ["bug-1616"],
+      "tags": [
+        "tooling",
+        "powershell",
+        "discovery"
+      ],
+      "related_bugs": [
+        "bug-1616"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T10:38:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1618",
       "timestamp": "2026-09-27T10:42:00-05:00",
@@ -26529,12 +26718,15 @@
       "file": "apps/api/tests/test_condition_monitoring.py",
       "root_cause": "The configured Python environment exposes pytest as a module rather than a shell executable in this session.",
       "fix": "Run tests through the configured Python interpreter with `py -m pytest` after confirming the interpreter is available.",
-      "tags": ["testing", "python", "tooling"],
+      "tags": [
+        "testing",
+        "python",
+        "tooling"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T10:42:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1619",
       "timestamp": "2026-09-27T10:48:00-05:00",
@@ -26542,12 +26734,17 @@
       "file": "local search invocation",
       "root_cause": "A shell-sensitive pattern was combined into one rg query instead of using Select-String or explicit paths.",
       "fix": "Use PowerShell Select-String for context queries and enumerate migration files with Get-ChildItem.",
-      "tags": ["tooling", "powershell", "discovery"],
-      "related_bugs": ["bug-1617"],
+      "tags": [
+        "tooling",
+        "powershell",
+        "discovery"
+      ],
+      "related_bugs": [
+        "bug-1617"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T10:48:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1620",
       "timestamp": "2026-09-27T10:57:00-05:00",
@@ -26555,12 +26752,15 @@
       "file": "supabase/migrations/114_condition_monitoring.sql",
       "root_cause": "The test used a precise migration guard for the partial unique-index predicate.",
       "fix": "Placed the active-status predicate first while preserving the same partial unique-index semantics.",
-      "tags": ["condition-monitoring", "migration", "tests"],
+      "tags": [
+        "condition-monitoring",
+        "migration",
+        "tests"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T10:57:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1621",
       "timestamp": "2026-09-27T11:02:00-05:00",
@@ -26568,12 +26768,15 @@
       "file": "apps/web/components/engineering/EngineeringDrawer.tsx",
       "root_cause": "The project anatomy referenced an earlier path while the active drawer is the standalone shared primitive.",
       "fix": "Use EngineeringDrawer.tsx and the existing UI Button/Input primitives for new Engineering slide-overs.",
-      "tags": ["engineering", "ui", "discovery"],
+      "tags": [
+        "engineering",
+        "ui",
+        "discovery"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T11:02:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1622",
       "timestamp": "2026-09-27T11:15:00-05:00",
@@ -26581,12 +26784,15 @@
       "file": "apps/web/components/engineering/PMCompletionModal.tsx",
       "root_cause": "The patch tool requires all hunks for a file to be grouped under one update operation.",
       "fix": "Reapply the PM bridge with consolidated hunks for each target file.",
-      "tags": ["tooling", "patch", "condition-monitoring"],
+      "tags": [
+        "tooling",
+        "patch",
+        "condition-monitoring"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T11:15:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1623",
       "timestamp": "2026-09-27T11:20:00-05:00",
@@ -26594,12 +26800,17 @@
       "file": "apps/web/i18n/locales/en.ts",
       "root_cause": "The translation object was intentionally compacted onto a long source line, making partial-context replacement brittle.",
       "fix": "Use a narrow replacement against the exact compact source line or keep this source configuration out of the current drawer until safely patched.",
-      "tags": ["tooling", "i18n", "patch"],
-      "related_bugs": ["bug-1622"],
+      "tags": [
+        "tooling",
+        "i18n",
+        "patch"
+      ],
+      "related_bugs": [
+        "bug-1622"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T11:20:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1624",
       "timestamp": "2026-09-27T11:28:00-05:00",
@@ -26607,12 +26818,15 @@
       "file": ".wolf/memory.md",
       "root_cause": "OpenWolf files are shared, mutable session artifacts; a broad multi-file patch used stale context.",
       "fix": "Read the current tails and append each required OpenWolf entry with current context in separate patches.",
-      "tags": ["openwolf", "documentation", "patch"],
+      "tags": [
+        "openwolf",
+        "documentation",
+        "patch"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T11:28:00-05:00"
-    }
-    ,
+    },
     {
       "id": "bug-1625",
       "timestamp": "2026-09-27T11:34:00-05:00",
@@ -26620,8 +26834,14 @@
       "file": "local skill discovery",
       "root_cause": "The catalog alias was expanded to the wrong plugin cache directory.",
       "fix": "Use the computer-use skill from the openai-bundled cache root when browser validation is resumed.",
-      "tags": ["tooling", "skills", "browser"],
-      "related_bugs": ["bug-1616"],
+      "tags": [
+        "tooling",
+        "skills",
+        "browser"
+      ],
+      "related_bugs": [
+        "bug-1616"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-27T11:34:00-05:00"
     },
@@ -26632,10 +26852,985 @@
       "file": "apps/api/tests/test_engineering_insights.py",
       "root_cause": "The deterministic test fixture did not distinguish missing response/arrival timing from a completed-record resolution timestamp.",
       "fix": "Added completed_at to the historical completed fixture and asserted the true median total-resolution value while retaining the missing-event coverage checks.",
-      "tags": ["engineering", "insights", "testing", "fixtures"],
+      "tags": [
+        "engineering",
+        "insights",
+        "testing",
+        "fixtures"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-27T14:30:00-05:00"
+    },
+    {
+      "id": "bug-1627",
+      "timestamp": "2026-09-28T20:34:40-05:00",
+      "error_message": "An OpenWolf anatomy update patch failed because it relied on stale exact tail text.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "Shared OpenWolf metadata changed and the patch context used a guessed final token estimate instead of a stable heading.",
+      "fix": "Applied the entry using the stable final section heading as patch context.",
+      "tags": [
+        "openwolf",
+        "documentation",
+        "patch"
+      ],
+      "related_bugs": [
+        "bug-1625"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:34:40-05:00"
+    },
+    {
+      "id": "bug-1628",
+      "timestamp": "2026-09-28T20:35:30-05:00",
+      "error_message": "Tasks Phase 1 reconnaissance initially referenced nonexistent split API model files and sent one malformed search regex.",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "The expected request schemas are consolidated in models/requests.py; the combined search regex lost its closing group during shell quoting.",
+      "fix": "Corrected the anatomy entry and will use targeted fixed-string searches for the remaining inspection.",
+      "tags": [
+        "investigation",
+        "api",
+        "openwolf"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:35:30-05:00"
+    },
+    {
+      "id": "bug-1629",
+      "timestamp": "2026-09-28T20:38:00-05:00",
+      "error_message": "New Tasks Phase 1 normalization tests initially failed: terminal records had no finalOutcome and History collapsed them into other.",
+      "file": "apps/web/lib/utils/unifiedTasks.ts; apps/web/lib/utils/taskWorkspace.ts",
+      "root_cause": "The unified model only preserved the simplified displayStatus, and generic workspace grouping did not classify terminal timestamps by date.",
+      "fix": "Add typed final-outcome/final-time normalization and local-date History grouping, then rerun focused tests.",
+      "tags": [
+        "tasks",
+        "history",
+        "regression-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:38:00-05:00"
+    },
+    {
+      "id": "bug-1630",
+      "timestamp": "2026-09-28T20:40:00-05:00",
+      "error_message": "The deterministic History grouping fixture had finalAt timestamps but omitted the new terminal finalOutcome marker.",
+      "file": "apps/web/lib/utils/taskWorkspace.test.ts",
+      "root_cause": "History grouping intentionally accepts only terminal records, and the fixture did not model a terminal outcome.",
+      "fix": "Added completed finalOutcome to each deterministic fixture record.",
+      "tags": [
+        "tasks",
+        "history",
+        "test-fixture"
+      ],
+      "related_bugs": [
+        "bug-1629"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:40:00-05:00"
+    },
+    {
+      "id": "bug-1631",
+      "timestamp": "2026-09-28T20:41:00-05:00",
+      "error_message": "The deterministic History test put its this-week fixture on the prior Friday while its reference date was Monday.",
+      "file": "apps/web/lib/utils/taskWorkspace.test.ts",
+      "root_cause": "The fixture did not account for the Monday-start local week convention used by the grouping utility.",
+      "fix": "Moved the reference day to Wednesday and positioned the this-week case on that Monday.",
+      "tags": [
+        "tasks",
+        "history",
+        "test-fixture"
+      ],
+      "related_bugs": [
+        "bug-1629"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:41:00-05:00"
+    },
+    {
+      "id": "bug-1632",
+      "timestamp": "2026-09-28T20:41:00-05:00",
+      "error_message": "The first OpenWolf bug-log patch for the failing History fixture was malformed.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The final JSON closing brace was accidentally emitted as patch context instead of an added line.",
+      "fix": "Reissued the patch with valid unified additions.",
+      "tags": [
+        "openwolf",
+        "patch"
+      ],
+      "related_bugs": [
+        "bug-1627"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:41:00-05:00"
+    },
+    {
+      "id": "bug-1633",
+      "timestamp": "2026-09-28T20:43:00-05:00",
+      "error_message": "The new guest-request creation regression test initially failed because the domain payload utility did not yet exist.",
+      "file": "apps/web/lib/utils/taskCreation.ts",
+      "root_cause": "The creation drawer conflated internal task values and guest-request values inline, so there was no isolated typed contract to test.",
+      "fix": "Added a typed domain-options and payload utility for guest request creation.",
+      "tags": [
+        "tasks",
+        "guest-requests",
+        "test-first"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:43:00-05:00"
+    },
+    {
+      "id": "bug-1634",
+      "timestamp": "2026-09-28T20:46:00-05:00",
+      "error_message": "A combined Tasks verification command failed before ESLint because PowerShell interpreted the parenthesized App Router path and does not expand the POSIX playwright*.config glob.",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Unquoted special path characters were passed through the shell, and the configuration glob used an unsupported path pattern.",
+      "fix": "Run ESLint with the path quoted and inspect e2e files with rg --files instead.",
+      "tags": [
+        "verification",
+        "powershell",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:46:00-05:00"
+    },
+    {
+      "id": "bug-1635",
+      "timestamp": "2026-09-28T20:50:00-05:00",
+      "error_message": "The final local dev-server launch exited because another PatelRep Next dev process already owned port 3000.",
+      "file": "apps/web/.next/dev/logs/next-development.log",
+      "root_cause": "A pre-existing Next development server was already running for this checkout.",
+      "fix": "Verified the existing localhost:3000 server reaches the guarded Tasks route; did not terminate the user-owned process.",
+      "tags": [
+        "verification",
+        "nextjs",
+        "local-server"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T20:50:00-05:00"
+    },
+    {
+      "id": "bug-1636",
+      "timestamp": "2026-09-28T21:05:00-05:00",
+      "error_message": "Initial repository-inspection commands failed because RTK was applied to a PowerShell cmdlet and an unescaped PowerShell variable was stripped before execution.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "RTK wraps executables, while Get-Content is a PowerShell cmdlet; nested command quoting also made the variable assignment unreliable.",
+      "fix": "Use `rtk proxy powershell -NoProfile -Command` for PowerShell inspection commands and avoid transient PowerShell variables in nested command strings.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "rtk"
+      ],
+      "related_bugs": [
+        "bug-1635"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:05:00-05:00"
+    },
+    {
+      "id": "bug-1637",
+      "timestamp": "2026-09-28T21:28:00-05:00",
+      "error_message": "Tasks TypeScript check failed: Cannot find name 'quickAddSeed'.",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Phase 2 removed the duplicate Quick Add bar and its state but left the obsolete CreateTaskDrawer initialTitle prop reference.",
+      "fix": "Removed the stale prop reference; the retained PageHeader action opens the unchanged Create Task drawer directly.",
+      "tags": [
+        "tasks",
+        "typescript",
+        "quick-add"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:28:00-05:00"
+    },
+    {
+      "id": "bug-1638",
+      "timestamp": "2026-09-28T21:31:00-05:00",
+      "error_message": "A scoped source scan used repository-relative paths while running from apps/web, causing two no-such-path errors.",
+      "file": "apps/web/components/tasks",
+      "root_cause": "The command's working directory and its path prefixes did not match.",
+      "fix": "Use component-relative paths when the working directory is apps/web. The tests and i18n parity checks in the same command still completed successfully.",
+      "tags": [
+        "tooling",
+        "paths",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:31:00-05:00"
+    },
+    {
+      "id": "bug-1639",
+      "timestamp": "2026-09-28T21:40:00-05:00",
+      "error_message": "Local Tasks browser verification renders 'Could not load tasks'; GET /v1/tasks/workspace on localhost:8000 returns 404.",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "The already-running local FastAPI process is stale and has not registered the Phase 1 workspace route, despite the repository source defining it.",
+      "fix": "Do not alter the user-owned dev process during this UI task. Verify the source through focused tests and refresh/restart the local API before authenticated browser verification in a follow-up environment.",
+      "tags": [
+        "tasks",
+        "api",
+        "local-server",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:40:00-05:00"
+    },
+    {
+      "id": "bug-1640",
+      "timestamp": "2026-09-28T21:38:00-05:00",
+      "error_message": "A PowerShell HTTP diagnostic failed to print its caught exception because `$_` was stripped from a nested command string.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "Nested shell command interpolation removed the PowerShell automatic variable.",
+      "fix": "Use direct curl status checks for lightweight endpoint diagnostics instead of nested PowerShell try/catch expressions.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1636"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:38:00-05:00"
+    },
+    {
+      "id": "bug-1641",
+      "timestamp": "2026-09-28T21:45:00-05:00",
+      "error_message": "The first production web build did not finish within the command observation window; a retry reported that another Next build was already running.",
+      "file": "apps/web/.next",
+      "root_cause": "A prior build process remained active or did not exit cleanly, so Next's build lock prevented a concurrent retry.",
+      "fix": "Preserved the existing process rather than terminating a possibly user-owned build. Build verification remains pending until that process exits or is explicitly restarted.",
+      "tags": [
+        "build",
+        "nextjs",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:45:00-05:00"
+    },
+    {
+      "id": "bug-1642",
+      "timestamp": "2026-09-28T21:47:00-05:00",
+      "error_message": "A Windows tasklist diagnostic rejected the quoted image-name filter.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The nested cmd quoting was invalid for the tasklist filter syntax.",
+      "fix": "Used PowerShell's Get-Process for read-only process inspection instead; no user process was terminated.",
+      "tags": [
+        "tooling",
+        "windows",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1641"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:47:00-05:00"
+    },
+    {
+      "id": "bug-1643",
+      "timestamp": "2026-09-28T21:12:51-05:00",
+      "error_message": "A combined Tasks Phase 3 repository search failed because PowerShell parsed a double-quoted rg pattern containing router braces.",
+      "file": "local search invocation",
+      "root_cause": "Shell-sensitive regular expressions were combined into one PowerShell command with double quotes.",
+      "fix": "Run focused searches separately with single-quoted patterns.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "investigation"
+      ],
+      "related_bugs": [
+        "bug-1636",
+        "bug-1638"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:12:51-05:00"
+    },
+    {
+      "id": "bug-1644",
+      "timestamp": "2026-09-28T21:15:00-05:00",
+      "error_message": "The new Tasks Phase 3 action-engine test failed before implementation because taskNextAction did not exist.",
+      "file": "apps/web/lib/utils/taskNextAction.test.ts",
+      "root_cause": "Test-first implementation intentionally referenced the planned shared utility before it was created.",
+      "fix": "Added taskNextAction.ts and reran the focused test successfully.",
+      "tags": [
+        "tasks",
+        "test-first",
+        "action-engine"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:15:00-05:00"
+    },
+    {
+      "id": "bug-1645",
+      "timestamp": "2026-09-28T21:17:03-05:00",
+      "error_message": "The first Tasks Phase 3 component patch was rejected because it deleted and added the same files in one apply_patch request.",
+      "file": "apps/web/components/tasks/TaskLaneCard.tsx; apps/web/components/tasks/UnifiedTaskRow.tsx",
+      "root_cause": "The patch tool permits only one operation per target file.",
+      "fix": "Apply each full component replacement as a single Update operation.",
+      "tags": [
+        "tooling",
+        "patch",
+        "tasks"
+      ],
+      "related_bugs": [
+        "bug-1622"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:17:03-05:00"
+    },
+    {
+      "id": "bug-1646",
+      "timestamp": "2026-09-28T21:25:34-05:00",
+      "error_message": "The browser inspection attempted to use an unavailable tab.dev.logs helper after the local Tasks page displayed its workspace-load error.",
+      "file": "local browser verification",
+      "root_cause": "The exposed browser tab binding did not include the documented developer-log helper.",
+      "fix": "Use the visible AX state as the browser verification source and report the independently confirmed stale local API blocker.",
+      "tags": [
+        "browser",
+        "verification",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-1639"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:25:34-05:00"
+    },
+    {
+      "id": "bug-1647",
+      "timestamp": "2026-09-28T21:26:00-05:00",
+      "error_message": "The combined OpenWolf update patch could not match anatomy entries because its dash encoding differed from the source file.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "Shared project metadata includes encoding-sensitive text, making long exact-context updates brittle.",
+      "fix": "Inserted new entries immediately before a stable section heading, then updated the remaining OpenWolf files in separate patches.",
+      "tags": [
+        "openwolf",
+        "patch",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-1624",
+        "bug-1627"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-28T21:26:00-05:00"
+    },
+    {
+      "id": "bug-1655",
+      "timestamp": "2026-09-29T03:54:55.458Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/evidence.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 7→13 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T03:54:55.458Z"
+    },
+    {
+      "id": "bug-1656",
+      "timestamp": "2026-09-29T03:55:45.835Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/TaskCommentsPanel.tsx",
+      "root_cause": "Had 'tasks.detail.comments_.unknownAuthor'",
+      "fix": "Changed to 'tasks.detail.unknownAuthor'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T03:55:45.835Z"
+    },
+    {
+      "id": "bug-1657",
+      "timestamp": "2026-09-29T03:57:19.965Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T03:57:19.965Z"
+    },
+    {
+      "id": "bug-1658",
+      "timestamp": "2026-09-29T03:57:58.020Z",
+      "error_message": "Type error",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T03:57:58.020Z"
+    },
+    {
+      "id": "bug-1659",
+      "timestamp": "2026-09-29T04:09:47.075Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/.tmp-qa/verify_phase4.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:09:47.075Z"
+    },
+    {
+      "id": "bug-1660",
+      "timestamp": "2026-09-29T04:09:51.296Z",
+      "error_message": "Wrong reference: 2000 should be 6000",
+      "file": "apps/web/.tmp-qa/verify_phase4.mjs",
+      "root_cause": "Used \"2000\" instead of \"6000\"",
+      "fix": "Changed 2000 → 6000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:09:51.296Z"
+    },
+    {
+      "id": "bug-1661",
+      "timestamp": "2026-09-29T04:30:00.000Z",
+      "error_message": "TaskDetailDrawer's title row and close/more-actions buttons were rendered but completely unclickable/hidden behind the app header on the shellV2-redesigned shell",
+      "file": "apps/web/components/tasks/TaskDetailDrawer.tsx",
+      "root_cause": "Drawer backdrop/panel used bare Tailwind z-40/z-50 instead of the design system's --z-drawer (1300) CSS var; Header.tsx's redesigned shell sets --z-header: 1200, which sits above z-50 and visually/pointer-event-wise covers anything in the drawer's top ~56px.",
+      "fix": "Switched TaskDetailDrawer's backdrop and panel to the z-drawer utility class, matching every other drawer in the codebase (RoomDetailDrawer, CreateWorkOrderDrawer, AssignmentSuggestionsDrawer, EngineeringDrawer, PMCompletionModal, SimplifiedDashboard).",
+      "tags": [
+        "z-index",
+        "shellV2",
+        "drawer",
+        "phase4"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:30:00.000Z"
+    },
+    {
+      "id": "bug-1662",
+      "timestamp": "2026-09-29T04:35:00.000Z",
+      "error_message": "GET /v1/tasks/workspace returned 400 {code: '22P02', message: 'Database request failed'} against the real Supabase-issued JWT, but the same handler succeeded when called directly and via FastAPI TestClient with an equivalent token",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "Stale/orphaned local dev API process on port 8003 serving old code (recurrence of the pattern already documented in reference_local_dev_api.md memory). Get-Process/taskkill could not see or kill the listening PID at all; Get-CimInstance Win32_Process revealed the true process was a multiprocessing-fork child spawned from the GLOBAL C:\\Python313\\python.exe interpreter (not apps/api/.venv), invisible to Get-Process.",
+      "fix": "Terminated the orphaned processes via Get-CimInstance Win32_Process | Invoke-CimMethod -MethodName Terminate, then started a clean npm run dev:api on port 8003 and confirmed via /openapi.json that it reflected current code before retesting.",
+      "tags": [
+        "dev-server",
+        "stale-reload",
+        "windows",
+        "22P02"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:35:00.000Z"
+    },
+    {
+      "id": "bug-1663",
+      "timestamp": "2026-09-29T04:34:35.283Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:34:35.283Z"
+    },
+    {
+      "id": "bug-1664",
+      "timestamp": "2026-09-29T04:38:57.329Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/test_cron_scheduler.py",
+      "root_cause": "Had \"reports.daily-summary-email\"",
+      "fix": "Changed to \"tasks.generate-recurring\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:38:57.329Z"
+    },
+    {
+      "id": "bug-1665",
+      "timestamp": "2026-09-29T04:39:23.451Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/tasks.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: createSchedule: (data: CreateTaskScheduleData) =>; apiClient.post('/tasks/schedules', data) as Promise<{ data: ",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T04:39:28.462Z"
+    },
+    {
+      "id": "bug-1666",
+      "timestamp": "2026-09-29T04:48:56.012Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:48:56.012Z"
+    },
+    {
+      "id": "bug-1667",
+      "timestamp": "2026-09-29T04:51:53.228Z",
+      "error_message": "Wrong reference: null should be now",
+      "file": "apps/web/components/tasks/CreateTaskDrawer.tsx",
+      "root_cause": "Used \"null\" instead of \"now\"",
+      "fix": "Changed null → now",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:51:53.228Z"
+    },
+    {
+      "id": "bug-1668",
+      "timestamp": "2026-09-29T04:56:40.009Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/.tmp-qa/verify_phase5.mjs",
+      "root_cause": "Had 'text=Tasks'",
+      "fix": "Changed to 'button:has-text(\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T04:56:40.009Z"
+    },
+    {
+      "id": "bug-1669",
+      "timestamp": "2026-09-29T05:20:00.000Z",
+      "error_message": "Pressing Escape to close a nested popover (assignee/room picker) inside CreateTaskDrawer closed the entire drawer instead, discarding the in-progress form",
+      "file": "apps/web/components/tasks/AssigneePicker.tsx, apps/web/components/tasks/RoomPicker.tsx, apps/web/components/tasks/TaskNextAction.tsx",
+      "root_cause": "useModalFocusTrap binds a document-level keydown listener for Escape (apps/web/lib/hooks/useModalFocusTrap.ts:69) that always calls onClose. Each picker's own Escape handler called preventDefault() but not stopPropagation(); verified with Playwright that even after adding stopPropagation() the document listener still fired and closed the drawer — React's root event delegation apparently doesn't stop a plain document.addEventListener from also firing via React synthetic stopPropagation() in this app. Pre-existing in TaskNextAction's AssignmentMenu (Phase 3/4) too — only surfaced now via Playwright verification of the new CreateTaskDrawer.",
+      "fix": "useModalFocusTrap's Escape handler now checks event.defaultPrevented and returns early if a nested handler already called preventDefault() — robust regardless of the propagation-order quirk. Also moved AssigneePicker/RoomPicker's Escape handler from the trigger button onto the wrapping div (kept alongside stopPropagation as defense in depth) so it catches Escape while focus is inside the search input, a sibling of the button.",
+      "tags": [
+        "a11y",
+        "escape-key",
+        "event-bubbling",
+        "tsx",
+        "tasks-phase-5"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:20:00.000Z"
+    },
+    {
+      "id": "bug-1670",
+      "timestamp": "2026-09-29T05:22:21.813Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/tasks/AssigneePicker.tsx",
+      "root_cause": "Had 'Escape'",
+      "fix": "Changed to '[AssigneePicker] keydown'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T05:24:21.267Z"
+    },
+    {
+      "id": "bug-1671",
+      "timestamp": "2026-09-29T05:23:16.472Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/.tmp-qa/debug_recurrence.mjs",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:23:16.472Z"
+    },
+    {
+      "id": "bug-1672",
+      "timestamp": "2026-09-29T05:24:17.117Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/lib/hooks/useModalFocusTrap.ts",
+      "root_cause": "No early return/throw for edge case: event.key === 'Escape'",
+      "fix": "Added guard clause: if (event.key === 'Escape')",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:24:17.117Z"
+    },
+    {
+      "id": "bug-1673",
+      "timestamp": "2026-09-29T05:29:24.625Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/.tmp-qa/debug_recur_submit.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:29:24.625Z"
+    },
+    {
+      "id": "bug-1674",
+      "timestamp": "2026-09-29T05:31:23.438Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/.tmp-qa/verify_phase5.mjs",
+      "root_cause": "Had \"Guest Request\"",
+      "fix": "Changed to \"dialog\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:31:23.438Z"
+    },
+    {
+      "id": "bug-1675",
+      "timestamp": "2026-09-29T05:32:49.315Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/.tmp-qa/verify_phase5.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:32:49.315Z"
+    },
+    {
+      "id": "bug-1676",
+      "timestamp": "2026-09-29T05:36:03.817Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/.tmp-qa/verify_mobile_es.mjs",
+      "root_cause": "Had 'i18nextLng'",
+      "fix": "Changed to 'patelrep-language'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T05:36:32.442Z"
+    },
+    {
+      "id": "bug-1677",
+      "timestamp": "2026-09-29T05:52:05.995Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/tasks/AssigneePicker.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:52:05.995Z"
+    },
+    {
+      "id": "bug-1678",
+      "timestamp": "2026-09-29T05:54:04.761Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/.tmp-qa/verify_gaps.mjs",
+      "root_cause": "Had ', { timeout: 15000 })\nawait page.click('",
+      "fix": "Changed to ', { timeout: 15000 })\nawait page.waitForTimeout(2",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T05:54:04.761Z"
+    },
+    {
+      "id": "bug-1670",
+      "timestamp": "2026-09-29T06:05:00.000Z",
+      "error_message": "Internal Task creation had no way to enter a description/notes — the field was silently absent from the form",
+      "file": "apps/web/components/tasks/CreateTaskDrawer.tsx",
+      "root_cause": "During the Phase 5 rewrite, the `description` textarea was only added to the Guest Request branch of the mode-conditional JSX. The `description` state variable and its use in the internal-task submit payload were still present, so nothing type-errored or crashed — the field was just missing from the rendered form. Caught on a deliberate re-audit against the original 30-point spec (section 2: DETAILS is a required field), not by the first browser verification pass, which only exercised the golden path and had no reason to notice an absent field.",
+      "fix": "Added the same description textarea to the Internal Task branch, positioned right after the title field and before location per the spec's field order.",
+      "tags": [
+        "missing-field",
+        "tsx",
+        "tasks-phase-5",
+        "spec-audit"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:05:00.000Z"
+    },
+    {
+      "id": "bug-1680",
+      "timestamp": "2026-09-29T06:11:36.063Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "Had \"fixed inset-0 z-50 flex justify-end\"",
+      "fix": "Changed to \"fixed inset-0 z-drawer flex justify-end\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:11:36.063Z"
+    },
+    {
+      "id": "bug-1681",
+      "timestamp": "2026-09-29T07:00:00.000Z",
+      "error_message": "Tasks History tab group headers render missing i18n keys instead of Today/Yesterday/This Week/Earlier",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "page.tsx renders History section headers via t(`tasks.workspace.groups.${group.key}`) where group.key comes from groupTaskHistoryItems() (today|yesterday|this_week|earlier), but tasks.workspace.groups in en.ts/es.ts only ever defined an unrelated, unused set of keys (overdue|unassigned|due_soon|in_progress|review|other) left over from an earlier design — the two never matched, so History group headers always rendered a raw missing-key string.",
+      "fix": "Added today/yesterday/this_week/earlier keys under tasks.workspace.groups in both en.ts and es.ts, alongside the existing (still-unused) legacy keys.",
+      "tags": [
+        "i18n",
+        "missing-key",
+        "tasks-phase-6",
+        "history-tab"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T07:00:00.000Z"
+    },
+    {
+      "id": "bug-1682",
+      "timestamp": "2026-09-29T06:12:17.374Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 25→38 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:12:17.374Z"
+    },
+    {
+      "id": "bug-1683",
+      "timestamp": "2026-09-29T06:13:52.634Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_task_workspace.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:13:52.634Z"
+    },
+    {
+      "id": "bug-1684",
+      "timestamp": "2026-09-29T06:17:16.116Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "fix": "Changed to \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:17:16.116Z"
+    },
+    {
+      "id": "bug-1685",
+      "timestamp": "2026-09-29T06:17:34.317Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/utils/taskWorkspace.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 15→32 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:17:34.317Z"
+    },
+    {
+      "id": "bug-1686",
+      "timestamp": "2026-09-29T06:17:41.910Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/utils/taskWorkspace.test.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:17:41.910Z"
+    },
+    {
+      "id": "bug-1687",
+      "timestamp": "2026-09-29T06:18:06.411Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/tasks/UnifiedTaskRow.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:18:06.411Z"
+    },
+    {
+      "id": "bug-1688",
+      "timestamp": "2026-09-29T06:18:21.305Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/tasks/TasksTableView.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:18:21.305Z"
+    },
+    {
+      "id": "bug-1689",
+      "timestamp": "2026-09-29T01:24:00-05:00",
+      "error_message": "Saved Task views accepted stale or malformed filter payloads from localStorage, allowing invalid state such as grid mode or unsupported priorities to be applied.",
+      "file": "apps/web/lib/utils/taskViews.ts",
+      "root_cause": "parseSavedViewsJson checked only that filters was an object and returned it without validating each field.",
+      "fix": "Normalize saved filters through the existing URL decoder, which retains only supported values and falls back safely for invalid fields.",
+      "tags": ["tasks", "saved-views", "validation", "phase-6"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T01:24:00-05:00"
+    },
+    {
+      "id": "bug-1690",
+      "timestamp": "2026-09-29T01:31:00-05:00",
+      "error_message": "Tasks Phase 6 integration initially failed TypeScript validation for i18n interpolation options and the Guest Request priority union.",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "The bulk outcome object lacked i18next's dictionary index signature, and a shared internal/guest priority variable retained the internal-only low value in TypeScript's branch analysis.",
+      "fix": "Pass explicit interpolation properties and narrow the guest branch to its urgent/normal priority type. npm run type-check passes.",
+      "tags": ["tasks", "phase-6", "typescript", "bulk-actions"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T01:31:00-05:00"
+    },
+    {
+      "id": "bug-1691",
+      "timestamp": "2026-09-29T01:35:00-05:00",
+      "error_message": "Tasks bulk mutations relied on client-side capabilities: a front-desk user could directly PATCH a task priority or transition a guest request to cancelled.",
+      "file": "apps/api/routers/tasks.py, apps/api/routers/guest_requests.py",
+      "root_cause": "The individual mutation routes were tenant-scoped but did not enforce role boundaries for the fields and cancellation transition used by Phase 6 bulk actions.",
+      "fix": "Added route-level role guards for task assignment, reprioritization, edits/status changes, and guest-request cancellation, with focused async RBAC tests.",
+      "tags": ["tasks", "bulk-actions", "rbac", "security", "phase-6"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T01:35:00-05:00"
+    },
+    {
+      "id": "bug-1692",
+      "timestamp": "2026-09-29T01:48:00-05:00",
+      "error_message": "Final Next production build could not run because another next build process already held the shared workspace build lock; the local Browser webview also timed out before it could attach for authenticated screen verification.",
+      "file": "apps/web/.next (environmental build lock)",
+      "root_cause": "A pre-existing user/workspace Next process was active. It was preserved rather than forcibly terminated, and the available browser automation surface did not attach.",
+      "fix": "No destructive process action taken. Type-check, lint, unit/API tests, i18n parity, diff check, and authenticated-route redirect check completed; rerun npm run build once the existing build exits.",
+      "tags": ["verification", "nextjs", "environment", "tasks-phase-6"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T01:48:00-05:00"
+    },
+    {
+      "id": "bug-1693",
+      "timestamp": "2026-09-29T02:27:00-05:00",
+      "error_message": "Full API verification found four regressions: new task role guards returned 403 before tenant-scoped 404 checks, omitted the GM status authority expected by established task behavior, and left the RBAC allowlist/matrix stale.",
+      "file": "apps/api/routers/tasks.py, apps/api/routers/guest_requests.py, apps/api/rbac_bare_comparison_allowlist.json, apps/api/RBAC-MATRIX.md",
+      "root_cause": "Phase 6 role guards were introduced as router-local role sets before the tenant-scoped record lookup and were not synchronized with the project-wide RBAC drift contracts.",
+      "fix": "Moved task role groups to core roles, aligned task status authority with the manager role group, and regenerated the reviewed RBAC artifacts. Authorized cross-tenant updates retain their existing tenant-scoped 404 behavior.",
+      "tags": ["tasks", "rbac", "tenant-isolation", "verification"],
+      "related_bugs": ["bug-1691"],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T02:27:00-05:00"
     }
   ]
 }

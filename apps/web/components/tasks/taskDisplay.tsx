@@ -94,6 +94,12 @@ export function formatDuration(t: TFunction, totalMinutes: number): string {
   return `${mins}m`
 }
 
+export function taskDepartmentLabel(t: TFunction, item: Pick<UnifiedTaskItem, 'sourceType' | 'department'>): string | undefined {
+  if (!item.department) return undefined
+  if (item.sourceType === 'guest_request') return t(`tasks.guestCategories.${item.department}`)
+  return getTaskTypeLabels(t)[item.department] ?? item.department
+}
+
 export function DueTime({ dueAt, isDone, isOverdue }: { dueAt: string | undefined; isDone: boolean; isOverdue: boolean }) {
   const { t } = useTranslation()
   const [now, setNow] = useState<number | null>(null)
@@ -108,10 +114,13 @@ export function DueTime({ dueAt, isDone, isOverdue }: { dueAt: string | undefine
   const diffMin = Math.round((due - now) / 60000)
   const label = diffMin < 0
     ? t('tasks.dueTimeOverdue', { duration: formatDuration(t, diffMin) })
-    : new Date(dueAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : diffMin <= 120
+      ? t('tasks.dueTimeLeft', { duration: formatDuration(t, diffMin) })
+      : t('tasks.dueTimeDue', { time: new Date(dueAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+  const tone = isOverdue ? 'text-[var(--alert)]' : diffMin <= 60 ? 'text-[var(--caution)]' : 'text-ink3'
 
   return (
-    <Mono className={`text-[11px] min-w-[64px] text-right ${isOverdue ? 'text-[var(--alert)]' : 'text-ink3'}`}>
+    <Mono className={`text-[11px] min-w-[64px] text-right ${tone}`}>
       {label}
     </Mono>
   )

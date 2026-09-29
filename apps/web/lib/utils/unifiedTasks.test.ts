@@ -91,6 +91,18 @@ test('a verified guest request and a completed task both map to displayStatus "d
   assert.equal(taskItems[0].displayStatus, 'done')
 })
 
+test('terminal records keep their real final outcome even when the board display status is done', () => {
+  const completed = buildUnifiedTaskItems([makeTask({ status: 'completed', completed_at: '2026-09-01T12:00:00Z' })], [])[0]
+  const cancelledTask = buildUnifiedTaskItems([makeTask({ status: 'cancelled', cancelled_at: '2026-09-01T12:00:00Z' })], [])[0]
+  const verified = buildUnifiedTaskItems([], [makeGuestRequest({ status: 'verified', verified_at: '2026-09-01T12:00:00Z' })])[0]
+  const cancelledGuest = buildUnifiedTaskItems([], [makeGuestRequest({ status: 'cancelled', updated_at: '2026-09-01T12:00:00Z' })])[0]
+
+  assert.equal(completed.finalOutcome, 'completed')
+  assert.equal(cancelledTask.finalOutcome, 'cancelled')
+  assert.equal(verified.finalOutcome, 'verified')
+  assert.equal(cancelledGuest.finalOutcome, 'cancelled')
+})
+
 test('a mix of one regular task, one linked guest request, and one orphan guest request produces exactly 3 items with correct sourceType', () => {
   const linkedTask = makeTask({ id: 'task-linked', task_type: 'guest_request' })
   const internalTask = makeTask({ id: 'task-internal' })

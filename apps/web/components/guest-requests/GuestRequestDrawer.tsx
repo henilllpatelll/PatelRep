@@ -175,7 +175,7 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
     isResolved && !confirmationSent && canReply && !request.contact_opted_out_at && !!request.guest_phone
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-drawer flex justify-end">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
       <div
         ref={drawerRef}

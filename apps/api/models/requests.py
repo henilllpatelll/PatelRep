@@ -263,6 +263,49 @@ class CreateTaskRequest(SanitizedBaseModel):
         return v
 
 
+class CreateTaskScheduleRequest(SanitizedBaseModel):
+    title: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    task_type: Literal["housekeeping", "engineering", "lost_found", "general"]
+    priority: Literal["urgent", "normal", "low"] = "normal"
+    room_id: Optional[UUID4] = None
+    location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    assigned_to: Optional[UUID4] = None
+
+    interval_type: Literal["daily", "weekly", "monthly", "custom"]
+    interval_days: Optional[int] = Field(default=None, ge=1, le=365)
+    start_date: date
+
+    end_type: Literal["never", "count", "date"] = "never"
+    end_count: Optional[int] = Field(default=None, ge=1, le=1000)
+    end_date: Optional[date] = None
+
+    @field_validator("interval_days")
+    @classmethod
+    def interval_days_required_for_custom(cls, v, info):
+        if info.data.get("interval_type") == "custom" and not v:
+            raise ValueError("interval_days is required when interval_type is custom")
+        return v
+
+    @field_validator("end_count")
+    @classmethod
+    def end_count_required_for_count(cls, v, info):
+        if info.data.get("end_type") == "count" and not v:
+            raise ValueError("end_count is required when end_type is count")
+        return v
+
+    @field_validator("end_date")
+    @classmethod
+    def end_date_required_for_date(cls, v, info):
+        if info.data.get("end_type") == "date" and not v:
+            raise ValueError("end_date is required when end_type is date")
+        return v
+
+
+class UpdateTaskScheduleRequest(SanitizedBaseModel):
+    is_active: bool
+
+
 class UpdateTaskRequest(SanitizedBaseModel):
     title: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
@@ -1031,6 +1074,7 @@ class CreateGuestRequestRequest(SanitizedBaseModel):
     guest_impact: Literal["low", "standard", "high"] = "standard"
     contact_preference: Optional[Literal["sms", "call", "email", "in_person", "none"]] = None
     contact_consent: bool = False
+    assigned_to: Optional[UUID4] = None
 
 
 class TransitionGuestRequestRequest(SanitizedBaseModel):

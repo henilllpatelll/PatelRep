@@ -7,8 +7,9 @@ import io
 import logging
 import secrets
 from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 
 from core.database import supabase
 from middleware.auth import CurrentUser, get_current_user, require_role
@@ -128,6 +129,26 @@ def _require_same_tenant_evidence_links(
                 status_code=404,
                 detail=f"Related {request.related_entity_type} not found at this property.",
             )
+
+
+def _attach_collector_profiles(records: list[dict], hotel_id: str) -> list[dict]:
+    """evidence_records.collected_by references auth.users, not user_profiles, so
+    PostgREST can't embed it — resolve display names with one extra scoped query,
+    same workaround as routers/tasks.py's _attach_profiles."""
+    user_ids = {r["collected_by"] for r in records if r.get("collected_by")}
+    if not user_ids:
+        return records
+    profiles = (
+        supabase.table("user_profiles")
+        .select("id, full_name, preferred_name")
+        .eq("tenant_id", hotel_id)
+        .in_("id", list(user_ids))
+        .execute()
+    )
+    by_id = {p["id"]: p for p in (profiles.data or [])}
+    for record in records:
+        record["collector_profile"] = by_id.get(record.get("collected_by"))
+    return records
 
 
 def _evidence_storage_path(current_user: CurrentUser, record_id: str, content_type: str) -> str:
@@ -485,12 +506,18 @@ async def create_evidence_record(
 
 
 @router.get("/records")
-async def list_evidence_records(current_user: CurrentUser = Depends(get_current_user)):
-    result = (
-        supabase.table("evidence_records").select("*").eq("tenant_id", current_user.hotel_id)
-        .order("collected_at", desc=True).execute()
-    )
-    return {"data": result.data or []}
+async def list_evidence_records(
+    related_entity_type: Optional[str] = Query(None),
+    related_entity_id: Optional[str] = Query(None),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    query = supabase.table("evidence_records").select("*").eq("tenant_id", current_user.hotel_id)
+    if related_entity_type:
+        query = query.eq("related_entity_type", related_entity_type)
+    if related_entity_id:
+        query = query.eq("related_entity_id", related_entity_id)
+    result = query.order("collected_at", desc=True).execute()
+    return {"data": _attach_collector_profiles(result.data or [], current_user.hotel_id)}
 
 
 @router.get("/records/{record_id}")

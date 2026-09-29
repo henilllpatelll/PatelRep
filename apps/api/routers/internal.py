@@ -241,6 +241,39 @@ async def check_due_pm(x_cron_secret: str = Header(None)):
     }
 
 
+@router.post("/tasks/generate-recurring")
+async def check_due_task_schedules(x_cron_secret: str = Header(None)):
+    """Cron: generate the next occurrence for every due, active task_schedules row."""
+    verify_cron(x_cron_secret)
+    now = datetime.now(timezone.utc)
+
+    from services.task_schedules import generate_task_from_schedule
+
+    due_schedules = (
+        supabase.table("task_schedules")
+        .select("*")
+        .eq("is_active", True)
+        .lte("next_due_at", now.isoformat())
+        .execute()
+    )
+
+    created_count = 0
+    skipped_count = 0
+    for schedule in (due_schedules.data or []):
+        task = generate_task_from_schedule(schedule)
+        if task:
+            created_count += 1
+        else:
+            skipped_count += 1
+
+    _record_cron_run("tasks.generate-recurring")
+    return {
+        "status": "ok",
+        "tasks_created": created_count,
+        "tasks_skipped": skipped_count,
+    }
+
+
 @router.post("/ai/failure-predictions")
 async def run_failure_predictions(x_cron_secret: str = Header(None)):
     """Cron: Run AI failure predictions for all hotels. Runs nightly."""

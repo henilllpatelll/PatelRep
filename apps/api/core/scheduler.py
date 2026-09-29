@@ -30,6 +30,7 @@ CRON_SCHEDULE: dict[str, dict] = {
     "predictions.escalation-check": {"minute": "*/30"},
     # Daily 06:00.
     "pm.check-due": {"hour": 6, "minute": 0},
+    "tasks.generate-recurring": {"hour": 6, "minute": 0},
     "reports.daily-summary-email": {"hour": 6, "minute": 0},
     "evidence.reminders": {"hour": 6, "minute": 0},
     "safety.training-assignments": {"hour": 6, "minute": 0},
@@ -70,6 +71,7 @@ def _job_handlers() -> dict[str, Callable[..., Awaitable]]:
         "escalations.check": internal.check_escalations,
         "predictions.escalation-check": internal.check_prediction_escalations,
         "pm.check-due": internal.check_due_pm,
+        "tasks.generate-recurring": internal.check_due_task_schedules,
         "reports.daily-summary-email": internal.send_daily_summary_emails,
         "evidence.reminders": internal.send_evidence_reminders,
         "safety.training-assignments": internal.schedule_safety_training_assignments,

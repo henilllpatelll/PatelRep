@@ -11,6 +11,7 @@ import type { GuestRequest, GuestRequestStatus } from '@/lib/api/guest_requests'
  */
 export type UnifiedSourceType = 'guest_request' | 'internal'
 export type UnifiedDisplayStatus = 'new' | 'in_progress' | 'verify' | 'done'
+export type UnifiedFinalOutcome = 'completed' | 'verified' | 'cancelled'
 
 export interface UnifiedTaskItem {
   id: string
@@ -32,6 +33,10 @@ export interface UnifiedTaskItem {
   taskStatus?: TaskStatus
   guestRequestStatus?: GuestRequestStatus
   displayStatus: UnifiedDisplayStatus
+  /** Real terminal state for History; deliberately separate from the simplified board status. */
+  finalOutcome?: UnifiedFinalOutcome
+  /** Timestamp of the terminal outcome, used for browser-local History date groups. */
+  finalAt?: string
   isAiCreated: boolean
   /** Guest request whose auto-created Task failed to insert (or the link is stale/deleted) — no task_id to open a Task view for, render from the guest_request record alone. */
   isOrphanGuestRequest: boolean
@@ -67,6 +72,16 @@ function isPastDue(dueAt: string | undefined, displayStatus: UnifiedDisplayStatu
 function fromGuestRequest(gr: GuestRequest, linkedTask: Task | undefined): UnifiedTaskItem {
   const displayStatus = GUEST_STATUS_TO_DISPLAY[gr.status] ?? 'new'
   const dueAt = gr.due_at ?? linkedTask?.due_at
+  const finalOutcome: UnifiedFinalOutcome | undefined = gr.status === 'verified'
+    ? 'verified'
+    : gr.status === 'cancelled'
+      ? 'cancelled'
+      : undefined
+  const finalAt = gr.status === 'verified'
+    ? gr.verified_at
+    : gr.status === 'cancelled'
+      ? gr.updated_at
+      : undefined
   return {
     id: `guest-${gr.id}`,
     sourceType: 'guest_request',
@@ -87,6 +102,8 @@ function fromGuestRequest(gr: GuestRequest, linkedTask: Task | undefined): Unifi
     taskStatus: linkedTask?.status,
     guestRequestStatus: gr.status,
     displayStatus,
+    finalOutcome,
+    finalAt,
     isAiCreated: linkedTask?.is_ai_created ?? false,
     isOrphanGuestRequest: !linkedTask,
     slaBreached: isPastDue(dueAt, displayStatus),
@@ -97,6 +114,16 @@ function fromGuestRequest(gr: GuestRequest, linkedTask: Task | undefined): Unifi
 
 function fromInternalTask(task: Task): UnifiedTaskItem {
   const displayStatus = TASK_STATUS_TO_DISPLAY[task.status] ?? 'new'
+  const finalOutcome: UnifiedFinalOutcome | undefined = task.status === 'completed'
+    ? 'completed'
+    : task.status === 'cancelled'
+      ? 'cancelled'
+      : undefined
+  const finalAt = task.status === 'completed'
+    ? task.completed_at
+    : task.status === 'cancelled'
+      ? task.cancelled_at
+      : undefined
   return {
     id: `task-${task.id}`,
     sourceType: 'internal',
@@ -115,6 +142,8 @@ function fromInternalTask(task: Task): UnifiedTaskItem {
     completedAt: task.completed_at,
     taskStatus: task.status,
     displayStatus,
+    finalOutcome,
+    finalAt,
     isAiCreated: task.is_ai_created,
     isOrphanGuestRequest: false,
     slaBreached: isPastDue(task.due_at, displayStatus),

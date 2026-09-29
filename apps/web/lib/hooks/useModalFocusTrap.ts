@@ -39,6 +39,10 @@ export function useModalFocusTrap(
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        // A nested popover (assignee/room picker, etc.) that already handled its
+        // own Escape (closing itself, not the drawer) calls preventDefault() —
+        // respect that instead of also closing the drawer underneath it.
+        if (event.defaultPrevented) return
         onCloseRef.current?.()
         return
       }
