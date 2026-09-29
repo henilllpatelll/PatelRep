@@ -27831,6 +27831,18 @@
       "related_bugs": ["bug-1691"],
       "occurrences": 1,
       "last_seen": "2026-09-29T02:27:00-05:00"
+    },
+    {
+      "id": "bug-1694",
+      "timestamp": "2026-09-29T02:40:00-05:00",
+      "error_message": "GitHub CI Room-Board Pixel-Diff Regression failed only for housekeeping-board-supervisor-light: 133,564 pixels (11%) differed; the other 7 baseline screenshots passed.",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts and housekeeping RoomStatusBoard baseline fixture",
+      "root_cause": "Unknown. The pushed task-workspace commit did not modify RoomStatusBoard or its styles; CI exposes no failed-test artifact, so the current fixture/rendering difference cannot yet be inspected locally.",
+      "fix": "Reran the failed GitHub job unchanged; all eight room-board screenshots passed. Treat the original run as a transient external fixture/deployment mismatch, not a code regression.",
+      "tags": ["ci", "playwright", "visual-regression", "housekeeping"],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T02:44:00-05:00"
     }
   ]
 }

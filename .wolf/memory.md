@@ -14434,3 +14434,5 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 02:30 | Repaired task RBAC verification regressions | apps/api/core/roles.py + task/guest-request routers + RBAC matrix | Focused tests 50/50 and full API suite 882/882 pass | ~1100 |
 | 02:32 | Ran final web verification | apps/web | Type-check, lint, 112 unit tests, and production build pass | ~1100 |
 | 02:34 | Committed unified Tasks workspace | complete staged working tree | Created after clean API/web verification | ~350 |
+| 02:40 | Reviewed GitHub CI failure | Room-Board Pixel-Diff Regression | One supervisor-light baseline differs by 11%; 7 companion screenshots pass | ~700 |
+| 02:44 | Reran failed GitHub visual check | Room-Board Pixel-Diff Regression | All eight screenshot baselines passed unchanged; original failure did not reproduce | ~300 |
