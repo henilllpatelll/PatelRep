@@ -14436,3 +14436,188 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 02:34 | Committed unified Tasks workspace | complete staged working tree | Created after clean API/web verification | ~350 |
 | 02:40 | Reviewed GitHub CI failure | Room-Board Pixel-Diff Regression | One supervisor-light baseline differs by 11%; 7 companion screenshots pass | ~700 |
 | 02:44 | Reran failed GitHub visual check | Room-Board Pixel-Diff Regression | All eight screenshot baselines passed unchanged; original failure did not reproduce | ~300 |
+| 03:07 | Implemented and verified Logbook Phase 1 data/API foundation increment | logbook API/service, shared fake, focused API + web capability tests | Active-shift association, profile hydration, exact pagination, stats contract, and chief-engineer parity covered; 35 focused API tests pass | ~3400 |
+| 03:11 | Completed Logbook Phase 1 verification and integration repair | API RBAC artifact, web types/capabilities, test suites, local route check | 896 API + 114 web unit tests, type-check, lint, build passed; local /logbook correctly route-guards to login | ~2100 |
+| 06:20 | Read Phase 3 request, OpenWolf context, and relevant frontend/testing guidance; recorded a PowerShell quoting failure | .wolf/buglog.json, .wolf/memory.md | Context ready; command failure documented | ~14k |
+
+## Session: 2026-09-29 03:32
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:20 | Edited apps/web/lib/api/logbook.ts | expanded (+43 lines) | ~501 |
+| 14:20 | Edited apps/web/lib/api/logbook.ts | 10→5 lines | ~85 |
+| 14:20 | Created apps/web/lib/utils/logbookDisplay.tsx | — | ~685 |
+| 14:20 | Created apps/web/lib/utils/logbookHandoff.ts | — | ~890 |
+| 14:20 | Created apps/web/lib/utils/logbookHandoff.test.ts | — | ~1163 |
+| 14:21 | Created apps/web/components/logbook/RelatedItemPicker.tsx | — | ~2557 |
+| 14:21 | Edited apps/web/components/logbook/RelatedItemPicker.tsx | 5→4 lines | ~65 |
+| 14:21 | Edited apps/web/components/logbook/RelatedItemPicker.tsx | removed 6 lines | ~5 |
+| 14:23 | Created apps/web/components/logbook/AddHandoffDrawer.tsx | — | ~4985 |
+| 14:23 | Edited apps/web/components/logbook/LogbookActivityRow.tsx | modified LogbookActivityRow() | ~1078 |
+| 14:23 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added 1 import(s) | ~108 |
+| 14:23 | Edited apps/web/app/(dashboard)/logbook/page.tsx | modified t() | ~197 |
+| 14:23 | Edited apps/web/i18n/locales/en.ts | expanded (+65 lines) | ~616 |
+| 14:24 | Edited apps/web/i18n/locales/es.ts | expanded (+65 lines) | ~663 |
+| 14:24 | Edited apps/web/package.json | inline fix | ~192 |
+| 14:25 | Edited apps/web/components/logbook/RelatedItemPicker.tsx | added 1 import(s) | ~109 |
+| 14:25 | Edited apps/web/components/logbook/RelatedItemPicker.tsx | inline fix | ~33 |
+| 14:27 | Edited apps/api/tests/test_logbook_structured_handoffs.py | 4→8 lines | ~141 |
+| 14:27 | Edited apps/api/tests/test_logbook_structured_handoffs.py | expanded (+6 lines) | ~226 |
+| 14:29 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ae73ab6a-b528-4d24-b835-6bcb549e68a2/scratchpad/verify_logbook_phase3.mjs | — | ~1296 |
+| 14:30 | Edited apps/web/verify_logbook_phase3.tmp.mjs | 8→7 lines | ~127 |
+| 14:31 | Edited apps/web/verify_logbook_phase3.tmp.mjs | added error handling | ~118 |
+| 14:32 | Edited apps/web/verify_logbook_phase3.tmp.mjs | added 1 condition(s) | ~135 |
+| 14:32 | Created apps/web/check_wo.tmp.mjs | — | ~292 |
+| 14:32 | Created apps/web/check_wo.tmp.mjs | — | ~208 |
+| 14:35 | Created apps/web/check_wo.tmp.mjs | — | ~281 |
+| 14:35 | Edited apps/web/check_wo.tmp.mjs | added 1 condition(s) | ~59 |
+| 14:36 | Created apps/web/check_wo.tmp.mjs | — | ~217 |
+| 14:36 | Created apps/web/check_wo.tmp.mjs | — | ~284 |
+| 14:36 | Created apps/web/check_wo.tmp.mjs | — | ~337 |
+| 14:37 | Created apps/web/check_wo.tmp.mjs | — | ~317 |
+| 14:38 | Created apps/web/verify_logbook_phase3.tmp.mjs | — | ~687 |
+| 14:38 | Edited apps/web/verify_logbook_phase3.tmp.mjs | "button" → "group" | ~27 |
+| 14:39 | Created apps/web/verify_logbook_phase3.tmp.mjs | — | ~411 |
+| 14:39 | Created apps/web/verify_logbook_phase3.tmp.mjs | — | ~406 |
+| 14:42 | Created apps/web/verify_logbook_phase3.tmp.mjs | — | ~1205 |
+| 14:45 | Logbook Phase 3 complete: AddHandoffDrawer + RelatedItemPicker + logbookDisplay/logbookHandoff helpers built, structured fields wired end-to-end, migration 117 applied live + PostgREST cache reloaded, stale dev API process killed/restarted, 2 pre-existing test-fixture bugs fixed, all 900 API + 128 web unit tests green, full Playwright verification passed with 0 console errors | apps/web/components/logbook/AddHandoffDrawer.tsx, RelatedItemPicker.tsx; apps/web/lib/utils/logbookDisplay.tsx, logbookHandoff.ts; apps/web/app/(dashboard)/logbook/page.tsx; apps/api/tests/test_logbook_structured_handoffs.py | success | ~large |
+| 14:45 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md | — | ~664 |
+| 14:45 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 2→3 lines | ~131 |
+| 14:46 | Session end: 38 writes across 17 files (logbook.ts, logbookDisplay.tsx, logbookHandoff.ts, logbookHandoff.test.ts, RelatedItemPicker.tsx) | 41 reads | ~133887 tok |
+
+## Session: 2026-09-29 14:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:55 | Created ../../.claude/plans/compiled-riding-ocean.md | — | ~4564 |
+
+## Session: 2026-09-29 15:14
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:19 | Created supabase/migrations/118_logbook_shift_continuity.sql | — | ~886 |
+| 15:21 | Edited apps/api/models/requests.py | modified UpdateLogbookEntryRequest() | ~310 |
+| 15:21 | Edited apps/api/routers/logbook.py | expanded (+7 lines) | ~114 |
+| 15:21 | Edited apps/api/routers/logbook.py | modified _record_event() | ~596 |
+| 15:21 | Edited apps/api/routers/logbook.py | modified list_logbook_entries() | ~361 |
+| 15:21 | Edited apps/api/routers/logbook.py | expanded (+8 lines) | ~254 |
+| 15:22 | Edited apps/api/routers/logbook.py | modified resolve_logbook_entry() | ~3210 |
+| 15:23 | Created apps/api/tests/test_logbook_shift_continuity.py | — | ~4805 |
+| 15:23 | Edited apps/web/lib/api/logbook.ts | expanded (+27 lines) | ~424 |
+| 15:24 | Edited apps/web/lib/api/logbook.ts | expanded (+18 lines) | ~458 |
+| 15:24 | Edited apps/web/lib/utils/logbookCapabilities.ts | modified getLogbookCapabilities() | ~596 |
+| 15:25 | Created apps/web/lib/utils/logbookFollowUps.ts | — | ~504 |
+| 15:26 | Created apps/web/lib/utils/logbookFollowUps.test.ts | — | ~794 |
+| 15:26 | Edited apps/web/package.json | inline fix | ~41 |
+| 15:26 | Edited apps/web/lib/utils/logbookCapabilities.test.ts | expanded (+17 lines) | ~494 |
+| 15:26 | Edited apps/api/routers/logbook.py | modified get_logbook_entry() | ~162 |
+| 15:26 | Edited apps/api/tests/test_logbook_shift_continuity.py | modified test_get_entry_returns_hydrated_entry() | ~263 |
+| 15:26 | Edited apps/web/lib/api/logbook.ts | 1→4 lines | ~47 |
+| 15:27 | Edited apps/web/i18n/locales/en.ts | expanded (+77 lines) | ~936 |
+| 15:27 | Edited apps/web/i18n/locales/es.ts | expanded (+77 lines) | ~986 |
+| 15:28 | Created apps/web/components/logbook/LogbookLinkedItemCard.tsx | — | ~1444 |
+| 15:28 | Created apps/web/lib/utils/logbookHistory.ts | — | ~504 |
+| 15:28 | Created apps/web/lib/utils/logbookHistory.test.ts | — | ~953 |
+| 15:28 | Edited apps/web/package.json | inline fix | ~20 |
+| 15:29 | Created apps/web/components/logbook/NeedsNextShift.tsx | — | ~1649 |
+| 15:31 | Created apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | — | ~8364 |
+| 15:31 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | inline fix | ~17 |
+| 15:31 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | inline fix | ~28 |
+| 15:31 | Created apps/web/components/logbook/LogbookStatusFilter.tsx | — | ~334 |
+| 15:31 | Edited apps/web/components/logbook/LogbookActivityRow.tsx | added 1 condition(s) | ~455 |
+| 15:31 | Edited apps/web/components/logbook/LogbookActivityFeed.tsx | CSS: onOpen | ~49 |
+| 15:32 | Edited apps/web/components/logbook/LogbookActivityFeed.tsx | inline fix | ~51 |
+| 15:32 | Edited apps/web/components/logbook/LogbookActivityFeed.tsx | inline fix | ~58 |
+| 15:32 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | modified LogbookEntryDetailDrawer() | ~376 |
+| 15:32 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 7→6 lines | ~34 |
+| 15:32 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | added 1 condition(s) | ~134 |
+| 15:32 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 7→7 lines | ~100 |
+| 15:32 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 3→4 lines | ~34 |
+| 15:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 4→7 lines | ~141 |
+| 15:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added 3 import(s) | ~184 |
+| 15:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | CSS: status, priority, status | ~276 |
+| 15:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | expanded (+13 lines) | ~178 |
+| 15:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | CSS: entry, entry | ~151 |
+| 15:34 | Edited apps/web/app/(dashboard)/logbook/page.tsx | modified t() | ~752 |
+| 15:36 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 4→4 lines | ~32 |
+| 15:37 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 2→3 lines | ~65 |
+| 15:37 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 7→6 lines | ~85 |
+| 15:38 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/bd745818-2fb9-4365-9bc8-26a15138c068/scratchpad/verify_logbook_phase4.spec.ts | — | ~673 |
+| 15:38 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/bd745818-2fb9-4365-9bc8-26a15138c068/scratchpad/playwright.verify.config.ts | — | ~84 |
+| 15:39 | Created apps/web/e2e/zz-verify-phase4.spec.ts | — | ~657 |
+| 15:39 | Created apps/web/playwright.verify.config.ts | — | ~69 |
+| 15:39 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | inline fix | ~20 |
+| 15:40 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | added optional chaining | ~240 |
+| 15:41 | Created apps/web/e2e/zz-verify-phase4.spec.ts | — | ~988 |
+| 15:41 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | inline fix | ~19 |
+| 15:42 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | added optional chaining | ~327 |
+| 15:42 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | expanded (+6 lines) | ~116 |
+| 15:43 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | added nullish coalescing | ~633 |
+| 15:43 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | 5→6 lines | ~107 |
+| 15:44 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | reduced (-24 lines) | ~387 |
+| 15:47 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | modified log() | ~428 |
+| 15:47 | Edited apps/web/e2e/zz-verify-phase4.spec.ts | modified log() | ~207 |
+| 15:48 | Edited apps/api/routers/logbook.py | 8→13 lines | ~162 |
+| 15:48 | Edited apps/api/routers/logbook.py | 6→6 lines | ~59 |
+| 15:48 | Edited apps/api/routers/logbook.py | 3→5 lines | ~79 |
+| 15:48 | Edited apps/web/lib/api/logbook.ts | 4→5 lines | ~71 |
+| 15:48 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | added optional chaining | ~62 |
+| 15:48 | Edited apps/api/tests/test_logbook_shift_continuity.py | 4→9 lines | ~154 |
+| 15:53 | Edited apps/api/routers/logbook.py | 6→7 lines | ~64 |
+| 15:54 | Edited apps/api/routers/logbook.py | 2→1 lines | ~14 |
+| 15:55 | Edited apps/web/components/logbook/LogbookEntryDetailDrawer.tsx | 13→13 lines | ~196 |
+| 16:00 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/bd745818-2fb9-4365-9bc8-26a15138c068/scratchpad/append_buglog.py | — | ~717 |
+| 16:01 | Session end: 72 writes across 25 files (118_logbook_shift_continuity.sql, requests.py, logbook.py, test_logbook_shift_continuity.py, logbook.ts) | 44 reads | ~194371 tok |
+
+## Session: 2026-09-29 16:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:58 | Created apps/api/services/ai/shift_summary.py | — | ~5277 |
+| 16:58 | Edited apps/api/services/ai/shift_summary.py | modified _perform_generation() | ~49 |
+| 16:58 | Edited apps/api/services/ai/shift_summary.py | 7→7 lines | ~101 |
+| 16:58 | Edited apps/api/services/ai/shift_summary.py | 8→8 lines | ~136 |
+| 16:58 | Edited apps/api/services/ai/shift_summary.py | modified generate_or_get_shift_summary() | ~311 |
+| 16:59 | Edited apps/api/services/ai/shift_summary.py | inline fix | ~20 |
+| 16:59 | Edited apps/api/services/ai/shift_summary.py | inline fix | ~4 |
+| 16:59 | Edited apps/api/models/requests.py | modified CarryForwardLogbookEntryRequest() | ~153 |
+| 16:59 | Edited apps/api/routers/logbook.py | reduced (-8 lines) | ~124 |
+| 17:00 | Edited apps/api/routers/logbook.py | modified get_shift_summary() | ~234 |
+| 17:00 | Edited apps/api/routers/logbook.py | modified generate_shift_summary_endpoint() | ~422 |
+| 17:00 | Edited apps/api/routers/internal.py | modified generate_shift_summaries() | ~508 |
+| 17:01 | Created supabase/migrations/119_shift_summary_identity.sql | — | ~1306 |
+| 17:02 | Edited apps/api/tests/test_shift_summary_acknowledgment.py | 5→6 lines | ~54 |
+| 17:02 | Edited apps/api/tests/test_shift_summary_acknowledgment.py | 6→10 lines | ~98 |
+| 17:02 | Edited apps/api/tests/test_shift_summary_acknowledgment.py | 5→9 lines | ~81 |
+| 17:03 | Created apps/api/tests/test_shift_summary_generate.py | — | ~4029 |
+| 17:03 | Edited apps/api/tests/test_shift_summary_generate.py | 5→6 lines | ~86 |
+| 17:04 | Created apps/api/tests/test_shift_summary_window.py | — | ~844 |
+| 17:04 | Created apps/api/tests/test_shift_summary_enrichment.py | — | ~3247 |
+| 17:04 | Edited apps/api/tests/test_shift_summary_enrichment.py | _FrozenAt() → _freeze() | ~134 |
+| 17:05 | Edited apps/api/tests/test_shift_summary_enrichment.py | modified now() | ~198 |
+| 17:05 | Edited apps/api/tests/test_shift_summary_enrichment.py | 11→10 lines | ~113 |
+| 17:05 | Edited apps/api/tests/test_shift_summary_enrichment.py | modified _freeze() | ~684 |
+| 17:06 | Edited apps/api/services/ai/__init__.py | 14→15 lines | ~124 |
+| 17:07 | Edited apps/api/tests/test_logbook_foundation.py | modified test_summary_generation_contract_is_full_for_existing_and_fresh_summaries() | ~747 |
+| 17:07 | Edited apps/api/tests/test_shift_summary_window.py | test_prompt_never_mentions_occupancy() → test_prompt_never_asks_model_to_describe_occupancy() | ~154 |
+| 17:10 | Edited apps/api/models/requests.py | viewing() → legacy() | ~168 |
+| 17:24 | Implemented Logbook Phase 7 collaboration | API, web drawer, migration 121, tests | focused tests + type-check pass | ~8500 |
+| 17:28 | Verified Phase 7 collaboration contracts | tests, py_compile, TypeScript, production build | all completed successfully | ~1100 |
+| 17:31 | Inspected Phase 8 brief and existing Logbook/Evidence architecture | request, OpenWolf context, API/web files | scoped secure attachments, translation, retention, and QA work | ~4200 |
+| 17:49 | Implemented Logbook Phase 8 foundation | migration 122, Logbook/Evidence API, web attachment and translation UI | private Evidence reuse, translation cache, archive retention, GM-only permanent delete | ~7100 |
+| 17:53 | Extended attachment failure cleanup and completed final checks | Evidence delete endpoint, Add Handoff cleanup, unit/API/contrast checks | no attachment orphan remains after a failed upload; production build lock observed | ~1800 |
+
+## Session: 2026-09-30 19:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:39 | Edited apps/web/package.json | inline fix | ~59 |
+| 19:42 | Edited apps/api/rbac_bare_comparison_allowlist.json | modified not() | ~150 |
+| 19:42 | Edited apps/api/routers/logbook.py | modified isinstance() | ~33 |
+| 19:46 | Edited apps/web/components/logbook/LogbookCommentsPanel.tsx | 4→5 lines | ~112 |
+| 19:46 | Edited apps/web/components/logbook/LogbookCommentsPanel.tsx | modified chooseMention() | ~128 |
+| 19:46 | Edited apps/web/components/logbook/LogbookCommentsPanel.tsx | inline fix | ~416 |
+| 19:46 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 4→2 lines | ~43 |
+| 19:51 | Edited apps/web/app/(dashboard)/logbook/page.tsx | LogbookPage() → LogbookPageContent() | ~20 |
+| 19:51 | Edited apps/web/app/(dashboard)/logbook/page.tsx | modified LogbookPage() | ~110 |
+| 19:51 | Edited apps/web/app/(dashboard)/logbook/page.tsx | inline fix | ~20 |

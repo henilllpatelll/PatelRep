@@ -29,6 +29,7 @@ def _db(summary_extra: dict | None = None, profiles: list | None = None) -> Fake
         "id": SUMMARY_ID,
         "tenant_id": "hotel-a",
         "shift_id": "shift-1",
+        "shift_date": "2026-09-16",
         "summary_text": "Overnight handoff.",
         "generated_by_ai": True,
         "acknowledged_by": None,
@@ -122,7 +123,11 @@ def test_get_shift_summary_resolves_acknowledged_by_name(monkeypatch):
     monkeypatch.setattr(logbook_router, "supabase", db)
     client = TestClient(app)
 
-    response = client.get("/v1/logbook/shift-summary/shift-1", headers=_auth_header("gm"))
+    response = client.get(
+        "/v1/logbook/shift-summary/shift-1",
+        params={"shift_date": "2026-09-16"},
+        headers=_auth_header("gm"),
+    )
 
     assert response.status_code == 200
     data = response.json()["data"]
@@ -135,7 +140,11 @@ def test_get_shift_summary_name_null_when_unacknowledged(monkeypatch):
     monkeypatch.setattr(logbook_router, "supabase", db)
     client = TestClient(app)
 
-    response = client.get("/v1/logbook/shift-summary/shift-1", headers=_auth_header("gm"))
+    response = client.get(
+        "/v1/logbook/shift-summary/shift-1",
+        params={"shift_date": "2026-09-16"},
+        headers=_auth_header("gm"),
+    )
 
     assert response.status_code == 200
     data = response.json()["data"]

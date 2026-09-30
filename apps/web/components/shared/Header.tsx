@@ -261,7 +261,7 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
                 notifications.map((n) => (
                   <button
                     key={n.id}
-                    onClick={() => handleMarkRead(n.id)}
+                    onClick={() => { handleMarkRead(n.id); const href = n.data?.href; if (typeof href === 'string' && href.startsWith('/')) { setNotificationsOpen(false); router.push(href) } }}
                     className="w-full text-left flex gap-3 px-4 py-3 border-b border-line-2 last:border-0 hover:bg-surface-2 transition-colors"
                   >
                     <span className={cn('w-1.5 h-1.5 rounded-full mt-1.5 shrink-0', n.is_read ? 'bg-transparent' : 'bg-accent')} />

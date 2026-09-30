@@ -72,6 +72,7 @@ class FakeQuery:
         self.action = "select"
         self.payload = None
         self.filters = []  # (op, column, value)
+        self.or_filters = []
         self.order_column = None
         self.order_desc = False
         self.limit_count = None
@@ -132,12 +133,24 @@ class FakeQuery:
         self.filters.append(("in", column, list(values)))
         return self
 
+    def or_(self, expression):
+        parsed = []
+        for clause in expression.split(","):
+            column, operator, value = clause.split(".", 2)
+            parsed.append((column, operator, value))
+        self.or_filters.append(parsed)
+        return self
+
     @property
     def not_(self):
         return _FakeNotProxy(self)
 
     def like(self, column, pattern):
         self.filters.append(("like", column, pattern))
+        return self
+
+    def ilike(self, column, pattern):
+        self.filters.append(("ilike", column, pattern))
         return self
 
     def order(self, column, desc=False, **_kwargs):
@@ -187,11 +200,25 @@ class FakeQuery:
                 prefix = value.rstrip("%")
                 if not isinstance(actual, str) or not actual.startswith(prefix):
                     return False
+            if op == "ilike":
+                needle = value.strip("%*").lower()
+                if not isinstance(actual, str) or needle not in actual.lower():
+                    return False
+        for alternatives in self.or_filters:
+            if not any(
+                (operator == "is" and value == "null" and row.get(column) is None)
+                or (operator == "gt" and row.get(column) is not None and str(row[column]) > value)
+                or (operator == "ilike" and isinstance(row.get(column), str) and value.strip("%*").lower() in row[column].lower())
+                or (operator == "in" and str(row.get(column)) in value.strip("()").split(","))
+                for column, operator, value in alternatives
+            ):
+                return False
         return True
 
     def execute(self):
         rows = self.db.rows.setdefault(self.table_name, [])
         matched = [row for row in rows if self._matches(row)]
+        total_count = len(matched)
         if self.order_column:
             matched = sorted(
                 matched,
@@ -205,8 +232,8 @@ class FakeQuery:
 
         if self.action == "select":
             if self.single:
-                return SimpleNamespace(data=matched[0] if matched else None, count=len(matched))
-            return SimpleNamespace(data=matched, count=len(matched))
+                return SimpleNamespace(data=matched[0] if matched else None, count=total_count)
+            return SimpleNamespace(data=matched, count=total_count)
 
         if self.action == "insert":
             payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]

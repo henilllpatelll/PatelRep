@@ -48,4 +48,24 @@ test.describe('Logbook', () => {
     // Either entries exist or an empty state message is shown — either is valid
     await expect(page.locator('text=Application error')).not.toBeVisible()
   })
+
+  test('search mode keeps discovery state in the URL', async ({ page }) => {
+    const searchButton = page.getByRole('button', { name: /search/i })
+    await expect(searchButton).toBeVisible()
+    await searchButton.click()
+
+    const input = page.getByLabel(/search logbook/i)
+    await expect(input).toBeVisible()
+    await input.fill('plumbing')
+    await page.waitForTimeout(400)
+    await expect(page).toHaveURL(/q=plumbing/)
+
+    await expect(page.getByText(/results|no logbook entries found/i)).toBeVisible()
+    await page.getByRole('button', { name: /exit logbook search/i }).click()
+    await expect(page).not.toHaveURL(/q=plumbing/)
+  })
+
+  test('historical date picker is available alongside day navigation', async ({ page }) => {
+    await expect(page.getByLabel(/choose date/i)).toBeVisible()
+  })
 })

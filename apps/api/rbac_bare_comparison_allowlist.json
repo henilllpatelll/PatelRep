@@ -8,6 +8,12 @@
       "reason": "Legitimate mixed pattern, session-management self-scope narrowing (RBAC-AUDIT.md clean_sessions.py row)."
     },
     {
+      "router": "evidence.py",
+      "line": 562,
+      "code": "current_user.role in COMPETENCY_MANAGER_ROLES",
+      "reason": "Genuine denial gate in delete_evidence_record: is_manager feeds `if not (is_collector or is_manager): raise HTTPException(403, ...)`, restricting delete to the uploading collector or a competency manager, under the route's broader EVIDENCE_CAPTURE_ROLES gate. Same self-scope-narrowing pattern as clean_sessions.py L66."
+    },
+    {
       "router": "guest_requests.py",
       "line": 213,
       "code": "current_user.role not in MESSAGE_ROLES",

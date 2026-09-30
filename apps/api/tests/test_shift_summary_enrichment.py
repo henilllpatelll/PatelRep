@@ -1,181 +1,89 @@
-"""Enrichment coverage for generate_shift_summary (Phase 39-02): VIP arrivals,
-pending guest issues, low-stock engineering parts, and SLA breaches feed the
-prompt and four additive `stats` count keys. The anthropic client is stubbed so
-no real API call is made.
+"""collect_shift_handoff_context() enrichment tests (Phase 5).
+
+Covers VIP arrivals, pending guest issues, low-stock engineering parts, SLA
+breaches, staff-flagged follow-ups, tenant isolation, and the corrected
+shift-window-bound "tasks completed" query (found problem F: the old query
+used the whole calendar day regardless of the shift's actual start/end).
+
+collect_shift_handoff_context() is pure data collection (no AI call), so these
+tests call it directly — no Anthropic mocking needed. A final full-flow test
+covers stats + handoff_data via the real generate_or_get_shift_summary() path.
 """
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 import pytest
 
+from core.config import settings
+from middleware import credits as credits_module
 from services.ai import shift_summary as shift_summary_module
+from services.ai.shift_summary import collect_shift_handoff_context, generate_or_get_shift_summary
+from tests.smoke.fake_supabase import FakeDB, FakeQuery
 
 HOTEL = "hotel-1"
+FOREIGN_HOTEL = "hotel-2"
 SHIFT = "shift-1"
 SHIFT_DATE = "2026-09-16"
-NOW_ISO = "2026-09-16T12:00:00+00:00"
-PAST = "2026-09-16T06:00:00+00:00"
-FUTURE = "2026-09-16T23:00:00+00:00"
+NIGHT_SHIFT = {"start_time": "23:00", "end_time": "07:00"}
 
 
-class _NotBuilder:
-    def __init__(self, query):
-        self._query = query
-
-    def in_(self, column, values):
-        self._query.not_in_filters.append((column, set(values)))
-        return self._query
-
-
-class FakeQuery:
-    def __init__(self, db, table_name):
+class _RpcQuery:
+    def __init__(self, db, name, params):
         self.db = db
-        self.table_name = table_name
-        self.mode = "select"
-        self.payload = None
-        self.filters = []
-        self.in_filters = []
-        self.not_in_filters = []
-        self.gte_filters = []
-        self.lte_filters = []
-        self.lt_filters = []
-        self.order_col = None
-        self.single = False
-
-    def select(self, *_a, **_kw):
-        self.mode = "select"
-        return self
-
-    def insert(self, payload):
-        self.mode = "insert"
-        self.payload = payload
-        return self
-
-    def eq(self, column, value):
-        self.filters.append((column, value))
-        return self
-
-    def in_(self, column, values):
-        self.in_filters.append((column, set(values)))
-        return self
-
-    @property
-    def not_(self):
-        return _NotBuilder(self)
-
-    def gte(self, column, value):
-        self.gte_filters.append((column, value))
-        return self
-
-    def lte(self, column, value):
-        self.lte_filters.append((column, value))
-        return self
-
-    def lt(self, column, value):
-        self.lt_filters.append((column, value))
-        return self
-
-    def order(self, column, desc=False):
-        self.order_col = column
-        return self
-
-    def maybe_single(self):
-        self.single = True
-        return self
-
-    def _matched(self, rows):
-        matched = rows
-        for column, value in self.filters:
-            matched = [r for r in matched if r.get(column) == value]
-        for column, values in self.in_filters:
-            matched = [r for r in matched if r.get(column) in values]
-        for column, values in self.not_in_filters:
-            matched = [r for r in matched if r.get(column) not in values]
-        for column, value in self.gte_filters:
-            matched = [r for r in matched if r.get(column) is not None and r.get(column) >= value]
-        for column, value in self.lte_filters:
-            matched = [r for r in matched if r.get(column) is not None and r.get(column) <= value]
-        for column, value in self.lt_filters:
-            matched = [r for r in matched if r.get(column) is not None and r.get(column) < value]
-        return matched
+        self.name = name
+        self.params = params
 
     def execute(self):
-        rows = self.db.rows.setdefault(self.table_name, [])
-        if self.mode == "insert":
-            self.db.inserts.setdefault(self.table_name, []).append(self.payload)
-            new_row = dict(self.payload)
-            new_row.setdefault("id", f"{self.table_name}-{len(rows) + 1}")
-            rows.append(new_row)
-            return SimpleNamespace(data=[new_row])
-        matched = self._matched(rows)
-        if self.order_col:
-            matched = sorted(matched, key=lambda r: r.get(self.order_col) or "")
-        if self.single:
-            return SimpleNamespace(data=matched[0] if matched else None)
-        return SimpleNamespace(data=matched)
+        self.db.rpc_calls.append((self.name, self.params))
+        return SimpleNamespace(data=[])
 
 
-class FakeDB:
+class CreditAwareFakeDB(FakeDB):
     def __init__(self, rows=None):
-        self.rows = rows or {}
-        self.inserts = {}
+        super().__init__(rows)
+        self.rpc_calls = []
 
     def table(self, name):
         return FakeQuery(self, name)
 
-
-class _FakeMessages:
-    def create(self, **_kw):
-        return SimpleNamespace(content=[SimpleNamespace(text="AI summary text.")])
+    def rpc(self, name, params):
+        return _RpcQuery(self, name, params)
 
 
-class _FakeAnthropic:
-    def __init__(self, *_a, **_kw):
-        self.messages = _FakeMessages()
-
-
-class _FixedNow:
-    def isoformat(self):
-        return NOW_ISO
-
-
-class _FakeDatetime:
-    @staticmethod
-    def now(_tz=None):
-        return _FixedNow()
-
-
-def _patch(monkeypatch, db):
-    monkeypatch.setattr(shift_summary_module, "supabase", db)
-    monkeypatch.setattr(shift_summary_module, "datetime", _FakeDatetime)
-    # shift_summary.py calls services.ai.providers.get_anthropic_client() (imported
-    # by name), not a module-level `anthropic` — patch the same name shift_summary_module
-    # itself binds, matching the convention in test_ai_copilot_briefings.py.
-    monkeypatch.setattr(shift_summary_module, "get_anthropic_client", lambda: _FakeAnthropic())
-
-
-def _seed():
+def _seed() -> dict:
     return {
-        "shifts": [
-            {"id": SHIFT, "name": "Night", "start_time": "23:00", "end_time": "07:00",
-             "department_id": None, "departments": None}
-        ],
+        "tenants": [{"id": HOTEL, "timezone": "UTC"}],
         "logbook_entries": [
-            {"tenant_id": HOTEL, "shift_id": SHIFT, "content": "Quiet night", "created_at": PAST}
+            {"id": "log-1", "tenant_id": HOTEL, "shift_id": SHIFT, "entry_date": SHIFT_DATE,
+             "content": "Quiet night", "created_at": "2026-09-16T23:30:00", "category": "general",
+             "status": "informational", "priority": "normal", "archived_at": None, "expires_at": None},
+            {"id": "log-2", "tenant_id": HOTEL, "shift_id": SHIFT, "entry_date": SHIFT_DATE,
+             "content": "Room 412 leak, ping AM engineer", "created_at": "2026-09-17T05:00:00",
+             "category": "maintenance", "status": "follow_up", "priority": "important",
+             "follow_up_at": "2026-09-17T08:00:00", "assigned_to": "user-eng-1",
+             "archived_at": None, "expires_at": None},
+            {"id": "log-3", "tenant_id": HOTEL, "shift_id": SHIFT, "entry_date": SHIFT_DATE,
+             "content": "Archived note", "created_at": "2026-09-16T23:45:00",
+             "category": "general", "status": "informational", "archived_at": "2026-09-17T06:00:00",
+             "expires_at": None},
+            {"id": "log-4", "tenant_id": FOREIGN_HOTEL, "shift_id": SHIFT, "entry_date": SHIFT_DATE,
+             "content": "Wrong tenant", "created_at": "2026-09-16T23:30:00", "category": "general",
+             "status": "informational", "archived_at": None, "expires_at": None},
         ],
         "room_status": [
-            {"tenant_id": HOTEL, "clean_type": "DEP", "vip_flag": True, "rooms": {"room_number": "101"}},
-            {"tenant_id": HOTEL, "clean_type": "DEP", "vip_flag": True, "rooms": {"room_number": "102"}},
-            {"tenant_id": HOTEL, "clean_type": "DEP", "vip_flag": False, "rooms": {"room_number": "103"}},
-            {"tenant_id": HOTEL, "clean_type": "STAY", "vip_flag": True, "rooms": {"room_number": "104"}},
-            {"tenant_id": "hotel-2", "clean_type": "DEP", "vip_flag": True, "rooms": {"room_number": "999"}},
+            {"tenant_id": HOTEL, "room_id": "room-101", "clean_type": "DEP", "vip_flag": True, "rooms": {"room_number": "101"}},
+            {"tenant_id": HOTEL, "room_id": "room-102", "clean_type": "DEP", "vip_flag": True, "rooms": {"room_number": "102"}},
+            {"tenant_id": HOTEL, "room_id": "room-103", "clean_type": "DEP", "vip_flag": False, "rooms": {"room_number": "103"}},
+            {"tenant_id": HOTEL, "room_id": "room-104", "clean_type": "STAY", "vip_flag": True, "rooms": {"room_number": "104"}},
+            {"tenant_id": FOREIGN_HOTEL, "room_id": "room-999", "clean_type": "DEP", "vip_flag": True, "rooms": {"room_number": "999"}},
         ],
         "guest_requests": [
-            {"tenant_id": HOTEL, "status": "new", "title": "Extra towels"},
-            {"tenant_id": HOTEL, "status": "in_progress", "title": "AC not cooling"},
-            {"tenant_id": HOTEL, "status": "open", "title": "Late checkout"},
-            {"tenant_id": HOTEL, "status": "resolved", "title": "Done thing"},
-            {"tenant_id": HOTEL, "status": "verified", "title": "Verified thing"},
-            {"tenant_id": HOTEL, "status": "cancelled", "title": "Cancelled thing"},
+            {"id": "gr-1", "tenant_id": HOTEL, "status": "new", "title": "Extra towels", "room_id": None, "rooms": None},
+            {"id": "gr-2", "tenant_id": HOTEL, "status": "in_progress", "title": "AC not cooling", "room_id": None, "rooms": None},
+            {"id": "gr-3", "tenant_id": HOTEL, "status": "open", "title": "Late checkout", "room_id": None, "rooms": None},
+            {"id": "gr-4", "tenant_id": HOTEL, "status": "resolved", "title": "Done thing", "room_id": None, "rooms": None},
+            {"id": "gr-5", "tenant_id": HOTEL, "status": "verified", "title": "Verified thing", "room_id": None, "rooms": None},
+            {"id": "gr-6", "tenant_id": HOTEL, "status": "cancelled", "title": "Cancelled thing", "room_id": None, "rooms": None},
         ],
         "engineering_parts": [
             {"id": "part-1", "tenant_id": HOTEL, "name": "HVAC Filter", "minimum_stock": 10, "is_active": True},
@@ -191,86 +99,184 @@ def _seed():
             {"tenant_id": HOTEL, "part_id": "part-4", "quantity": 0},
         ],
         "work_orders": [
-            {"tenant_id": HOTEL, "title": "Overdue WO", "status": "open", "priority": "high",
-             "category": "hvac", "due_at": PAST},
-            {"tenant_id": HOTEL, "title": "Future WO", "status": "open", "priority": "low",
-             "category": "plumbing", "due_at": FUTURE},
-            {"tenant_id": HOTEL, "title": "Completed WO", "status": "completed", "priority": "low",
-             "category": "elec", "due_at": PAST},
+            {"id": "wo-1", "tenant_id": HOTEL, "title": "Overdue WO", "status": "open", "priority": "high",
+             "category": "hvac", "due_at": "2026-09-16T20:00:00+00:00", "rooms": {"room_number": "205"}},
+            {"id": "wo-2", "tenant_id": HOTEL, "title": "Future WO", "status": "open", "priority": "low",
+             "category": "plumbing", "due_at": "2026-09-18T00:00:00+00:00", "rooms": None},
+            {"id": "wo-3", "tenant_id": HOTEL, "title": "Completed WO", "status": "completed", "priority": "low",
+             "category": "elec", "due_at": "2026-09-16T20:00:00+00:00", "rooms": None},
         ],
         "tasks": [
-            {"tenant_id": HOTEL, "title": "Cleaned lobby", "status": "completed", "priority": "normal",
-             "task_type": "cleaning", "completed_at": f"{SHIFT_DATE}T05:00:00", "due_at": None},
-            {"tenant_id": HOTEL, "title": "Overdue task", "status": "in_progress", "priority": "high",
-             "task_type": "maintenance", "completed_at": None, "due_at": PAST},
-            {"tenant_id": HOTEL, "title": "Future task", "status": "open", "priority": "low",
-             "task_type": "maintenance", "completed_at": None, "due_at": FUTURE},
+            # Inside the Night shift window (23:00 -> next day 07:00 UTC)
+            {"id": "task-1", "tenant_id": HOTEL, "title": "Cleaned lobby", "status": "completed",
+             "priority": "normal", "task_type": "cleaning", "completed_at": "2026-09-17T05:00:00+00:00", "due_at": None},
+            # Just before the shift starts -> excluded
+            {"id": "task-2", "tenant_id": HOTEL, "title": "Evening task", "status": "completed",
+             "priority": "normal", "task_type": "cleaning", "completed_at": "2026-09-16T20:00:00+00:00", "due_at": None},
+            # Exactly at the shift end boundary -> excluded ([start, end) is half-open)
+            {"id": "task-3", "tenant_id": HOTEL, "title": "Boundary task", "status": "completed",
+             "priority": "normal", "task_type": "cleaning", "completed_at": "2026-09-17T07:00:00+00:00", "due_at": None},
+            {"id": "task-4", "tenant_id": HOTEL, "title": "Overdue task", "status": "in_progress",
+             "priority": "high", "task_type": "maintenance", "completed_at": None, "due_at": "2026-09-16T20:00:00+00:00"},
         ],
     }
 
 
-def _run(monkeypatch, db):
-    _patch(monkeypatch, db)
-    shift_summary_module.generate_shift_summary(HOTEL, SHIFT, SHIFT_DATE)
-    return db.inserts["shift_summaries"][0]["stats"]
+def _context():
+    return collect_shift_handoff_context(HOTEL, SHIFT, SHIFT_DATE, NIGHT_SHIFT)
 
 
-def test_all_four_signals_counted():
-    db = FakeDB(_seed())
-    with pytest.MonkeyPatch().context() as mp:
-        stats = _run(mp, db)
+def test_tasks_completed_uses_real_shift_window_not_calendar_day(monkeypatch):
+    """Found problem F: only the task inside [23:00, next-day 07:00) counts —
+    not the whole calendar day, and not the exact end boundary."""
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    completed_titles = [t["title"] for t in context["completed_tasks"]]
+    assert completed_titles == ["Cleaned lobby"]
+
+
+def test_archived_logbook_entries_excluded(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    contents = [e["content"] for e in context["logbook_entries"]]
+    assert "Archived note" not in contents
+    assert "Wrong tenant" not in contents  # tenant isolation
+
+
+def test_follow_ups_extracted_with_structured_fields(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    assert len(context["follow_ups"]) == 1
+    follow_up = context["follow_ups"][0]
+    assert follow_up["priority"] == "important"
+    assert follow_up["assigned_to"] == "user-eng-1"
+
+
+def test_vip_arrivals_tenant_scoped_and_dep_vip_only(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    room_numbers = {v["room_number"] for v in context["vip_arrivals"]}
+    assert room_numbers == {"101", "102"}
+
+
+def test_pending_guest_issues_excludes_terminal_statuses(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    assert len(context["pending_guest_issues"]) == 3
+
+
+def test_low_stock_predicate_boundaries(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    names = {p["name"] for p in context["low_stock_parts"]}
+    assert names == {"HVAC Filter", "Fan Belt"}  # part-3 not low, part-4 null min, part-5 inactive
+
+
+def test_sla_breaches_excludes_future_and_non_open(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+    _freeze(monkeypatch, "2026-09-17T06:00:00")
+
+    context = _context()
+
+    types = {(b["type"], b["title"]) for b in context["sla_breaches"]}
+    assert types == {("work_order", "Overdue WO"), ("task", "Overdue task")}
+
+
+def test_open_work_orders_snapshot_includes_room_number(monkeypatch):
+    monkeypatch.setattr(shift_summary_module, "supabase", CreditAwareFakeDB(_seed()))
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+
+    context = _context()
+
+    wo = next(w for w in context["open_work_orders"] if w["id"] == "wo-1")
+    assert wo["rooms"]["room_number"] == "205"
+
+
+class _FrozenDateTime(datetime):
+    """datetime subclass whose .now() always returns a fixed UTC instant."""
+
+    _frozen_instant = None
+
+    @classmethod
+    def now(cls, tz=None):
+        instant = cls._frozen_instant
+        if tz is not None:
+            return instant.astimezone(tz)
+        return instant
+
+
+def _freeze(monkeypatch, utc_iso: str):
+    frozen = type("_Frozen", (_FrozenDateTime,), {
+        "_frozen_instant": datetime.fromisoformat(utc_iso).replace(tzinfo=timezone.utc),
+    })
+    monkeypatch.setattr(shift_summary_module, "datetime", frozen)
+
+
+class _FakeMessages:
+    def create(self, **_kw):
+        return SimpleNamespace(
+            content=[SimpleNamespace(text="Handoff narrative.")],
+            usage=SimpleNamespace(input_tokens=400, output_tokens=150),
+        )
+
+
+class _FakeAnthropic:
+    def __init__(self, *_a, **_kw):
+        self.messages = _FakeMessages()
+
+
+@pytest.mark.asyncio
+async def test_full_generation_stores_stats_and_handoff_data_snapshot(monkeypatch):
+    rows = _seed()
+    rows["shifts"] = [{"id": SHIFT, "tenant_id": HOTEL, "name": "Night", **NIGHT_SHIFT,
+                        "department_id": None, "departments": None}]
+    rows["shift_summaries"] = []
+    rows["credit_ledger"] = [{
+        "id": "ledger-1", "tenant_id": HOTEL,
+        "period_start": date(date.today().year, 1, 1).isoformat(),
+        "period_end": date(date.today().year, 12, 31).isoformat(),
+        "credits_included": 5000, "overage_cost_cents": 0,
+    }]
+    db = CreditAwareFakeDB(rows)
+    monkeypatch.setattr(shift_summary_module, "supabase", db)
+    monkeypatch.setattr(credits_module, "supabase", db)
+    monkeypatch.setattr(shift_summary_module, "_get_hotel_tz", lambda hotel_id: timezone.utc)
+    monkeypatch.setattr(settings, "ai_provider", "hosted")
+    monkeypatch.setattr(shift_summary_module, "get_anthropic_client", lambda: _FakeAnthropic())
+
+    result = await generate_or_get_shift_summary(HOTEL, SHIFT, SHIFT_DATE)
+
+    assert result["was_generated"] is True
+    stats = result["stats"]
+    assert stats["tasks_completed"] == 1
     assert stats["vip_arrivals_count"] == 2
     assert stats["pending_guest_issues_count"] == 3
     assert stats["low_stock_parts_count"] == 2
-    assert stats["sla_breaches_count"] == 2
-
-
-def test_terminal_guest_requests_excluded():
-    db = FakeDB(_seed())
-    with pytest.MonkeyPatch().context() as mp:
-        stats = _run(mp, db)
-    # 3 non-terminal (new/in_progress/open); resolved/verified/cancelled excluded
-    assert stats["pending_guest_issues_count"] == 3
-
-
-def test_low_stock_predicate_boundaries():
-    db = FakeDB(_seed())
-    with pytest.MonkeyPatch().context() as mp:
-        stats = _run(mp, db)
-    # part-1 (3<10) and part-2 (1<8) low; part-3 (10>=5) not; part-4 (0<0 false, null->0) not;
-    # part-5 inactive excluded from the active-parts query entirely.
-    assert stats["low_stock_parts_count"] == 2
-
-
-def test_sla_breach_predicate_excludes_future_and_non_open():
-    db = FakeDB(_seed())
-    with pytest.MonkeyPatch().context() as mp:
-        stats = _run(mp, db)
-    # 1 overdue open WO + 1 overdue in_progress task; future + completed excluded
-    assert stats["sla_breaches_count"] == 2
-
-
-def test_existing_stats_keys_unchanged_and_additive():
-    db = FakeDB(_seed())
-    with pytest.MonkeyPatch().context() as mp:
-        stats = _run(mp, db)
-    assert stats["tasks_completed"] == 1
-    assert stats["open_work_orders"] == 2  # both open WOs (overdue + future), not the completed one
-    assert stats["logbook_entries_count"] == 1
+    assert stats["follow_up_count"] == 1
     assert stats["model_used"] == "claude-sonnet-4-6"
-    # additive keys present alongside originals
-    for key in ("vip_arrivals_count", "pending_guest_issues_count",
-                "low_stock_parts_count", "sla_breaches_count"):
-        assert key in stats
 
-
-def test_full_count_stored_when_list_exceeds_cap():
-    seed = _seed()
-    seed["guest_requests"] = [
-        {"tenant_id": HOTEL, "status": "new", "title": f"Issue {i}"} for i in range(12)
-    ]
-    db = FakeDB(seed)
-    with pytest.MonkeyPatch().context() as mp:
-        stats = _run(mp, db)
-    # 12 seeded — stored count is the full length even though the prompt caps at 10
-    assert stats["pending_guest_issues_count"] == 12
+    handoff_data = result["handoff_data"]
+    assert handoff_data["logbook"]["entry_count"] == 2  # log-1 + log-2, log-3 archived
+    assert len(handoff_data["open_work_orders"]) == 2
+    assert handoff_data["follow_ups"][0]["assigned_to"] == "user-eng-1"
+    # No tenant leakage into the stored snapshot
+    assert all("999" != v.get("room_number") for v in handoff_data["vip_arrivals"])

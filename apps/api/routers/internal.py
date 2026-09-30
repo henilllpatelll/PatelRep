@@ -333,14 +333,18 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
 
 @router.post("/logbook/shift-summary")
 async def generate_shift_summaries(x_cron_secret: str = Header(None)):
-    """Cron: Generate AI shift summaries for shifts that ended in the last 2 hours."""
+    """Cron: Generate AI shift summaries for shifts that ended in the last 2 hours.
+
+    Shares generate_or_get_shift_summary() with the manual endpoint so cron and
+    manual generation can never diverge in identity, storage, or dedup — a
+    second cron run (or a manual Generate after the cron already ran) is a
+    no-op, never a duplicate row or a second AI charge. shift_date uses each
+    shift's own tenant-local date, not the cron server's UTC date, so identity
+    matches exactly what the manual/web path means by "today" for that hotel."""
     verify_cron(x_cron_secret)
-    from services.ai.shift_summary import generate_shift_summary
+    from services.ai.shift_summary import generate_or_get_shift_summary, hotel_today
 
     # Find shifts that ended ~2 hours ago (give staff time to log entries)
-    today = date.today().isoformat()
-
-    # Get all shifts that end around this time
     shifts_result = supabase.table("shifts")\
         .select("id, tenant_id, end_time")\
         .execute()
@@ -353,19 +357,12 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
         if not end_str:
             continue
 
-        # Check if summary already exists for today
-        existing = supabase.table("shift_summaries")\
-            .select("id")\
-            .eq("shift_id", shift["id"])\
-            .eq("shift_date", today)\
-            .execute()
-
-        if existing.data:
-            continue
+        shift_date = hotel_today(shift["tenant_id"])
 
         try:
-            generate_shift_summary(shift["tenant_id"], shift["id"], today)
-            generated += 1
+            result = await generate_or_get_shift_summary(shift["tenant_id"], shift["id"], shift_date)
+            if result.get("was_generated"):
+                generated += 1
         except Exception as e:
             logger.error("Shift summary failed for tenant=%s shift=%s: %s",
                          shift["tenant_id"], shift["id"], e, exc_info=True)
@@ -858,14 +855,15 @@ async def check_lost_found_retention(x_cron_secret: str = Header(None)):
 
 @router.post("/logbook/cleanup-expired")
 async def cleanup_expired_logbook_entries(x_cron_secret: str = Header(None)):
-    """Cron job: hard-delete logbook entries past their expires_at."""
+    """Archive expired temporary notes, retaining a tenant-safe audit trail."""
     verify_cron(x_cron_secret)
     now = datetime.now(timezone.utc).isoformat()
     result = supabase.table("logbook_entries")\
-        .delete()\
+        .update({"archived_at": now, "archive_reason": "expired", "archived_by": None})\
         .not_.is_("expires_at", "null")\
         .lt("expires_at", now)\
+        .is_("archived_at", "null")\
         .execute()
-    deleted = len(result.data) if result.data else 0
-    logger.info(f"Cleaned up {deleted} expired logbook entries")
-    return {"status": "ok", "deleted": deleted}
+    archived = len(result.data) if result.data else 0
+    logger.info(f"Archived {archived} expired logbook entries")
+    return {"status": "ok", "archived": archived}

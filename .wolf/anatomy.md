@@ -1,11 +1,30 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-29T06:19:37.321Z
-> Files: 573 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T00:51:30.060Z
+> Files: 624 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../.claude/plans/
+
+- `compiled-riding-ocean.md` — Logbook Phase 4 — Needs Next Shift + Entry Detail Drawer + Carry Forward + Resolution (~4279 tok)
+
+## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
+
+- `MEMORY.md` — PatelRep Project Memory (~1158 tok)
+- `project_migration_drift_2026-09-29.md` (~651 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/39c736e1-55ed-4565-ac9d-f932f6779ed7/scratchpad/
 
 - `verify_phase4.mjs` — Declares BASE (~1255 tok)
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ae73ab6a-b528-4d24-b835-6bcb549e68a2/scratchpad/
+
+- `verify_logbook_phase3.mjs` — Declares BASE (~1296 tok)
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/bd745818-2fb9-4365-9bc8-26a15138c068/scratchpad/
+
+- `append_buglog.py` (~717 tok)
+- `playwright.verify.config.ts` (~84 tok)
+- `verify_logbook_phase4.spec.ts` — Declares EMAIL (~673 tok)
 
 ## ./
 
@@ -924,12 +943,25 @@
 - `theme.json` (~176 tok)
 - `tokens.css` — Styles: 36 vars (~731 tok)
 
+## Phase 1 Logbook foundation (2026-09-29)
+
+
+## Phase 8 Logbook secure attachments + retention (2026-09-29)
+
+- `apps/api/services/ai/logbook_translation.py` — Constrained server-side EN/ES translation helper for authorized Logbook source text. (~300 tok)
+- `apps/api/tests/test_logbook_foundation.py` — Contract coverage for active-shift association, author hydration, pagination, summary stats, roles, and tenant boundaries. (~3000 tok)
+- `apps/api/tests/test_logbook_phase8.py` — Phase 8 attachment-metadata, permanent-delete, and translation-hash contracts. (~700 tok)
+- `apps/web/components/logbook/LogbookAttachments.tsx` — On-demand signed-URL attachment list/removal UI for Entry Detail. (~1100 tok)
+- `apps/web/lib/utils/logbookCapabilities.test.ts` — Unit coverage for Logbook capability parity and anonymous behavior. (~400 tok)
+- `apps/web/lib/utils/logbookCapabilities.ts` — Typed presentation capability map for future Logbook UI phases. (~500 tok)
+- `supabase/migrations/122_logbook_phase8_retention_translations.sql` — Archive metadata, translation cache, expiry index, and attachment event constraint. (~650 tok)
+
 ## Task workspace Phase 1 reference files (2026-09-28)
 
 
 ## apps/api/
 
-- `rbac_bare_comparison_allowlist.json` (~2601 tok)
+- `rbac_bare_comparison_allowlist.json` (~2735 tok)
 
 ## apps/api/core/
 
@@ -937,34 +969,54 @@
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~18760 tok)
+- `requests.py` — Pydantic: SanitizedBaseModel (~19302 tok)
 
 ## apps/api/routers/
 
 - `evidence.py` — Tenant-scoped controlled documents, proof, acknowledgements, and exceptions. (~9538 tok)
 - `guest_requests.py` — API: 3 endpoints (~9674 tok)
-- `internal.py` — API: 5 endpoints (~11018 tok)
+- `internal.py` — API: 5 endpoints (~11087 tok)
+- `logbook.py` — can_permanently_delete_logbook_entry, logbook_translation_source_hash, build_logbook_attachment_meta (~19378 tok)
 - `tasks.py` — API: 4 endpoints (~6585 tok)
 
 ## apps/api/services/
 
 - `task_schedules.py` — Recurring Internal Task advancement. (~1155 tok)
 
+## apps/api/services/ai/
+
+- `__init__.py` (~220 tok)
+- `shift_summary.py` — AI Shift Handoff service — generates a structured, operationally-grounded (~5188 tok)
+
 ## apps/api/tests/
 
 - `test_cron_scheduler.py` — The in-process cron scheduler must register every job with the right schedule (~717 tok)
 - `test_guest_request_creation_assignment.py` — POST /guest-requests now accepts assigned_to (Tasks Phase 5): assignment for (~841 tok)
+- `test_logbook_foundation.py` — Contract coverage for the Phase 1 Logbook data foundation. (~3295 tok)
+- `test_logbook_shift_continuity.py` — Phase 4 Logbook shift-continuity contracts: resolve, carry forward, archive, (~5134 tok)
+- `test_logbook_structured_handoffs.py` — Phase 3 Logbook handoff contracts: structure, tenant boundaries, and edits. (~1854 tok)
+- `test_shift_summary_acknowledgment.py` — Shift-summary acknowledgment tests (39-03). (~1532 tok)
+- `test_shift_summary_enrichment.py` — collect_shift_handoff_context() enrichment tests (Phase 5). (~3882 tok)
+- `test_shift_summary_generate.py` — Shift-summary generate/lookup tests (Phase 5 — Full AI Shift Handoff). (~4040 tok)
+- `test_shift_summary_window.py` — build_shift_window() + build_shift_summary_prompt() unit tests (Phase 5). (~902 tok)
+- `test_task_bulk_rbac.py` — Guards list-view bulk priority and cancellation mutations by role. (~350 tok)
 - `test_task_recurrence.py` — Recurring Internal Task generation (migration 116): mirrors (~3122 tok)
 - `test_task_workspace.py` — Task workspace contract: active work is complete, history is separately paginated. (~2065 tok)
-- `test_task_bulk_rbac.py` — Guards list-view bulk priority and cancellation mutations by role. (~350 tok)
 
 ## apps/web/
 
-- `package.json` — Node.js package manifest (~919 tok)
+- `check_wo.tmp.mjs` — Declares browser (~317 tok)
+- `package.json` — Node.js package manifest (~978 tok)
+- `playwright.verify.config.ts` (~69 tok)
+- `verify_logbook_phase3.tmp.mjs` — Declares BASE (~1205 tok)
 
 ## apps/web/.tmp-qa/
 
 - `verify_gaps.mjs` — Declares BASE (~718 tok)
+
+## apps/web/app/(dashboard)/logbook/
+
+- `page.tsx` — hotelLocalDateParts (~16386 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
@@ -973,6 +1025,18 @@
 ## apps/web/components/guest-requests/
 
 - `GuestRequestDrawer.tsx` — MESSAGE_ROLES (~6920 tok)
+
+## apps/web/components/logbook/
+
+- `AddHandoffDrawer.tsx` — The currently selected shift's end_time ("HH:MM:SS"), if one is known — powers (~4985 tok)
+- `LogbookActivityFeed.tsx` — ActivitySkeleton (~876 tok)
+- `LogbookActivityRow.tsx` — LogbookActivityRow (~1191 tok)
+- `LogbookCommentsPanel.tsx` — nameOf (~1991 tok)
+- `LogbookEntryDetailDrawer.tsx` — titleFromContent — renders modal (~8474 tok)
+- `LogbookLinkedItemCard.tsx` — deepLinkFor (~1444 tok)
+- `LogbookStatusFilter.tsx` — OPTIONS (~334 tok)
+- `NeedsNextShift.tsx` — COLLAPSED_COUNT (~1649 tok)
+- `RelatedItemPicker.tsx` — Single-item polymorphic linker for room/task/work-order/guest-request records. (~2527 tok)
 
 ## apps/web/components/tasks/
 
@@ -988,15 +1052,20 @@
 - `TasksTableView.tsx` — Bulk selection (Phase 6) — omit entirely to render the plain read-only list. (~939 tok)
 - `UnifiedTaskRow.tsx` — List-view bulk selection (Phase 6) — never shown on the Kanban board. (~1291 tok)
 
+## apps/web/e2e/
+
+- `zz-verify-phase4.spec.ts` — Declares EMAIL (~1577 tok)
+
 ## apps/web/i18n/locales/
 
-- `en.ts` — Declares en (~34143 tok)
-- `es.ts` — Declares es (~37702 tok)
+- `en.ts` — Declares en (~36556 tok)
+- `es.ts` — Declares es (~40324 tok)
 
 ## apps/web/lib/api/
 
 - `evidence.ts` — API routes: GET, POST, PUT (20 endpoints) (~2327 tok)
 - `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE, PUT (16 endpoints) (~1853 tok)
+- `logbook.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1880 tok)
 - `tasks.ts` — Server-side title/description(/guest_name) search — History only, since Active is always fetched in (~1413 tok)
 
 ## apps/web/lib/hooks/
@@ -1005,6 +1074,15 @@
 
 ## apps/web/lib/utils/
 
+- `logbookCapabilities.test.ts` — Declares chief (~514 tok)
+- `logbookCapabilities.ts` — Entry-ownership-independent floor — the drawer still requires (~611 tok)
+- `logbookDisplay.tsx` — Human-readable pointer to another PatelRep record — resolved client-side from (~685 tok)
+- `logbookFollowUps.test.ts` — NOW: entry (~794 tok)
+- `logbookFollowUps.ts` — Deterministic urgency bucket — explainable ordering rather than an opaque (~504 tok)
+- `logbookHandoff.test.ts` — Declares payload (~1163 tok)
+- `logbookHandoff.ts` — Returns undefined when a preset can't be computed (e.g. end_of_shift with no (~890 tok)
+- `logbookHistory.test.ts` — STRINGS: fakeT, event (~953 tok)
+- `logbookHistory.ts` — Formats one operational-history event into a human-readable sentence for the (~504 tok)
 - `taskBulkActions.test.ts` — Declares item (~1086 tok)
 - `taskBulkActions.ts` — Assignment is always written to the backing Task (see taskNextAction.ts) — a (~894 tok)
 - `taskCreation.test.ts` — Declares payload (~2895 tok)
@@ -1017,3 +1095,5 @@
 ## supabase/migrations/
 
 - `116_task_recurrence.sql` — ============================================================================= (~1070 tok)
+- `118_logbook_shift_continuity.sql` — ============================================================================= (~886 tok)
+- `119_shift_summary_identity.sql` — ============================================================================= (~1306 tok)

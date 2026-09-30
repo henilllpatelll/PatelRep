@@ -684,7 +684,7 @@ class CreateEvidenceRecordRequest(SanitizedBaseModel):
     evidence_type: Literal["file", "photo", "measurement", "checklist_result", "signature", "attestation", "external_certificate"]
     document_id: Optional[str] = Field(default=None, max_length=100)
     assignment_id: Optional[str] = Field(default=None, max_length=100)
-    related_entity_type: Optional[Literal["staff", "task", "asset", "room", "inspection", "incident", "sop", "pm_completion"]] = None
+    related_entity_type: Optional[Literal["staff", "task", "asset", "room", "inspection", "incident", "sop", "pm_completion", "logbook_entry"]] = None
     related_entity_id: Optional[str] = Field(default=None, max_length=100)
     measurement_value: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     result: Optional[Literal["passed", "failed", "deferred"]] = None
@@ -1176,16 +1176,75 @@ class CreateLogbookEntryRequest(SanitizedBaseModel):
     department_id: UUID4
     shift_id: Optional[UUID4] = None
     content: str = Field(min_length=1, max_length=4000)
+    category: Literal["guest", "room", "maintenance", "safety", "general"] = "general"
+    status: Literal["informational", "follow_up", "resolved"] = "informational"
+    priority: Literal["normal", "important"] = "normal"
+    follow_up_at: Optional[datetime] = None
+    assigned_to: Optional[UUID4] = None
+    related_type: Optional[Literal["room", "task", "work_order", "guest_request"]] = None
+    related_id: Optional[UUID4] = None
     expires_hours: Optional[int] = Field(
         default=None, ge=1, le=168
     )  # 8, 24, 48, 168 — None = permanent
+    requires_acknowledgment: bool = False
+    acknowledgment_target_ids: List[UUID4] = Field(default_factory=list, max_length=100)
 
 
 class UpdateLogbookEntryRequest(SanitizedBaseModel):
     content: Optional[str] = Field(default=None, max_length=4000)
+    category: Optional[Literal["guest", "room", "maintenance", "safety", "general"]] = None
+    status: Optional[Literal["informational", "follow_up", "resolved"]] = None
+    priority: Optional[Literal["normal", "important"]] = None
+    follow_up_at: Optional[datetime] = None
+    assigned_to: Optional[UUID4] = None
+    related_type: Optional[Literal["room", "task", "work_order", "guest_request"]] = None
+    related_id: Optional[UUID4] = None
     expires_hours: Optional[int] = Field(
         default=None, ge=0, le=168
     )  # 0 = remove expiry, positive = set new expiry
+    requires_acknowledgment: Optional[bool] = None
+    acknowledgment_target_ids: Optional[List[UUID4]] = Field(default=None, max_length=100)
+
+
+class CreateLogbookCommentRequest(SanitizedBaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+    mentioned_user_ids: List[UUID4] = Field(default_factory=list, max_length=50)
+
+
+class UpdateLogbookCommentRequest(SanitizedBaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+    mentioned_user_ids: List[UUID4] = Field(default_factory=list, max_length=50)
+
+
+class ResolveLogbookEntryRequest(SanitizedBaseModel):
+    resolution_note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CarryForwardLogbookEntryRequest(SanitizedBaseModel):
+    """Owner for the new destination-shift entry. Omit to keep the source's
+    current owner — never mutates the source entry's own assignment."""
+
+    assigned_to: Optional[UUID4] = None
+
+
+class LogbookTranslationRequest(SanitizedBaseModel):
+    """Translate a server-fetched Logbook field; never arbitrary browser text."""
+
+    target_language: Literal["en", "es"]
+    source_field: Literal["content", "resolution_note"] = "content"
+
+
+class GenerateShiftSummaryRequest(SanitizedBaseModel):
+    """Explicit shift selection for the AI handoff. shift_id is optional only
+    for the legacy (pre-Phase-5) caller that doesn't know a shift_id up front —
+    the server falls back to resolving "whichever shift most recently ended"
+    for that caller exactly as it always has. The redesigned web workspace
+    always sends shift_id explicitly, so the server never silently picks a
+    different shift than the one it's actually viewing."""
+
+    shift_id: Optional[UUID4] = None
+    shift_date: date
+    regenerate: bool = False
 
 
 # --- Hotel / Tenant Updates ---

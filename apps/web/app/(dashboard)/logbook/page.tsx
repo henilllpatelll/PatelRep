@@ -1,6 +1,7 @@
 ﻿'use client'
 
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, Suspense } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   BookOpen,
   Plus,
@@ -13,12 +14,15 @@ import {
   ChevronUp,
   Clock,
   Check,
+  Search,
 } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { logbookApi, LogbookEntry } from '@/lib/api/logbook'
+import { staffApi } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
+import { schedulingApi } from '@/lib/api/scheduling'
 import { useAuthStore } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
@@ -31,12 +35,44 @@ import { Button, IconButton } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { getLogbookCapabilities } from '@/lib/utils/logbookCapabilities'
+import { getNextShift, getRelevantShift, sortOperationalShifts } from '@/lib/utils/logbookWorkspace'
+import { LogbookDateShiftBar } from '@/components/logbook/LogbookDateShiftBar'
+import { LogbookFilters } from '@/components/logbook/LogbookFilters'
+import { LogbookHandoffCard } from '@/components/logbook/LogbookHandoffCard'
+import { LogbookActivityFeed } from '@/components/logbook/LogbookActivityFeed'
+import { AddHandoffDrawer } from '@/components/logbook/AddHandoffDrawer'
+import { NeedsNextShift } from '@/components/logbook/NeedsNextShift'
+import { LogbookEntryDetailDrawer } from '@/components/logbook/LogbookEntryDetailDrawer'
+import { LogbookStatusFilter, type LogbookStatusFilterValue } from '@/components/logbook/LogbookStatusFilter'
+import { ShiftHandoffDrawer } from '@/components/logbook/ShiftHandoffDrawer'
+import { LogbookSearchWorkspace } from '@/components/logbook/LogbookSearchWorkspace'
+import { hasLogbookSearchState, logbookSearchParams, parseLogbookSearchParams, type LogbookSearchFilters } from '@/lib/utils/logbookSearch'
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function todayIso(): string {
-  const d = new Date()
-  return formatLocalDate(d)
+function hotelLocalDateParts(timeZone?: string): Record<string, string> {
+  return Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date()).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),
+  )
+}
+
+function todayIso(timeZone?: string): string {
+  const parts = hotelLocalDateParts(timeZone)
+  return `${parts.year}-${parts.month}-${parts.day}`
+}
+
+function hotelClock(timeZone?: string): Date {
+  const parts = hotelLocalDateParts(timeZone)
+  return new Date(2000, 0, 1, Number(parts.hour), Number(parts.minute))
 }
 
 function formatLocalDate(d: Date): string {
@@ -61,6 +97,20 @@ function formatDisplayDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number)
   const d = new Date(year, month - 1, day)
   return format(d, 'MMM d, yyyy')
+}
+
+function formatDateControlLabel(dateStr: string, today: string, locale: string, todayLabel: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  if (dateStr === today) {
+    const shortDate = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(date).toUpperCase()
+    return `${todayLabel.toUpperCase()} · ${shortDate}`
+  }
+  return new Intl.DateTimeFormat(locale, { weekday: 'short', month: 'short', day: 'numeric' }).format(date).toUpperCase()
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof Error && /404|not found/i.test(error.message)
 }
 
 // â”€â”€ Expiry Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -254,7 +304,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
     mutationFn: () => logbookApi.generateShiftSummary({ shift_date: shiftDate }),
     onSuccess: (res) => {
       setSummaryText(res.data.summary_text)
-      setStats({ tasks_completed: res.data.tasks_completed, open_work_orders: res.data.open_work_orders })
+      setStats({ tasks_completed: res.data.tasks_completed ?? res.data.stats.tasks_completed, open_work_orders: res.data.open_work_orders ?? res.data.stats.open_work_orders })
       setGenerateError(null)
       queryClient.invalidateQueries({ queryKey: ['shift-summary-ack', shiftDate] })
     },
@@ -679,25 +729,51 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
 
 // â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export default function LogbookPage() {
-  const { t } = useTranslation()
+function LogbookPageContent() {
+  const { t, i18n } = useTranslation()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const hotel = useHotelStore((s) => s.hotel)
   const v2 = isSectionRedesigned('logbook', hotel)
   const [today, setToday] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editTarget, setEditTarget] = useState<LogbookEntry | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LogbookEntry | null>(null)
+  const [detailEntry, setDetailEntry] = useState<LogbookEntry | null>(null)
+  const [detailStartInEdit, setDetailStartInEdit] = useState(false)
+  const [showShiftHandoff, setShowShiftHandoff] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<LogbookStatusFilterValue>('all')
+  const [searchRequested, setSearchRequested] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { isSupervisor, isGM } = useRole()
+  const { isSupervisor, isGM, role } = useRole()
+  const capabilities = getLogbookCapabilities(role)
+  const searchFilters = useMemo(() => parseLogbookSearchParams(new URLSearchParams(searchParams.toString())), [searchParams])
+  const searchMode = v2 && (searchRequested || hasLogbookSearchState(searchFilters))
 
   useEffect(() => {
-    const currentDate = todayIso()
+    const entryId = searchParams.get('entry')
+    if (!entryId || detailEntry?.id === entryId) return
+    void logbookApi.getEntry(entryId).then((response) => openEntryDetail(response.data)).catch(() => undefined)
+  }, [searchParams, detailEntry?.id])
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (!hasLogbookSearchState(parseLogbookSearchParams(new URLSearchParams(window.location.search)))) setSearchRequested(false)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  useEffect(() => {
+    const currentDate = todayIso(hotel?.timezone)
     setToday(currentDate)
     setSelectedDate((prev) => prev || currentDate)
     setMounted(true)
-  }, [])
+  }, [hotel?.timezone])
 
   const session = useAuthStore((s) => s.session)
   const currentUserId: string = session?.user?.id ?? ''
@@ -712,13 +788,36 @@ export default function LogbookPage() {
 
   const queryClient = useQueryClient()
 
-  const { data: deptsData } = useQuery({
+  const departmentsQuery = useQuery({
     queryKey: ['hotel-departments', hotelId],
     queryFn: () => logbookApi.listDepartments(hotelId),
     enabled: !!hotelId,
     staleTime: 5 * 60 * 1000,
     select: (res) => res.data,
   })
+  const deptsData = departmentsQuery.data
+
+  const shiftsQuery = useQuery({
+    queryKey: ['logbook-shifts'],
+    queryFn: () => schedulingApi.listShifts({ is_active: true }),
+    select: (res) => sortOperationalShifts(res.data),
+    staleTime: 5 * 60 * 1000,
+  })
+  const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data])
+
+  const staffQuery = useQuery({
+    queryKey: ['logbook-search-staff'],
+    queryFn: () => staffApi.list(),
+    enabled: v2 && searchMode,
+    staleTime: 5 * 60 * 1000,
+    select: (response) => response.data.staff,
+  })
+
+  useEffect(() => {
+    if (!selectedDate || !shifts.length || selectedShiftId) return
+    const defaultShift = selectedDate === today ? getRelevantShift(shifts, hotelClock(hotel?.timezone)) : shifts[0]
+    setSelectedShiftId(defaultShift?.id ?? null)
+  }, [hotel?.timezone, selectedDate, selectedShiftId, shifts, today])
 
   const {
     data: entries,
@@ -735,6 +834,87 @@ export default function LogbookPage() {
       }),
     enabled: !!selectedDate,
     select: (res) => res.data as LogbookEntry[],
+  })
+
+  const statusFilterParams =
+    statusFilter === 'needs_follow_up' ? { status: 'follow_up' as const }
+    : statusFilter === 'important' ? { priority: 'important' as const }
+    : statusFilter === 'resolved' ? { status: 'resolved' as const }
+    : {}
+
+  const workspaceEntriesQuery = useInfiniteQuery({
+    queryKey: ['logbook-workspace-entries', selectedDate, selectedDeptId, selectedShiftId, statusFilter],
+    queryFn: ({ pageParam }) => logbookApi.listEntries({
+      entry_date: selectedDate,
+      department_id: selectedDeptId ?? undefined,
+      shift_id: selectedShiftId ?? undefined,
+      page: pageParam,
+      ...statusFilterParams,
+    }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.meta.has_more ? lastPage.meta.page + 1 : undefined,
+    enabled: v2 && !!selectedDate,
+  })
+  const workspaceEntries = useMemo(
+    () => workspaceEntriesQuery.data?.pages.flatMap((page) => page.data) ?? [],
+    [workspaceEntriesQuery.data],
+  )
+
+  const searchEntriesQuery = useInfiniteQuery({
+    queryKey: ['logbook-search-entries', searchFilters],
+    queryFn: ({ pageParam }) => logbookApi.listEntries({
+      ...searchFilters,
+      page: pageParam,
+      per_page: 20,
+    }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.meta.has_more ? lastPage.meta.page + 1 : undefined,
+    // One-character phrases stay local to the input. Filter-only discovery
+    // remains valid and server-side.
+    enabled: v2 && searchMode && hasLogbookSearchState(searchFilters) && (!searchFilters.q || searchFilters.q.length >= 2),
+  })
+  const searchEntries = useMemo(
+    () => searchEntriesQuery.data?.pages.flatMap((page) => page.data) ?? [],
+    [searchEntriesQuery.data],
+  )
+  const searchMeta = searchEntriesQuery.data?.pages.at(-1)?.meta
+
+  const needsNextShiftQuery = useQuery({
+    queryKey: ['logbook-needs-next-shift', selectedDate, selectedDeptId, selectedShiftId],
+    queryFn: () => logbookApi.listEntries({
+      entry_date: selectedDate,
+      department_id: selectedDeptId ?? undefined,
+      shift_id: selectedShiftId ?? undefined,
+      status: 'follow_up',
+      per_page: 100,
+    }),
+    enabled: v2 && !!selectedDate,
+    select: (res) => res.data,
+  })
+
+  const summaryQuery = useQuery({
+    queryKey: ['logbook-shift-summary', selectedDate, selectedShiftId],
+    queryFn: () => logbookApi.getShiftSummary(selectedShiftId as string, selectedDate),
+    enabled: v2 && !!selectedShiftId,
+    retry: false,
+    select: (res) => res.data,
+  })
+  const summaryError = summaryQuery.isError && !isNotFoundError(summaryQuery.error)
+    ? (summaryQuery.error instanceof Error ? summaryQuery.error : new Error('Unable to load summary'))
+    : null
+  const selectedShift = shifts.find((shift) => shift.id === selectedShiftId) ?? null
+  const nextShift = getNextShift(shifts, selectedShiftId)
+  const handoffTitle = selectedShift && nextShift
+    ? `${selectedShift.name} → ${nextShift.name} ${t('logbook.shiftHandoff')}`
+    : t('logbook.shiftHandoff')
+
+  const generateSummary = useMutation({
+    mutationFn: (regenerate: boolean = false) => logbookApi.generateShiftSummary({ shift_id: selectedShiftId as string, shift_date: selectedDate, regenerate }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['logbook-shift-summary', selectedDate] }),
+  })
+  const acknowledgeSummary = useMutation({
+    mutationFn: (summaryId: string) => logbookApi.acknowledgeShiftSummary(summaryId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['logbook-shift-summary', selectedDate] }),
   })
 
   const deptMapFromEntries: Record<string, string> = {}
@@ -773,6 +953,7 @@ export default function LogbookPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
+      queryClient.invalidateQueries({ queryKey: ['logbook-workspace-entries', selectedDate] })
     },
   })
 
@@ -780,29 +961,66 @@ export default function LogbookPage() {
     if (!selectedDate) return
     setSelectedDate((d) => prevDay(d))
     setSelectedDeptId(null)
+    setSelectedShiftId(null)
   }
 
   function handleNextDay() {
     if (!selectedDate || !today || selectedDate >= today) return
     setSelectedDate((d) => nextDay(d))
     setSelectedDeptId(null)
+    setSelectedShiftId(null)
   }
 
   function handleToday() {
     if (!today) return
     setSelectedDate(today)
     setSelectedDeptId(null)
+    setSelectedShiftId(null)
+  }
+
+  function setSearchFilters(next: LogbookSearchFilters) {
+    const params = logbookSearchParams(next)
+    router.push(params.size ? `${pathname}?${params.toString()}` : pathname, { scroll: false })
+  }
+
+  function beginSearch() {
+    setSearchRequested(true)
+    if (!isToday) {
+      setSearchFilters({ date_from: selectedDate, date_to: selectedDate, shift_id: selectedShiftId ?? undefined, department_id: selectedDeptId ?? undefined })
+    } else if (selectedDeptId) {
+      setSearchFilters({ department_id: selectedDeptId })
+    }
+  }
+
+  function exitSearch() {
+    setSearchRequested(false)
+    router.push(pathname, { scroll: false })
   }
 
   function handleEntryCreated() {
     queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
+    queryClient.invalidateQueries({ queryKey: ['logbook-workspace-entries', selectedDate] })
+    queryClient.invalidateQueries({ queryKey: ['logbook-needs-next-shift', selectedDate] })
+  }
+
+  function openEntryDetail(entry: LogbookEntry) {
+    setDetailStartInEdit(false)
+    setDetailEntry(entry)
+  }
+
+  function openEntryEdit(entry: LogbookEntry) {
+    setDetailStartInEdit(true)
+    setDetailEntry(entry)
   }
 
   const isToday = !!today && selectedDate === today
+  const dateControlLabel = selectedDate
+    ? formatDateControlLabel(selectedDate, today, i18n.language, t('logbook.today'))
+    : ''
 
   if (!mounted || !today || !selectedDate) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="max-w-[1400px] space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="h-7 w-48 rounded-lg bg-gray-100 animate-pulse" />
@@ -810,12 +1028,162 @@ export default function LogbookPage() {
           </div>
           <div className="h-9 w-28 rounded-lg bg-gray-100 animate-pulse" />
         </div>
-        <div className="h-9 w-80 max-w-full rounded-lg bg-gray-100 animate-pulse" />
+        <div className="h-16 w-full max-w-3xl rounded-[var(--r-lg)] bg-gray-100 animate-pulse" />
         <div className="space-y-3">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
         </div>
+      </div>
+    )
+  }
+
+  if (v2) {
+    return (
+      <div className="max-w-[1400px] space-y-6">
+        <PageHeader
+          title={t('logbook.pageTitle')}
+          subtitle={t('logbook.pageSubtitle')}
+          dataI18nSkip
+          actions={<><Button variant="ghost" onClick={beginSearch} className="gap-2 shrink-0"><Search size={15} />{t('logbook.search')}</Button>{capabilities.canCreateEntry ? <Button variant="primary" onClick={() => setShowCreateModal(true)} className="gap-2 shrink-0"><Plus size={15} />{t('logbook.addHandoff')}</Button> : null}</>}
+        />
+
+        {searchMode ? <LogbookSearchWorkspace
+          filters={searchFilters}
+          today={today}
+          departments={deptsData ?? []}
+          shifts={shifts}
+          staff={staffQuery.data ?? []}
+          entries={searchEntries}
+          meta={searchMeta}
+          isLoading={searchEntriesQuery.isLoading}
+          isFetching={searchEntriesQuery.isFetching}
+          isError={searchEntriesQuery.isError}
+          onRetry={() => searchEntriesQuery.refetch()}
+          onFiltersChange={setSearchFilters}
+          onClearFilters={() => setSearchFilters({ q: searchFilters.q })}
+          onExit={exitSearch}
+          onOpen={openEntryDetail}
+          onLoadMore={() => searchEntriesQuery.fetchNextPage()}
+        /> : <>
+        <LogbookDateShiftBar
+          dateLabel={dateControlLabel}
+          isToday={isToday}
+          onPreviousDay={handlePrevDay}
+          onNextDay={handleNextDay}
+          onToday={handleToday}
+          selectedDate={selectedDate}
+          onDateChange={(value) => { if (value && value <= today) { setSelectedDate(value); setSelectedShiftId(null) } }}
+          shifts={shifts}
+          selectedShiftId={selectedShiftId}
+          onShiftChange={setSelectedShiftId}
+          isLoadingShifts={shiftsQuery.isLoading}
+          isShiftListUnavailable={shiftsQuery.isError}
+        />
+
+        <LogbookHandoffCard
+          summary={summaryQuery.data}
+          title={handoffTitle}
+          isHistorical={!isToday}
+          isLoading={!!selectedShiftId && summaryQuery.isLoading}
+          error={summaryError}
+          canGenerate={capabilities.canGenerateShiftSummary && isToday}
+          canAcknowledge={capabilities.canAcknowledgeShiftSummary}
+          isGenerating={generateSummary.isPending}
+          isAcknowledging={acknowledgeSummary.isPending}
+          onGenerate={() => generateSummary.mutate(false)}
+          onAcknowledge={() => {
+            if (summaryQuery.data?.id) acknowledgeSummary.mutate(summaryQuery.data.id)
+          }}
+          onRetry={() => summaryQuery.refetch()}
+          onViewFull={() => setShowShiftHandoff(true)}
+        />
+
+        <NeedsNextShift
+          entries={needsNextShiftQuery.data ?? []}
+          isLoading={needsNextShiftQuery.isLoading}
+          isError={needsNextShiftQuery.isError}
+          onRetry={() => needsNextShiftQuery.refetch()}
+          onOpen={openEntryDetail}
+        />
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <LogbookFilters
+            departments={deptsData ?? []}
+            selectedDepartmentId={selectedDeptId}
+            onDepartmentChange={setSelectedDeptId}
+            isUnavailable={departmentsQuery.isError}
+          />
+          <LogbookStatusFilter value={statusFilter} onChange={setStatusFilter} />
+        </div>
+
+        <LogbookActivityFeed
+          entries={workspaceEntries}
+          isLoading={workspaceEntriesQuery.isLoading}
+          isError={workspaceEntriesQuery.isError}
+          onRetry={() => workspaceEntriesQuery.refetch()}
+          hasMore={workspaceEntriesQuery.hasNextPage}
+          isLoadingMore={workspaceEntriesQuery.isFetchingNextPage}
+          onLoadMore={() => workspaceEntriesQuery.fetchNextPage()}
+          isToday={isToday}
+          canCreate={capabilities.canCreateEntry}
+          currentUserId={currentUserId}
+          canManageAny={capabilities.canEditAnyEntry}
+          onCreate={() => setShowCreateModal(true)}
+          onSearch={beginSearch}
+          onOpen={openEntryDetail}
+          onEdit={openEntryEdit}
+          onDelete={setDeleteTarget}
+        />
+        </>}
+
+        <AddHandoffDrawer
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={handleEntryCreated}
+          departments={deptsData ?? []}
+          defaultDepartmentId={selectedDeptId ?? deptsData?.[0]?.id ?? ''}
+          shiftContextLabel={selectedShift ? `${selectedShift.name} · ${isToday ? t('logbook.today') : formatDisplayDate(selectedDate)}` : undefined}
+          activeShiftEndTime={selectedShift?.end_time ?? null}
+          isHistoricalDate={!isToday}
+          onGoToToday={handleToday}
+        />
+        <LogbookEntryDetailDrawer
+          entry={detailEntry}
+          onClose={() => setDetailEntry(null)}
+          onChanged={handleEntryCreated}
+          onDelete={(target) => { setDetailEntry(null); setDeleteTarget(target) }}
+          shifts={shifts}
+          currentUserId={currentUserId}
+          capabilities={capabilities}
+          startInEditMode={detailStartInEdit}
+        />
+        <ShiftHandoffDrawer
+          isOpen={showShiftHandoff}
+          summary={summaryQuery.data}
+          shiftName={selectedShift?.name ?? t('logbook.shift')}
+          nextShiftName={nextShift?.name}
+          shiftDate={selectedDate}
+          isHistorical={!isToday}
+          canGenerate={capabilities.canGenerateShiftSummary && isToday}
+          canAcknowledge={capabilities.canAcknowledgeShiftSummary}
+          isGenerating={generateSummary.isPending}
+          isAcknowledging={acknowledgeSummary.isPending}
+          generationError={generateSummary.error instanceof Error ? generateSummary.error : null}
+          onClose={() => setShowShiftHandoff(false)}
+          onGenerate={(regenerate) => generateSummary.mutate(regenerate ?? false)}
+          onAcknowledge={() => { if (summaryQuery.data?.id) acknowledgeSummary.mutate(summaryQuery.data.id) }}
+          onOpenLogbookEntry={(id) => {
+            const entry = workspaceEntries.find((item) => item.id === id) ?? needsNextShiftQuery.data?.find((item) => item.id === id)
+            setShowShiftHandoff(false)
+            if (entry) {
+              openEntryDetail(entry)
+              return
+            }
+            void logbookApi.getEntry(id).then((response) => openEntryDetail(response.data))
+          }}
+        />
+        <DeleteConfirmDialog open={!!deleteTarget} title="Delete this entry?" onConfirm={() => deleteTarget && deleteEntry(deleteTarget.id)} onCancel={() => setDeleteTarget(null)} loading={deleting} />
       </div>
     )
   }
@@ -1018,5 +1386,13 @@ export default function LogbookPage() {
         loading={deleting}
       />
     </div>
+  )
+}
+
+export default function LogbookPage() {
+  return (
+    <Suspense>
+      <LogbookPageContent />
+    </Suspense>
   )
 }

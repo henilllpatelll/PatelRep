@@ -86,7 +86,7 @@ export interface OperationalAuditEvent {
 }
 
 export type EvidenceType = 'file' | 'photo' | 'measurement' | 'checklist_result' | 'signature' | 'attestation' | 'external_certificate'
-export type RelatedEvidenceEntityType = 'staff' | 'task' | 'asset' | 'room' | 'inspection' | 'incident' | 'sop'
+export type RelatedEvidenceEntityType = 'staff' | 'task' | 'asset' | 'room' | 'inspection' | 'incident' | 'sop' | 'pm_completion' | 'logbook_entry'
 
 export interface EvidenceRecord {
   id: string
@@ -143,6 +143,7 @@ export const evidenceApi = {
   evaluateCompetency: (assignmentId: string, payload: { assessment_method: 'observed' | 'quiz'; outcome: 'passed' | 'failed'; notes?: string }): Promise<{ data: DocumentAcknowledgement }> => apiClient.post(`/evidence/acknowledgements/${assignmentId}/competency`, payload),
   listRecords: (filters?: { related_entity_type?: RelatedEvidenceEntityType; related_entity_id?: string }): Promise<{ data: EvidenceRecord[] }> => apiClient.get('/evidence/records', { params: filters }),
   getRecord: (recordId: string): Promise<{ data: EvidenceRecord }> => apiClient.get(`/evidence/records/${recordId}`),
+  deleteRecord: (recordId: string): Promise<void> => apiClient.delete(`/evidence/records/${recordId}`),
   createRecord: (payload: EvidenceRecordInput): Promise<{ data: EvidenceRecord }> => apiClient.post('/evidence/records', payload),
   uploadRecordFile: (recordId: string, file: File): Promise<{ data: EvidenceRecord }> => {
     const payload = new FormData()

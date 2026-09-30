@@ -27779,7 +27779,12 @@
       "file": "apps/web/lib/utils/taskViews.ts",
       "root_cause": "parseSavedViewsJson checked only that filters was an object and returned it without validating each field.",
       "fix": "Normalize saved filters through the existing URL decoder, which retains only supported values and falls back safely for invalid fields.",
-      "tags": ["tasks", "saved-views", "validation", "phase-6"],
+      "tags": [
+        "tasks",
+        "saved-views",
+        "validation",
+        "phase-6"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-29T01:24:00-05:00"
@@ -27791,7 +27796,12 @@
       "file": "apps/web/app/(dashboard)/tasks/page.tsx",
       "root_cause": "The bulk outcome object lacked i18next's dictionary index signature, and a shared internal/guest priority variable retained the internal-only low value in TypeScript's branch analysis.",
       "fix": "Pass explicit interpolation properties and narrow the guest branch to its urgent/normal priority type. npm run type-check passes.",
-      "tags": ["tasks", "phase-6", "typescript", "bulk-actions"],
+      "tags": [
+        "tasks",
+        "phase-6",
+        "typescript",
+        "bulk-actions"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-29T01:31:00-05:00"
@@ -27803,7 +27813,13 @@
       "file": "apps/api/routers/tasks.py, apps/api/routers/guest_requests.py",
       "root_cause": "The individual mutation routes were tenant-scoped but did not enforce role boundaries for the fields and cancellation transition used by Phase 6 bulk actions.",
       "fix": "Added route-level role guards for task assignment, reprioritization, edits/status changes, and guest-request cancellation, with focused async RBAC tests.",
-      "tags": ["tasks", "bulk-actions", "rbac", "security", "phase-6"],
+      "tags": [
+        "tasks",
+        "bulk-actions",
+        "rbac",
+        "security",
+        "phase-6"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-29T01:35:00-05:00"
@@ -27815,7 +27831,12 @@
       "file": "apps/web/.next (environmental build lock)",
       "root_cause": "A pre-existing user/workspace Next process was active. It was preserved rather than forcibly terminated, and the available browser automation surface did not attach.",
       "fix": "No destructive process action taken. Type-check, lint, unit/API tests, i18n parity, diff check, and authenticated-route redirect check completed; rerun npm run build once the existing build exits.",
-      "tags": ["verification", "nextjs", "environment", "tasks-phase-6"],
+      "tags": [
+        "verification",
+        "nextjs",
+        "environment",
+        "tasks-phase-6"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-29T01:48:00-05:00"
@@ -27827,10 +27848,50 @@
       "file": "apps/api/routers/tasks.py, apps/api/routers/guest_requests.py, apps/api/rbac_bare_comparison_allowlist.json, apps/api/RBAC-MATRIX.md",
       "root_cause": "Phase 6 role guards were introduced as router-local role sets before the tenant-scoped record lookup and were not synchronized with the project-wide RBAC drift contracts.",
       "fix": "Moved task role groups to core roles, aligned task status authority with the manager role group, and regenerated the reviewed RBAC artifacts. Authorized cross-tenant updates retain their existing tenant-scoped 404 behavior.",
-      "tags": ["tasks", "rbac", "tenant-isolation", "verification"],
-      "related_bugs": ["bug-1691"],
+      "tags": [
+        "tasks",
+        "rbac",
+        "tenant-isolation",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1691"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-29T02:27:00-05:00"
+    },
+    {
+      "id": "bug-1696",
+      "timestamp": "2026-09-29T03:11:00-05:00",
+      "error_message": "Full API verification initially failed three checks after Logbook Phase 1: unapproved local role constants, stale generated RBAC matrix, and a tenant-isolation fake without a count property.",
+      "file": "apps/api/routers/logbook.py, apps/api/RBAC-MATRIX.md",
+      "root_cause": "The new Logbook privileges duplicated a role tuple instead of importing the canonical core constant; the required generated documentation was not refreshed; and an older fake returned only data while production PostgREST responses expose count.",
+      "fix": "Switched to core.roles.PROGRAM_MANAGER_ROLES, regenerated RBAC-MATRIX.md, and made the count fallback use getattr. The affected 47 tests and the full 896-test API suite now pass.",
+      "tags": [
+        "logbook",
+        "rbac",
+        "tenant-isolation",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T03:11:00-05:00"
+    },
+    {
+      "id": "bug-1695",
+      "timestamp": "2026-09-29T03:07:00-05:00",
+      "error_message": "Focused Logbook pytest command failed because pytest was not available on PATH.",
+      "file": "apps/api/.venv/Scripts/python.exe",
+      "root_cause": "The repository uses its local virtual environment rather than a globally installed pytest executable.",
+      "fix": "Ran the focused suite through .venv\\Scripts\\python.exe -m pytest instead; all 35 tests passed.",
+      "tags": [
+        "verification",
+        "pytest",
+        "environment"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T03:07:00-05:00"
     },
     {
       "id": "bug-1694",
@@ -27839,10 +27900,815 @@
       "file": "apps/web/e2e/room-board-baseline.spec.ts and housekeeping RoomStatusBoard baseline fixture",
       "root_cause": "Unknown. The pushed task-workspace commit did not modify RoomStatusBoard or its styles; CI exposes no failed-test artifact, so the current fixture/rendering difference cannot yet be inspected locally.",
       "fix": "Reran the failed GitHub job unchanged; all eight room-board screenshots passed. Treat the original run as a transient external fixture/deployment mismatch, not a code regression.",
-      "tags": ["ci", "playwright", "visual-regression", "housekeeping"],
+      "tags": [
+        "ci",
+        "playwright",
+        "visual-regression",
+        "housekeeping"
+      ],
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-09-29T02:44:00-05:00"
+    },
+    {
+      "id": "bug-1697",
+      "timestamp": "2026-09-29T06:20:00-05:00",
+      "error_message": "OpenWolf context inspection command failed because an intermediate PowerShell invocation expanded $a before the child shell received it.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "Nested PowerShell command quoting did not preserve the local variable reference.",
+      "fix": "Used direct literal file reads rather than a nested variable expression.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "openwolf"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:20:00-05:00"
+    },
+    {
+      "id": "bug-1698",
+      "timestamp": "2026-09-29T06:25:00-05:00",
+      "error_message": "Phase 3 Logbook structured-handoff contract tests failed because category, status, priority, ownership, related-item validation, and edited_at did not exist in the API contract.",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "The Phase 2 router only supported content and expiry fields.",
+      "fix": "Pending implementation of the Phase 3 migration, request models, structured validation, and update handling.",
+      "tags": [
+        "logbook",
+        "phase-3",
+        "tests",
+        "structured-handoff"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T06:25:00-05:00"
+    },
+    {
+      "id": "bug-1699",
+      "timestamp": "2026-09-29T19:21:36.130Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/logbook/RelatedItemPicker.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:21:36.130Z"
+    },
+    {
+      "id": "bug-1700",
+      "timestamp": "2026-09-29T19:23:33.477Z",
+      "error_message": "CSS fix: time",
+      "file": "apps/web/components/logbook/LogbookActivityRow.tsx",
+      "root_cause": "time: formatDistanceToNow(new Date(entry.expires_at)) → format(new Date(entry.follow_up_at), 'MMM d · h:mm a')",
+      "fix": "Changed time: formatDistanceToNow(new Date(entry.expires_at)) → format(new Date(entry.follow_up_at), 'MMM d · h:mm a')",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:23:33.477Z"
+    },
+    {
+      "id": "bug-1701",
+      "timestamp": "2026-09-29T19:23:48.999Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:23:48.999Z"
+    },
+    {
+      "id": "bug-1702",
+      "timestamp": "2026-09-29T19:24:26.259Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "fix": "Changed to \"tsx --test lib/utils/housekeepingBoardFilters.tes",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:24:26.259Z"
+    },
+    {
+      "id": "bug-1703",
+      "timestamp": "2026-09-29T19:31:30.559Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/verify_logbook_phase3.tmp.mjs",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:31:30.559Z"
+    },
+    {
+      "id": "bug-1704",
+      "timestamp": "2026-09-29T19:35:22.326Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/check_wo.tmp.mjs",
+      "root_cause": "Had 'http://localhost:3000/logbook'",
+      "fix": "Changed to 'console'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:35:22.326Z"
+    },
+    {
+      "id": "bug-1705",
+      "timestamp": "2026-09-29T19:38:26.462Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/verify_logbook_phase3.tmp.mjs",
+      "root_cause": "Had 'button'",
+      "fix": "Changed to 'group'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:38:26.462Z"
+    },
+    {
+      "id": "bug-1706",
+      "timestamp": "2026-09-29T19:40:00.000Z",
+      "error_message": "Logbook Phase 3 structured fields (category/priority/status/etc.) silently absent from create/update responses, and /work-orders returned PGRST200 422s, even though migration 117 and the router code looked complete",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Root cause #1: supabase/migrations/117_logbook_structured_handoffs.sql existed on disk (written by a prior uncommitted session) but was never actually applied to the live shared Supabase project (oacnwalhcpqdabivweki) -- information_schema.columns confirmed logbook_entries had none of the new columns. Root cause #2 (compounding, found after applying the migration): the long-running local npm run dev:api uvicorn --reload process (PID chain reloader->worker->orphaned multiprocessing-fork child) was serving stale in-memory code/schema state from before the migration existed -- POST responses kept returning category=general/priority=normal even though the request body correctly sent category=room/priority=important, until the stale process tree was killed and npm run dev:api was restarted fresh. Matches the pattern in cerebrum's 2026-09-15/2026-09-28 stale-dev-API entries.",
+      "fix": "Applied migration 117 via the Supabase MCP apply_migration tool (same precedent as migration 116), ran NOTIFY pgrst, 'reload schema', then killed the stale python.exe process tree on port 8003 and restarted npm run dev:api cleanly. Re-verified via Playwright: category/priority/status/follow_up_at/assigned_to/related_type/related_id now persist and round-trip correctly, and shift_id resolves correctly when only one active shift matches a department.",
+      "tags": [
+        "logbook",
+        "migration-drift",
+        "stale-dev-server",
+        "postgrest-cache",
+        "supabase"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:40:00.000Z"
+    },
+    {
+      "id": "bug-1707",
+      "timestamp": "2026-09-29T19:40:00.000Z",
+      "error_message": "test_logbook_structured_handoffs.py: 2 of its own tests failed (expected 200 got 422; KeyError: 'assigned_to') when actually run, despite looking complete",
+      "file": "apps/api/tests/test_logbook_structured_handoffs.py",
+      "root_cause": "The FakeDB test fixture seeded user_profiles for the assignee but never seeded user_roles (the actual tenant-scoped active-staff table _validate_assignee correctly queries), so a legitimate assignment was rejected as inactive. Separately, the update test's seeded logbook_entries row omitted the new nullable columns entirely (only a real Postgres row would carry them as NULL) -- FakeDB's update() merge only writes keys present in the meaningful-changes diff, so a field that was implicitly None via a missing key vs. explicitly None via a real column both looked unchanged and the key never appeared in the response, causing a KeyError in the assertion.",
+      "fix": "Added user_roles rows (tenant_id/user_id/role/is_active) for both the valid and cross-tenant assignee fixtures, and seeded the full set of migration 117 columns (follow_up_at, assigned_to, related_type, related_id, resolved_at, resolved_by, edited_at, archived_at, expires_at) as explicit None on the update test's seeded row.",
+      "tags": [
+        "logbook",
+        "test-fixture",
+        "fake-supabase"
+      ],
+      "related_bugs": [
+        "bug-1706"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:40:00.000Z"
+    },
+    {
+      "id": "bug-1708",
+      "timestamp": "2026-09-29T19:40:00.000Z",
+      "error_message": "GET /v1/work-orders (any params) returns 422 PGRST200 'One or more fields are not supported by this endpoint' -- discovered while building the Logbook Add Handoff drawer's work-order link picker, NOT caused by it",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "The list endpoint's select string embeds three FK relationships by explicit constraint name (work_orders_problem_code_id_fkey, _cause_code_id_fkey, _resolution_code_id_fkey referencing engineering_repair_codes), but pg_constraint on the live Supabase project shows none of these three constraints exist -- the Engineering repair-intelligence migration that was supposed to add them (per cerebrum's 2026-09-27 repair-intelligence-foundation entry) was apparently never applied to this shared project either. This breaks the real Engineering page's Work Orders list for every caller, not just the new Logbook picker.",
+      "fix": "NOT fixed -- explicitly out of scope for the Logbook Phase 3 task (unrelated feature, needs its own migration-application pass). RelatedItemPicker.tsx already degrades gracefully (empty Nothing-found state, no crash) when this call fails. Flagged to the user; needs a follow-up session to inventory and apply any other migrations written-but-never-pushed to this project.",
+      "tags": [
+        "work-orders",
+        "migration-drift",
+        "postgrest",
+        "pre-existing",
+        "deferred"
+      ],
+      "related_bugs": [
+        "bug-1706"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T19:40:00.000Z"
+    },
+    {
+      "id": "bug-1709",
+      "timestamp": "2026-09-29T20:21:23.877Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 26→37 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:21:23.877Z"
+    },
+    {
+      "id": "bug-1710",
+      "timestamp": "2026-09-29T20:22:02.206Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T20:26:31.027Z"
+    },
+    {
+      "id": "bug-1711",
+      "timestamp": "2026-09-29T20:24:20.004Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/utils/logbookCapabilities.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:24:20.004Z"
+    },
+    {
+      "id": "bug-1712",
+      "timestamp": "2026-09-29T20:26:47.937Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/logbook.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:26:47.937Z"
+    },
+    {
+      "id": "bug-1713",
+      "timestamp": "2026-09-29T20:31:55.380Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/logbook/LogbookActivityRow.tsx",
+      "root_cause": "hover: shadow-[var(--shadow-sm)]\"> → shadow-[var(--shadow-sm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]\"",
+      "fix": "Changed hover: shadow-[var(--shadow-sm)]\"> → shadow-[var(--shadow-sm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:31:55.380Z"
+    },
+    {
+      "id": "bug-1714",
+      "timestamp": "2026-09-29T20:32:46.208Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/logbook/LogbookEntryDetailDrawer.tsx",
+      "root_cause": "No early return/throw for edge case: !startInEditMode || !active || active.status === 'resolved' ",
+      "fix": "Added guard clause: if (!startInEditMode || !active || active.st)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:32:46.208Z"
+    },
+    {
+      "id": "bug-1715",
+      "timestamp": "2026-09-29T20:33:38.267Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:33:38.267Z"
+    },
+    {
+      "id": "bug-1716",
+      "timestamp": "2026-09-29T20:33:53.720Z",
+      "error_message": "CSS fix: queryKey",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "queryKey: ['logbook-workspace-entries', selectedDate] → ['logbook-needs-next-shift', selectedDate]",
+      "fix": "Changed queryKey: ['logbook-workspace-entries', selectedDate] → ['logbook-needs-next-shift', selectedDate]",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:33:53.720Z"
+    },
+    {
+      "id": "bug-1717",
+      "timestamp": "2026-09-29T20:34:16.563Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 43→61 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:34:16.563Z"
+    },
+    {
+      "id": "bug-1718",
+      "timestamp": "2026-09-29T20:39:19.221Z",
+      "error_message": "Type error",
+      "file": "apps/web/e2e/zz-verify-phase4.spec.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: await page.getByText('Needs follow-up', { exact: true }).cli",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T20:41:25.939Z"
+    },
+    {
+      "id": "bug-1719",
+      "timestamp": "2026-09-29T20:40:41.869Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/e2e/zz-verify-phase4.spec.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: // The page auto-selects whichever shift is \"currently activ; // and re-asserts it whenever the selector is cleared (pre-e",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T20:43:33.720Z"
+    },
+    {
+      "id": "bug-1720",
+      "timestamp": "2026-09-29T20:42:03.347Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/e2e/zz-verify-phase4.spec.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:42:03.347Z"
+    },
+    {
+      "id": "bug-1721",
+      "timestamp": "2026-09-29T20:43:41.839Z",
+      "error_message": "Wrong return value",
+      "file": "apps/web/e2e/zz-verify-phase4.spec.ts",
+      "root_cause": "Was returning: select?.value ?? null",
+      "fix": "Now returns: firstRealOption?.value ?? null",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:43:41.839Z"
+    },
+    {
+      "id": "bug-1722",
+      "timestamp": "2026-09-29T20:44:51.034Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/e2e/zz-verify-phase4.spec.ts",
+      "root_cause": "31 lines replaced/restructured",
+      "fix": "Rewrote 47→23 lines (31 removed) | Also: // ── Carry forward ──────────────────────────────; await page.getByRole('button', { name: 'Carry Forw",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-29T20:47:33.865Z"
+    },
+    {
+      "id": "bug-1723",
+      "timestamp": "2026-09-29T20:47:40.700Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/e2e/zz-verify-phase4.spec.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:47:40.700Z"
+    },
+    {
+      "id": "bug-1724",
+      "timestamp": "2026-09-29T20:48:49.439Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/logbook/LogbookEntryDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:48:49.439Z"
+    },
+    {
+      "id": "bug-1725",
+      "timestamp": "2026-09-29T20:54:27.667Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Had \"DEBUG_RESOLVE_UPDATES\"",
+      "fix": "Changed to \"logbook_entries\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:54:27.667Z"
+    },
+    {
+      "id": "bug-1726",
+      "timestamp": "2026-09-29T21:00:13.242751Z",
+      "error_message": "POST /v1/logbook/entries/{id}/resolve kept returning 400 (Postgres 23514) even after the fix was on disk",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Not a code bug: local uvicorn --reload (Windows/WatchFiles) silently failed to restart its worker after a source edit (logged Reloading... but never a new Started server process line), so a stale pre-fix worker kept serving requests. A second, unrelated orphaned uvicorn process was also still bound nearby from an earlier session.",
+      "fix": "Killed all stray python.exe/uvicorn processes (parent + multiprocessing-fork children) via taskkill, freed port 8003, started one fresh npm run dev:api, and verified via GET /openapi.json that the new routes/behavior were actually registered before retesting live in the browser.",
+      "tags": [
+        "uvicorn-reload",
+        "windows",
+        "stale-process",
+        "logbook",
+        "live-verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T21:00:13.242751Z"
+    },
+    {
+      "id": "bug-1727",
+      "timestamp": "2026-09-29T21:00:13.242751Z",
+      "error_message": "PostgREST 23514 check_violation on POST /v1/logbook/entries/{id}/resolve once uvicorn was actually serving current code",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "resolve_logbook_entry() set status='resolved' without nulling follow_up_at/assigned_to, violating migration 117's logbook_entries_follow_up_data_check. pytest's FakeDB never caught this since it doesn't enforce Postgres CHECK constraints -- only live browser verification against the real Supabase project surfaced it.",
+      "fix": "resolve_logbook_entry() now sets follow_up_at=None and assigned_to=None alongside status='resolved', mirroring the same invariant update_logbook_entry() already enforces via _normalize_structured_fields(). Added an explicit assertion for this in test_logbook_shift_continuity.py.",
+      "tags": [
+        "postgres-check-constraint",
+        "logbook",
+        "resolve-endpoint",
+        "fake-db-gap",
+        "migration-117"
+      ],
+      "related_bugs": [
+        "bug-1726"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T21:00:13.242751Z"
+    },
+    {
+      "id": "bug-1728",
+      "timestamp": "2026-09-29T21:58:33.990Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/services/ai/shift_summary.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier | Also: await log_ai_interaction( | Also: credits_charged = await check_and_deduct_credits(hotel_id, \"; await log_ai_interaction( | Also: async def generate_or_get_shift_summary(hotel_id: str, shift; return await _perform_generation(hotel_id, shift_id, shift_d",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-29T21:58:56.623Z"
+    },
+    {
+      "id": "bug-1729",
+      "timestamp": "2026-09-29T21:59:18.498Z",
+      "error_message": "Wrong reference: _STATS_KEYS should be STATS_KEYS",
+      "file": "apps/api/services/ai/shift_summary.py",
+      "root_cause": "Used \"_STATS_KEYS\" instead of \"STATS_KEYS\"",
+      "fix": "Changed _STATS_KEYS → STATS_KEYS",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T21:59:18.498Z"
+    },
+    {
+      "id": "bug-1730",
+      "timestamp": "2026-09-29T22:00:33.711Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T22:00:33.711Z"
+    },
+    {
+      "id": "bug-1731",
+      "timestamp": "2026-09-29T22:00:54.757Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T22:00:54.757Z"
+    },
+    {
+      "id": "bug-1732",
+      "timestamp": "2026-09-29T22:05:59.639Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_shift_summary_enrichment.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T22:05:59.639Z"
+    },
+    {
+      "id": "bug-1733",
+      "timestamp": "2026-09-29T22:07:13.015Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/test_logbook_foundation.py",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 34→56 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T22:07:13.016Z"
+    },
+    {
+      "id": "bug-1734",
+      "timestamp": "2026-09-29T22:07:45.722Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/test_shift_summary_window.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 6→9 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T22:07:45.722Z"
+    },
+    {
+      "id": "bug-1735",
+      "timestamp": "2026-09-29T22:10:30.443Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→11 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T22:10:30.444Z"
+    },
+    {
+      "id": "bug-1736",
+      "timestamp": "2026-09-29T23:21:57.000Z",
+      "error_message": "Initial verification commands used unavailable/incorrect npm and pytest scripts.",
+      "file": "apps/api/requirements.txt, apps/web/package.json",
+      "root_cause": "The Windows shell has pytest available through python -m pytest rather than a standalone pytest executable, and the web package defines type-check rather than typecheck/lint.",
+      "fix": "Ran python -m pytest and npm run type-check; both relevant verification commands passed.",
+      "tags": [
+        "verification",
+        "windows",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:21:57.000Z"
+    },
+    {
+      "id": "bug-1737",
+      "timestamp": "2026-09-29T23:30:00.000Z",
+      "error_message": "Initial OpenWolf context reads failed because RTK cannot resolve PowerShell cmdlets when invoked as executables.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The required RTK wrapper resolves command names through PATH, while Get-Content is a PowerShell cmdlet rather than a standalone program.",
+      "fix": "Used `rtk proxy powershell -NoProfile -Command` for PowerShell-only reads; keep direct executable commands behind RTK.",
+      "tags": [
+        "tooling",
+        "rtk",
+        "windows"
+      ],
+      "related_bugs": [
+        "bug-1736"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:30:00.000Z"
+    },
+    {
+      "id": "bug-1738",
+      "timestamp": "2026-09-29T23:31:00.000Z",
+      "error_message": "A PowerShell git-diff command failed because the App Router path containing parentheses was not quoted.",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "PowerShell interpreted parentheses in an unquoted command argument.",
+      "fix": "Quote App Router paths whenever passing them through PowerShell commands.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1737"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:31:00.000Z"
+    },
+    {
+      "id": "bug-1739",
+      "timestamp": "2026-09-29T23:36:00.000Z",
+      "error_message": "Targeted Phase 8 test invocation failed because the path was relative to apps/api twice.",
+      "file": "apps/api/tests/test_logbook_phase8.py",
+      "root_cause": "The command ran from apps/api but used the repository-root test path.",
+      "fix": "Run API tests from apps/api with tests/<file>, or from repository root with apps/api/tests/<file>.",
+      "tags": [
+        "verification",
+        "pytest",
+        "windows"
+      ],
+      "related_bugs": [
+        "bug-1736"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:36:00.000Z"
+    },
+    {
+      "id": "bug-1740",
+      "timestamp": "2026-09-29T23:34:00.000Z",
+      "error_message": "Parallel source reads failed because the outer PowerShell expanded $f before it reached RTK's proxied PowerShell command.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The proxy command argument was double-quoted, allowing the outer shell to expand the helper variable.",
+      "fix": "Use a single-quoted proxy command whenever it contains PowerShell variables.",
+      "tags": [
+        "tooling",
+        "rtk",
+        "powershell"
+      ],
+      "related_bugs": [
+        "bug-1737"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:34:00.000Z"
+    },
+    {
+      "id": "bug-1741",
+      "timestamp": "2026-09-29T23:44:00.000Z",
+      "error_message": "Phase 8 TypeScript check initially failed because the new translation mutation referenced i18n outside its hook scope; a new API test also initially omitted the existing test helper's required role argument.",
+      "file": "apps/web/components/logbook/LogbookEntryDetailDrawer.tsx, apps/api/tests/test_logbook_phase8.py",
+      "root_cause": "A broad patch matched the nested MoreMenu hook instead of the drawer hook, and the new test reused a helper with a non-default parameter without supplying it.",
+      "fix": "Moved i18n destructuring to LogbookEntryDetailDrawer and passed the GM role explicitly in the test fixture.",
+      "tags": [
+        "typescript",
+        "tests",
+        "logbook",
+        "fixed"
+      ],
+      "related_bugs": [
+        "bug-1739"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:44:00.000Z"
+    },
+    {
+      "id": "bug-1742",
+      "timestamp": "2026-09-29T23:49:00.000Z",
+      "error_message": "The Phase 8 permanent-delete hardening intentionally broke a legacy test that expected a chief engineer to delete another user's Logbook entry.",
+      "file": "apps/api/tests/test_logbook_foundation.py",
+      "root_cause": "The old test encoded pre-Phase-8 behavior, where the generic program-manager set could permanently delete handoffs.",
+      "fix": "Updated the contract to assert chief-engineer denial and added the GM-only success case; the client capability map now mirrors the backend gate.",
+      "tags": [
+        "logbook",
+        "rbac",
+        "permanent-delete",
+        "fixed"
+      ],
+      "related_bugs": [
+        "bug-1741"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:49:00.000Z"
+    },
+    {
+      "id": "bug-1743",
+      "timestamp": "2026-09-29T23:53:00.000Z",
+      "error_message": "Initial Phase 8 production build did not return before the command window closed; a second build reported another next build process still running. Two narrowly targeted activity-row patch attempts also failed due to pre-existing encoded separator characters in matching context.",
+      "file": "apps/web/.next, apps/web/components/logbook/LogbookActivityRow.tsx",
+      "root_cause": "A Turbopack build process remains active and holds Next's build lock; text patch contexts containing encoded middle-dot literals did not match the saved source bytes.",
+      "fix": "Did not terminate the potentially user-owned build process. Added the compact attachment indicator using context without encoded characters; await or restart the existing build process before obtaining a final build result.",
+      "tags": [
+        "build",
+        "nextjs",
+        "turbopack",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-1741"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T23:53:00.000Z"
+    },
+    {
+      "id": "bug-1744",
+      "timestamp": "2026-09-30T00:42:54.389Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/logbook.py",
+      "root_cause": "Had \"[^a-zA-Z0-9]+\"",
+      "fix": "Changed to \"\n    return re.sub(r\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:42:54.389Z"
     }
   ]
 }

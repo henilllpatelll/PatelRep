@@ -8,7 +8,7 @@ export interface Notification {
   body: string
   type: string
   is_read: boolean
-  metadata?: Record<string, any>
+  data?: Record<string, any>
   created_at: string
 }
 

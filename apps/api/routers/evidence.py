@@ -55,7 +55,10 @@ RELATED_ENTITY_TABLES = {
     "incident": ("controlled_incidents", "id"),
     "sop": ("sop_documents", "id"),
     "pm_completion": ("pm_completion_records", "id"),
+    "logbook_entry": ("logbook_entries", "id"),
 }
+
+MAX_LOGBOOK_ATTACHMENTS = 5
 EXCEPTION_REFERENCE_TABLES = {
     "document": ("controlled_documents", "Controlled document"),
     "acknowledgement": ("document_acknowledgements", "Document acknowledgement"),
@@ -129,6 +132,17 @@ def _require_same_tenant_evidence_links(
                 status_code=404,
                 detail=f"Related {request.related_entity_type} not found at this property.",
             )
+        if request.related_entity_type == "logbook_entry":
+            existing = (
+                supabase.table("evidence_records").select("id")
+                .eq("tenant_id", current_user.hotel_id)
+                .eq("related_entity_type", "logbook_entry")
+                .eq("related_entity_id", request.related_entity_id)
+                .limit(MAX_LOGBOOK_ATTACHMENTS)
+                .execute()
+            )
+            if len(existing.data or []) >= MAX_LOGBOOK_ATTACHMENTS:
+                raise HTTPException(status_code=422, detail="A Logbook handoff can have at most 5 attachments.")
 
 
 def _attach_collector_profiles(records: list[dict], hotel_id: str) -> list[dict]:
@@ -535,6 +549,24 @@ async def get_evidence_file_url(record_id: str, current_user: CurrentUser = Depe
     if not signed_url:
         raise HTTPException(status_code=503, detail="Evidence attachment is temporarily unavailable.")
     return {"data": {"url": signed_url, "expires_in_seconds": 3600}}
+
+
+@router.delete("/records/{record_id}", status_code=204)
+async def delete_evidence_record(
+    record_id: str,
+    current_user: CurrentUser = Depends(require_role(*EVIDENCE_CAPTURE_ROLES)),
+):
+    """Remove a failed/unneeded private upload without leaving orphan files."""
+    record = _get_evidence_record(record_id, current_user)
+    is_collector = record.get("collected_by") == current_user.user_id
+    is_manager = current_user.role in COMPETENCY_MANAGER_ROLES
+    if not (is_collector or is_manager):
+        raise HTTPException(status_code=403, detail="Not allowed to remove this evidence record.")
+    if record.get("storage_path"):
+        supabase.storage.from_("evidence-files").remove([record["storage_path"]])
+    supabase.table("evidence_records").delete().eq("id", record_id).eq("tenant_id", current_user.hotel_id).execute()
+    _record_audit_event(current_user=current_user, resource_type="evidence_record", resource_id=record_id, action="evidence_record.deleted")
+    return None
 
 
 @router.post("/records/{record_id}/file")
