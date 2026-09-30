@@ -5,7 +5,13 @@ export interface UpdateHotelData extends Partial<CreateHotelData> { front_desk_m
 export interface HotelResponse { data: { hotel: { id: string; name: string; address: string; city: string; state: string; zip: string; phone: string; room_count: number; timezone: string; logo_url?: string; front_desk_modules?: string[]; web_redesign_sections?: string[]; average_daily_rate_cents?: number | null; created_at: string }; subscription: { plan_status: string; credits_included: number; cap_cents?: number } } }
 export interface HotelStatsResponse { data: { hotel_id: string; room_count: number; active_staff: number; open_tasks: number; open_work_orders: number } }
 export type CleanTypeCreditWeights = { DEP: number; FULL: number; LIGHT: number }
-export interface HousekeepingSettings { default_target_credits: number; credit_weights: CleanTypeCreditWeights; capacity_overrides: Record<string, number> }
+export interface AssignmentPreferences {
+  prioritize_guest_waiting: boolean; prioritize_rush: boolean; prioritize_earliest_arrival: boolean
+  balance_workload: boolean; minimize_reassignment: boolean
+  avoid_on_break: boolean; exclude_off_shift: boolean; exclude_unavailable: boolean
+  prefer_same_building: boolean; prefer_same_floor: boolean
+}
+export interface HousekeepingSettings { default_target_credits: number; credit_weights: CleanTypeCreditWeights; capacity_overrides: Record<string, number>; assignment_preferences: AssignmentPreferences }
 
 export const hotelsApi = {
   create: (data: CreateHotelData): Promise<HotelResponse> => apiClient.post('/hotels', data),

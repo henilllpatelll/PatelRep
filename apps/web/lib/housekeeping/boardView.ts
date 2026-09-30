@@ -3,9 +3,11 @@ import {
   getHousekeepingRoomMetrics,
   getRoomWorkloadCredits,
   type HousekeepingAttentionCode,
+  type DeriveAttentionOptions,
   type HousekeepingOperationalRoom,
 } from './roomState'
 import type { CleanType } from '@/lib/utils/cleanType'
+import { format } from 'date-fns'
 
 export type BoardStatusFilter = 'needs_action' | 'dirty' | 'cleaning' | 'inspect' | 'ready' | 'ooo'
   | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO'
@@ -40,15 +42,24 @@ export interface AttentionSummaryItem {
 const OUT_OF_ORDER = new Set(['OOO', 'OUT_OF_ORDER', 'OUT_OF_SERVICE'])
 const NEEDS_CLEANING = new Set(['DIRTY', 'PICKUP', 'OCCUPIED'])
 
+/**
+ * Room-status events represent live operational state. Historical and future
+ * workspaces keep their selected-date snapshot stable until the user refreshes
+ * it deliberately, rather than consuming today's realtime stream.
+ */
+export function isLiveBoardDate(selectedDate: string, currentOperationalDate = format(new Date(), 'yyyy-MM-dd')): boolean {
+  return selectedDate === currentOperationalDate
+}
+
 function isNeedsCleaning(room: HousekeepingOperationalRoom): boolean {
   return NEEDS_CLEANING.has(room.housekeepingStatus)
 }
 
-function matchesStatus(room: HousekeepingOperationalRoom, status: BoardStatusFilter | null): boolean {
+function matchesStatus(room: HousekeepingOperationalRoom, status: BoardStatusFilter | null, options: DeriveAttentionOptions = {}): boolean {
   if (!status) return true
   switch (status) {
     case 'needs_action':
-      return deriveRoomAttentionItems(room).length > 0
+      return deriveRoomAttentionItems(room, options).length > 0
     case 'dirty':
       return isNeedsCleaning(room)
     case 'cleaning':
@@ -62,10 +73,10 @@ function matchesStatus(room: HousekeepingOperationalRoom, status: BoardStatusFil
   }
 }
 
-function matchesAttention(room: HousekeepingOperationalRoom, attention: BoardViewFilters['attention']): boolean {
+function matchesAttention(room: HousekeepingOperationalRoom, attention: BoardViewFilters['attention'], options: DeriveAttentionOptions = {}): boolean {
   if (!attention) return true
   if (attention === 'service_issue') return room.dnd || room.serviceDeclined
-  return deriveRoomAttentionItems(room).some((item) => item.code === attention)
+  return deriveRoomAttentionItems(room, options).some((item) => item.code === attention)
 }
 
 /**
@@ -76,23 +87,24 @@ export function filterHousekeepingBoardView(
   rooms: HousekeepingOperationalRoom[],
   filters: BoardViewFilters,
   staffNames: Record<string, string> = {},
+  options: DeriveAttentionOptions = {},
 ): HousekeepingOperationalRoom[] {
   const needle = filters.search.trim().toLocaleLowerCase()
   return rooms.filter((room) => {
-    if (!matchesStatus(room, filters.status)) return false
+    if (!matchesStatus(room, filters.status, options)) return false
     if (filters.building && room.building !== filters.building) return false
     if (filters.floor !== null && room.floor !== filters.floor) return false
     if (filters.assigneeId && room.assignedHousekeeperId !== filters.assigneeId) return false
     if (filters.unassignedOnly && room.assignmentState !== 'unassigned') return false
     if (filters.cleanTypes.length > 0 && (!room.cleanType || !filters.cleanTypes.includes(room.cleanType))) return false
-    if (!matchesAttention(room, filters.attention)) return false
+    if (!matchesAttention(room, filters.attention, options)) return false
     if (!needle) return true
     const assignee = room.assignedHousekeeperId ? staffNames[room.assignedHousekeeperId] ?? '' : ''
     return room.roomNumber.toLocaleLowerCase().includes(needle) || assignee.toLocaleLowerCase().includes(needle)
   })
 }
 
-export function getBoardKpis(rooms: HousekeepingOperationalRoom[]): BoardKpis {
+export function getBoardKpis(rooms: HousekeepingOperationalRoom[], options: DeriveAttentionOptions = {}): BoardKpis {
   const metrics = getHousekeepingRoomMetrics(rooms)
   return {
     needsCleaning: rooms.filter(isNeedsCleaning).length,
@@ -106,15 +118,15 @@ export function getBoardKpis(rooms: HousekeepingOperationalRoom[]): BoardKpis {
     inspectionPriority: rooms.filter((room) => room.housekeepingStatus === 'CLEAN' && (room.isVip || (room.priority !== null && room.priority <= 2))).length,
     ready: metrics.ready,
     outOfOrder: metrics.outOfOrder,
-    outOfOrderArrivalConflict: deriveAttentionCount(rooms, 'ooo_arrival_conflict'),
+    outOfOrderArrivalConflict: deriveAttentionCount(rooms, 'ooo_arrival_conflict', options),
   }
 }
 
-function deriveAttentionCount(rooms: HousekeepingOperationalRoom[], code: HousekeepingAttentionCode): number {
-  return rooms.filter((room) => deriveRoomAttentionItems(room).some((item) => item.code === code)).length
+function deriveAttentionCount(rooms: HousekeepingOperationalRoom[], code: HousekeepingAttentionCode, options: DeriveAttentionOptions = {}): number {
+  return rooms.filter((room) => deriveRoomAttentionItems(room, options).some((item) => item.code === code)).length
 }
 
-export function getAttentionSummary(rooms: HousekeepingOperationalRoom[]): AttentionSummaryItem[] {
+export function getAttentionSummary(rooms: HousekeepingOperationalRoom[], options: DeriveAttentionOptions = {}): AttentionSummaryItem[] {
   const categories: AttentionSummaryItem['code'][] = [
     'dnd',
     'dnd_welfare_escalation',
@@ -133,6 +145,6 @@ export function getAttentionSummary(rooms: HousekeepingOperationalRoom[]): Atten
     code,
     count: code === 'service_issue'
       ? rooms.filter((room) => room.serviceDeclined && !room.dnd).length
-      : deriveAttentionCount(rooms, code),
+      : deriveAttentionCount(rooms, code, options),
   })).filter((item) => item.count > 0)
 }

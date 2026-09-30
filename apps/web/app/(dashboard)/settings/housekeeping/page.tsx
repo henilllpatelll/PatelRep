@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useRole } from '@/lib/hooks/useRole'
 import { CleaningChecklistEditor } from '@/components/settings/CleaningChecklistEditor'
 import { HousekeepingWorkloadSettings } from '@/components/settings/HousekeepingWorkloadSettings'
+import { AssignmentPreferencesSettings } from '@/components/settings/AssignmentPreferencesSettings'
 
 export default function HousekeepingSettingsPage() {
   const { t } = useTranslation()
@@ -33,7 +34,7 @@ export default function HousekeepingSettingsPage() {
       </div>
       {tab === 'cleaning' && <CleaningChecklistEditor />}
       {tab === 'workload' && <HousekeepingWorkloadSettings />}
-      {tab === 'assignment' && <div className="rounded-xl border border-line bg-surface p-5"><h3 className="font-semibold text-ink">{t('housekeeping.settings.assignmentTitle')}</h3><p className="mt-1 max-w-2xl text-sm leading-6 text-ink3">{t('housekeeping.settings.assignmentDescription')}</p></div>}
+      {tab === 'assignment' && <AssignmentPreferencesSettings />}
     </div>
   )
 }

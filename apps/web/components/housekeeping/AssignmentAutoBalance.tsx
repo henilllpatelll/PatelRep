@@ -31,10 +31,11 @@ export function AssignmentAutoBalance({ isOpen, onClose, date, shiftId, currentR
   const toast = useToast()
   const panelRef = useRef<HTMLDivElement>(null)
   useModalFocusTrap(panelRef, isOpen, onClose)
-  const { setPendingAssignment } = useHousekeepingStore()
+  const { setPendingAssignment, pendingAssignments } = useHousekeepingStore()
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<AutoBalancePreview | null>(null)
   const [noWorkMessage, setNoWorkMessage] = useState<string | null>(null)
+  const [excludedStaff, setExcludedStaff] = useState<Array<{ id: string; reason: 'on_break' | 'off_shift' | 'unavailable' }>>([])
 
   if (!isOpen) return null
 
@@ -44,6 +45,7 @@ export function AssignmentAutoBalance({ isOpen, onClose, date, shiftId, currentR
     setPreview(null)
     try {
       const result = await housekeepingApi.aiSuggestAssignments(date, shiftId ?? undefined)
+      setExcludedStaff(result.data.excluded_staff ?? [])
       const suggestions = result.data.suggestions ?? []
       if (suggestions.reduce((sum, s) => sum + s.room_count, 0) === 0) {
         setNoWorkMessage(result.data.message || t('housekeeping.assignmentSidebar.noRoomsNeedWork'))
@@ -59,10 +61,11 @@ export function AssignmentAutoBalance({ isOpen, onClose, date, shiftId, currentR
 
   const stagePlan = () => {
     if (!preview) return
-    for (const change of preview.changes) {
+    const unlockedChanges = preview.changes.filter((change) => !pendingAssignments[change.roomId])
+    for (const change of unlockedChanges) {
       setPendingAssignment(change.roomId, change.toId)
     }
-    toast.success(t('housekeeping.assignWorkspace.autoBalance.staged', { count: preview.changes.length }))
+    toast.success(t('housekeeping.assignWorkspace.autoBalance.staged', { count: unlockedChanges.length }))
     setPreview(null)
     onClose()
   }
@@ -117,6 +120,15 @@ export function AssignmentAutoBalance({ isOpen, onClose, date, shiftId, currentR
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink4">{t('housekeeping.assignWorkspace.autoBalance.travel')}</p>
                 <p className="mt-1 font-mono">{t('housekeeping.assignWorkspace.autoBalance.floorChanges', { before: preview.floorChangesBefore, after: preview.floorChangesAfter })}</p>
               </div>
+
+              {excludedStaff.length > 0 && (
+                <div className="rounded-[var(--r-sm)] border border-line bg-surface-2 px-3 py-2 text-xs text-ink2">
+                  <p className="font-medium text-ink">{t('housekeeping.assignWorkspace.autoBalance.excluded', { count: excludedStaff.length })}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {excludedStaff.map((staff) => <li key={staff.id}>{nameById[staff.id] ?? staff.id} — {t(`housekeeping.assignWorkspace.autoBalance.exclusion.${staff.reason}`)}</li>)}
+                  </ul>
+                </div>
+              )}
 
               {preview.changes.length > 0 && (
                 <div>

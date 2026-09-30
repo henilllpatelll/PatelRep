@@ -18,6 +18,18 @@ DEFAULT_DEPARTMENTS = [
 
 DEFAULT_HOUSEKEEPING_CREDIT_WEIGHTS = {"DEP": 3, "FULL": 2, "LIGHT": 1}
 DEFAULT_HOUSEKEEPING_TARGET_CREDITS = 16
+DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES = {
+    "prioritize_guest_waiting": True,
+    "prioritize_rush": True,
+    "prioritize_earliest_arrival": True,
+    "balance_workload": True,
+    "minimize_reassignment": True,
+    "avoid_on_break": True,
+    "exclude_off_shift": True,
+    "exclude_unavailable": True,
+    "prefer_same_building": True,
+    "prefer_same_floor": True,
+}
 
 
 def _housekeeping_settings_payload(row: dict[str, Any] | None) -> dict[str, Any]:
@@ -25,10 +37,16 @@ def _housekeeping_settings_payload(row: dict[str, Any] | None) -> dict[str, Any]
     target = row.get("housekeeping_target_credits")
     weights = row.get("housekeeping_credit_weights")
     overrides = row.get("housekeeping_capacity_overrides")
+    saved_preferences = row.get("housekeeping_assignment_preferences")
+    preferences = {
+        **DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES,
+        **({key: value for key, value in saved_preferences.items() if key in DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES and isinstance(value, bool)} if isinstance(saved_preferences, dict) else {}),
+    }
     return {
         "default_target_credits": target if isinstance(target, (int, float)) and target > 0 else DEFAULT_HOUSEKEEPING_TARGET_CREDITS,
         "credit_weights": weights if isinstance(weights, dict) and set(weights) == set(DEFAULT_HOUSEKEEPING_CREDIT_WEIGHTS) else DEFAULT_HOUSEKEEPING_CREDIT_WEIGHTS,
         "capacity_overrides": overrides if isinstance(overrides, dict) else {},
+        "assignment_preferences": preferences,
     }
 
 
@@ -176,7 +194,7 @@ async def get_housekeeping_settings(
     if current_user.hotel_id != hotel_id:
         raise HTTPException(status_code=403, detail="Access denied to this hotel")
     result = supabase.table("tenants").select(
-        "housekeeping_target_credits, housekeeping_credit_weights, housekeeping_capacity_overrides"
+        "housekeeping_target_credits, housekeeping_credit_weights, housekeeping_capacity_overrides, housekeeping_assignment_preferences"
     ).eq("id", hotel_id).maybe_single().execute()
     if not result or not result.data:
         raise HTTPException(status_code=404, detail="Hotel not found")
@@ -187,7 +205,7 @@ async def get_housekeeping_settings(
 async def update_housekeeping_settings(
     hotel_id: str,
     body: UpdateHousekeepingSettingsRequest,
-    current_user: CurrentUser = Depends(require_role("gm")),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
     if current_user.hotel_id != hotel_id:
         raise HTTPException(status_code=403, detail="Access denied to this hotel")
@@ -198,6 +216,7 @@ async def update_housekeeping_settings(
         "default_target_credits": "housekeeping_target_credits",
         "credit_weights": "housekeeping_credit_weights",
         "capacity_overrides": "housekeeping_capacity_overrides",
+        "assignment_preferences": "housekeeping_assignment_preferences",
     }
     update_data = {column_map[key]: value for key, value in fields.items()}
     result = supabase.table("tenants").update(update_data).eq("id", hotel_id).execute()

@@ -187,6 +187,24 @@ export interface DndWelfareStatus {
   overdue: boolean
 }
 
+/** One operational answer for whether a room may be entered right now. Deferred
+ * work (DND/return later/discrepancy) retains workload; cancelled or unavailable
+ * work (service declined/OOO) does not. */
+export type HousekeepingExecutionBlock = 'dnd' | 'return_later' | 'service_declined' | 'occupancy_discrepancy' | 'out_of_order' | 'maintenance' | null
+
+export function getHousekeepingExecutionBlock(
+  room: Pick<HousekeepingOperationalRoom, 'housekeepingStatus' | 'dnd' | 'dndRetryAt' | 'serviceDeclined' | 'occupancyDiscrepancy' | 'occupancyDiscrepancyId' | 'hasOpenBlockingWorkOrder'>,
+  now: Date = new Date(),
+): HousekeepingExecutionBlock {
+  if (['OOO', 'OUT_OF_ORDER', 'OUT_OF_SERVICE'].includes(room.housekeepingStatus)) return 'out_of_order'
+  if (room.serviceDeclined) return 'service_declined'
+  if (room.occupancyDiscrepancy || room.occupancyDiscrepancyId) return 'occupancy_discrepancy'
+  if (room.hasOpenBlockingWorkOrder) return 'maintenance'
+  if (room.dnd) return 'dnd'
+  if (room.dndRetryAt && new Date(room.dndRetryAt).getTime() > now.getTime()) return 'return_later'
+  return null
+}
+
 /** Null when the room isn't DND, the start time is unknown, or no policy was supplied
  * (Room Detail only renders this once Programs' dnd_welfare_policies is loaded). */
 export function getDndWelfareStatus(
@@ -275,8 +293,8 @@ const PRIMARY_ATTENTION_ORDER: HousekeepingAttentionCode[] = [
 ]
 
 /** Selects one explainable exception for the room card; Rush is already a top-level tag. */
-export function getPrimaryRoomAttention(room: HousekeepingOperationalRoom): HousekeepingAttentionItem | null {
-  const items = deriveRoomAttentionItems(room)
+export function getPrimaryRoomAttention(room: HousekeepingOperationalRoom, options: DeriveAttentionOptions = {}): HousekeepingAttentionItem | null {
+  const items = deriveRoomAttentionItems(room, options)
   for (const code of PRIMARY_ATTENTION_ORDER) {
     const item = items.find((candidate) => candidate.code === code)
     if (item) return item
@@ -392,7 +410,9 @@ export function getDefaultWorkloadTarget(settings?: { housekeeping_target_credit
     : DEFAULT_WORKLOAD_TARGET
 }
 
-export function getRoomWorkloadCredits(room: Pick<HousekeepingOperationalRoom, 'cleanType'>, weights?: Partial<Record<CleanType, number>> | null): number {
+export function getRoomWorkloadCredits(room: Pick<HousekeepingOperationalRoom, 'cleanType'> & Partial<HousekeepingOperationalRoom>, weights?: Partial<Record<CleanType, number>> | null): number {
+  const block = getHousekeepingExecutionBlock(room as HousekeepingOperationalRoom)
+  if (block === 'service_declined' || block === 'out_of_order') return 0
   return getCleanTypeCredits(room.cleanType, weights)
 }
 

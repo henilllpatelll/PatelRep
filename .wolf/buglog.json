@@ -29775,6 +29775,285 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-30T19:45:31.940Z"
+    },
+    {
+      "id": "bug-1810",
+      "timestamp": "2026-09-30T20:34:21.246Z",
+      "error_message": "Type error",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T20:34:21.246Z"
+    },
+    {
+      "id": "bug-1812",
+      "timestamp": "2026-09-30T21:08:00-05:00",
+      "error_message": "Production build reports another Next build process is already running",
+      "file": "apps/web/.next",
+      "root_cause": "An existing Next build lock/process in the shared workspace prevents a concurrent production build.",
+      "fix": "Did not terminate an unknown shared process; recorded the blocker after TypeScript, lint, and unit checks completed.",
+      "tags": [
+        "next",
+        "build",
+        "shared-workspace"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T21:08:00-05:00"
+    },
+    {
+      "id": "bug-1813",
+      "timestamp": "2026-09-30T21:08:00-05:00",
+      "error_message": "Housekeeping visual-regression harness cannot start without REGRESSION_GM_EMAIL and seeded fixture roles",
+      "file": "apps/web/e2e/global-setup.ts",
+      "root_cause": "The harness intentionally requires private regression credentials and a seeded tenant that are absent from this environment.",
+      "fix": "Recorded the explicit environment prerequisite; no test behavior was changed.",
+      "tags": [
+        "playwright",
+        "e2e",
+        "credentials"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T21:08:00-05:00"
+    },
+    {
+      "id": "bug-1811",
+      "timestamp": "2026-09-30T21:00:00-05:00",
+      "error_message": "TypeScript parse errors in OccupancyImportModal during import-preview integration",
+      "file": "apps/web/components/housekeeping/OccupancyImportModal.tsx",
+      "root_cause": "A compact JSX navigation expression omitted the closing quote in an i18n key and made parser diagnostics cascade.",
+      "fix": "Replaced the compact expression with explicit JSX and reran tsc successfully.",
+      "tags": [
+        "typescript",
+        "jsx",
+        "housekeeping",
+        "import-preview"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T21:00:00-05:00"
+    },
+    {
+      "id": "bug-1814",
+      "timestamp": "2026-09-30T22:00:00-05:00",
+      "error_message": "Focused API test command used a repository-relative path after changing into apps/api, so pytest collected no tests.",
+      "file": "apps/api/tests/smoke/test_housekeeping_settings.py",
+      "root_cause": "Verification command path was scoped to the wrong working directory.",
+      "fix": "Rerun pytest with tests/smoke/test_housekeeping_settings.py from apps/api.",
+      "tags": [
+        "pytest",
+        "verification",
+        "path"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:00:00-05:00"
+    },
+    {
+      "id": "bug-1815",
+      "timestamp": "2026-09-30T22:25:00-05:00",
+      "error_message": "Housekeeping execution-block test did not recognize a normalized occupancy discrepancy that supplied only its record id.",
+      "file": "apps/web/lib/housekeeping/roomState.ts",
+      "root_cause": "The canonical block helper checked the presentation boolean but omitted occupancyDiscrepancyId, which is also authoritative board data.",
+      "fix": "Treat either the normalized discrepancy boolean or its record id as an occupancy-discrepancy execution block.",
+      "tags": [
+        "housekeeping",
+        "blocked-rooms",
+        "unit-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:25:00-05:00"
+    },
+    {
+      "id": "bug-1816",
+      "timestamp": "2026-09-30T22:35:00-05:00",
+      "error_message": "Frozen-file verification detected legitimate Phase 2 edits to RoomStatusBoard and RoomDetailDrawer.",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "The two protected Housekeeping components changed before their manifest hashes and reasoned allowlist entries were updated.",
+      "fix": "Updated both SHA-256 manifest values and recorded focused allowlist reasons; the frozen-file guard now passes.",
+      "tags": [
+        "frozen-files",
+        "housekeeping",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:35:00-05:00"
+    },
+    {
+      "id": "bug-1817",
+      "timestamp": "2026-09-30T16:45:35-05:00",
+      "error_message": "Room Detail assignment suggestions used the browser's current date while its parent workspace could be viewing another operational date.",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "The route-fit query independently formatted new Date() instead of receiving the selected workspace date.",
+      "fix": "Require selectedDate at every RoomDetailDrawer entry point and key/fetch assignment suggestions by that operational date.",
+      "tags": [
+        "housekeeping",
+        "selected-date",
+        "assignment",
+        "react-query"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T16:45:35-05:00"
+    },
+    {
+      "id": "bug-1818",
+      "timestamp": "2026-09-30T16:50:00-05:00",
+      "error_message": "OpenWolf Design QC detected localhost:8080 but /housekeeping returned 404, so desktop/mobile captures did not contain the web app.",
+      "file": ".wolf/designqc-captures/housekeeping_desktop_top.jpg",
+      "root_cause": "The only detected local server was not the Next.js web service expected at port 3000.",
+      "fix": "No product code change; visual runtime verification remains blocked until the web app is started with a valid authenticated fixture.",
+      "tags": [
+        "design-qc",
+        "localhost",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1812",
+        "bug-1813"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T16:50:00-05:00"
+    },
+    {
+      "id": "bug-1819",
+      "timestamp": "2026-09-30T16:45:35-05:00",
+      "error_message": "RoomDetailDrawer's newly required selectedDate prop was initially omitted by the shared dashboard and Engineering room-board hosts.",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "The selected-date contract was added without first enumerating every cross-domain drawer host.",
+      "fix": "Passed each host's existing current operational date and reran TypeScript successfully.",
+      "tags": [
+        "typescript",
+        "housekeeping",
+        "shared-component"
+      ],
+      "related_bugs": [
+        "bug-1817"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T16:45:35-05:00"
+    },
+    {
+      "id": "bug-1820",
+      "timestamp": "2026-09-30T21:59:57.992Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Had \"button\"",
+      "fix": "Changed to 'absolute inset-x-0 top-0 z-20 h-1'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-30T22:00:04.419Z"
+    },
+    {
+      "id": "bug-1821",
+      "timestamp": "2026-09-30T22:03:02.739Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:03:02.739Z"
+    },
+    {
+      "id": "bug-1822",
+      "timestamp": "2026-09-30T22:07:34.285Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had `absolute inset-x-0 top-0 z-10 h-1 ${HEADER_BAR_TO",
+      "fix": "Changed to `absolute inset-x-0 top-0 z-10 h-2.5 ${HEADER_BAR_",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:07:34.285Z"
+    },
+    {
+      "id": "bug-1823",
+      "timestamp": "2026-09-30T22:12:00.929Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:12:00.929Z"
+    },
+    {
+      "id": "bug-1824",
+      "timestamp": "2026-09-30T22:14:06.316Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <span; className={cn('absolute inset-x-0 top-0 z-20 h-1', presentat",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-30T22:14:19.222Z"
+    },
+    {
+      "id": "bug-1825",
+      "timestamp": "2026-09-30T22:20:39.755Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 17→30 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:20:39.755Z"
+    },
+    {
+      "id": "bug-1826",
+      "timestamp": "2026-09-30T22:54:01.164Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 14→28 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T22:54:01.164Z"
     }
   ]
 }

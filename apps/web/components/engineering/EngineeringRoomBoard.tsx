@@ -206,6 +206,7 @@ export function EngineeringRoomBoard() {
         room={drawerRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
+        selectedDate={today}
         onCheckoutTimeSaved={(time) =>
           setSelectedRoom((prev: any) => (prev ? { ...prev, checkout_time: time } : prev))
         }

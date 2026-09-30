@@ -8,6 +8,7 @@ never fire and My Rooms' Reclean section was permanently unreachable.
 """
 
 from datetime import datetime, timezone
+import json
 
 import pytest
 
@@ -62,7 +63,12 @@ async def test_submit_inspection_pass_clears_pending_reclean_flag(monkeypatch):
     db = make_db(room_overrides={"reclean_requested_at": "2026-09-29T10:00:00+00:00"})
     monkeypatch.setattr(hk_router, "supabase", db)
 
-    body = SubmitInspectionRequest(room_id=ROOM_ID, overall_result="passed")
+    body = SubmitInspectionRequest(
+        room_id=ROOM_ID,
+        template_id="ef4ec74d-6127-4d35-91ee-8bbf0676a1c1",
+        overall_result="passed",
+        items=[InspectionResultItem(template_item_id=TEMPLATE_ITEM_TOWELS, result="pass")],
+    )
     await hk_router.submit_inspection(body, SUPERVISOR)
 
     assert current_room(db)["reclean_requested_at"] is None
@@ -89,6 +95,20 @@ async def test_submit_inspection_fail_does_not_touch_reclean_flag_directly(monke
 
     assert current_room(db)["reclean_requested_at"] is None
     assert len(db.rows["inspection_results"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_legacy_pass_endpoint_rejects_empty_checklists(monkeypatch):
+    db = make_db()
+    monkeypatch.setattr(hk_router, "supabase", db)
+
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as exc_info:
+        await hk_router.submit_inspection(
+            SubmitInspectionRequest(room_id=ROOM_ID, overall_result="passed"),
+            SUPERVISOR,
+        )
+    assert exc_info.value.status_code == 422
 
 
 # ---------------------------------------------------------------------------
@@ -172,3 +192,47 @@ def test_attach_reclean_corrections_skips_rooms_without_the_flag(monkeypatch):
     result = hk_router._attach_reclean_corrections(rows, HOTEL)
 
     assert "reclean_corrections" not in result[0]
+
+
+# ---------------------------------------------------------------------------
+# complete_inspection (checklist finalization)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_complete_inspection_rejects_unanswered_required_items(monkeypatch):
+    db = make_db()
+    db.rows["inspection_templates"] = [{"id": "ef4ec74d-6127-4d35-91ee-8bbf0676a1c1", "tenant_id": HOTEL, "is_active": True}]
+    for item in db.rows["inspection_template_items"]:
+        item.update({"tenant_id": HOTEL, "template_id": "ef4ec74d-6127-4d35-91ee-8bbf0676a1c1", "is_required": True, "requires_photo_on_fail": False})
+    monkeypatch.setattr(hk_router, "supabase", db)
+
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as exc_info:
+        await hk_router.complete_inspection(
+            inspection=json.dumps({"room_id": ROOM_ID, "template_id": "ef4ec74d-6127-4d35-91ee-8bbf0676a1c1", "overall_result": "passed", "items": [{"template_item_id": TEMPLATE_ITEM_TOWELS, "result": "pass"}]}),
+            photo_item_ids=[], photos=[], current_user=SUPERVISOR,
+        )
+    assert exc_info.value.status_code == 422
+    assert "required items" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_complete_inspection_persists_a_real_checklist_not_an_empty_pass(monkeypatch):
+    template_id = "ef4ec74d-6127-4d35-91ee-8bbf0676a1c1"
+    db = make_db()
+    db.rows["inspection_templates"] = [{"id": template_id, "tenant_id": HOTEL, "is_active": True}]
+    for item in db.rows["inspection_template_items"]:
+        item.update({"tenant_id": HOTEL, "template_id": template_id, "is_required": True, "requires_photo_on_fail": False})
+    monkeypatch.setattr(hk_router, "supabase", db)
+
+    result = await hk_router.complete_inspection(
+        inspection=json.dumps({"room_id": ROOM_ID, "template_id": template_id, "overall_result": "passed", "items": [
+            {"template_item_id": TEMPLATE_ITEM_TOWELS, "result": "pass"},
+            {"template_item_id": TEMPLATE_ITEM_MIRROR, "result": "na"},
+        ]}),
+        photo_item_ids=[], photos=[], current_user=SUPERVISOR,
+    )
+
+    assert result["data"]["overall_result"] == "passed"
+    assert len(db.rows["inspection_results"]) == 2
+    assert {row["result"] for row in db.rows["inspection_results"]} == {"pass", "na"}

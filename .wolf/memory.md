@@ -1,4 +1,6 @@
 ﻿# Memory
+| 22:35 | Verified Phase 2 assignment/DND/OOO increments. | apps/api, apps/web, supabase/migrations/126 | API 11/11, web unit 182/182, tsc, i18n parity, frozen guard, focused ESLint and diff check passed. | ~4500 |
+| 22:12 | Wired Auto-balance preferences into tenant settings and live break/off-shift eligibility; added a single execution-block helper and Team Plan DND policy input. | housekeeping.py, roomState.ts, TeamPlan.tsx, AssignmentPreferencesSettings.tsx | Focused API tests passed; web typecheck pending. | ~2800 |
 | 00:47 | Completed Phase 3 static verification. | `apps/web` | `test:unit` 146/146, type-check, lint, i18n parity, frozen-file guard, and production build passed; local browser regression blocked by fixture-login timeout. | ~1200 |
 | 01:08 | Implemented Housekeeping redesign Phase 3 RoomCard scanability: centralized compact card presentation/exception priority, rebuilt normal and assignment card variants, and added EN/ES copy plus focused presentation tests. | `apps/web/components/housekeeping/RoomCard.tsx`, `apps/web/lib/housekeeping/roomState.ts`, `apps/web/lib/housekeeping/roomCardView.test.ts` | Unit/type/lint/i18n/frozen checks passed; local Playwright fixture login currently times out before board verification. | ~6200 |
 | 00:33 | Began Housekeeping redesign Phase 3 discovery; identified the RoomCard and frozen-file change contract. | `.wolf/anatomy.md`, `.wolf/cerebrum.md`, `apps/web/components/housekeeping/RoomCard.tsx` | Ready for focused implementation audit. | ~1800 |
@@ -171,6 +173,9 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 21:00 | Finalized Housekeeping inspection and OPERA preview workflows | apps/api/routers/housekeeping.py, apps/web/components/housekeeping | Checklist/evidence and non-mutating preview added; focused tests pass | ~12000 |
+| 21:08 | Verified finalization checks | apps/web, apps/api | unit/API/lint/type/i18n/frozen checks pass; build and E2E blocked by shared process/fixture env | ~3500 |
+| 21:12 | Hardened legacy inspection submission | apps/api/routers/housekeeping.py, tests/smoke/test_housekeeping_reclean.py | Empty checklist passes now return 422; focused API tests pass | ~900 |
 | â€” | B8: todayISO() UTCâ†’local fix | housekeepingStore.ts | success | ~50 |
 | â€” | B7/B5: greeting hydration â€” useEffect+useState for all 4 dashboards | dashboard/page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx | success | ~300 |
 | â€” | N12: raw DB enum labels in reports stat cards | reports/page.tsx | success | ~30 |
@@ -14880,3 +14885,49 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 15:34 | Edited apps/web/e2e/room-board-baseline.spec.ts | modified if() | ~134 |
+| 15:34 | Edited apps/web/e2e/room-board-baseline.spec.ts | expanded (+6 lines) | ~224 |
+
+## Session: 2026-09-30 15:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:00 | Added tenant-scoped, backward-compatible assignment preference API/schema contract and focused coverage. | hotels.py, requests.py, migration 126, test_housekeeping_settings.py | Ready for focused API verification. | ~1400 |
+| 16:45 | Fixed Room Detail assignment-suggestion date leakage across historical/future workspaces and added a focused regression test. | roomDetailView.ts, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, AssignmentWorkspace.tsx, TeamPlan.tsx | Focused test passes; type check rerun in progress. | ~700 |
+| 16:50 | Gated Housekeeping Realtime/polling to current operational date, refreshed frozen-file approvals, and completed focused API/web verification. | boardView.ts, RoomStatusBoard.tsx, AssignmentWorkspace.tsx, TeamPlan.tsx, frozen-file manifests | 184 web unit and 113 API tests pass; build/UI runtime remain externally blocked. | ~1200 |
+| 16:50 | designqc: captured 2 screenshots (16KB, ~5000 tok) | /housekeeping | ready for eval | ~0 |
+
+## Session: 2026-09-30 16:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:59 | Edited apps/web/components/housekeeping/RoomCard.tsx | 2→3 lines | ~204 |
+| 17:00 | Edited apps/web/components/housekeeping/RoomCard.tsx | 2→3 lines | ~182 |
+| 17:01 | Session end: 2 writes across 1 files (RoomCard.tsx) | 4 reads | ~3564 tok |
+| 17:02 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified getHeaderTone() | ~210 |
+| 17:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added nullish coalescing | ~110 |
+| 17:05 | Session end: 4 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 8 reads | ~23706 tok |
+| 17:07 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | "absolute inset-x-0 top-0 " → "absolute inset-x-0 top-0 " | ~42 |
+| 17:09 | Session end: 5 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 9 reads | ~23734 tok |
+| 17:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: backgroundImage | ~104 |
+| 17:13 | Session end: 6 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 12 reads | ~23838 tok |
+| 17:14 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: backgroundImage | ~98 |
+| 17:14 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: OCCUPIED_STRIPE_STYLE | ~187 |
+| 17:14 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: OCCUPIED_STRIPE_STYLE | ~159 |
+| 17:14 | Session end: 9 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 14 reads | ~29765 tok |
+| 17:16 | Session end: 9 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 14 reads | ~29765 tok |
+| 17:20 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | modified Number() | ~562 |
+| 17:23 | Session end: 10 writes across 3 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx) | 18 reads | ~50391 tok |
+| 17:54 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | expanded (+14 lines) | ~454 |
+| 17:55 | Session end: 11 writes across 3 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx) | 19 reads | ~57471 tok |
+| 18:02 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→4 lines | ~70 |
+| 18:03 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→4 lines | ~33 |
+| 18:04 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 3→2 lines | ~50 |
+| 18:04 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 3→2 lines | ~62 |
+| 18:07 | Edited apps/web/frozen-files.json | 4→4 lines | ~144 |
+| 18:08 | Edited apps/web/frozen-files-allowlist.json | expanded (+18 lines) | ~1149 |
+| 18:18 | Edited apps/web/components/housekeeping/RoomCard.tsx | 7→7 lines | ~193 |
+| 18:18 | Edited apps/web/components/housekeeping/RoomCard.tsx | 6→6 lines | ~164 |
+| 18:18 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 4→4 lines | ~106 |
+| 18:19 | Edited apps/web/frozen-files.json | 4→4 lines | ~144 |
+| 18:19 | Edited apps/web/frozen-files-allowlist.json | 12→12 lines | ~648 |

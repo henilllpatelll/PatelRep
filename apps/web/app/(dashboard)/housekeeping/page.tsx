@@ -562,6 +562,7 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
+        selectedDate={today}
       />
       {attemptRoom && (
         <ServiceAttemptForm

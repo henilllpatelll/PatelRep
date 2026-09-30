@@ -12,6 +12,15 @@ export interface RoomDetailPresentation {
   primaryAction: RoomDetailPrimaryAction
 }
 
+/**
+ * The assignment suggestion must use the same operational date as the
+ * workspace containing the drawer. Using the browser's current date here
+ * silently mixed today's staffing into a historical or future board.
+ */
+export function getRoomDetailAssignmentDate(selectedDate: string): string {
+  return selectedDate
+}
+
 function hasSupportedRiskFactor(room: HousekeepingOperationalRoom, factor: string): boolean {
   const normalized = factor.trim().toLowerCase().replace(/[\s-]+/g, '_')
   switch (normalized) {

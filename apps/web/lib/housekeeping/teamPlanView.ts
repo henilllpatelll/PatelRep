@@ -4,6 +4,7 @@ import {
   compareHousekeepingExecutionOrder,
   deriveRoomAttentionItems,
   getPrimaryRoomAttention,
+  getHousekeepingExecutionBlock,
   getRoomWorkloadCredits,
   type HousekeepingAttentionCode,
   type HousekeepingOperationalRoom,
@@ -292,7 +293,7 @@ export interface TeamPlanPoolRoom {
 }
 
 function isBlockedRoom(room: HousekeepingOperationalRoom): boolean {
-  return room.dnd || room.serviceDeclined || room.occupancyDiscrepancy
+  return getHousekeepingExecutionBlock(room) !== null
 }
 
 /** Blocked rooms sort last regardless of Rush/VIP (they can't be actioned right
@@ -389,17 +390,18 @@ export function buildTeamPlanAttentionItems(params: {
   rooms: HousekeepingOperationalRoom[]
   guestRequests: TeamPlanGuestRequestLike[]
   nameById: Record<string, string>
+  dndWelfarePolicy?: { thresholdHours: number } | null
 }): TeamPlanAttentionItem[] {
-  const { rooms, guestRequests, nameById } = params
+  const { rooms, guestRequests, nameById, dndWelfarePolicy } = params
   const roomItems: TeamPlanAttentionItem[] = []
 
   for (const room of rooms) {
-    const primary = getPrimaryRoomAttention(room)
+    const primary = getPrimaryRoomAttention(room, { dndWelfarePolicy })
     if (!primary) continue
     const assigneeId = room.assignedHousekeeperId
-    const at = primary.code === 'dnd'
+    const at = primary.code === 'dnd' || primary.code === 'return_later_due'
       ? room.dndRetryAt
-      : (primary.code === 'arrival_risk' || primary.code === 'unassigned_priority_room' || primary.code === 'ooo_arrival_conflict')
+      : (primary.code === 'arrival_risk' || primary.code === 'unassigned_priority_room' || primary.code === 'ooo_arrival_conflict' || primary.code === 'dnd_welfare_escalation')
         ? room.checkinTime
         : null
     roomItems.push({

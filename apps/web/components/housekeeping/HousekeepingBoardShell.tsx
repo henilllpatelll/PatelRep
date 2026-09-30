@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
+import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import type { CleanType } from '@/lib/utils/cleanType'
 import type { BoardKpis, BoardStatusFilter, AttentionSummaryItem } from '@/lib/housekeeping/boardView'
-import { deriveRoomAttentionItems, type HousekeepingAttentionCode, type HousekeepingOperationalRoom } from '@/lib/housekeeping/roomState'
+import { deriveRoomAttentionItems, type DeriveAttentionOptions, type HousekeepingAttentionCode, type HousekeepingOperationalRoom } from '@/lib/housekeeping/roomState'
 
 export function BoardSearchInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const { t } = useTranslation()
@@ -66,8 +67,9 @@ export function HousekeepingSummary({
   }
 
   return (
-    <section aria-label={t('housekeeping.boardV2.summary.label')} className="grid grid-cols-2 overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface sm:grid-cols-5">
-      {KPI_CONFIG.map(({ key, status, label }) => {
+    <div className="space-y-2">
+      <section aria-label={t('housekeeping.boardV2.summary.label')} className="grid grid-cols-2 overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface sm:grid-cols-5">
+        {KPI_CONFIG.map(({ key, status, label }) => {
         const selected = activeStatus === status
         return (
           <button
@@ -82,8 +84,10 @@ export function HousekeepingSummary({
             {supportingCopy[label] && <span className="mt-1 block text-xs text-ink3">{supportingCopy[label]}</span>}
           </button>
         )
-      })}
-    </section>
+        })}
+      </section>
+      {kpis.outOfOrder > 0 && <Link href="/housekeeping/out-of-order" className="inline-flex text-xs font-medium text-accent underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-accent">{t('housekeeping.boardV2.summary.manageOutOfOrder')}</Link>}
+    </div>
   )
 }
 
@@ -105,12 +109,14 @@ export function HousekeepingAttention({
   activeAttention,
   onAttentionChange,
   onOpenRoom,
+  attentionOptions = {},
 }: {
   summary: AttentionSummaryItem[]
   rooms: HousekeepingOperationalRoom[]
   activeAttention: HousekeepingAttentionCode | 'service_issue' | null
   onAttentionChange: (code: HousekeepingAttentionCode | 'service_issue' | null) => void
   onOpenRoom: (room: Record<string, any>) => void
+  attentionOptions?: DeriveAttentionOptions
 }) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
@@ -167,7 +173,7 @@ export function HousekeepingAttention({
           {Array.from(grouped.entries()).map(([group, items]) => {
             const relevant = rooms.filter((room) => items.some((item) => item.code === 'service_issue'
               ? room.serviceDeclined && !room.dnd
-              : deriveRoomAttentionItems(room).some((attention) => attention.code === item.code)))
+              : deriveRoomAttentionItems(room, attentionOptions).some((attention) => attention.code === item.code)))
             if (relevant.length === 0) return null
             return (
               <div key={group}>
@@ -179,7 +185,7 @@ export function HousekeepingAttention({
                         <p className="font-mono text-sm font-semibold text-ink">{room.roomNumber}</p>
                         <p className="mt-0.5 truncate text-xs text-ink3">{items.filter((item) => item.code === 'service_issue'
                           ? room.serviceDeclined && !room.dnd
-                          : deriveRoomAttentionItems(room).some((attention) => attention.code === item.code))
+                          : deriveRoomAttentionItems(room, attentionOptions).some((attention) => attention.code === item.code))
                           .map((item) => t(attentionLabelKey(item.code))).join(', ')}</p>
                       </div>
                       <button

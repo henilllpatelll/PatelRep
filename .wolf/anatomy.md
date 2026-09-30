@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T19:50:28.986Z
-> Files: 699 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T23:19:37.568Z
+> Files: 702 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -953,6 +953,11 @@
 ## Phase 1 Logbook foundation (2026-09-29)
 
 
+## Phase 2 housekeeping additions (2026-09-30)
+
+- `123_housekeeping_exceptions.sql` — Phase 8 (housekeeping redesign): structured Rush/priority metadata, DND (~1541 tok)
+- `125_housekeeping_reclean_tracking.sql` — Phase 10 (housekeeping redesign): the frontend (lib/housekeeping/roomState.ts (~235 tok)
+
 ## Phase 8 Logbook secure attachments + retention (2026-09-29)
 
 - `apps/api/services/ai/logbook_translation.py` — Constrained server-side EN/ES translation helper for authorized Logbook source text. (~300 tok)
@@ -1054,7 +1059,7 @@
 - `.verify-team-plan-5.mjs` — Declares BASE (~555 tok)
 - `.verify-team-plan.mjs` — Declares BASE (~512 tok)
 - `check_wo.tmp.mjs` — Declares browser (~317 tok)
-- `frozen-files-allowlist.json` — Declares on (~8757 tok)
+- `frozen-files-allowlist.json` — Declares on (~10806 tok)
 - `frozen-files.json` (~1299 tok)
 - `package.json` — Node.js package manifest (~1033 tok)
 - `playwright.verify.config.ts` (~69 tok)
@@ -1088,13 +1093,13 @@
 - `AssignmentTeamPanel.tsx` — CAPACITY_TONE (~2507 tok)
 - `AssignmentWorkspace.tsx` — getHotelIdFromToken (~6337 tok)
 - `HousekeepingBoardShell.tsx` — BoardSearchInput (~4282 tok)
-- `InspectionFailSheet.tsx` — Fail Inspection — the counterpart to RoomDetailDrawer's one-click Pass. (~2082 tok)
+- `InspectionDrawer.tsx` — Checklist-driven sampled-room inspection and re-inspection drawer with evidence validation. (~3100 tok)
 - `OccupancyDiscrepancySheet.tsx` — Report (housekeeping) / Resolve (Front Desk) occupancy discrepancy -- never (~3045 tok)
-- `RoomCard.tsx` — Compact room-board summary. Room Detail deliberately owns every other room fact. (~3178 tok)
-- `RoomDetailDrawer.tsx` — Standard hotel checkout. Departure rooms with no explicit checkout_time set (~19822 tok)
+- `RoomCard.tsx` — Occupied reads as striped red on the top bar, matching the drawer header (~3431 tok)
+- `RoomDetailDrawer.tsx` — Standard hotel checkout. Departure rooms with no explicit checkout_time set (~19876 tok)
 - `RoomPrioritySheet.tsx` — Manual Rush override -- distinct from the AI arrival-risk prediction (spec: "priority vs readiness r (~2256 tok)
 - `RoomServiceStatusSheet.tsx` — Deliberate Service Declined -- distinct from housekeeper turning the room's (~1526 tok)
-- `RoomStatusBoard.tsx` — Board data loading, Realtime/polling updates, filters, floor grid, card actions, and room-detail handoff. (~6000 tok)
+- `RoomStatusBoard.tsx` — getCleanTypeChips (~12857 tok)
 - `ServiceAttemptForm.tsx` — Record Attempt -- a focused, timestamped log of one DND/service visit (spec section 11). (~1806 tok)
 - `StagedChangesPanel.tsx` — Review-before-publish panel — every staged room, its from/to, and a per-row undo. (~918 tok)
 - `TeamPlan.tsx` — Housekeeping · Team Plan — supervisor team execution plan (real data). (~4014 tok)
@@ -1135,6 +1140,7 @@
 
 ## apps/web/e2e/
 
+- `room-board-baseline.spec.ts` — FOUND-03 — Regression pixel-diff baseline for the housekeeping Room Board (~2198 tok)
 - `zz-verify-phase4.spec.ts` — Declares EMAIL (~1577 tok)
 
 ## apps/web/i18n/locales/
@@ -1161,6 +1167,8 @@
 - `assignmentView.ts` — A room whose occupied/departure ambiguity means it needs a clean-type choice before it can be staged (~3295 tok)
 - `boardView.test.ts` — Focused contracts for KPI, attention, search, and filter composition. (~800 tok)
 - `boardView.ts` — The room-board filter pipeline is intentionally data-only, so KPI tiles, (~1517 tok)
+- `inspectionWorkflow.test.ts` — Unit coverage for template selection and checklist/evidence rules. (~500 tok)
+- `inspectionWorkflow.ts` — Pure inspection template, validation, result, and evidence selectors. (~450 tok)
 - `roomCardView.test.ts` — RoomCard presentation contracts for priority, compact status, timing, and signals. (~700 tok)
 - `roomState.test.ts` — Declares priorityRoom (~2573 tok)
 - `roomState.ts` — Adapts the existing board/My Rooms payload into a stable presentation model. (~5412 tok)
@@ -1200,5 +1208,3 @@
 
 ## supabase/migrations/
 
-- `123_housekeeping_exceptions.sql` — Phase 8 (housekeeping redesign): structured Rush/priority metadata, DND (~1541 tok)
-- `125_housekeeping_reclean_tracking.sql` — Phase 10 (housekeeping redesign): the frontend (lib/housekeeping/roomState.ts (~235 tok)

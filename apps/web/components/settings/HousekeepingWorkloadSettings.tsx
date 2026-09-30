@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
 
-const EMPTY: HousekeepingSettings = { default_target_credits: 16, credit_weights: { DEP: 3, FULL: 2, LIGHT: 1 }, capacity_overrides: {} }
+const EMPTY: HousekeepingSettings = { default_target_credits: 16, credit_weights: { DEP: 3, FULL: 2, LIGHT: 1 }, capacity_overrides: {}, assignment_preferences: { prioritize_guest_waiting: true, prioritize_rush: true, prioritize_earliest_arrival: true, balance_workload: true, minimize_reassignment: true, avoid_on_break: true, exclude_off_shift: true, exclude_unavailable: true, prefer_same_building: true, prefer_same_floor: true } }
 
 export function HousekeepingWorkloadSettings() {
   const { t } = useTranslation(); const { hotel } = useHotelStore(); const toast = useToast(); const queryClient = useQueryClient()

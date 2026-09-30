@@ -4,6 +4,7 @@ import {
   filterHousekeepingBoardView,
   getAttentionSummary,
   getBoardKpis,
+  isLiveBoardDate,
 } from './boardView'
 import { normalizeHousekeepingRoom } from './roomState'
 
@@ -14,6 +15,12 @@ const rooms = [
   normalizeHousekeepingRoom({ room_id: '202', status: 'INSPECTED', assigned_to: 'maria', rooms: { room_number: '202', building: 'South', floor: 2 } }),
   normalizeHousekeepingRoom({ room_id: '203', status: 'OOO', checkin_time: '2026-10-01T15:00:00.000Z', rooms: { room_number: '203', building: 'South', floor: 2 } }),
 ]
+
+test('only treats the current operational date as live', () => {
+  assert.equal(isLiveBoardDate('2026-09-30', '2026-09-30'), true)
+  assert.equal(isLiveBoardDate('2026-09-29', '2026-09-30'), false)
+  assert.equal(isLiveBoardDate('2026-10-01', '2026-09-30'), false)
+})
 
 test('derives compact room-board KPIs from the Phase 1 operational selectors', () => {
   assert.deepEqual(getBoardKpis(rooms), {

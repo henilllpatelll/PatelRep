@@ -96,6 +96,8 @@ export interface AiSuggestAssignmentsResponse {
     suggestions: AssignmentSuggestion[]
     date?: string
     shift_id?: string | null
+    blocked_rooms?: number
+    excluded_staff?: Array<{ id: string; reason: 'on_break' | 'off_shift' | 'unavailable' }>
     message: string
   }
 }
@@ -303,6 +305,18 @@ export const housekeepingApi = {
     }>
   },
 
+  completeInspection: (data: SubmitInspectionPayload, photos: Record<string, File>) => {
+    const form = new FormData()
+    form.append('inspection', JSON.stringify(data))
+    for (const [templateItemId, photo] of Object.entries(photos)) {
+      form.append('photo_item_ids', templateItemId)
+      form.append('photos', photo)
+    }
+    return apiClient.post('/housekeeping/inspections/complete', form) as Promise<{
+      data: { id: string; overall_result: 'passed' | 'failed'; reclean_requested: boolean }
+    }>
+  },
+
   getInspectionTemplates: () =>
     apiClient.get('/housekeeping/inspections/templates'),
 
@@ -373,11 +387,25 @@ export const housekeepingApi = {
     return apiClient.post('/housekeeping/import/hk-details', form)
   },
 
+  previewHKDetails: (file: File, assignmentDate: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('assignment_date', assignmentDate)
+    return apiClient.post('/housekeeping/import/hk-details/preview', form)
+  },
+
   importTaskSheet: (file: File, assignmentDate: string) => {
     const form = new FormData()
     form.append('file', file)
     form.append('assignment_date', assignmentDate)
     return apiClient.post('/housekeeping/import/task-sheet', form)
+  },
+
+  previewTaskSheet: (file: File, assignmentDate: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('assignment_date', assignmentDate)
+    return apiClient.post('/housekeeping/import/task-sheet/preview', form)
   },
 
   // Phase 8: Rush/priority, DND attempts, service declined, occupancy discrepancy

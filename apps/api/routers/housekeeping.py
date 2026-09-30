@@ -1,7 +1,9 @@
 import asyncio
+import json
 import logging
 import re
 import httpx
+from uuid import uuid4
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from typing import Optional
 from datetime import date, datetime, time, timedelta, timezone
@@ -18,6 +20,7 @@ from services.housekeeping_assignments import effective_room_status, room_status
 from services.opera_pdf import parse_hk_details, parse_task_sheet
 from services.ai.predictions import count_rooms_ahead, notify_supervisors_high_risk
 from services.programs.contracts import experience_band, select_inspection_sample
+from routers.hotels import DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +249,62 @@ def _clear_import_history_markers(hotel_id: str, assignment_date: str) -> None:
 
     for build_query in marker_queries:
         build_query().execute()
+
+
+def _build_opera_import_preview(rows: list, warnings: list[str], hotel_id: str, import_kind: str) -> dict:
+    """Calculate an import against live room state without writing anything."""
+    rooms = supabase.table("rooms").select("id, room_number").eq("tenant_id", hotel_id).execute()
+    room_map = {row["room_number"]: row["id"] for row in (rooms.data or [])}
+    statuses = supabase.table("room_status").select("room_id, status, fo_status, clean_type, checkout_time").eq("tenant_id", hotel_id).execute()
+    status_map = {row["room_id"]: row for row in (statuses.data or [])}
+    changes: list[dict] = []
+    not_found: list[str] = []
+    skipped_active = 0
+    unchanged = 0
+
+    for row in rows:
+        room_id = room_map.get(row.room_number)
+        if not room_id:
+            not_found.append(row.room_number or "(missing room number)")
+            continue
+        current = status_map.get(room_id, {})
+        if current.get("status") == "IN_PROGRESS":
+            skipped_active += 1
+            continue
+        if import_kind == "hk-details":
+            desired = {
+                "status": "OCCUPIED" if row.our_status == "DIRTY" and row.fo_status == "OCC" else row.our_status,
+                "fo_status": row.fo_status,
+                "clean_type": None,
+                "checkout_time": None,
+            }
+        else:
+            fo_status = row.fo_status or current.get("fo_status")
+            reservation_status = (row.reservation_status or "").lower()
+            desired_status = current.get("status") or "DIRTY"
+            if row.clean_type == "DEP":
+                desired_status = "OCCUPIED" if fo_status == "OCC" else "DIRTY"
+            elif fo_status == "OCC" and ("stayover" in reservation_status or "arrived" in reservation_status):
+                desired_status = "PICKUP"
+            desired = {"status": desired_status, "fo_status": fo_status, "clean_type": row.clean_type or current.get("clean_type")}
+        row_changes = [
+            {"field": field, "before": current.get(field), "after": after}
+            for field, after in desired.items() if current.get(field) != after
+        ]
+        if row_changes:
+            changes.append({"room_id": room_id, "room_number": row.room_number, "changes": row_changes})
+        else:
+            unchanged += 1
+
+    result_warnings = list(warnings)
+    result_warnings.extend(f"Room {room_number}: no matching PatelRep room" for room_number in not_found)
+    if skipped_active:
+        result_warnings.append(f"{skipped_active} active room(s) will be skipped")
+    return {
+        "total_parsed": len(rows), "will_update": len(changes), "unchanged": unchanged,
+        "not_found": len(not_found), "skipped_active": skipped_active,
+        "changes": changes, "warnings": result_warnings,
+    }
 
 
 def _attach_task_sheet_clean_types(rows: list[dict], hotel_id: str, activity_date: date) -> list[dict]:
@@ -1295,7 +1354,7 @@ async def suggest_assignments(
     rooms_result = (
         supabase.table("room_status")
         .select(
-            "room_id, status, vip_flag, checkin_time, dnd_flag, do_not_service, "
+            "room_id, status, vip_flag, checkin_time, dnd_flag, dnd_retry_at, do_not_service, assigned_to, priority, priority_reason, "
             "rooms(id, room_number, floor, building, room_types(id, name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
@@ -1320,9 +1379,19 @@ async def suggest_assignments(
         )
         open_discrepancy_rooms = {d["room_id"] for d in (discrepancy_result.data or []) if d.get("room_id")}
 
+    now = datetime.now(timezone.utc)
+    def _return_later_in_future(room: dict) -> bool:
+        retry_at = room.get("dnd_retry_at")
+        if not retry_at:
+            return False
+        try:
+            return datetime.fromisoformat(str(retry_at).replace("Z", "+00:00")) > now
+        except ValueError:
+            return False
+
     rooms = [
         r for r in all_rooms
-        if not r.get("dnd_flag") and not r.get("do_not_service") and r.get("room_id") not in open_discrepancy_rooms
+        if not r.get("dnd_flag") and not r.get("do_not_service") and r.get("room_id") not in open_discrepancy_rooms and not _return_later_in_future(r)
     ]
     blocked_room_count = len(all_rooms) - len(rooms)
 
@@ -1417,6 +1486,52 @@ async def suggest_assignments(
             }
         }
 
+    # Property settings are optional on legacy tenants. Merge every persisted
+    # value over the documented defaults before the solver sees it.
+    settings_result = (
+        supabase.table("tenants")
+        .select("housekeeping_assignment_preferences")
+        .eq("id", current_user.hotel_id)
+        .execute()
+    )
+    settings_rows = settings_result.data or []
+    persisted_preferences = (settings_rows[0] if settings_rows else {}).get("housekeeping_assignment_preferences")
+    preferences = {
+        **DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES,
+        **({key: value for key, value in persisted_preferences.items() if key in DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES and isinstance(value, bool)} if isinstance(persisted_preferences, dict) else {}),
+    }
+
+    # A scheduled staff member is normally available; a live shift session
+    # refines that answer. The same status interpretation powers the web roster.
+    housekeeper_ids = [hk["id"] for hk in housekeepers]
+    sessions_result = (
+        supabase.table("hk_shift_sessions")
+        .select("user_id, status, started_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .in_("user_id", housekeeper_ids)
+        .execute()
+    )
+    latest_session_by_user: dict[str, dict] = {}
+    for session in sessions_result.data or []:
+        uid = session.get("user_id")
+        if uid and uid not in latest_session_by_user:
+            latest_session_by_user[uid] = session
+
+    excluded_staff = []
+    eligible_housekeepers = []
+    for hk in housekeepers:
+        session_status = (latest_session_by_user.get(hk["id"]) or {}).get("status")
+        if session_status == "ended" and preferences["exclude_off_shift"]:
+            excluded_staff.append({"id": hk["id"], "reason": "off_shift"})
+            continue
+        if session_status == "on_break" and preferences["avoid_on_break"]:
+            excluded_staff.append({"id": hk["id"], "reason": "on_break"})
+            continue
+        eligible_housekeepers.append(hk)
+    housekeepers = eligible_housekeepers
+    if not housekeepers:
+        return {"data": {"suggestions": [], "blocked_rooms": blocked_room_count, "excluded_staff": excluded_staff, "message": "No eligible housekeepers are currently available for new assignments"}}
+
     # --- 3. Per-housekeeper, per-room-type speed profiles (fallback: room type default) ---
     room_type_ids = list({
         ((r.get("rooms") or {}).get("room_types") or {}).get("id")
@@ -1485,7 +1600,8 @@ async def suggest_assignments(
     max_load = model.NewIntVar(0, max(max_possible_minutes, 1), "max_load")
     model.AddMaxEquality(max_load, load_vars)
 
-    # Soft building-affinity: penalize a housekeeper touching more than one building.
+    # Soft travel affinity: room-level assignments remain deterministic but can
+    # prefer fewer building/floor changes when an operator enables either rule.
     building_spread_terms = []
     for h in range(n_hk):
         touches_building = []
@@ -1496,14 +1612,39 @@ async def suggest_assignments(
             touches = model.NewBoolVar(f"touch_{h}_{b_idx}")
             model.AddMaxEquality(touches, [x[h, r] for r in room_idxs])
             touches_building.append(touches)
-        if touches_building:
+        if touches_building and preferences["prefer_same_building"]:
             building_spread_terms.append(sum(touches_building))
+
+    floor_spread_terms = []
+    floors_sorted = sorted({(room.get("rooms") or {}).get("floor") for room in rooms if (room.get("rooms") or {}).get("floor") is not None})
+    if preferences["prefer_same_floor"]:
+        for h in range(n_hk):
+            touches_floor = []
+            for floor in floors_sorted:
+                room_idxs = [r for r in range(n_rooms) if (rooms[r].get("rooms") or {}).get("floor") == floor]
+                touches = model.NewBoolVar(f"floor_touch_{h}_{floor}")
+                model.AddMaxEquality(touches, [x[h, r] for r in room_idxs])
+                touches_floor.append(touches)
+            if touches_floor:
+                floor_spread_terms.append(sum(touches_floor))
+
+    reassignment_terms = []
+    if preferences["minimize_reassignment"]:
+        for r, room in enumerate(rooms):
+            current_owner = room.get("assigned_to")
+            if not current_owner:
+                continue
+            owner_index = next((h for h, hk in enumerate(housekeepers) if hk["id"] == current_owner), None)
+            if owner_index is not None:
+                reassignment_terms.append(1 - x[owner_index, r])
 
     # Priority order: fairness (max_load) >> efficiency (total minutes) >> building spread.
     model.Minimize(
-        max_load * 10_000
+        (max_load * 10_000 if preferences["balance_workload"] else 0)
         + sum(load_vars) * 10
         + (sum(building_spread_terms) if building_spread_terms else 0)
+        + (sum(floor_spread_terms) if floor_spread_terms else 0)
+        + (sum(reassignment_terms) * 100 if reassignment_terms else 0)
     )
 
     solver = cp_model.CpSolver()
@@ -1555,8 +1696,21 @@ async def suggest_assignments(
             target["assigned_minutes"] += minutes
 
     # --- 5. Sequence each housekeeper's rooms into a walking order ---
+    def _priority_key(room: dict) -> tuple:
+        guest_waiting = room.get("priority_reason") == "guest_waiting"
+        rush = room.get("priority") is not None and room.get("priority", 99) <= 2
+        arrival = room.get("checkin_time") or "9999-12-31T23:59:59+00:00"
+        return (
+            0 if preferences["prioritize_guest_waiting"] and guest_waiting else 1,
+            0 if preferences["prioritize_rush"] and rush else 1,
+            arrival if preferences["prioritize_earliest_arrival"] else "",
+        )
+    room_by_id = {room.get("room_id"): room for room in rooms}
     for hk in housekeepers:
         hk["assigned_rooms"] = _sequence_rooms(hk["assigned_rooms"])
+        hk["assigned_rooms"].sort(key=lambda room: _priority_key(room_by_id.get(room.get("room_id"), {})))
+        for sequence, room in enumerate(hk["assigned_rooms"], start=1):
+            room["sequence"] = sequence
 
     # --- 6. Build response ---
     def _dominant_building(hk: dict) -> Optional[str]:
@@ -1599,6 +1753,7 @@ async def suggest_assignments(
             "date": target_date.isoformat(),
             "shift_id": shift_id,
             "blocked_rooms": blocked_room_count,
+            "excluded_staff": excluded_staff,
             "message": (
                 f"Suggested assignments for {len(rooms)} room(s) "
                 f"across {len(housekeepers)} housekeeper(s){building_note}{blocked_note}"
@@ -1948,6 +2103,12 @@ async def submit_inspection(
         require_role("gm", "housekeeping_supervisor")
     ),
 ):
+    # This legacy JSON endpoint remains for compatibility, but it must never
+    # recreate the former sampled-room shortcut: a pass without a real
+    # template checklist is invalid. New UI uses /inspections/complete, which
+    # performs the full template/evidence validation before this write path.
+    if request.overall_result == "passed" and (not request.template_id or not request.items):
+        raise HTTPException(status_code=422, detail="A passed inspection requires a completed checklist")
     # Capture current status and clean_type before the DB trigger changes them
     current_rs = (
         supabase.table("room_status")
@@ -2017,6 +2178,138 @@ async def submit_inspection(
             .execute()
 
     return {"data": inspection.data[0]}
+
+
+@router.post("/inspections/complete")
+async def complete_inspection(
+    inspection: str = Form(...),
+    photo_item_ids: list[str] = Form(default=[]),
+    photos: list[UploadFile] = File(default=[]),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Finalize a checklist inspection only after all required evidence uploads.
+
+    Evidence is written before the inspection row so a storage failure can never
+    transition the room or dispatch a re-clean. The row is inserted only once
+    the checklist and its evidence are complete.
+    """
+    try:
+        request = SubmitInspectionRequest.model_validate(json.loads(inspection))
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid inspection checklist payload") from exc
+
+    template = (
+        supabase.table("inspection_templates")
+        .select("id")
+        .eq("id", str(request.template_id))
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("is_active", True)
+        .maybe_single()
+        .execute()
+    ) if request.template_id else None
+    if not template or not template.data:
+        raise HTTPException(status_code=422, detail="No inspection checklist is configured for this room")
+
+    template_items_result = (
+        supabase.table("inspection_template_items")
+        .select("id, is_required, requires_photo_on_fail")
+        .eq("template_id", str(request.template_id))
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+    template_items = template_items_result.data or []
+    if not template_items:
+        raise HTTPException(status_code=422, detail="No inspection checklist is configured for this room")
+
+    template_item_ids = {item["id"] for item in template_items}
+    submitted_by_id = {str(item.template_item_id): item for item in request.items if item.template_item_id}
+    unknown_ids = set(submitted_by_id) - template_item_ids
+    if unknown_ids:
+        raise HTTPException(status_code=422, detail="Inspection includes an item outside this checklist")
+    missing_required = [item["id"] for item in template_items if item.get("is_required") and item["id"] not in submitted_by_id]
+    if missing_required:
+        raise HTTPException(status_code=422, detail=f"{len(missing_required)} required items still need review.")
+
+    failed_ids = {item_id for item_id, item in submitted_by_id.items() if item.result == "fail"}
+    derived_result = "failed" if failed_ids else "passed"
+    if request.overall_result != derived_result:
+        raise HTTPException(status_code=422, detail="Inspection result must match checklist results")
+
+    if len(photo_item_ids) != len(photos) or len(set(photo_item_ids)) != len(photo_item_ids):
+        raise HTTPException(status_code=422, detail="Each inspection photo must be linked to one checklist item")
+    photos_by_item = dict(zip(photo_item_ids, photos))
+    required_photo_ids = {
+        item["id"] for item in template_items
+        if item.get("requires_photo_on_fail") and item["id"] in failed_ids
+    }
+    if not required_photo_ids.issubset(photos_by_item):
+        raise HTTPException(status_code=422, detail="Required failed-item photos must finish uploading before submission")
+    if not set(photos_by_item).issubset(failed_ids):
+        raise HTTPException(status_code=422, detail="Inspection photos can only be attached to failed items")
+
+    current_rs = (
+        supabase.table("room_status")
+        .select("status, clean_type")
+        .eq("room_id", str(request.room_id))
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_rs or not current_rs.data:
+        raise HTTPException(status_code=404, detail="Room status not found")
+    if current_rs.data.get("status") != "CLEAN":
+        raise HTTPException(status_code=409, detail="Room must be clean before it can be inspected")
+
+    inspection_id = str(uuid4())
+    photo_urls: dict[str, str] = {}
+    for template_item_id, photo in photos_by_item.items():
+        if photo.content_type not in ALLOWED_INSPECTION_PHOTO_TYPES:
+            raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images are allowed")
+        file_bytes = await photo.read(MAX_INSPECTION_PHOTO_BYTES + 1)
+        if len(file_bytes) > MAX_INSPECTION_PHOTO_BYTES:
+            raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller")
+        extension = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp"}[photo.content_type]
+        path = f"{current_user.hotel_id}/inspections/{inspection_id}/{template_item_id}.{extension}"
+        supabase.storage.from_("work-order-photos").upload(path, file_bytes, {"content-type": photo.content_type, "upsert": "false"})
+        photo_urls[template_item_id] = supabase.storage.from_("work-order-photos").get_public_url(path)
+
+    from_status = current_rs.data.get("status", "CLEAN")
+    current_clean_type = current_rs.data.get("clean_type")
+    completed = supabase.table("inspections").insert({
+        "id": inspection_id,
+        "tenant_id": current_user.hotel_id,
+        "room_id": str(request.room_id),
+        "template_id": str(request.template_id),
+        "inspected_by": current_user.user_id,
+        "overall_result": derived_result,
+        "notes": request.notes,
+    }).execute()
+    result_rows = [{
+        "inspection_id": inspection_id,
+        "template_item_id": item_id,
+        "tenant_id": current_user.hotel_id,
+        "result": item.result,
+        "note": item.note,
+        **({"photo_url": photo_urls[item_id]} if item_id in photo_urls else {}),
+    } for item_id, item in submitted_by_id.items()]
+    if result_rows:
+        supabase.table("inspection_results").insert(result_rows).execute()
+
+    to_status = "DIRTY" if derived_result == "failed" else "INSPECTED"
+    supabase.table("room_status_history").insert({
+        "room_id": str(request.room_id), "tenant_id": current_user.hotel_id,
+        "from_status": from_status, "to_status": to_status,
+        "changed_by": current_user.user_id, "change_source": "app", "notes": request.notes,
+    }).execute()
+    if derived_result == "passed":
+        update_data = {"reclean_requested_at": None}
+        if current_clean_type == "DEP":
+            update_data["stay_reset_at"] = datetime.now(timezone.utc).isoformat()
+        supabase.table("room_status").update(update_data).eq("room_id", str(request.room_id)).eq("tenant_id", current_user.hotel_id).execute()
+    else:
+        await trigger_reclean(inspection_id, current_user)
+
+    return {"data": {"id": inspection_id, "overall_result": derived_result, "reclean_requested": derived_result == "failed", "inspection": completed.data[0] if completed.data else None}}
 
 
 # ---------------------------------------------------------------------------
@@ -2490,6 +2783,23 @@ async def delete_inspection_template(
 # POST /housekeeping/import/hk-details
 # ---------------------------------------------------------------------------
 
+@router.post("/import/hk-details/preview")
+async def preview_hk_details_import(
+    file: UploadFile = File(...),
+    assignment_date: str = Form(...),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    try:
+        date.fromisoformat(assignment_date)
+        rows, warnings = parse_hk_details(await file.read())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Invalid housekeeping date") from exc
+    if not rows:
+        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+    return {"data": _build_opera_import_preview(rows, warnings, current_user.hotel_id, "hk-details")}
+
 @router.post("/import/hk-details")
 async def import_hk_details(
     file: UploadFile = File(...),
@@ -2537,6 +2847,9 @@ async def import_hk_details(
         room_id = room_map.get(row.room_number)
         if not room_id:
             not_found.append(row.room_number)
+            continue
+        if prior_status_map.get(room_id) == "IN_PROGRESS":
+            skipped_active += 1
             continue
 
         resolved_status = (
@@ -2606,6 +2919,26 @@ async def import_hk_details(
 # POST /housekeeping/import/task-sheet
 # ---------------------------------------------------------------------------
 
+@router.post("/import/task-sheet/preview")
+async def preview_task_sheet_import(
+    file: UploadFile = File(...),
+    assignment_date: str = Form(...),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    try:
+        date.fromisoformat(assignment_date)
+        rows, warnings = parse_task_sheet(await file.read())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Invalid housekeeping date") from exc
+    except Exception as exc:
+        logger.warning("Task sheet PDF parsing failed: %s", exc)
+        raise HTTPException(status_code=422, detail="Could not read PDF. Please upload a valid Opera Task Sheet.") from exc
+    if not rows:
+        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+    return {"data": _build_opera_import_preview(rows, warnings, current_user.hotel_id, "task-sheet")}
+
 @router.post("/import/task-sheet")
 async def import_task_sheet(
     file: UploadFile = File(...),
@@ -2663,6 +2996,9 @@ async def import_task_sheet(
             .execute()
 
         current_status = current.data.get("status") if (current and current.data) else None
+        if current_status == "IN_PROGRESS":
+            skipped_active += 1
+            continue
 
         # Determine the new status based on Opera occupancy + reservation status.
         # DI + OCC + Stayover = PICKUP regardless of task column.

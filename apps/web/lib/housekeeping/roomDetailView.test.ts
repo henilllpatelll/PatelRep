@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getRoomDetailPresentation } from './roomDetailView'
+import { getRoomDetailAssignmentDate, getRoomDetailPresentation } from './roomDetailView'
+
+test('keeps assignment suggestions on the selected operational date', () => {
+  assert.equal(getRoomDetailAssignmentDate('2026-10-02'), '2026-10-02')
+})
 
 test('prioritizes assignment and real prediction factors for an unassigned dirty departure', () => {
   const view = getRoomDetailPresentation({

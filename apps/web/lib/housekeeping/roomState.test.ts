@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   deriveRoomAttentionItems,
   getDndWelfareStatus,
+  getHousekeepingExecutionBlock,
   getHousekeepingRoomMetrics,
   getDefaultWorkloadTarget,
   getRoomCardPresentation,
@@ -167,6 +168,16 @@ test('Phase 8: welfare escalation and return-later-due surface as attention item
   const notYetDueRoom = normalizeHousekeepingRoom({ room_id: '3', status: 'DIRTY', dnd_retry_at: '2026-09-30T20:00:00.000Z', rooms: { room_number: '3' } })
   const notDueItems = deriveRoomAttentionItems(notYetDueRoom, { now })
   assert.ok(!notDueItems.some((item) => item.code === 'return_later_due'))
+})
+
+test('uses one execution-block model for deferred, cancelled, and unavailable rooms', () => {
+  const now = new Date('2026-09-30T12:00:00.000Z')
+  assert.equal(getHousekeepingExecutionBlock(normalizeHousekeepingRoom({ room_id: 'dnd', status: 'DIRTY', dnd_flag: true })), 'dnd')
+  assert.equal(getHousekeepingExecutionBlock(normalizeHousekeepingRoom({ room_id: 'retry', status: 'DIRTY', dnd_retry_at: '2026-09-30T13:00:00.000Z' }), now), 'return_later')
+  assert.equal(getHousekeepingExecutionBlock(normalizeHousekeepingRoom({ room_id: 'declined', status: 'DIRTY', do_not_service: true })), 'service_declined')
+  assert.equal(getHousekeepingExecutionBlock(normalizeHousekeepingRoom({ room_id: 'disc', status: 'DIRTY', occupancy_discrepancy_id: 'x' })), 'occupancy_discrepancy')
+  assert.equal(getHousekeepingExecutionBlock(normalizeHousekeepingRoom({ room_id: 'ooo', status: 'OOO' })), 'out_of_order')
+  assert.equal(getHousekeepingExecutionBlock(normalizeHousekeepingRoom({ room_id: 'open', status: 'DIRTY' })), null)
 })
 
 test('Phase 8: room card shows the retry/return time even after DND clears to a return-later state', () => {

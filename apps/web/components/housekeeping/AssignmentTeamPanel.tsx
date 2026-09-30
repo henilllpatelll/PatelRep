@@ -62,11 +62,12 @@ function AssignmentStaffCard({
   const [confirmingOverCapacity, setConfirmingOverCapacity] = useState(false)
   const projectedIfAssigned = load.projectedCredits + selectedCredits
   const wouldExceed = selectedCount > 0 && projectedIfAssigned - load.target > 2
+  const isOnBreak = load.availability === 'on_break'
   const barPct = Math.min(100, (load.projectedCredits / Math.max(load.target, 1)) * 100)
   const inactive = load.availability === 'off_shift' || load.availability === 'unavailable'
 
   const handleAssignClick = () => {
-    if (wouldExceed && !confirmingOverCapacity) {
+    if ((wouldExceed || isOnBreak) && !confirmingOverCapacity) {
       setConfirmingOverCapacity(true)
       return
     }
@@ -119,7 +120,7 @@ function AssignmentStaffCard({
       {confirmingOverCapacity ? (
         <div className="mt-2.5 space-y-1.5">
           <p className="text-[11px] text-[var(--alert)]">
-            {t('housekeeping.assignWorkspace.team.overCapacityWarning', { current: projectedIfAssigned, target: load.target })}
+            {isOnBreak ? t('housekeeping.assignWorkspace.team.onBreakWarning') : t('housekeeping.assignWorkspace.team.overCapacityWarning', { current: projectedIfAssigned, target: load.target })}
           </p>
           <div className="flex gap-1.5">
             <Button variant="outline" size="sm" className="flex-1" onClick={() => setConfirmingOverCapacity(false)}>
@@ -137,6 +138,7 @@ function AssignmentStaffCard({
             size="sm"
             className="mt-2.5 w-full"
             onClick={handleAssignClick}
+            disabled={inactive}
           >
             {t('housekeeping.assignWorkspace.team.assignSelected', { count: selectedCount })}
           </Button>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -21,10 +22,10 @@ import { getRoomTypeCode } from '@/lib/utils/roomType'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
-import { getRoomDetailPresentation } from '@/lib/housekeeping/roomDetailView'
+import { getRoomDetailAssignmentDate, getRoomDetailPresentation } from '@/lib/housekeeping/roomDetailView'
 import { normalizeHousekeepingRoom, getDndWelfareStatus } from '@/lib/housekeeping/roomState'
 import { RoomPrioritySheet } from './RoomPrioritySheet'
-import { InspectionFailSheet } from './InspectionFailSheet'
+import { InspectionDrawer } from './InspectionDrawer'
 import { ServiceAttemptForm } from './ServiceAttemptForm'
 import { RoomServiceStatusSheet } from './RoomServiceStatusSheet'
 import { OccupancyDiscrepancySheet } from './OccupancyDiscrepancySheet'
@@ -44,6 +45,7 @@ interface Props {
   room: any | null
   isOpen: boolean
   onClose: () => void
+  selectedDate: string
   onCheckoutTimeSaved?: (checkoutTime: string) => void
 }
 
@@ -212,6 +214,18 @@ function getOccupancy(room: any | null): Occupancy {
   return 'VACANT'
 }
 
+/** Static so Tailwind's JIT can find the literal class names — the varName
+ * from getHeaderTone can't be interpolated directly into a `bg-[var(--x)]`
+ * class and still be picked up by the build-time content scan. */
+const HEADER_BAR_TONE: Record<string, string> = {
+  progress: 'bg-[var(--progress)]',
+  blocked: 'bg-[var(--blocked)]',
+  caution: 'bg-[var(--caution)]',
+  alert: 'bg-[var(--alert)]',
+  ready: 'bg-[var(--ready)]',
+  info: 'bg-[var(--info)]',
+}
+
 /** Header tone reuses the hash-frozen room-status CSS vars (see
  * frozen-files.json room_status_values) — never a new color for these meanings. */
 function getHeaderTone(status: string, occupancy: Occupancy): { varName: string; eyebrowKey: string; striped: boolean } {
@@ -235,7 +249,7 @@ function getHeaderTone(status: string, occupancy: Occupancy): { varName: string;
   return { varName: 'alert', eyebrowKey: 'vacantDirty', striped: false }
 }
 
-export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }: Props) {
+export function RoomDetailDrawer({ room, isOpen, onClose, selectedDate, onCheckoutTimeSaved }: Props) {
   const { t } = useTranslation()
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
@@ -275,7 +289,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
 
   // Phase 8: Rush/priority, DND attempts, service declined, occupancy discrepancy
   const [priorityOpen, setPriorityOpen] = useState(false)
-  const [failOpen, setFailOpen] = useState(false)
+  const [inspectionOpen, setInspectionOpen] = useState(false)
   const [attemptOpen, setAttemptOpen] = useState(false)
   const [declinedOpen, setDeclinedOpen] = useState(false)
   const [discrepancyOpen, setDiscrepancyOpen] = useState(false)
@@ -389,23 +403,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     }
   }
 
-  async function handlePassInspection() {
-    if (!roomId) return
-    setAdvanceLoading(true)
-    try {
-      await housekeepingApi.submitInspection({ room_id: roomId, template_id: null, overall_result: 'passed', items: [] })
-      toast.success(t('housekeeping.roomDetail.inspection.passedToast', { roomNumber }))
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
-      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
-      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
-      queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
-    } catch {
-      toast.error(t('housekeeping.roomDetail.inspection.passError'))
-    } finally {
-      setAdvanceLoading(false)
-    }
-  }
-
   async function handleSendMessage() {
     const recipientId: string | null = room?.assigned_to ?? null
     if (!recipientId || !msgText.trim()) return
@@ -462,11 +459,12 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
 
   const canAssignClean = (canSupervise || role === 'front_desk') && status === 'OCCUPIED' && !!roomId
 
-  // Today's open board, used only to rank housekeepers by route fit when the
-  // assign-clean sheet is open — not needed for the rest of the drawer.
+  // The open board for this workspace's operational date, used only to rank
+  // housekeepers by route fit when the assign-clean sheet is open.
+  const assignmentSuggestionDate = getRoomDetailAssignmentDate(selectedDate)
   const { data: assignBoardData } = useQuery({
-    queryKey: ['housekeeping-board-for-assign-suggestion', format(new Date(), 'yyyy-MM-dd')],
-    queryFn: () => housekeepingApi.getBoard(format(new Date(), 'yyyy-MM-dd'), undefined, false),
+    queryKey: ['housekeeping-board-for-assign-suggestion', assignmentSuggestionDate],
+    queryFn: () => housekeepingApi.getBoard(assignmentSuggestionDate, undefined, false),
     enabled: assignSheetOpen,
     staleTime: 15_000,
   })
@@ -634,8 +632,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
         run: () => handleAdvanceStatus('CLEAN', t('housekeeping.roomDetail.primary.queuedToast', { roomNumber })),
       }
     }
-    // 'inspect' (inspection required) is rendered as a dedicated Pass/Fail pair
-    // below instead of a single generic action -- see the footer.
+    // Required sampled inspections open the checklist drawer; only non-sampled
+    // rooms retain the quick Mark Ready path below.
     if (detail.primaryAction === 'markReady') {
       return {
         label: t('housekeeping.roomDetail.primary.markInspected'),
@@ -689,6 +687,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
         aria-label={t('housekeeping.roomDetail.roomDetailsAria', { roomNumber })}
         className="fixed right-0 top-0 z-drawer flex h-full w-[34rem] max-w-full flex-col border-l border-line bg-surface shadow-2xl outline-none"
       >
+        <span
+          className={`pointer-events-none absolute inset-x-0 top-0 z-10 h-2.5 ${headerTone.striped ? '' : HEADER_BAR_TONE[headerTone.varName] ?? 'bg-[var(--alert)]'}`}
+          style={headerTone.striped ? { backgroundImage: 'repeating-linear-gradient(135deg, var(--alert) 0 4px, rgba(255,255,255,0.55) 4px 8px)' } : undefined}
+          aria-hidden="true"
+        />
         <header className="shrink-0 border-b border-line bg-surface px-6 pb-5 pt-5">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -708,6 +711,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           <section aria-labelledby="room-current-status">
             <p id="room-current-status" className="flex items-center gap-2 text-lg font-semibold text-ink"><span className={`h-2.5 w-2.5 rounded-full ${detail.statusKey === 'ready' ? 'bg-[var(--ready)]' : detail.statusKey === 'outOfOrder' ? 'bg-[var(--blocked)]' : detail.statusKey === 'cleaning' ? 'bg-[var(--progress)]' : 'bg-[var(--alert)]'}`} aria-hidden="true" />{t(`housekeeping.roomCard.status.${detail.statusKey}`)}</p>
             {cleanTypeLabel && <p className="mt-1 text-sm text-ink2">{cleanTypeLabel}</p>}
+            {detail.statusKey === 'outOfOrder' && <Link href={`/housekeeping/out-of-order?room=${roomId}`} className="mt-2 inline-flex text-sm font-medium text-accent underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-accent">{t('housekeeping.roomDetail.actionLabels.openOutOfOrderRecord')}</Link>}
             <dl className="mt-5 grid grid-cols-1 gap-x-6 gap-y-3 border-y border-line py-4 text-sm sm:grid-cols-2">
               {detail.factKeys.includes('arrival') && checkinTime && <><dt className="text-ink3">{t('housekeeping.roomDetail.workspace.arrival')}</dt><dd className="font-mono text-right tabular-nums text-ink">{checkinTime}</dd></>}
               {detail.factKeys.includes('checkout') && showDepartureRow && <><dt className="text-ink3">{departureRowLabel}</dt><dd className="font-mono text-right tabular-nums text-ink">{departureRowValue}</dd></>}
@@ -905,24 +909,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
         {/* Primary footer */}
         <div className="flex-none border-t border-line bg-surface px-6 pb-6 pt-4">
           {detail.primaryAction === 'inspect' ? (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                loading={advanceLoading}
-                onClick={() => setFailOpen(true)}
-                className="h-12 flex-1 rounded-[var(--r-md)] border-[var(--alert-line)] text-[var(--alert)] hover:bg-[var(--alert-soft)]"
-              >
-                {t('housekeeping.roomDetail.inspection.failAction')}
-              </Button>
-              <Button
-                variant="primary"
-                loading={advanceLoading}
-                onClick={handlePassInspection}
-                className="h-12 flex-1 rounded-[var(--r-md)]"
-              >
-                {t('housekeeping.roomDetail.inspection.passAction')}
-              </Button>
-            </div>
+            <Button variant="primary" onClick={() => setInspectionOpen(true)} className="h-12 w-full rounded-[var(--r-md)]">
+              {t('housekeeping.roomDetail.inspection.inspectAction')}
+            </Button>
           ) : primaryAction && (
             <Button
               variant="primary"
@@ -1166,11 +1155,13 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           onClose={() => setPriorityOpen(false)}
         />}
 
-        {roomId && <InspectionFailSheet
+        {roomId && <InspectionDrawer
           roomId={roomId}
           roomNumber={roomNumber}
-          open={failOpen}
-          onClose={() => setFailOpen(false)}
+          roomTypeId={room?.rooms?.room_type_id ?? room?.room_type_id ?? null}
+          previousCorrections={operationalRoom.recleanRequired ? (room?.reclean_corrections ?? []) : []}
+          open={inspectionOpen}
+          onClose={() => setInspectionOpen(false)}
         />}
 
         {roomId && <ServiceAttemptForm

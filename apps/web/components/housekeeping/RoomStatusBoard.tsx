@@ -14,6 +14,8 @@ import { staffApi } from '@/lib/api/staff'
 import { guestRequestsApi } from '@/lib/api/guest_requests'
 import { tasksApi } from '@/lib/api/tasks'
 import { lateCheckoutApi } from '@/lib/api/lateCheckout'
+import { programsApi } from '@/lib/api/programs'
+import { useRole } from '@/lib/hooks/useRole'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
@@ -29,7 +31,7 @@ import {
   type CleanTypeFilter,
 } from '@/lib/utils/housekeepingBoardFilters'
 import { deriveRoomAttentionItems, normalizeHousekeepingRoom } from '@/lib/housekeeping/roomState'
-import { filterHousekeepingBoardView, getAttentionSummary, getBoardKpis, type BoardStatusFilter } from '@/lib/housekeeping/boardView'
+import { filterHousekeepingBoardView, getAttentionSummary, getBoardKpis, isLiveBoardDate, type BoardStatusFilter } from '@/lib/housekeeping/boardView'
 import { HousekeepingAttention, HousekeepingBoardFilters, HousekeepingSummary } from '@/components/housekeeping/HousekeepingBoardShell'
 
 // -- Status chip config --------------------------------------------------------
@@ -250,6 +252,7 @@ export function RoomStatusBoard() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const { role } = useRole()
 
   const {
     rooms: allRooms,
@@ -287,17 +290,26 @@ export function RoomStatusBoard() {
     setUnassignedOnly,
     setSelectedDate,
   } = useHousekeepingStore()
+  const isLiveBoard = isLiveBoardDate(selectedDate)
   const toast = useToast()
+  const canReadDndPolicy = role === 'gm' || role === 'housekeeping_supervisor' || role === 'chief_engineer'
+  const { data: programsData } = useQuery({
+    queryKey: ['programs-overview-for-board'], queryFn: () => programsApi.overview(), enabled: canReadDndPolicy, staleTime: 60_000,
+  })
+  const dndWelfareOptions = useMemo(() => {
+    const policy = programsData?.data?.dnd_welfare_policy
+    return policy ? { dndWelfarePolicy: { thresholdHours: policy.threshold_hours } } : {}
+  }, [programsData])
 
   const displayRooms = useMemo(() =>
     allRooms.map((room: any) => {
       const boardRoom = normalizeHousekeepingBoardRoom(room)
       return {
         ...boardRoom,
-        attentionItems: deriveRoomAttentionItems(normalizeHousekeepingRoom(boardRoom)),
+        attentionItems: deriveRoomAttentionItems(normalizeHousekeepingRoom(boardRoom), dndWelfareOptions),
       }
     }),
-    [allRooms],
+    [allRooms, dndWelfareOptions],
   )
 
   const availableBuildings = useMemo(() => {
@@ -390,8 +402,8 @@ export function RoomStatusBoard() {
     () => displayRooms.map((room) => normalizeHousekeepingRoom(room)),
     [displayRooms],
   )
-  const boardKpis = useMemo(() => getBoardKpis(operationalRooms), [operationalRooms])
-  const attentionSummary = useMemo(() => getAttentionSummary(operationalRooms), [operationalRooms])
+  const boardKpis = useMemo(() => getBoardKpis(operationalRooms, dndWelfareOptions), [operationalRooms, dndWelfareOptions])
+  const attentionSummary = useMemo(() => getAttentionSummary(operationalRooms, dndWelfareOptions), [operationalRooms, dndWelfareOptions])
   const availableFloors = useMemo(() => Array.from(new Set(
     operationalRooms
       .filter((room) => !buildingFilter || room.building === buildingFilter)
@@ -412,7 +424,7 @@ export function RoomStatusBoard() {
       search: boardSearch,
       attention: attentionFilter,
       unassignedOnly,
-    }, hkNameById).map((room) => room.roomId))
+    }, hkNameById, dndWelfareOptions).map((room) => room.roomId))
     let base = displayRooms.filter((room: any) => matchingIds.has(room.room_id))
     if (showRiskOnly) {
       base = base.filter((room: any) => {
@@ -423,28 +435,57 @@ export function RoomStatusBoard() {
     if (!assignmentMode || assignFilter === 'all') return base
     if (assignFilter === 'unassigned') return base.filter((room: any) => !room.assigned_to && !pendingAssignments[room.room_id])
     return base.filter((room: any) => !!pendingAssignments[room.room_id])
-  }, [assignFilter, assignmentMode, assigneeFilter, attentionFilter, boardSearch, buildingFilter, cleanTypeFilter, displayRooms, floorFilter, hkNameById, operationalRooms, pendingAssignments, predictions, showRiskOnly, statusFilter, unassignedOnly])
+  }, [assignFilter, assignmentMode, assigneeFilter, attentionFilter, boardSearch, buildingFilter, cleanTypeFilter, displayRooms, dndWelfareOptions, floorFilter, hkNameById, operationalRooms, pendingAssignments, predictions, showRiskOnly, statusFilter, unassignedOnly])
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+
+  // Read via a ref rather than reactive deps below -- this effect must only
+  // fire on external URL changes (browser back/forward, a pasted deep link),
+  // never on the local filter state it's comparing against. Depending on
+  // those values directly used to re-run this effect the instant a filter
+  // button set one, and it would read the *stale* searchParams (the URL sync
+  // effect below hasn't written the new value yet) and immediately stomp the
+  // just-set filter back to whatever the old URL held -- the board would
+  // flash into the filtered view and instantly bounce back out.
+  const currentFiltersRef = useRef({ selectedDate, buildingFilter, floorFilter, assigneeFilter, statusFilter })
+  useEffect(() => {
+    currentFiltersRef.current = { selectedDate, buildingFilter, floorFilter, assigneeFilter, statusFilter }
+  })
 
   // Keep supervisors' working board view shareable without taking ownership of
   // the established ?room=<id> detail-drawer deep link.
   useEffect(() => {
+    const current = currentFiltersRef.current
     const date = searchParams.get('date')
     const building = searchParams.get('building')
     const floor = searchParams.get('floor')
     const assignee = searchParams.get('assignee')
     const status = searchParams.get('status')
-    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date !== selectedDate) setSelectedDate(date)
-    if (building !== buildingFilter) setBuildingFilter(building)
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date !== current.selectedDate) setSelectedDate(date)
+    if (building !== current.buildingFilter) setBuildingFilter(building)
     const parsedFloor = floor && Number.isFinite(Number(floor)) ? Number(floor) : null
-    if (parsedFloor !== floorFilter) setFloorFilter(parsedFloor)
-    if (assignee !== assigneeFilter) setAssigneeFilter(assignee)
-    if (status !== statusFilter) setStatusFilter(status)
-  }, [assigneeFilter, buildingFilter, floorFilter, searchParams, selectedDate, setAssigneeFilter, setBuildingFilter, setFloorFilter, setSelectedDate, setStatusFilter, statusFilter])
+    if (parsedFloor !== current.floorFilter) setFloorFilter(parsedFloor)
+    if (assignee !== current.assigneeFilter) setAssigneeFilter(assignee)
+    if (status !== current.statusFilter) setStatusFilter(status)
+  }, [searchParams, setAssigneeFilter, setBuildingFilter, setFloorFilter, setSelectedDate, setStatusFilter])
+
+  // Also read the live URL via a ref instead of a reactive dep -- this effect
+  // must run only when the *filter state* changes, never merely because the
+  // URL changed. Depending on searchParams here meant every router.replace
+  // this effect issued (or one the hydration effect above issued) re-ran it
+  // again on the resulting navigation; two clicks close enough together
+  // (a literal double-click, or the same bubble toggled off right after on)
+  // could then have two of these in flight, each replace() racing the other
+  // and occasionally resolving out of order -- which looked like the board
+  // repeatedly flipping between filtered and unfiltered.
+  const searchParamsRef = useRef(searchParams)
+  useEffect(() => {
+    searchParamsRef.current = searchParams
+  })
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString())
+    const currentParams = searchParamsRef.current
+    const params = new URLSearchParams(currentParams.toString())
     const setOrDelete = (key: string, value: string | null) => {
       if (value) params.set(key, value)
       else params.delete(key)
@@ -455,8 +496,8 @@ export function RoomStatusBoard() {
     setOrDelete('assignee', assigneeFilter)
     setOrDelete('status', statusFilter)
     const next = params.toString()
-    if (next !== searchParams.toString()) router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
-  }, [assigneeFilter, buildingFilter, floorFilter, pathname, router, searchParams, selectedDate, statusFilter])
+    if (next !== currentParams.toString()) router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
+  }, [assigneeFilter, buildingFilter, floorFilter, pathname, router, selectedDate, statusFilter])
 
   useEffect(() => {
     const roomId = searchParams.get('room')
@@ -530,7 +571,7 @@ export function RoomStatusBoard() {
   const { isLoading, isError, data: boardData } = useQuery({
     queryKey: ['housekeeping-board', selectedDate, selectedShift],
     queryFn: () => housekeepingApi.getBoard(selectedDate, selectedShift ?? undefined, true),
-    refetchInterval: 10_000,
+    refetchInterval: isLiveBoard ? 10_000 : false,
   })
 
   useEffect(() => {
@@ -562,7 +603,7 @@ export function RoomStatusBoard() {
       }, 500)
     }
 
-    if (!hotelId) return
+    if (!hotelId || !isLiveBoard) return
     if (session?.access_token) supabase.realtime.setAuth(session.access_token)
 
     const channel = supabase
@@ -578,7 +619,7 @@ export function RoomStatusBoard() {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-  }, [applyRoomStatusPayload, hotelId, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
+  }, [applyRoomStatusPayload, hotelId, isLiveBoard, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
 
   // -- Status change handler ---------------------------------------------------
   const handleStatusChange = async (roomId: string, status: string) => {
@@ -754,6 +795,7 @@ export function RoomStatusBoard() {
         activeAttention={attentionFilter}
         onAttentionChange={setAttentionFilter}
         onOpenRoom={(room) => setSelectedRoom(withLateCheckout(room))}
+        attentionOptions={dndWelfareOptions}
       />
 
       {assignmentMode ? (
@@ -913,6 +955,7 @@ export function RoomStatusBoard() {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
+        selectedDate={selectedDate}
         onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => prev ? { ...prev, checkout_time: time } : prev)}
       />
 

@@ -29,6 +29,10 @@ const STATUS_TONE: Record<RoomCardStatusKey, string> = {
   vacantDirty: 'bg-[var(--alert)]', pickup: 'bg-[var(--caution)]', cleaning: 'bg-[var(--progress)]', inspect: 'bg-[var(--info)]', ready: 'bg-[var(--ready)]', reclean: 'bg-[var(--alert)]', outOfOrder: 'bg-[var(--blocked)]', dnd: 'bg-[var(--ink-3)]', serviceDeclined: 'bg-[var(--ink-3)]', occupied: 'bg-[var(--alert)]',
 }
 
+/** Occupied reads as striped red on the top bar, matching the drawer header
+ * and SimplifiedDashboard's occupied-room indicator. */
+const OCCUPIED_STRIPE_STYLE = { backgroundImage: 'repeating-linear-gradient(135deg, var(--alert) 0 4px, rgba(255,255,255,0.55) 4px 8px)' } as const
+
 const STATUS_BORDER: Record<RoomCardStatusKey, string> = {
   vacantDirty: 'border-[var(--alert-line)]', pickup: 'border-[var(--caution-line)]', cleaning: 'border-[var(--progress-line)]', inspect: 'border-[var(--info-line)]', ready: 'border-[var(--ready-line)]', reclean: 'border-[var(--alert-line)]', outOfOrder: 'border-[var(--blocked-line)]', dnd: 'border-line', serviceDeclined: 'border-line', occupied: 'border-[var(--alert-line)]',
 }
@@ -85,6 +89,11 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
     const assignmentTiming = presentation.timing?.key === 'arrival' ? timingLabel : null
     return (
       <article className={cn('relative min-h-[126px] overflow-hidden rounded-[var(--r-lg)] border bg-surface p-3 transition-colors', STATUS_BORDER[presentation.statusKey], isAssignmentSelected && 'border-[var(--ai-line)] bg-[var(--ai-soft)] ring-1 ring-[var(--ai-line)]', isAlreadyAssigned && 'opacity-65')}>
+        <span
+          className={cn('pointer-events-none absolute inset-x-0 top-0 z-20 h-1', presentation.statusKey !== 'occupied' && STATUS_TONE[presentation.statusKey])}
+          style={presentation.statusKey === 'occupied' ? OCCUPIED_STRIPE_STYLE : undefined}
+          aria-hidden="true"
+        />
         <button type="button" aria-label={cardSummary} onClick={activateCard} className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] outline-none transition-colors hover:bg-black/[0.02] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset" />
         <div className="relative z-10 flex min-h-[102px] flex-col pointer-events-none">
           <div className="flex items-start gap-2">
@@ -105,6 +114,11 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
 
   return (
     <article className={cn('relative h-[178px] overflow-hidden rounded-[var(--r-lg)] border bg-surface p-3 transition-colors', STATUS_BORDER[presentation.statusKey], presentation.statusKey === 'ready' && 'bg-[var(--ready-soft)]/35')}>
+      <span
+        className={cn('pointer-events-none absolute inset-x-0 top-0 z-20 h-1', presentation.statusKey !== 'occupied' && STATUS_TONE[presentation.statusKey])}
+        style={presentation.statusKey === 'occupied' ? OCCUPIED_STRIPE_STYLE : undefined}
+        aria-hidden="true"
+      />
       <button type="button" aria-label={cardSummary} onClick={activateCard} className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] outline-none transition-colors hover:bg-black/[0.02] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset" />
       <div className="relative z-10 flex h-full flex-col pointer-events-none">
         <div className="flex items-start gap-2"><div className="min-w-0"><p className="font-mono text-[21px] font-semibold leading-none tabular-nums text-ink">{operationalRoom.roomNumber}</p>{operationalRoom.roomType && <p className="mt-1 font-mono text-[11px] leading-none text-ink3">{operationalRoom.roomType}</p>}</div><div className="ml-auto flex items-center gap-1 text-[10px] font-bold tracking-[0.08em]">{presentation.isRush && <span className="text-[var(--alert)]">{t('housekeeping.boardV2.attention.categories.rush')}</span>}{presentation.isVip && <span className="text-[var(--caution)]">{t('housekeeping.roomCard.vip')}</span>}</div></div>

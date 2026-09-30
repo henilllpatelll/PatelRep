@@ -929,6 +929,7 @@ export function SimplifiedDashboard() {
         room={drawerRoom}
         isOpen={!!selectedRoom}
         onClose={() => setSelectedRoom(null)}
+        selectedDate={todayISO}
         onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => (prev ? { ...prev, checkout_time: time } : prev))}
       />
 

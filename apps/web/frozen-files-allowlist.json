@@ -3,6 +3,18 @@
   "entries": [
     {
       "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "10086304bc032622aa18d9603272c99d11fe1a44145334d11bca6fc18cb05cfe",
+      "reason": "Formatting-only follow-up to the approved checklist-drawer integration; no behavior, props, status tokens, or visual treatment changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "0fa311841946d988bf6999ffe1411b04eda6bb4ada1d9f98ad042c135e22e2d8",
+      "reason": "Housekeeping finalization: replace the sampled-room Pass/Fail shortcut with one Inspect Room action that opens the focused checklist drawer. Non-sampled Mark Ready and every existing Room Detail action remain unchanged; the new drawer owns template selection, required responses, evidence, and inspection completion.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
       "new_hash": "e94f7874946a014ef6026104a770ab7fc5cbfa311e05a7b328235a0165071d40",
       "reason": "Phase 4 preservation fix: non-assignment roles viewing an OCCUPIED room retain the existing Request clean -> IN_PROGRESS transition. The new selector labels this explicitly instead of silently removing the prior operational action; assignment-capable roles still see Assign to clean.",
       "approved": true
@@ -132,6 +144,54 @@
       "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
       "new_hash": "ffa3d6fbeb35bb79328237452f50b9d808bf1a1c6d9aeb45009a2cc4410b2e1d",
       "reason": "Phase 10 (housekeeping redesign final phase): two changes. (1) Dark-mode token sweep of the Report Issue, Change Departure, and Assign Room Clean bottom sheets -- these were the last hardcoded stone-*/amber-*/rose-*/emerald-*/orange-* literal Tailwind colors left in this file (everything else already used the --ink/--surface/--line/--accent/--alert/--ready CSS-variable tokens); replaced 1:1 with the equivalent tokens (e.g. text-stone-400 -> text-ink3, bg-white -> bg-surface, ring-amber-400 -> ring-[var(--accent)], the selected-chip bg-stone-900/text-white pair -> bg-ink/text-surface) and dropped a redundant bg-orange-500 override on the WO-submit button since Button's own primary variant already applies the accent token correctly in both themes. (2) The CLEAN-with-inspection-required primary action ('Mark inspected', which silently flipped status straight to INSPECTED with no inspection record) is now a Pass/Fail button pair: Pass calls the real POST /housekeeping/inspections with overall_result='passed' (previously only a status PATCH -- no inspection row was ever created for a sampled room), Fail opens a new sibling component (InspectionFailSheet, same bottom-sheet/focus-trap pattern as the other four Phase 8 sheets) that lets the supervisor mark which checklist items need fixing, submits overall_result='failed', then calls the existing (previously orphaned) POST /housekeeping/inspections/{id}/reclean. This was necessary because nothing in the app could ever fail an inspection before -- the dead, unimported InspectionModal.tsx (deleted this phase, along with its now-unused inspectionModal i18n block) was the only prior attempt at this, and trigger_reclean itself never set room_status.reclean_requested_at, so My Rooms/Team Plan's entire pre-built Reclean section (recleanRequired, RoomCard's 'reclean' status/context key, the attention system's reclean code) was permanently unreachable dead UI -- both are now wired live (companion backend change: migration 125 adds the column; submit_inspection clears it on a pass, trigger_reclean sets it on a fail). A new _attach_reclean_corrections() helper on GET /housekeeping/my-rooms surfaces the failed checklist items to the housekeeper (spec: '2 corrections / label / label'). 'markReady' (non-sampled rooms) keeps its prior single-button behavior unchanged. All new copy localized in EN/ES (parity verified via check-i18n-parity.mjs); 6 new backend smoke tests added. No exports, the Props contract ({ room, isOpen, onClose, onCheckoutTimeSaved }), or room-status color/token values changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "4c9d99e0c13bd676cccbf1ce0b72e194cd0b2d31579ffb06fc7d2210caeb01f6",
+      "reason": "Phase 2 DND welfare integration: the Room Board reads Programs' existing management-authorized DND policy once at page scope and passes the normalized policy into its existing attention selector, filters, and summary. No status-token values, room mutations, or per-card policy requests were added.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "3c9720642e83576e6946de8d097858763acceb1a090fc1634771929baa0cff29",
+      "reason": "Phase 2 OOO navigation: an OOO drawer now includes one accessible link to the existing secondary out-of-order record page, preserving the current room status and release-to-DIRTY behavior. No drawer prop, mutation, or room-status token changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "28097d0d578573c536186a410eb03fad113110f537673c0bb4a35d58a9c01b6a",
+      "reason": "Phase 3 selected-date correctness: live polling and tenant-scoped Realtime subscriptions now run only for the current operational date, so a historical or future Room Board does not consume today's room-status events. The board query key remains date and shift scoped; room-status token values are unchanged.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "4b180936785da444d550b1dbf63223d59dcb1979de333d4f71604e5b81914fdc",
+      "reason": "Phase 3 selected-date correctness: assignment route-fit suggestions now use the operational date supplied by the containing workspace rather than independently fetching the browser's current day. No status token, room mutation, or visual treatment changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "new_hash": "2aae579f3ffe18850b19969cd09039f20e34914ca2bcf88bfcb10b444208c0a9",
+      "reason": "Companion type-safety update: Engineering's Room Detail host passes its already-used today value through the drawer's selected-date contract, preserving its existing current-day behavior.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "new_hash": "524d1b0c63c296ffd211f5b4af2c99781e56770e53f7ff69631950cedd40b5f7",
+      "reason": "User-requested visual polish, not a redesign: each card now renders a thin status-color top bar (reusing the existing STATUS_TONE map already used for the status dot) in both the normal and assignment-mode card variants. Occupied rooms (statusKey === 'occupied') render that bar as a diagonal red/white stripe instead of solid red, matching the same repeating-linear-gradient convention already used for occupied rooms in SimplifiedDashboard.tsx and now also applied to RoomDetailDrawer.tsx's header bar (see that file's entry below). The bar is `pointer-events-none` since it overlaps the card's full-bleed clickable overlay button (z-20 bar over the z-0 button) -- without it, the top-edge sliver would be a dead click zone. No existing exports, prop shapes, or room-status color/token values changed -- only an additive `<span>` per card variant.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "b9a2f3ef68f789e7fac72a55bd5de55ac159738a2529af53c17a604c8e891d61",
+      "reason": "User-requested visual polish: the drawer header now renders a prominent (10px) status-color bar across its top edge, driven by the existing getHeaderTone() selector's `varName`/`striped` fields -- both were already computed on every render but never rendered anywhere, so this only surfaces logic that already existed. Occupied rooms (headerTone.striped) render the bar as a diagonal red/white stripe via the same repeating-linear-gradient pattern used for RoomCard.tsx's occupied stripe and already referenced (but not yet implemented) in a SimplifiedDashboard.tsx comment ('matching the drawer header'). Added a small static HEADER_BAR_TONE class map so Tailwind's JIT can find the literal `bg-[var(--x)]` classes (a template-interpolated class string would not be statically discoverable at build time), and marked the bar `pointer-events-none` since it's purely decorative. No exports, the Props contract ({ room, isOpen, onClose, onCheckoutTimeSaved }), or room-status color/token values changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "d4584c58e30bd67550dfcee5830b506a3330659f3b9e4959843c1ac8990bb9a4",
+      "reason": "Bugfix: clicking a status filter chip or KPI tile (Needs action/Dirty/Cleaning/etc., including the 'In progress' summary tile) could make the board flicker between the filtered and unfiltered view, most reliably on a literal double-click or clicking the same bubble twice in a row. Root cause: the two effects that keep board filters in sync with the URL query string both had the local filter state variables (statusFilter/buildingFilter/floorFilter/assigneeFilter/selectedDate) AND `searchParams` in their own dependency arrays, so each effect re-ran in response to changes it or its sibling effect had just caused, occasionally reading a stale/mid-flight URL or racing its own prior router.replace() call and stomping the just-clicked filter back to the old value. Fixed by having each effect read the state it isn't the source of truth for (the URL-to-store hydration effect reads current filter state; the store-to-URL push effect reads the current search params) through a ref that's kept fresh in a plain (dependency-less) useEffect rather than as a reactive dependency, so each effect now fires only in response to its own true trigger, never its sibling's writes. (The ref itself is updated inside a useEffect, not during render, per the react-hooks/refs lint rule.) No filtering logic, room-status token values, or the Props/query-key contract changed -- purely a re-render/URL-sync fix.",
       "approved": true
     }
   ]

@@ -1266,6 +1266,7 @@ class UpdateHousekeepingSettingsRequest(SanitizedBaseModel):
     default_target_credits: Optional[float] = Field(default=None, gt=0, le=100)
     credit_weights: Optional[dict[str, float]] = None
     capacity_overrides: Optional[dict[str, float]] = None
+    assignment_preferences: Optional[dict[str, bool]] = None
 
     @model_validator(mode="after")
     def validate_housekeeping_workload(self):
@@ -1280,6 +1281,17 @@ class UpdateHousekeepingSettingsRequest(SanitizedBaseModel):
             for staff_id, value in self.capacity_overrides.items()
         ):
             raise ValueError("staff capacity overrides must be between 0 and 100")
+        if self.assignment_preferences is not None:
+            expected = {
+                "prioritize_guest_waiting", "prioritize_rush", "prioritize_earliest_arrival",
+                "balance_workload", "minimize_reassignment", "avoid_on_break",
+                "exclude_off_shift", "exclude_unavailable", "prefer_same_building",
+                "prefer_same_floor",
+            }
+            if not set(self.assignment_preferences).issubset(expected):
+                raise ValueError("assignment_preferences contains an unknown preference")
+            if any(not isinstance(value, bool) for value in self.assignment_preferences.values()):
+                raise ValueError("assignment preferences must be booleans")
         return self
 
 

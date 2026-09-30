@@ -208,6 +208,27 @@ async def test_suggest_assignments_all_rooms_blocked_returns_explanatory_message
 
 
 @pytest.mark.asyncio
+async def test_suggest_assignments_excludes_staff_on_live_break_by_default(monkeypatch):
+    available_id = "55555555-5555-4555-8555-555555555555"
+    break_id = "66666666-6666-4666-8666-666666666666"
+    db = FakeDB({
+        "room_status": [_room_status_row("22222222-2222-4222-8222-222222222222", "101")],
+        "shift_assignments": [
+            {"tenant_id": SUPERVISOR.hotel_id, "work_date": TODAY, "user_id": available_id},
+            {"tenant_id": SUPERVISOR.hotel_id, "work_date": TODAY, "user_id": break_id},
+        ],
+        "hk_shift_sessions": [{"tenant_id": SUPERVISOR.hotel_id, "user_id": break_id, "status": "on_break"}],
+    })
+    monkeypatch.setattr(housekeeping, "supabase", db)
+
+    response = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+
+    assert [row["id"] for row in response["data"]["excluded_staff"]] == [break_id]
+    assert response["data"]["excluded_staff"][0]["reason"] == "on_break"
+    assert {item["housekeeper"]["id"] for item in response["data"]["suggestions"]} == {available_id}
+
+
+@pytest.mark.asyncio
 async def test_suggest_assignments_prefers_faster_housekeeper_profile(monkeypatch):
     """CP-SAT should route rooms to whoever's housekeeper_profiles.avg_clean_minutes
     is actually fastest for that room type, not just split evenly by headcount."""

@@ -21,7 +21,7 @@ import {
   normalizeHousekeepingRoom,
   type HousekeepingOperationalRoom,
 } from '@/lib/housekeeping/roomState'
-import { filterHousekeepingBoardView } from '@/lib/housekeeping/boardView'
+import { filterHousekeepingBoardView, isLiveBoardDate } from '@/lib/housekeeping/boardView'
 import {
   buildStaffLoads,
   filterAssignmentPoolByTab,
@@ -71,6 +71,7 @@ export function AssignmentWorkspace() {
     clearRoomSelection,
     setLastSyncedAt,
   } = useHousekeepingStore()
+  const isLiveBoard = isLiveBoardDate(selectedDate)
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string; staffId: string } | null>(null)
@@ -82,7 +83,7 @@ export function AssignmentWorkspace() {
   const { data: boardData, isLoading, isError } = useQuery({
     queryKey: ['housekeeping-board', selectedDate, selectedShift],
     queryFn: () => housekeepingApi.getBoard(selectedDate, selectedShift ?? undefined, true),
-    refetchInterval: 10_000,
+    refetchInterval: isLiveBoard ? 10_000 : false,
   })
 
   useEffect(() => {
@@ -107,7 +108,7 @@ export function AssignmentWorkspace() {
   // -- Realtime ------------------------------------------------------------
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!hotelId) return
+    if (!hotelId || !isLiveBoard) return
     if (session?.access_token) supabase.realtime.setAuth(session.access_token)
 
     const invalidate = () => {
@@ -127,7 +128,7 @@ export function AssignmentWorkspace() {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-  }, [hotelId, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
+  }, [hotelId, isLiveBoard, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
 
   // -- Derived data ---------------------------------------------------------
   const nameById = useMemo(() =>
@@ -455,7 +456,7 @@ export function AssignmentWorkspace() {
         />
       </div>
 
-      <RoomDetailDrawer room={selectedRoom} isOpen={selectedRoom !== null} onClose={() => setSelectedRoom(null)} />
+      <RoomDetailDrawer room={selectedRoom} isOpen={selectedRoom !== null} onClose={() => setSelectedRoom(null)} selectedDate={selectedDate} />
 
       <AssignmentAutoBalance
         isOpen={showAutoBalance}

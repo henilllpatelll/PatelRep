@@ -23,12 +23,14 @@ import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { staffApi } from '@/lib/api/staff'
 import { shiftsApi } from '@/lib/api/shifts'
 import { schedulingApi } from '@/lib/api/scheduling'
+import { programsApi } from '@/lib/api/programs'
 import { createClient } from '@/lib/supabase/client'
 import { useRole } from '@/lib/hooks/useRole'
 import { getDisplayName } from '@/lib/utils/avatar'
 import { normalizeHousekeepingBoardRoom } from '@/lib/utils/housekeepingBoardFilters'
 import { getDefaultWorkloadTarget, normalizeHousekeepingRoom, type HousekeepingOperationalRoom } from '@/lib/housekeeping/roomState'
 import { getStaffShiftInfo } from '@/lib/housekeeping/assignmentView'
+import { isLiveBoardDate } from '@/lib/housekeeping/boardView'
 import {
   buildTeamPlanAttentionItems,
   buildTeamPlanLanes,
@@ -61,7 +63,7 @@ export function TeamPlan({ onOpenAssignment }: Props) {
   const supabase = useMemo(() => createClient(), [])
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
-  const { canAssignRooms } = useRole()
+  const { canAssignRooms, role } = useRole()
 
   const {
     rooms: rawRooms,
@@ -72,6 +74,7 @@ export function TeamPlan({ onOpenAssignment }: Props) {
     pendingAssignments,
     pendingAssignmentCleanTypes,
   } = useHousekeepingStore()
+  const isLiveBoard = isLiveBoardDate(selectedDate)
 
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -84,7 +87,7 @@ export function TeamPlan({ onOpenAssignment }: Props) {
   const { data: boardData, isLoading, isError, refetch } = useQuery({
     queryKey: ['housekeeping-board', selectedDate, selectedShift],
     queryFn: () => housekeepingApi.getBoard(selectedDate, selectedShift ?? undefined, true),
-    refetchInterval: 15_000,
+    refetchInterval: isLiveBoard ? 15_000 : false,
   })
 
   useEffect(() => {
@@ -106,11 +109,17 @@ export function TeamPlan({ onOpenAssignment }: Props) {
     refetchInterval: 30_000,
     staleTime: 15_000,
   })
+  // Programs policy itself remains management-only; Team Plan consumes its
+  // derived welfare timing once for the page, never once per room.
+  const canReadDndPolicy = role === 'gm' || role === 'housekeeping_supervisor' || role === 'chief_engineer'
+  const { data: programsData } = useQuery({
+    queryKey: ['programs-overview-for-team-plan'], queryFn: () => programsApi.overview(), enabled: canReadDndPolicy, staleTime: 60_000,
+  })
 
   // -- Realtime: room status + assignment changes update lanes without a full page refresh --
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!hotelId) return
+    if (!hotelId || !isLiveBoard) return
     if (session?.access_token) supabase.realtime.setAuth(session.access_token)
 
     const invalidate = () => {
@@ -130,7 +139,7 @@ export function TeamPlan({ onOpenAssignment }: Props) {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-  }, [hotelId, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
+  }, [hotelId, isLiveBoard, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
 
   // -- Derived data ------------------------------------------------------------
   const nameById = useMemo(() =>
@@ -210,8 +219,8 @@ export function TeamPlan({ onOpenAssignment }: Props) {
   }, [guestRequestsData])
 
   const attentionItems = useMemo(
-    () => buildTeamPlanAttentionItems({ rooms: operationalRooms, guestRequests: relevantGuestRequests, nameById }),
-    [operationalRooms, relevantGuestRequests, nameById],
+    () => buildTeamPlanAttentionItems({ rooms: operationalRooms, guestRequests: relevantGuestRequests, nameById, dndWelfarePolicy: programsData?.data?.dnd_welfare_policy ? { thresholdHours: programsData.data.dnd_welfare_policy.threshold_hours } : null }),
+    [operationalRooms, relevantGuestRequests, nameById, programsData],
   )
 
   // -- Actions -------------------------------------------------------------
@@ -348,7 +357,7 @@ export function TeamPlan({ onOpenAssignment }: Props) {
         </div>
       )}
 
-      <RoomDetailDrawer room={selectedRoom} isOpen={selectedRoom !== null} onClose={() => setSelectedRoom(null)} />
+      <RoomDetailDrawer room={selectedRoom} isOpen={selectedRoom !== null} onClose={() => setSelectedRoom(null)} selectedDate={selectedDate} />
     </div>
   )
 }

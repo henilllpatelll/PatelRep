@@ -107,7 +107,12 @@ async function gotoWithTheme(page: Page, path: string, mode: 'light' | 'dark'): 
   }, mode)
   await page.goto(path)
   if (mode === 'dark') {
-    await expect(page.locator('.theme-dark')).toHaveCount(1)
+    // Housekeeping redesign Phase 10 dark-mode portal fix: DashboardShell.tsx
+    // now mirrors theme/density/accent classes onto document.body (in
+    // addition to its own root div) so portaled content (RoomDetailDrawer via
+    // createPortal) picks up dark mode too. `.theme-dark` therefore matches
+    // both elements once dark mode is active.
+    await expect(page.locator('.theme-dark')).toHaveCount(2)
   }
 }
 
@@ -127,7 +132,13 @@ for (const role of ROLES) {
 
       test(`RoomDetailDrawer — ${mode}`, async ({ page }) => {
         await gotoWithTheme(page, '/housekeeping', mode)
-        const card = page.getByText(FIXTURE_ROOM_NUMBERS.inProgress, { exact: true }).first()
+        // RoomCard.tsx renders an absolute, full-card overlay <button
+        // aria-label="Room {number}, ..."> (onClick={activateCard}) on top of
+        // the visible room-number text for accessible single-target clicking.
+        // Target that button directly rather than the text node it covers —
+        // clicking the text's locator gets reported as intercepted by the
+        // overlay, which is correct real-world behavior, not a bug.
+        const card = page.getByRole('button', { name: new RegExp(`^Room ${FIXTURE_ROOM_NUMBERS.inProgress},`) }).first()
         await card.waitFor({ state: 'visible', timeout: 15000 })
         await card.click()
 
