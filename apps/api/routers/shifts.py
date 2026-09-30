@@ -1,7 +1,8 @@
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from middleware.auth import require_role, CurrentUser
 from models.requests import EndShiftRequest, ShiftBreakRequest, StartShiftRequest
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/shifts", tags=["shifts"])
 
 SHIFT_ROLES = ("housekeeper", "housekeeping_supervisor")
+ASSIGNMENT_SUPERVISOR_ROLES = ("gm", "housekeeping_supervisor")
 
 
 def _get_open_shift(hotel_id: str, user_id: str) -> dict | None:
@@ -38,6 +40,45 @@ async def get_current_shift(
     current_user: CurrentUser = Depends(require_role(*SHIFT_ROLES)),
 ):
     return {"data": _get_open_shift(current_user.hotel_id, current_user.user_id)}
+
+
+# ---------------------------------------------------------------------------
+# GET /shifts/roster  (supervisor-facing: today's shift status per housekeeper)
+# ---------------------------------------------------------------------------
+
+@router.get("/roster")
+async def get_shift_roster(
+    roster_date: Optional[date] = Query(None, alias="date"),
+    current_user: CurrentUser = Depends(require_role(*ASSIGNMENT_SUPERVISOR_ROLES)),
+):
+    """
+    Latest hk_shift_sessions row per housekeeper for the given date (default
+    today), for the Assign Rooms workspace's staff availability display.
+    This table is otherwise only read/written by the housekeeper's own
+    self-service clock in/break/end above — this is its first supervisor-
+    facing, hotel-wide read.
+    """
+    target_date = roster_date or datetime.now(timezone.utc).date()
+    day_start = f"{target_date.isoformat()}T00:00:00+00:00"
+    day_end = f"{target_date.isoformat()}T23:59:59.999999+00:00"
+
+    result = (
+        supabase.table("hk_shift_sessions")
+        .select("user_id, status, started_at, on_break_since, break_seconds")
+        .eq("tenant_id", current_user.hotel_id)
+        .gte("started_at", day_start)
+        .lte("started_at", day_end)
+        .order("started_at", desc=True)
+        .execute()
+    )
+
+    latest_by_user: dict[str, dict] = {}
+    for row in result.data or []:
+        uid = row.get("user_id")
+        if uid and uid not in latest_by_user:
+            latest_by_user[uid] = row
+
+    return {"data": list(latest_by_user.values())}
 
 
 # ---------------------------------------------------------------------------

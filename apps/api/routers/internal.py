@@ -690,7 +690,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
 
     # --- DND welfare escalation: property policy plus one immutable event per DND window ---
     dnd_rooms = supabase.table("room_status")\
-        .select("room_id, tenant_id, updated_at, rooms(room_number)")\
+        .select("room_id, tenant_id, updated_at, dnd_started_at, rooms(room_number)")\
         .eq("dnd_flag", True)\
         .execute()
 
@@ -699,7 +699,9 @@ async def check_escalations(x_cron_secret: str = Header(None)):
         hotel_id = room["tenant_id"]
         room_id = room["room_id"]
         room_number = (room.get("rooms") or {}).get("room_number", "unknown")
-        dnd_started_at = room.get("updated_at")
+        # dnd_started_at (migration 123) anchors the true transition; fall
+        # back to updated_at for any row set true before that column existed.
+        dnd_started_at = room.get("dnd_started_at") or room.get("updated_at")
         if not dnd_started_at:
             continue
         policy = supabase.table("dnd_welfare_policies")\

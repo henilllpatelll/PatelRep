@@ -6,27 +6,20 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useRouter } from 'next/navigation'
-import { Clock, LogOut, MessageSquare, Phone, Wrench } from 'lucide-react'
+import { AlertTriangle, Clock, LogOut, MessageSquare, Phone, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
-import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
+import { AssignmentWorkspace } from '@/components/housekeeping/AssignmentWorkspace'
 import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportModal'
-import { HousekeepingRoutes } from '@/components/housekeeping/HousekeepingRoutes'
-import { RosterSidebar, CreditWeightsCard } from '@/components/housekeeping/RosterSidebar'
-import { AssignSaveBar } from '@/components/housekeeping/AssignSaveBar'
-import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
-import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
+import { TeamPlan } from '@/components/housekeeping/TeamPlan'
+import { BoardSearchInput } from '@/components/housekeeping/HousekeepingBoardShell'
+import { housekeepingApi } from '@/lib/api/housekeeping'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
-import {
-  getEffectiveRoomStatusForCleanType,
-  getCleanTypeShortLabel,
-  getCleanTypeCredits,
-  isOpenHousekeepingRoom,
-} from '@/lib/utils/cleanType'
+import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -36,6 +29,10 @@ import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
+import { ServiceAttemptForm } from '@/components/housekeeping/ServiceAttemptForm'
+import { buildHousekeeperMyRoomsView } from '@/lib/housekeeping/housekeeperMyRooms'
+import { normalizeHousekeepingRoom } from '@/lib/housekeeping/roomState'
 
 const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
   DEP: 'text-[var(--alert)]',
@@ -63,50 +60,10 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
   }, [lastSyncedAt, t])
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--ready)]">
-      <span className={`w-2 h-2 rounded-full bg-ready shrink-0 ${lastSyncedAt ? 'animate-pulse' : ''}`} />
-      {t('housekeeping.page.sync.live')} &middot; {label}
+    <span title={label} className={`inline-flex items-center gap-1.5 text-[12px] ${lastSyncedAt ? 'text-[var(--ready)]' : 'text-[var(--caution)]'}`}>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${lastSyncedAt ? 'bg-ready animate-pulse' : 'bg-[var(--caution)]'}`} />
+      {lastSyncedAt ? t('housekeeping.page.sync.live') : t('housekeeping.page.sync.delayed')}
     </span>
-  )
-}
-
-// -- Assign mode banner ---------------------------------------------------------
-
-function AssignModeBanner() {
-  const { t } = useTranslation()
-  const { rooms, buildingFilter, activeAssigneeName, pendingAssignments, pendingAssignmentCleanTypes } = useHousekeepingStore()
-
-  const scopedRooms = buildingFilter != null
-    ? rooms.filter((room: any) => room.rooms?.building === buildingFilter)
-    : rooms
-  const openRooms = scopedRooms.filter(isOpenHousekeepingRoom)
-  const { count: unassignedCount, credits: unassignedCredits } = openRooms.reduce(
-    (acc, room: any) => {
-      const owner = pendingAssignments[room.room_id] ?? room.assigned_to
-      if (owner) return acc
-      return {
-        count: acc.count + 1,
-        credits: acc.credits + getCleanTypeCredits(pendingAssignmentCleanTypes[room.room_id] ?? room.clean_type),
-      }
-    },
-    { count: 0, credits: 0 },
-  )
-
-  return (
-    <div className="flex flex-wrap items-center gap-3.5 px-3.5 py-2.5 rounded-[var(--r-lg)] bg-surface border border-[var(--accent-line)] shadow-sm">
-      <span className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)] text-accent text-[10px] font-semibold uppercase tracking-[0.1em]">
-        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-        {t('housekeeping.page.board.assignMode')}
-      </span>
-      <p className="text-[13px] text-ink2 flex-1 min-w-[200px]">
-        {activeAssigneeName
-          ? t('housekeeping.page.assignBar.tapToAssignFor', { name: activeAssigneeName.split(' ')[0] })
-          : t('housekeeping.page.assignBar.selectHousekeeper')}
-      </p>
-      <span className="font-mono text-xs text-ink3 shrink-0">
-        {t('housekeeping.page.assignBar.unassignedLabel', { count: unassignedCount, credits: unassignedCredits })}
-      </span>
-    </div>
   )
 }
 
@@ -117,12 +74,18 @@ function HousekeeperRoomItem({
   onAction,
   onUndo,
   onOpenDetail,
+  onRecordAttempt,
+  isBlocked = false,
+  isReclean = false,
   v2,
 }: {
   room: any
   onAction: (roomId: string, status: string) => Promise<void>
   onUndo: (roomId: string) => Promise<void>
   onOpenDetail: (room: any) => void
+  onRecordAttempt?: (room: any) => void
+  isBlocked?: boolean
+  isReclean?: boolean
   v2?: boolean
 }) {
   const { t } = useTranslation()
@@ -137,8 +100,9 @@ function HousekeeperRoomItem({
   })
   const roomNumber = room.rooms?.room_number ?? '--'
   const roomType = room.rooms?.room_types?.code ?? ''
-  const status: string = room.status ?? 'DIRTY'
+  const status: string = room.dnd_flag ? 'DND' : room.do_not_service ? 'SERVICE_DECLINED' : room.status ?? 'DIRTY'
   const vip = !!room.vip_flag
+  const rush = typeof room.priority === 'number' && room.priority <= 2
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
   const latestNote: string | null = room.latest_note ?? null
   const openWorkOrder = room.open_work_order_number ?? null
@@ -173,6 +137,8 @@ function HousekeeperRoomItem({
     CLEAN:      { label: t('housekeeping.page.roomItem.status.clean'),      pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
     INSPECTED:  { label: t('housekeeping.page.roomItem.status.inspectedReady'), pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
     OOO:        { label: t('housekeeping.page.roomItem.status.ooo'), pillClass: 'bg-[var(--blocked-soft)] text-[var(--blocked)] border border-[var(--blocked-line)]' },
+    DND:        { label: t('housekeeping.roomCard.status.dnd'), pillClass: 'bg-surface-3 text-ink2 border border-line' },
+    SERVICE_DECLINED: { label: t('housekeeping.roomCard.status.serviceDeclined'), pillClass: 'bg-surface-3 text-ink2 border border-line' },
   }
   const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
 
@@ -252,16 +218,15 @@ function HousekeeperRoomItem({
   )
 
   return (
-    <Card
-      className="flex items-center justify-between gap-3 p-4 active:bg-surface-2 transition-colors"
-      onClick={() => onOpenDetail(room)}
-    >
+    <Card className="flex items-center justify-between gap-3 p-4">
       <div className="min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="font-mono font-semibold text-base text-ink">{t('housekeeping.page.roomItem.roomLabel', { number: roomNumber })}</span>
           {vip && (
             <Pill tone="accent" size="sm">{t('housekeeping.roomCard.vip')}</Pill>
           )}
+          {rush && <Pill tone="alert" size="sm">{t('housekeeping.boardV2.attention.categories.rush')}</Pill>}
+          {isReclean && <Pill tone="alert" size="sm">{t('housekeeping.page.myRooms.reclean')}</Pill>}
         </div>
         {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
@@ -275,11 +240,36 @@ function HousekeeperRoomItem({
             </span>
           )}
         </div>
+        {isReclean && Array.isArray(room.reclean_corrections) && room.reclean_corrections.length > 0 && (
+          <div className="mt-1.5">
+            <p className="text-xs font-semibold text-[var(--alert)]">{t('housekeeping.page.myRooms.correctionsCount', { count: room.reclean_corrections.length })}</p>
+            <ul className="mt-0.5 space-y-0.5">
+              {room.reclean_corrections.map((correction: string, i: number) => (
+                <li key={i} className="text-xs text-ink2">• {correction}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {checkoutTime && (
           <div className="flex items-center gap-1 mt-1.5">
             <Clock className="h-3 w-3 text-ink3 shrink-0" />
             <span className="text-xs font-mono text-ink2">{checkoutLabel} {checkoutTime}</span>
           </div>
+        )}
+        {room.priority_needed_by && (
+          <div className="flex items-center gap-1 mt-1.5">
+            <Clock className="h-3 w-3 text-ink3 shrink-0" aria-hidden="true" />
+            <span className="text-xs font-mono text-ink2">{t('housekeeping.page.myRooms.neededBy', { time: new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(room.priority_needed_by)) })}</span>
+          </div>
+        )}
+        {room.checkin_time && !room.priority_needed_by && (
+          <div className="flex items-center gap-1 mt-1.5">
+            <Clock className="h-3 w-3 text-ink3 shrink-0" aria-hidden="true" />
+            <span className="text-xs font-mono text-ink2">{t('housekeeping.roomCard.timing.arrival', { time: new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(room.checkin_time)) })}</span>
+          </div>
+        )}
+        {room.priority_reason && (
+          <p className="mt-1 flex items-center gap-1 text-xs text-[var(--alert)]"><AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />{room.priority_reason}</p>
         )}
         {showHint && <p className="text-xs text-ink3 mt-1">{t('housekeeping.page.roomItem.notesHint')}</p>}
         {(workOrderLabel || latestNote) && (
@@ -301,9 +291,19 @@ function HousekeeperRoomItem({
       </div>
 
       <div className="shrink-0 text-right">
-        {(status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED') && (
+        {isBlocked && status === 'DND' && onRecordAttempt && (
+          <Button variant="outline" onClick={() => onRecordAttempt(room)}>
+            {t('housekeeping.page.myRooms.recordAttempt')}
+          </Button>
+        )}
+        {isBlocked && status !== 'DND' && (
+          <Button variant="outline" onClick={() => onOpenDetail(room)}>
+            {t('housekeeping.page.myRooms.viewDetails')}
+          </Button>
+        )}
+        {!isBlocked && (status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED') && (
           <Button variant="primary" loading={loading} onClick={(e) => handle('IN_PROGRESS', e)}>
-            {t('housekeeping.page.roomItem.start')}
+            {isReclean ? t('housekeeping.page.myRooms.startReclean') : t('housekeeping.page.myRooms.startCleaning')}
           </Button>
         )}
         {status === 'IN_PROGRESS' && (
@@ -320,6 +320,11 @@ function HousekeeperRoomItem({
             )}
           </div>
         )}
+        {status === 'IN_PROGRESS' && (
+          <Button variant="ghost" size="sm" onClick={() => onOpenDetail(room)}>
+            {t('housekeeping.page.myRooms.reportIssue')}
+          </Button>
+        )}
         {status === 'CLEAN' && (
           <div className="flex flex-col items-end gap-1.5">
             <span className="text-xs text-[var(--caution)] font-medium">
@@ -331,6 +336,9 @@ function HousekeeperRoomItem({
         {status === 'INSPECTED' && (
           <span className="text-sm text-[var(--ready)] font-semibold">{readyLabel}</span>
         )}
+        <Button variant="ghost" size="sm" onClick={() => onOpenDetail(room)} className="mt-1">
+          {t('housekeeping.page.myRooms.viewDetails')}
+        </Button>
       </div>
     </Card>
   )
@@ -342,55 +350,32 @@ function getHotelIdFromToken(token: string | undefined): string {
 
 function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
   const { t } = useTranslation()
-  const { user, session } = useAuth()
+  const { session } = useAuth()
+  const toast = useToast()
   const hotelId = getHotelIdFromToken(session?.access_token)
   const today = format(new Date(), 'yyyy-MM-dd')
   const queryClient = useQueryClient()
   const supabase = useMemo(() => createClient(), [])
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+  const [attemptRoom, setAttemptRoom] = useState<any | null>(null)
+  const [realtimeState, setRealtimeState] = useState<'connecting' | 'connected' | 'reconnecting'>('connecting')
 
-  const { data: boardData, isLoading, isError, refetch } = useQuery({
-    queryKey: ['housekeeping-board', today],
-    queryFn: () => housekeepingApi.getBoard(today, undefined, false),
-    refetchInterval: 10_000,
+  const { data: myRoomsData, isLoading, isError, refetch } = useQuery({
+    queryKey: ['my-rooms', today],
+    queryFn: () => housekeepingApi.getMyRooms(today),
+    refetchInterval: 60_000,
   })
 
-  const allRooms: any[] = (boardData as any)?.data ?? []
-  const myRooms = allRooms
-    .filter((r: any) => r.assigned_to === user?.id)
-    .sort((a: any, b: any) => {
-      const priority: Record<string, number> = {
-        IN_PROGRESS: 0, DIRTY: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4,
-      }
-      return (priority[a.status] ?? 5) - (priority[b.status] ?? 5)
-    })
-
-  const applyRoomStatusPayload = useCallback((payload: any) => {
-    const row = payload?.new
-    if (!row?.room_id) return
-    const { assigned_to: _assignedTo, ...statusRow } = row
-    const mergeRoom = (room: any) => {
-      if (room.room_id !== row.room_id) return room
-      return {
-        ...room,
-        ...statusRow,
-        clean_type: statusRow.clean_type ?? room.clean_type,
-        status: getEffectiveRoomStatusForCleanType(
-          statusRow.status,
-          statusRow.clean_type ?? room.clean_type,
-          statusRow.fo_status ?? room.fo_status,
-        ),
-      }
-    }
-    queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
-      if (!old?.data) return old
-      return { ...old, data: (old.data as any[]).map(mergeRoom) }
-    })
-    setSelectedRoom((current: any | null) =>
-      current?.room_id === row.room_id ? mergeRoom(current) : current,
-    )
-  }, [queryClient, today])
+  const rawRooms = useMemo(() => ((myRoomsData as { data?: any[] } | undefined)?.data ?? []), [myRoomsData])
+  const roomView = useMemo(
+    () => buildHousekeeperMyRoomsView(rawRooms.map(normalizeHousekeepingRoom)),
+    [rawRooms],
+  )
+  const rawRoomById = useMemo(
+    () => new Map(rawRooms.map((room) => [room.room_id, room])),
+    [rawRooms],
+  )
 
   useEffect(() => {
     if (!hotelId) return
@@ -399,26 +384,27 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
     const invalidate = () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       realtimeDebounce.current = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+        queryClient.invalidateQueries({ queryKey: ['my-rooms', today] })
       }, 500)
     }
 
     const channel = supabase
       .channel('hk_my_rooms_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, (payload) => {
-        applyRoomStatusPayload(payload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, () => {
         invalidate()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments', filter: `tenant_id=eq.${hotelId}` }, invalidate)
-      .subscribe()
+      .subscribe((status) => {
+        setRealtimeState(status === 'SUBSCRIBED' ? 'connected' : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'reconnecting' : 'connecting')
+      })
     return () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-  }, [applyRoomStatusPayload, hotelId, queryClient, session?.access_token, supabase, today])
+  }, [hotelId, queryClient, session?.access_token, supabase, today])
 
   async function handleAction(roomId: string, status: string) {
-    queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
+    queryClient.setQueryData(['my-rooms', today], (old: any) => {
       if (!old?.data) return old
       return { ...old, data: (old.data as any[]).map((r: any) => r.room_id === roomId ? { ...r, status } : r) }
     })
@@ -426,10 +412,12 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
     try {
       await housekeepingApi.updateRoomStatus(roomId, status)
     } catch {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      toast.error(t('housekeeping.page.myRooms.actionError'))
+      queryClient.invalidateQueries({ queryKey: ['my-rooms', today] })
       return
     }
-    queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+    toast.success(status === 'IN_PROGRESS' ? t('housekeeping.page.myRooms.started') : t('housekeeping.page.myRooms.completionQueued'))
+    queryClient.invalidateQueries({ queryKey: ['my-rooms', today] })
     queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
   }
 
@@ -438,95 +426,151 @@ function HousekeeperMyRoomsView({ v2 }: { v2: boolean }) {
       const response: any = await housekeepingApi.undoRoomStatus(roomId)
       const nextStatus = response?.data?.status
       if (nextStatus) {
-        queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
+        queryClient.setQueryData(['my-rooms', today], (old: any) => {
           if (!old?.data) return old
           return { ...old, data: (old.data as any[]).map((r: any) => r.room_id === roomId ? { ...r, status: nextStatus } : r) }
         })
         setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status: nextStatus } : prev)
       }
     } finally {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      queryClient.invalidateQueries({ queryKey: ['my-rooms', today] })
       queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
     }
   }
 
-  const todoCount = myRooms.filter((r: any) => r.status === 'DIRTY' || r.status === 'PICKUP' || r.status === 'OCCUPIED').length
-  const inProgressCount = myRooms.filter((r: any) => r.status === 'IN_PROGRESS').length
-  const doneCount = myRooms.filter((r: any) => r.status === 'INSPECTED').length
+  const openRoom = (roomId: string) => {
+    const room = rawRoomById.get(roomId)
+    if (room) setSelectedRoom(room)
+  }
+
+  const renderRoom = (roomId: string, options?: { blocked?: boolean; reclean?: boolean }) => {
+    const room = rawRoomById.get(roomId)
+    if (!room) return null
+    return (
+      <HousekeeperRoomItem
+        key={roomId}
+        room={room}
+        onAction={handleAction}
+        onUndo={handleUndo}
+        onOpenDetail={setSelectedRoom}
+        onRecordAttempt={setAttemptRoom}
+        isBlocked={options?.blocked}
+        isReclean={options?.reclean}
+        v2={v2}
+      />
+    )
+  }
+
+  const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date())
+  const realtimeLabel = realtimeState === 'connected'
+    ? t('housekeeping.page.myRooms.realtimeConnected')
+    : realtimeState === 'reconnecting'
+      ? t('housekeeping.page.myRooms.reconnecting')
+      : t('housekeeping.page.myRooms.connecting')
+  const allAssignedComplete = rawRooms.length > 0
+    && !roomView.upNext
+    && roomView.active.length === 0
+    && roomView.reclean.length === 0
+    && roomView.toDo.length === 0
+    && roomView.blocked.length === 0
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       <PageHeader
         title={t('housekeeping.page.myRooms.heading')}
-        subtitle={format(new Date(), 'EEEE, MMMM d')}
+        subtitle={dateLabel}
         dataI18nSkip={v2}
       />
 
-      {myRooms.length > 0 && (
-        <Card hover={false} className="flex gap-5 px-4 py-3 text-sm">
-          <span><strong className={v2 ? 'text-xl font-display font-semibold text-[var(--alert)]' : 'font-display text-[var(--alert)]'}>{todoCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
-          <span><strong className={v2 ? 'text-xl font-display font-semibold text-[var(--progress)]' : 'font-display text-[var(--progress)]'}>{inProgressCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
-          <span><strong className={v2 ? 'text-xl font-display font-semibold text-[var(--ready)]' : 'font-display text-[var(--ready)]'}>{doneCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
+      <p className="text-xs text-ink3" role="status" aria-live="polite">{realtimeLabel}</p>
+
+      {rawRooms.length > 0 && (
+        <Card hover={false} className="grid grid-cols-3 gap-2 px-4 py-3 text-center text-sm">
+          <span><strong className="block text-xl font-display font-semibold text-[var(--alert)]">{roomView.counts.toDo}</strong><span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
+          <span><strong className="block text-xl font-display font-semibold text-[var(--progress)]">{roomView.counts.cleaning}</strong><span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
+          <span><strong className="block text-xl font-display font-semibold text-[var(--ready)]">{roomView.counts.done}</strong><span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
         </Card>
       )}
 
-      {v2 ? (
-        isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="card" className="h-20" />
-            ))}
-          </div>
-        ) : (
-          <StateBlock
-            status={(isError && !boardData) ? 'error' : myRooms.length === 0 ? 'empty' : null}
-            error={{ message: t('housekeeping.page.myRooms.loadError'), onRetry: refetch }}
-            empty={{ title: t('housekeeping.page.myRooms.emptyTitle'), body: t('housekeeping.page.myRooms.emptySubtitle') }}
-          >
-            <div className="space-y-2">
-              {myRooms.map((room: any) => (
-                <HousekeeperRoomItem
-                  key={room.room_id}
-                  room={room}
-                  onAction={handleAction}
-                  onUndo={handleUndo}
-                  onOpenDetail={setSelectedRoom}
-                  v2={v2}
-                />
-              ))}
-            </div>
-          </StateBlock>
-        )
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
+            <Skeleton key={i} variant="card" className="h-24" />
           ))}
-        </div>
-      ) : myRooms.length === 0 ? (
-        <div className="py-20 text-center">
-          <p className="text-ink3">{t('housekeeping.page.myRooms.emptyTitle')}</p>
-          <p className="text-ink4 text-sm mt-1">{t('housekeeping.page.myRooms.emptySubtitle')}</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {myRooms.map((room: any) => (
-            <HousekeeperRoomItem
-              key={room.room_id}
-              room={room}
-              onAction={handleAction}
-              onUndo={handleUndo}
-              onOpenDetail={setSelectedRoom}
-            />
-          ))}
-        </div>
+        <StateBlock
+          status={(isError && !myRoomsData) ? 'error' : rawRooms.length === 0 ? 'empty' : null}
+          error={{ message: t('housekeeping.page.myRooms.loadError'), onRetry: refetch }}
+          empty={{ title: t('housekeeping.page.myRooms.emptyTitle'), body: t('housekeeping.page.myRooms.emptySubtitle') }}
+        >
+          <div className="space-y-6">
+            {allAssignedComplete && (
+              <Card hover={false} className="border-[var(--ready-line)] bg-[var(--ready-soft)]/40 p-4">
+                <h2 className="text-base font-semibold text-ink">{t('housekeeping.page.myRooms.allCompleteTitle')}</h2>
+                <p className="mt-1 text-sm text-ink2">{t('housekeeping.page.myRooms.allCompleteSummary', { ready: roomView.done.filter((room) => room.housekeepingStatus === 'INSPECTED').length, inspection: roomView.done.filter((room) => room.housekeepingStatus === 'CLEAN').length })}</p>
+              </Card>
+            )}
+            {roomView.upNext && (
+              <section aria-labelledby="my-rooms-up-next">
+                <h2 id="my-rooms-up-next" className="mb-2 text-xs font-semibold tracking-[0.08em] text-ink3">{t('housekeeping.page.myRooms.upNext')}</h2>
+                {renderRoom(roomView.upNext.roomId, { reclean: roomView.upNext.recleanRequired })}
+              </section>
+            )}
+            {roomView.active.length > 0 && (
+              <section aria-labelledby="my-rooms-in-progress">
+                <h2 id="my-rooms-in-progress" className="mb-2 text-xs font-semibold tracking-[0.08em] text-ink3">{t('housekeeping.page.myRooms.inProgress')}</h2>
+                <div className="space-y-2">{roomView.active.map((room) => renderRoom(room.roomId))}</div>
+              </section>
+            )}
+            {roomView.reclean.length > 0 && (
+              <section aria-labelledby="my-rooms-reclean">
+                <h2 id="my-rooms-reclean" className="mb-2 text-xs font-semibold tracking-[0.08em] text-ink3">{t('housekeeping.page.myRooms.reclean')}</h2>
+                <div className="space-y-2">{roomView.reclean.map((room) => renderRoom(room.roomId, { reclean: true }))}</div>
+              </section>
+            )}
+            {roomView.toDo.length > 0 && (
+              <section aria-labelledby="my-rooms-to-do">
+                <h2 id="my-rooms-to-do" className="mb-2 text-xs font-semibold tracking-[0.08em] text-ink3">{t('housekeeping.page.myRooms.todo')}</h2>
+                <div className="space-y-2">{roomView.toDo.map((room) => renderRoom(room.roomId))}</div>
+              </section>
+            )}
+            {roomView.blocked.length > 0 && (
+              <section aria-labelledby="my-rooms-blocked">
+                <h2 id="my-rooms-blocked" className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-[0.08em] text-ink3"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{t('housekeeping.page.myRooms.blocked')}</h2>
+                <div className="space-y-2">{roomView.blocked.map((room) => renderRoom(room.roomId, { blocked: true, reclean: room.recleanRequired }))}</div>
+              </section>
+            )}
+            {roomView.done.length > 0 && (
+              <section aria-labelledby="my-rooms-done">
+                <h2 id="my-rooms-done" className="mb-2 text-xs font-semibold tracking-[0.08em] text-ink3">{t('housekeeping.page.myRooms.done')}</h2>
+                <div className="rounded-[var(--r-lg)] border border-line bg-surface px-3">
+                  {roomView.done.map((room) => (
+                    <button key={room.roomId} type="button" onClick={() => openRoom(room.roomId)} className="flex min-h-10 w-full items-center justify-between border-b border-line text-left text-sm text-ink last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40">
+                      <span className="font-mono font-medium">{room.roomNumber}</span>
+                      <span className={room.housekeepingStatus === 'INSPECTED' ? 'text-[var(--ready)]' : 'text-[var(--caution)]'}>{room.housekeepingStatus === 'INSPECTED' ? t('housekeeping.page.myRooms.ready') : t('housekeeping.page.myRooms.waitingForInspection')}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </StateBlock>
       )}
       <RoomDetailDrawer
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
       />
+      {attemptRoom && (
+        <ServiceAttemptForm
+          roomId={attemptRoom.room_id}
+          roomNumber={attemptRoom.rooms?.room_number ?? attemptRoom.room_number ?? '—'}
+          open
+          onClose={() => setAttemptRoom(null)}
+        />
+      )}
     </div>
   )
 }
@@ -543,34 +587,23 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
     lastSyncedAt,
     setSelectedDate,
     toggleAssignmentMode,
-    setLastSyncedAt,
+    boardSearch,
+    setBoardSearch,
+    setRoomSelection,
   } = useHousekeepingStore()
 
   useEffect(() => {
     if (assignmentMode && !canAssignRooms) toggleAssignmentMode()
   }, [assignmentMode, canAssignRooms, toggleAssignmentMode])
 
-  const [predictions, setPredictions] = useState<RoomPrediction[]>([])
-  const [predictionsLoading, setPredictionsLoading] = useState(false)
   const [showOperaImport, setShowOperaImport] = useState(false)
-  const [showRoutes, setShowRoutes] = useState(false)
+  const [showTeamPlan, setShowTeamPlan] = useState(false)
 
-  const fetchPredictions = useCallback(async () => {
-    setPredictionsLoading(true)
-    try {
-      const res = await housekeepingApi.getPredictions()
-      setPredictions(res.data?.rooms || [])
-      setLastSyncedAt(new Date())
-    } catch {
-      // silently fail - predictions are optional
-    } finally {
-      setPredictionsLoading(false)
-    }
-  }, [setLastSyncedAt])
-
-  useEffect(() => {
-    fetchPredictions()
-  }, [selectedDate, fetchPredictions])
+  const handleOpenAssignment = (roomIds?: string[]) => {
+    if (roomIds && roomIds.length > 0) setRoomSelection(roomIds)
+    if (!assignmentMode && canAssignRooms) toggleAssignmentMode()
+    setShowTeamPlan(false)
+  }
 
   const navigate = (delta: number) => {
     const current = parseISO(selectedDate)
@@ -590,57 +623,44 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
           switcher, instead of swapping to a differently-styled screen, so moving
           between them reads as one workspace rather than a jump to another page. */}
       <PageHeader
-        eyebrow={t('housekeeping.page.board.eyebrow')}
-        title={showRoutes ? t('housekeeping.routes.title') : t('housekeeping.page.board.title')}
+        title={t('housekeeping.page.board.eyebrow')}
+        subtitle={t('housekeeping.boardV2.subtitle')}
         meta={<SyncBadge lastSyncedAt={lastSyncedAt} />}
         dataI18nSkip={v2}
         tabs={
           canAssignRooms
             ? [
-                { label: t('housekeeping.page.board.boardTab'), active: !showRoutes, onClick: () => setShowRoutes(false) },
-                { label: t('housekeeping.routes.title'), active: showRoutes, onClick: () => setShowRoutes(true) },
+                { label: t('housekeeping.page.board.boardTab'), active: !showTeamPlan, onClick: () => setShowTeamPlan(false) },
+                { label: t('housekeeping.teamPlan.tabLabel'), active: showTeamPlan, onClick: () => setShowTeamPlan(true) },
               ]
             : undefined
         }
         actions={
           <>
-            {!showRoutes && (
+            {!showTeamPlan && (
               <>
                 {/* Date navigation */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(-1)}
-                  aria-label={t('housekeeping.page.board.previousDay')}
-                >
-                  &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
-                </Button>
-                <span className="px-3 py-1.5 rounded-lg bg-surface border border-line text-sm font-semibold text-ink">
-                  {format(parseISO(selectedDate), 'MMM d')}
+                <Button variant="outline" size="sm" onClick={() => navigate(-1)} aria-label={t('housekeeping.page.board.previousDay')}>&larr;</Button>
+                <span className="px-3 py-1.5 rounded-lg bg-surface border border-line text-sm font-semibold text-ink whitespace-nowrap">
+                  {format(parseISO(selectedDate), 'EEE, MMM d')}
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(1)}
-                  aria-label={t('housekeeping.page.board.nextDay')}
-                >
-                  {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate(1)} aria-label={t('housekeeping.page.board.nextDay')}>&rarr;</Button>
+                <BoardSearchInput value={boardSearch} onChange={setBoardSearch} />
               </>
             )}
-            {showRoutes && (
+            {showTeamPlan && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => router.push('/tasks?type=guest_request')}
               >
                 <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-                {t('housekeeping.routes.logGuestCall')}
+                {t('housekeeping.teamPlan.logGuestRequest')}
               </Button>
             )}
             {canAssignRooms && (
               <>
-                {!showRoutes && (
+                {!showTeamPlan && (
                   <>
                     <span className="w-px h-6 bg-line" aria-hidden="true" />
                     <Button
@@ -663,45 +683,14 @@ function SupervisorHousekeepingPage({ v2 }: { v2: boolean }) {
         }
       />
 
-      {showRoutes ? (
-        <HousekeepingRoutes />
+      {showTeamPlan ? (
+        <TeamPlan onOpenAssignment={handleOpenAssignment} />
+      ) : assignmentMode && canAssignRooms ? (
+        <AssignmentWorkspace />
       ) : (
-        <>
-          {/* Prediction alerts */}
-          {predictions.some((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM') && (
-            <PredictionPanel
-              predictions={predictions}
-              isLoading={predictionsLoading}
-              canAssignRooms={canAssignRooms}
-              onActionComplete={fetchPredictions}
-            />
-          )}
-
-          {/* Assign mode banner */}
-          {assignmentMode && canAssignRooms && <AssignModeBanner />}
-
-          {/* Main layout — roster sits above the board on narrow screens (flex-col) and
-              becomes a sticky right column on lg+ (flex-row + order), as a single
-              instance so the housekeeper picker is always reachable, at any width. */}
-          <div className="flex flex-col lg:flex-row gap-4 items-start">
-            {assignmentMode && canAssignRooms && (
-              <div className="flex flex-col gap-3.5 w-full lg:w-[300px] lg:shrink-0 lg:sticky lg:top-4 lg:order-2">
-                <RosterSidebar v2={v2} />
-                <div className="hidden lg:contents">
-                  <AssignmentSidebar />
-                  <CreditWeightsCard />
-                </div>
-              </div>
-            )}
-            <div className="flex-1 min-w-0 lg:order-1">
-              <Suspense>
-                <RoomStatusBoard />
-              </Suspense>
-            </div>
-          </div>
-
-          {assignmentMode && canAssignRooms && <AssignSaveBar />}
-        </>
+        <Suspense>
+          <RoomStatusBoard />
+        </Suspense>
       )}
     </div>
   )

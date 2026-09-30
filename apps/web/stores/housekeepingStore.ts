@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { format } from 'date-fns'
 import type { CleanType } from '@/lib/utils/cleanType'
+import type { HousekeepingAttentionCode } from '@/lib/housekeeping/roomState'
 
 export interface RoomPrediction {
   room_id: string
@@ -25,8 +26,15 @@ export interface HousekeepingStore {
   cleanTypeFilter: CleanType[]
   /** Assign-mode-only supplemental filter — layered on top of cleanTypeFilter. */
   assignFilter: 'all' | 'unassigned' | 'staged'
+  /** Free multi-select in the Assign Rooms pool — independent of activeAssigneeId's tap-to-assign flow. */
+  selectedRoomIds: Set<string>
   showRiskOnly: boolean
   buildingFilter: string | null
+  floorFilter: number | null
+  assigneeFilter: string | null
+  boardSearch: string
+  attentionFilter: HousekeepingAttentionCode | 'service_issue' | null
+  unassignedOnly: boolean
   lastSyncedAt: Date | null
 
   // Actions
@@ -42,8 +50,16 @@ export interface HousekeepingStore {
   setStatusFilter: (status: string | null) => void
   setCleanTypeFilter: (cleanTypes: CleanType[]) => void
   setAssignFilter: (filter: 'all' | 'unassigned' | 'staged') => void
+  toggleRoomSelection: (roomId: string) => void
+  setRoomSelection: (roomIds: string[]) => void
+  clearRoomSelection: () => void
   toggleRiskOnly: () => void
   setBuildingFilter: (building: string | null) => void
+  setFloorFilter: (floor: number | null) => void
+  setAssigneeFilter: (assigneeId: string | null) => void
+  setBoardSearch: (value: string) => void
+  setAttentionFilter: (attention: HousekeepingAttentionCode | 'service_issue' | null) => void
+  setUnassignedOnly: (value: boolean) => void
   setLastSyncedAt: (date: Date) => void
 
   // Derived
@@ -67,8 +83,14 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   statusFilter: null,
   cleanTypeFilter: [],
   assignFilter: 'all',
+  selectedRoomIds: new Set<string>(),
   showRiskOnly: false,
   buildingFilter: null,
+  floorFilter: null,
+  assigneeFilter: null,
+  boardSearch: '',
+  attentionFilter: null,
+  unassignedOnly: false,
   lastSyncedAt: null,
 
   setRooms: (rooms) => set({ rooms }),
@@ -90,12 +112,18 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
       assignmentMode: !state.assignmentMode,
       pendingAssignments: state.assignmentMode ? {} : state.pendingAssignments,
       pendingAssignmentCleanTypes: state.assignmentMode ? {} : state.pendingAssignmentCleanTypes,
+      selectedRoomIds: new Set<string>(),
       activeAssigneeId: null,
       activeAssigneeName: null,
       // clear filters when switching modes so rooms aren't inadvertently hidden
       statusFilter: !state.assignmentMode ? null : state.statusFilter,
       cleanTypeFilter: state.assignmentMode ? [] : state.cleanTypeFilter,
       assignFilter: 'all',
+      floorFilter: !state.assignmentMode ? null : state.floorFilter,
+      assigneeFilter: !state.assignmentMode ? null : state.assigneeFilter,
+      boardSearch: !state.assignmentMode ? '' : state.boardSearch,
+      attentionFilter: !state.assignmentMode ? null : state.attentionFilter,
+      unassignedOnly: !state.assignmentMode ? false : state.unassignedOnly,
     })),
 
   setPendingAssignment: (roomId, housekeeperId, cleanType) =>
@@ -128,9 +156,31 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
 
   setAssignFilter: (filter) => set({ assignFilter: filter }),
 
+  toggleRoomSelection: (roomId) =>
+    set((state) => {
+      const next = new Set(state.selectedRoomIds)
+      if (next.has(roomId)) next.delete(roomId)
+      else next.add(roomId)
+      return { selectedRoomIds: next }
+    }),
+
+  setRoomSelection: (roomIds) => set({ selectedRoomIds: new Set(roomIds) }),
+
+  clearRoomSelection: () => set({ selectedRoomIds: new Set() }),
+
   toggleRiskOnly: () => set((state) => ({ showRiskOnly: !state.showRiskOnly })),
 
   setBuildingFilter: (building) => set({ buildingFilter: building }),
+
+  setFloorFilter: (floor) => set({ floorFilter: floor }),
+
+  setAssigneeFilter: (assigneeId) => set({ assigneeFilter: assigneeId }),
+
+  setBoardSearch: (boardSearch) => set({ boardSearch }),
+
+  setAttentionFilter: (attentionFilter) => set({ attentionFilter }),
+
+  setUnassignedOnly: (unassignedOnly) => set({ unassignedOnly }),
 
   setLastSyncedAt: (date) => set({ lastSyncedAt: date }),
 

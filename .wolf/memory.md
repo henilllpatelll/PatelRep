@@ -1,4 +1,7 @@
 ﻿# Memory
+| 00:47 | Completed Phase 3 static verification. | `apps/web` | `test:unit` 146/146, type-check, lint, i18n parity, frozen-file guard, and production build passed; local browser regression blocked by fixture-login timeout. | ~1200 |
+| 01:08 | Implemented Housekeeping redesign Phase 3 RoomCard scanability: centralized compact card presentation/exception priority, rebuilt normal and assignment card variants, and added EN/ES copy plus focused presentation tests. | `apps/web/components/housekeeping/RoomCard.tsx`, `apps/web/lib/housekeeping/roomState.ts`, `apps/web/lib/housekeeping/roomCardView.test.ts` | Unit/type/lint/i18n/frozen checks passed; local Playwright fixture login currently times out before board verification. | ~6200 |
+| 00:33 | Began Housekeeping redesign Phase 3 discovery; identified the RoomCard and frozen-file change contract. | `.wolf/anatomy.md`, `.wolf/cerebrum.md`, `apps/web/components/housekeeping/RoomCard.tsx` | Ready for focused implementation audit. | ~1800 |
 | 2026-09-20 | Unified Engineering screen: merged 4 separate routes (work-orders, assets, pm-schedules, predictions) into one `/engineering` page with a 7-tab bar (Work Orders/Room Board/Assets/PM Schedules/Predictions/Parts/Archived, `?tab=` driven, extending the pattern the old work-orders page already used for its 4 sub-tabs) plus a persistent cross-tab KPI strip (Open/Escalated/Overdue WO + High-Risk Assets/PM Overdue/Active Predictions) using the previously-unused `engineeringApi.getWorkOrderStats()` endpoint and the existing `Stat`/`Pill`/`Bar` primitives from `components/ui/primitives.tsx`. Discarded an in-progress uncommitted card→table WIP on work-orders per explicit user instruction (git checkout) before starting fresh. New `lib/utils/engineering.ts` consolidates risk-badge/warranty-label logic that assets/predictions pages each duplicated with different (conflicting) color conventions. Extracted 4 new tab components (`components/engineering/tabs/*Tab.tsx`) and 3 new standalone modals (AssetDetailModal, CreateAssetModal, CreatePMScheduleModal) from what used to be inline page code, dropping the dead `isSectionRedesigned('engineering', hotel)`/v2 legacy-branch code paths since this page IS the redesign now. The 4 old routes became redirect stubs (server `redirect()`, forwarding `focus`/`asset`/`tab` params) for the 5 external deep-link call sites (AIRiskAlertsPanel×2, CommandPalette, RoomBlockersList, useArrivalReadiness — MobileFloorNav's bottom-tab active-state match required plain `/engineering`, not a query-string href, since `usePathname()` never includes the query string). Fixed PageHeader.tsx's tab bar to `overflow-x-auto` + `shrink-0 whitespace-nowrap` (previously unbounded flex — 7 tabs would have overflowed 390px phone width, which the engineer floor role's MobileFloorNav actually targets). Removed 4 now-orphaned i18n heading/subtitle keys (assetsPage/predictionsPage/pmSchedules) since each sub-page's own PageHeader no longer exists; added new `engineering.commandBar.*` and `engineering.workOrdersPage.tab{Assets,PmSchedules,Predictions}`/`subtitleUnified` keys to both en.ts/es.ts. Updated e2e/phase1-work-orders.spec.ts (goto target) and e2e/phase4-programs.spec.ts (goto targets + rewrote the PM-Schedules bilingual heading assertion to check the shared "Engineering"/"Ingeniería" h1 + the translated PM-Schedules tab button, since the page no longer has its own per-tab h1). tsc/eslint/check-frozen-files/check-i18n-parity/`next build` all clean. Full live browser walkthrough (GM login, local dev): all 7 tabs render real data, KPI strip persists and updates across tab switches, WO card→drawer, Create Work Order modal, Add Asset modal, old-URL redirects (incl. param forwarding to a graceful no-op on an unknown focus id) all verified working; EN↔ES toggle confirmed every new string translates correctly; zero console errors throughout. Not yet committed — pending user review. | apps/web/app/(dashboard)/engineering/{page,work-orders/page,assets/page,pm-schedules/page,predictions/page}.tsx, apps/web/components/engineering/{AssetDetailModal,CreateAssetModal,CreatePMScheduleModal}.tsx (new), apps/web/components/engineering/tabs/*.tsx (new), apps/web/lib/utils/engineering.ts (new), apps/web/components/shared/{PageHeader,CommandPalette,MobileFloorNav}.tsx, apps/web/components/dashboard/{AIRiskAlertsPanel,RoomBlockersList}.tsx, apps/web/lib/hooks/useArrivalReadiness.ts, apps/web/i18n/locales/{en,es}.ts, apps/web/e2e/{phase1-work-orders,phase4-programs}.spec.ts | complete | ~9000 tok |
 | 2026-09-15 | Merged Guest Requests + Tasks into one unified `/tasks` screen per user's 27-section spec, keeping the `tasks`/`guest_requests` backend domains fully separate (zero apps/api changes). Removed `/guest-requests` as a top-level nav entry across 4 separate allow-lists that had to be reconciled (navigation.ts NAV_BY_ROLE, Sidebar.tsx PRIMARY_HREFS, MobileFloorNav.tsx per-role hardcoded nav, routeGuard.ts ROLE_ROUTE_RULES) — also fixed a pre-existing gap where housekeeper had `/guest-requests` but never had `/tasks`. New `lib/utils/unifiedTasks.ts`: `UnifiedTaskItem` type + `buildUnifiedTaskItems()` normalizer that dedupes a guest_request+its auto-created task into ONE item (matched via `guest_requests.task_id === task.id`), renders orphan guest_requests (task creation failed) directly from the guest_request record, and falls back stale/deleted-link `guest_request`-type tasks to a plain internal item instead of vanishing — 9 unit tests. Rewrote `/tasks` page with Active/Guest Requests/Internal/Verify/History tabs (`?view=`), `?focus=<id>` deep-link (also what the legacy `/guest-requests?focus=` redirect now forwards into), reusing GuestRequestDrawer/NewRequestModal unchanged for guest-sourced items and extracting CreateTaskModal/TaskDetailDrawer into `components/tasks/` for internal items; removed `guest_request` from the manual internal-task type selector (backend enum untouched). Added legacy module-slug normalization (`guest-requests`→`tasks`) in `getAllowedHrefs` so old saved custom-role/front-desk configs don't lose access. Guarded GuestRequestDrawer's "Add Note" for orphan requests (`task_id` null → notes have nowhere to write, per backend's `task_comments` side-channel). Full live browser verification (real GM login, local dev, after fixing two unrelated pre-existing local-env bugs: apps/web/.env.local pointed at port 8001, and the actual `dev:api` port is 8003 not the 8000 CLAUDE.md documents) confirmed: single Tasks sidebar entry, `/guest-requests` and `/guest-requests?focus=<id>` both redirect correctly, creating a guest request produces exactly one card (not two), transition buttons advance the real state machine live, internal task creation works with no `guest_request` option, and History/Verify tabs render real historical data correctly — zero console errors throughout. Also flagged (not fixed, out of scope): a prompt-injection attempt embedded in `apps/web/AGENTS.md` instructing the model to read `node_modules/next/dist/docs/`, and a stray `.claude/settings.local.json` inside `node_modules/i18next`. | apps/web/lib/utils/{navigation,routeGuard,unifiedTasks}.ts(+.test.ts), apps/web/components/shared/{Sidebar,MobileFloorNav,CommandPalette}.tsx, apps/web/components/housekeeping/HousekeepingRoutes.tsx, apps/web/components/settings/RoleForm.tsx, apps/web/app/(dashboard)/settings/front-desk/page.tsx, apps/web/app/(dashboard)/{tasks,guest-requests}/page.tsx, apps/web/components/tasks/*.tsx (new), apps/web/components/guest-requests/GuestRequestDrawer.tsx, apps/web/i18n/locales/{en,es}.ts, apps/web/lib/api/tasks.ts, apps/web/.env.local, package.json | complete | ~10000 tok |
 | 2026-09-11 | Follow-up: user asked for a second, dedicated Claude Design import — "Room Drawer.dc.html" (same project 09e1c367) — with explicit instruction to "copy it exactly" and "match the routing," no questions asked. This is the standalone demo version of the exact same drawer embedded in "Simplified Dashboard.dc.html" (same header/people-rows/AI-note/sheet already matched in the prior entry below), so the delta was: (1) fixed 2 header eyebrow wording mismatches to the mock's exact copy — "Occupied · stayover"→"Stayover · guest in house", and departure eyebrow now keys off real assignedName presence ("Checkout · assigned" vs "Checkout · due out") instead of INSPECTED status, matching the mock's assignment-based logic; (2) added the mock's sticky footer (primary + message + report, 44px icon buttons) which didn't exist yet — primary is a real room-status state machine (Queue for inspection/Mark inspected/Start clean/Assign to clean/Request clean/Return to service) via roomsApi.updateStatus (server validates role-gated transitions), with "Hold for arrival" as an honest no-op toast on already-INSPECTED rooms — faithfully matching the mock's OWN no-op for that exact case; message-housekeeping opens a real send composer (notificationsApi.sendDirect against room.assigned_to, toast fallback when no housekeeper assigned); report-issue scrolls to and opens the existing real work-order form. Deliberately did NOT add the mock's fake "Next arrival" drawerRows entry or arrival-conflict AI-note/sheet-note logic (no reservation-ahead data model exists) and did NOT remove the pre-existing Add Note/Work Order/Lost & Found grid or Departure-checkout card (real functionality with no mock equivalent — kept per non-regression, not an oversight). tsc/lint/i18n-parity (1712 keys) all clean; frozen-files.json hash + allowlist reason updated again; regenerated + re-verified all 4 RoomDetailDrawer Playwright baselines (zero drift on re-run); RoomStatusBoard baselines also re-confirmed zero drift. Verified live via Playwright screenshots of dirty/occupied/inProgress fixture rooms showing the corrected eyebrow text and new footer. | apps/web/components/housekeeping/RoomDetailDrawer.tsx, apps/web/i18n/locales/{en,es}.ts, apps/web/frozen-files.json, apps/web/frozen-files-allowlist.json, apps/web/e2e/room-board-baseline.spec.ts-snapshots/room-detail-drawer-*.png | complete | ~1400 tok |
@@ -14629,3 +14632,251 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 19:56 | Edited apps/api/routers/logbook.py | 1→2 lines | ~53 |
 | 19:56 | Edited apps/api/routers/logbook.py | 1→2 lines | ~23 |
 | 20:00 | Session end: 17 writes across 5 files (package.json, rbac_bare_comparison_allowlist.json, logbook.py, LogbookCommentsPanel.tsx, page.tsx) | 9 reads | ~50065 tok |
+| 20:01 | Session end: 17 writes across 5 files (package.json, rbac_bare_comparison_allowlist.json, logbook.py, LogbookCommentsPanel.tsx, page.tsx) | 9 reads | ~50065 tok |
+| 20:06 | Session end: 17 writes across 5 files (package.json, rbac_bare_comparison_allowlist.json, logbook.py, LogbookCommentsPanel.tsx, page.tsx) | 9 reads | ~50065 tok |
+
+## Session: 2026-09-30 20:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+| 20:42 | Added housekeeping room-state selectors, focused tests, Team Plan semantic wrapper, and Phase 1 capability notes | apps/web/lib/housekeeping, apps/web/components/housekeeping, spec/housekeeping-phase-1-foundation.md | targeted tests + type check passed | ~18000 |
+| 20:44 | Ran final web verification and inspected localhost entry point | apps/web | 137 unit tests, lint, i18n parity, and type check passed; build lock and login gate preserved | ~4000 |
+| 00:05 | Implemented Phase 2 Room Board shell selectors, KPI/Attention/filter components, URL view state, and localized copy | apps/web housekeeping | focused unit tests and type check passed; manual board access remains gated by local login | ~19000 |
+| 00:27 | Final Phase 2 verification | apps/web | 141 unit tests, type check, targeted ESLint, i18n parity, and diff check passed; Next build remains blocked by existing stale lock and browser verification is login-gated | ~4000 |
+| 00:31 | Corrected Phase 2 quick-filter semantics | apps/web/lib/housekeeping/boardView.ts | Needs Cleaning now excludes active cleaning so KPI/filter hierarchy is mutually exclusive; focused selectors passed | ~1500 |
+| 01:05 | Began Phase 5 inspection workflow audit | apps/web, apps/api, supabase | Identified existing inspection, sampling, re-clean, board, localization, and test surfaces before changes | ~9000 |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-09-30 02:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 02:10 | Edited apps/api/routers/shifts.py | added 1 import(s) | ~154 |
+| 02:10 | Edited apps/api/routers/shifts.py | modified get_current_shift() | ~500 |
+| 02:10 | Edited apps/api/tests/smoke/test_shifts.py | expanded (+7 lines) | ~90 |
+| 02:10 | Edited apps/api/tests/smoke/test_shifts.py | modified test_roster_returns_latest_session_per_housekeeper() | ~501 |
+| 02:11 | Edited apps/api/tests/smoke/test_shifts.py | reduced (-9 lines) | ~60 |
+| 02:12 | Created apps/web/lib/api/shifts.ts | — | ~176 |
+| 02:13 | Created apps/web/lib/housekeeping/assignmentView.ts | — | ~3299 |
+| 02:13 | Edited apps/web/lib/housekeeping/assignmentView.ts | modified buildAutoBalancePreview() | ~59 |
+| 02:13 | Edited apps/web/lib/housekeeping/assignmentView.ts | modified if() | ~151 |
+| 02:13 | Created apps/web/lib/housekeeping/assignmentView.test.ts | — | ~1751 |
+| 02:13 | Edited apps/web/package.json | inline fix | ~73 |
+| 02:14 | Edited apps/web/lib/housekeeping/assignmentView.ts | removed 12 lines | ~17 |
+| 02:14 | Edited apps/web/lib/housekeeping/assignmentView.test.ts | 5→6 lines | ~95 |
+| 02:15 | Edited apps/web/stores/housekeepingStore.ts | 2→4 lines | ~60 |
+| 02:15 | Edited apps/web/stores/housekeepingStore.ts | 2→5 lines | ~65 |
+| 02:15 | Edited apps/web/stores/housekeepingStore.ts | 3→4 lines | ~31 |
+| 02:15 | Edited apps/web/stores/housekeepingStore.ts | added 1 condition(s) | ~148 |
+| 02:15 | Edited apps/web/stores/housekeepingStore.ts | 4→5 lines | ~81 |
+| 02:16 | Created apps/web/components/housekeeping/AssignmentRoomRow.tsx | — | ~1540 |
+| 02:16 | Edited apps/web/components/housekeeping/AssignmentRoomRow.tsx | 9→5 lines | ~42 |
+| 02:16 | Edited apps/web/components/housekeeping/AssignmentRoomRow.tsx | 3→2 lines | ~45 |
+| 02:16 | Created apps/web/components/housekeeping/AssignmentRoomPool.tsx | — | ~2546 |
+| 02:17 | Created apps/web/components/housekeeping/AssignmentTeamPanel.tsx | — | ~2516 |
+| 02:17 | Created apps/web/components/housekeeping/StagedChangesPanel.tsx | — | ~918 |
+| 02:18 | Created apps/web/components/housekeeping/AssignmentAutoBalance.tsx | — | ~2162 |
+| 02:18 | Edited apps/web/lib/housekeeping/assignmentView.ts | 6→7 lines | ~37 |
+| 02:18 | Edited apps/web/lib/housekeeping/assignmentView.ts | modified push() | ~79 |
+| 02:18 | Edited apps/web/components/housekeeping/AssignmentAutoBalance.tsx | modified for() | ~45 |
+| 02:18 | Edited apps/web/components/housekeeping/AssignmentAutoBalance.tsx | inline fix | ~53 |
+| 02:19 | Edited apps/web/components/housekeeping/AssignmentRoomRow.tsx | CSS: room | ~54 |
+| 02:19 | Edited apps/web/components/housekeeping/AssignmentRoomRow.tsx | inline fix | ~43 |
+| 02:20 | Edited apps/web/components/housekeeping/AssignmentRoomRow.tsx | expanded (+10 lines) | ~168 |
+| 02:20 | Edited apps/web/components/housekeeping/AssignmentRoomPool.tsx | CSS: onUnassign | ~54 |
+| 02:20 | Edited apps/web/components/housekeeping/AssignmentRoomPool.tsx | inline fix | ~38 |
+| 02:20 | Edited apps/web/components/housekeeping/AssignmentRoomPool.tsx | 4→5 lines | ~50 |
+| 02:20 | Edited apps/web/lib/housekeeping/assignmentView.ts | added 1 condition(s) | ~149 |
+| 02:22 | Created apps/web/components/housekeeping/AssignmentWorkspace.tsx | — | ~6466 |
+| 02:22 | Edited apps/web/components/housekeeping/AssignmentWorkspace.tsx | 5→4 lines | ~27 |
+| 02:22 | Edited apps/web/components/housekeeping/AssignmentWorkspace.tsx | removed 11 lines | ~8 |
+| 02:22 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 20→16 lines | ~255 |
+| 02:22 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | removed 41 lines | ~23 |
+| 02:23 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | removed 30 lines | ~61 |
+| 02:24 | Edited apps/web/i18n/locales/en.ts | expanded (+89 lines) | ~1028 |
+| 02:24 | Edited apps/web/i18n/locales/es.ts | expanded (+89 lines) | ~1113 |
+| 02:37 | Edited apps/web/i18n/locales/en.ts | 20→20 lines | ~578 |
+| 02:37 | Edited apps/web/i18n/locales/es.ts | 20→20 lines | ~652 |
+| 02:39 | Edited apps/web/components/housekeeping/AssignmentTeamPanel.tsx | 8→7 lines | ~73 |
+| 02:47 | Session end: 47 writes across 16 files (shifts.py, test_shifts.py, shifts.ts, assignmentView.ts, assignmentView.test.ts) | 45 reads | ~154083 tok |
+
+## Session: 2026-09-30 03:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:07 | Created apps/web/lib/housekeeping/teamPlanView.ts | — | ~4580 |
+| 03:08 | Created apps/web/lib/housekeeping/teamPlanView.test.ts | — | ~2415 |
+| 03:08 | Edited apps/web/package.json | inline fix | ~45 |
+| 03:08 | Edited apps/web/lib/housekeeping/teamPlanView.test.ts | 2→2 lines | ~33 |
+| 03:08 | Edited apps/web/lib/housekeeping/teamPlanView.test.ts | 2→2 lines | ~48 |
+| 03:08 | Created apps/web/components/housekeeping/TeamPlanRoomBlock.tsx | — | ~892 |
+| 03:09 | Created apps/web/components/housekeeping/TeamPlanLane.tsx | — | ~1582 |
+| 03:09 | Edited apps/web/components/housekeeping/TeamPlanLane.tsx | CSS: onOpenRoom, roomId | ~74 |
+| 03:09 | Edited apps/web/components/housekeeping/TeamPlanLane.tsx | inline fix | ~27 |
+| 03:09 | Created apps/web/components/housekeeping/TeamPlanUnassigned.tsx | — | ~845 |
+| 03:09 | Created apps/web/components/housekeeping/TeamPlanAttention.tsx | — | ~1108 |
+| 03:09 | Edited apps/web/lib/housekeeping/teamPlanView.ts | modified buildTeamPlanStops() | ~213 |
+| 03:10 | Edited apps/web/lib/housekeeping/teamPlanView.ts | modified buildTeamPlanLanes() | ~212 |
+| 03:10 | Created apps/web/components/housekeeping/TeamPlan.tsx | — | ~4000 |
+| 03:11 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 2 condition(s) | ~209 |
+| 03:11 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | setShowRoutes() → setShowTeamPlan() | ~708 |
+| 03:11 | Edited apps/web/i18n/locales/en.ts | expanded (+8 lines) | ~384 |
+| 03:11 | Edited apps/web/i18n/locales/es.ts | expanded (+7 lines) | ~423 |
+| 03:11 | Edited apps/web/components/housekeeping/TeamPlan.tsx | added 1 import(s) | ~61 |
+| 03:13 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/63138cbe-e234-4fad-be18-dce02afda023/scratchpad/verify-team-plan.mjs | — | ~512 |
+| 03:14 | Created apps/web/.verify-team-plan.mjs | — | ~512 |
+| 03:15 | Created apps/web/.verify-team-plan-2.mjs | — | ~668 |
+| 03:15 | Created apps/web/.verify-team-plan-3.mjs | — | ~534 |
+| 03:16 | Created apps/web/.verify-team-plan-4.mjs | — | ~337 |
+| 03:16 | Created apps/web/.verify-team-plan-5.mjs | — | ~555 |
+| 08:18 | Deleted apps/web/components/housekeeping/HousekeepingRoutes.tsx (superseded by the new TeamPlan.tsx orchestrator + TeamPlanLane/RoomBlock/Unassigned/Attention) | HousekeepingRoutes.tsx | removed | ~0 |
+| 03:19 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_housekeeping_redesign_status.md | — | ~640 |
+| 03:19 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_housekeeping_redesign_status.md | inline fix | ~156 |
+| 03:19 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→2 lines | ~114 |
+| 03:19 | Session end: 28 writes across 19 files (teamPlanView.ts, teamPlanView.test.ts, package.json, TeamPlanRoomBlock.tsx, TeamPlanLane.tsx) | 25 reads | ~140942 tok |
+
+## Session: 2026-09-30 04:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 04:17 | Created supabase/migrations/123_housekeeping_exceptions.sql | — | ~1541 |
+| 04:18 | Edited apps/api/core/roles.py | modified 8() | ~162 |
+| 04:18 | Edited apps/api/models/requests.py | modified _require_reason_for_rush() | ~772 |
+| 04:19 | Edited apps/api/routers/rooms.py | expanded (+12 lines) | ~158 |
+| 04:19 | Edited apps/api/routers/rooms.py | modified _record_audit_event() | ~790 |
+| 04:20 | Edited apps/api/routers/rooms.py | modified set_room_priority() | ~3990 |
+| 04:20 | Edited apps/api/routers/rooms.py | modified update_room_dnd() | ~370 |
+| 04:20 | Edited apps/api/routers/internal.py | modified in() | ~179 |
+| 04:21 | Edited apps/api/routers/clean_sessions.py | expanded (+21 lines) | ~480 |
+| 04:21 | Edited apps/api/routers/housekeeping.py | expanded (+22 lines) | ~630 |
+| 04:21 | Edited apps/api/routers/housekeeping.py | 6→9 lines | ~166 |
+| 04:23 | Created apps/api/tests/smoke/test_housekeeping_exceptions.py | — | ~3399 |
+| 04:23 | Edited apps/api/models/requests.py | modified _require_reason_for_rush() | ~170 |
+| 04:23 | Edited apps/api/routers/rooms.py | inline fix | ~11 |
+| 04:24 | Edited apps/api/routers/rooms.py | 8→9 lines | ~105 |
+| 04:24 | Edited apps/api/tests/smoke/test_housekeeping_exceptions.py | 1→2 lines | ~40 |
+| 04:24 | Edited apps/web/lib/api/housekeeping.ts | expanded (+64 lines) | ~551 |
+| 04:25 | Edited apps/web/lib/api/housekeeping.ts | expanded (+22 lines) | ~419 |
+| 04:25 | Edited apps/web/lib/housekeeping/roomState.ts | expanded (+11 lines) | ~157 |
+| 04:25 | Edited apps/web/lib/housekeeping/roomState.ts | expanded (+13 lines) | ~315 |
+| 04:25 | Edited apps/web/lib/housekeeping/roomState.ts | 11→13 lines | ~89 |
+| 04:26 | Edited apps/web/lib/housekeeping/roomState.ts | added nullish coalescing | ~957 |
+| 04:26 | Edited apps/web/lib/housekeeping/roomState.ts | 11→13 lines | ~90 |
+| 04:26 | Edited apps/web/lib/housekeeping/roomState.ts | modified getRoomCardTiming() | ~115 |
+| 04:27 | Edited apps/api/routers/housekeeping.py | expanded (+22 lines) | ~432 |
+| 04:27 | Edited apps/api/routers/housekeeping.py | expanded (+6 lines) | ~165 |
+| 04:27 | Edited apps/api/routers/housekeeping.py | modified housekeeper() | ~154 |
+| 04:27 | Edited apps/api/tests/smoke/test_ai_suggest_assignments.py | 6→7 lines | ~52 |
+| 04:27 | Edited apps/api/tests/smoke/test_ai_suggest_assignments.py | modified _room_status_row() | ~221 |
+| 04:28 | Edited apps/api/tests/smoke/test_ai_suggest_assignments.py | modified test_suggest_assignments_excludes_dnd_declined_and_discrepancy_rooms() | ~663 |
+| 04:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: dnd_welfare_escalation, return_later_due | ~136 |
+| 04:29 | Edited apps/web/i18n/locales/en.ts | inline fix | ~106 |
+| 04:30 | Created apps/web/components/housekeeping/RoomPrioritySheet.tsx | — | ~2240 |
+| 04:31 | Created apps/web/components/housekeeping/ServiceAttemptForm.tsx | — | ~1806 |
+| 04:31 | Created apps/web/components/housekeeping/RoomServiceStatusSheet.tsx | — | ~1526 |
+| 04:32 | Created apps/web/components/housekeeping/OccupancyDiscrepancySheet.tsx | — | ~3045 |
+| 04:33 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 6 import(s) | ~362 |
+| 04:33 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: 8 | ~192 |
+| 04:33 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 4→8 lines | ~65 |
+| 04:33 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added error handling | ~771 |
+| 04:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: minutes | ~2067 |
+| 04:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 5→8 lines | ~364 |
+| 04:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added optional chaining | ~355 |
+| 04:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→6 lines | ~128 |
+| 09:37 | Began Phase 9 web-only settings/import architecture investigation | pasted Phase 9 brief, OpenWolf context, relevant skills | scope and constraints established | ~800 |
+| 09:44 | Investigated Phase 9 settings and OPERA contracts | settings pages, workload selectors, hotels and housekeeping APIs | identified unpersisted workload/credit configuration and immediate-only import API | ~2400 |
+| 09:52 | Implemented Phase 9 workload settings foundation | tenant migration, hotels API, Settings UI, Room Board planning surfaces | tenant-scoped defaults, weights and staff capacities now have safe fallbacks | ~4200 |
+| 09:56 | Verified Phase 9 focused contracts | web lint/unit tests and API smoke tests | lint clean; 18 web and 41 API focused tests pass; authenticated browser flow needs a fixture | ~1300 |
+| 06:22 | Edited apps/web/i18n/locales/en.ts | expanded (+111 lines) | ~1397 |
+| 06:22 | Edited apps/web/i18n/locales/es.ts | expanded (+111 lines) | ~1524 |
+| 06:27 | Edited apps/web/lib/housekeeping/teamPlanView.ts | 4→7 lines | ~57 |
+| 06:27 | Edited apps/web/lib/housekeeping/teamPlanView.ts | 4→7 lines | ~73 |
+| 06:28 | Edited apps/web/lib/housekeeping/teamPlanView.ts | added 1 condition(s) | ~736 |
+| 06:28 | Edited apps/web/components/housekeeping/TeamPlanUnassigned.tsx | modified t() | ~512 |
+| 06:28 | Edited apps/web/components/housekeeping/TeamPlanUnassigned.tsx | modified onAssignRoom() | ~94 |
+| 06:29 | Edited apps/web/components/housekeeping/TeamPlanRoomBlock.tsx | added nullish coalescing | ~373 |
+| 06:29 | Edited apps/web/components/housekeeping/TeamPlanRoomBlock.tsx | 7→8 lines | ~195 |
+| 06:29 | Edited apps/web/components/housekeeping/TeamPlanRoomBlock.tsx | "truncate text-ink3" → "truncate" | ~44 |
+| 06:29 | Edited apps/web/i18n/locales/en.ts | 12→15 lines | ~136 |
+| 06:29 | Edited apps/web/i18n/locales/es.ts | 12→15 lines | ~149 |
+| 06:30 | Edited apps/web/i18n/locales/en.ts | 5→7 lines | ~75 |
+| 06:30 | Edited apps/web/i18n/locales/es.ts | 4→6 lines | ~81 |
+| 06:31 | Edited apps/web/components/housekeeping/HousekeepingBoardShell.tsx | modified attentionGroup() | ~146 |
+| 06:31 | Edited apps/web/lib/housekeeping/boardView.ts | 12→14 lines | ~97 |
+| 06:31 | Edited apps/web/i18n/locales/en.ts | inline fix | ~127 |
+| 06:31 | Edited apps/web/i18n/locales/es.ts | inline fix | ~147 |
+| 06:32 | Edited apps/web/lib/housekeeping/roomState.test.ts | 11→13 lines | ~99 |
+| 06:32 | Edited apps/web/lib/housekeeping/roomState.test.ts | added optional chaining | ~1328 |
+| 06:33 | Edited apps/web/lib/housekeeping/teamPlanView.test.ts | added optional chaining | ~522 |
+| 06:33 | Edited apps/web/lib/housekeeping/teamPlanView.test.ts | 5→7 lines | ~88 |
+| 06:34 | Edited apps/web/frozen-files.json | 4→4 lines | ~144 |
+| 06:34 | Edited apps/web/frozen-files-allowlist.json | modified 8() | ~665 |
+| 06:39 | Edited apps/web/components/housekeeping/RoomPrioritySheet.tsx | 6→6 lines | ~126 |
+| 06:39 | Edited apps/web/i18n/locales/en.ts | 3→4 lines | ~31 |
+| 06:39 | Edited apps/web/i18n/locales/es.ts | 3→4 lines | ~37 |
+| 06:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: entry, t, notes | ~168 |
+| 06:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~132 |
+| 06:43 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 1→2 lines | ~117 |
+| 06:48 | Edited apps/web/frozen-files.json | inline fix | ~37 |
+| 06:48 | Edited apps/web/frozen-files-allowlist.json | modified 8() | ~577 |
+| 06:50 | Session end: 76 writes across 28 files (123_housekeeping_exceptions.sql, roles.py, requests.py, rooms.py, internal.py) | 67 reads | ~250453 tok |
+
+## Session: 2026-09-30 13:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:38 | Edited apps/api/services/programs/contracts.py | modified should_require_inspection() | ~147 |
+
+## Session: 2026-09-30 13:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:54 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→3 lines | ~47 |
+| 13:56 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 5→5 lines | ~71 |
+| 13:56 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 5→5 lines | ~72 |
+| 13:56 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→3 lines | ~46 |
+| 13:57 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | "border-stone-900 bg-surfa" → "border-ink bg-surface-2" | ~37 |
+| 14:07 | Created supabase/migrations/125_housekeeping_reclean_tracking.sql | — | ~235 |
+| 14:07 | Edited apps/api/routers/housekeeping.py | modified _attach_reclean_corrections() | ~782 |
+| 14:07 | Edited apps/api/routers/housekeeping.py | 3→4 lines | ~60 |
+| 14:07 | Edited apps/api/routers/housekeeping.py | expanded (+9 lines) | ~258 |
+| 14:07 | Edited apps/api/routers/housekeeping.py | 5→9 lines | ~115 |
+| 14:07 | Edited apps/api/routers/housekeeping.py | 3→4 lines | ~63 |
+| 14:08 | Created apps/api/tests/smoke/test_housekeeping_reclean.py | — | ~2003 |
+| 14:08 | Edited apps/api/tests/smoke/test_housekeeping_reclean.py | modified test_attach_reclean_corrections_lists_failed_items_by_label() | ~28 |
+| 14:09 | Edited apps/api/tests/smoke/test_housekeeping_reclean.py | modified test_attach_reclean_corrections_skips_rooms_without_the_flag() | ~198 |
+| 14:09 | Edited apps/api/tests/smoke/test_housekeeping_reclean.py | 4→4 lines | ~55 |
+| 14:09 | Edited apps/api/tests/smoke/test_housekeeping_reclean.py | 4→4 lines | ~55 |
+| 14:09 | Edited apps/web/lib/api/housekeeping.ts | 2→7 lines | ~104 |
+| 14:11 | Edited apps/web/i18n/locales/en.ts | reduced (-41 lines) | ~267 |
+| 14:11 | Edited apps/web/i18n/locales/en.ts | 3→5 lines | ~56 |
+| 14:11 | Edited apps/web/i18n/locales/es.ts | reduced (-43 lines) | ~289 |
+| 14:11 | Edited apps/web/i18n/locales/es.ts | 3→5 lines | ~58 |
+| 14:12 | Created apps/web/components/housekeeping/InspectionFailSheet.tsx | — | ~2082 |
+| 14:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified if() | ~56 |
+| 14:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added error handling | ~228 |
+| 14:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: hover | ~356 |
+| 14:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→3 lines | ~47 |
+| 14:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 import(s) | ~50 |
+| 14:13 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | expanded (+7 lines) | ~90 |
+| 14:13 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | CSS: count, correction, i | ~190 |
+| 14:16 | Edited apps/web/frozen-files.json | inline fix | ~37 |
+| 14:17 | Edited apps/web/frozen-files-allowlist.json | modified 10() | ~805 |
+| 14:26 | Edited apps/api/services/programs/contracts.py | modified experience_band() | ~331 |
+| 14:26 | Edited apps/api/routers/programs.py | reduced (-8 lines) | ~94 |
+| 14:26 | Edited apps/api/routers/programs.py | — | ~0 |
+| 14:26 | Edited apps/api/routers/housekeeping.py | added 1 import(s) | ~94 |
+| 14:27 | Edited apps/api/routers/housekeeping.py | 4→5 lines | ~117 |
+| 14:27 | Edited apps/api/routers/housekeeping.py | modified _attach_inspection_required() | ~777 |
+| 14:39 | Edited apps/api/routers/housekeeping.py | 3→3 lines | ~27 |
+| 14:39 | Edited apps/api/tests/smoke/test_housekeeping_reclean.py | 4→8 lines | ~131 |
+| 14:45 | Edited apps/web/components/shared/DashboardShell.tsx | modified DashboardShell() | ~574 |
+| 14:49 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_housekeeping_redesign_status.md | modified 8() | ~757 |
+| 14:50 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_housekeeping_phase10_findings.md | — | ~1629 |
+| 14:50 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_local_dev_api.md | 1→2 lines | ~506 |
+| 14:50 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→2 lines | ~124 |
+| 14:50 | Session end: 44 writes across 18 files (RoomDetailDrawer.tsx, 125_housekeeping_reclean_tracking.sql, housekeeping.py, test_housekeeping_reclean.py, housekeeping.ts) | 50 reads | ~229283 tok |
+
+## Session: 2026-09-30 15:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

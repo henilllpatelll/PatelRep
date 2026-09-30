@@ -223,6 +223,33 @@ def build_supply_alerts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return alerts
 
 
+# G11/HK-02: tenure thresholds used to derive an assigned housekeeper's
+# experience_band from user_profiles.hire_date when no other signal exists.
+# Discretionary defaults (not specified by the plan) -- documented in the
+# 04-06 SUMMARY. Room risk_level (LOW/MEDIUM/HIGH, room_status) collapses to
+# the sampling rule's standard/high vocabulary: only HIGH maps to "high".
+EXPERIENCE_NEW_HIRE_MAX_DAYS = 30
+EXPERIENCE_TRUSTED_MIN_DAYS = 365
+
+
+def experience_band(hire_date: str | None, today: date) -> str:
+    """G11/HK-02: derive an experience_band from tenure when no explicit band is
+    stored anywhere in the schema. Missing/unparseable hire_date -> "standard"
+    (never silently treats an unknown housekeeper as new_hire or trusted)."""
+    if not hire_date:
+        return "standard"
+    try:
+        hired = datetime.fromisoformat(str(hire_date)).date()
+    except ValueError:
+        return "standard"
+    tenure_days = (today - hired).days
+    if tenure_days < EXPERIENCE_NEW_HIRE_MAX_DAYS:
+        return "new_hire"
+    if tenure_days >= EXPERIENCE_TRUSTED_MIN_DAYS:
+        return "trusted"
+    return "standard"
+
+
 def select_inspection_sample(
     *, rooms: list[dict[str, Any]], rules: list[dict[str, Any]], default_percent: int = 10
 ) -> list[str]:
@@ -266,6 +293,14 @@ def select_inspection_sample(
         ordered = sorted(group_rooms, key=lambda room: room["room_id"])
         selected.extend(room["room_id"] for room in ordered[:sample_size])
     return sorted(selected)
+
+
+def should_require_inspection(
+    *, room_id: str, rooms: list[dict[str, Any]], rules: list[dict[str, Any]], default_percent: int = 10
+) -> bool:
+    """Boolean membership check over select_inspection_sample's deterministic sample,
+    so completion flows reuse the same Programs sample instead of re-deriving it."""
+    return room_id in select_inspection_sample(rooms=rooms, rules=rules, default_percent=default_percent)
 
 
 def aggregate_inspection_quality(inspections: list[dict[str, Any]]) -> dict[str, Any]:

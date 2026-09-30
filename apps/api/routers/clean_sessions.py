@@ -596,7 +596,28 @@ async def report_session_blocker(
         "updated_at": now_iso,
     }
     if request.reason == "dnd":
+        prior_dnd = (
+            supabase.table("room_status").select("dnd_flag, dnd_attempt_count")
+            .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id)
+            .maybe_single().execute()
+        )
+        was_dnd = bool(prior_dnd and prior_dnd.data and prior_dnd.data.get("dnd_flag"))
         status_update["dnd_flag"] = True
+        if not was_dnd:
+            status_update["dnd_started_at"] = now_iso
+        status_update["dnd_attempt_count"] = ((prior_dnd.data or {}).get("dnd_attempt_count") or 0) + 1 if prior_dnd and prior_dnd.data else 1
+        status_update["dnd_last_attempt_at"] = now_iso
+        # Phase 8: keep the structured attempt log in sync with this mobile
+        # entry point (POST /clean-sessions/{id}/blocker) so Room Detail's
+        # attempt history is complete regardless of where DND was reported.
+        supabase.table("room_service_attempts").insert({
+            "tenant_id": current_user.hotel_id,
+            "room_id": room_id,
+            "result": "dnd_no_response",
+            "attempted_at": now_iso,
+            "note": note,
+            "recorded_by": current_user.user_id,
+        }).execute()
     supabase.table("room_status").update(status_update)\
         .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
     supabase.table("room_status_history").insert({

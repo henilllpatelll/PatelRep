@@ -27,18 +27,10 @@ from services.programs.contracts import (
     GATED_TEMPLATE_FACILITIES as GATED,
     aggregate_inspection_quality,
     build_supply_alerts,
+    experience_band as _experience_band,
     next_recurrence_date,
     select_inspection_sample,
 )
-
-# G11/HK-02: tenure thresholds used to derive an assigned housekeeper's
-# experience_band from user_profiles.hire_date when no other signal exists.
-# Discretionary defaults (not specified by the plan) -- documented in the
-# 04-06 SUMMARY. Room risk_level (LOW/MEDIUM/HIGH, room_status) collapses to
-# the sampling rule's standard/high vocabulary: only HIGH maps to "high".
-EXPERIENCE_NEW_HIRE_MAX_DAYS = 30
-EXPERIENCE_TRUSTED_MIN_DAYS = 365
-
 
 router = APIRouter(prefix="/programs", tags=["programs"])
 
@@ -75,24 +67,6 @@ def _require_active_tenant_approver(user_id: str, current_user: CurrentUser) -> 
     )
     if not result or not result.data:
         raise HTTPException(status_code=404, detail="Deferral approver is not active at this property.")
-
-
-def _experience_band(hire_date: str | None, today) -> str:
-    """G11/HK-02: derive an experience_band from tenure when no explicit band is
-    stored anywhere in the schema. Missing/unparseable hire_date -> "standard"
-    (never silently treats an unknown housekeeper as new_hire or trusted)."""
-    if not hire_date:
-        return "standard"
-    try:
-        hired = datetime.fromisoformat(str(hire_date)).date()
-    except ValueError:
-        return "standard"
-    tenure_days = (today - hired).days
-    if tenure_days < EXPERIENCE_NEW_HIRE_MAX_DAYS:
-        return "new_hire"
-    if tenure_days >= EXPERIENCE_TRUSTED_MIN_DAYS:
-        return "trusted"
-    return "standard"
 
 
 def _record_audit_event(

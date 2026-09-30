@@ -1261,6 +1261,28 @@ class UpdateHotelRequest(SanitizedBaseModel):
     front_desk_modules: Optional[List[str]] = Field(default=None, max_length=32)
 
 
+class UpdateHousekeepingSettingsRequest(SanitizedBaseModel):
+    """Property-wide workload settings. Absent fields preserve the existing value."""
+    default_target_credits: Optional[float] = Field(default=None, gt=0, le=100)
+    credit_weights: Optional[dict[str, float]] = None
+    capacity_overrides: Optional[dict[str, float]] = None
+
+    @model_validator(mode="after")
+    def validate_housekeeping_workload(self):
+        if self.credit_weights is not None:
+            expected = {"DEP", "FULL", "LIGHT"}
+            if set(self.credit_weights) != expected:
+                raise ValueError("credit_weights must include DEP, FULL, and LIGHT")
+            if any(not isinstance(value, (int, float)) or value < 0 or value > 10 for value in self.credit_weights.values()):
+                raise ValueError("credit weights must be between 0 and 10")
+        if self.capacity_overrides is not None and any(
+            not staff_id or not isinstance(value, (int, float)) or value <= 0 or value > 100
+            for staff_id, value in self.capacity_overrides.items()
+        ):
+            raise ValueError("staff capacity overrides must be between 0 and 100")
+        return self
+
+
 # --- Staff Invitation ---
 class InviteStaffRequest(SanitizedBaseModel):
     email: str = Field(min_length=3, max_length=254)
@@ -1585,4 +1607,52 @@ class CreateEngineeringPartTransactionRequest(SanitizedBaseModel):
     quantity: float = Field(ge=0, le=1_000_000)
     destination_location_id: Optional[str] = Field(default=None, max_length=100)
     work_order_id: Optional[str] = Field(default=None, max_length=100)
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+# ---------------------------------------------------------------------------
+# Phase 8: housekeeping exception workflows (Rush/priority, DND attempts,
+# service declined, occupancy discrepancy)
+# ---------------------------------------------------------------------------
+
+class SetRoomPriorityRequest(SanitizedBaseModel):
+    priority_state: Literal["normal", "rush"]
+    reason: Optional[Literal[
+        "early_arrival", "vip", "guest_waiting", "front_desk_request", "operational_priority", "other",
+    ]] = None
+    needed_by: Optional[datetime] = None
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+    @model_validator(mode="after")
+    def _require_reason_for_rush(self):
+        if self.priority_state == "rush" and not self.reason:
+            raise ValueError("reason is required when setting priority to rush")
+        return self
+
+
+class RecordServiceAttemptRequest(SanitizedBaseModel):
+    result: Literal["dnd_no_response", "return_later", "guest_answered", "dnd_cleared", "other"]
+    attempted_at: Optional[datetime] = None
+    return_at: Optional[datetime] = None
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+    @model_validator(mode="after")
+    def _require_return_at_for_return_later(self):
+        if self.result == "return_later" and not self.return_at:
+            raise ValueError("return_at is required when result is return_later")
+        return self
+
+
+class ServiceDeclinedRequest(SanitizedBaseModel):
+    reason: Literal["guest_declined_housekeeping", "guest_no_service_today", "privacy_request", "other"]
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class ReportOccupancyDiscrepancyRequest(SanitizedBaseModel):
+    housekeeping_observed: Literal["occupied", "vacant"]
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class ResolveOccupancyDiscrepancyRequest(SanitizedBaseModel):
+    resolution: Literal["pms_confirmed", "housekeeping_confirmed", "guest_record_corrected", "false_alarm", "escalated"]
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)

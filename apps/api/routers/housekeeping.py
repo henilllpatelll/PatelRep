@@ -17,6 +17,7 @@ from core.database import supabase
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 from services.opera_pdf import parse_hk_details, parse_task_sheet
 from services.ai.predictions import count_rooms_ahead, notify_supervisors_high_risk
+from services.programs.contracts import experience_band, select_inspection_sample
 
 logger = logging.getLogger(__name__)
 
@@ -384,10 +385,28 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
         if room_id and room_id not in open_work_order_by_room:
             open_work_order_by_room[room_id] = work_order
 
+    # Phase 8: open occupancy discrepancies, joined onto the same rows so board
+    # and my-rooms both get the attention/blocking signal without a second call.
+    open_discrepancy_by_room: dict[str, dict] = {}
+    discrepancy_result = (
+        supabase.table("room_occupancy_discrepancies")
+        .select("id, room_id, housekeeping_observed, pms_status_at_report, reported_at")
+        .eq("tenant_id", hotel_id)
+        .eq("status", "open")
+        .in_("room_id", room_ids)
+        .order("reported_at", desc=True)
+        .execute()
+    )
+    for discrepancy in discrepancy_result.data or []:
+        room_id = discrepancy.get("room_id")
+        if room_id and room_id not in open_discrepancy_by_room:
+            open_discrepancy_by_room[room_id] = discrepancy
+
     for row in rows:
         room_id = row.get("room_id")
         note = latest_note_by_room.get(room_id)
         work_order = open_work_order_by_room.get(room_id)
+        discrepancy = open_discrepancy_by_room.get(room_id)
         row["latest_note"] = (note.get("notes") or "").strip() if note else None
         row["latest_note_at"] = note.get("created_at") if note else None
         row["open_work_order_id"] = work_order.get("id") if work_order else None
@@ -395,6 +414,126 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
         row["open_work_order_title"] = work_order.get("title") if work_order else None
         row["open_work_order_priority"] = work_order.get("priority") if work_order else None
         row["open_work_order_status"] = work_order.get("status") if work_order else None
+        row["occupancy_discrepancy"] = discrepancy is not None
+        row["occupancy_discrepancy_id"] = discrepancy.get("id") if discrepancy else None
+        row["occupancy_discrepancy_type"] = discrepancy.get("housekeeping_observed") if discrepancy else None
+        row["occupancy_discrepancy_reported_at"] = discrepancy.get("reported_at") if discrepancy else None
+    return rows
+
+
+def _attach_reclean_corrections(rows: list[dict], hotel_id: str) -> list[dict]:
+    """For any row flagged reclean_requested_at, attach the failed items from the
+    most recent failed/conditional inspection so the housekeeper sees exactly what
+    to fix (spec: "N corrections / label / label"), not just that a reclean is due."""
+    reclean_room_ids = [row["room_id"] for row in rows if row.get("reclean_requested_at") and row.get("room_id")]
+    if not reclean_room_ids:
+        return rows
+
+    inspections = (
+        supabase.table("inspections")
+        .select("id, room_id, completed_at")
+        .eq("tenant_id", hotel_id)
+        .in_("room_id", reclean_room_ids)
+        .in_("overall_result", ["failed", "conditional"])
+        .order("completed_at", desc=True)
+        .execute()
+    )
+    latest_inspection_by_room: dict[str, str] = {}
+    for insp in (inspections.data or []):
+        room_id = insp.get("room_id")
+        if room_id and room_id not in latest_inspection_by_room:
+            latest_inspection_by_room[room_id] = insp["id"]
+    if not latest_inspection_by_room:
+        return rows
+
+    inspection_ids = list(latest_inspection_by_room.values())
+    results = (
+        supabase.table("inspection_results")
+        .select("inspection_id, template_item_id, note")
+        .eq("tenant_id", hotel_id)
+        .in_("inspection_id", inspection_ids)
+        .eq("result", "fail")
+        .execute()
+    )
+    fail_rows = results.data or []
+
+    item_ids = list({r["template_item_id"] for r in fail_rows if r.get("template_item_id")})
+    item_labels: dict[str, str] = {}
+    if item_ids:
+        items = (
+            supabase.table("inspection_template_items")
+            .select("id, description")
+            .in_("id", item_ids)
+            .execute()
+        )
+        item_labels = {i["id"]: i["description"] for i in (items.data or [])}
+
+    corrections_by_inspection: dict[str, list[str]] = {}
+    for r in fail_rows:
+        label = item_labels.get(r.get("template_item_id")) or (r.get("note") or "").strip()
+        if not label:
+            continue
+        corrections_by_inspection.setdefault(r["inspection_id"], []).append(label)
+
+    for row in rows:
+        room_id = row.get("room_id")
+        inspection_id = latest_inspection_by_room.get(room_id)
+        row["reclean_corrections"] = corrections_by_inspection.get(inspection_id, []) if inspection_id else []
+    return rows
+
+
+def _attach_inspection_required(rows: list[dict], hotel_id: str, target_date: date) -> list[dict]:
+    """Mirrors GET /programs/inspection-sample's rule-driven sample (same
+    room_type_id/experience_band/risk_level inputs, same select_inspection_sample
+    call) so the board/drawer's Pass-vs-Fail choice and the Inspection KPI reflect
+    the same sample a supervisor sees on that report -- previously this was never
+    computed here at all, so room.inspectionRequired was always false and the
+    Inspect action silently degraded to a single always-passing 'Mark inspected'
+    button for every room, and the board's Inspection KPI always read 0."""
+    assignments = (
+        supabase.table("room_assignments")
+        .select("room_id, assigned_to, rooms(room_type_id)")
+        .eq("tenant_id", hotel_id)
+        .eq("assignment_date", target_date.isoformat())
+        .execute()
+    ).data or []
+    if not assignments:
+        for row in rows:
+            row["inspection_required"] = False
+        return rows
+
+    room_ids = [a["room_id"] for a in assignments]
+    assigned_user_ids = list({a["assigned_to"] for a in assignments if a.get("assigned_to")})
+
+    statuses = (
+        supabase.table("room_status").select("room_id, risk_level")
+        .eq("tenant_id", hotel_id).in_("room_id", room_ids).execute()
+    ).data or []
+    risk_by_room = {s["room_id"]: (s.get("risk_level") or "").upper() for s in statuses}
+
+    profiles = (
+        supabase.table("user_profiles").select("id, hire_date")
+        .eq("tenant_id", hotel_id).in_("id", assigned_user_ids).execute()
+    ).data or [] if assigned_user_ids else []
+    hire_date_by_user = {p["id"]: p.get("hire_date") for p in profiles}
+
+    rules = (
+        supabase.table("inspection_sampling_rules").select("*").eq("tenant_id", hotel_id).execute()
+    ).data or []
+
+    rooms_for_sampling = [
+        {
+            "room_id": a["room_id"],
+            "room_type_id": (a.get("rooms") or {}).get("room_type_id"),
+            "experience_band": experience_band(hire_date_by_user.get(a.get("assigned_to")), target_date),
+            "risk_level": "high" if risk_by_room.get(a["room_id"]) == "HIGH" else "standard",
+        }
+        for a in assignments
+    ]
+    selected_ids = set(select_inspection_sample(rooms=rooms_for_sampling, rules=rules))
+
+    for row in rows:
+        row["inspection_required"] = row.get("room_id") in selected_ids
     return rows
 
 
@@ -560,6 +699,7 @@ async def get_housekeeping_board(
     _attach_task_sheet_clean_types(rooms_with_predictions, current_user.hotel_id, target_date)
     _attach_room_activity(rooms_with_predictions, current_user.hotel_id, target_date)
     _attach_last_clean_session(rooms_with_predictions, current_user.hotel_id, target_date)
+    _attach_inspection_required(rooms_with_predictions, current_user.hotel_id, target_date)
     return {"data": rooms_with_predictions}
 
 
@@ -632,6 +772,10 @@ async def get_my_rooms(
         "room_id, tenant_id, status, assigned_to, updated_at, "
         "clean_type, vip_flag, dnd_flag, do_not_service, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
+        "priority, priority_reason, priority_needed_by, priority_note, "
+        "dnd_started_at, dnd_retry_at, dnd_attempt_count, dnd_last_attempt_at, "
+        "service_declined_reason, service_declined_note, service_declined_at, "
+        "reclean_requested_at, "
         "rooms!inner(id, room_number, floor, room_types(name, code, base_clean_minutes))"
     )
     try:
@@ -683,6 +827,7 @@ async def get_my_rooms(
     ))
     _attach_task_sheet_clean_types(rows, current_user.hotel_id, today)
     _attach_room_activity(rows, current_user.hotel_id, today)
+    _attach_reclean_corrections(rows, current_user.hotel_id)
     return {"data": rows}
 
 
@@ -1150,20 +1295,48 @@ async def suggest_assignments(
     rooms_result = (
         supabase.table("room_status")
         .select(
-            "room_id, status, vip_flag, checkin_time, "
+            "room_id, status, vip_flag, checkin_time, dnd_flag, do_not_service, "
             "rooms(id, room_number, floor, building, room_types(id, name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
         .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])
         .execute()
     )
-    rooms = rooms_result.data or []
+    all_rooms = rooms_result.data or []
+
+    # Phase 8: don't route immediate cleaning work to a room nobody can enter
+    # right now. Return-later rooms (dnd_flag already false by then) are left
+    # in the pool -- there's no time-windowed scheduling in this solver to
+    # sequence them after their return time.
+    open_discrepancy_rooms: set[str] = set()
+    if all_rooms:
+        discrepancy_result = (
+            supabase.table("room_occupancy_discrepancies")
+            .select("room_id")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("status", "open")
+            .in_("room_id", [r["room_id"] for r in all_rooms])
+            .execute()
+        )
+        open_discrepancy_rooms = {d["room_id"] for d in (discrepancy_result.data or []) if d.get("room_id")}
+
+    rooms = [
+        r for r in all_rooms
+        if not r.get("dnd_flag") and not r.get("do_not_service") and r.get("room_id") not in open_discrepancy_rooms
+    ]
+    blocked_room_count = len(all_rooms) - len(rooms)
 
     if not rooms:
+        message = (
+            f"All {blocked_room_count} open room(s) are currently blocked (DND, service declined, "
+            "or an unresolved occupancy discrepancy) — nothing to assign"
+            if blocked_room_count else "No rooms currently need assignment"
+        )
         return {
             "data": {
                 "suggestions": [],
-                "message": "No rooms currently need assignment",
+                "blocked_rooms": blocked_room_count,
+                "message": message,
             }
         }
 
@@ -1418,14 +1591,17 @@ async def suggest_assignments(
         f" across buildings {', '.join(str(b) for b in buildings_used)}" if buildings_used else ""
     )
 
+    blocked_note = f"; {blocked_room_count} room(s) skipped (DND/service declined/discrepancy)" if blocked_room_count else ""
+
     return {
         "data": {
             "suggestions": suggestions,
             "date": target_date.isoformat(),
             "shift_id": shift_id,
+            "blocked_rooms": blocked_room_count,
             "message": (
                 f"Suggested assignments for {len(rooms)} room(s) "
-                f"across {len(housekeepers)} housekeeper(s){building_note}"
+                f"across {len(housekeepers)} housekeeper(s){building_note}{blocked_note}"
             ),
         }
     }
@@ -1831,6 +2007,15 @@ async def submit_inspection(
             .eq("tenant_id", current_user.hotel_id)\
             .execute()
 
+    # A pass clears any pending re-clean flag, whether or not this particular
+    # inspection is the one that had failed (covers a supervisor re-inspecting
+    # after the housekeeper already fixed the room).
+    if request.overall_result == "passed":
+        supabase.table("room_status").update({"reclean_requested_at": None})\
+            .eq("room_id", str(request.room_id))\
+            .eq("tenant_id", current_user.hotel_id)\
+            .execute()
+
     return {"data": inspection.data[0]}
 
 
@@ -1875,8 +2060,12 @@ async def trigger_reclean(
     )
     original_housekeeper = (assign_row.data or {}).get("assigned_to") if assign_row else None
 
-    # Reset room status to DIRTY
-    supabase.table("room_status").update({"status": "DIRTY"})\
+    # Reset room status to DIRTY and flag the room as a re-clean so My
+    # Rooms/Team Plan can surface it (roomState.ts reads reclean_requested_at).
+    supabase.table("room_status").update({
+        "status": "DIRTY",
+        "reclean_requested_at": datetime.now(timezone.utc).isoformat(),
+    })\
         .eq("room_id", room_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
@@ -1892,7 +2081,7 @@ async def trigger_reclean(
         "title": task_title,
         "description": task_desc,
         "task_type": "housekeeping",
-        "priority": "high",
+        "priority": "urgent",
         "room_id": room_id,
         "assigned_to": original_housekeeper,
         "created_by": current_user.user_id,

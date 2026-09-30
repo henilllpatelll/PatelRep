@@ -16,6 +16,13 @@ HOUSEKEEPER = CurrentUser(
     email="hk@example.com",
 )
 
+SUPERVISOR = CurrentUser(
+    user_id="sup-1",
+    hotel_id="hotel-a",
+    role="housekeeping_supervisor",
+    email="sup@example.com",
+)
+
 SHIFT_ID = "44444444-4444-4444-8444-444444444444"
 
 
@@ -92,3 +99,47 @@ async def test_end_shift_closes_session(monkeypatch):
         EndShiftRequest(ended_at=datetime.now(timezone.utc)), HOUSEKEEPER
     )
     assert again["data"] is None
+
+
+@pytest.mark.asyncio
+async def test_roster_returns_latest_session_per_housekeeper(monkeypatch):
+    db = make_db()
+    monkeypatch.setattr(shifts_router, "supabase", db)
+    now = datetime.now(timezone.utc)
+
+    db.rows["hk_shift_sessions"].extend([
+        {
+            "id": "s-old",
+            "tenant_id": "hotel-a",
+            "user_id": "hk-1",
+            "status": "ended",
+            "started_at": (now - timedelta(hours=8)).isoformat(),
+            "on_break_since": None,
+            "break_seconds": 0,
+        },
+        {
+            "id": "s-new",
+            "tenant_id": "hotel-a",
+            "user_id": "hk-1",
+            "status": "on_break",
+            "started_at": (now - timedelta(hours=1)).isoformat(),
+            "on_break_since": now.isoformat(),
+            "break_seconds": 0,
+        },
+        {
+            "id": "s-other-hotel",
+            "tenant_id": "hotel-b",
+            "user_id": "hk-2",
+            "status": "active",
+            "started_at": now.isoformat(),
+            "on_break_since": None,
+            "break_seconds": 0,
+        },
+    ])
+
+    response = await shifts_router.get_shift_roster(None, SUPERVISOR)
+    rows = response["data"]
+
+    assert len(rows) == 1
+    assert rows[0]["user_id"] == "hk-1"
+    assert rows[0]["status"] == "on_break"

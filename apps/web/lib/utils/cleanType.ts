@@ -29,9 +29,16 @@ export const CLEAN_TYPE_CREDITS: Record<CleanType, number> = {
   LIGHT: 1,
 }
 
-export function getCleanTypeCredits(cleanType?: string | null): number {
+export function getCleanTypeCredits(
+  cleanType?: string | null,
+  weights?: Partial<Record<CleanType, number>> | null,
+): number {
   if (!cleanType) return 0
-  return CLEAN_TYPE_CREDITS[cleanType as CleanType] ?? 0
+  const fallback = CLEAN_TYPE_CREDITS[cleanType as CleanType] ?? 0
+  const configured = weights?.[cleanType as CleanType]
+  return typeof configured === 'number' && Number.isFinite(configured) && configured >= 0
+    ? configured
+    : fallback
 }
 
 /** Statuses that still need a housekeeper's attention — excludes rooms already inspected, OOO, or handed off for inspection. */

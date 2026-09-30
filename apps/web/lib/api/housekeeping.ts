@@ -149,6 +149,70 @@ export interface HotelAvgCleanTime {
   today_count: number
 }
 
+export type PriorityReason = 'early_arrival' | 'vip' | 'guest_waiting' | 'front_desk_request' | 'operational_priority' | 'other'
+
+export interface SetRoomPriorityPayload {
+  priority_state: 'normal' | 'rush'
+  reason?: PriorityReason
+  needed_by?: string
+  note?: string
+}
+
+export type ServiceAttemptResult = 'dnd_no_response' | 'return_later' | 'guest_answered' | 'dnd_cleared' | 'other'
+
+export interface RecordServiceAttemptPayload {
+  result: ServiceAttemptResult
+  attempted_at?: string
+  return_at?: string
+  note?: string
+}
+
+export interface ServiceAttempt {
+  id: string
+  room_id: string
+  result: ServiceAttemptResult
+  attempted_at: string
+  return_at: string | null
+  note: string | null
+  recorded_by: string | null
+  created_at: string
+}
+
+export type ServiceDeclinedReason = 'guest_declined_housekeeping' | 'guest_no_service_today' | 'privacy_request' | 'other'
+
+export interface ServiceDeclinedPayload {
+  reason: ServiceDeclinedReason
+  note?: string
+}
+
+export type OccupancyObservation = 'occupied' | 'vacant'
+export type DiscrepancyResolution = 'pms_confirmed' | 'housekeeping_confirmed' | 'guest_record_corrected' | 'false_alarm' | 'escalated'
+
+export interface ReportDiscrepancyPayload {
+  housekeeping_observed: OccupancyObservation
+  note?: string
+}
+
+export interface ResolveDiscrepancyPayload {
+  resolution: DiscrepancyResolution
+  note?: string
+}
+
+export interface OccupancyDiscrepancy {
+  id: string
+  room_id: string
+  housekeeping_observed: OccupancyObservation
+  pms_status_at_report: string | null
+  note: string | null
+  reported_by: string
+  reported_at: string
+  status: 'open' | 'resolved'
+  resolution: DiscrepancyResolution | null
+  resolution_note: string | null
+  resolved_by: string | null
+  resolved_at: string | null
+}
+
 export const housekeepingApi = {
   getBoard: (date: string, shiftId?: string, includePredictions = true) =>
     apiClient.get('/housekeeping/board', {
@@ -224,6 +288,11 @@ export const housekeepingApi = {
 
   submitInspection: (data: SubmitInspectionPayload) =>
     apiClient.post('/housekeeping/inspections', data) as Promise<{ data: { id: string } }>,
+
+  triggerReclean: (inspectionId: string) =>
+    apiClient.post(`/housekeeping/inspections/${inspectionId}/reclean`, {}) as Promise<{
+      data: { room_id: string; task: { id: string; title: string } | null }
+    }>,
 
   uploadInspectionPhoto: (inspectionId: string, templateItemId: string, file: File) => {
     const form = new FormData()
@@ -310,4 +379,26 @@ export const housekeepingApi = {
     form.append('assignment_date', assignmentDate)
     return apiClient.post('/housekeeping/import/task-sheet', form)
   },
+
+  // Phase 8: Rush/priority, DND attempts, service declined, occupancy discrepancy
+  setRoomPriority: (roomId: string, data: SetRoomPriorityPayload) =>
+    apiClient.patch(`/rooms/${roomId}/priority`, data),
+
+  recordServiceAttempt: (roomId: string, data: RecordServiceAttemptPayload) =>
+    apiClient.post(`/rooms/${roomId}/service-attempts`, data) as Promise<{ data: ServiceAttempt }>,
+
+  getServiceAttempts: (roomId: string, limit = 20) =>
+    apiClient.get(`/rooms/${roomId}/service-attempts`, { params: { limit } }) as Promise<{ data: ServiceAttempt[] }>,
+
+  setServiceDeclined: (roomId: string, data: ServiceDeclinedPayload) =>
+    apiClient.post(`/rooms/${roomId}/service-declined`, data),
+
+  reportDiscrepancy: (roomId: string, data: ReportDiscrepancyPayload) =>
+    apiClient.post(`/rooms/${roomId}/discrepancies`, data) as Promise<{ data: OccupancyDiscrepancy }>,
+
+  getRoomDiscrepancies: (roomId: string) =>
+    apiClient.get(`/rooms/${roomId}/discrepancies`) as Promise<{ data: OccupancyDiscrepancy[] }>,
+
+  resolveDiscrepancy: (discrepancyId: string, data: ResolveDiscrepancyPayload) =>
+    apiClient.post(`/rooms/discrepancies/${discrepancyId}/resolve`, data) as Promise<{ data: OccupancyDiscrepancy }>,
 }

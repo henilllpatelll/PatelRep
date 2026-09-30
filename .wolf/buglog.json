@@ -28709,6 +28709,1072 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-30T00:42:54.389Z"
+    },
+    {
+      "id": "bug-1745",
+      "timestamp": "2026-09-29T20:30:00-05:00",
+      "error_message": "Initial new room-state test could not resolve ./roomState.",
+      "file": "apps/web/lib/housekeeping/roomState.test.ts",
+      "root_cause": "The test was intentionally added before its production selector module during test-first implementation.",
+      "fix": "Added apps/web/lib/housekeeping/roomState.ts and reran the focused test successfully.",
+      "tags": [
+        "tests",
+        "housekeeping",
+        "test-first"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:30:00-05:00"
+    },
+    {
+      "id": "bug-1746",
+      "timestamp": "2026-09-29T20:38:00-05:00",
+      "error_message": "A PowerShell search command treated Routes as a command because nested quoting broke the regular expression argument.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "An inner quoted regex was passed through an outer PowerShell command string without preserving its quotes.",
+      "fix": "Used simple independently quoted rg patterns and avoided nested quote interpolation.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "rg"
+      ],
+      "related_bugs": [
+        "bug-1738",
+        "bug-1740"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:38:00-05:00"
+    },
+    {
+      "id": "bug-1754",
+      "timestamp": "2026-09-30T00:31:00.000Z",
+      "error_message": "A diagnostic PowerShell process query expanded $_.CommandLine in the outer shell and emitted repeated .CommandLine command-not-found errors.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The proxied PowerShell command was double-quoted, so the outer shell expanded the pipeline variable before it reached PowerShell.",
+      "fix": "Do not reuse the malformed query; use a single-quoted proxy command if a future process diagnostic is necessary.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "rtk"
+      ],
+      "related_bugs": [
+        "bug-1740"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:31:00.000Z"
+    },
+    {
+      "id": "bug-1753",
+      "timestamp": "2026-09-30T00:29:00.000Z",
+      "error_message": "The first Phase 2 Dirty quick-filter test included IN_PROGRESS room 102.",
+      "file": "apps/web/lib/housekeeping/boardView.ts",
+      "root_cause": "Phase 1's broad needsHousekeepingWork selector intentionally counts every open workflow state, including active cleaning. That is correct for workload, but not for Phase 2's separate Needs Cleaning and In Progress KPI/filter hierarchy.",
+      "fix": "Added a narrow board-view selector for DIRTY/PICKUP/OCCUPIED only while retaining the Phase 1 broad selector for workloads and attention.",
+      "tags": [
+        "housekeeping",
+        "filters",
+        "kpi",
+        "fixed"
+      ],
+      "related_bugs": [
+        "bug-1749"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:29:00.000Z"
+    },
+    {
+      "id": "bug-1752",
+      "timestamp": "2026-09-30T00:27:00.000Z",
+      "error_message": "Phase 2 production build did not produce BUILD_ID and left the existing apps/web/.next/lock in place after its worker exited.",
+      "file": "apps/web/.next/lock",
+      "root_cause": "The worktree already has the recurring stale/contended Next build-lock condition (bug-1747); the build process supplied no result before exiting.",
+      "fix": "Did not remove the lock or terminate other Node processes because their ownership is unknown. Type check, targeted ESLint, i18n parity, full unit suite, and diff check completed instead.",
+      "tags": [
+        "build",
+        "nextjs",
+        "turbopack",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1747",
+        "bug-1743"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:27:00.000Z"
+    },
+    {
+      "id": "bug-1751",
+      "timestamp": "2026-09-30T00:03:00.000Z",
+      "error_message": "A broad RoomStatusBoard patch did not apply because its source context contained encoded punctuation.",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "The patch included a copied comment with an em dash whose encoding differed from the saved source context.",
+      "fix": "Applied the same change in smaller context-safe patches anchored on source-only code.",
+      "tags": [
+        "tooling",
+        "patch",
+        "powershell"
+      ],
+      "related_bugs": [
+        "bug-1738"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:03:00.000Z"
+    },
+    {
+      "id": "bug-1750",
+      "timestamp": "2026-09-30T00:02:00.000Z",
+      "error_message": "The first local browser inventory request timed out and reset the computer-use kernel.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "Transient computer-use runtime initialization timeout.",
+      "fix": "Retried the required first inventory call after reset; the in-app browser initialized normally.",
+      "tags": [
+        "tooling",
+        "computer-use",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:02:00.000Z"
+    },
+    {
+      "id": "bug-1749",
+      "timestamp": "2026-09-30T00:01:00.000Z",
+      "error_message": "Initial Phase 2 boardView assertions disagreed with the established housekeeping status and attention contracts.",
+      "file": "apps/web/lib/housekeeping/boardView.test.ts",
+      "root_cause": "The new test expected only DIRTY (not PICKUP) to need cleaning, treated 203 as matching the substring 02, and used a different attention order than the selector's category order.",
+      "fix": "Corrected the test expectations to reflect the existing Phase 1 selectors; no production behavior changed.",
+      "tags": [
+        "tests",
+        "housekeeping",
+        "selector-contract"
+      ],
+      "related_bugs": [
+        "bug-1748"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:01:00.000Z"
+    },
+    {
+      "id": "bug-1748",
+      "timestamp": "2026-09-30T00:00:00.000Z",
+      "error_message": "Phase 2 view-model test initially could not resolve ./boardView.",
+      "file": "apps/web/lib/housekeeping/boardView.test.ts",
+      "root_cause": "The test was added before its production view-model module during test-first implementation.",
+      "fix": "Add the shared boardView selectors and rerun the focused test.",
+      "tags": [
+        "tests",
+        "housekeeping",
+        "test-first"
+      ],
+      "related_bugs": [
+        "bug-1745"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1755",
+      "timestamp": "2026-09-30T06:10:00.000Z",
+      "error_message": "Phase 5 diagnostics initially used an incorrect view-model path and invalid PowerShell wildcard paths for migration search.",
+      "file": "apps/web/lib/utils/housekeepingDashboardMetrics.ts, apps/web/lib/housekeeping/roomCardView.test.ts",
+      "root_cause": "The inspection audit searched assumed paths instead of using the locations already returned by rg, then passed wildcard file paths directly to rg on Windows.",
+      "fix": "Continue with verified paths from rg and use rg --glob for migration filters rather than wildcard positional paths.",
+      "tags": [
+        "tooling",
+        "housekeeping",
+        "diagnostic"
+      ],
+      "related_bugs": [
+        "bug-1746"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-09-30T06:15:00.000Z"
+    },
+    {
+      "id": "bug-1747",
+      "timestamp": "2026-09-29T20:44:00-05:00",
+      "error_message": "next build stopped because another Next build process already holds the build lock.",
+      "file": "apps/web/.next",
+      "root_cause": "A pre-existing Node process has an active or stale Turbopack build lock.",
+      "fix": "Left the potentially user-owned process untouched; type-check, lint, i18n parity, and unit verification completed successfully.",
+      "tags": [
+        "build",
+        "nextjs",
+        "turbopack",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-1743"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-29T20:44:00-05:00"
+    },
+    {
+      "id": "bug-1756",
+      "timestamp": "2026-09-30T07:10:54.705Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/tests/smoke/test_shifts.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:10:54.705Z"
+    },
+    {
+      "id": "bug-1757",
+      "timestamp": "2026-09-30T07:11:34.732Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/smoke/test_shifts.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 15→6 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:11:34.732Z"
+    },
+    {
+      "id": "bug-1758",
+      "timestamp": "2026-09-30T07:14:37.299Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/housekeeping/assignmentView.test.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:14:37.299Z"
+    },
+    {
+      "id": "bug-1759",
+      "timestamp": "2026-09-30T07:16:10.986Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/AssignmentRoomRow.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:16:10.986Z"
+    },
+    {
+      "id": "bug-1760",
+      "timestamp": "2026-09-30T07:18:40.520Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/AssignmentAutoBalance.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→5 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:18:40.520Z"
+    },
+    {
+      "id": "bug-1761",
+      "timestamp": "2026-09-30T07:18:48.489Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/AssignmentAutoBalance.tsx",
+      "root_cause": "Had 'housekeeping.rosterSidebar.creditWeights.unit'",
+      "fix": "Changed to 'housekeeping.assignWorkspace.autoBalance.creditsC",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:18:48.489Z"
+    },
+    {
+      "id": "bug-1762",
+      "timestamp": "2026-09-30T07:19:59.763Z",
+      "error_message": "Wrong reference: Props should be onUnassign",
+      "file": "apps/web/components/housekeeping/AssignmentRoomRow.tsx",
+      "root_cause": "Used \"Props\" instead of \"onUnassign\"",
+      "fix": "Changed Props → onUnassign",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:19:59.763Z"
+    },
+    {
+      "id": "bug-1763",
+      "timestamp": "2026-09-30T07:20:15.764Z",
+      "error_message": "Wrong reference: Props should be onUnassign",
+      "file": "apps/web/components/housekeeping/AssignmentRoomPool.tsx",
+      "root_cause": "Used \"Props\" instead of \"onUnassign\"",
+      "fix": "Changed Props → onUnassign",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:20:15.764Z"
+    },
+    {
+      "id": "bug-1764",
+      "timestamp": "2026-09-30T07:20:40.398Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/lib/housekeeping/assignmentView.ts",
+      "root_cause": "No early return/throw for edge case: room.cleanType",
+      "fix": "Added guard clause: if (room.cleanType)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:20:40.398Z"
+    },
+    {
+      "id": "bug-1765",
+      "timestamp": "2026-09-30T07:22:27.866Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/AssignmentWorkspace.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 11→4 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:22:27.866Z"
+    },
+    {
+      "id": "bug-1766",
+      "timestamp": "2026-09-30T07:23:09.715Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "20 lines replaced/restructured",
+      "fix": "Rewrote 30→9 lines (20 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T07:23:09.715Z"
+    },
+    {
+      "id": "bug-1767",
+      "timestamp": "2026-09-30T08:08:21.112Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/housekeeping/teamPlanView.test.ts",
+      "root_cause": "Had 'FULL'",
+      "fix": "Changed to 'clean_type'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-30T08:08:24.275Z"
+    },
+    {
+      "id": "bug-1768",
+      "timestamp": "2026-09-30T08:09:55.579Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/housekeeping/teamPlanView.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T08:09:55.579Z"
+    },
+    {
+      "id": "bug-1769",
+      "timestamp": "2026-09-30T08:11:13.677Z",
+      "error_message": "CSS fix: label",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "label: t('housekeeping.routes.title'), active: showRoutes, onClick: () => setShowRoutes(true) → t('housekeeping.teamPlan.tabLabel'), active: showTeamPlan, onClick: () => setShowTeamPlan(true)",
+      "fix": "Changed label: t('housekeeping.routes.title'), active: showRoutes, onClick: () => setShowRoutes(true) → t('housekeeping.teamPlan.tabLabel'), active: showTeamPlan, onClick: () => setShowTeamPlan(true)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T08:11:13.677Z"
+    },
+    {
+      "id": "bug-1770",
+      "timestamp": "2026-09-30T00:00:00.000Z",
+      "error_message": "npm run test:unit: 'counts only sampled clean rooms as awaiting inspection' fails (expected 1, got 2); 'uses the existing workflow ownership for cleaning, inspection, ready, and OOO rooms' fails (expected 'markReady', got 'inspect').",
+      "file": "apps/web/lib/housekeeping/roomState.ts, apps/web/lib/housekeeping/roomDetailView.ts",
+      "root_cause": "Pre-existing gap discovered while implementing the Team Plan (Phase 7) redesign, unrelated to that work. Tests in roomState.test.ts/roomDetailView.test.ts assume a 'sampled inspection' feature keyed off room.inspection_required (CLEAN rooms only count toward awaitingInspection / route to 'inspect' when inspection_required is true, otherwise straight to 'markReady'), but normalizeHousekeepingRoom() in roomState.ts never reads inspection_required at all, and getHousekeepingRoomMetrics/getRoomDetailPresentation both treat every CLEAN room identically. The tests were written ahead of (or the implementation regressed behind) that feature in this uncommitted lib/housekeeping/ work.",
+      "fix": "FIXED. The web-side sampled-inspection feature (inspection_required wiring in roomState.ts/roomDetailView.ts) was completed in the Phase 8 session — both quoted tests now pass (confirmed via `npm run test:unit`, 177/177). The remaining API-side gap, `test_operational_programs.py::test_inspection_requirement_uses_the_stable_programs_sample_for_one_room` failing on a missing `should_require_inspection`, was fixed 2026-09-30 by adding a thin boolean wrapper over the existing `select_inspection_sample()` in `services/programs/contracts.py`.",
+      "tags": [
+        "housekeeping",
+        "pre-existing",
+        "roomState",
+        "roomDetailView",
+        "inspection",
+        "resolved"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T00:00:00.000Z"
+    },
+    {
+      "id": "bug-1771",
+      "timestamp": "2026-09-30T08:19:09.472Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_housekeeping_redesign_status.md",
+      "root_cause": "Had 's \"",
+      "fix": "Changed to `.wolf/cerebrum.md`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T08:19:09.472Z"
+    },
+    {
+      "id": "bug-1772",
+      "timestamp": "2026-09-30T09:20:33.736Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:20:33.736Z"
+    },
+    {
+      "id": "bug-1773",
+      "timestamp": "2026-09-30T09:20:43.375Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 23→32 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:20:43.375Z"
+    },
+    {
+      "id": "bug-1774",
+      "timestamp": "2026-09-30T09:20:49.624Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:20:49.625Z"
+    },
+    {
+      "id": "bug-1775",
+      "timestamp": "2026-09-30T09:23:57.941Z",
+      "error_message": "Wrong reference: state should be priority_state",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Used \"state\" instead of \"priority_state\"",
+      "fix": "Changed state → priority_state",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:23:57.941Z"
+    },
+    {
+      "id": "bug-1776",
+      "timestamp": "2026-09-30T09:24:14.092Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/smoke/test_housekeeping_exceptions.py",
+      "root_cause": "Had \"room\"",
+      "fix": "Changed to \"operational_audit_events\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:24:14.092Z"
+    },
+    {
+      "id": "bug-1777",
+      "timestamp": "2026-09-30T09:25:06.102Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/housekeeping.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:25:06.102Z"
+    },
+    {
+      "id": "bug-1778",
+      "timestamp": "2026-09-30T09:26:10.759Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/housekeeping/roomState.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:26:10.759Z"
+    },
+    {
+      "id": "bug-1779",
+      "timestamp": "2026-09-30T09:27:02.302Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→36 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:27:02.302Z"
+    },
+    {
+      "id": "bug-1780",
+      "timestamp": "2026-09-30T09:28:01.495Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_ai_suggest_assignments.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:28:01.495Z"
+    },
+    {
+      "id": "bug-1781",
+      "timestamp": "2026-09-30T09:33:55.132Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:33:55.132Z"
+    },
+    {
+      "id": "bug-1782",
+      "timestamp": "2026-09-30T09:34:32.241Z",
+      "error_message": "CSS fix: time",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "time: checkinTime → formatCheckinTime(operationalRoom.priorityNeededBy)",
+      "fix": "Changed time: checkinTime → formatCheckinTime(operationalRoom.priorityNeededBy)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:34:32.241Z"
+    },
+    {
+      "id": "bug-1783",
+      "timestamp": "2026-09-30T09:34:46.114Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: // Mirrors deriveRoomAttentionItems()'s isRushPriority in ro; // is a manual override on the priority column, distinct fro",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-30T09:34:54.842Z"
+    },
+    {
+      "id": "bug-1784",
+      "timestamp": "2026-09-30T09:46:00-05:00",
+      "error_message": "Phase 9 test-first contracts fail because persisted housekeeping settings and clean-type override support do not yet exist.",
+      "file": "apps/api/routers/hotels.py, apps/web/lib/utils/cleanType.ts",
+      "root_cause": "Workload and clean-type credit values are currently client constants with no tenant-scoped configuration contract.",
+      "fix": "In progress: add tenant-scoped validation, API endpoints, web client settings tabs, and optional credit-weight resolution.",
+      "tags": [
+        "housekeeping",
+        "phase-9",
+        "test-first"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T09:46:00-05:00"
+    },
+    {
+      "id": "bug-1785",
+      "timestamp": "2026-09-30T11:22:28.992Z",
+      "error_message": "Type error",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:22:28.992Z"
+    },
+    {
+      "id": "bug-1786",
+      "timestamp": "2026-09-30T11:28:50.539Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/TeamPlanUnassigned.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:28:50.539Z"
+    },
+    {
+      "id": "bug-1787",
+      "timestamp": "2026-09-30T11:29:04.981Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/TeamPlanRoomBlock.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:29:04.981Z"
+    },
+    {
+      "id": "bug-1788",
+      "timestamp": "2026-09-30T11:29:19.433Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/TeamPlanRoomBlock.tsx",
+      "root_cause": "Had \"truncate text-ink3\"",
+      "fix": "Changed to 'truncate'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:29:19.433Z"
+    },
+    {
+      "id": "bug-1789",
+      "timestamp": "2026-09-30T11:31:37.003Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had \"Service declined\"",
+      "fix": "Changed to \"Welfare check due\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:31:37.003Z"
+    },
+    {
+      "id": "bug-1790",
+      "timestamp": "2026-09-30T11:31:44.277Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had \"Servicio rechazado\"",
+      "fix": "Changed to \"Verificación de bienestar pendiente\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:31:44.277Z"
+    },
+    {
+      "id": "bug-1791",
+      "timestamp": "2026-09-30T11:32:53.407Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/housekeeping/roomState.test.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:32:53.407Z"
+    },
+    {
+      "id": "bug-1792",
+      "timestamp": "2026-09-30T11:33:08.191Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/housekeeping/teamPlanView.test.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:33:08.191Z"
+    },
+    {
+      "id": "bug-1793",
+      "timestamp": "2026-09-30T11:40:47.807Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:40:47.807Z"
+    },
+    {
+      "id": "bug-1794",
+      "timestamp": "2026-09-30T11:43:34.977Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had 'housekeeping.roomDetail.discrepancy.reportAction'",
+      "fix": "Changed to 'housekeeping.roomDetail.serviceDeclined.trigger'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:43:34.977Z"
+    },
+    {
+      "id": "bug-1795",
+      "timestamp": "2026-09-30T11:48:45.627Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"cc5f0d7c1e43d9f889956a0c1b29f31a9a9f32829b877eac4",
+      "fix": "Changed to \"e8eb26701bb40c5cde252e7fc81b3293ee4a86c05e8e1a194",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:48:45.627Z"
+    },
+    {
+      "id": "bug-1796",
+      "timestamp": "2026-09-30T11:48:58.746Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/frozen-files-allowlist.json",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T11:48:58.746Z"
+    },
+    {
+      "id": "bug-1797",
+      "timestamp": "2026-09-30T18:56:52.298Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had \"text-xs px-3.5 py-2 flex items-center gap-1.5 bg-",
+      "fix": "Changed to \"text-xs px-3.5 py-2 flex items-center gap-1.5\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-30T18:57:04.933Z"
+    },
+    {
+      "id": "bug-1798",
+      "timestamp": "2026-09-30T19:07:52.538Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:07:52.538Z"
+    },
+    {
+      "id": "bug-1799",
+      "timestamp": "2026-09-30T19:09:19.574Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/smoke/test_housekeeping_reclean.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:09:19.574Z"
+    },
+    {
+      "id": "bug-1800",
+      "timestamp": "2026-09-30T19:11:04.518Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "53 lines replaced/restructured",
+      "fix": "Rewrote 61→20 lines (53 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:11:04.518Z"
+    },
+    {
+      "id": "bug-1801",
+      "timestamp": "2026-09-30T19:11:32.268Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "55 lines replaced/restructured",
+      "fix": "Rewrote 63→20 lines (55 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:11:32.268Z"
+    },
+    {
+      "id": "bug-1802",
+      "timestamp": "2026-09-30T19:12:34.324Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:12:34.324Z"
+    },
+    {
+      "id": "bug-1803",
+      "timestamp": "2026-09-30T19:12:38.704Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:12:38.704Z"
+    },
+    {
+      "id": "bug-1804",
+      "timestamp": "2026-09-30T19:12:53.707Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had './ServiceAttemptForm'",
+      "fix": "Changed to './InspectionFailSheet'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:12:53.707Z"
+    },
+    {
+      "id": "bug-1805",
+      "timestamp": "2026-09-30T19:13:18.042Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:13:18.042Z"
+    },
+    {
+      "id": "bug-1806",
+      "timestamp": "2026-09-30T19:16:48.455Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/frozen-files.json",
+      "root_cause": "Had \"e8eb26701bb40c5cde252e7fc81b3293ee4a86c05e8e1a194",
+      "fix": "Changed to \"ffa3d6fbeb35bb79328237452f50b9d808bf1a1c6d9aeb450",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:16:48.455Z"
+    },
+    {
+      "id": "bug-1807",
+      "timestamp": "2026-09-30T19:26:38.533Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/programs.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 19→11 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:26:38.533Z"
+    },
+    {
+      "id": "bug-1808",
+      "timestamp": "2026-09-30T19:39:25.095Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Had \"high\"",
+      "fix": "Changed to \"urgent\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:39:25.095Z"
+    },
+    {
+      "id": "bug-1809",
+      "timestamp": "2026-09-30T19:45:31.940Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/shared/DashboardShell.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 25→45 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T19:45:31.940Z"
     }
   ]
 }

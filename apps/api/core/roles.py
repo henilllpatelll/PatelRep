@@ -21,6 +21,13 @@ MANAGER_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")  # leadershi
 PROGRAM_MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer", "chief_engineer")  # operational-program tier incl. line engineers (programs.py)
 TASK_ASSIGNMENT_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer", "front_desk")
 
+# Phase 8 (housekeeping exception workflows): housekeeper reports what they
+# observe (attempts, occupancy, service declined); Rush/priority and
+# discrepancy resolution are supervisor/front-desk/GM calls.
+HOUSEKEEPING_EXCEPTION_REPORT_ROLES = ("housekeeper", "housekeeping_supervisor", "gm", "chief_engineer")
+RUSH_MANAGER_ROLES = ("housekeeping_supervisor", "front_desk", "gm", "chief_engineer")
+DISCREPANCY_RESOLVER_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
+
 # Availability is broadly visible, but repair detail is deliberately withheld
 # from roles that only need guest-facing room availability.
 LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES = ("front_desk", "housekeeper")

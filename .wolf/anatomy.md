@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T00:56:05.023Z
-> Files: 624 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T19:50:28.986Z
+> Files: 699 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -9,12 +9,19 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `MEMORY.md` — PatelRep Project Memory (~1158 tok)
+- `MEMORY.md` — PatelRep Project Memory (~1275 tok)
+- `project_housekeeping_phase10_findings.md` — Declares actually (~1527 tok)
+- `project_housekeeping_redesign_status.md` (~773 tok)
 - `project_migration_drift_2026-09-29.md` (~651 tok)
+- `reference_local_dev_api.md` (~951 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/39c736e1-55ed-4565-ac9d-f932f6779ed7/scratchpad/
 
 - `verify_phase4.mjs` — Declares BASE (~1255 tok)
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/63138cbe-e234-4fad-be18-dce02afda023/scratchpad/
+
+- `verify-team-plan.mjs` — Declares BASE (~512 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ae73ab6a-b528-4d24-b835-6bcb549e68a2/scratchpad/
 
@@ -956,6 +963,25 @@
 - `apps/web/lib/utils/logbookCapabilities.ts` — Typed presentation capability map for future Logbook UI phases. (~500 tok)
 - `supabase/migrations/122_logbook_phase8_retention_translations.sql` — Archive metadata, translation cache, expiry index, and attachment event constraint. (~650 tok)
 
+## Phase 9 housekeeping settings reconnaissance
+
+- `apps/api/routers/hotels.py` — Tenant/property settings API contracts, if any. (~2000 tok)
+- `apps/api/routers/housekeeping.py` — Existing board, assignment, checklist, and OPERA import API contracts consumed by web. (~7000 tok)
+- `apps/web/app/(dashboard)/housekeeping/assignments/page.tsx` — Legacy assignment compatibility route. (~200 tok)
+- `apps/web/app/(dashboard)/housekeeping/inspections/page.tsx` — Legacy inspection compatibility route. (~200 tok)
+- `apps/web/app/(dashboard)/housekeeping/rooms/page.tsx` — Legacy room-admin compatibility route. (~2400 tok)
+- `apps/web/app/(dashboard)/settings/housekeeping/page.tsx` — Settings-owned housekeeping checklist and operational configuration surface. (~1800 tok)
+- `apps/web/app/(dashboard)/settings/rooms/page.tsx` — Canonical room master-data administration surface. (~2200 tok)
+- `apps/web/components/housekeeping/OccupancyImportModal.tsx` — OPERA occupancy/report upload and result flow mounted by the Room Board. (~2200 tok)
+- `apps/web/components/settings/CleaningChecklistEditor.tsx` — Reusable checklist editing form used in operational settings. (~1600 tok)
+- `apps/web/components/settings/HousekeepingWorkloadSettings.tsx` — GM workload/credit/attendant-override form with explicit save states. (~2100 tok)
+- `apps/web/components/settings/RoomsImportModal.tsx` — Canonical rooms CSV import workflow. (~1200 tok)
+- `apps/web/lib/api/hotels.ts` — Shared hotel client: property profile, stats, and Phase 9 workload settings endpoints. (~900 tok)
+- `apps/web/lib/utils/cleanType.ts` — Existing clean-type labels and workload-credit values. (~400 tok)
+- `apps/web/lib/utils/housekeepingNavigation.ts` — Role-aware housekeeping sub-navigation/legacy route policy. (~700 tok)
+- `apps/web/lib/utils/navigation.ts` — Global sidebar/navigation route ownership and role rules. (~3200 tok)
+- `supabase/migrations/124_housekeeping_workload_settings.sql` — Nullable tenant-level workload fields with legacy-safe fallbacks. (~300 tok)
+
 ## Task workspace Phase 1 reference files (2026-09-28)
 
 
@@ -965,18 +991,24 @@
 
 ## apps/api/core/
 
+- `roles.py` — Canonical role-group constants. Single source of truth — routers must import (~612 tok)
 - `scheduler.py` — In-process cron scheduler. (~1453 tok)
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~19302 tok)
+- `requests.py` — Pydantic: SanitizedBaseModel (~20190 tok)
 
 ## apps/api/routers/
 
+- `clean_sessions.py` — API: 5 endpoints (~7050 tok)
 - `evidence.py` — Tenant-scoped controlled documents, proof, acknowledgements, and exceptions. (~9538 tok)
 - `guest_requests.py` — API: 3 endpoints (~9674 tok)
-- `internal.py` — API: 5 endpoints (~11087 tok)
+- `housekeeping.py` — Declares from (~31878 tok)
+- `internal.py` — API: 5 endpoints (~11178 tok)
 - `logbook.py` — can_permanently_delete_logbook_entry, logbook_translation_source_hash, build_logbook_attachment_meta (~19408 tok)
+- `programs.py` — Tenant-scoped PM and housekeeping program configuration and execution. (~6129 tok)
+- `rooms.py` — API: 3 endpoints (~19004 tok)
+- `shifts.py` — API: 6 endpoints (~2180 tok)
 - `tasks.py` — API: 4 endpoints (~6585 tok)
 
 ## apps/api/services/
@@ -987,6 +1019,10 @@
 
 - `__init__.py` (~220 tok)
 - `shift_summary.py` — AI Shift Handoff service — generates a structured, operationally-grounded (~5188 tok)
+
+## apps/api/services/programs/
+
+- `contracts.py` — Pure policy contracts shared by PM, housekeeping, and escalation routes. (~5162 tok)
 
 ## apps/api/tests/
 
@@ -1003,16 +1039,34 @@
 - `test_task_recurrence.py` — Recurring Internal Task generation (migration 116): mirrors (~3122 tok)
 - `test_task_workspace.py` — Task workspace contract: active work is complete, history is separately paginated. (~2065 tok)
 
+## apps/api/tests/smoke/
+
+- `test_ai_suggest_assignments.py` — FakeDB: table, select, eq, in_ + 8 more (~2694 tok)
+- `test_housekeeping_exceptions.py` — Phase 8 (housekeeping redesign): Rush/priority, DND attempts, service (~3503 tok)
+- `test_housekeeping_reclean.py` — Phase 10 (housekeeping redesign): the lightweight supervisor Pass/Fail (~2140 tok)
+- `test_shifts.py` — make_db, start_request, test_start_shift_creates_active_session, test_start_shift_is_idempotent (~1241 tok)
+
 ## apps/web/
 
+- `.verify-team-plan-2.mjs` — Declares BASE (~668 tok)
+- `.verify-team-plan-3.mjs` — Declares BASE (~534 tok)
+- `.verify-team-plan-4.mjs` — Declares BASE (~337 tok)
+- `.verify-team-plan-5.mjs` — Declares BASE (~555 tok)
+- `.verify-team-plan.mjs` — Declares BASE (~512 tok)
 - `check_wo.tmp.mjs` — Declares browser (~317 tok)
-- `package.json` — Node.js package manifest (~978 tok)
+- `frozen-files-allowlist.json` — Declares on (~8757 tok)
+- `frozen-files.json` (~1299 tok)
+- `package.json` — Node.js package manifest (~1033 tok)
 - `playwright.verify.config.ts` (~69 tok)
 - `verify_logbook_phase3.tmp.mjs` — Declares BASE (~1205 tok)
 
 ## apps/web/.tmp-qa/
 
 - `verify_gaps.mjs` — Declares BASE (~718 tok)
+
+## apps/web/app/(dashboard)/housekeeping/
+
+- `page.tsx` — CLEAN_TYPE_TEXT_COLOR (~9782 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
@@ -1026,6 +1080,29 @@
 
 - `GuestRequestDrawer.tsx` — MESSAGE_ROLES (~6920 tok)
 
+## apps/web/components/housekeeping/
+
+- `AssignmentAutoBalance.tsx` — Generates a proposed plan from the existing CP-SAT suggester and stages it (~2060 tok)
+- `AssignmentRoomPool.tsx` — TABS (~2579 tok)
+- `AssignmentRoomRow.tsx` — Assign-mode-only row: room + clean type + credits + assignment + (~1632 tok)
+- `AssignmentTeamPanel.tsx` — CAPACITY_TONE (~2507 tok)
+- `AssignmentWorkspace.tsx` — getHotelIdFromToken (~6337 tok)
+- `HousekeepingBoardShell.tsx` — BoardSearchInput (~4282 tok)
+- `InspectionFailSheet.tsx` — Fail Inspection — the counterpart to RoomDetailDrawer's one-click Pass. (~2082 tok)
+- `OccupancyDiscrepancySheet.tsx` — Report (housekeeping) / Resolve (Front Desk) occupancy discrepancy -- never (~3045 tok)
+- `RoomCard.tsx` — Compact room-board summary. Room Detail deliberately owns every other room fact. (~3178 tok)
+- `RoomDetailDrawer.tsx` — Standard hotel checkout. Departure rooms with no explicit checkout_time set (~19822 tok)
+- `RoomPrioritySheet.tsx` — Manual Rush override -- distinct from the AI arrival-risk prediction (spec: "priority vs readiness r (~2256 tok)
+- `RoomServiceStatusSheet.tsx` — Deliberate Service Declined -- distinct from housekeeper turning the room's (~1526 tok)
+- `RoomStatusBoard.tsx` — Board data loading, Realtime/polling updates, filters, floor grid, card actions, and room-detail handoff. (~6000 tok)
+- `ServiceAttemptForm.tsx` — Record Attempt -- a focused, timestamped log of one DND/service visit (spec section 11). (~1806 tok)
+- `StagedChangesPanel.tsx` — Review-before-publish panel — every staged room, its from/to, and a per-row undo. (~918 tok)
+- `TeamPlan.tsx` — Housekeeping · Team Plan — supervisor team execution plan (real data). (~4014 tok)
+- `TeamPlanAttention.tsx` — itemLabelKey (~1108 tok)
+- `TeamPlanLane.tsx` — TEAM_PLAN_PX_PER_MINUTE (~1597 tok)
+- `TeamPlanRoomBlock.tsx` — One compact room stop — deliberately minimal; Room Detail owns every other fact. (~1099 tok)
+- `TeamPlanUnassigned.tsx` — TeamPlanUnassigned (~946 tok)
+
 ## apps/web/components/logbook/
 
 - `AddHandoffDrawer.tsx` — The currently selected shift's end_time ("HH:MM:SS"), if one is known — powers (~4985 tok)
@@ -1037,6 +1114,10 @@
 - `LogbookStatusFilter.tsx` — OPTIONS (~334 tok)
 - `NeedsNextShift.tsx` — COLLAPSED_COUNT (~1649 tok)
 - `RelatedItemPicker.tsx` — Single-item polymorphic linker for room/task/work-order/guest-request records. (~2527 tok)
+
+## apps/web/components/shared/
+
+- `DashboardShell.tsx` — DashboardShell (~865 tok)
 
 ## apps/web/components/tasks/
 
@@ -1058,19 +1139,33 @@
 
 ## apps/web/i18n/locales/
 
-- `en.ts` — Declares en (~36556 tok)
-- `es.ts` — Declares es (~40324 tok)
+- `en.ts` — Declares en (~42080 tok)
+- `es.ts` — Declares es (~46346 tok)
 
 ## apps/web/lib/api/
 
 - `evidence.ts` — API routes: GET, POST, PUT (20 endpoints) (~2327 tok)
 - `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE, PUT (16 endpoints) (~1853 tok)
+- `housekeeping.ts` — Hotel-wide average clean time for today plus the 7-day trend (dashboard hero). (~3907 tok)
 - `logbook.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1880 tok)
+- `shifts.ts` — Supervisor-facing: latest shift session per housekeeper for a date (default today). (~176 tok)
 - `tasks.ts` — Server-side title/description(/guest_name) search — History only, since Active is always fetched in (~1413 tok)
 
 ## apps/web/lib/hooks/
 
 - `useModalFocusTrap.ts` — Exports useModalFocusTrap (~621 tok)
+
+## apps/web/lib/housekeeping/
+
+- `assignmentView.test.ts` — AssignmentPoolRoom: getCredits (~1783 tok)
+- `assignmentView.ts` — A room whose occupied/departure ambiguity means it needs a clean-type choice before it can be staged (~3295 tok)
+- `boardView.test.ts` — Focused contracts for KPI, attention, search, and filter composition. (~800 tok)
+- `boardView.ts` — The room-board filter pipeline is intentionally data-only, so KPI tiles, (~1517 tok)
+- `roomCardView.test.ts` — RoomCard presentation contracts for priority, compact status, timing, and signals. (~700 tok)
+- `roomState.test.ts` — Declares priorityRoom (~2573 tok)
+- `roomState.ts` — Adapts the existing board/My Rooms payload into a stable presentation model. (~5412 tok)
+- `teamPlanView.test.ts` — NOW: room (~2938 tok)
+- `teamPlanView.ts` — Real base_clean_minutes when the room type has one; otherwise an honest clean-type estimate (never a (~4776 tok)
 
 ## apps/web/lib/utils/
 
@@ -1092,8 +1187,18 @@
 - `taskWorkspace.test.ts` — Declares item (~2378 tok)
 - `taskWorkspace.ts` — '' = both. Replaces the old separate Guest Requests / Internal tabs. (~1892 tok)
 
-## supabase/migrations/
+## apps/web/stores/
+
+- `housekeepingStore.ts` — Assign-mode-only supplemental filter — layered on top of cleanTypeFilter. (~2137 tok)
+
+## spec/
 
 - `116_task_recurrence.sql` — ============================================================================= (~1070 tok)
 - `118_logbook_shift_continuity.sql` — ============================================================================= (~886 tok)
 - `119_shift_summary_identity.sql` — ============================================================================= (~1306 tok)
+- `housekeeping-phase-1-foundation.md` — Verified current capabilities, schema/API gaps, compatibility routes, and Phase 1 scope. (~800 tok)
+
+## supabase/migrations/
+
+- `123_housekeeping_exceptions.sql` — Phase 8 (housekeeping redesign): structured Rush/priority metadata, DND (~1541 tok)
+- `125_housekeeping_reclean_tracking.sql` — Phase 10 (housekeeping redesign): the frontend (lib/housekeeping/roomState.ts (~235 tok)

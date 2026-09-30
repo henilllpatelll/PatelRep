@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
@@ -21,8 +21,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const hotel = useHotelStore((s) => s.hotel)
   const shellV2 = isSectionRedesigned('shell', hotel)
 
+  const themeClasses = [
+    density === 'comfortable' ? 'density-comfortable' : density === 'dense' ? 'density-dense' : 'density-balanced',
+    theme === 'dark' ? 'theme-dark' : '',
+    `accent-${accent}`,
+  ].filter(Boolean)
+
+  // Any component that escapes this div via createPortal(..., document.body)
+  // (RoomDetailDrawer and other full-screen drawers) sits outside this
+  // element's subtree, so it never inherited these theme/density/accent
+  // CSS-variable classes -- it silently rendered as if dark mode/density/accent
+  // were never set. Mirroring the same classes onto body keeps portaled
+  // content in sync without changing this div's own className.
+  useEffect(() => {
+    document.body.classList.add(...themeClasses)
+    return () => {
+      document.body.classList.remove(...themeClasses)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [density, theme, accent])
+
   return (
-    <div className={`flex h-screen bg-paper ${density === 'comfortable' ? 'density-comfortable' : density === 'dense' ? 'density-dense' : 'density-balanced'} ${theme === 'dark' ? 'theme-dark' : ''} accent-${accent}`}>
+    <div className={`flex h-screen bg-paper ${themeClasses.join(' ')}`}>
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

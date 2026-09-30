@@ -63,7 +63,8 @@ class FakeQuery:
 
 
 def _room_status_row(
-    room_id, room_number, base_clean_minutes=30, vip_flag=False, room_type_id=None
+    room_id, room_number, base_clean_minutes=30, vip_flag=False, room_type_id=None,
+    dnd_flag=False, do_not_service=False,
 ):
     room_types = {
         "name": "Standard",
@@ -78,6 +79,8 @@ def _room_status_row(
         "status": "DIRTY",
         "vip_flag": vip_flag,
         "checkin_time": None,
+        "dnd_flag": dnd_flag,
+        "do_not_service": do_not_service,
         "rooms": {
             "id": room_id,
             "room_number": room_number,
@@ -148,9 +151,60 @@ async def test_suggest_assignments_empty_board_returns_no_rooms_message(monkeypa
     assert response == {
         "data": {
             "suggestions": [],
+            "blocked_rooms": 0,
             "message": "No rooms currently need assignment",
         }
     }
+
+
+@pytest.mark.asyncio
+async def test_suggest_assignments_excludes_dnd_declined_and_discrepancy_rooms(monkeypatch):
+    """Phase 8: active DND, service-declined, and unresolved-discrepancy rooms
+    never get routed to a housekeeper by the auto-balance solver."""
+    open_room = "22222222-2222-4222-8222-222222222222"
+    dnd_room = "33333333-3333-4333-8333-333333333333"
+    declined_room = "44444444-4444-4444-8444-444444444444"
+    discrepancy_room = "77777777-7777-4777-8777-777777777777"
+    housekeeper_id = "55555555-5555-4555-8555-555555555555"
+
+    db = FakeDB({
+        "room_status": [
+            _room_status_row(open_room, "101"),
+            _room_status_row(dnd_room, "102", dnd_flag=True),
+            _room_status_row(declined_room, "103", do_not_service=True),
+            _room_status_row(discrepancy_room, "104"),
+        ],
+        "shift_assignments": [
+            {"tenant_id": SUPERVISOR.hotel_id, "work_date": TODAY, "user_id": housekeeper_id},
+        ],
+        "room_occupancy_discrepancies": [
+            {"tenant_id": SUPERVISOR.hotel_id, "room_id": discrepancy_room, "status": "open"},
+        ],
+    })
+    monkeypatch.setattr(housekeeping, "supabase", db)
+
+    response = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+
+    assert response["data"]["blocked_rooms"] == 3
+    assigned_room_ids = {
+        room["room_id"]
+        for suggestion in response["data"]["suggestions"]
+        for room in suggestion["rooms"]
+    }
+    assert assigned_room_ids == {open_room}
+
+
+@pytest.mark.asyncio
+async def test_suggest_assignments_all_rooms_blocked_returns_explanatory_message(monkeypatch):
+    dnd_room = "33333333-3333-4333-8333-333333333333"
+    db = FakeDB({"room_status": [_room_status_row(dnd_room, "102", dnd_flag=True)]})
+    monkeypatch.setattr(housekeeping, "supabase", db)
+
+    response = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+
+    assert response["data"]["suggestions"] == []
+    assert response["data"]["blocked_rooms"] == 1
+    assert "blocked" in response["data"]["message"].lower()
 
 
 @pytest.mark.asyncio

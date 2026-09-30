@@ -1,70 +1,11 @@
 'use client'
 
-import { Clock, LogOut, User, Wrench, MessageSquare, ClipboardList, Timer } from 'lucide-react'
+import { CheckSquare, ClipboardList, MessageSquare, Square, UserRound, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
-import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
-import { getRoomTypeCode } from '@/lib/utils/roomType'
-import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
-import { Pill } from '@/components/ui/primitives'
+
 import { Button } from '@/components/ui/Button'
-
-// ── Status → border color ─────────────────────────────────────────────────────
-const STATUS_BORDER: Record<string, string> = {
-  DIRTY:          'border-[var(--alert-line)]',
-  IN_PROGRESS:    'border-[var(--progress-line)]',
-  CLEAN:          'border-[var(--info-line)]',
-  INSPECTED:      'border-[var(--ready-line)]',
-  DO_NOT_DISTURB: 'border-line',
-  OUT_OF_ORDER:   'border-[var(--blocked-line)]',
-  OUT_OF_SERVICE: 'border-[var(--blocked-line)]',
-  OOO:            'border-[var(--blocked-line)]',
-  VACANT:         'border-line',
-  BLOCKED:        'border-line',
-  OCCUPIED:       'border-[var(--alert-line)]',
-  PICKUP:         'border-[var(--caution-line)]',
-}
-
-// ── Status → top strip color ──────────────────────────────────────────────────
-const STATUS_STRIP_COLOR: Record<string, string> = {
-  DIRTY:          'var(--alert)',
-  IN_PROGRESS:    'var(--progress)',
-  CLEAN:          'var(--info)',
-  INSPECTED:      'var(--ready)',
-  DO_NOT_DISTURB: 'var(--ink-4)',
-  OUT_OF_ORDER:   'var(--blocked)',
-  OUT_OF_SERVICE: 'var(--blocked)',
-  OOO:            'var(--blocked)',
-  VACANT:         'var(--line)',
-  BLOCKED:        'var(--line)',
-  OCCUPIED:       'var(--alert)',
-  PICKUP:         'var(--caution)',
-}
-
-// ── Status → Pill tone ────────────────────────────────────────────────────────
-const STATUS_PILL_TONE: Record<string, 'dirty' | 'progress' | 'clean' | 'inspected' | 'pickup' | 'ooo' | 'neutral'> = {
-  DIRTY:          'dirty',
-  IN_PROGRESS:    'progress',
-  CLEAN:          'clean',
-  INSPECTED:      'inspected',
-  PICKUP:         'pickup',
-  OOO:            'ooo',
-  DO_NOT_DISTURB: 'neutral',
-  OUT_OF_ORDER:   'ooo',
-  OUT_OF_SERVICE: 'ooo',
-  OCCUPIED:       'dirty',
-  VACANT:         'neutral',
-  BLOCKED:        'neutral',
-}
-
-// ── Clean type → text color ───────────────────────────────────────────────────
-const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
-  DEP:   'text-[var(--alert)]',
-  FULL:  'text-[var(--caution)]',
-  LIGHT: 'text-[var(--caution)]',
-}
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+import { cn } from '@/lib/utils'
+import { getRoomCardPresentation, getRoomWorkloadCredits, normalizeHousekeepingRoom, type HousekeepingAttentionCode, type RoomCardStatusKey } from '@/lib/housekeeping/roomState'
 
 interface Props {
   room: any
@@ -74,6 +15,8 @@ interface Props {
   onAssign?: (roomId: string) => void
   pendingAssignee?: string | null
   assignedToName?: string | null
+  assignmentTargetName?: string | null
+  ownerName?: string | null
   assignedToActive?: boolean
   savedAssignmentId?: string | null
   onRemoveSavedAssignment?: (assignmentId: string) => void
@@ -82,284 +25,93 @@ interface Props {
   openTaskCount?: number
 }
 
-type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'DO_NOT_DISTURB' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
-type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
-
-function formatTime(isoString: string | null | undefined): string | null {
-  if (!isoString) return null
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-  } catch {
-    return null
-  }
+const STATUS_TONE: Record<RoomCardStatusKey, string> = {
+  vacantDirty: 'bg-[var(--alert)]', pickup: 'bg-[var(--caution)]', cleaning: 'bg-[var(--progress)]', inspect: 'bg-[var(--info)]', ready: 'bg-[var(--ready)]', reclean: 'bg-[var(--alert)]', outOfOrder: 'bg-[var(--blocked)]', dnd: 'bg-[var(--ink-3)]', serviceDeclined: 'bg-[var(--ink-3)]', occupied: 'bg-[var(--alert)]',
 }
 
-export function RoomCard({
-  room,
-  assignmentMode,
-  onStatusChange,
-  onOpenDetail,
-  onAssign,
-  pendingAssignee,
-  assignedToName,
-  assignedToActive,
-  savedAssignmentId,
-  onRemoveSavedAssignment,
-  onRemoveMirroredAssignment,
-  guestRequestCount = 0,
-  openTaskCount = 0,
-}: Props) {
-  const { t } = useTranslation()
-  const status: RoomStatus = (room.status || 'DIRTY') as RoomStatus
-  const prediction = room.prediction ?? null
-  const riskLevel: RiskLevel | undefined = prediction?.risk_level
-  const isPending = !!pendingAssignee
-  // savedAssignmentId is null when the board is showing this room via the
-  // room_status.assigned_to mirror fallback (no room_assignments row for
-  // today) -- still a real assignment to the active housekeeper, just not
-  // backed by a deletable row (see removeRoomAssignmentMirror).
-  const isSavedAssignedToActive = assignmentMode && !!assignedToActive && !isPending
+const STATUS_BORDER: Record<RoomCardStatusKey, string> = {
+  vacantDirty: 'border-[var(--alert-line)]', pickup: 'border-[var(--caution-line)]', cleaning: 'border-[var(--progress-line)]', inspect: 'border-[var(--info-line)]', ready: 'border-[var(--ready-line)]', reclean: 'border-[var(--alert-line)]', outOfOrder: 'border-[var(--blocked-line)]', dnd: 'border-line', serviceDeclined: 'border-line', occupied: 'border-[var(--alert-line)]',
+}
+
+const ATTENTION_KEY: Record<Exclude<HousekeepingAttentionCode, 'rush' | 'dnd' | 'service_declined'>, string> = {
+  arrival_risk: 'arrivalRisk', ooo_arrival_conflict: 'arrivalConflict', failed_inspection: 'failedInspection', reclean: 'reclean', open_blocking_work_order: 'blockingWorkOrder', occupancy_discrepancy: 'occupancyDiscrepancy', unassigned_priority_room: 'unassignedPriority',
+  dnd_welfare_escalation: 'dndWelfareEscalation', return_later_due: 'returnLaterDue',
+}
+
+function formatTime(value: string | undefined, locale: string): string | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(parsed)
+}
+
+function signalTranslationKey(kind: 'workOrder' | 'guestRequest' | 'task', count: number): string {
+  return `housekeeping.roomCard.signal.${count === 1 ? kind : `${kind}s`}`
+}
+
+/** Compact room-board summary. Room Detail deliberately owns every other room fact. */
+export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, onAssign, pendingAssignee, assignedToName, assignmentTargetName, ownerName, assignedToActive, savedAssignmentId, onRemoveSavedAssignment, onRemoveMirroredAssignment, guestRequestCount = 0, openTaskCount = 0 }: Props) {
+  const { t, i18n } = useTranslation()
+  const operationalRoom = normalizeHousekeepingRoom(room)
+  const presentation = getRoomCardPresentation(operationalRoom, { guestRequestCount, taskCount: openTaskCount })
+  const isPending = Boolean(pendingAssignee)
+  const isSavedAssignedToActive = assignmentMode && Boolean(assignedToActive) && !isPending
   const isAssignmentSelected = assignmentMode && (isPending || isSavedAssignedToActive)
-  // The save bar's optimistic update fills assignment_id with `optimistic-${roomId}`
-  // until the real id comes back from the server. Removing while it's still this
-  // placeholder has nothing to delete server-side yet -- disable Remove until the
-  // real id lands instead of letting the click silently no-op.
-  const isSavingAssignment = isSavedAssignedToActive && !!savedAssignmentId && savedAssignmentId.startsWith('optimistic-')
-  const isHighRisk = riskLevel === 'HIGH'
+  const isSavingAssignment = isSavedAssignedToActive && Boolean(savedAssignmentId?.startsWith('optimistic-'))
+  const isAlreadyAssigned = assignmentMode && Boolean(assignedToName) && !isAssignmentSelected
+  const displayOwner = ownerName ?? presentation.assigneeName
+  const conciseOwner = displayOwner?.split(' ')[0] ?? null
+  const statusLabel = t(`housekeeping.roomCard.status.${presentation.statusKey}`)
+  const contextLabel = presentation.contextKey ? t(`housekeeping.roomCard.context.${presentation.contextKey}`) : null
+  const time = formatTime(presentation.timing?.at, i18n.language)
+  const timingLabel = presentation.timing ? t(`housekeeping.roomCard.timing.${presentation.timing.key}`, { time, minutes: presentation.timing.minutes }) : null
+  const attentionCode = presentation.primaryAttention?.code
+  const exceptionLabel = attentionCode && attentionCode in ATTENTION_KEY
+    ? t(`housekeeping.roomCard.exception.${ATTENTION_KEY[attentionCode as keyof typeof ATTENTION_KEY]}`)
+    : null
+  const cardSummary = [
+    t('housekeeping.roomCard.roomNumber', { number: operationalRoom.roomNumber }), operationalRoom.roomType, statusLabel, contextLabel,
+    conciseOwner ?? (presentation.statusKey !== 'ready' ? t('housekeeping.roomCard.unassigned') : null), timingLabel, exceptionLabel,
+  ].filter(Boolean).join(', ')
 
-  const assignedName: string | null =
-    room.user_profiles?.preferred_name ?? room.user_profiles?.full_name ?? null
-  const roomNumber: string = room.rooms?.room_number ?? room.room_number ?? '—'
-  const vipFlag: boolean = !!room.vip_flag
-  const openWorkOrder: string | number | null = room.open_work_order_number ?? null
-  const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
-  const roomTypeName: string | null = getRoomTypeCode(room)
-  const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
-  const workOrderLabel = openWorkOrder
-    ? `WO-${openWorkOrder}${openWorkOrderTitle ? `: ${openWorkOrderTitle}` : ''}`
-    : openWorkOrderTitle
-
-  const checkinTime = formatTime(prediction?.checkin_time ?? room.checkin_time)
-  const checkoutTime = formatTime(room.actual_checkout_at ?? room.checkout_time)
-  const checkoutLabel = room.actual_checkout_at
-    ? t('housekeeping.roomCard.checkedOut')
-    : t('housekeeping.roomCard.due')
-  const lateCheckoutTime: string | null =
-    room.late_checkout_requested_time ?? room.late_checkout_request?.requested_time ?? null
-  const etaTime = formatTime(prediction?.predicted_ready_at)
-
-  // ── Event handlers ─────────────────────────────────────────────────────────
-  function handleCardClick(e: React.MouseEvent) {
-    if ((e.target as HTMLElement).closest('button')) return
-    if (isAssignmentSelected) {
-      if (onOpenDetail) onOpenDetail(room)
-      return
-    }
-    if (assignmentMode && onAssign) {
-      onAssign(room.room_id)
-      return
-    }
-    if (onOpenDetail) onOpenDetail(room)
+  const activateCard = () => {
+    if (isAssignmentSelected) return onOpenDetail?.(room)
+    if (assignmentMode && onAssign) return onAssign(operationalRoom.roomId)
+    onOpenDetail?.(room)
   }
 
-  // ── Derived style ──────────────────────────────────────────────────────────
-  const alreadyAssigned = assignmentMode && !!assignedToName && !isAssignmentSelected
-  const isOccupied = status === 'OCCUPIED'
+  if (assignmentMode) {
+    const assignmentOwner = isPending ? assignmentTargetName : displayOwner ?? assignmentTargetName
+    const assignmentTiming = presentation.timing?.key === 'arrival' ? timingLabel : null
+    return (
+      <article className={cn('relative min-h-[126px] overflow-hidden rounded-[var(--r-lg)] border bg-surface p-3 transition-colors', STATUS_BORDER[presentation.statusKey], isAssignmentSelected && 'border-[var(--ai-line)] bg-[var(--ai-soft)] ring-1 ring-[var(--ai-line)]', isAlreadyAssigned && 'opacity-65')}>
+        <button type="button" aria-label={cardSummary} onClick={activateCard} className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] outline-none transition-colors hover:bg-black/[0.02] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset" />
+        <div className="relative z-10 flex min-h-[102px] flex-col pointer-events-none">
+          <div className="flex items-start gap-2">
+            {isAssignmentSelected ? <CheckSquare className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ai)]" aria-hidden="true" /> : <Square className="mt-0.5 h-4 w-4 shrink-0 text-ink3" aria-hidden="true" />}
+            <div className="min-w-0"><p className="font-mono text-xl font-semibold leading-none tabular-nums text-ink">{operationalRoom.roomNumber}</p><p className="mt-1 truncate text-xs text-ink2">{contextLabel ?? statusLabel} · {t('housekeeping.roomCard.credits', { count: getRoomWorkloadCredits(operationalRoom) })}</p></div>
+            <div className="ml-auto flex items-center gap-1 text-[10px] font-bold tracking-[0.08em]">{presentation.isRush && <span className="text-[var(--alert)]">{t('housekeeping.boardV2.attention.categories.rush')}</span>}{presentation.isVip && <span className="text-[var(--caution)]">{t('housekeeping.roomCard.vip')}</span>}</div>
+          </div>
+          <div className="mt-auto text-xs text-ink2">{isAssignmentSelected ? t('housekeeping.roomCard.staged', { name: assignmentOwner?.split(' ')[0] ?? t('housekeeping.roomCard.assigned') }) : isAlreadyAssigned ? t('housekeeping.roomCard.assignedTapToReassign', { name: assignedToName }) : t('housekeeping.roomCard.unassigned')}</div>
+          {assignmentTiming && <p className="mt-1 text-[11px] text-ink3">{assignmentTiming}</p>}
+          {isAssignmentSelected && <Button variant="ai" size="sm" className="pointer-events-auto mt-2 w-full" disabled={isSavingAssignment} onClick={() => { if (isSavingAssignment) return; if (isPending) onStatusChange?.(operationalRoom.roomId, '__remove_assignment'); else if (savedAssignmentId) onRemoveSavedAssignment?.(savedAssignmentId); else onRemoveMirroredAssignment?.(operationalRoom.roomId) }}>{isSavingAssignment ? t('housekeeping.roomCard.saving') : t('housekeeping.roomCard.remove')}</Button>}
+        </div>
+      </article>
+    )
+  }
 
-  const cardBorder = isAssignmentSelected
-    ? 'border border-[var(--ai-line)]'
-    : `border ${STATUS_BORDER[status] ?? 'border-line'}`
-
-  const cardBg = isAssignmentSelected ? 'bg-[var(--ai-soft)]' : 'bg-surface'
-
-  const stripColor = isAssignmentSelected
-    ? 'var(--ai)'
-    : (STATUS_STRIP_COLOR[status] ?? 'var(--line)')
-
-  const pillTone = STATUS_PILL_TONE[status] ?? 'neutral'
-  const statusLabel = STATUS_SHORT_LABELS[status] ?? status.replace(/_/g, ' ')
+  const showOwner = presentation.statusKey !== 'ready'
+  const joinCleaningDurationToOwner = presentation.statusKey === 'cleaning' && Boolean(conciseOwner) && presentation.timing?.key === 'cleaningDuration'
 
   return (
-    <div
-      className={cn(
-        'relative rounded-[var(--r-lg)] px-3 pb-3 pt-4 flex flex-col gap-1.5 min-h-[116px] transition-all duration-150 overflow-hidden cursor-pointer',
-        cardBg, cardBorder,
-        isAssignmentSelected && 'ring-2 ring-[var(--ai-line)] ring-offset-1',
-        vipFlag && 'shadow-[0_0_0_2px_var(--caution-line)]',
-        alreadyAssigned && 'opacity-60',
-      )}
-      onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          if (onOpenDetail) onOpenDetail(room)
-        }
-      }}
-    >
-      {/* Colored top strip */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--r-lg)]"
-        style={isOccupied
-          ? { background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)` }
-          : { background: stripColor }
-        }
-      />
-
-      {/* Room number + AI risk dot + VIP */}
-      <div className="flex items-center gap-1.5 mt-0.5">
-        <span className="font-mono font-semibold text-[19px] leading-none text-ink">{roomNumber}</span>
-        {vipFlag && (
-          <Pill tone="accent" size="sm">{t('housekeeping.roomCard.vip')}</Pill>
-        )}
-        {isHighRisk && (
-          <span
-            className="ml-auto w-4 h-4 rounded-[4px] flex items-center justify-center bg-[var(--ai-soft)] border border-[var(--ai-line)]"
-            title={t('housekeeping.roomCard.aiRisk')}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--ai)" aria-hidden>
-              <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
-            </svg>
-          </span>
-        )}
+    <article className={cn('relative h-[178px] overflow-hidden rounded-[var(--r-lg)] border bg-surface p-3 transition-colors', STATUS_BORDER[presentation.statusKey], presentation.statusKey === 'ready' && 'bg-[var(--ready-soft)]/35')}>
+      <button type="button" aria-label={cardSummary} onClick={activateCard} className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] outline-none transition-colors hover:bg-black/[0.02] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset" />
+      <div className="relative z-10 flex h-full flex-col pointer-events-none">
+        <div className="flex items-start gap-2"><div className="min-w-0"><p className="font-mono text-[21px] font-semibold leading-none tabular-nums text-ink">{operationalRoom.roomNumber}</p>{operationalRoom.roomType && <p className="mt-1 font-mono text-[11px] leading-none text-ink3">{operationalRoom.roomType}</p>}</div><div className="ml-auto flex items-center gap-1 text-[10px] font-bold tracking-[0.08em]">{presentation.isRush && <span className="text-[var(--alert)]">{t('housekeeping.boardV2.attention.categories.rush')}</span>}{presentation.isVip && <span className="text-[var(--caution)]">{t('housekeeping.roomCard.vip')}</span>}</div></div>
+        <div className="mt-5"><p className="flex items-center gap-1.5 text-sm font-semibold text-ink"><span className={cn('h-2 w-2 rounded-full', STATUS_TONE[presentation.statusKey])} aria-hidden="true" />{statusLabel}</p>{contextLabel && <p className="mt-1 text-xs text-ink2">{contextLabel}</p>}</div>
+        <div className="mt-4 min-h-[30px]">{showOwner && <p className={cn('flex items-center gap-1 text-xs', conciseOwner ? 'text-ink2' : 'font-medium text-ink3')}>{conciseOwner && <UserRound className="h-3 w-3 shrink-0" aria-hidden="true" />}{conciseOwner ?? t('housekeeping.roomCard.unassigned')}{joinCleaningDurationToOwner && <span className="text-ink3">· {timingLabel}</span>}</p>}{timingLabel && !joinCleaningDurationToOwner && <p className="mt-1 text-[11px] text-ink3">{timingLabel}</p>}</div>
+        <div className="mt-auto flex min-h-[18px] items-end justify-between gap-2">{exceptionLabel ? <p className="flex min-w-0 items-center gap-1 text-[11px] font-medium text-[var(--alert)]"><span aria-hidden="true">⚠</span><span className="truncate">{exceptionLabel}</span></p> : <span />}{presentation.secondarySignals.length > 0 && <div className="flex shrink-0 items-center gap-2 text-ink3">{presentation.secondarySignals.map((signal) => { const Icon = signal.kind === 'workOrder' ? Wrench : signal.kind === 'guestRequest' ? MessageSquare : ClipboardList; const label = t(signalTranslationKey(signal.kind, signal.count), { count: signal.count }); return <span key={signal.kind} className="flex items-center gap-0.5" title={label} aria-label={label}><Icon className="h-3.5 w-3.5" aria-hidden="true" /><span className="text-[11px] font-medium" aria-hidden="true">{signal.count}</span></span> })}</div>}</div>
       </div>
-
-      {/* Room type + clean type */}
-      {roomTypeName && (
-        <span className="text-[11px] text-ink3 font-mono leading-none truncate">{roomTypeName}</span>
-      )}
-      {/* Status pill + clean type side label */}
-      <div className="mt-auto flex items-center gap-1.5 flex-wrap">
-        <Pill tone={pillTone} size="sm" striped={isOccupied}>
-          {statusLabel}
-          {isOccupied && etaTime ? ` · ${etaTime}` : ''}
-        </Pill>
-        {status !== 'INSPECTED' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT') ? (
-          <span className={cn('text-[10px] font-semibold', CLEAN_TYPE_TEXT_COLOR[room.clean_type])}>
-            {cleanTypeLabel}
-          </span>
-        ) : status === 'INSPECTED' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT') ? (
-          <span className="text-[10px] font-semibold text-[var(--ready)]">
-            {room.clean_type === 'FULL' ? t('housekeeping.roomCard.fullDone') : t('housekeeping.roomCard.lightDone')}
-          </span>
-        ) : room.clean_type === 'DEP' && cleanTypeLabel ? (
-          <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', CLEAN_TYPE_TEXT_COLOR['DEP'])}>
-            <LogOut className="w-2.5 h-2.5" />
-            {cleanTypeLabel}
-          </span>
-        ) : null}
-      </div>
-
-      {/* Assignee row */}
-      {!assignmentMode && assignedName && (
-        <div className="flex items-center gap-1 min-w-0">
-          <User className="w-3 h-3 text-ink3 shrink-0" />
-          <span className="text-[11px] text-ink2 truncate">{assignedName.split(' ')[0]}</span>
-        </div>
-      )}
-
-      {/* Time info */}
-      {!isOccupied && status === 'INSPECTED' && checkinTime && (
-        <div className="flex items-center gap-0.5">
-          <Clock className="w-3 h-3 text-ink3" />
-          <span className="text-[11px] font-mono text-ink3">{checkinTime}</span>
-        </div>
-      )}
-      {checkoutTime && (
-        <div className="flex items-center gap-0.5">
-          <Clock className="w-3 h-3 text-ink3" />
-          <span className="text-[11px] font-mono text-ink3">{checkoutLabel} {checkoutTime}</span>
-        </div>
-      )}
-      {lateCheckoutTime && (
-        <div className="flex items-center gap-0.5 text-[11px] text-[var(--alert)]">
-          <LogOut className="w-3 h-3 shrink-0" />
-          <span className="font-mono font-semibold">{t('housekeeping.roomCard.lateCheckout', { time: lateCheckoutTime })}</span>
-        </div>
-      )}
-      {workOrderLabel && (
-        <div className="mt-0.5">
-          <div className="flex items-center gap-1 min-w-0 text-[11px] text-orange-700">
-            <Wrench className="w-3 h-3 shrink-0" />
-            <span className="truncate">{workOrderLabel}</span>
-          </div>
-        </div>
-      )}
-      {guestRequestCount > 0 && (
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--info)]">
-          <MessageSquare className="w-3 h-3 shrink-0" />
-          <span>
-            {guestRequestCount === 1
-              ? t('housekeeping.roomCard.guestRequestOne', { count: guestRequestCount })
-              : t('housekeeping.roomCard.guestRequestOther', { count: guestRequestCount })}
-          </span>
-        </div>
-      )}
-      {openTaskCount > 0 && (
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--caution)]">
-          <ClipboardList className="w-3 h-3 shrink-0" />
-          <span>
-            {openTaskCount === 1
-              ? t('housekeeping.roomCard.taskOne', { count: openTaskCount })
-              : t('housekeeping.roomCard.taskOther', { count: openTaskCount })}
-          </span>
-        </div>
-      )}
-      {room.last_clean_minutes != null && (
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-ink3 font-mono">
-          <Timer className="w-3 h-3 shrink-0" />
-          <span>
-            {`${room.last_clean_minutes}m` +
-              (room.last_clean_base_minutes != null ? ` / ${room.last_clean_base_minutes}m` : '') +
-              (room.last_clean_checklist_total > 0
-                ? ` · ${room.last_clean_checklist_done}/${room.last_clean_checklist_total}`
-                : '') +
-              (room.last_clean_photo_count > 0 ? ` · ${room.last_clean_photo_count} 📷` : '')}
-          </span>
-        </div>
-      )}
-
-      {/* Assignment mode overlays */}
-      {assignmentMode && !!onAssign && !isAssignmentSelected && !alreadyAssigned && (
-        <p className="text-xs text-[var(--ai)] mt-0.5">{t('housekeeping.roomCard.tapToAssign')}</p>
-      )}
-      {alreadyAssigned && (
-        <p className="text-[11px] text-caution mt-0.5">
-          {t('housekeeping.roomCard.assignedTapToReassign', { name: assignedToName })}
-        </p>
-      )}
-      {isAssignmentSelected && (
-        <>
-          <div className="flex items-center gap-0.5 mt-0.5">
-            <User className="w-3 h-3 text-[var(--ai)] shrink-0" />
-            <span className="text-xs text-[var(--ai)] font-medium">{t('housekeeping.roomCard.assigned')}</span>
-          </div>
-          <Button
-            variant="ai"
-            size="sm"
-            className="mt-0.5 w-full"
-            disabled={isSavingAssignment}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (isSavingAssignment) return
-              if (isPending) {
-                if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
-                return
-              }
-              if (savedAssignmentId && onRemoveSavedAssignment) {
-                onRemoveSavedAssignment(savedAssignmentId)
-              } else if (onRemoveMirroredAssignment) {
-                onRemoveMirroredAssignment(room.room_id)
-              }
-            }}
-          >
-            {isSavingAssignment ? t('housekeeping.roomCard.saving') : t('housekeeping.roomCard.remove')}
-          </Button>
-        </>
-      )}
-
-    </div>
+    </article>
   )
 }

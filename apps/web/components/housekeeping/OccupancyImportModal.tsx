@@ -8,6 +8,7 @@ import { CheckCircle2, AlertCircle, Upload, X, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Button, IconButton } from '@/components/ui/Button'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 interface ImportResult {
   applied: number
@@ -37,6 +38,8 @@ export function OccupancyImportModal({ date, onClose }: Props) {
 
   const hkInputRef = useRef<HTMLInputElement>(null)
   const tsInputRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(modalRef, true, onClose)
 
   const hkMutation = useMutation({
     mutationFn: () => housekeepingApi.importHKDetails(hkFile!, today),
@@ -78,13 +81,13 @@ export function OccupancyImportModal({ date, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div className="fixed inset-0 z-drawer flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="opera-import-title" className="bg-surface rounded-2xl shadow-2xl w-full max-w-lg">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-stone-100">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-line">
           <div>
-            <h2 className="text-base font-semibold text-stone-800">{t('housekeeping.occupancyImport.title')}</h2>
-            <p className="text-xs text-stone-500 mt-0.5">{today}</p>
+            <h2 id="opera-import-title" className="text-base font-semibold text-ink">{t('housekeeping.occupancyImport.title')}</h2>
+            <p className="text-xs text-ink3 mt-0.5">{today}</p>
           </div>
           <IconButton onClick={onClose} aria-label={t('housekeeping.occupancyImport.closeAria')}>
             <X className="w-5 h-5" />
@@ -92,13 +95,13 @@ export function OccupancyImportModal({ date, onClose }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-stone-100">
+        <div className="flex border-b border-line">
           <button
             onClick={() => setTab('hk-details')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               tab === 'hk-details'
-                ? 'text-amber-700 border-b-2 border-amber-500'
-                : 'text-stone-500 hover:text-stone-700'
+                ? 'text-[var(--caution)] border-b-2 border-[var(--caution)]'
+                : 'text-ink3 hover:text-ink2'
             }`}
           >
             {t('housekeeping.occupancyImport.tabs.hkDetails')}
@@ -107,8 +110,8 @@ export function OccupancyImportModal({ date, onClose }: Props) {
             onClick={() => setTab('task-sheet')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               tab === 'task-sheet'
-                ? 'text-amber-700 border-b-2 border-amber-500'
-                : 'text-stone-500 hover:text-stone-700'
+                ? 'text-[var(--caution)] border-b-2 border-[var(--caution)]'
+                : 'text-ink3 hover:text-ink2'
             }`}
           >
             {t('housekeeping.occupancyImport.tabs.taskSheet')}
@@ -118,9 +121,9 @@ export function OccupancyImportModal({ date, onClose }: Props) {
         <div className="px-6 py-5 space-y-4">
           {tab === 'hk-details' ? (
             <>
-              <p className="text-xs text-stone-500 leading-relaxed">
+              <p className="text-xs text-ink3 leading-relaxed">
                 {t('housekeeping.occupancyImport.uploadPrefix')}{' '}
-                <span className="font-medium text-stone-700">{t('housekeeping.occupancyImport.hkDetailsLabel')}</span>{' '}
+                <span className="font-medium text-ink2">{t('housekeeping.occupancyImport.hkDetailsLabel')}</span>{' '}
                 {t('housekeeping.occupancyImport.hkDetailsDescription')}
               </p>
 
@@ -145,9 +148,9 @@ export function OccupancyImportModal({ date, onClose }: Props) {
             </>
           ) : (
             <>
-              <p className="text-xs text-stone-500 leading-relaxed">
+              <p className="text-xs text-ink3 leading-relaxed">
                 {t('housekeeping.occupancyImport.uploadPrefix')}{' '}
-                <span className="font-medium text-stone-700">{t('housekeeping.occupancyImport.taskSheetLabel')}</span>{' '}
+                <span className="font-medium text-ink2">{t('housekeeping.occupancyImport.taskSheetLabel')}</span>{' '}
                 {t('housekeeping.occupancyImport.taskSheetDescription')}
               </p>
 
@@ -194,8 +197,11 @@ function DropZone({
 }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => inputRef.current?.click()}
-      className="border-2 border-dashed border-stone-200 rounded-xl p-6 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-colors"
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); inputRef.current?.click() } }}
+      className="border-2 border-dashed border-line rounded-xl p-6 text-center cursor-pointer hover:border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/30 transition-colors"
     >
       <input
         ref={inputRef}
@@ -205,13 +211,13 @@ function DropZone({
         onChange={onChange}
       />
       {file ? (
-        <div className="flex items-center justify-center gap-2 text-sm text-stone-700">
-          <FileText className="w-5 h-5 text-amber-600" />
+        <div className="flex items-center justify-center gap-2 text-sm text-ink2">
+          <FileText className="w-5 h-5 text-[var(--caution)]" />
           <span className="font-medium">{file.name}</span>
-          <span className="text-stone-400">{t('housekeeping.occupancyImport.dropzone.sizeKb', { size: (file.size / 1024).toFixed(0) })}</span>
+          <span className="text-ink3">{t('housekeeping.occupancyImport.dropzone.sizeKb', { size: (file.size / 1024).toFixed(0) })}</span>
         </div>
       ) : (
-        <div className="text-stone-400">
+        <div className="text-ink3">
           <Upload className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">{label}</p>
           <p className="text-xs mt-1">{t('housekeeping.occupancyImport.dropzone.orClickToBrowse')}</p>
@@ -223,23 +229,23 @@ function DropZone({
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="flex gap-2 items-start bg-red-50 border border-red-200 rounded-lg p-3">
-      <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-      <p className="text-xs text-red-700">{message}</p>
+    <div className="flex gap-2 items-start bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg p-3">
+      <AlertCircle className="w-4 h-4 text-[var(--alert)] mt-0.5 shrink-0" />
+      <p className="text-xs text-[var(--alert)]">{message}</p>
     </div>
   )
 }
 
 function ResultBanner({ result, t }: { result: ImportResult; t: TFunction }) {
   return (
-    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-1.5">
+    <div className="bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg p-3 space-y-1.5">
       <div className="flex items-center gap-2">
-        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-        <p className="text-sm font-medium text-emerald-800">
+        <CheckCircle2 className="w-4 h-4 text-[var(--ready)] shrink-0" />
+        <p className="text-sm font-medium text-[var(--ready)]">
           {t('housekeeping.occupancyImport.result.summary', { applied: result.applied, total: result.total_parsed })}
         </p>
       </div>
-      <div className="text-xs text-emerald-700 space-y-0.5 pl-6">
+      <div className="text-xs text-[var(--ready)] space-y-0.5 pl-6">
         {result.skipped_active > 0 && (
           <p>{t(result.skipped_active !== 1 ? 'housekeeping.occupancyImport.result.skippedActiveOther' : 'housekeeping.occupancyImport.result.skippedActiveOne', { count: result.skipped_active })}</p>
         )}
@@ -250,10 +256,10 @@ function ResultBanner({ result, t }: { result: ImportResult; t: TFunction }) {
       {result.warnings.length > 0 && (
         <div className="pl-6 space-y-0.5">
           {result.warnings.slice(0, 3).map((w, i) => (
-            <p key={i} className="text-xs text-amber-700">{w}</p>
+            <p key={i} className="text-xs text-[var(--caution)]">{w}</p>
           ))}
           {result.warnings.length > 3 && (
-            <p className="text-xs text-stone-500">{t('housekeeping.occupancyImport.result.moreWarnings', { count: result.warnings.length - 3 })}</p>
+            <p className="text-xs text-ink3">{t('housekeeping.occupancyImport.result.moreWarnings', { count: result.warnings.length - 3 })}</p>
           )}
         </div>
       )}

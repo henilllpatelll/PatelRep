@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException
 from middleware.auth import get_current_user, get_current_user_no_hotel, require_role, CurrentUser
-from models.requests import CreateHotelRequest, UpdateHotelRequest
+from models.requests import CreateHotelRequest, UpdateHotelRequest, UpdateHousekeepingSettingsRequest
 from core.database import supabase
 from core.roles import ALL_STAFF_ROLES
 
@@ -15,6 +15,21 @@ DEFAULT_DEPARTMENTS = [
     {"name": "Front Desk",   "code": "FD",   "color": "#D97706"},
     {"name": "Management",   "code": "MGMT", "color": "#7C3AED"},
 ]
+
+DEFAULT_HOUSEKEEPING_CREDIT_WEIGHTS = {"DEP": 3, "FULL": 2, "LIGHT": 1}
+DEFAULT_HOUSEKEEPING_TARGET_CREDITS = 16
+
+
+def _housekeeping_settings_payload(row: dict[str, Any] | None) -> dict[str, Any]:
+    row = row or {}
+    target = row.get("housekeeping_target_credits")
+    weights = row.get("housekeeping_credit_weights")
+    overrides = row.get("housekeeping_capacity_overrides")
+    return {
+        "default_target_credits": target if isinstance(target, (int, float)) and target > 0 else DEFAULT_HOUSEKEEPING_TARGET_CREDITS,
+        "credit_weights": weights if isinstance(weights, dict) and set(weights) == set(DEFAULT_HOUSEKEEPING_CREDIT_WEIGHTS) else DEFAULT_HOUSEKEEPING_CREDIT_WEIGHTS,
+        "capacity_overrides": overrides if isinstance(overrides, dict) else {},
+    }
 
 
 def _slugify(name: str) -> str:
@@ -151,6 +166,44 @@ async def update_hotel(
         raise HTTPException(status_code=404, detail="Hotel not found")
 
     return {"data": result.data[0]}
+
+
+@router.get("/{hotel_id}/housekeeping-settings")
+async def get_housekeeping_settings(
+    hotel_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    if current_user.hotel_id != hotel_id:
+        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+    result = supabase.table("tenants").select(
+        "housekeeping_target_credits, housekeeping_credit_weights, housekeeping_capacity_overrides"
+    ).eq("id", hotel_id).maybe_single().execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Hotel not found")
+    return {"data": _housekeeping_settings_payload(result.data)}
+
+
+@router.put("/{hotel_id}/housekeeping-settings")
+async def update_housekeeping_settings(
+    hotel_id: str,
+    body: UpdateHousekeepingSettingsRequest,
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    if current_user.hotel_id != hotel_id:
+        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+    fields = body.model_dump(exclude_none=True)
+    if not fields:
+        raise HTTPException(status_code=422, detail="No valid settings to update")
+    column_map = {
+        "default_target_credits": "housekeeping_target_credits",
+        "credit_weights": "housekeeping_credit_weights",
+        "capacity_overrides": "housekeeping_capacity_overrides",
+    }
+    update_data = {column_map[key]: value for key, value in fields.items()}
+    result = supabase.table("tenants").update(update_data).eq("id", hotel_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Hotel not found")
+    return {"data": _housekeeping_settings_payload(result.data[0])}
 
 
 @router.get("/{hotel_id}/layout")

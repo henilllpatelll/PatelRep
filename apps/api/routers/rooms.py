@@ -6,8 +6,20 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import ManualCheckoutRequest, UpdateCheckoutTimeRequest, UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
+from models.requests import (
+    ManualCheckoutRequest,
+    UpdateCheckoutTimeRequest,
+    UpdateRoomStatusRequest,
+    UndoRoomStatusRequest,
+    ImportRoomsRequest,
+    SetRoomPriorityRequest,
+    RecordServiceAttemptRequest,
+    ServiceDeclinedRequest,
+    ReportOccupancyDiscrepancyRequest,
+    ResolveOccupancyDiscrepancyRequest,
+)
 from core.database import supabase
+from core.roles import HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
 from services.room_status_transitions import (
     close_active_sessions_for_room,
     update_housekeeper_profile,
@@ -58,6 +70,72 @@ def _validate_undo_permission(history_row: dict, current_user: CurrentUser, room
         status_code=403,
         detail="Housekeepers can only undo their own latest room status change",
     )
+
+
+def _record_audit_event(
+    *, current_user: CurrentUser, resource_type: str, resource_id: str,
+    action: str, old_state: dict | None = None, new_state: dict | None = None,
+    reason_code: str | None = None, reason_note: str | None = None,
+) -> None:
+    """Append-only operational audit write — mirrors routers/programs.py's
+    _record_audit_event column set (no parallel audit mechanism)."""
+    supabase.table("operational_audit_events").insert({
+        "tenant_id": current_user.hotel_id,
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "action": action,
+        "actor_id": current_user.user_id,
+        "actor_role": current_user.role,
+        "old_state": old_state or {},
+        "new_state": new_state or {},
+        "reason_code": reason_code,
+        "reason_note": reason_note,
+        "source": "api",
+    }).execute()
+
+
+def _log_room_activity(room_id: str, hotel_id: str, current_status: str, note: str, actor_id: str) -> None:
+    """Note-only room_status_history row (from_status == to_status) — the same
+    pattern add_room_note() uses, so it shows up in the existing Room Activity
+    feed without a parallel history mechanism."""
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": hotel_id,
+        "from_status": current_status,
+        "to_status": current_status,
+        "notes": note,
+        "changed_by": actor_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+
+def _notify_role(hotel_id: str, target_role: str, notif_type: str, title: str, body: str, data: dict) -> None:
+    """Insert an in-app notification for every active user of target_role in the hotel.
+    Mirrors routers/internal.py's _notify_role (no parallel notification mechanism)."""
+    users = supabase.table("user_roles")\
+        .select("user_id")\
+        .eq("tenant_id", hotel_id)\
+        .eq("role", target_role)\
+        .eq("is_active", True)\
+        .execute()
+    for row in (users.data or []):
+        notification = supabase.table("notifications").insert({
+            "tenant_id": hotel_id,
+            "user_id": row["user_id"],
+            "type": notif_type,
+            "title": title,
+            "body": body,
+            "data": data,
+        }).execute()
+        notification_row = (notification.data or [None])[0]
+        if notification_row:
+            supabase.table("notification_deliveries").insert({
+                "tenant_id": hotel_id,
+                "notification_id": notification_row["id"],
+                "user_id": row["user_id"],
+                "channel": "in_app",
+                "status": "delivered",
+            }).execute()
 
 
 def _approx_elapsed_minutes(room_status_data: dict) -> float | None:
@@ -898,7 +976,7 @@ async def update_room_dnd(
 ):
     current_row = (
         supabase.table("room_status")
-        .select("room_id")
+        .select("room_id, dnd_flag")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -907,10 +985,19 @@ async def update_room_dnd(
     if not current_row or not current_row.data:
         raise HTTPException(status_code=404, detail="Room not found")
 
-    supabase.table("room_status").update({
-        "dnd_flag": body.dnd,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_payload: dict = {"dnd_flag": body.dnd, "updated_at": now_iso}
+    was_dnd = current_row.data.get("dnd_flag") is True
+    if body.dnd and not was_dnd:
+        # Anchors the welfare-escalation clock on the real transition instead
+        # of the prior updated_at proxy, which reset on any unrelated write.
+        update_payload["dnd_started_at"] = now_iso
+    elif not body.dnd:
+        update_payload["dnd_started_at"] = None
+        update_payload["dnd_retry_at"] = None
+
+    supabase.table("room_status").update(update_payload)\
+        .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
 
     return {"data": {"room_id": room_id, "dnd_flag": body.dnd}}
 
@@ -947,6 +1034,354 @@ async def update_room_decline_service(
     }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
 
     return {"data": {"room_id": room_id, "do_not_service": body.decline}}
+
+
+# ---------------------------------------------------------------------------
+# Phase 8: Rush/priority, DND attempts, service declined, occupancy discrepancy
+# ---------------------------------------------------------------------------
+
+PRIORITY_REASON_LABELS = {
+    "early_arrival": "Early arrival",
+    "vip": "VIP",
+    "guest_waiting": "Guest waiting",
+    "front_desk_request": "Front Desk request",
+    "operational_priority": "Operational priority",
+    "other": "Other",
+}
+ATTEMPT_RESULT_LABELS = {
+    "dnd_no_response": "No response · DND",
+    "return_later": "Guest asked to return later",
+    "guest_answered": "Guest answered",
+    "dnd_cleared": "DND cleared",
+    "other": "Other",
+}
+DECLINE_REASON_LABELS = {
+    "guest_declined_housekeeping": "Guest declined housekeeping",
+    "guest_no_service_today": "Guest requested no service today",
+    "privacy_request": "Privacy request",
+    "other": "Other",
+}
+RUSH_PRIORITY_VALUE = 1
+NORMAL_PRIORITY_VALUE = 5
+
+
+@router.patch("/{room_id}/priority")
+async def set_room_priority(
+    room_id: str,
+    body: SetRoomPriorityRequest,
+    current_user: CurrentUser = Depends(require_role(*RUSH_MANAGER_ROLES)),
+):
+    """Manual Rush/priority override — distinct from AI readiness-risk prediction.
+    Reuses room_status.priority (1=highest, migration 004) as the Rush trigger,
+    which deriveRoomAttentionItems()/sortHousekeepingRooms() in the web app
+    already key off of; this endpoint just gives it a reason-bearing write path."""
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status, priority, priority_reason")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    old_state = {"priority": current_row.data.get("priority"), "priority_reason": current_row.data.get("priority_reason")}
+
+    if body.priority_state == "rush":
+        update_payload: dict = {
+            "priority": RUSH_PRIORITY_VALUE,
+            "priority_reason": body.reason,
+            "priority_needed_by": body.needed_by.isoformat() if body.needed_by else None,
+            "priority_note": body.note,
+            "priority_set_by": current_user.user_id,
+            "priority_set_at": now_iso,
+            "updated_at": now_iso,
+        }
+        action, note = "rush_set", f"Rush set: {PRIORITY_REASON_LABELS.get(body.reason, body.reason)}"
+    else:
+        update_payload = {
+            "priority": NORMAL_PRIORITY_VALUE,
+            "priority_reason": None,
+            "priority_needed_by": None,
+            "priority_note": None,
+            "priority_set_by": None,
+            "priority_set_at": None,
+            "updated_at": now_iso,
+        }
+        action, note = "rush_cleared", "Rush cleared"
+
+    supabase.table("room_status").update(update_payload)\
+        .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    _record_audit_event(
+        current_user=current_user, resource_type="room", resource_id=room_id,
+        action=action, old_state=old_state, new_state=update_payload,
+        reason_code=body.reason, reason_note=body.note,
+    )
+    _log_room_activity(room_id, current_user.hotel_id, current_row.data.get("status", "DIRTY"), note, current_user.user_id)
+
+    return {"data": {"room_id": room_id, **update_payload}}
+
+
+@router.post("/{room_id}/service-attempts")
+async def record_service_attempt(
+    room_id: str,
+    body: RecordServiceAttemptRequest,
+    current_user: CurrentUser = Depends(require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES)),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status, dnd_flag, dnd_attempt_count")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    now = datetime.now(timezone.utc)
+    attempted_at_iso = (body.attempted_at or now).isoformat()
+    return_at_iso = body.return_at.isoformat() if body.return_at else None
+
+    attempt_result = supabase.table("room_service_attempts").insert({
+        "tenant_id": current_user.hotel_id,
+        "room_id": room_id,
+        "result": body.result,
+        "attempted_at": attempted_at_iso,
+        "return_at": return_at_iso,
+        "note": body.note,
+        "recorded_by": current_user.user_id,
+    }).execute()
+
+    was_dnd = current_row.data.get("dnd_flag") is True
+    update_payload: dict = {
+        "dnd_attempt_count": (current_row.data.get("dnd_attempt_count") or 0) + 1,
+        "dnd_last_attempt_at": attempted_at_iso,
+        "updated_at": now.isoformat(),
+    }
+    if body.result == "dnd_no_response":
+        update_payload["dnd_flag"] = True
+        if not was_dnd:
+            update_payload["dnd_started_at"] = attempted_at_iso
+        update_payload["dnd_retry_at"] = None
+    elif body.result == "return_later":
+        update_payload["dnd_retry_at"] = return_at_iso
+    elif body.result in ("guest_answered", "dnd_cleared"):
+        update_payload["dnd_flag"] = False
+        update_payload["dnd_started_at"] = None
+        update_payload["dnd_retry_at"] = None
+
+    supabase.table("room_status").update(update_payload)\
+        .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    _record_audit_event(
+        current_user=current_user, resource_type="room", resource_id=room_id,
+        action="dnd_attempt_recorded",
+        new_state={"result": body.result, "return_at": return_at_iso},
+        reason_code=body.result, reason_note=body.note,
+    )
+    _log_room_activity(
+        room_id, current_user.hotel_id, current_row.data.get("status", "DIRTY"),
+        f"Attempt recorded: {ATTEMPT_RESULT_LABELS.get(body.result, body.result)}", current_user.user_id,
+    )
+
+    rows = attempt_result.data or []
+    return {"data": rows[0] if rows else None}
+
+
+@router.get("/{room_id}/service-attempts")
+async def list_service_attempts(
+    room_id: str,
+    limit: int = Query(20, ge=1, le=50),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    result = (
+        supabase.table("room_service_attempts")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("attempted_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return {"data": result.data or []}
+
+
+@router.post("/{room_id}/service-declined")
+async def set_service_declined(
+    room_id: str,
+    body: ServiceDeclinedRequest,
+    current_user: CurrentUser = Depends(require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES)),
+):
+    """Deliberate, reason-bearing Service Declined. Distinct from the bare
+    PATCH /{room_id}/decline-service toggle mobile already calls (kept
+    unchanged for backward compatibility); this is the richer web workflow."""
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    supabase.table("room_status").update({
+        "do_not_service": True,
+        "service_declined_reason": body.reason,
+        "service_declined_note": body.note,
+        "service_declined_at": now_iso,
+        "service_declined_by": current_user.user_id,
+        "updated_at": now_iso,
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    _record_audit_event(
+        current_user=current_user, resource_type="room", resource_id=room_id,
+        action="service_declined", reason_code=body.reason, reason_note=body.note,
+    )
+    _log_room_activity(
+        room_id, current_user.hotel_id, current_row.data.get("status", "DIRTY"),
+        f"Service declined: {DECLINE_REASON_LABELS.get(body.reason, body.reason)}", current_user.user_id,
+    )
+
+    return {"data": {"room_id": room_id, "do_not_service": True}}
+
+
+@router.post("/{room_id}/discrepancies")
+async def report_occupancy_discrepancy(
+    room_id: str,
+    body: ReportOccupancyDiscrepancyRequest,
+    current_user: CurrentUser = Depends(require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES)),
+):
+    """Records the housekeeping-observed occupancy state against the
+    PMS-authoritative fo_status snapshot and routes to Front Desk for
+    verification. Never writes fo_status itself — PMS stays authoritative."""
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status, fo_status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    room_result = (
+        supabase.table("rooms")
+        .select("room_number")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_number = (room_result.data or {}).get("room_number", "") if room_result else ""
+    pms_status = current_row.data.get("fo_status")
+
+    insert_result = supabase.table("room_occupancy_discrepancies").insert({
+        "tenant_id": current_user.hotel_id,
+        "room_id": room_id,
+        "housekeeping_observed": body.housekeeping_observed,
+        "pms_status_at_report": pms_status,
+        "note": body.note,
+        "reported_by": current_user.user_id,
+        "status": "open",
+    }).execute()
+    rows = insert_result.data or []
+    row = rows[0] if rows else None
+
+    _record_audit_event(
+        current_user=current_user, resource_type="room", resource_id=room_id,
+        action="discrepancy_reported",
+        new_state={"housekeeping_observed": body.housekeeping_observed, "pms_status_at_report": pms_status},
+        reason_note=body.note,
+    )
+    _log_room_activity(
+        room_id, current_user.hotel_id, current_row.data.get("status", "DIRTY"),
+        f"Occupancy discrepancy reported: observed {body.housekeeping_observed}", current_user.user_id,
+    )
+
+    notif_data = {"room_id": room_id, "room_number": room_number, "discrepancy_id": row.get("id") if row else None}
+    title = f"Occupancy discrepancy — Room {room_number}"
+    notif_body = f"Housekeeping observed the room as {body.housekeeping_observed}; PMS shows {pms_status or 'unknown'}."
+    for target_role in ("front_desk", "housekeeping_supervisor"):
+        _notify_role(current_user.hotel_id, target_role, "occupancy_discrepancy_reported", title, notif_body, notif_data)
+
+    return {"data": row}
+
+
+@router.get("/{room_id}/discrepancies")
+async def list_room_discrepancies(
+    room_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    result = (
+        supabase.table("room_occupancy_discrepancies")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("reported_at", desc=True)
+        .execute()
+    )
+    return {"data": result.data or []}
+
+
+@router.post("/discrepancies/{discrepancy_id}/resolve")
+async def resolve_occupancy_discrepancy(
+    discrepancy_id: str,
+    body: ResolveOccupancyDiscrepancyRequest,
+    current_user: CurrentUser = Depends(require_role(*DISCREPANCY_RESOLVER_ROLES)),
+):
+    current_row = (
+        supabase.table("room_occupancy_discrepancies")
+        .select("*")
+        .eq("id", discrepancy_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Discrepancy not found")
+    if current_row.data.get("status") == "resolved":
+        return {"data": current_row.data}  # idempotent
+
+    room_id = current_row.data.get("room_id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_result = supabase.table("room_occupancy_discrepancies").update({
+        "status": "resolved",
+        "resolution": body.resolution,
+        "resolution_note": body.note,
+        "resolved_by": current_user.user_id,
+        "resolved_at": now_iso,
+    }).eq("id", discrepancy_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    _record_audit_event(
+        current_user=current_user, resource_type="room", resource_id=room_id,
+        action="discrepancy_resolved", new_state={"resolution": body.resolution}, reason_note=body.note,
+    )
+    status_row = (
+        supabase.table("room_status").select("status")
+        .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id)
+        .maybe_single().execute()
+    )
+    resolution_label = body.resolution.replace("_", " ")
+    _log_room_activity(
+        room_id, current_user.hotel_id, (status_row.data or {}).get("status", "DIRTY"),
+        f"Discrepancy resolved: {resolution_label}", current_user.user_id,
+    )
+    _notify_role(
+        current_user.hotel_id, "housekeeping_supervisor", "occupancy_discrepancy_resolved",
+        "Occupancy discrepancy resolved", f"Resolution: {resolution_label}",
+        {"room_id": room_id, "discrepancy_id": discrepancy_id},
+    )
+
+    rows = update_result.data or []
+    return {"data": rows[0] if rows else current_row.data}
 
 
 # ---------------------------------------------------------------------------

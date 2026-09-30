@@ -2,6 +2,24 @@
   "_readme": "Reasoned allowlist for legitimate changes to files listed in apps/web/frozen-files.json's \"files\" section. Each entry: { file, new_hash, reason, approved }. A legitimate future change bumps the hash in frozen-files.json AND adds a matching entry here in the same PR, so a reviewer sees the intent. NOTE: this allowlist mechanism does NOT apply to frozen-files.json's \"room_status_values\" section -- room-status token VALUE changes have no allowlist escape (see FROZEN.md).",
   "entries": [
     {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "e94f7874946a014ef6026104a770ab7fc5cbfa311e05a7b328235a0165071d40",
+      "reason": "Phase 4 preservation fix: non-assignment roles viewing an OCCUPIED room retain the existing Request clean -> IN_PROGRESS transition. The new selector labels this explicitly instead of silently removing the prior operational action; assignment-capable roles still see Assign to clean.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "4f7548c9528a79b861031b5b195ee25d3d8a9820c1ba569fa588cd27b9f60d7e",
+      "reason": "Phase 4 follow-up: make the active-cleaning primary action explicitly say 'Mark cleaning complete' (EN/ES) while retaining the existing CLEAN transition and the subsequent inspection queue behavior. No role, mutation, or room-status token change.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "ecc0dfef51a09ba3e9b63e9fe60af8584e6ec645f02cdedd7b8ff46c61652500",
+      "reason": "Phase 4 Room Detail workspace redesign: replaces the prior equal-weight drawer with a 544px operational hierarchy (identity, status, context-specific facts, real arrival risk, blockers/requests, recent room activity, secondary actions, and one role-aware primary action). It reuses the existing room-status, assignment, checkout/stayover, notification, work-order, guest-request, task, and history APIs; adds only drawer-scoped cached detail queries; and keeps OOO returning to DIRTY rather than jumping to Ready. The report-issue, message, departure, and assignment flows remain focused nested sheets with focus trapping and Escape handling. New display selectors and tests live in roomDetailView; all new copy is localized in EN/ES. Existing room-status token values are unchanged.",
+      "approved": true
+    },
+    {
       "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "new_hash": "76bb2e00945ab66c24d97be0d27199ee36edb71aa83fc59079d7cbcfde60bb85",
       "reason": "Retroactively added (the hash bump was missed at commit time in b85b3dbf, 2026-09-18, causing every CI run since to fail the frozen-file guard). Two changes: (1) a11y — SkeletonGrid now renders role=\"status\" aria-live=\"polite\" with a translated 'loading' announcement instead of a silent skeleton. (2) real bugfix — the Realtime merge in mergeRoom() used `statusRow.clean_type ?? room.clean_type`, which silently ignored a legitimate `clean_type: null` payload (e.g. a DELETE /assignments/{id} clearing a manually-set clean type on Remove) and kept re-deriving the stale local status instead of the backend's cleared value; changed to use `statusRow.clean_type` directly since Postgres Realtime UPDATE payloads always carry the full new row. No exports, props, or room-status color/token values changed.",
@@ -41,6 +59,18 @@
       "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "new_hash": "b13eaf3991d20297db0a8cc53ecc3224cca5ac15877258b62ac6a812aad65abc",
       "reason": "Companion to the RoomCard.tsx entry above (mirror-assignment fix, hash bump also missed at commit time): added handleRemoveMirroredAssignment (optimistic cache clear of assigned_to + call to the new DELETE /housekeeping/room-assignment/{room_id} endpoint) and wired it as RoomCard's onRemoveMirroredAssignment prop. No existing exports, room-status color/token values, or non-assign-mode rendering changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "new_hash": "5f8619e4d7eb8815b127ce428f10eceaa985dfa9bf3ef827aed3eca4417daf29",
+      "reason": "Phase 3 Room Board scanability redesign: replaced the overloaded default card with a compact identity, state, ownership, timing, primary-exception, and secondary-signal structure. The card now consumes the Phase 1 normalized presentation model, uses semantic keyboard-focusable card buttons, localizes every new label, and retains a purpose-built assignment variant plus its existing staged/remove behavior. Status token values are unchanged.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "d6d97aabdeba45199a02a832ec6bec909237ef0558bb485e1f7588ed0bb86879",
+      "reason": "Phase 3 RoomCard integration: passes the already-loaded staff roster's owner and active-assignment-target names into RoomCard so its compact operational and staged-assignment ownership labels remain accurate without card-level data fetching. No board filtering, room-status token values, or detail deep-link behavior changed.",
       "approved": true
     },
     {
@@ -84,6 +114,24 @@
       "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
       "new_hash": "765df5b097ec0d1b6abd83bce161c0cc58ef0f0f281db08a627b70628f49c607",
       "reason": "The drawer's backdrop and panel use `fixed` positioning (z-drawer) and previously rendered inline in the host page's component tree. The housekeeping page now renders Board and Routes as tabs under one shared PageHeader/layout instead of swapping to a separate screen (HousekeepingRoutes' own grid/panel containers), so the drawer's ancestor chain changed; a `fixed` element is clipped/mispositioned by any ancestor that establishes a new containing block (transform/filter/will-change/contain), which the new shared tab layout risks introducing now or in future changes. Wrapped the drawer's returned JSX in `createPortal(..., document.body)` so it always renders as a direct child of body regardless of which host page/tab mounts it. Purely a render-target change: no exports, the Props contract ({ room, isOpen, onClose, onCheckoutTimeSaved }), or any visible markup/behavior changed.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "new_hash": "d8cb43f8935f9ce283b31ba1edae3c329cde8243c23176390cd780d970a1257b",
+      "reason": "Phase 8 (housekeeping exception workflows): ATTENTION_KEY (the exhaustive Record<Exclude<HousekeepingAttentionCode, 'rush'|'dnd'|'service_declined'>, string> map that drives the card's single-strongest-exception line) now includes the two new attention codes added to roomState.ts -- dnd_welfare_escalation and return_later_due -- mapped to new housekeeping.roomCard.exception.{dndWelfareEscalation,returnLaterDue} i18n keys (EN/ES parity verified via check-i18n-parity.mjs). This was a required TypeScript fix (the Record type is exhaustive over the attention-code union) rather than a discretionary change. No existing exports, prop shapes, room-status color/token values, or rendering for pre-existing attention codes changed -- the card still surfaces exactly one exception line, same as before.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "e8eb26701bb40c5cde252e7fc81b3293ee4a86c05e8e1a194d7ef1ff8c64267b",
+      "reason": "Phase 8 (housekeeping exception workflows): added Rush/priority, DND attempt/welfare, service-declined, and occupancy-discrepancy sections and trigger buttons, delegating to four new sibling components (RoomPrioritySheet, ServiceAttemptForm, RoomServiceStatusSheet, OccupancyDiscrepancySheet) that follow the drawer's existing inline bottom-sheet pattern (useModalFocusTrap, Escape-to-close, focus-visible rings). New sections read the existing normalizeHousekeepingRoom()/getDndWelfareStatus() selectors and new housekeepingApi/programsApi calls (getServiceAttempts, getRoomDiscrepancies, programsApi.overview() gated to gm/housekeeping_supervisor since the backend route is PROGRAM_MANAGER_ROLES-only). Role gates (canManageRush, canReportException, canResolveDiscrepancy) mirror the new backend RBAC tuples in core/roles.py. All new copy is localized in EN/ES (parity verified). No existing exports, the Props contract ({ room, isOpen, onClose, onCheckoutTimeSaved }), room-status color/token values, or any pre-existing section/sheet's behavior changed -- purely additive. Two fixes found via live manual verification against a real tenant (Sonesta ES Suites Fort Worth Fossil Creek) on localhost before this hash was finalized: (1) getActivityLine() now shows a note-only room_status_history row's actual notes text (e.g. 'Rush set: Guest waiting') instead of mislabeling it via getActionLabel(entry.to_status) as an unrelated status change (e.g. 'Marked ready') -- verified by observing the bug live, then confirming the fix. (2) 'Guest declined service' is now also a general-row trigger (gated on !operationalRoom.serviceDeclined, alongside Set priority/Record attempt/Report discrepancy), not only reachable from inside the active-DND card -- a guest can decline service independent of any DND sign.",
+      "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "new_hash": "ffa3d6fbeb35bb79328237452f50b9d808bf1a1c6d9aeb45009a2cc4410b2e1d",
+      "reason": "Phase 10 (housekeeping redesign final phase): two changes. (1) Dark-mode token sweep of the Report Issue, Change Departure, and Assign Room Clean bottom sheets -- these were the last hardcoded stone-*/amber-*/rose-*/emerald-*/orange-* literal Tailwind colors left in this file (everything else already used the --ink/--surface/--line/--accent/--alert/--ready CSS-variable tokens); replaced 1:1 with the equivalent tokens (e.g. text-stone-400 -> text-ink3, bg-white -> bg-surface, ring-amber-400 -> ring-[var(--accent)], the selected-chip bg-stone-900/text-white pair -> bg-ink/text-surface) and dropped a redundant bg-orange-500 override on the WO-submit button since Button's own primary variant already applies the accent token correctly in both themes. (2) The CLEAN-with-inspection-required primary action ('Mark inspected', which silently flipped status straight to INSPECTED with no inspection record) is now a Pass/Fail button pair: Pass calls the real POST /housekeeping/inspections with overall_result='passed' (previously only a status PATCH -- no inspection row was ever created for a sampled room), Fail opens a new sibling component (InspectionFailSheet, same bottom-sheet/focus-trap pattern as the other four Phase 8 sheets) that lets the supervisor mark which checklist items need fixing, submits overall_result='failed', then calls the existing (previously orphaned) POST /housekeeping/inspections/{id}/reclean. This was necessary because nothing in the app could ever fail an inspection before -- the dead, unimported InspectionModal.tsx (deleted this phase, along with its now-unused inspectionModal i18n block) was the only prior attempt at this, and trigger_reclean itself never set room_status.reclean_requested_at, so My Rooms/Team Plan's entire pre-built Reclean section (recleanRequired, RoomCard's 'reclean' status/context key, the attention system's reclean code) was permanently unreachable dead UI -- both are now wired live (companion backend change: migration 125 adds the column; submit_inspection clears it on a pass, trigger_reclean sets it on a fail). A new _attach_reclean_corrections() helper on GET /housekeeping/my-rooms surfaces the failed checklist items to the housekeeper (spec: '2 corrections / label / label'). 'markReady' (non-sampled rooms) keeps its prior single-button behavior unchanged. All new copy localized in EN/ES (parity verified via check-i18n-parity.mjs); 6 new backend smoke tests added. No exports, the Props contract ({ room, isOpen, onClose, onCheckoutTimeSaved }), or room-status color/token values changed.",
       "approved": true
     }
   ]

@@ -221,6 +221,20 @@ def test_inspection_sampling_prefers_room_type_specific_rule_over_wildcard():
     assert len(selected) == 3  # ceil(4 * 0.75) = 3, honors the 75% rule, not the 10% wildcard
 
 
+def test_inspection_requirement_uses_the_stable_programs_sample_for_one_room():
+    """Completion must reuse the deterministic Programs sample, never randomize in a client render."""
+    from services.programs.contracts import should_require_inspection
+
+    rooms = [
+        {"room_id": "room-2", "room_type_id": "king", "experience_band": "standard", "risk_level": "standard"},
+        {"room_id": "room-1", "room_type_id": "king", "experience_band": "standard", "risk_level": "standard"},
+    ]
+    rules = [{"room_type_id": "king", "experience_band": "standard", "risk_level": "standard", "sample_percent": 50}]
+
+    assert should_require_inspection(room_id="room-1", rooms=rooms, rules=rules) is True
+    assert should_require_inspection(room_id="room-2", rooms=rooms, rules=rules) is False
+
+
 # --- Multi-dimension inspection quality aggregation (G11, HK-03) ---
 
 def test_aggregate_inspection_quality_breaks_down_by_item_room_type_and_employee():

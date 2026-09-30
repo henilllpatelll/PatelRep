@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { ChevronDown } from 'lucide-react'
@@ -24,11 +24,13 @@ import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType, isOpenHousekeep
 import type { CleanType } from '@/lib/utils/cleanType'
 import { getPendingLateCheckoutByRoom, withPendingLateCheckout } from '@/lib/utils/lateCheckoutRequests'
 import {
-  filterHousekeepingBoardRooms,
   getHousekeepingBoardFilterCounts,
   normalizeHousekeepingBoardRoom,
   type CleanTypeFilter,
 } from '@/lib/utils/housekeepingBoardFilters'
+import { deriveRoomAttentionItems, normalizeHousekeepingRoom } from '@/lib/housekeeping/roomState'
+import { filterHousekeepingBoardView, getAttentionSummary, getBoardKpis, type BoardStatusFilter } from '@/lib/housekeeping/boardView'
+import { HousekeepingAttention, HousekeepingBoardFilters, HousekeepingSummary } from '@/components/housekeeping/HousekeepingBoardShell'
 
 // -- Status chip config --------------------------------------------------------
 
@@ -246,6 +248,8 @@ export function RoomStatusBoard() {
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const {
     rooms: allRooms,
@@ -272,11 +276,27 @@ export function RoomStatusBoard() {
     predictions,
     buildingFilter,
     setBuildingFilter,
+    floorFilter,
+    setFloorFilter,
+    assigneeFilter,
+    setAssigneeFilter,
+    boardSearch,
+    attentionFilter,
+    setAttentionFilter,
+    unassignedOnly,
+    setUnassignedOnly,
+    setSelectedDate,
   } = useHousekeepingStore()
   const toast = useToast()
 
   const displayRooms = useMemo(() =>
-    allRooms.map((room: any) => normalizeHousekeepingBoardRoom(room)),
+    allRooms.map((room: any) => {
+      const boardRoom = normalizeHousekeepingBoardRoom(room)
+      return {
+        ...boardRoom,
+        attentionItems: deriveRoomAttentionItems(normalizeHousekeepingRoom(boardRoom)),
+      }
+    }),
     [allRooms],
   )
 
@@ -288,21 +308,6 @@ export function RoomStatusBoard() {
     }
     return Array.from(seen).sort()
   }, [displayRooms])
-
-  const rooms = useMemo(() => {
-    const base = filterHousekeepingBoardRooms(displayRooms, {
-      statusFilter,
-      cleanTypeFilter,
-      showRiskOnly,
-      predictions,
-      buildingFilter,
-    })
-    if (!assignmentMode || assignFilter === 'all') return base
-    if (assignFilter === 'unassigned') {
-      return base.filter((room: any) => !room.assigned_to && !pendingAssignments[room.room_id])
-    }
-    return base.filter((room: any) => !!pendingAssignments[room.room_id])
-  }, [assignFilter, assignmentMode, buildingFilter, cleanTypeFilter, displayRooms, pendingAssignments, predictions, showRiskOnly, statusFilter])
 
   const unassignedChipCount = useMemo(
     () => displayRooms.filter((room: any) => !room.assigned_to && !pendingAssignments[room.room_id]).length,
@@ -381,7 +386,77 @@ export function RoomStatusBoard() {
     [staffData]
   )
 
+  const operationalRooms = useMemo(
+    () => displayRooms.map((room) => normalizeHousekeepingRoom(room)),
+    [displayRooms],
+  )
+  const boardKpis = useMemo(() => getBoardKpis(operationalRooms), [operationalRooms])
+  const attentionSummary = useMemo(() => getAttentionSummary(operationalRooms), [operationalRooms])
+  const availableFloors = useMemo(() => Array.from(new Set(
+    operationalRooms
+      .filter((room) => !buildingFilter || room.building === buildingFilter)
+      .map((room) => room.floor)
+      .filter((floor): floor is number => floor !== null),
+  )).sort((left, right) => left - right), [buildingFilter, operationalRooms])
+  const staffOptions = useMemo(() => Object.entries(hkNameById)
+    .map(([id, name]) => ({ id, name }))
+    .sort((left, right) => left.name.localeCompare(right.name)), [hkNameById])
+
+  const rooms = useMemo(() => {
+    const matchingIds = new Set(filterHousekeepingBoardView(operationalRooms, {
+      status: statusFilter as BoardStatusFilter | null,
+      building: buildingFilter,
+      floor: floorFilter,
+      assigneeId: assigneeFilter,
+      cleanTypes: cleanTypeFilter,
+      search: boardSearch,
+      attention: attentionFilter,
+      unassignedOnly,
+    }, hkNameById).map((room) => room.roomId))
+    let base = displayRooms.filter((room: any) => matchingIds.has(room.room_id))
+    if (showRiskOnly) {
+      base = base.filter((room: any) => {
+        const prediction = predictions[room.room_id] ?? room.prediction
+        return prediction?.risk_level === 'HIGH' || prediction?.risk_level === 'MEDIUM'
+      })
+    }
+    if (!assignmentMode || assignFilter === 'all') return base
+    if (assignFilter === 'unassigned') return base.filter((room: any) => !room.assigned_to && !pendingAssignments[room.room_id])
+    return base.filter((room: any) => !!pendingAssignments[room.room_id])
+  }, [assignFilter, assignmentMode, assigneeFilter, attentionFilter, boardSearch, buildingFilter, cleanTypeFilter, displayRooms, floorFilter, hkNameById, operationalRooms, pendingAssignments, predictions, showRiskOnly, statusFilter, unassignedOnly])
+
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+
+  // Keep supervisors' working board view shareable without taking ownership of
+  // the established ?room=<id> detail-drawer deep link.
+  useEffect(() => {
+    const date = searchParams.get('date')
+    const building = searchParams.get('building')
+    const floor = searchParams.get('floor')
+    const assignee = searchParams.get('assignee')
+    const status = searchParams.get('status')
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date !== selectedDate) setSelectedDate(date)
+    if (building !== buildingFilter) setBuildingFilter(building)
+    const parsedFloor = floor && Number.isFinite(Number(floor)) ? Number(floor) : null
+    if (parsedFloor !== floorFilter) setFloorFilter(parsedFloor)
+    if (assignee !== assigneeFilter) setAssigneeFilter(assignee)
+    if (status !== statusFilter) setStatusFilter(status)
+  }, [assigneeFilter, buildingFilter, floorFilter, searchParams, selectedDate, setAssigneeFilter, setBuildingFilter, setFloorFilter, setSelectedDate, setStatusFilter, statusFilter])
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    const setOrDelete = (key: string, value: string | null) => {
+      if (value) params.set(key, value)
+      else params.delete(key)
+    }
+    setOrDelete('date', selectedDate)
+    setOrDelete('building', buildingFilter)
+    setOrDelete('floor', floorFilter === null ? null : String(floorFilter))
+    setOrDelete('assignee', assigneeFilter)
+    setOrDelete('status', statusFilter)
+    const next = params.toString()
+    if (next !== searchParams.toString()) router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
+  }, [assigneeFilter, buildingFilter, floorFilter, pathname, router, searchParams, selectedDate, statusFilter])
 
   useEffect(() => {
     const roomId = searchParams.get('room')
@@ -667,55 +742,57 @@ export function RoomStatusBoard() {
   return (
     <div className="space-y-4">
       {/* Building filter — only shown when rooms span multiple buildings */}
-      {availableBuildings.length > 1 && (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-ink3 shrink-0 uppercase tracking-wide">{t('housekeeping.roomStatus.building.label')}</span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setBuildingFilter(null)}
-              aria-pressed={buildingFilter === null}
-              className={`px-3 py-1 text-[12px] font-medium rounded-full border transition-colors ${
-                buildingFilter === null
-                  ? 'bg-ink text-paper border-ink'
-                  : 'bg-surface border-line text-ink2 hover:bg-surface-2'
-              }`}
-            >
-              {t('housekeeping.roomStatus.building.all')}
-            </button>
-            {availableBuildings.map((b) => (
-              <button
-                key={b}
-                onClick={() => setBuildingFilter(buildingFilter === b ? null : b)}
-                aria-pressed={buildingFilter === b}
-                className={`px-3 py-1 text-[12px] font-medium rounded-full border transition-colors ${
-                  buildingFilter === b
-                    ? 'bg-ink text-paper border-ink'
-                    : 'bg-surface border-line text-ink2 hover:bg-surface-2'
-                }`}
-              >
-                {b}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Status filter chips */}
-      <StatusSummaryBar
-        rooms={displayRooms}
-        cleanTypeFilter={cleanTypeFilter}
-        onCleanTypeFilter={setCleanTypeFilter}
-        statusFilter={statusFilter}
-        onStatusFilter={setStatusFilter}
-        assignmentMode={assignmentMode}
-        assignFilter={assignFilter}
-        onAssignFilter={setAssignFilter}
-        unassignedCount={unassignedChipCount}
-        stagedCount={stagedChipCount}
-        showRiskOnly={showRiskOnly}
-        onToggleRisk={toggleRiskOnly}
-        riskCount={riskCount}
+      <HousekeepingSummary
+        kpis={boardKpis}
+        activeStatus={statusFilter}
+        onStatusChange={setStatusFilter}
       />
+
+      <HousekeepingAttention
+        summary={attentionSummary}
+        rooms={operationalRooms}
+        activeAttention={attentionFilter}
+        onAttentionChange={setAttentionFilter}
+        onOpenRoom={(room) => setSelectedRoom(withLateCheckout(room))}
+      />
+
+      {assignmentMode ? (
+        <StatusSummaryBar
+          rooms={displayRooms}
+          cleanTypeFilter={cleanTypeFilter}
+          onCleanTypeFilter={setCleanTypeFilter}
+          statusFilter={statusFilter}
+          onStatusFilter={setStatusFilter}
+          assignmentMode={assignmentMode}
+          assignFilter={assignFilter}
+          onAssignFilter={setAssignFilter}
+          unassignedCount={unassignedChipCount}
+          stagedCount={stagedChipCount}
+          showRiskOnly={showRiskOnly}
+          onToggleRisk={toggleRiskOnly}
+          riskCount={riskCount}
+        />
+      ) : (
+        <HousekeepingBoardFilters
+          status={statusFilter}
+          building={buildingFilter}
+          floor={floorFilter}
+          assigneeId={assigneeFilter}
+          cleanTypes={cleanTypeFilter}
+          attention={attentionFilter}
+          unassignedOnly={unassignedOnly}
+          buildings={availableBuildings}
+          floors={availableFloors}
+          staff={staffOptions}
+          onStatusChange={setStatusFilter}
+          onBuildingChange={setBuildingFilter}
+          onFloorChange={setFloorFilter}
+          onAssigneeChange={setAssigneeFilter}
+          onCleanTypesChange={setCleanTypeFilter}
+          onAttentionChange={setAttentionFilter}
+          onUnassignedChange={setUnassignedOnly}
+        />
+      )}
 
       {/* Assign error banner */}
       {assignError && (
@@ -736,7 +813,11 @@ export function RoomStatusBoard() {
       {/* Floor-grouped grid */}
       {sortedFloors.length === 0 ? (
         <div className="flex items-center justify-center h-40 text-[13px] text-ink3">
-          {t('housekeeping.roomStatus.empty.noMatch')}
+          {displayRooms.length === 0
+            ? t('housekeeping.boardV2.empty.noRooms')
+            : boardSearch
+              ? t('housekeeping.boardV2.empty.noSearch', { query: boardSearch })
+              : t('housekeeping.boardV2.empty.noMatch')}
         </div>
       ) : (
         <div className="space-y-8">
@@ -810,6 +891,8 @@ export function RoomStatusBoard() {
                         onAssign={assignmentMode && !!activeAssigneeId ? handleTapAssign : undefined}
                         pendingAssignee={pendingAssignments[room.room_id] ?? null}
                         assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}
+                        assignmentTargetName={activeAssigneeName}
+                        ownerName={room.assigned_to ? (hkNameById[room.assigned_to] ?? null) : null}
                         assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
                         savedAssignmentId={room.assignment_id ?? null}
                         onRemoveSavedAssignment={handleRemoveSavedAssignment}
