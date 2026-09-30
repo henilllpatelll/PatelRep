@@ -1,7 +1,7 @@
 """Phase 4 Logbook shift-continuity contracts: resolve, carry forward, archive,
 continuity chain, and the operational-history event log."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi.testclient import TestClient
 from jose import jwt

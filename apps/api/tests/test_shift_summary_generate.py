@@ -21,7 +21,6 @@ of a hardcoded credit charge.
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
-import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
 

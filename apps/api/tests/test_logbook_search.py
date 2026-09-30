@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from main import app
 from routers import logbook as logbook_router
 from tests.smoke.fake_supabase import FakeDB
-from tests.test_logbook_foundation import DEPT_ENG, DEPT_HK, DAY_SHIFT, _auth_header
+from tests.test_logbook_foundation import DEPT_HK, DAY_SHIFT, _auth_header
 
 
 def _entry(entry_id: str, **overrides):

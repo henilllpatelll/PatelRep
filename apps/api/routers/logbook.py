@@ -461,8 +461,10 @@ def _attach_collaboration(entries: list[dict], hotel_id: str, current_user_id: s
     comment_counts: dict[str, int] = {}
     read_users: dict[str, set] = {}
     attachment_counts: dict[str, int] = {}
-    for row in comments: comment_counts[row["entry_id"]] = comment_counts.get(row["entry_id"], 0) + 1
-    for row in reads: read_users.setdefault(row["entry_id"], set()).add(str(row["user_id"]))
+    for row in comments:
+        comment_counts[row["entry_id"]] = comment_counts.get(row["entry_id"], 0) + 1
+    for row in reads:
+        read_users.setdefault(row["entry_id"], set()).add(str(row["user_id"]))
     for row in attachments:
         related_id = str(row.get("related_entity_id"))
         attachment_counts[related_id] = attachment_counts.get(related_id, 0) + 1
@@ -661,7 +663,8 @@ async def create_logbook_comment(entry_id: str, request: CreateLogbookCommentReq
     if mentioned_ids:
         supabase.table("logbook_comment_mentions").insert([{"tenant_id": current_user.hotel_id, "comment_id": comment["id"], "mentioned_user_id": user_id} for user_id in mentioned_ids]).execute()
         rows = _notification_rows(current_user.hotel_id, [user_id for user_id in mentioned_ids if user_id != current_user.user_id], "logbook_mention", "You were mentioned in a Logbook handoff.", _entry_label(entry), entry_id)
-        if rows: supabase.table("notifications").insert(rows).execute()
+        if rows:
+            supabase.table("notifications").insert(rows).execute()
     _record_event(current_user.hotel_id, entry_id, "comment_added", current_user.user_id)
     return {"data": _hydrate_comments([comment])[0]}
 
@@ -669,16 +672,20 @@ async def create_logbook_comment(entry_id: str, request: CreateLogbookCommentReq
 @router.patch("/comments/{comment_id}")
 async def update_logbook_comment(comment_id: str, request: UpdateLogbookCommentRequest, current_user: CurrentUser = Depends(get_current_user)):
     current = supabase.table("logbook_entry_comments").select("*").eq("id", comment_id).eq("tenant_id", current_user.hotel_id).is_("deleted_at", "null").maybe_single().execute()
-    if not current or not current.data: raise HTTPException(status_code=404, detail="Comment not found")
+    if not current or not current.data:
+        raise HTTPException(status_code=404, detail="Comment not found")
     comment = current.data
-    if comment["author_id"] != current_user.user_id: raise HTTPException(status_code=403, detail="Not allowed to edit this comment")
+    if comment["author_id"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not allowed to edit this comment")
     content = request.content.strip()
-    if not content: raise HTTPException(status_code=422, detail="Comment cannot be empty")
+    if not content:
+        raise HTTPException(status_code=422, detail="Comment cannot be empty")
     mentioned_ids = _validate_ack_targets(current_user.hotel_id, [str(item) for item in request.mentioned_user_ids]) if request.mentioned_user_ids else []
     existing = supabase.table("logbook_comment_mentions").select("mentioned_user_id").eq("tenant_id", current_user.hotel_id).eq("comment_id", comment_id).execute().data or []
     existing_ids = {str(row["mentioned_user_id"]) for row in existing}
     supabase.table("logbook_comment_mentions").delete().eq("tenant_id", current_user.hotel_id).eq("comment_id", comment_id).execute()
-    if mentioned_ids: supabase.table("logbook_comment_mentions").insert([{"tenant_id": current_user.hotel_id, "comment_id": comment_id, "mentioned_user_id": user_id} for user_id in mentioned_ids]).execute()
+    if mentioned_ids:
+        supabase.table("logbook_comment_mentions").insert([{"tenant_id": current_user.hotel_id, "comment_id": comment_id, "mentioned_user_id": user_id} for user_id in mentioned_ids]).execute()
     result = supabase.table("logbook_entry_comments").update({"content": content, "edited_at": datetime.now(timezone.utc).isoformat()}).eq("id", comment_id).eq("tenant_id", current_user.hotel_id).execute()
     updated = (result.data or [None])[0]
     newly_mentioned = [user_id for user_id in mentioned_ids if user_id not in existing_ids and user_id != current_user.user_id]
@@ -691,8 +698,10 @@ async def update_logbook_comment(comment_id: str, request: UpdateLogbookCommentR
 @router.delete("/comments/{comment_id}")
 async def delete_logbook_comment(comment_id: str, current_user: CurrentUser = Depends(get_current_user)):
     current = supabase.table("logbook_entry_comments").select("author_id").eq("id", comment_id).eq("tenant_id", current_user.hotel_id).is_("deleted_at", "null").maybe_single().execute()
-    if not current or not current.data: raise HTTPException(status_code=404, detail="Comment not found")
-    if current.data["author_id"] != current_user.user_id and current_user.role not in PROGRAM_MANAGER_ROLES: raise HTTPException(status_code=403, detail="Not allowed to delete this comment")
+    if not current or not current.data:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if current.data["author_id"] != current_user.user_id and current_user.role not in PROGRAM_MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this comment")
     supabase.table("logbook_entry_comments").update({"deleted_at": datetime.now(timezone.utc).isoformat()}).eq("id", comment_id).eq("tenant_id", current_user.hotel_id).execute()
     return {"data": {"success": True}}
 
@@ -717,7 +726,8 @@ async def acknowledge_logbook_entry(entry_id: str, current_user: CurrentUser = D
     entry = _entry_or_404(current_user.hotel_id, entry_id)
     version = int(entry.get("acknowledgment_version") or 1)
     target = supabase.table("logbook_entry_ack_targets").select("id").eq("tenant_id", current_user.hotel_id).eq("entry_id", entry_id).eq("version", version).eq("user_id", current_user.user_id).maybe_single().execute()
-    if not entry.get("requires_acknowledgment") or not target or not target.data: raise HTTPException(status_code=403, detail="You are not required to acknowledge this handoff")
+    if not entry.get("requires_acknowledgment") or not target or not target.data:
+        raise HTTPException(status_code=403, detail="You are not required to acknowledge this handoff")
     now = datetime.now(timezone.utc).isoformat()
     supabase.table("logbook_entry_acknowledgments").upsert({"tenant_id": current_user.hotel_id, "entry_id": entry_id, "user_id": current_user.user_id, "version": version, "acknowledged_at": now}, on_conflict="entry_id,user_id,version").execute()
     _record_read(current_user.hotel_id, entry_id, current_user.user_id)
@@ -736,7 +746,8 @@ async def remind_logbook_ack_targets(entry_id: str, current_user: CurrentUser = 
     acknowledgments = supabase.table("logbook_entry_acknowledgments").select("user_id").eq("tenant_id", current_user.hotel_id).eq("entry_id", entry_id).eq("version", version).execute().data or []
     acknowledged = {str(row["user_id"]) for row in acknowledgments}
     pending = [str(row["user_id"]) for row in targets if str(row["user_id"]) not in acknowledged]
-    if not pending: return {"data": {"sent": 0, "rate_limited": False}}
+    if not pending:
+        return {"data": {"sent": 0, "rate_limited": False}}
     cutoff = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
     recent = supabase.table("notifications").select("id").eq("tenant_id", current_user.hotel_id).eq("type", "logbook_acknowledgment_reminder").gte("created_at", cutoff).contains("data", {"entry_id": entry_id, "version": version}).limit(1).execute()
     if recent and recent.data:

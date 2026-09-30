@@ -198,27 +198,27 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | logbook.py | /v1/logbook/entries/{entry_id}/comments | GET | none |  |
 | logbook.py | /v1/logbook/entries/{entry_id}/comments | POST | none |  |
 | logbook.py | /v1/logbook/comments/{comment_id} | PATCH | none |  |
-| logbook.py | /v1/logbook/comments/{comment_id} | DELETE | role-restricted (inline, see source) | gate: if current.data['author_id'] != current_user.user_id and current_user.role not in PROGRAM_MANAGER_ROLES: raise HTTPException(...) [L695]; inline: current_user.role not in PROGRAM_MANAGER_ROLES [L695] |
+| logbook.py | /v1/logbook/comments/{comment_id} | DELETE | role-restricted (inline, see source) | gate: if current.data['author_id'] != current_user.user_id and current_user.role not in PROGRAM_MANAGER_ROLES: raise HTTPException(...) [L703]; inline: current_user.role not in PROGRAM_MANAGER_ROLES [L703] |
 | logbook.py | /v1/logbook/entries/{entry_id}/read | POST | none |  |
 | logbook.py | /v1/logbook/entries/{entry_id}/reads | GET | none |  |
 | logbook.py | /v1/logbook/entries/{entry_id}/acknowledge | POST | none |  |
-| logbook.py | /v1/logbook/entries/{entry_id}/acknowledgment-reminder | POST | role-restricted (inline, see source) | gate: if current_user.role not in PROGRAM_MANAGER_ROLES: raise HTTPException(...) [L729]; inline: current_user.role not in PROGRAM_MANAGER_ROLES [L729] |
+| logbook.py | /v1/logbook/entries/{entry_id}/acknowledgment-reminder | POST | role-restricted (inline, see source) | gate: if current_user.role not in PROGRAM_MANAGER_ROLES: raise HTTPException(...) [L739]; inline: current_user.role not in PROGRAM_MANAGER_ROLES [L739] |
 | logbook.py | /v1/logbook/entries/{entry_id} | GET | none |  |
 | logbook.py | /v1/logbook/entries/{entry_id}/attachments | GET | none |  |
-| logbook.py | /v1/logbook/entries/{entry_id}/attachments/{record_id} | DELETE | role-restricted (inline, see source) | gate: if not (entry['author_id'] == current_user.user_id or current_user.role in PROGRAM_MANAGER_ROLES): raise HTTPException(...) [L793]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L793] |
+| logbook.py | /v1/logbook/entries/{entry_id}/attachments/{record_id} | DELETE | role-restricted (inline, see source) | gate: if not (entry['author_id'] == current_user.user_id or current_user.role in PROGRAM_MANAGER_ROLES): raise HTTPException(...) [L804]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L804] |
 | logbook.py | /v1/logbook/entries/{entry_id}/translate | POST | none |  |
 | logbook.py | /v1/logbook/comments/{comment_id}/translate | POST | none |  |
-| logbook.py | /v1/logbook/entries/{entry_id} | PATCH | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L880]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L879] |
+| logbook.py | /v1/logbook/entries/{entry_id} | PATCH | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L891]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L890] |
 | logbook.py | /v1/logbook/entries/{entry_id} | DELETE | none |  |
-| logbook.py | /v1/logbook/entries/{entry_id}/resolve | POST | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L1013]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L1012] |
-| logbook.py | /v1/logbook/entries/{entry_id}/archive | POST | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L1063]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L1062] |
-| logbook.py | /v1/logbook/entries/{entry_id}/carry-forward | POST | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L1097]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L1096] |
+| logbook.py | /v1/logbook/entries/{entry_id}/resolve | POST | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L1024]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L1023] |
+| logbook.py | /v1/logbook/entries/{entry_id}/archive | POST | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L1074]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L1073] |
+| logbook.py | /v1/logbook/entries/{entry_id}/carry-forward | POST | role-restricted (inline, see source) | gate: if not (is_author or is_privileged): raise HTTPException(...) [L1108]; inline: current_user.role in PROGRAM_MANAGER_ROLES [L1107] |
 | logbook.py | /v1/logbook/entries/{entry_id}/continuity | GET | none |  |
 | logbook.py | /v1/logbook/entries/{entry_id}/events | GET | none |  |
 | logbook.py | /v1/logbook/shift-summary | GET | none |  |
 | logbook.py | /v1/logbook/shift-summary/{shift_id} | GET | none |  |
 | logbook.py | /v1/logbook/shift-summary/{summary_id}/acknowledge | POST | none |  |
-| logbook.py | /v1/logbook/shift-summary/generate | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L1373] |
+| logbook.py | /v1/logbook/shift-summary/generate | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L1384] |
 | lost_found.py | /v1/lost-found/upload-photo | POST | none |  |
 | lost_found.py | /v1/lost-found | POST | none |  |
 | lost_found.py | /v1/lost-found | GET | none |  |

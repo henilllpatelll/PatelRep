@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T00:51:30.060Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T00:56:05.023Z
 > Files: 624 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
@@ -976,7 +976,7 @@
 - `evidence.py` — Tenant-scoped controlled documents, proof, acknowledgements, and exceptions. (~9538 tok)
 - `guest_requests.py` — API: 3 endpoints (~9674 tok)
 - `internal.py` — API: 5 endpoints (~11087 tok)
-- `logbook.py` — can_permanently_delete_logbook_entry, logbook_translation_source_hash, build_logbook_attachment_meta (~19378 tok)
+- `logbook.py` — can_permanently_delete_logbook_entry, logbook_translation_source_hash, build_logbook_attachment_meta (~19408 tok)
 - `tasks.py` — API: 4 endpoints (~6585 tok)
 
 ## apps/api/services/
