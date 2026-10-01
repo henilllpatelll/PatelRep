@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { IBM_Plex_Sans, IBM_Plex_Mono, Instrument_Serif } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/shared/Providers'
+import { releaseMetadata } from '@/lib/utils/release'
+
+const release = releaseMetadata()
 
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ['latin'],
@@ -35,6 +38,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.svg',
+  },
+  other: {
+    'patelrep-release-sha': release.fullSha,
+    'patelrep-release-version': release.version,
   },
 }
 

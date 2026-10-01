@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next'
 import { notificationsApi, type Notification } from '@/lib/api/notifications'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { visibleEnvironmentLabel } from '@/lib/utils/environment'
+import { releaseMetadata } from '@/lib/utils/release'
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -80,6 +82,8 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
   const initials = getInitials(fullName)
   const avatarBg = getAvatarColor(fullName)
   const roleLabel = role ? t(`roles.${role}`) : null
+  const environmentLabel = visibleEnvironmentLabel()
+  const release = releaseMetadata()
 
   const handleSignOut = async () => {
     setDropdownOpen(false)
@@ -171,6 +175,16 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {environmentLabel && (
+        <span
+          className="rounded-full border border-amber-500/45 bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-amber-900 dark:bg-amber-950/50 dark:text-amber-200 shrink-0"
+          data-testid="environment-indicator"
+          title={release.shortSha === 'unknown' ? 'Staging build' : `Staging candidate ${release.shortSha}`}
+        >
+          {environmentLabel}
+        </span>
+      )}
 
       {/* Date + shift */}
       <div className="hidden lg:flex items-center gap-1.5 text-[12px] text-ink2 shrink-0">

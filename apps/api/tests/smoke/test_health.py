@@ -12,6 +12,24 @@ def test_health():
     response = client.get("/health")
     assert response.status_code in (200, 503)
     assert response.json()["status"] in ("ok", "degraded")  # degraded is expected without real DB
+    assert response.json()["environment"] in ("development", "test", "staging", "production")
+    assert response.json()["supabase_host"]
+    assert isinstance(response.json()["release_sha"], str)
+    assert isinstance(response.json()["release_version"], str)
+
+
+def test_ready_reports_schema_incompatibility(monkeypatch):
+    from core.schema_readiness import SchemaReadiness
+    import main
+
+    monkeypatch.setattr(
+        main,
+        "check_schema_readiness",
+        lambda _database: SchemaReadiness(False, ["assets.last_failure_at"]),
+    )
+    response = client.get("/ready")
+    assert response.status_code == 503
+    assert response.json()["missing"] == ["assets.last_failure_at"]
 
 
 def test_protected_endpoint_without_auth():
