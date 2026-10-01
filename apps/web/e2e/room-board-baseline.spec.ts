@@ -178,7 +178,10 @@ for (const role of ROLES) {
     for (const mode of ['light', 'dark'] as const) {
       test(`housekeeping RoomStatusBoard — ${mode}`, async ({ page }) => {
         await gotoWithTheme(page, '/housekeeping', mode)
-        await page.getByText(FIXTURE_ROOM_NUMBERS.dirty, { exact: true }).waitFor({ state: 'visible', timeout: 15000 })
+        // The first real fixture-data request can cold-start its backend.
+        // Preserve the exact visible-room assertion while allowing it to
+        // settle inside this file's 45-second Playwright test budget.
+        await page.getByText(FIXTURE_ROOM_NUMBERS.dirty, { exact: true }).waitFor({ state: 'visible', timeout: 30000 })
 
         await expect(page).toHaveScreenshot(`housekeeping-board-${role.key}-${mode}.png`, {
           mask: chromeMasks(page),
