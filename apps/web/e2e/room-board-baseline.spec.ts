@@ -90,6 +90,18 @@ function chromeMasks(page: Page) {
     // chrome close-out too, since /housekeeping renders the same PageHeader
     // above RoomStatusBoard/RoomDetailDrawer.
     page.locator('[data-testid="page-header"]'),
+    // The "Assignee" filter <select> lists the hotel's live staff roster
+    // (staffApi.list()), not fixture-seeded data -- a native <select>'s
+    // rendered width can shift with the longest option's text, which pushes
+    // every filter control to its right (including "Clean type") sideways.
+    // Caught live: the GM capture and the Supervisor capture of this same
+    // board landed a few minutes apart and picked up a one-name difference
+    // in the roster, shifting "All clean types" a few pixels and failing the
+    // 0-tolerance diff on content that has nothing to do with the board
+    // itself. Masked both controls (not just Assignee) since the second one's
+    // position, not just its own content, is what moves.
+    page.getByLabel('Assignee'),
+    page.getByLabel('Clean type'),
   ]
 }
 
