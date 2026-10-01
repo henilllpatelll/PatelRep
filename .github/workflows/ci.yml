@@ -129,7 +129,15 @@ jobs:
       - name: Rebuild database from repository migrations and synthetic seed (normalized replay workspace)
         run: supabase db reset --local --workdir "${{ runner.temp }}/migration-replay"
       - name: Export isolated Supabase test credentials
-        run: supabase status --workdir "${{ runner.temp }}/migration-replay" --output env >> "$GITHUB_ENV"
+        # `supabase status --output env` prints shell-quoted KEY="value" lines
+        # (meant to be `source`d/`eval`ed); $GITHUB_ENV's simple KEY=value
+        # parser takes everything after `=` literally, so appending the raw
+        # output makes every value include its literal wrapping quotes (e.g.
+        # SUPABASE_URL becomes the literal string `"http://127.0.0.1:54321"`
+        # (quote characters included), which the Supabase Python client then
+        # rejects as an invalid URL.
+        # Strip the wrapping quotes before appending.
+        run: supabase status --workdir "${{ runner.temp }}/migration-replay" --output env | sed -E 's/^([A-Z_]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Verify high-impact schema contracts, RLS, extensions, and RPCs
