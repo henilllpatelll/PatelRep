@@ -14931,3 +14931,48 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 18:18 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 4→4 lines | ~106 |
 | 18:19 | Edited apps/web/frozen-files.json | 4→4 lines | ~144 |
 | 18:19 | Edited apps/web/frozen-files-allowlist.json | 12→12 lines | ~648 |
+| 18:25 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:26 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:26 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:26 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:27 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:28 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:28 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:28 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 27 reads | ~70727 tok |
+| 18:36 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 28 reads | ~70727 tok |
+| 18:48 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 32 reads | ~70727 tok |
+| 18:53 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 33 reads | ~70727 tok |
+| 18:53 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 33 reads | ~70727 tok |
+| 18:54 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 33 reads | ~70727 tok |
+| 18:54 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 33 reads | ~70727 tok |
+| 18:55 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 33 reads | ~70727 tok |
+| 19:13 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 35 reads | ~70727 tok |
+| 19:13 | Session end: 22 writes across 5 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 35 reads | ~70727 tok |
+| 19:17 | Edited .github/workflows/ci.yml | expanded (+8 lines) | ~223 |
+| 19:18 | Session end: 23 writes across 6 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 36 reads | ~70950 tok |
+| 19:21 | Session end: 23 writes across 6 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 36 reads | ~70950 tok |
+| 19:27 | Edited .github/workflows/ci.yml | 7→7 lines | ~70 |
+| 19:27 | Session end: 24 writes across 6 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 37 reads | ~76224 tok |
+| 19:29 | Session end: 24 writes across 6 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 37 reads | ~76224 tok |
+| 19:33 | Edited apps/web/e2e/room-board-baseline.spec.ts | expanded (+12 lines) | ~302 |
+| 19:34 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 40 reads | ~76526 tok |
+| 19:34 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 40 reads | ~76526 tok |
+| 19:38 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 19:38 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 19:39 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 19:41 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 19:41 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 19:43 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 20:05 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 20:05 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 20:05 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+| 20:07 | Session end: 25 writes across 7 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, frozen-files.json, frozen-files-allowlist.json) | 41 reads | ~76526 tok |
+
+## Session: 2026-10-01 20:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:10 | Diagnosed Engineering screen not loading: migrations 111-115 never applied to live Supabase, causing 422s on /v1/work-orders and /v1/assets | supabase/migrations/111-115, apps/api/routers/work_orders.py, assets.py | Fixed — applied all 5 migrations live via Supabase MCP, verified Engineering screen (all 4 tabs) loads real data | ~15k |
+| 21:17 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md | modified fixed() | ~498 |
+| 21:18 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | inline fix | ~68 |
+| 21:18 | Session end: 2 writes across 2 files (project_migration_drift_2026-09-29.md, MEMORY.md) | 10 reads | ~606 tok |

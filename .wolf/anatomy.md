@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-30T23:19:37.568Z
-> Files: 702 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-01T02:18:01.713Z
+> Files: 703 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -9,10 +9,10 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `MEMORY.md` — PatelRep Project Memory (~1275 tok)
+- `MEMORY.md` — PatelRep Project Memory (~1280 tok)
 - `project_housekeeping_phase10_findings.md` — Declares actually (~1527 tok)
 - `project_housekeeping_redesign_status.md` (~773 tok)
-- `project_migration_drift_2026-09-29.md` (~651 tok)
+- `project_migration_drift_2026-09-29.md` (~1015 tok)
 - `reference_local_dev_api.md` (~951 tok)
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/39c736e1-55ed-4565-ac9d-f932f6779ed7/scratchpad/
@@ -950,6 +950,10 @@
 - `theme.json` (~176 tok)
 - `tokens.css` — Styles: 36 vars (~731 tok)
 
+## .github/workflows/
+
+- `ci.yml` — CI: CI (~3000 tok)
+
 ## Phase 1 Logbook foundation (2026-09-29)
 
 
@@ -1140,7 +1144,7 @@
 
 ## apps/web/e2e/
 
-- `room-board-baseline.spec.ts` — FOUND-03 — Regression pixel-diff baseline for the housekeeping Room Board (~2198 tok)
+- `room-board-baseline.spec.ts` — FOUND-03 — Regression pixel-diff baseline for the housekeeping Room Board (~2429 tok)
 - `zz-verify-phase4.spec.ts` — Declares EMAIL (~1577 tok)
 
 ## apps/web/i18n/locales/

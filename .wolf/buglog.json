@@ -30054,6 +30054,42 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-30T22:54:01.164Z"
+    },
+    {
+      "id": "bug-1827",
+      "timestamp": "2026-09-30T23:10:00.000Z",
+      "error_message": "Engineering screen not loading - /v1/work-orders returned 422 for every status filter, /v1/assets returned 422",
+      "file": "supabase/migrations/111_work_order_timing_labor.sql, 112_engineering_repair_intelligence.sql, 113_asset_downtime_reliability.sql, 114_condition_monitoring.sql, 115_engineering_vendors_and_insights.sql",
+      "root_cause": "Migrations 111-115 were written to supabase/migrations/ but never applied to the live shared Supabase project (oacnwalhcpqdabivweki). work_orders.py embeds PostgREST relationship hints (work_orders_problem_code_id_fkey etc from migration 112) that did not exist live, causing PGRST200 -> 422 on every GET /v1/work-orders call. assets.py queried asset_downtime_periods (113) and asset_meters (114), also missing live -> 422 on GET /v1/assets. Same gap flagged but not fixed in project_migration_drift_2026-09-29 memory.",
+      "fix": "Applied migrations 111, 112, 113, 114, 115 to the live Supabase project via the Supabase MCP apply_migration tool, in order. Verified via browser: /v1/work-orders and /v1/assets now return 200, Engineering screen (Work Orders, Rooms Down, Preventive, Assets tabs) all load real data.",
+      "tags": [
+        "engineering",
+        "migration-drift",
+        "supabase",
+        "422",
+        "work-orders",
+        "assets",
+        "postgrest"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-30T23:10:00.000Z"
+    },
+    {
+      "id": "bug-1828",
+      "timestamp": "2026-10-01T02:17:55.540Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→30 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T02:17:55.540Z"
     }
   ]
 }
