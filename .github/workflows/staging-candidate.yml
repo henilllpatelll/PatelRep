@@ -167,6 +167,11 @@ jobs:
         run: node scripts/check-db-drift.mjs --environment staging
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Grant staging fixture service access
+        run: |
+          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role;"
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Install fixture dependencies
         run: cd apps/web && npm ci
       - name: Seed deterministic synthetic hotel fixture
