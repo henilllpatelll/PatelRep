@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ImageIcon, Package, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -34,7 +34,7 @@ function Thumbnail({ item }: { item: LostFoundItem }) {
   return item.photo_url ? <img src={item.photo_url} alt={`Photo of ${item.description}`} className="h-9 w-9 rounded-lg border border-line object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-2 text-ink3"><ImageIcon size={16} /></span>
 }
 
-export default function LostFoundPage() {
+function LostFoundPageContent() {
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const capabilityQuery = useQuery({ queryKey: ['lost-found-capabilities'], queryFn: lostFoundApi.getCapabilities, select: (response) => response.data })
@@ -108,4 +108,8 @@ export default function LostFoundPage() {
     <GuestClaimDrawer isOpen={showClaimDrawer} onClose={() => setShowClaimDrawer(false)} onCreated={() => { setShowClaimDrawer(false); invalidate(); switchWorkspace('claims') }} />
     {selectedItem && workspace === 'inventory' && <LostFoundItemDrawer key={selectedItem.id} item={selectedItem} capabilities={capabilities} onClose={closeItem} onItemUpdated={setSelectedItem} />}
   </div>
+}
+
+export default function LostFoundPage() {
+  return <Suspense><LostFoundPageContent /></Suspense>
 }

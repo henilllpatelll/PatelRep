@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-01T12:48:32.730Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-01T13:18:05.151Z
 > Files: 19 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -482,7 +482,7 @@
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` — DEFAULT_CAPABILITIES (~4912 tok)
+- `page.tsx` — DEFAULT_CAPABILITIES (~4943 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 

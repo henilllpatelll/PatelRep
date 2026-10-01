@@ -2,6 +2,25 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-1235",
+      "timestamp": "2026-10-01T13:00:00.000Z",
+      "error_message": "CI \"Build / Web\" job failed on commit 592ed6a4: useSearchParams() should be wrapped in a suspense boundary at page /lost-found, during next build static prerender, exiting the build with exit code 1.",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "New lost-found page (Phases 2-4 rebuild) called useSearchParams() directly in the default-exported page component without a Suspense boundary. Next.js only enforces this during next build static-generation/prerendering, not during tsc --noEmit, dev mode, or eslint, so it passed every local check run before pushing and only surfaced in GitHub Actions CI.",
+      "fix": "Renamed the component to LostFoundPageContent, and added a thin default-exported LostFoundPage wrapper that renders <Suspense><LostFoundPageContent /></Suspense>, matching the existing convention already used in tasks/page.tsx and guest-requests/page.tsx. Verified by running the actual production npm run build locally (not just tsc --noEmit) before re-pushing - /lost-found now prerenders as static like the other 48 routes.",
+      "tags": [
+        "nextjs",
+        "suspense",
+        "useSearchParams",
+        "ci",
+        "lost-found",
+        "build"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T13:00:00.000Z"
+    },
+    {
       "id": "bug-1234",
       "timestamp": "2026-09-11T00:00:00.000Z",
       "error_message": "RoomDetailDrawer header elapsed-time text showed \"40387m in\" (28 days) for the regression-fixture IN_PROGRESS room instead of a sane minute count.",
