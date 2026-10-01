@@ -226,16 +226,13 @@ jobs:
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
           PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
-      - name: Inject exact API release identity
+      - name: Embed exact API release identity in the staged build artifact
         run: |
-          npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
-          npx --yes @railway/cli@4.30.0 variables set RELEASE_SHA="${{ needs.resolve-candidate.outputs.sha }}" APP_ENV=staging --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID" --skip-deploys
+          node -e 'const fs=require("fs"); fs.writeFileSync("apps/api/core/release_identity.json", JSON.stringify({release_sha: process.env.CANDIDATE_SHA, release_version: null}, null, 2) + "\n")'
         env:
-          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
-          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
-          STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
+          CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
       - name: Deploy API from exact checkout
-        run: npx --yes @railway/cli@4.30.0 up apps/api --ci --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
+        run: npx --yes @railway/cli@4.30.0 up apps/api --ci --no-gitignore --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
         env:
           RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
@@ -254,6 +251,9 @@ jobs:
           STAGING_API_URL: ${{ vars.STAGING_API_URL }}
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
+      - name: Restore checked-in API release identity
+        if: always()
+        run: git checkout -- apps/api/core/release_identity.json
 
   deploy-web:
     name: Deploy exact web candidate
@@ -278,20 +278,20 @@ jobs:
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
           PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
-      - name: Inject exact web release identity at build time
+      - name: Embed exact web release identity in the staged build artifact
         run: |
-          npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
-          npx --yes @railway/cli@4.30.0 variables set NEXT_PUBLIC_RELEASE_SHA="${{ needs.resolve-candidate.outputs.sha }}" NEXT_PUBLIC_APP_ENV=staging --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID" --skip-deploys
+          node -e 'const fs=require("fs"); fs.writeFileSync("apps/web/release-identity.json", JSON.stringify({release_sha: process.env.CANDIDATE_SHA, release_version: null}, null, 2) + "\n")'
         env:
-          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
-          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
-          STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+          CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
       - name: Deploy web from exact checkout
-        run: npx --yes @railway/cli@4.30.0 up apps/web --ci --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
+        run: npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
         env:
           RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+      - name: Restore checked-in web release identity
+        if: always()
+        run: git checkout -- apps/web/release-identity.json
 
   verify-staging:
     name: Verify candidate identity and hotel workflows

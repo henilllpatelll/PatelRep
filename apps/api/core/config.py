@@ -1,9 +1,38 @@
-from pydantic import model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+import json
 from pathlib import Path
+import re
 from typing import Literal
 from urllib.parse import urlparse
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+RELEASE_SHA_PATTERN = re.compile(r"^[a-f0-9]{7,64}$", re.IGNORECASE)
+RELEASE_VERSION_PATTERN = re.compile(r"^[a-z0-9][a-z0-9.+_-]{0,31}$", re.IGNORECASE)
+
+
+def read_packaged_release_identity(path: Path) -> dict[str, str]:
+    """Read only validated, public release metadata shipped with a build."""
+    try:
+        raw_identity = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    if not isinstance(raw_identity, dict):
+        return {}
+
+    identity: dict[str, str] = {}
+    release_sha = raw_identity.get("release_sha")
+    if isinstance(release_sha, str) and RELEASE_SHA_PATTERN.fullmatch(release_sha):
+        identity["release_sha"] = release_sha.lower()
+
+    release_version = raw_identity.get("release_version")
+    if isinstance(release_version, str) and RELEASE_VERSION_PATTERN.fullmatch(release_version):
+        identity["release_version"] = release_version
+
+    return identity
 
 
 class Settings(BaseSettings):
@@ -87,6 +116,12 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_environment_isolation(self) -> "Settings":
         """Fail closed if a staging API is not pointed at its staged database."""
+        packaged_identity = read_packaged_release_identity(
+            Path(__file__).parent / "release_identity.json"
+        )
+        self.release_sha = packaged_identity.get("release_sha", self.release_sha)
+        self.release_version = packaged_identity.get("release_version", self.release_version)
+
         if self.app_env != "staging":
             return self
 

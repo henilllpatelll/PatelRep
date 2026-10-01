@@ -15,20 +15,17 @@ test('serializes candidates and deploys one exact SHA through both services', ()
   assert.match(workflow, /group: staging-release-candidate/)
   assert.match(workflow, /cancel-in-progress: false/)
   assert.match(workflow, /name: 'Staging Gate'/)
-  assert.match(workflow, /RELEASE_SHA/)
-  assert.match(workflow, /NEXT_PUBLIC_RELEASE_SHA/)
+  assert.match(workflow, /CANDIDATE_SHA/)
   assert.match(workflow, /git checkout --detach "\$\{\{ needs\.resolve-candidate\.outputs\.sha \}\}"/)
 })
 
-test('links each release-identity update to its explicit staging Railway service', () => {
-  const apiLink = workflow.indexOf('railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"')
-  const apiIdentity = workflow.indexOf('variables set RELEASE_SHA=')
-  const webLink = workflow.indexOf('railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"')
-  const webIdentity = workflow.indexOf('variables set NEXT_PUBLIC_RELEASE_SHA=')
-  assert.ok(apiLink >= 0 && apiLink < apiIdentity, 'API identity update must link the explicit staging API service first')
-  assert.ok(webLink >= 0 && webLink < webIdentity, 'web identity update must link the explicit staging web service first')
-  assert.match(workflow, /variables set RELEASE_SHA=.*--skip-deploys/)
-  assert.match(workflow, /variables set NEXT_PUBLIC_RELEASE_SHA=.*--skip-deploys/)
+test('injects only public candidate identity into the exact staging build artifacts', () => {
+  assert.match(workflow, /core\/release_identity\.json/)
+  assert.match(workflow, /release-identity\.json/)
+  assert.match(workflow, /up apps\/api --ci --no-gitignore/)
+  assert.match(workflow, /up apps\/web --ci --no-gitignore/)
+  assert.doesNotMatch(workflow, /variables set RELEASE_SHA/)
+  assert.doesNotMatch(workflow, /variables set NEXT_PUBLIC_RELEASE_SHA/)
 })
 
 test('guards the remote rebuild, installs psql before drift verification, and proves API/web identity before staging smoke', () => {
