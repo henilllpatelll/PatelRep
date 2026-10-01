@@ -2,6 +2,8 @@
 
 PatelRep production is driven by `main`. Treat `main` as a release branch, not a normal development branch.
 
+This pipeline (CI Gate + Staging Gate required on `main`) was verified end-to-end on 2026-10-01.
+
 ## Normal workflow
 
 1. Start from current `main`, then intentionally create a feature branch: `git checkout -b feat/<name>`.
