@@ -211,7 +211,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: room-board-regression-diffs
-          path: apps/web/test-results/**/*-{actual,diff}.png
+          path: apps/web/test-results/
           if-no-files-found: ignore
           retention-days: 7
 
