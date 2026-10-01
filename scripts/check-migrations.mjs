@@ -17,7 +17,7 @@ export function parseMigrationFilename(filename) {
 }
 
 export function sha256(content) {
-  return createHash('sha256').update(content).digest('hex');
+  return createHash('sha256').update(String(content).replace(/\r\n/g, '\n')).digest('hex');
 }
 
 export function loadMigrations(migrationDirectory) {

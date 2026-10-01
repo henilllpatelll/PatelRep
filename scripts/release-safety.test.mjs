@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -9,6 +11,16 @@ import {
 } from './ship.mjs';
 
 const hookPath = fileURLToPath(new URL('../.githooks/pre-push', import.meta.url));
+
+function bashExecutable() {
+  if (process.platform !== 'win32') return 'bash';
+  const programFiles = [process.env.ProgramW6432, process.env.ProgramFiles, 'C:\\Program Files'].filter(Boolean);
+  return programFiles
+    .flatMap((root) => [join(root, 'Git', 'bin', 'bash.exe'), join(root, 'Git', 'usr', 'bin', 'bash.exe')])
+    .find((candidate) => existsSync(candidate)) ?? 'bash';
+}
+
+const bash = bashExecutable();
 
 test('ship blocks default protected production branches', () => {
   const protectedBranches = getProtectedProductionBranches('');
@@ -26,7 +38,7 @@ test('ship supports explicitly configured protected production branches', () => 
 });
 
 test('pre-push blocks a refspec that targets main from any local branch', () => {
-  const result = spawnSync('bash', [hookPath], {
+  const result = spawnSync(bash, [hookPath], {
     encoding: 'utf8',
     env: { ...process.env, PROTECTED_PRODUCTION_BRANCHES: 'main,master' },
     input: 'refs/heads/feat/example abcdef refs/heads/main 123456\n',
@@ -37,7 +49,7 @@ test('pre-push blocks a refspec that targets main from any local branch', () => 
 });
 
 test('pre-push allows a feature branch destination', () => {
-  const result = spawnSync('bash', [hookPath], {
+  const result = spawnSync(bash, [hookPath], {
     encoding: 'utf8',
     env: { ...process.env, PROTECTED_PRODUCTION_BRANCHES: 'main,master' },
     input: 'refs/heads/feat/example abcdef refs/heads/feat/example 123456\n',

@@ -123,6 +123,8 @@ jobs:
           PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
           STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
           STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
+      - name: Install PostgreSQL client for read-only migration verification
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Compare rollback target's migrations against what production has applied
         id: drift
         run: |
