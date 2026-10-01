@@ -15,6 +15,14 @@
  * room content itself is stable via the seed, not hidden by masks — room
  * cards, counts, and status colors must always stay in the diff.
  *
+ * mockStaffRoster() (used by gotoWithTheme()) routes GET /staff to a fixed
+ * two-person roster. The Assignee/Clean-type filter row renders from the
+ * hotel's real, uncontrolled staff list, whose length can change the native
+ * <select>'s intrinsic width and shift later controls sideways — a harness
+ * nondeterminism, not a RoomStatusBoard regression. Fixing the input data
+ * instead of only masking its on-screen effect is what makes this
+ * deterministic across environments and over time.
+ *
  * Regenerate the baseline (after a deliberate, reviewed change):
  *   npx playwright test --config=playwright.regression.config.ts --update-snapshots
  * Verify zero drift on the current tree:
@@ -98,11 +106,38 @@ function chromeMasks(page: Page) {
     // board landed a few minutes apart and picked up a one-name difference
     // in the roster, shifting "All clean types" a few pixels and failing the
     // 0-tolerance diff on content that has nothing to do with the board
-    // itself. Masked both controls (not just Assignee) since the second one's
-    // position, not just its own content, is what moves.
+    // itself. Masking alone doesn't fully solve this -- Playwright bakes an
+    // opaque box into each screenshot at that element's *current* bounding
+    // box, so a baseline captured against one roster and a run captured
+    // against a different-length roster produce two differently-sized mask
+    // boxes, which itself reads as a diff. The real fix is mockStaffRoster()
+    // below, which makes the roster (and therefore this geometry) constant;
+    // these two are kept masked as defense-in-depth, not as the fix.
     page.getByLabel('Assignee'),
     page.getByLabel('Clean type'),
   ]
+}
+
+// Fixed, deterministic staff roster for the Assignee filter (see the mask
+// comment above for why this needs to be constant, not just hidden). The
+// regression fixture tenant's seed (seed-regression-tenant.mjs) only creates
+// the GM/Supervisor auth users -- it does not control which other staff rows
+// exist for that tenant, so the live GET /staff response this filter renders
+// from can drift over time and change the select's intrinsic rendered width.
+// Routing it to a fixed payload removes that variable at its source instead
+// of only covering the symptom with a mask.
+const STAFF_ROSTER_FIXTURE = {
+  data: {
+    staff: [
+      { id: 'regression-fixture-staff-1', user_id: 'regression-fixture-staff-1', hotel_id: 'regression-fixture-tenant', full_name: 'Regression Fixture Housekeeper', email: 'housekeeper@regression.fixture', role: 'housekeeper', status: 'active', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'regression-fixture-staff-2', user_id: 'regression-fixture-staff-2', hotel_id: 'regression-fixture-tenant', full_name: 'Regression Fixture Supervisor', email: 'supervisor-staff@regression.fixture', role: 'housekeeping_supervisor', status: 'active', created_at: '2026-01-01T00:00:00Z' },
+    ],
+    total: 2,
+  },
+}
+
+async function mockStaffRoster(page: Page): Promise<void> {
+  await page.route('**/staff', (route) => route.fulfill({ json: STAFF_ROSTER_FIXTURE }))
 }
 
 // `.theme-dark` is applied by DashboardShell.tsx from React state
@@ -111,6 +146,7 @@ function chromeMasks(page: Page) {
 // board's 10s poll). Seed the zustand-persist localStorage key *before* the
 // app boots instead, so DashboardShell reads the mode on first render.
 async function gotoWithTheme(page: Page, path: string, mode: 'light' | 'dark'): Promise<void> {
+  await mockStaffRoster(page)
   await page.addInitScript((theme) => {
     localStorage.setItem(
       'patelrep-ui-prefs',
