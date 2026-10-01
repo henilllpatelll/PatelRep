@@ -154,6 +154,13 @@ async function gotoWithTheme(page: Page, path: string, mode: 'light' | 'dark'): 
     )
   }, mode)
   await page.goto(path)
+  // Sidebar desktop width follows hover state rather than the persisted UI
+  // preference. Playwright's initial pointer position can land inside it,
+  // leaving it expanded and shifting the whole capture horizontally. Move to
+  // stable content chrome and wait through the width transition so every
+  // baseline begins from the intended collapsed shell.
+  await page.mouse.move(1200, 700)
+  await expect(page.locator('aside[aria-label="Main navigation"]')).toHaveCSS('width', '64px')
   if (mode === 'dark') {
     // Housekeeping redesign Phase 10 dark-mode portal fix: DashboardShell.tsx
     // now mirrors theme/density/accent classes onto document.body (in
