@@ -12,15 +12,28 @@ from models.requests import (
 )
 
 
-def test_string_inputs_are_trimmed_normalized_and_html_escaped():
+def test_string_inputs_are_trimmed_normalized_and_control_chars_stripped():
     request = CreateTaskRequest(
         title="  <script>alert(1)</script>\x00  ",
         description="Guest\tneeds    towels",
         task_type="housekeeping",
     )
 
-    assert request.title == "&lt;script&gt;alert(1)&lt;/script&gt;"
+    # Not HTML-escaped: output encoding happens at render time (React/RN text
+    # nodes), so storage keeps plain text like "Lost & Found Room" intact.
+    assert request.title == "<script>alert(1)</script>"
     assert request.description == "Guest needs towels"
+
+
+def test_ampersand_round_trips_without_html_entity_corruption():
+    request = CreateTaskRequest(
+        title="Lost & Found Room",
+        description="AT&T issue",
+        task_type="housekeeping",
+    )
+
+    assert request.title == "Lost & Found Room"
+    assert request.description == "AT&T issue"
 
 
 def test_required_text_fields_reject_blank_after_sanitization():

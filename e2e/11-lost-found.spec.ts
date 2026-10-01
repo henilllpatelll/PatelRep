@@ -1,37 +1,39 @@
-/**
- * Lost & Found — tabs, item list/empty state, add item button.
- */
+/** Lost & Found Phase 1 inventory controls and item-detail drawer. */
 import { test, expect } from '@playwright/test'
 
-test.describe('Lost & Found', () => {
+test.describe('Lost & Found inventory', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/lost-found')
     await page.waitForLoadState('networkidle')
   })
 
-  test('loads without error', async ({ page }) => {
+  test('loads dense inventory controls and status filters', async ({ page }) => {
     await expect(page).not.toHaveURL(/login/)
-    await expect(page.locator('text=Application error')).not.toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Lost & Found' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Held' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Returned' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'All' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Search items' })).toBeVisible()
+    await page.getByRole('button', { name: 'Returned' }).click()
+    await expect(page.getByRole('button', { name: 'Returned' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  test('status tabs are rendered', async ({ page }) => {
-    // Tabs include a count badge so the accessible name is e.g. "All 3" or just "All"
-    // Match by contained text to handle both cases
-    await expect(page.locator('button', { hasText: /^All/ }).first()).toBeVisible()
-    await expect(page.locator('button', { hasText: /^Claimed/ }).first()).toBeVisible()
-  })
+  test('search and drawer tabs work when an inventory item exists', async ({ page }) => {
+    const rows = page.getByTestId('lost-found-item')
+    if (await rows.count() === 0) test.skip(true, 'No Lost & Found inventory is available for drawer coverage')
 
-  test('switching tabs does not crash', async ({ page }) => {
-    await page.locator('button', { hasText: /^Claimed/ }).first().click()
-    await expect(page.locator('text=Application error')).not.toBeVisible()
-  })
+    const firstRow = rows.first()
+    const description = (await firstRow.locator('td').nth(1).innerText()).split('\n')[0]
+    await page.getByRole('textbox', { name: 'Search items' }).fill(description)
+    await expect(rows.first()).toContainText(description)
+    await firstRow.click()
 
-  test('add item button is visible', async ({ page }) => {
-    const addBtn = page.getByRole('button', { name: /add item|log item|new item|log found/i })
-    if (await addBtn.count() > 0) {
-      await expect(addBtn.first()).toBeVisible()
-    } else {
-      test.skip()
-    }
+    const drawer = page.getByRole('dialog')
+    await expect(drawer).toBeVisible()
+    await expect(drawer.getByRole('tab', { name: 'Details' })).toHaveAttribute('aria-selected', 'true')
+    await drawer.getByRole('tab', { name: 'Custody' }).click()
+    await expect(drawer.getByRole('tab', { name: 'Custody' })).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('Escape')
+    await expect(drawer).not.toBeVisible()
   })
 })

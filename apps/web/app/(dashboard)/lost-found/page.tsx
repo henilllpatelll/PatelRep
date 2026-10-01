@@ -1,674 +1,111 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
-import {
-  Package,
-  Plus,
-  Clock,
-  X,
-  MapPin,
-  User,
-  CheckCircle,
-} from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatDistanceToNow } from 'date-fns'
-import { useTranslation } from 'react-i18next'
-import {
-  lostFoundApi,
-  isDispositionDue,
-  type LostFoundItem,
-  type LostFoundStatus,
-  type LostFoundCustodyEvent,
-} from '@/lib/api/lost_found'
-import { useRole } from '@/lib/hooks/useRole'
-import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
-import { Button, IconButton } from '@/components/ui/Button'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { ImageIcon, Package, Plus, Search, SlidersHorizontal } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/Button'
+import { Pill } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Pill, SectionLabel } from '@/components/ui/primitives'
-import { KebabMenu } from '@/components/shared/KebabMenu'
-import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Card } from '@/components/ui/Card'
 import { StateBlock } from '@/components/ui/StateBlock'
-import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
-import { useHotelStore } from '@/stores/hotelStore'
-import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { LogFoundItemDrawer } from '@/components/lost-found/LogFoundItemDrawer'
+import { LostFoundItemDrawer } from '@/components/lost-found/LostFoundItemDrawer'
+import { GuestClaimDrawer } from '@/components/lost-found/GuestClaimDrawer'
+import { GuestClaimsWorkspace } from '@/components/lost-found/GuestClaimsWorkspace'
+import { ReturnsWorkspace } from '@/components/lost-found/ReturnsWorkspace'
+import { DispositionWorkspace } from '@/components/lost-found/DispositionWorkspace'
+import { isDispositionDue, lostFoundApi, type LostFoundCategory, type LostFoundClaimCapabilities, type LostFoundItem, type LostFoundStatus } from '@/lib/api/lost_found'
+import { formatItemAge, formatLostFoundDate, invalidateLostFound, itemDerivedStatus, itemFinderName, itemFoundLocation, LOST_FOUND_DERIVED_STATUS_LABEL, LOST_FOUND_DERIVED_STATUS_TONE } from '@/lib/utils/lostFoundInventory'
 import { cn } from '@/lib/utils'
 
-const STATUS_TONE: Record<LostFoundStatus, 'info' | 'ready' | 'ai' | 'neutral'> = {
-  unclaimed: 'info',
-  claimed: 'ready',
-  donated: 'ai',
-  discarded: 'neutral',
+const DEFAULT_CAPABILITIES: LostFoundClaimCapabilities = {
+  canViewClaims: false, canCreateClaim: false, canEditClaim: false,
+  canReviewMatch: false, canConfirmMatch: false, canCancelClaim: false,
 }
 
-const STATUS_LABELS: Record<LostFoundStatus, string> = {
-  unclaimed: 'Unclaimed',
-  claimed: 'Claimed',
-  donated: 'Donated',
-  discarded: 'Discarded',
+const STATUS_FILTERS: Array<{ label: string; value: LostFoundStatus | 'all' }> = [
+  { label: 'Held', value: 'unclaimed' }, { label: 'Returned', value: 'claimed' }, { label: 'Donated', value: 'donated' }, { label: 'Discarded', value: 'discarded' }, { label: 'All', value: 'all' },
+]
+const CATEGORIES: Array<{ label: string; value: LostFoundCategory | 'all' }> = [
+  { label: 'All categories', value: 'all' }, { label: 'Electronics', value: 'electronics' }, { label: 'Clothing', value: 'clothing' }, { label: 'Jewelry', value: 'jewelry' }, { label: 'Bags & luggage', value: 'bags_luggage' }, { label: 'Keys', value: 'keys' }, { label: 'Wallets & cards', value: 'wallets_cards' }, { label: 'Documents', value: 'documents' }, { label: 'Medical', value: 'medical' }, { label: 'Other', value: 'other' },
+]
+
+function Thumbnail({ item }: { item: LostFoundItem }) {
+  return item.photo_url ? <img src={item.photo_url} alt={`Photo of ${item.description}`} className="h-9 w-9 rounded-lg border border-line object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-2 text-ink3"><ImageIcon size={16} /></span>
 }
-
-// -- Skeleton Card -----------------------------------------------------------
-
-function SkeletonCard() {
-  return (
-    <Card hover={false} className="p-4 animate-pulse">
-      <div className="flex items-center justify-between mb-2">
-        <div className="h-5 w-20 bg-gray-200 rounded-full" />
-        <div className="h-3 w-24 bg-gray-100 rounded" />
-      </div>
-      <div className="h-4 w-3/4 bg-gray-200 rounded mb-2" />
-      <div className="h-3 w-1/2 bg-gray-100 rounded mb-3" />
-      <div className="flex gap-2 pt-2 border-t border-gray-100">
-        <div className="h-7 w-24 bg-gray-200 rounded-lg" />
-      </div>
-    </Card>
-  )
-}
-
-function SkeletonCardV2() {
-  return (
-    <div className="rounded-[var(--r-lg)] border border-line-2 bg-surface-2 p-4 animate-pulse">
-      <div className="flex items-center justify-between mb-2">
-        <div className="h-5 w-20 rounded-full bg-surface-3" />
-        <div className="h-3 w-24 rounded bg-surface-3" />
-      </div>
-      <div className="h-4 w-3/4 rounded bg-surface-3 mb-2" />
-      <div className="h-3 w-1/2 rounded bg-surface-3 mb-3" />
-      <div className="flex gap-2 pt-2 border-t border-line-2">
-        <div className="h-7 w-24 rounded-lg bg-surface-3" />
-      </div>
-    </div>
-  )
-}
-
-// -- Custody History -----------------------------------------------------------
-
-const CUSTODY_EVENT_LABELS: Record<LostFoundCustodyEvent['event_type'], string> = {
-  intake: 'Logged',
-  moved: 'Moved',
-  released: 'Released',
-  disposition: 'Disposition approved',
-}
-
-function CustodyHistory({ itemId }: { itemId: string }) {
-  const [expanded, setExpanded] = useState(false)
-
-  const { data: events, isLoading } = useQuery({
-    queryKey: ['lost-found-custody', itemId],
-    queryFn: () => lostFoundApi.listCustodyEvents(itemId),
-    select: (res) => res.data,
-    enabled: expanded,
-  })
-
-  return (
-    <div className="mt-2 pt-2 border-t border-gray-100">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3 hover:text-ink2 transition-colors"
-      >
-        Custody history {expanded ? '▲' : '▼'}
-      </button>
-      {expanded && (
-        <div className="mt-2 space-y-2">
-          {isLoading ? (
-            <p className="text-[12px] text-ink3">Loading...</p>
-          ) : events && events.length > 0 ? (
-            events.map((event) => (
-              <div key={event.id} className="text-[12px] text-ink3">
-                <span className="font-medium text-ink2">
-                  {CUSTODY_EVENT_LABELS[event.event_type]}
-                </span>
-                {' · '}
-                {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
-                {event.storage_location && <div>Storage: {event.storage_location}</div>}
-                {event.recipient_name && <div>Recipient: {event.recipient_name}</div>}
-                {event.verification_method && <div>Verified via: {event.verification_method}</div>}
-                {event.disposition && <div>Disposition: {event.disposition}</div>}
-                {event.note && <div className="italic">{event.note}</div>}
-              </div>
-            ))
-          ) : (
-            <p className="text-[12px] text-ink3">No custody events recorded.</p>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// -- Item Card ---------------------------------------------------------------
-
-interface ItemCardProps {
-  item: LostFoundItem
-  canAct: boolean
-  canApproveDisposition: boolean
-  onMarkClaimed: (item: LostFoundItem) => void
-  onEdit: (item: LostFoundItem) => void
-  onDelete: (item: LostFoundItem) => void
-  onApproveDisposition: (item: LostFoundItem) => void
-}
-
-function ItemCard({
-  item,
-  canAct,
-  canApproveDisposition,
-  onMarkClaimed,
-  onEdit,
-  onDelete,
-  onApproveDisposition,
-}: ItemCardProps) {
-  const staffName =
-    item.user_profiles?.preferred_name ||
-    item.user_profiles?.full_name ||
-    'Unknown'
-
-  const dispositionDue = isDispositionDue(item)
-
-  return (
-    <Card className="p-4">
-      {/* Top row: status badge + disposition-due flag + time + kebab */}
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-1.5">
-          <Pill tone={STATUS_TONE[item.status]}>{STATUS_LABELS[item.status]}</Pill>
-          {dispositionDue && <Pill tone="caution">Due for disposition</Pill>}
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-400 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-          </span>
-          <KebabMenu onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} />
-        </div>
-      </div>
-
-      {/* Photo */}
-      {item.photo_url && (
-        <a href={item.photo_url} target="_blank" rel="noopener noreferrer" className="block mb-2 rounded-lg overflow-hidden border border-line">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.photo_url} alt="Found item" className="w-full h-52 object-cover hover:opacity-90 transition-opacity" />
-        </a>
-      )}
-
-      {/* Description */}
-      <p className="font-semibold text-gray-900 text-sm leading-snug mb-2">
-        {item.description}
-      </p>
-
-      {/* Meta row */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
-        {item.location_found && (
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {item.location_found}
-          </span>
-        )}
-
-        <span className="flex items-center gap-1">
-          <User className="w-3 h-3" />
-          {staffName}
-        </span>
-
-        {item.tag_identifier && (
-          <span className="font-mono">{item.tag_identifier}</span>
-        )}
-      </div>
-
-      {/* Retention line (D-10) */}
-      {item.status === 'unclaimed' && item.retention_due_at && !dispositionDue && (
-        <p className="flex items-center gap-1 text-[12px] text-ink3 mb-3">
-          <Clock className="w-3 h-3" />
-          Retention ends {formatDistanceToNow(new Date(item.retention_due_at), { addSuffix: true })}
-        </p>
-      )}
-
-      {/* Notes */}
-      {item.notes && (
-        <p className="text-xs text-gray-500 italic mb-3 line-clamp-2">{item.notes}</p>
-      )}
-
-      {/* Mark Claimed button */}
-      {canAct && (
-        <div className="pt-2 border-t border-gray-100">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => onMarkClaimed(item)}
-            className="w-full gap-1 bg-[var(--ready)]"
-          >
-            <CheckCircle className="w-3 h-3" />
-            Release Item
-          </Button>
-        </div>
-      )}
-
-      {/* Approve Disposition button (D-11, D-12) */}
-      {canApproveDisposition && item.status === 'unclaimed' && (
-        <div className={cn('pt-2', !canAct && 'border-t border-gray-100')}>
-          <Button
-            variant={dispositionDue ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => onApproveDisposition(item)}
-            className={cn('w-full', dispositionDue && 'bg-[var(--caution)]')}
-          >
-            Approve Disposition
-          </Button>
-        </div>
-      )}
-
-      <CustodyHistory itemId={item.id} />
-    </Card>
-  )
-}
-
-// -- Edit Item Modal ---------------------------------------------------------
-
-interface EditItemModalProps {
-  item: LostFoundItem | null
-  onClose: () => void
-  onSaved: () => void
-}
-
-function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const [form, setForm] = useState({
-    description: item?.description ?? '',
-    location_found: item?.location_found ?? '',
-  })
-  const [error, setError] = useState<string | null>(null)
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      lostFoundApi.updateItem(item!.id, {
-        description: form.description.trim() || undefined,
-        location_found: form.location_found.trim() || undefined,
-      }),
-    onSuccess: () => { setError(null); onSaved() },
-    onError: (err: Error) => setError(err.message || 'Failed to save'),
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!form.description.trim()) { setError('Description is required.'); return }
-    setError(null)
-    mutate()
-  }
-
-  useModalFocusTrap(dialogRef, !!item, onClose)
-  if (!item) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 id="edit-lost-found-title" className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
-          <IconButton variant="ghost" onClick={onClose} aria-label="Close">
-            <X className="w-4 h-4" />
-          </IconButton>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location Found</label>
-            <input type="text" value={form.location_found} onChange={(e) => setForm((f) => ({ ...f, location_found: e.target.value }))} placeholder="e.g. Room 204, Pool area" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-[var(--alert)]">*</span></label>
-            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-          </div>
-          {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
-          <div className="flex gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-            <Button type="submit" variant="primary" loading={isPending} disabled={!form.description.trim()} className="flex-1">
-              {isPending ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// -- Main Page ---------------------------------------------------------------
 
 export default function LostFoundPage() {
-  const { t } = useTranslation()
-  const hotel = useHotelStore((s) => s.hotel)
-  const v2 = isSectionRedesigned('lostFound', hotel)
-  const { isGM, role } = useRole()
   const queryClient = useQueryClient()
-
-  const isFrontDesk = role === 'front_desk'
-  const isSupervisor = role === 'housekeeping_supervisor'
-  const canCreate = isGM || isFrontDesk || isSupervisor
-  const canAct = isGM || isFrontDesk || isSupervisor
-  // D-12: front_desk is included deliberately — the user explicitly rejected narrowing this to supervisor+.
-  const canApproveDisposition = isGM || role === 'housekeeping_supervisor' || role === 'front_desk'
-
-  const [search, setSearch] = useState('')
-  const [showLogModal, setShowLogModal] = useState(false)
-  const [claimTarget, setClaimTarget] = useState<LostFoundItem | null>(null)
-  const [releaseRecipient, setReleaseRecipient] = useState('')
-  const [verificationMethod, setVerificationMethod] = useState('')
-  const [editTarget, setEditTarget] = useState<LostFoundItem | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
-  const [dispositionDueOnly, setDispositionDueOnly] = useState(false)
-  const [dispositionTarget, setDispositionTarget] = useState<LostFoundItem | null>(null)
-  const [dispositionChoice, setDispositionChoice] = useState<'donated' | 'discarded'>('donated')
-  const [dispositionNote, setDispositionNote] = useState('')
-  const [dispositionError, setDispositionError] = useState<string | null>(null)
-  const dispositionDialogRef = useRef<HTMLFormElement>(null)
-
-  const { data: items, isLoading, isError, refetch } = useQuery({
-    queryKey: ['lost-found', dispositionDueOnly],
-    queryFn: () =>
-      lostFoundApi.listItems({ per_page: 100, disposition_due: dispositionDueOnly }),
-    select: (res) => res.data as LostFoundItem[],
-    refetchInterval: 60_000,
-  })
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return items ?? []
-    const q = search.toLowerCase()
-    return (items ?? []).filter((i) => i.description.toLowerCase().includes(q))
-  }, [items, search])
-
-  const { mutate: deleteItem, isPending: deleting } = useMutation({
-    mutationFn: (id: string) => lostFoundApi.deleteItem(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['lost-found'] })
-      const previous = queryClient.getQueryData(['lost-found'])
-      queryClient.setQueryData(['lost-found'], (old: any) => {
-        if (!old?.data) return old
-        return { ...old, data: old.data.filter((i: LostFoundItem) => i.id !== id) }
-      })
-      setClaimTarget(null)
-      setDeleteTarget(null)
-      return { previous }
-    },
-    onError: (_err, _id, context: any) => {
-      if (context?.previous) queryClient.setQueryData(['lost-found'], context.previous)
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-    },
-  })
-
-  const { mutate: releaseItem, isPending: releasing } = useMutation({
-    mutationFn: (item: LostFoundItem) =>
-      lostFoundApi.recordCustodyEvent(item.id, {
-        event_type: 'released',
-        recipient_name: releaseRecipient.trim(),
-        verification_method: verificationMethod.trim(),
-      }),
-    onSuccess: () => {
-      setClaimTarget(null)
-      setReleaseRecipient('')
-      setVerificationMethod('')
-      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-    },
-  })
-
-  const { mutate: approveDisposition, isPending: approvingDisposition } = useMutation({
-    mutationFn: (item: LostFoundItem) =>
-      lostFoundApi.recordCustodyEvent(item.id, {
-        event_type: 'disposition',
-        disposition: dispositionChoice,
-        note: dispositionNote.trim() || undefined,
-      }),
-    onSuccess: () => {
-      setDispositionTarget(null)
-      setDispositionNote('')
-      setDispositionError(null)
-      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-      queryClient.invalidateQueries({ queryKey: ['lost-found-custody'] })
-    },
-    onError: (err: any) => setDispositionError(err?.message || 'Failed to approve disposition'),
-  })
-
-  useModalFocusTrap(dispositionDialogRef, !!dispositionTarget, () => setDispositionTarget(null))
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Operations"
-        title={v2 ? t('lostFound.pageTitle') : 'Lost & Found'}
-        subtitle={v2 ? t('lostFound.pageSubtitle') : (items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items')}
-        dataI18nSkip={v2}
-        actions={canCreate && (
-          <Button variant="primary" onClick={() => setShowLogModal(true)} className="shrink-0">
-            <Plus className="w-4 h-4" />
-            Log Found Item
-          </Button>
-        )}
-      />
-
-      {/* Search + filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search lost and found items"
-          placeholder="Search by description..."
-          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-        />
-        <button
-          type="button"
-          onClick={() => setDispositionDueOnly((v) => !v)}
-          aria-pressed={dispositionDueOnly}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
-            dispositionDueOnly
-              ? 'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]'
-              : 'bg-surface text-gray-500 border-gray-300 hover:bg-surface-2'
-          )}
-        >
-          Due for disposition
-        </button>
-      </div>
-
-      {/* Items grid */}
-      <SectionLabel>Items</SectionLabel>
-      {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {v2 ? (
-            <>
-              <SkeletonCardV2 />
-              <SkeletonCardV2 />
-              <SkeletonCardV2 />
-            </>
-          ) : (
-            <>
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-            </>
-          )}
-        </div>
-      ) : v2 && isError ? (
-        <StateBlock status="error" error={{ message: t('lostFound.loadError'), onRetry: () => refetch() }} />
-      ) : filtered.length === 0 ? (
-        v2 ? (
-          <StateBlock
-            status="empty"
-            empty={{
-              icon: <Package className="w-5 h-5" />,
-              title: dispositionDueOnly ? t('lostFound.dispositionDueEmpty.title') : t('lostFound.empty.title'),
-              body: dispositionDueOnly
-                ? t('lostFound.dispositionDueEmpty.body')
-                : search
-                ? t('lostFound.noMatch', { search })
-                : t('lostFound.empty.body'),
-              className: 'py-16',
-            }}
-          />
-        ) : (
-          <EmptyState
-            icon={<Package className="w-5 h-5" />}
-            title={dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
-            body={
-              dispositionDueOnly
-                ? 'Items flagged after their 90-day retention period passes will show up here for manager review.'
-                : search
-                ? `No items match "${search}"`
-                : 'No lost & found items logged yet.'
-            }
-            className="py-16"
-          />
-        )
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              canAct={canAct}
-              canApproveDisposition={canApproveDisposition}
-              onMarkClaimed={setClaimTarget}
-              onEdit={setEditTarget}
-              onDelete={setDeleteTarget}
-              onApproveDisposition={(target) => {
-                setDispositionTarget(target)
-                setDispositionChoice('donated')
-                setDispositionNote('')
-                setDispositionError(null)
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Log Item Modal */}
-      <LogFoundItemModal
-        isOpen={showLogModal}
-        onClose={() => setShowLogModal(false)}
-        onCreate={() => {
-          setShowLogModal(false)
-          queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-        }}
-      />
-
-      {/* Edit Modal */}
-      <EditItemModal
-        key={editTarget?.id ?? ''}
-        item={editTarget}
-        onClose={() => setEditTarget(null)}
-        onSaved={() => {
-          setEditTarget(null)
-          queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-        }}
-      />
-
-      {claimTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setClaimTarget(null)} />
-          <form
-            className="relative z-10 w-full max-w-md rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-xl"
-            onSubmit={(event) => { event.preventDefault(); releaseItem(claimTarget) }}
-          >
-            <h2 className="text-lg font-semibold text-ink">Release found item</h2>
-            <p className="mt-1 text-sm text-ink3">Record who received this item and how their identity was verified.</p>
-            <label className="mt-4 block text-sm font-medium text-ink2">
-              Recipient name
-              <input required value={releaseRecipient} onChange={(event) => setReleaseRecipient(event.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" />
-            </label>
-            <label className="mt-3 block text-sm font-medium text-ink2">
-              Verification method
-              <input required value={verificationMethod} onChange={(event) => setVerificationMethod(event.target.value)} placeholder="Photo ID, matching description, signature" className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" />
-            </label>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setClaimTarget(null)}>Cancel</Button>
-              <Button type="submit" variant="primary" disabled={releasing || !releaseRecipient.trim() || !verificationMethod.trim()}>
-                {releasing ? 'Recording...' : 'Record Release'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {dispositionTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setDispositionTarget(null)} />
-          <form
-            ref={dispositionDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="approve-disposition-title"
-            tabIndex={-1}
-            className="relative z-10 w-full max-w-md rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-xl"
-            onSubmit={(event) => { event.preventDefault(); approveDisposition(dispositionTarget) }}
-          >
-            <h2 id="approve-disposition-title" className="text-[20px] font-semibold text-ink">
-              Approve disposition: mark as {dispositionChoice}
-            </h2>
-            <p className="mt-1 text-sm text-ink3">
-              This creates a permanent, append-only record and cannot be undone.
-            </p>
-
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDispositionChoice('donated')}
-                className={cn(
-                  'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                  dispositionChoice === 'donated'
-                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                    : 'border-line text-ink2 hover:bg-surface-2'
-                )}
-              >
-                Donated
-              </button>
-              <button
-                type="button"
-                onClick={() => setDispositionChoice('discarded')}
-                className={cn(
-                  'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                  dispositionChoice === 'discarded'
-                    ? 'border-[var(--alert)] bg-[var(--alert-soft)] text-[var(--alert)]'
-                    : 'border-line text-ink2 hover:bg-surface-2'
-                )}
-              >
-                Discarded
-              </button>
-            </div>
-
-            <label className="mt-3 block text-sm font-medium text-ink2">
-              Note (optional)
-              <textarea
-                value={dispositionNote}
-                onChange={(event) => setDispositionNote(event.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm resize-none"
-              />
-            </label>
-
-            {dispositionError && (
-              <p className="mt-3 text-[12px] text-[var(--alert)]">{dispositionError}</p>
-            )}
-
-            <div className="mt-5 flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setDispositionTarget(null)}>Cancel</Button>
-              <Button type="submit" variant="primary" disabled={approvingDisposition}>
-                {approvingDisposition ? 'Approving...' : 'Approve Disposition'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Delete confirm */}
-      <DeleteConfirmDialog
-        open={!!deleteTarget}
-        title={`Delete "${deleteTarget?.description ?? 'item'}"`}
-        onConfirm={() => deleteTarget && deleteItem(deleteTarget.id)}
-        onCancel={() => setDeleteTarget(null)}
-        loading={deleting}
-      />
-    </div>
+  const searchParams = useSearchParams()
+  const capabilityQuery = useQuery({ queryKey: ['lost-found-capabilities'], queryFn: lostFoundApi.getCapabilities, select: (response) => response.data })
+  const canManage = capabilityQuery.data?.canLogFoundItem ?? capabilityQuery.data?.canCreateClaim ?? false
+  const capabilities = capabilityQuery.data ?? DEFAULT_CAPABILITIES
+  const initialView = searchParams.get('view')
+  const [workspace, setWorkspace] = useState<'inventory' | 'claims' | 'returns' | 'disposition'>(
+    initialView === 'claims' || initialView === 'returns' || initialView === 'disposition' ? initialView : 'inventory',
   )
+  const [status, setStatus] = useState<LostFoundStatus | 'all'>('unclaimed')
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [category, setCategory] = useState<LostFoundCategory | 'all'>('all')
+  const [storage, setStorage] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [dispositionDueOnly, setDispositionDueOnly] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [showIntake, setShowIntake] = useState(false)
+  const [showClaimDrawer, setShowClaimDrawer] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<LostFoundItem | null>(null)
+  const deepLinkId = searchParams.get('item')
+  const deepLinkClaimId = searchParams.get('claim')
+  const deepLinkReturnId = searchParams.get('return')
+
+  useEffect(() => { const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 300); return () => window.clearTimeout(timeout) }, [search])
+  const params = useMemo(() => ({ per_page: 100, status: status === 'all' ? undefined : status, search: debouncedSearch || undefined, category: category === 'all' ? undefined : category, storage: storage || undefined, date_from: dateFrom || undefined, date_to: dateTo || undefined, disposition_due: dispositionDueOnly || undefined }), [status, debouncedSearch, category, storage, dateFrom, dateTo, dispositionDueOnly])
+  const inventoryQuery = useQuery({ queryKey: ['lost-found', 'inventory', params], queryFn: () => lostFoundApi.listItems(params), select: (response) => response.data, refetchInterval: 60_000 })
+  const summaryQuery = useQuery({ queryKey: ['lost-found', 'summary'], queryFn: () => lostFoundApi.listItems({ per_page: 100 }), select: (response) => response.data, refetchInterval: 60_000 })
+  const claimsSummaryQuery = useQuery({ queryKey: ['lost-found-claims-summary'], queryFn: lostFoundApi.claimSummary, select: (response) => response.data, enabled: capabilities.canViewClaims })
+  const returnsSummaryQuery = useQuery({ queryKey: ['lost-found-returns-summary'], queryFn: lostFoundApi.returnsSummary, select: (response) => response.data })
+  const dispositionSummaryQuery = useQuery({ queryKey: ['lost-found-disposition-summary'], queryFn: lostFoundApi.dispositionSummary, select: (response) => response.data })
+  const deepLinkQuery = useQuery({ queryKey: ['lost-found', 'item', deepLinkId], queryFn: () => lostFoundApi.getItem(deepLinkId!), enabled: Boolean(deepLinkId), retry: false })
+  const deepLinkClaimQuery = useQuery({ queryKey: ['lost-found-claim', deepLinkClaimId], queryFn: () => lostFoundApi.getClaim(deepLinkClaimId!), enabled: Boolean(deepLinkClaimId) && workspace === 'claims', retry: false })
+  useEffect(() => { if (deepLinkQuery.data?.data) setSelectedItem(deepLinkQuery.data.data) }, [deepLinkQuery.data])
+
+  const items = inventoryQuery.data ?? []
+  const summary = summaryQuery.data ?? []
+  const held = summary.filter((item) => item.status === 'unclaimed').length
+  const due = summary.filter((item) => isDispositionDue(item)).length
+  const filtersActive = Boolean(category !== 'all' || storage || dateFrom || dateTo || dispositionDueOnly)
+  const invalidate = () => invalidateLostFound(queryClient)
+  const clear = () => { setStatus('unclaimed'); setSearch(''); setDebouncedSearch(''); setCategory('all'); setStorage(''); setDateFrom(''); setDateTo(''); setDispositionDueOnly(false); setFiltersOpen(false) }
+  const closeItem = () => { setSelectedItem(null); if (deepLinkId) { const url = new URL(window.location.href); url.searchParams.delete('item'); window.history.replaceState({}, '', url) } }
+
+  const switchWorkspace = (next: 'inventory' | 'claims' | 'returns' | 'disposition') => { setWorkspace(next); const url = new URL(window.location.href); url.searchParams.set('view', next); window.history.replaceState({}, '', url) }
+  const returnsSummary = returnsSummaryQuery.data
+  const tabCounts: Record<'inventory' | 'claims' | 'returns' | 'disposition', number | undefined> = {
+    inventory: held,
+    claims: capabilities.canViewClaims ? claimsSummaryQuery.data?.open : undefined,
+    returns: returnsSummary ? returnsSummary.awaiting_return + returnsSummary.ready_for_pickup + returnsSummary.shipping : undefined,
+    disposition: dispositionSummaryQuery.data?.due_now,
+  }
+  return <div className="space-y-6">
+    <PageHeader eyebrow="Operations" title="Lost & Found" subtitle="Track, match, store and return guest property" actions={canManage && <div className="flex gap-2"><Button variant="outline" onClick={() => setShowClaimDrawer(true)}><Plus size={16} /> Guest Claim</Button><Button variant="primary" onClick={() => setShowIntake(true)}><Plus size={16} /> Log Found Item</Button></div>} />
+    <nav aria-label="Lost and found workspace" className="flex gap-1 border-b border-line">
+      {([['inventory', 'Inventory'], ['claims', 'Guest Claims'], ['returns', 'Returns'], ['disposition', 'Disposition']] as const).map(([value, label]) => (
+        <button key={value} type="button" aria-current={workspace === value ? 'page' : undefined} onClick={() => switchWorkspace(value)} className={cn('px-3 py-2 text-sm font-medium', workspace === value ? 'border-b-2 border-accent text-ink' : 'text-ink3')}>{label}{tabCounts[value] !== undefined && <span className="ml-1.5 text-ink3">{tabCounts[value]}</span>}</button>
+      ))}
+    </nav>
+    {workspace === 'inventory' && <>
+    <section aria-label="Lost and found summary" className="flex w-full divide-x divide-line overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface sm:w-fit"><div className="min-w-[154px] px-5 py-4"><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">Items held</p><p className="mt-1 font-display text-[30px] leading-none tabular-nums text-ink">{held}</p></div><div className="min-w-[190px] px-5 py-4"><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">Due for disposition</p><p className={cn('mt-1 font-display text-[30px] leading-none tabular-nums', due ? 'text-caution' : 'text-ink')}>{due}</p></div></section>
+    <section aria-labelledby="inventory-heading"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 id="inventory-heading" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">Inventory</h2><div className="flex w-full flex-wrap gap-2 sm:w-auto"><label className="relative flex-1 sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink3" size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search items, tags, or storage…" aria-label="Search items, tags, or storage" className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/30" /></label><div className="relative"><Button variant="outline" size="sm" aria-expanded={filtersOpen} aria-controls="lost-found-filters" onClick={() => setFiltersOpen((open) => !open)}><SlidersHorizontal size={15} /> Filters{filtersActive && ' · Active'}</Button>{filtersOpen && <div id="lost-found-filters" className="absolute right-0 z-20 mt-2 w-[300px] rounded-xl border border-line bg-surface p-4 shadow-pop"><p className="text-sm font-semibold text-ink">Filters</p><label className="mt-3 block text-xs font-medium text-ink2">Category<select value={category} onChange={(event) => setCategory(event.target.value as LostFoundCategory | 'all')} className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-ink">{CATEGORIES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="mt-3 block text-xs font-medium text-ink2">Storage contains<input value={storage} onChange={(event) => setStorage(event.target.value)} placeholder="e.g. Safe" className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-ink" /></label><label className="mt-3 block text-xs font-medium text-ink2">Found from<input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-ink" /></label><label className="mt-3 block text-xs font-medium text-ink2">Found through<input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm text-ink" /></label><label className="mt-3 flex items-center gap-2 text-sm text-ink2"><input type="checkbox" checked={dispositionDueOnly} onChange={(event) => setDispositionDueOnly(event.target.checked)} /> Due for disposition</label>{filtersActive && <button type="button" className="mt-3 text-xs font-medium text-accent hover:underline" onClick={clear}>Clear filters</button>}</div>}</div></div></div><div role="group" aria-label="Status filters" className="mb-4 flex flex-wrap gap-1.5">{STATUS_FILTERS.map((filter) => <button key={filter.value} type="button" aria-pressed={status === filter.value} onClick={() => setStatus(filter.value)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30', status === filter.value ? 'border-accent-line bg-accent-soft text-accent' : 'border-line bg-surface text-ink3 hover:bg-surface-2')}>{filter.label}</button>)}</div>
+      {inventoryQuery.isLoading || summaryQuery.isLoading ? <div className="rounded-[var(--r-lg)] border border-line bg-surface p-8 text-sm text-ink3">Loading inventory…</div> : inventoryQuery.isError || summaryQuery.isError ? <StateBlock status="error" error={{ message: "Couldn't load lost & found items", onRetry: () => { void inventoryQuery.refetch(); void summaryQuery.refetch() } }} /> : items.length === 0 ? <StateBlock status="empty" empty={{ icon: <Package size={20} />, title: summary.length === 0 ? 'No items currently held' : 'No matching items', body: summary.length === 0 ? 'Found items logged by staff will appear here.' : 'No items match the current search and filters.', action: summary.length === 0 && canManage ? <Button size="sm" onClick={() => setShowIntake(true)}><Plus size={14} /> Log Found Item</Button> : <Button variant="outline" size="sm" onClick={clear}>Clear filters</Button>, className: 'border border-line rounded-[var(--r-lg)] bg-surface py-16' }} /> : <div className="overflow-x-auto rounded-[var(--r-lg)] border border-line bg-surface"><table className="w-full min-w-[760px] text-left"><thead className="border-b border-line bg-surface-2"><tr className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink3"><th className="w-14 px-4 py-3">Photo</th><th className="px-3 py-3">Item</th><th className="px-3 py-3">Found</th><th className="px-3 py-3">Stored</th><th className="w-16 px-3 py-3">Age</th><th className="w-28 px-4 py-3">Status</th></tr></thead><tbody>{items.map((item) => { return <tr key={item.id} tabIndex={0} role="button" aria-label={`Open ${item.description}`} onClick={() => setSelectedItem(item)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedItem(item) } }} className="cursor-pointer border-b border-line last:border-b-0 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40"><td className="px-4 py-3"><Thumbnail item={item} /></td><td className="px-3 py-3"><p className="max-w-[240px] truncate text-sm font-semibold text-ink">{item.description}</p><p className="mt-0.5 text-xs text-ink3">{[item.tag_identifier, item.category?.replace('_', ' ')].filter(Boolean).join(' · ')}</p></td><td className="px-3 py-3"><p className="text-sm text-ink2">{itemFoundLocation(item)}</p><p className="mt-0.5 text-xs text-ink3">{formatLostFoundDate(item.found_at ?? item.created_at)} · {itemFinderName(item)}</p></td><td className="px-3 py-3 text-sm text-ink2">{item.storage_location || 'Not recorded'}</td><td className="px-3 py-3 font-mono text-xs text-ink3">{formatItemAge(item.found_at ?? item.created_at)}</td><td className="px-4 py-3"><div className="flex flex-wrap gap-1"><Pill tone={LOST_FOUND_DERIVED_STATUS_TONE[itemDerivedStatus(item)]} size="sm">{LOST_FOUND_DERIVED_STATUS_LABEL[itemDerivedStatus(item)]}</Pill>{item.classification === 'high_value' && <Pill tone="caution" size="sm">High value</Pill>}{item.classification === 'sensitive' && <Pill tone="alert" size="sm">Sensitive</Pill>}</div></td></tr> })}</tbody></table></div>}
+    </section>
+    </>}
+    {workspace === 'claims' && <GuestClaimsWorkspace capabilities={capabilities} initialClaim={deepLinkClaimQuery.data?.data ?? null} onNewClaim={() => setShowClaimDrawer(true)} />}
+    {workspace === 'returns' && <ReturnsWorkspace initialReturnId={deepLinkReturnId} />}
+    {workspace === 'disposition' && <DispositionWorkspace initialItemId={deepLinkId} canApprove={capabilities.canApproveDisposition ?? false} />}
+    <LogFoundItemDrawer isOpen={showIntake} onClose={() => setShowIntake(false)} onCreated={(item) => { setShowIntake(false); invalidate(); setSelectedItem(item) }} />
+    <GuestClaimDrawer isOpen={showClaimDrawer} onClose={() => setShowClaimDrawer(false)} onCreated={() => { setShowClaimDrawer(false); invalidate(); switchWorkspace('claims') }} />
+    {selectedItem && workspace === 'inventory' && <LostFoundItemDrawer key={selectedItem.id} item={selectedItem} capabilities={capabilities} onClose={closeItem} onItemUpdated={setSelectedItem} />}
+  </div>
 }

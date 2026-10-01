@@ -87,21 +87,15 @@
     },
     {
       "router": "lost_found.py",
-      "line": 170,
-      "code": "current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}",
-      "reason": "Custody-state gate (RBAC-AUDIT.md lost_found.py row)."
+      "line": 1320,
+      "code": "current_user.role not in LOST_FOUND_MANAGER_ROLES",
+      "reason": "Custody-state gate (RBAC-AUDIT.md lost_found.py row). Line shifted by Phase 4 additions; code now references the named LOST_FOUND_MANAGER_ROLES constant instead of an inline literal set."
     },
     {
       "router": "lost_found.py",
-      "line": 218,
-      "code": "current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}",
-      "reason": "One of the exact PATCH/DELETE gaps Phase 19's RBAC-03 review found and closed this milestone (\"2 GAPS FOUND AND CLOSED THIS PHASE\")."
-    },
-    {
-      "router": "lost_found.py",
-      "line": 256,
-      "code": "current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}",
-      "reason": "One of the exact PATCH/DELETE gaps Phase 19's RBAC-03 review found and closed this milestone (\"2 GAPS FOUND AND CLOSED THIS PHASE\")."
+      "line": 1386,
+      "code": "current_user.role not in LOST_FOUND_MANAGER_ROLES",
+      "reason": "One of the exact PATCH/DELETE gaps Phase 19's RBAC-03 review found and closed this milestone (\"2 GAPS FOUND AND CLOSED THIS PHASE\"). Line shifted by Phase 4 additions; code now references the named LOST_FOUND_MANAGER_ROLES constant instead of an inline literal set."
     },
     {
       "router": "rooms.py",

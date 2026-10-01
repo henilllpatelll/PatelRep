@@ -30090,6 +30090,618 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-01T02:17:55.540Z"
+    },
+    {
+      "id": "bug-1829",
+      "timestamp": "2026-10-01T01:16:00-05:00",
+      "error_message": "Focused repository search failed because the PowerShell Select-Object alias was invoked through rtk, which only proxies executables.",
+      "file": "apps/web/lib/api",
+      "root_cause": "A shell built-in was piped through the executable-only RTK proxy.",
+      "fix": "Use rtk only for executable commands and keep PowerShell pipeline commands inside rtk proxy powershell.",
+      "tags": [
+        "verification",
+        "rtk",
+        "powershell"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T01:16:00-05:00"
+    },
+    {
+      "id": "bug-1830",
+      "timestamp": "2026-10-01T01:19:00-05:00",
+      "error_message": "New Lost & Found Phase 2 contract tests failed: intake lacked backend RBAC and duplicate-tag protection; custody move lacked previous-location preservation and movement validation.",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "The Phase 1 route only provided UI-facing fields and accepted create requests without server-side mutation authorization or Phase 2 custody invariants.",
+      "fix": "In progress: add typed Phase 2 request models, tenant-unique tag checks, protected intake, and an append-only move contract before rerunning the focused suite.",
+      "tags": [
+        "lost-found",
+        "security",
+        "custody",
+        "test-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T01:19:00-05:00"
+    },
+    {
+      "id": "bug-1831",
+      "timestamp": "2026-10-01T01:52:00-05:00",
+      "error_message": "The attempted npm run typecheck verification command does not exist in apps/web.",
+      "file": "apps/web/package.json",
+      "root_cause": "The project names its TypeScript verification script type-check, not typecheck.",
+      "fix": "Ran npm run type-check successfully; use the package-defined command for future verification.",
+      "tags": [
+        "verification",
+        "typescript",
+        "npm"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T01:52:00-05:00"
+    },
+    {
+      "id": "bug-1832",
+      "timestamp": "2026-10-01T01:58:00-05:00",
+      "error_message": "Final verification initially ran the web frozen-file script and API test paths from the repository root, where those package-relative commands do not resolve.",
+      "file": "apps/web/package.json, apps/api/tests",
+      "root_cause": "The commands are intentionally scoped to their application working directories.",
+      "fix": "Reran check:frozen-files/type-check from apps/web and focused pytest from apps/api; both completed successfully.",
+      "tags": [
+        "verification",
+        "working-directory"
+      ],
+      "related_bugs": [
+        "bug-1831"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T01:58:00-05:00"
+    },
+    {
+      "id": "bug-1833",
+      "timestamp": "2026-10-01T02:10:00-05:00",
+      "error_message": "New Lost & Found Phase 3 matcher tests could not import rank_lost_found_matches during collection.",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "The Phase 2 Lost & Found router has no reusable, explainable claim-to-item scoring function.",
+      "fix": "In progress: add a pure tenant-safe matcher before implementing claim routes and UI.",
+      "tags": [
+        "lost-found",
+        "guest-claims",
+        "matching",
+        "test-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T02:10:00-05:00"
+    },
+    {
+      "id": "bug-1834",
+      "timestamp": "2026-10-01T02:14:00-05:00",
+      "error_message": "New guest-claim API contract tests returned 405 because Lost & Found has no claim endpoint or lifecycle policy.",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Phase 2 only models found-item inventory and custody; the guest-report side of recovery has not been added.",
+      "fix": "In progress: add additive claim tables, typed requests, tenant-scoped role-gated routes, and conflict-safe match confirmation.",
+      "tags": [
+        "lost-found",
+        "guest-claims",
+        "api",
+        "test-failure"
+      ],
+      "related_bugs": [
+        "bug-1833"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T02:14:00-05:00"
+    },
+    {
+      "id": "bug-1835",
+      "timestamp": "2026-10-01T02:24:00-05:00",
+      "error_message": "The Phase 3 matcher test still asserted the pre-validation fake item ID after the fixture switched to a UUIDv4 item ID for match-request validation.",
+      "file": "apps/api/tests/test_lost_found_claims.py",
+      "root_cause": "A fixture identifier changed, but its direct expected-value assertion was not updated.",
+      "fix": "Update the assertion to derive the expected ID from the fixture's valid UUID.",
+      "tags": [
+        "lost-found",
+        "tests",
+        "fixture"
+      ],
+      "related_bugs": [
+        "bug-1833"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T02:24:00-05:00"
+    },
+    {
+      "id": "bug-1836",
+      "timestamp": "2026-10-01T02:43:00-05:00",
+      "error_message": "Phase 3 guest-claim tests initially failed because scoring and guest-claim routes did not yet exist.",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "The Phase 2 implementation had only found-item inventory and custody behavior.",
+      "fix": "Added pure deterministic matching, typed claim lifecycle endpoints, a database uniqueness guard, and focused contracts; the 22-test Lost & Found API suite now passes.",
+      "tags": [
+        "lost-found",
+        "guest-claims",
+        "matching",
+        "fixed"
+      ],
+      "related_bugs": [
+        "bug-1833",
+        "bug-1834"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T02:43:00-05:00"
+    },
+    {
+      "id": "bug-1837",
+      "timestamp": "2026-10-01T02:47:00-05:00",
+      "error_message": "A second npm run dev instance could not start because the existing Next dev server already owns port 3000.",
+      "file": "apps/web/.next/dev/logs/next-development.log",
+      "root_cause": "An existing development server for the same app was already running on port 3000.",
+      "fix": "Used the already-running local server for read-only browser verification; no process was stopped or changed.",
+      "tags": [
+        "verification",
+        "nextjs",
+        "dev-server"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T02:47:00-05:00"
+    },
+    {
+      "id": "bug-1838",
+      "timestamp": "2026-10-01T04:33:52.133Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 10→25 lines (7 removed) | Also: matched_rows = (; supabase.table(\"lost_found_claims\").select(\"matche | Also: if current_user.role not in LOST_FOUND_MANAGER_ROL; raise HTTPException(status_code=403, detail=\"Not a",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-10-01T04:35:46.356Z"
+    },
+    {
+      "id": "bug-1839",
+      "timestamp": "2026-10-01T04:35:33.672Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:35:33.672Z"
+    },
+    {
+      "id": "bug-1840",
+      "timestamp": "2026-10-01T04:36:22.934Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 21→42 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:36:22.934Z"
+    },
+    {
+      "id": "bug-1841",
+      "timestamp": "2026-10-01T04:42:29.516Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/api/lost_found.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:42:29.516Z"
+    },
+    {
+      "id": "bug-1842",
+      "timestamp": "2026-10-01T04:42:47.560Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/utils/lostFoundInventory.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:42:47.560Z"
+    },
+    {
+      "id": "bug-1843",
+      "timestamp": "2026-10-01T04:43:00.281Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/utils/lostFoundInventory.ts",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→15 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:43:00.281Z"
+    },
+    {
+      "id": "bug-1844",
+      "timestamp": "2026-10-01T04:44:04.252Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Was returning: {\"data\": _get_return_row(return_id, current_user.h",
+      "fix": "Now returns: {\"data\": _hydrate_return_context(row, current_user",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:44:04.253Z"
+    },
+    {
+      "id": "bug-1845",
+      "timestamp": "2026-10-01T04:49:18.053Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:49:18.053Z"
+    },
+    {
+      "id": "bug-1846",
+      "timestamp": "2026-10-01T04:49:37.518Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:49:37.518Z"
+    },
+    {
+      "id": "bug-1847",
+      "timestamp": "2026-10-01T04:50:38.688Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/lost-found/GuestClaimsWorkspace.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {claim.status === 'matched' && <section className=\"rounded-x",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-01T04:50:50.044Z"
+    },
+    {
+      "id": "bug-1848",
+      "timestamp": "2026-10-01T04:51:38.629Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/utils/lostFoundInventory.test.ts",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→18 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:51:38.629Z"
+    },
+    {
+      "id": "bug-1849",
+      "timestamp": "2026-10-01T04:54:38.379Z",
+      "error_message": "Wrong operator: && should be ===",
+      "file": "apps/web/components/lost-found/DispositionReviewDrawer.tsx",
+      "root_cause": "Used \"&&\" instead of \"===\"",
+      "fix": "Changed operator && → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T04:54:38.379Z"
+    },
+    {
+      "id": "bug-1850",
+      "timestamp": "2026-10-01T05:01:27.663Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Was returning: bool(query.maybe_single().execute().data)",
+      "fix": "Now returns: bool(_single(query.maybe_single()))",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T05:01:27.663Z"
+    },
+    {
+      "id": "bug-1851",
+      "timestamp": "2026-10-01T05:01:27.663Z",
+      "error_message": "POST /v1/lost-found 500: AttributeError: 'NoneType' object has no attribute 'data' (in _active_tag_exists), discovered via live browser verification of Phase 4 while logging a QA test item",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "supabase-py 2.31.0's SyncMaybeSingleRequestBuilder.execute() (apps/api/.venv/Lib/site-packages/postgrest/_sync/request_builder.py:162-168) returns a bare Python `None` -- not SingleAPIResponse(data=None) -- whenever a maybe_single() query matches zero rows. Every `<query>.maybe_single().execute().data` chain in this codebase therefore crashes with a 500 on the *normal*, common 'not found' case instead of cleanly producing None/404. This was NOT one isolated bug: it was the exact same pattern repeated 19 times across lost_found.py alone (_active_tag_exists, _get_item_row, _get_return_row, _hydrate_return_context x2, _get_confirmed_claim_for_item, _get_active_return_for_item, reject/confirm match handlers, list_lost_found_item_matches x3, both custody-event item lookups, _get_claim, _validate_claim_room, suggest_lost_found_tag). routers/guest_requests.py has the identical pattern and is NOT yet fixed (out of scope for this session -- flagged for a future pass). Every OTHER router in the codebase already assigns maybe_single().execute() to a variable and checks truthiness before touching .data, i.e. this failure mode was already known/defended-against elsewhere, just not in these two files. Unit tests never caught this because tests/smoke/fake_supabase.py's FakeDB always returns a SimpleNamespace(data=...), never bare None -- this is a case where the FakeDB abstraction diverges from the real library's behavior on the empty-result path specifically.",
+      "fix": "Added routers/lost_found.py::_single(query) -- takes the already-chained `<table query>.maybe_single()` builder (not yet executed), calls .execute() itself, and returns `result.data if result else None`. Replaced every `.maybe_single().execute().data` (and the equivalent multi-line `.maybe_single()\\n.execute()\\n.data` form) call site in the file with `_single(<query>.maybe_single())`. Added two direct regression tests in test_lost_found_phase4.py (test_single_returns_none_when_library_returns_bare_none, test_single_unwraps_data_from_a_real_response) that stub the real library's exact .execute() return-value contract, since FakeDB cannot reproduce it.",
+      "tags": [
+        "supabase-py",
+        "postgrest",
+        "maybe_single",
+        "500-on-not-found",
+        "lost_found",
+        "browser-verification-caught-this",
+        "py"
+      ],
+      "related_bugs": [
+        "bug-1850"
+      ],
+      "occurrences": 19,
+      "last_seen": "2026-10-01T05:01:27.663Z"
+    },
+    {
+      "id": "bug-1852",
+      "timestamp": "2026-10-01T06:20:38.331Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/lost-found/DispositionReviewDrawer.tsx",
+      "root_cause": "Had 'lost-found'",
+      "fix": "Changed to 'donated'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:20:38.331Z"
+    },
+    {
+      "id": "bug-1853",
+      "timestamp": "2026-10-01T06:20:42.743Z",
+      "error_message": "Wrong reference: LostFoundCarrier should be QueryClient",
+      "file": "apps/web/lib/utils/lostFoundInventory.ts",
+      "root_cause": "Used \"LostFoundCarrier\" instead of \"QueryClient\"",
+      "fix": "Changed LostFoundCarrier → QueryClient",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:20:42.743Z"
+    },
+    {
+      "id": "bug-1854",
+      "timestamp": "2026-10-01T06:21:27.523Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/lost-found/VoidRecordDialog.tsx",
+      "root_cause": "Had 'lost-found'",
+      "fix": "Changed to 'Record voided'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:21:27.523Z"
+    },
+    {
+      "id": "bug-1855",
+      "timestamp": "2026-10-01T06:23:13.302Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/lost-found/LostFoundItemDrawer.tsx",
+      "root_cause": "Had 'voided'",
+      "fix": "Changed to 'held'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:23:13.302Z"
+    },
+    {
+      "id": "bug-1856",
+      "timestamp": "2026-10-01T06:23:18.504Z",
+      "error_message": "Missing error handling in def",
+      "file": "apps/api/tests/test_lost_found_phase4.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:23:18.505Z"
+    },
+    {
+      "id": "bug-1857",
+      "timestamp": "2026-10-01T06:27:33.694Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Was returning: {\"data\": rows[0]}",
+      "fix": "Now returns: {\"data\": _attach_item_lifecycle([rows[0]], current",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-01T06:27:39.682Z"
+    },
+    {
+      "id": "bug-1858",
+      "timestamp": "2026-10-01T06:27:46.020Z",
+      "error_message": "CSS fix: status",
+      "file": "apps/web/components/lost-found/LostFoundItemDrawer.tsx",
+      "root_cause": "status: 'claimed', claimed_by_name: releaseForm.recipient_name.trim() → 'claimed', derived_status: 'returned', claimed_by_name: releaseForm.recipient_name.trim()",
+      "fix": "Changed status: 'claimed', claimed_by_name: releaseForm.recipient_name.trim() → 'claimed', derived_status: 'returned', claimed_by_name: releaseForm.recipient_name.trim()",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:27:46.020Z"
+    },
+    {
+      "id": "bug-1859",
+      "timestamp": "2026-10-01T06:42:18.401Z",
+      "error_message": "Wrong reference: compact should be return",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "Used \"compact\" instead of \"return\"",
+      "fix": "Changed compact → return",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:42:18.401Z"
+    },
+    {
+      "id": "bug-1860",
+      "timestamp": "2026-10-01T06:42:31.294Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/smoke/test_input_validation.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→22 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:42:31.294Z"
+    },
+    {
+      "id": "bug-1861",
+      "timestamp": "2026-10-01T06:42:55.378Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T06:42:55.378Z"
+    },
+    {
+      "id": "bug-1862",
+      "timestamp": "2026-10-01T06:43:00.860Z",
+      "error_message": "CSS fix: queryKey",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "queryKey: ['lost-found', 'summary'], queryFn: () => lostFoundApi.listItems({ per_page: 100 → ['lost-found-disposition-summary'], queryFn: lostFoundApi.dispositionSummary, select: (response) => response.data",
+      "fix": "Changed queryKey: ['lost-found', 'summary'], queryFn: () => lostFoundApi.listItems({ per_page: 100 → ['lost-found-disposition-summary'], queryFn: lostFoundApi.dispositionSummary, select: (response) => response.data",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-01T06:43:04.217Z"
+    },
+    {
+      "id": "bug-1863",
+      "timestamp": "2026-10-01T06:43:08.273Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <button key={value} type=\"button\" aria-current={workspace ==",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-01T06:43:25.939Z"
+    },
+    {
+      "id": "bug-1864",
+      "timestamp": "2026-10-01T09:34:51.578Z",
+      "error_message": "Significant refactor of ",
+      "file": "e2e/golden-paths/lost-found-phase4.spec.ts",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→3 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T09:34:51.578Z"
+    },
+    {
+      "id": "bug-1865",
+      "timestamp": "2026-10-01T09:20:00.000Z",
+      "error_message": "\"Lost &amp; Found Room\" displayed raw in storage-location text app-wide instead of \"Lost & Found Room\"",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "SanitizedBaseModel's _sanitize_text() ran every incoming string field through html.escape(), so a plain '&' in user-entered text was stored as the literal characters '&amp;'. React/React Native already encode text-node output on render (the app has no dangerouslySetInnerHTML/innerHTML/WebView usage anywhere), so escaping on write was redundant for XSS protection and actively corrupted round-trip display for any text containing &, <, or >.",
+      "fix": "Removed the html.escape() call from _sanitize_text (kept control-char stripping and whitespace normalization). Updated apps/api/tests/smoke/test_input_validation.py's assertions to match (script tags now stored verbatim, relying on render-time encoding) and added a round-trip ampersand test. Ran a full-schema entity scan via Supabase execute_sql (dynamic PL/pgSQL over every text/varchar column) and found 2 pre-existing corrupted rows in lost_found_items.storage_location; cleaned up with a scoped UPDATE. Left the matching lost_found_custody_events rows uncorrected since that table is an append-only audit log (DB trigger blocks UPDATE) — historical accuracy there outweighs cosmetic cleanliness.",
+      "tags": [
+        "security",
+        "data-corruption",
+        "sanitizer",
+        "lost-found",
+        "cross-cutting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T09:20:00.000Z"
     }
   ]
 }

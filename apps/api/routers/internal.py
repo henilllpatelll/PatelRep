@@ -834,14 +834,35 @@ async def check_prediction_escalations(x_cron_secret: str = Header(None)):
 
 @router.post("/lost-found/retention-check")
 async def check_lost_found_retention(x_cron_secret: str = Header(None)):
-    """D-11: flag expired unclaimed items for manager review. Never auto-donates or discards."""
+    """D-11/D-56: flag expired unclaimed items for manager review. Never auto-donates or discards.
+    A matched, actively-returning, or voided item must never be wrongly flagged for disposition
+    review even if its retention date has technically passed — Phase 4 excludes those explicitly."""
     verify_cron(x_cron_secret)
     now = datetime.now(timezone.utc).isoformat()
     flagged = 0
     try:
         due = supabase.table("lost_found_items").select("id, tenant_id").eq(
             "status", "unclaimed"
-        ).lt("retention_due_at", now).is_("disposition_flagged_at", "null").execute().data or []
+        ).lt("retention_due_at", now).is_("disposition_flagged_at", "null").is_(
+            "voided_at", "null"
+        ).execute().data or []
+        if due:
+            matched_item_ids = {
+                row.get("matched_item_id")
+                for row in supabase.table("lost_found_claims").select("matched_item_id").eq(
+                    "status", "matched"
+                ).execute().data or []
+            }
+            active_return_item_ids = {
+                row.get("item_id")
+                for row in supabase.table("lost_found_returns").select("item_id").not_.in_(
+                    "status", ["completed", "cancelled"]
+                ).execute().data or []
+            }
+            due = [
+                item for item in due
+                if item["id"] not in matched_item_ids and item["id"] not in active_return_item_ids
+            ]
         for item in due:
             supabase.table("lost_found_items").update(
                 {"disposition_flagged_at": now}

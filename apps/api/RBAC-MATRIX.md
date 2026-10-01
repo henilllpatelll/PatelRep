@@ -186,8 +186,8 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L512] |
 | internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L591] |
 | internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L776] |
-| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L838] |
-| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L861] |
+| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L840] |
+| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L882] |
 | inventory.py | /v1/inventory/locations | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L79] |
 | inventory.py | /v1/inventory/locations | GET | none |  |
 | inventory.py | /v1/inventory/parts | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L109] |
@@ -227,11 +227,41 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | lost_found.py | /v1/lost-found/upload-photo | POST | none |  |
 | lost_found.py | /v1/lost-found | POST | none |  |
 | lost_found.py | /v1/lost-found | GET | none |  |
+| lost_found.py | /v1/lost-found/tag-suggestion | GET | none |  |
+| lost_found.py | /v1/lost-found/capabilities | GET | none |  |
+| lost_found.py | /v1/lost-found/claims/summary | GET | none |  |
+| lost_found.py | /v1/lost-found/claims | GET | none |  |
+| lost_found.py | /v1/lost-found/claims | POST | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id} | GET | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id} | PATCH | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id}/events | GET | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id}/matches | GET | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id}/reject-match | POST | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id}/match | POST | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id}/remove-match | POST | none |  |
+| lost_found.py | /v1/lost-found/claims/{claim_id}/cancel | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/summary | GET | none |  |
+| lost_found.py | /v1/lost-found/returns | GET | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id} | GET | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/events | GET | none |  |
+| lost_found.py | /v1/lost-found/{item_id}/returns | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/method | PATCH | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/pickup-details | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/pickup-ready | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/pickup-complete | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/shipping-details | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/ship | POST | none |  |
+| lost_found.py | /v1/lost-found/returns/{return_id}/complete-shipment | POST | none |  |
+| lost_found.py | /v1/lost-found/disposition/summary | GET | none |  |
+| lost_found.py | /v1/lost-found/disposition | GET | none |  |
+| lost_found.py | /v1/lost-found/{item_id}/disposition | POST | none |  |
+| lost_found.py | /v1/lost-found/{item_id}/void | POST | none |  |
+| lost_found.py | /v1/lost-found/{item_id}/matches | GET | none |  |
 | lost_found.py | /v1/lost-found/{item_id} | GET | none |  |
 | lost_found.py | /v1/lost-found/{item_id}/custody-events | GET | none |  |
-| lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}: raise HTTPException(...) [L170]; inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L170] |
-| lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}: raise HTTPException(...) [L218]; inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L218] |
-| lost_found.py | /v1/lost-found/{item_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'}: raise HTTPException(...) [L256]; inline: current_user.role not in {'front_desk', 'housekeeping_supervisor', 'gm'} [L256] |
+| lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1320]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1320] |
+| lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1386]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1386] |
+| lost_found.py | /v1/lost-found/{item_id} | DELETE | none |  |
 | management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L199] |
 | management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L220] |
 | management_roi.py | /v1/reports/roi/housekeeping-efficiency | GET | gm | require_role('gm') [L253] |
@@ -411,4 +441,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
 
-**34 routers, 400 routes.**
+**34 routers, 430 routes.**

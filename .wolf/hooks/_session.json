@@ -1,79 +1,23 @@
 {
-  "session_id": "session-2026-10-01-2059",
-  "started": "2026-10-01T01:59:10.053Z",
+  "session_id": "session-2026-10-01-0748",
+  "started": "2026-10-01T12:48:45.647Z",
   "files_read": {
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/package.json": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-10-01T02:04:57.880Z"
+      "first_read": "2026-10-01T12:49:52.886Z"
     },
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/lostFoundInventory.test.ts": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:05:57.833Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/112_engineering_repair_intelligence.sql": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:06:03.964Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/assets.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:06:31.211Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/111_work_order_timing_labor.sql": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:07:18.249Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/110_room_unavailability_type.sql": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:07:18.665Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/115_engineering_vendors_and_insights.sql": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:07:19.118Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/113_asset_downtime_reliability.sql": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:07:38.486Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/114_condition_monitoring.sql": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:07:38.900Z"
-    },
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-10-01T02:17:57.969Z"
+      "tokens": 574,
+      "first_read": "2026-10-01T12:49:58.321Z"
     }
   },
-  "files_written": [
-    {
-      "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md",
-      "action": "edit",
-      "tokens": 534,
-      "at": "2026-10-01T02:17:55.532Z"
-    },
-    {
-      "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md",
-      "action": "edit",
-      "tokens": 72,
-      "at": "2026-10-01T02:18:01.724Z"
-    }
-  ],
-  "edit_counts": {
-    "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md": 1,
-    "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md": 1
-  },
-  "anatomy_hits": 0,
-  "anatomy_misses": 10,
-  "repeated_reads_warned": 1,
+  "files_written": [],
+  "edit_counts": {},
+  "anatomy_hits": 1,
+  "anatomy_misses": 1,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 1
+  "stop_count": 0
 }

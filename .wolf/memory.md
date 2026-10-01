@@ -1,4 +1,5 @@
 ﻿# Memory
+| 05:30 | Implemented Lost & Found Phase 4: returns (pickup/shipping lifecycle), disposition workspace, Void Record. | apps/api/routers/lost_found.py, apps/api/routers/internal.py, migration 129, apps/web/components/lost-found/*, apps/web/app/(dashboard)/lost-found/page.tsx | Backend 1017/1017, web unit 187/187, tsc clean, ESLint clean, browser-verified full pickup golden path + void end-to-end against live Supabase. Found and fixed 2 real pre-existing bugs (see buglog bug-1851, and claims-list query-key invalidation gap). | ~95000 |
 | 22:35 | Verified Phase 2 assignment/DND/OOO increments. | apps/api, apps/web, supabase/migrations/126 | API 11/11, web unit 182/182, tsc, i18n parity, frozen guard, focused ESLint and diff check passed. | ~4500 |
 | 22:12 | Wired Auto-balance preferences into tenant settings and live break/off-shift eligibility; added a single execution-block helper and Team Plan DND policy input. | housekeeping.py, roomState.ts, TeamPlan.tsx, AssignmentPreferencesSettings.tsx | Focused API tests passed; web typecheck pending. | ~2800 |
 | 00:47 | Completed Phase 3 static verification. | `apps/web` | `test:unit` 146/146, type-check, lint, i18n parity, frozen-file guard, and production build passed; local browser regression blocked by fixture-login timeout. | ~1200 |
@@ -14976,3 +14977,155 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 21:17 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_migration_drift_2026-09-29.md | modified fixed() | ~498 |
 | 21:18 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | inline fix | ~68 |
 | 21:18 | Session end: 2 writes across 2 files (project_migration_drift_2026-09-29.md, MEMORY.md) | 10 reads | ~606 tok |
+| 21:34 | Session end: 2 writes across 2 files (project_migration_drift_2026-09-29.md, MEMORY.md) | 10 reads | ~606 tok |
+
+| 21:30 | Rebuilt Lost & Found Phase 1 inventory as a dense server-filtered table with a portal-backed detail/custody drawer; added focused UI/API contracts. | lost_found.py, lost-found page/drawer, lostFoundInventory tests | Type check and focused API/unit tests pass. | ~9000 |
+| 21:44 | Completed Lost & Found Phase 1 verification and reviewed final diff. | web type/lint/build/unit, API retention/delete tests, frozen-file guard | Build and focused checks pass; browser walkthrough stopped at the local login gate without automating sign-in. | ~1800 |
+| 01:52 | Implemented Lost & Found Phase 2 intake, tags, filtering, custody movement, and deep-link foundations. | lost_found router/models/migration, Lost Found page/drawers/API client | Focused API tests, web type check, lint, and unit suite pass. | ~12000 |
+| 01:58 | Completed Phase 2 compatibility verification. | apps/api Lost & Found tests, apps/web type/frozen-file checks | 24 API tests, TypeScript, unit suite, and frozen shared-file guard pass. | ~1200 |
+| 02:05 | Began Lost & Found Phase 3 discovery: reviewed request, project context, and Phase 2 file map without altering existing workflows. | .wolf docs, pasted request, Lost & Found map | Ready to extend claims and matching safely over uncommitted Phase 2 work. | ~1800 |
+| 02:42 | Implemented Lost & Found Phase 3 guest claims and human-reviewed matching. | claims migration/models/router/tests, claims workspace/drawers/API client, item matches tab | Focused API suite, TypeScript, and lint pass; final build pending. | ~14500 |
+| 02:47 | Completed Phase 3 verification and runtime boot check. | Lost & Found API tests, web type/lint/build, localhost route | Checks pass; local route correctly redirects unauthenticated access to login, so authenticated UI walkthrough was not possible without credentials. | ~2200 |
+| 01:12 | Started Lost & Found Phase 2: read the request, OpenWolf context, relevant skills, and current Phase 1 file map. | .wolf docs, pasted request, lost-found file map | Ready to inspect existing contracts without disturbing uncommitted Phase 1 work. | ~2200 |
+
+## Session: 2026-10-01 23:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-10-01 23:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:32 | Created supabase/migrations/129_lost_found_phase4_returns_disposition_void.sql | — | ~1134 |
+| 23:33 | Edited apps/api/models/requests.py | modified must_confirm_verification() | ~765 |
+| 23:33 | Edited apps/api/routers/lost_found.py | expanded (+11 lines) | ~336 |
+| 23:33 | Edited apps/api/routers/lost_found.py | expanded (+6 lines) | ~177 |
+| 23:33 | Edited apps/api/routers/lost_found.py | modified _claim_capabilities() | ~304 |
+| 23:34 | Edited apps/api/routers/lost_found.py | modified _intake_note() | ~1482 |
+| 23:34 | Edited apps/api/routers/lost_found.py | 17→20 lines | ~199 |
+| 23:34 | Edited apps/api/routers/lost_found.py | reduced (-7 lines) | ~70 |
+| 23:35 | Edited apps/api/routers/lost_found.py | added 2 condition(s) | ~6571 |
+| 23:35 | Edited apps/api/routers/lost_found.py | 5→6 lines | ~75 |
+| 23:35 | Edited apps/api/routers/lost_found.py | modified delete_lost_found_item() | ~121 |
+| 23:35 | Edited apps/api/routers/lost_found.py | modified get() | ~157 |
+| 23:36 | Edited apps/api/routers/internal.py | modified check_lost_found_retention() | ~600 |
+| 23:38 | Created apps/api/tests/test_lost_found_phase4.py | — | ~4614 |
+| 23:40 | Edited apps/api/routers/lost_found.py | HTTPException() → require_role() | ~113 |
+| 23:40 | Edited apps/api/rbac_bare_comparison_allowlist.json | reduced (-6 lines) | ~216 |
+| 23:42 | Edited apps/web/lib/api/lost_found.ts | expanded (+69 lines) | ~890 |
+| 23:42 | Edited apps/web/lib/api/lost_found.ts | expanded (+6 lines) | ~100 |
+| 23:42 | Edited apps/web/lib/api/lost_found.ts | added nullish coalescing | ~1066 |
+| 23:42 | Edited apps/web/lib/utils/lostFoundInventory.ts | added nullish coalescing | ~969 |
+| 23:43 | Edited apps/web/lib/utils/lostFoundInventory.ts | modified canReleaseItem() | ~262 |
+| 23:43 | Created apps/web/components/lost-found/DispositionReviewDrawer.tsx | — | ~1749 |
+| 23:43 | Edited apps/web/components/lost-found/DispositionReviewDrawer.tsx | inline fix | ~25 |
+| 23:43 | Created apps/web/components/lost-found/VoidRecordDialog.tsx | — | ~1137 |
+| 23:43 | Edited apps/api/routers/lost_found.py | modified _get_return_row() | ~293 |
+| 23:44 | Edited apps/api/routers/lost_found.py | modified get_lost_found_return() | ~97 |
+| 23:44 | Created apps/web/components/lost-found/CustodyTimeline.tsx | — | ~931 |
+| 23:45 | Created apps/web/components/lost-found/LostFoundReturnDrawer.tsx | — | ~6537 |
+| 23:46 | Edited apps/web/components/lost-found/LostFoundReturnDrawer.tsx | — | ~0 |
+| 23:46 | Edited apps/web/components/lost-found/LostFoundReturnDrawer.tsx | 7→6 lines | ~41 |
+| 23:46 | Created apps/web/components/lost-found/ReturnsWorkspace.tsx | — | ~1888 |
+| 23:47 | Created apps/web/components/lost-found/DispositionWorkspace.tsx | — | ~1950 |
+| 23:47 | Edited apps/api/routers/lost_found.py | 17→20 lines | ~237 |
+| 23:47 | Edited apps/web/lib/api/lost_found.ts | inline fix | ~47 |
+| 23:48 | Created apps/web/components/lost-found/LostFoundItemDrawer.tsx | — | ~6857 |
+| 23:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | expanded (+7 lines) | ~294 |
+| 23:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: initialView | ~171 |
+| 23:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 2→3 lines | ~44 |
+| 23:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 5→9 lines | ~354 |
+| 23:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | inline fix | ~113 |
+| 23:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | inline fix | ~14 |
+| 23:50 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 4→6 lines | ~275 |
+| 23:50 | Edited apps/web/components/lost-found/ReturnsWorkspace.tsx | inline fix | ~64 |
+| 23:50 | Edited apps/web/components/lost-found/DispositionWorkspace.tsx | inline fix | ~113 |
+| 23:50 | Edited apps/web/components/lost-found/GuestClaimsWorkspace.tsx | added optional chaining | ~624 |
+| 23:50 | Edited apps/web/components/lost-found/GuestClaimsWorkspace.tsx | added nullish coalescing | ~463 |
+| 23:51 | Edited apps/web/lib/utils/lostFoundInventory.test.ts | modified for() | ~312 |
+| 23:51 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: DEFAULT_CAPABILITIES | ~174 |
+| 23:54 | Edited apps/web/components/lost-found/DispositionReviewDrawer.tsx | inline fix | ~19 |
+| 00:01 | Edited apps/api/routers/lost_found.py | modified _single() | ~739 |
+| 00:01 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~36 |
+| 00:01 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~136 |
+| 00:01 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~158 |
+| 00:02 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~130 |
+| 00:02 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~61 |
+| 00:02 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~49 |
+| 00:02 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~52 |
+| 00:02 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~72 |
+| 00:03 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~56 |
+| 00:03 | Edited apps/api/routers/lost_found.py | execute() → _single() | ~68 |
+| 00:03 | Edited apps/api/rbac_bare_comparison_allowlist.json | 12→12 lines | ~216 |
+| 00:04 | Edited apps/api/tests/test_lost_found_phase4.py | modified __init__() | ~396 |
+| 01:20 | Edited apps/web/components/lost-found/DispositionReviewDrawer.tsx | invalidateQueries() → invalidateLostFound() | ~38 |
+| 01:20 | Edited apps/web/lib/utils/lostFoundInventory.ts | added 1 import(s) | ~26 |
+| 01:20 | Edited apps/web/lib/utils/lostFoundInventory.ts | modified invalidateLostFound() | ~269 |
+| 01:20 | Edited apps/web/components/lost-found/DispositionReviewDrawer.tsx | inline fix | ~31 |
+| 01:20 | Edited apps/web/components/lost-found/LostFoundReturnDrawer.tsx | invalidateQueries() → invalidateLostFound() | ~17 |
+| 01:21 | Edited apps/web/components/lost-found/LostFoundReturnDrawer.tsx | 7→8 lines | ~62 |
+| 01:21 | Edited apps/web/components/lost-found/LostFoundItemDrawer.tsx | invalidateQueries() → invalidateLostFound() | ~17 |
+| 01:21 | Edited apps/web/components/lost-found/LostFoundItemDrawer.tsx | 13→14 lines | ~95 |
+| 01:21 | Edited apps/web/components/lost-found/VoidRecordDialog.tsx | inline fix | ~28 |
+| 01:21 | Edited apps/web/components/lost-found/VoidRecordDialog.tsx | invalidateQueries() → invalidateLostFound() | ~22 |
+| 01:21 | Edited apps/web/components/lost-found/GuestClaimsWorkspace.tsx | inline fix | ~17 |
+| 01:21 | Edited apps/web/components/lost-found/GuestClaimsWorkspace.tsx | inline fix | ~42 |
+| 01:21 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | inline fix | ~17 |
+| 01:21 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | inline fix | ~64 |
+| 01:23 | Edited apps/api/routers/lost_found.py | modified get() | ~219 |
+| 01:23 | Edited apps/web/components/lost-found/LostFoundItemDrawer.tsx | "voided" → "held" | ~100 |
+| 01:23 | Edited apps/api/tests/test_lost_found_phase4.py | modified test_void_blocked_once_item_reached_a_final_outcome() | ~209 |
+| 01:23 | Edited apps/api/rbac_bare_comparison_allowlist.json | 7→7 lines | ~102 |
+| 01:27 | Edited apps/api/routers/lost_found.py | 5→5 lines | ~102 |
+| 01:27 | Edited apps/api/routers/lost_found.py | 3→3 lines | ~57 |
+| 01:27 | Edited apps/web/components/lost-found/LostFoundItemDrawer.tsx | inline fix | ~38 |
+| 01:27 | Edited apps/api/tests/test_lost_found_phase4.py | 1→2 lines | ~48 |
+| 01:27 | Edited apps/api/tests/test_lost_found_phase4.py | 1→2 lines | ~48 |
+| 01:29 | Session end: 85 writes across 18 files (129_lost_found_phase4_returns_disposition_void.sql, requests.py, lost_found.py, internal.py, test_lost_found_phase4.py) | 21 reads | ~136690 tok |
+| 01:35 | Session end: 85 writes across 18 files (129_lost_found_phase4_returns_disposition_void.sql, requests.py, lost_found.py, internal.py, test_lost_found_phase4.py) | 21 reads | ~136690 tok |
+| 01:36 | Session end: 85 writes across 18 files (129_lost_found_phase4_returns_disposition_void.sql, requests.py, lost_found.py, internal.py, test_lost_found_phase4.py) | 21 reads | ~136690 tok |
+
+## Session: 2026-10-01 01:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-10-01 01:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:42 | Edited apps/api/models/requests.py | 3→2 lines | ~8 |
+| 01:42 | Edited apps/api/models/requests.py | 2→1 lines | ~16 |
+| 01:42 | Edited apps/api/models/requests.py | modified _sanitize_text() | ~127 |
+| 01:42 | Edited apps/api/tests/smoke/test_input_validation.py | modified test_string_inputs_are_trimmed_normalized_and_control_chars_stripped() | ~233 |
+| 01:42 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~67 |
+| 01:42 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 2→1 lines | ~48 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: enabled | ~261 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: enabled | ~261 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added optional chaining | ~195 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 5→2 lines | ~56 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 5→5 lines | ~183 |
+| 04:29 | Created e2e/golden-paths/lost-found-phase4.spec.ts | — | ~3735 |
+| 04:30 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | modified api() | ~514 |
+| 04:30 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | 7→7 lines | ~113 |
+| 04:30 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | 14→13 lines | ~215 |
+| 04:31 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | 28→29 lines | ~472 |
+| 04:32 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | json() → jsonOk() | ~92 |
+| 04:32 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | json() → jsonOk() | ~65 |
+| 04:33 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | 5→5 lines | ~80 |
+| 04:34 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | removed 12 lines | ~15 |
+| 04:34 | Edited e2e/golden-paths/lost-found-phase4.spec.ts | inline fix | ~14 |
+| 07:45 | Session end: 21 writes across 4 files (requests.py, test_input_validation.py, page.tsx, lost-found-phase4.spec.ts) | 16 reads | ~80005 tok |
+
+## Session: 2026-10-01 07:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:48 | Edited ../../.claude/CLAUDE.md | expanded (+10 lines) | ~202 |
+| 07:48 | Session end: 1 writes across 1 files (CLAUDE.md) | 1 reads | ~216 tok |
+
+## Session: 2026-10-01 07:48
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

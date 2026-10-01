@@ -155,6 +155,32 @@ async def test_disposition_due_combined_with_claimed_status_returns_empty(monkey
     assert response["data"] == []
 
 
+@pytest.mark.asyncio
+async def test_list_hydrates_only_tenant_scoped_finder_display_profile(monkeypatch):
+    db = FakeDB({
+        "lost_found_items": [{
+            "id": "item-1", "tenant_id": "hotel-a", "status": "unclaimed",
+            "found_by": "staff-1", "created_at": datetime.now(timezone.utc).isoformat(),
+        }],
+        "user_profiles": [
+            {"id": "staff-1", "tenant_id": "hotel-a", "preferred_name": "Maria", "full_name": "Maria Santos", "phone": "hidden"},
+            {"id": "staff-2", "tenant_id": "hotel-b", "preferred_name": "Other", "full_name": "Other Hotel"},
+        ],
+    })
+    monkeypatch.setattr(lost_found_router, "supabase", db)
+
+    response = await lost_found_router.list_lost_found_items(
+        status=None, date_from=None, date_to=None, search=None, disposition_due=False,
+        page=1, per_page=20, current_user=GM,
+    )
+
+    assert response["data"][0]["user_profiles"] == {
+        "preferred_name": "Maria", "full_name": "Maria Santos",
+    }
+    profile_select = next(args for table, args in db.select_calls if table == "user_profiles")
+    assert profile_select == ("id, preferred_name, full_name",)
+
+
 def test_disposition_rbac_allows_front_desk(monkeypatch):
     db = _seeded_item_db()
     monkeypatch.setattr(lost_found_router, "supabase", db)

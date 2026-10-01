@@ -1,4 +1,3 @@
-import html
 import re
 import unicodedata
 from typing import Any, Optional, List, Literal
@@ -33,13 +32,16 @@ def _is_secret_field(field_name: str) -> bool:
 
 
 def _sanitize_text(value: str) -> str:
+    # No HTML-escaping here: React/React Native render stored text as text nodes
+    # (never via dangerouslySetInnerHTML/WebView innerHTML), so output encoding is
+    # already handled at render time. Escaping on write corrupted round-trip display
+    # of plain "&" (e.g. "Lost & Found Room" stored as "Lost &amp; Found Room").
     normalized = unicodedata.normalize("NFKC", value).replace("\x00", "")
     without_controls = "".join(
         ch if ch in "\n\r\t" or unicodedata.category(ch) != "Cc" else " "
         for ch in normalized
     )
-    compact = re.sub(r"\s+", " ", without_controls).strip()
-    return html.escape(compact, quote=False)
+    return re.sub(r"\s+", " ", without_controls).strip()
 
 
 def _sanitize_untrusted_value(value: Any, field_name: str = "") -> Any:
@@ -1169,6 +1171,161 @@ class CreateLostFoundRequest(SanitizedBaseModel):
     storage_location: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     photo_url: Optional[str] = Field(default=None, max_length=2048)
+    category: Literal[
+        "electronics", "clothing", "jewelry", "bags_luggage", "keys",
+        "wallets_cards", "documents", "medical", "toiletries", "accessories", "other",
+    ] = "other"
+    classification: Literal["standard", "high_value", "sensitive"] = "standard"
+    distinguishing_details: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    found_at: Optional[datetime] = None
+
+    @field_validator("tag_identifier", mode="after")
+    @classmethod
+    def normalize_lost_found_tag(cls, value: Optional[str]) -> Optional[str]:
+        return value.upper() if value else None
+
+
+class UpdateLostFoundRequest(SanitizedBaseModel):
+    description: Optional[str] = Field(default=None, min_length=1, max_length=LONG_TEXT_MAX)
+    room_id: Optional[UUID4] = None
+    location_found: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    tag_identifier: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    category: Optional[Literal[
+        "electronics", "clothing", "jewelry", "bags_luggage", "keys",
+        "wallets_cards", "documents", "medical", "toiletries", "accessories", "other",
+    ]] = None
+    classification: Optional[Literal["standard", "high_value", "sensitive"]] = None
+    distinguishing_details: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    found_at: Optional[datetime] = None
+    # Legacy status updates remain supported for existing clients; the dedicated
+    # Lost & Found drawer records releases/dispositions through custody events.
+    status: Optional[Literal["unclaimed", "claimed", "donated", "discarded"]] = None
+    claimed_by_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    claimed_by_contact: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    claimed_at: Optional[datetime] = None
+
+    @field_validator("tag_identifier", mode="after")
+    @classmethod
+    def normalize_lost_found_tag(cls, value: Optional[str]) -> Optional[str]:
+        return value.upper() if value else None
+
+
+class CreateLostFoundClaimRequest(SanitizedBaseModel):
+    guest_name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    guest_phone: Optional[str] = Field(default=None, max_length=32)
+    guest_email: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    room_id: Optional[UUID4] = None
+    room_number: Optional[str] = Field(default=None, max_length=32)
+    stay_start: Optional[date] = None
+    stay_end: Optional[date] = None
+    description: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    category: Literal[
+        "electronics", "clothing", "jewelry", "bags_luggage", "keys",
+        "wallets_cards", "documents", "medical", "toiletries", "accessories", "other",
+    ] = "other"
+    distinguishing_details: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    last_seen_at: Optional[datetime] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+    @model_validator(mode="after")
+    def validate_stay_range(self):
+        if self.stay_start and self.stay_end and self.stay_end < self.stay_start:
+            raise ValueError("stay_end must be on or after stay_start")
+        return self
+
+
+class UpdateLostFoundClaimRequest(SanitizedBaseModel):
+    guest_name: Optional[str] = Field(default=None, min_length=1, max_length=SHORT_TEXT_MAX)
+    guest_phone: Optional[str] = Field(default=None, max_length=32)
+    guest_email: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    room_id: Optional[UUID4] = None
+    room_number: Optional[str] = Field(default=None, max_length=32)
+    stay_start: Optional[date] = None
+    stay_end: Optional[date] = None
+    description: Optional[str] = Field(default=None, min_length=1, max_length=LONG_TEXT_MAX)
+    category: Optional[Literal[
+        "electronics", "clothing", "jewelry", "bags_luggage", "keys",
+        "wallets_cards", "documents", "medical", "toiletries", "accessories", "other",
+    ]] = None
+    distinguishing_details: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    last_seen_at: Optional[datetime] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class ConfirmLostFoundMatchRequest(SanitizedBaseModel):
+    item_id: UUID4
+    verification_notes: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
+class RejectLostFoundMatchRequest(SanitizedBaseModel):
+    item_id: UUID4
+    reason: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class RemoveLostFoundMatchRequest(SanitizedBaseModel):
+    reason: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
+class CancelLostFoundClaimRequest(SanitizedBaseModel):
+    reason: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
+# --- Lost & Found Phase 4: returns, disposition, void ---
+class PrepareLostFoundReturnRequest(SanitizedBaseModel):
+    method: Optional[Literal["pickup", "shipping", "other"]] = None
+
+
+class UpdateLostFoundReturnMethodRequest(SanitizedBaseModel):
+    method: Literal["pickup", "shipping", "other"]
+
+
+class SetLostFoundPickupDetailsRequest(SanitizedBaseModel):
+    recipient_name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    pickup_location: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    pickup_notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    verification_method_required: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+
+
+class CompleteLostFoundPickupRequest(SanitizedBaseModel):
+    recipient_name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    verification_method: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    verification_notes: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    verified: bool
+
+    @field_validator("verified", mode="after")
+    @classmethod
+    def must_confirm_verification(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Staff must confirm recipient verification before releasing the item")
+        return value
+
+
+class SetLostFoundShippingDetailsRequest(SanitizedBaseModel):
+    recipient_name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    address_line1: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    address_line2: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    city: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    region: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    postal_code: str = Field(min_length=1, max_length=32)
+    country: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    shipping_paid_by: Literal["hotel", "guest", "other"] = "hotel"
+
+
+class MarkLostFoundShippedRequest(SanitizedBaseModel):
+    carrier: Literal["fedex", "ups", "usps", "dhl", "local_courier", "other"]
+    tracking_number: Optional[str] = Field(default=None, max_length=64)
+    shipping_cost_cents: Optional[int] = Field(default=None, ge=0)
+
+
+class ApproveLostFoundDispositionRequest(SanitizedBaseModel):
+    outcome: Literal["donated", "discarded"]
+    reason: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
+class VoidLostFoundRequest(SanitizedBaseModel):
+    reason: Literal["duplicate_record", "entered_by_mistake", "wrong_property_or_item", "test_record", "other"]
+    notes: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
 
 
 # --- Logbook ---
