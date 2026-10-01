@@ -2,6 +2,27 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-1236",
+      "timestamp": "2026-10-01T13:30:00.000Z",
+      "error_message": "CI job \"Room-Board Pixel-Diff Regression\" failed once on commit 01b54e7f: TimeoutError waiting for getByText(101) on /housekeeping — 1 of 8 tests failed, 7 passed, no pixel-diff mismatch involved.",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "The regression job runs live Playwright tests against PLAYWRIGHT_BASE_URL (the real Railway web deployment), triggered by the same push that simultaneously kicked off a Railway redeploy of that exact commit. The test window (13:29) overlapped with the Railway web service swapping to the new deployment, causing a one-off page-load timeout unrelated to any code change in this push (the push touched only apps/web/app/(dashboard)/lost-found/page.tsx and .wolf/* tracking files, nothing on the Housekeeping/Room-Board code path).",
+      "fix": "Not a code fix - re-ran only the failed job via gh run rerun <id> --failed; it passed cleanly on retry (1m37s, all 8 tests green) once the Railway deploy had settled. No source change needed. Flagging the pattern: a CI run that pushes to main AND triggers a Railway redeploy can race the live-regression-test job against the deploy itself - if this recurs, consider delaying the Room-Board regression job or pointing it at a stable non-concurrently-deployed environment.",
+      "tags": [
+        "ci",
+        "flaky-test",
+        "room-board",
+        "playwright",
+        "railway",
+        "race-condition"
+      ],
+      "related_bugs": [
+        "bug-1235"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T13:30:00.000Z"
+    },
+    {
       "id": "bug-1235",
       "timestamp": "2026-10-01T13:00:00.000Z",
       "error_message": "CI \"Build / Web\" job failed on commit 592ed6a4: useSearchParams() should be wrapped in a suspense boundary at page /lost-found, during next build static prerender, exiting the build with exit code 1.",
@@ -30703,6 +30724,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-01T09:34:51.578Z"
+    },
+    {
+      "id": "bug-1866",
+      "timestamp": "2026-10-01T13:30:00-05:00",
+      "error_message": "RTK command wrapper cannot invoke the PowerShell Get-Content builtin directly",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The RTK wrapper resolves external executables via PATH; PowerShell cmdlets are not standalone executables.",
+      "fix": "Use RTK's native read command for file reads instead of wrapping Get-Content.",
+      "tags": [
+        "tooling",
+        "rtk",
+        "powershell"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T13:30:00-05:00"
     },
     {
       "id": "bug-1865",
