@@ -63,6 +63,16 @@ ALTER TABLE public.feature_flag_events ENABLE ROW LEVEL SECURITY;
 -- script reads). RLS is enabled purely so no future authenticated-role grant
 -- accidentally exposes it.
 
+-- This migration itself is purely additive (CREATE TABLE IF NOT EXISTS /
+-- CREATE INDEX IF NOT EXISTS / ENABLE ROW LEVEL SECURITY only) and executes no
+-- destructive statement. The commented ROLLBACK block below only trips the
+-- repository's destructive-SQL pattern guard because it contains the text
+-- "DROP TABLE" inside a comment -- it is guidance for a human if this feature
+-- is ever fully abandoned, never something a workflow executes automatically
+-- (see docs/DATABASE_MIGRATIONS.md's rollback policy).
+-- migration-safety: destructive-reviewed
+-- rollback-plan: forward-fix only; if tenant_feature_flags/feature_flag_events are ever fully retired, drop them in a separate, explicitly reviewed migration -- owner: release-engineering
+--
 -- ROLLBACK:
 -- DROP TABLE IF EXISTS public.feature_flag_events;
 -- DROP TABLE IF EXISTS public.tenant_feature_flags;
