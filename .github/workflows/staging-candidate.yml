@@ -220,11 +220,16 @@ jobs:
           test "$STAGING_RAILWAY_ENVIRONMENT" = staging
           test -n "$STAGING_RAILWAY_PROJECT_ID"
           test -n "$STAGING_RAILWAY_API_SERVICE_ID"
+          test -n "$PRODUCTION_RAILWAY_API_SERVICE_ID"
           test "$STAGING_RAILWAY_API_SERVICE_ID" != "$PRODUCTION_RAILWAY_API_SERVICE_ID"
+          if [ -n "$PRODUCTION_RAILWAY_PROJECT_ID" ]; then
+            test "$STAGING_RAILWAY_PROJECT_ID" != "$PRODUCTION_RAILWAY_PROJECT_ID"
+          fi
         env:
           STAGING_RAILWAY_ENVIRONMENT: ${{ vars.STAGING_RAILWAY_ENVIRONMENT }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
       - name: Embed exact API release identity in the staged build artifact
         run: |
@@ -236,7 +241,7 @@ jobs:
           npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
           npx --yes @railway/cli@4.30.0 up apps/api --ci --no-gitignore
         env:
-          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
       - name: Require API health, readiness, staging database, and exact SHA
@@ -274,11 +279,16 @@ jobs:
           test "$STAGING_RAILWAY_ENVIRONMENT" = staging
           test -n "$STAGING_RAILWAY_PROJECT_ID"
           test -n "$STAGING_RAILWAY_WEB_SERVICE_ID"
+          test -n "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
           test "$STAGING_RAILWAY_WEB_SERVICE_ID" != "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+          if [ -n "$PRODUCTION_RAILWAY_PROJECT_ID" ]; then
+            test "$STAGING_RAILWAY_PROJECT_ID" != "$PRODUCTION_RAILWAY_PROJECT_ID"
+          fi
         env:
           STAGING_RAILWAY_ENVIRONMENT: ${{ vars.STAGING_RAILWAY_ENVIRONMENT }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
       - name: Embed exact web release identity in the staged build artifact
         run: |
@@ -290,7 +300,7 @@ jobs:
           npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
           npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore
         env:
-          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
           STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
       - name: Restore checked-in web release identity
