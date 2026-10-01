@@ -64,7 +64,7 @@ The repository owner should enable the repository ruleset targeting `main` with 
 - Block force pushes.
 - Block branch deletion.
 
-This repository currently has a disabled `main` ruleset with obsolete required-status contexts. Enable it and replace those contexts with `CI Gate` and `Staging Gate` only after confirming the settings in GitHub’s ruleset UI/API. Fork PRs intentionally do not receive `Staging Gate`; maintainers should review and, if needed, recreate approved fork work on a same-repository branch before staging verification.
+This ruleset is active with `CI Gate` and `Staging Gate` as its only required status contexts (Phase 6). Fork PRs intentionally do not receive `Staging Gate`; maintainers should review and, if needed, recreate approved fork work on a same-repository branch before staging verification.
 
 ## Staging Candidate and Staging Gate
 
