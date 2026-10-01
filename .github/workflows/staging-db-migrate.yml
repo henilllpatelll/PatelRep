@@ -1,0 +1,58 @@
+name: Staging Database Migrate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-staging:
+    name: Apply pending migrations to staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.76.8
+      - name: Confirm migration history is safe to release
+        run: node scripts/check-migrations.mjs
+      - name: Refuse any non-staging database target
+        run: node scripts/staging-target-guard.mjs
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: https://${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Show pending staging migrations
+        run: node scripts/check-db-drift.mjs --environment staging --allow-pending
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Apply pending migrations to staging only
+        run: supabase db push --db-url "$STAGING_SUPABASE_DB_URL"
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Verify staging migration identifiers are clean
+        run: node scripts/check-db-drift.mjs --environment staging
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Verify staging schema contracts
+        run: |
+          sudo apt-get update && sudo apt-get install --yes postgresql-client
+          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Verify deployed staging API readiness when configured
+        if: ${{ vars.STAGING_API_URL != '' }}
+        run: |
+          curl --fail --show-error --silent "${STAGING_API_URL%/}/ready" | tee readiness.json
+          node -e "const result=require('./readiness.json'); if(result.status !== 'ready') process.exit(1)"
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}

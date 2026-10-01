@@ -6,7 +6,7 @@
 python apps/api/scripts/generate_rbac_matrix.py
 ```
 
-Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and its source location -- introspected via AST from `require_role(...)` call sites and `core/roles.py` constants, matching Phase 19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. `none` = any authenticated staff member (no role restriction). `role-restricted (inline, see source)` = no `require_role(...)` dependency, but the route body has an inline `if <cond involving .role>: raise HTTPException(...)` gate that denies access to non-matching roles (see the `Source` column for the resolved condition) -- distinct from an inline `.role` comparison that only filters/scopes a query or response without denying access, which remains `none`. `N/A (not role-based)` = gated by a separate, deliberate auth mechanism (cron secret, webhook signature) instead of a role. `UNVERIFIED (no auth dependency detected)` = no `require_role(...)`, `verify_cron(...)`, or `get_current_user*` dependency was found at all -- flag for review, this may be a route with no authentication. A pytest drift guard (`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file ever goes stale relative to the code it describes.
+Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and its source location -- introspected via AST from `require_role(...)` call sites and `core/roles.py` constants, matching Phase 19's `RBAC-AUDIT.md` route-level-gate/object-level-check classification. `none` = any authenticated staff member (no role restriction). `role-restricted (inline, see source)` = no `require_role(...)` dependency, but the route body has an inline `if <cond involving .role>: raise HTTPException(...)` gate that denies access to non-matching roles (see the `Source` column for the resolved condition) -- distinct from an inline `.role` comparison that only filters/scopes a query or response without denying access, which remains `none`. `N/A (not role-based)` = gated by a separate, deliberate auth mechanism (cron secret, webhook signature) instead of a role. `N/A (feature-gated, not role-based)` = gated by `require_feature(...)` (`core/feature_flags.py`) -- authenticated (it wraps `get_current_user`) and restricted to tenants with the named flag enabled, but not role-restricted. `UNVERIFIED (no auth dependency detected)` = no `require_role(...)`, `require_feature(...)`, `verify_cron(...)`, or `get_current_user*` dependency was found at all -- flag for review, this may be a route with no authentication. A pytest drift guard (`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file ever goes stale relative to the code it describes.
 
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
@@ -105,6 +105,7 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | evidence.py | /v1/evidence/exceptions | GET | none |  |
 | evidence.py | /v1/evidence/exceptions/{kind}/{reference_id}/actions | POST | gm | require_role('gm') [L651] |
 | evidence.py | /v1/evidence/export | GET | gm | require_role('gm') [L706] |
+| feature_flag_demo.py | /v1/internal/feature-flag-demo | GET | N/A (feature-gated, not role-based) | require_feature('staging_flag_demo') [L21] |
 | feedback.py | /v1/feedback | POST | none |  |
 | feedback.py | /v1/feedback | GET | gm | require_role('gm') [L131] |
 | guest_requests.py | /v1/guest-requests | POST | none |  |
@@ -161,17 +162,17 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | housekeeping.py | /v1/housekeeping/import/hk-details | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L2807] |
 | housekeeping.py | /v1/housekeeping/import/task-sheet/preview | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L2926] |
 | housekeeping.py | /v1/housekeeping/import/task-sheet | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L2946] |
-| integrations.py | /v1/integrations/opera/connect | POST | gm | require_role('gm') [L29] |
+| integrations.py | /v1/integrations/opera/connect | POST | gm | require_role('gm') [L32] |
 | integrations.py | /v1/integrations/opera/status | GET | none |  |
-| integrations.py | /v1/integrations/opera/sync | POST | gm | require_role('gm') [L111] |
-| integrations.py | /v1/integrations/opera/conflicts | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L128] |
-| integrations.py | /v1/integrations/opera/conflicts/{conflict_id}/resolve | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L147] |
-| integrations.py | /v1/integrations/opera/sftp/connect | POST | gm | require_role('gm') [L192] |
-| integrations.py | /v1/integrations/opera/sftp/sync | POST | gm | require_role('gm') [L242] |
-| integrations.py | /v1/integrations/opera/sftp/test | POST | gm | require_role('gm') [L260] |
-| integrations.py | /v1/integrations/opera/sftp/files | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L278] |
-| integrations.py | /v1/integrations/opera/test | POST | gm | require_role('gm') [L293] |
-| integrations.py | /v1/integrations/opera/disconnect | DELETE | gm | require_role('gm') [L310] |
+| integrations.py | /v1/integrations/opera/sync | POST | gm | require_role('gm') [L114] |
+| integrations.py | /v1/integrations/opera/conflicts | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L131] |
+| integrations.py | /v1/integrations/opera/conflicts/{conflict_id}/resolve | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L150] |
+| integrations.py | /v1/integrations/opera/sftp/connect | POST | gm | require_role('gm') [L195] |
+| integrations.py | /v1/integrations/opera/sftp/sync | POST | gm | require_role('gm') [L245] |
+| integrations.py | /v1/integrations/opera/sftp/test | POST | gm | require_role('gm') [L263] |
+| integrations.py | /v1/integrations/opera/sftp/files | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L281] |
+| integrations.py | /v1/integrations/opera/test | POST | gm | require_role('gm') [L296] |
+| integrations.py | /v1/integrations/opera/disconnect | DELETE | gm | require_role('gm') [L313] |
 | internal.py | /v1/internal/safety/training-assignments | POST | N/A (not role-based) | verify_cron(...) [L99] |
 | internal.py | /v1/internal/safety/drill-follow-up | POST | N/A (not role-based) | verify_cron(...) [L130] |
 | internal.py | /v1/internal/evidence/reminders | POST | N/A (not role-based) | verify_cron(...) [L144] |
@@ -441,4 +442,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
 
-**34 routers, 430 routes.**
+**35 routers, 431 routes.**

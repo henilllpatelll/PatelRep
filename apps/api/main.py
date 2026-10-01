@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
 from core.config import settings
+from core.schema_readiness import check_schema_readiness
 from middleware.rate_limit import RateLimitMiddleware, RateLimitRule
 from routers import (
     auth,
@@ -47,6 +48,7 @@ from routers import (
     room_unavailability,
     vendors,
     engineering_insights,
+    feature_flag_demo,
 )
 
 logger = logging.getLogger(__name__)
@@ -270,7 +272,11 @@ async def health():
 
     payload = {
         "status": "ok" if db_ok else "degraded",
+        "environment": settings.app_env,
         "env": settings.app_env,
+        "supabase_host": settings.supabase_project_url.split("//", 1)[-1].split("/", 1)[0],
+        "release_sha": settings.release_sha,
+        "release_version": settings.release_version,
         "db": "ok" if db_ok else "unavailable",
         "version": "1.0.0",
         "cron": cron_payload,
@@ -279,6 +285,27 @@ async def health():
     }
     return JSONResponse(
         status_code=200 if db_ok else 503,
+        content=payload,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/ready")
+async def ready():
+    """Readiness probe: process can reach a compatible, migrated database."""
+    from core.database import supabase
+
+    readiness = check_schema_readiness(supabase)
+    payload = {
+        "status": "ready" if readiness.ready else "not_ready",
+        "database": "compatible" if readiness.ready else "incompatible",
+        "missing": readiness.missing,
+        "environment": settings.app_env,
+        "release_sha": settings.release_sha,
+        "release_version": settings.release_version,
+    }
+    return JSONResponse(
+        status_code=200 if readiness.ready else 503,
         content=payload,
         headers={"Cache-Control": "no-store"},
     )
@@ -321,6 +348,7 @@ app.include_router(inventory.router, prefix=PREFIX)
 app.include_router(room_unavailability.router, prefix=PREFIX)
 app.include_router(vendors.router, prefix=PREFIX)
 app.include_router(engineering_insights.router, prefix=PREFIX)
+app.include_router(feature_flag_demo.router, prefix=PREFIX)
 
 
 def _cors_headers_for(request: Request) -> dict[str, str]:

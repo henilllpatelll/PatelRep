@@ -104,6 +104,63 @@ jobs:
           APP_URL: "http://localhost:3000"
           API_URL: "http://localhost:8000"
 
+  database-migration-gate:
+    name: Database Migration Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.76.8
+      - name: Check immutable migration history and destructive SQL review
+        run: node scripts/check-migrations.mjs
+      - name: Build and self-verify normalized migration replay workspace
+        run: |
+          node --test scripts/build-migration-replay-workspace.test.mjs
+          node scripts/build-migration-replay-workspace.mjs --out "${{ runner.temp }}/migration-replay"
+      - name: Start isolated Supabase (normalized replay workspace)
+        run: supabase start --workdir "${{ runner.temp }}/migration-replay" --exclude studio,imgproxy,logflare,edge-runtime
+      - name: Rebuild database from repository migrations and synthetic seed (normalized replay workspace)
+        run: supabase db reset --local --workdir "${{ runner.temp }}/migration-replay"
+      - name: Export isolated Supabase test credentials
+        # `supabase status --output env` prints shell-quoted KEY="value" lines
+        # (meant to be `source`d/`eval`ed); $GITHUB_ENV's simple KEY=value
+        # parser takes everything after `=` literally, so appending the raw
+        # output makes every value include its literal wrapping quotes (e.g.
+        # SUPABASE_URL becomes the literal string `"http://127.0.0.1:54321"`
+        # (quote characters included), which the Supabase Python client then
+        # rejects as an invalid URL.
+        # Strip the wrapping quotes before appending.
+        run: supabase status --workdir "${{ runner.temp }}/migration-replay" --output env | sed -E 's/^([A-Z_]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Verify high-impact schema contracts, RLS, extensions, and RPCs
+        run: psql --set ON_ERROR_STOP=1 "postgresql://postgres:postgres@127.0.0.1:54322/postgres" --file scripts/schema-contracts.sql
+      - name: Verify API schema compatibility against the migrated Supabase API
+        run: |
+          cd apps/api
+          pip install -r requirements.txt
+          python -m pytest tests/integration/ -v --tb=short
+        env:
+          MIGRATED_DATABASE_TEST: "1"
+          SUPABASE_URL: ${{ env.API_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET: "test-jwt-secret-minimum-32-characters-long!!"
+          OPENAI_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          STRIPE_SECRET_KEY: "sk_test_placeholder"
+          STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret-test"
+          CRON_SECRET: "test-cron-secret"
+          APP_ENV: "test"
+          APP_URL: "http://localhost:3000"
+          API_URL: "http://localhost:8000"
+
   test-unit-web:
     name: Test / Web unit
     runs-on: ubuntu-latest
@@ -116,6 +173,21 @@ jobs:
         run: cd apps/web && npm ci
       - name: Run unit tests
         run: cd apps/web && npm run test:unit
+      - name: Run feature-flag rollout script tests
+        run: cd apps/web && npm run test:feature-flag-scripts
+
+  feature-flag-registry-gate:
+    name: Feature Flag Registry Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Check backend/frontend registry parity
+        run: node scripts/check-feature-flag-registry.mjs
+      - name: Run registry parity script tests
+        run: node --test scripts/check-feature-flag-registry.test.mjs
 
   frozen-guard:
     name: Frozen-File Guard
@@ -237,11 +309,71 @@ jobs:
         run: cd apps/web && npm audit --audit-level=high
         continue-on-error: true
 
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs:
+      - lint-api
+      - lint-web
+      - build-web
+      - test-web-public-smoke
+      - test-api
+      - database-migration-gate
+      - test-unit-web
+      - feature-flag-registry-gate
+      - frozen-guard
+      - contrast
+      - i18n-parity
+      - room-board-regression
+    steps:
+      - name: Require every release check to succeed
+        env:
+          LINT_API: ${{ needs.lint-api.result }}
+          LINT_WEB: ${{ needs.lint-web.result }}
+          BUILD_WEB: ${{ needs.build-web.result }}
+          TEST_WEB_PUBLIC_SMOKE: ${{ needs.test-web-public-smoke.result }}
+          TEST_API: ${{ needs.test-api.result }}
+          DATABASE_MIGRATION_GATE: ${{ needs.database-migration-gate.result }}
+          TEST_UNIT_WEB: ${{ needs.test-unit-web.result }}
+          FEATURE_FLAG_REGISTRY_GATE: ${{ needs.feature-flag-registry-gate.result }}
+          FROZEN_GUARD: ${{ needs.frozen-guard.result }}
+          CONTRAST: ${{ needs.contrast.result }}
+          I18N_PARITY: ${{ needs.i18n-parity.result }}
+          ROOM_BOARD_REGRESSION: ${{ needs.room-board-regression.result }}
+        run: |
+          required_checks=(
+            "Lint / API:$LINT_API"
+            "Lint + Type-check / Web:$LINT_WEB"
+            "Build / Web:$BUILD_WEB"
+            "Test / Web public smoke:$TEST_WEB_PUBLIC_SMOKE"
+            "Test / API:$TEST_API"
+            "Database Migration Gate:$DATABASE_MIGRATION_GATE"
+            "Test / Web unit:$TEST_UNIT_WEB"
+            "Feature Flag Registry Gate:$FEATURE_FLAG_REGISTRY_GATE"
+            "Frozen-File Guard:$FROZEN_GUARD"
+            "Dark-Mode Contrast Gate:$CONTRAST"
+            "EN/ES i18n Parity:$I18N_PARITY"
+            "Room-Board Pixel-Diff Regression:$ROOM_BOARD_REGRESSION"
+          )
+
+          failed=0
+          for check in "${required_checks[@]}"; do
+            name="${check%:*}"
+            result="${check##*:}"
+            if [ "$result" != "success" ]; then
+              echo "::error::$name completed with '$result'; CI Gate requires success."
+              failed=1
+            fi
+          done
+
+          exit "$failed"
+
   pr-comment:
     name: PR Status
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [lint-api, lint-web, build-web, test-web-public-smoke, test-api, security, test-unit-web, frozen-guard, contrast, i18n-parity, room-board-regression]
+    needs: [lint-api, lint-web, build-web, test-web-public-smoke, test-api, database-migration-gate, security, test-unit-web, feature-flag-registry-gate, frozen-guard, contrast, i18n-parity, room-board-regression]
     permissions:
       pull-requests: write
     steps:
@@ -263,8 +395,10 @@ jobs:
               '| Web lint + type-check | ✅ |',
               '| Web build | ✅ |',
               '| API smoke tests | ✅ |',
-              '| Security scan | ✅ |',
+              '| Database migration gate | ✅ |',
+              '| Security scan (advisory) | Completed |',
               '| Web unit tests | ✅ |',
+              '| Feature flag registry gate | ✅ |',
               '| Frozen-file guard | ✅ |',
               '| Dark-mode contrast | ✅ |',
               '| EN/ES i18n parity | ✅ |',

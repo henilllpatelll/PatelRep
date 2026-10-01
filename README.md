@@ -14,7 +14,7 @@ PatelRep/
 │   ├── api/        FastAPI Python 3.12 — backend (Railway)
 │   └── web/        Next.js 14 App Router — web dashboard (Railway)
 ├── supabase/
-│   └── migrations/ 001–019.sql — full schema
+│   └── migrations/ — full schema history (including documented historical prefix collisions)
 ├── spec/           14 spec files (source of truth)
 └── docs/           Design specs and implementation plans
 ```
@@ -67,8 +67,8 @@ deployment, not a warning.
 
 | Service | Platform | URL |
 |---------|----------|-----|
-| API     | Railway  | https://patelrep-web-production.up.railway.app |
-| Web     | Railway  | https://patelrep-production.up.railway.app |
+| API     | Railway  | https://noble-cooperation-production.up.railway.app |
+| Web     | Railway  | https://patelrep-production-6f35.up.railway.app |
 | DB      | Supabase | — |
 
 ---
@@ -78,3 +78,4 @@ deployment, not a warning.
 - [`CLAUDE.md`](./CLAUDE.md) — full project context, conventions, and AI session instructions
 - [`spec/`](./spec/) — product requirements (source of truth)
 - [`spec/07_deployment.md`](./spec/07_deployment.md) — infrastructure and deployment details
+- [`docs/ENVIRONMENTS.md`](./docs/ENVIRONMENTS.md) — isolated development, staging, and production configuration

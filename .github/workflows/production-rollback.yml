@@ -1,0 +1,278 @@
+name: Production Rollback
+
+# Controlled recovery: redeploys a KNOWN-GOOD, previously tagged production
+# release. Never accepts an arbitrary branch, raw SHA, Docker image, or URL --
+# only an existing `vX.Y.Z` tag that corresponds to a GitHub Release this
+# repository already created via production-release.yml's tag-and-release job.
+#
+# This workflow never reverses a database migration automatically and never
+# executes the free-text contents of a migration's `-- ROLLBACK` comment.
+# Database rollback is explicitly NOT the default -- see docs/PRODUCTION_RUNBOOK.md.
+# The expected recovery order is: (1) disable the affected feature flag via
+# Feature Rollout, (2) redeploy a known-good application version with this
+# workflow, (3) forward-fix via a normal PR if neither is sufficient.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: "Known-good release tag to restore, e.g. v1.8.0 (must already have a GitHub Release)"
+        required: true
+        type: string
+
+concurrency:
+  # Shared with production-release.yml -- a release and a rollback can never
+  # mutate production at the same time.
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  resolve-and-verify-target:
+    name: Resolve and verify rollback target
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      target_sha: ${{ steps.resolve.outputs.target_sha }}
+      short_sha: ${{ steps.resolve.outputs.short_sha }}
+      target_version: ${{ steps.resolve.outputs.target_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: resolve
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const requestedVersion = (context.payload.inputs.target_version ?? '').trim()
+            if (!/^v\d+\.\d+\.\d+$/.test(requestedVersion)) {
+              core.setFailed(`target_version must look like vX.Y.Z (got ${JSON.stringify(requestedVersion)}). Branch names, raw SHAs, and arbitrary refs are refused.`)
+              return
+            }
+
+            // 1. The tag must exist and have a corresponding GitHub Release
+            // (never a bare/untagged ref, never a failed or staging-only candidate).
+            let release
+            try {
+              release = await github.rest.repos.getReleaseByTag({ ...context.repo, tag: requestedVersion })
+            } catch {
+              core.setFailed(`No GitHub Release found for ${requestedVersion}. Only a previously released, known-good version can be restored.`)
+              return
+            }
+            if (release.data.draft || release.data.prerelease) {
+              core.setFailed(`${requestedVersion} is a draft/prerelease, not a completed production release. Refusing.`)
+              return
+            }
+
+            let tagRef
+            try {
+              tagRef = await github.rest.git.getRef({ ...context.repo, ref: `tags/${requestedVersion}` })
+            } catch {
+              core.setFailed(`Tag ${requestedVersion} does not exist in this repository.`)
+              return
+            }
+            // Annotated tags point at a tag object; resolve to the commit it targets.
+            let targetSha = tagRef.data.object.sha
+            if (tagRef.data.object.type === 'tag') {
+              const tagObject = await github.rest.git.getTag({ ...context.repo, tag_sha: targetSha })
+              targetSha = tagObject.data.object.sha
+            }
+
+            // 2. Must still be reachable from main's history (never a dangling/force-pushed-away commit).
+            const main = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' })
+            const compare = await github.rest.repos.compareCommitsWithBasehead({
+              ...context.repo, basehead: `${targetSha}...${main.data.commit.sha}`,
+            })
+            if (!['identical', 'ahead'].includes(compare.data.status)) {
+              core.setFailed(`${requestedVersion} (${targetSha}) is not an ancestor of main's current history. Refusing an unverifiable rollback target.`)
+              return
+            }
+
+            core.info(`Rollback target: ${requestedVersion} -> ${targetSha}`)
+            core.setOutput('target_sha', targetSha)
+            core.setOutput('short_sha', targetSha.slice(0, 7))
+            core.setOutput('target_version', requestedVersion)
+
+  compatibility-check:
+    name: Database compatibility check
+    needs: resolve-and-verify-target
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          fetch-depth: 1
+      - name: Prove exact rollback-target checkout
+        run: git checkout --detach "${{ needs.resolve-and-verify-target.outputs.target_sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-and-verify-target.outputs.target_sha }}"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.76.8
+      - name: Refuse any non-production database target
+        run: node scripts/production-target-guard.mjs
+        env:
+          PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_EXPECTED_DATABASE_HOST: ${{ vars.PRODUCTION_EXPECTED_DATABASE_HOST }}
+          PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
+          STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
+      - name: Compare rollback target's migrations against what production has applied
+        id: drift
+        run: |
+          node scripts/check-db-drift.mjs --environment production --allow-pending | tee drift.txt
+          if grep -q "Missing on production" drift.txt; then
+            echo "::notice::Production has migrations this older release's code never saw -- expected for a same-release-line rollback (expand-only schema changes old code simply does not use)."
+          fi
+          if grep -q "Unknown on production" drift.txt; then
+            echo "::error::Production has migrations not present in this repository's history at all. Investigate before rolling back -- never auto-repaired."
+            exit 1
+          fi
+        env:
+          PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+      - name: Require explicit human confirmation that this rollback is schema-compatible
+        run: |
+          echo "This workflow never runs a reverse/contract migration automatically."
+          echo "Before approving this run in the 'production' Environment, confirm:"
+          echo "  - no destructive/CONTRACT migration shipped between $TARGET_VERSION and the current production release, OR"
+          echo "  - if one did, this rollback has been reviewed and is known safe (see docs/DATABASE_MIGRATIONS.md)."
+          echo "If unsure, stop this run and use a feature-flag kill switch or a forward-fix PR instead."
+        env:
+          TARGET_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
+
+  deploy-api:
+    name: Redeploy known-good API
+    needs: [resolve-and-verify-target, compatibility-check]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          fetch-depth: 1
+      - name: Prove exact rollback-target checkout
+        run: git checkout --detach "${{ needs.resolve-and-verify-target.outputs.target_sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-and-verify-target.outputs.target_sha }}"
+      - name: Refuse a non-production Railway target
+        run: |
+          test "$PRODUCTION_RAILWAY_ENVIRONMENT" = production
+          test -n "$PRODUCTION_RAILWAY_PROJECT_ID"
+          test -n "$PRODUCTION_RAILWAY_API_SERVICE_ID"
+        env:
+          PRODUCTION_RAILWAY_ENVIRONMENT: ${{ vars.PRODUCTION_RAILWAY_ENVIRONMENT }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
+          PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
+      - name: Inject rollback-target API release identity
+        run: |
+          npx --yes @railway/cli@4.30.0 variables set \
+            RELEASE_SHA="${{ needs.resolve-and-verify-target.outputs.target_sha }}" \
+            RELEASE_VERSION="${{ needs.resolve-and-verify-target.outputs.target_version }}" \
+            APP_ENV=production \
+            --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
+          PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
+      - name: Deploy API from the exact rollback-target checkout
+        run: npx --yes @railway/cli@4.30.0 up apps/api --ci --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
+          PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
+      - name: Require API health/readiness at the exact rollback identity (hard failure on timeout)
+        run: |
+          for attempt in $(seq 1 24); do
+            if curl --fail --silent --show-error "${PRODUCTION_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${PRODUCTION_API_URL%/}/ready" > ready.json; then
+              if node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="production"||h.release_sha!==process.env.TARGET_SHA||h.release_version!==process.env.TARGET_VERSION||r.status!=="ready"||r.release_sha!==process.env.TARGET_SHA) process.exit(1)'; then
+                echo "Rollback API release verified healthy."
+                exit 0
+              fi
+            fi
+            echo "Attempt $attempt/24: API not yet healthy at the rollback identity, retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::API did not confirm the rollback identity within the retry window. Rollback Web deploy will NOT proceed."
+          exit 1
+        env:
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+          TARGET_SHA: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          TARGET_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
+
+  deploy-web:
+    name: Redeploy known-good web
+    needs: [resolve-and-verify-target, deploy-api]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          fetch-depth: 1
+      - name: Prove exact rollback-target checkout
+        run: git checkout --detach "${{ needs.resolve-and-verify-target.outputs.target_sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-and-verify-target.outputs.target_sha }}"
+      - name: Refuse a non-production Railway target
+        run: |
+          test "$PRODUCTION_RAILWAY_ENVIRONMENT" = production
+          test -n "$PRODUCTION_RAILWAY_PROJECT_ID"
+          test -n "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+        env:
+          PRODUCTION_RAILWAY_ENVIRONMENT: ${{ vars.PRODUCTION_RAILWAY_ENVIRONMENT }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
+          PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
+      - name: Inject rollback-target web release identity at build time
+        run: |
+          npx --yes @railway/cli@4.30.0 variables set \
+            NEXT_PUBLIC_RELEASE_SHA="${{ needs.resolve-and-verify-target.outputs.target_sha }}" \
+            NEXT_PUBLIC_RELEASE_VERSION="${{ needs.resolve-and-verify-target.outputs.target_version }}" \
+            NEXT_PUBLIC_APP_ENV=production \
+            --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
+          PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
+      - name: Deploy web from the exact rollback-target checkout
+        run: npx --yes @railway/cli@4.30.0 up apps/web --ci --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
+          PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
+
+  verify-rollback:
+    name: Verify rollback identity and smoke
+    needs: [resolve-and-verify-target, deploy-api, deploy-web]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_WEB_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Verify Web/API now report the rollback target, not main's tip
+        run: node scripts/public-smoke.mjs
+        env:
+          PUBLIC_WEB_URL: ${{ vars.PRODUCTION_WEB_URL }}
+          PUBLIC_API_URL: ${{ vars.PRODUCTION_API_URL }}
+          EXPECTED_APP_ENV: production
+          EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          EXPECTED_RELEASE_SHA: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          EXPECTED_RELEASE_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
+      - name: Verify no deployment API-URL drift
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run check:deployment-drift
+        working-directory: apps/web
+        env:
+          DEPLOYMENT_TARGETS: ${{ vars.PRODUCTION_WEB_URL }}
+      - name: Rollback complete
+        run: echo "Production restored to ${{ needs.resolve-and-verify-target.outputs.target_version }} (${{ needs.resolve-and-verify-target.outputs.short_sha }}). No new tag or GitHub Release is created by a rollback."

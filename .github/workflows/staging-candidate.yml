@@ -1,0 +1,381 @@
+name: Staging Candidate
+
+on:
+  # workflow_run is evaluated from the default branch. This keeps deployment
+  # privileges out of a PR-controlled workflow definition.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open, same-repository PR to verify in staging
+        required: true
+        type: string
+      required_flags:
+        description: >-
+          Comma-separated feature keys to enable for the staging fixture
+          tenant before e2e runs (optional). For the workflow_run trigger,
+          the same list can instead be declared via a PR body marker:
+          <!-- staging-flags: key1,key2 -->
+        required: false
+        type: string
+
+concurrency:
+  # Staging is disposable and rebuilt per candidate, so mixed deployments are
+  # unsafe. Never cancel a run after it has started mutating the shared stack.
+  group: staging-release-candidate
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  resolve-candidate:
+    name: Resolve trusted candidate
+    runs-on: ubuntu-latest
+    outputs:
+      eligible: ${{ steps.candidate.outputs.eligible }}
+      pr_number: ${{ steps.candidate.outputs.pr_number }}
+      sha: ${{ steps.candidate.outputs.sha }}
+      short_sha: ${{ steps.candidate.outputs.short_sha }}
+      check_id: ${{ steps.candidate.outputs.check_id }}
+      ci_run_id: ${{ steps.candidate.outputs.ci_run_id }}
+      flags_csv: ${{ steps.candidate.outputs.flags_csv }}
+    steps:
+      - id: candidate
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const sameRepository = context.repo.owner + '/' + context.repo.repo
+            let pr
+            let ciRunId
+            let candidateSha
+
+            if (context.eventName === 'workflow_run') {
+              const run = context.payload.workflow_run
+              if (run.conclusion !== 'success') return core.setOutput('eligible', 'false')
+              pr = run.pull_requests?.[0]
+              ciRunId = String(run.id)
+              candidateSha = run.head_sha
+            } else {
+              const number = Number(context.payload.inputs.pr_number)
+              if (!Number.isInteger(number) || number < 1) return core.setOutput('eligible', 'false')
+              const fetched = await github.rest.pulls.get({ ...context.repo, pull_number: number })
+              pr = fetched.data
+              candidateSha = pr.head.sha
+              const runs = await github.rest.actions.listWorkflowRunsForRepo({
+                ...context.repo, event: 'pull_request', head_sha: candidateSha, status: 'completed', per_page: 100,
+              })
+              const successful = runs.data.workflow_runs.find((run) => run.name === 'CI' && run.conclusion === 'success')
+              if (!successful) return core.setOutput('eligible', 'false')
+              ciRunId = String(successful.id)
+            }
+
+            if (!pr?.number || !candidateSha) return core.setOutput('eligible', 'false')
+            const fresh = await github.rest.pulls.get({ ...context.repo, pull_number: pr.number })
+            const current = fresh.data
+            if (
+              current.state !== 'open' ||
+              current.base.ref !== 'main' ||
+              current.head.sha !== candidateSha ||
+              current.head.ref === 'main' ||
+              current.head.repo.full_name !== context.repo.owner + '/' + context.repo.repo
+            ) return core.setOutput('eligible', 'false')
+
+            const checks = await github.rest.checks.listForRef({ ...context.repo, ref: candidateSha, per_page: 100 })
+            if (!checks.data.check_runs.some((check) => check.name === 'CI Gate' && check.conclusion === 'success')) {
+              return core.setOutput('eligible', 'false')
+            }
+
+            const stagingCheck = checks.data.check_runs.find((check) => check.name === 'Staging Gate')
+            const checkInput = {
+              ...context.repo,
+              status: 'in_progress',
+              details_url: `https://github.com/${sameRepository}/actions/runs/${context.runId}`,
+              output: {
+                title: 'Staging candidate queued',
+                summary: `PR #${current.number} commit ${candidateSha.slice(0, 7)} passed CI Gate and is queued for isolated staging verification.`,
+              },
+            }
+            const check = stagingCheck
+              ? await github.rest.checks.update({ ...checkInput, check_run_id: stagingCheck.id })
+              : await github.rest.checks.create({ ...checkInput, name: 'Staging Gate', head_sha: candidateSha })
+
+            // Simple, explicit flag declaration -- never inferred from the diff.
+            // workflow_dispatch's required_flags input wins when present;
+            // otherwise look for a PR body marker: <!-- staging-flags: key1,key2 -->
+            const dispatchFlags = context.eventName === 'workflow_dispatch' ? context.payload.inputs.required_flags : ''
+            const bodyMatch = (current.body ?? '').match(/<!--\s*staging-flags:\s*([a-z0-9_,\s]*?)\s*-->/i)
+            const flagsCsv = (dispatchFlags || bodyMatch?.[1] || '').replace(/\s+/g, '')
+
+            core.setOutput('eligible', 'true')
+            core.setOutput('pr_number', String(current.number))
+            core.setOutput('sha', candidateSha)
+            core.setOutput('short_sha', candidateSha.slice(0, 7))
+            core.setOutput('flags_csv', flagsCsv)
+            core.setOutput('check_id', String(check.data.id))
+            core.setOutput('ci_run_id', ciRunId)
+
+  prepare-staging-database:
+    name: Prepare disposable staging database
+    needs: resolve-candidate
+    if: needs.resolve-candidate.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-candidate.outputs.sha }}
+          fetch-depth: 1
+      - name: Prove exact candidate checkout
+        run: git checkout --detach "${{ needs.resolve-candidate.outputs.sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-candidate.outputs.sha }}"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.76.8
+      - name: Check candidate migration integrity
+        run: node scripts/check-migrations.mjs
+      - name: Refuse any non-staging reset target
+        run: node scripts/staging-target-guard.mjs
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Rebuild isolated staging database from candidate migrations
+        run: supabase db reset --db-url "$STAGING_SUPABASE_DB_URL" --yes
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Verify candidate schema contracts
+        run: |
+          sudo apt-get update && sudo apt-get install --yes postgresql-client
+          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Verify staging migration state equals this candidate
+        run: node scripts/check-db-drift.mjs --environment staging
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Install fixture dependencies
+        run: cd apps/web && npm ci
+      - name: Seed deterministic synthetic hotel fixture
+        run: cd apps/web && npm run seed:staging-fixture
+        env:
+          APP_ENV: staging
+          SEED_STAGING_FIXTURES: confirm
+          STAGING_FIXTURE_PASSWORD: ${{ secrets.STAGING_FIXTURE_PASSWORD }}
+          SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+      - name: Enable this PR's required feature flags on the staging fixture tenant
+        if: needs.resolve-candidate.outputs.flags_csv != ''
+        run: |
+          IFS=',' read -ra FLAG_KEYS <<< "$FLAGS_CSV"
+          for key in "${FLAG_KEYS[@]}"; do
+            [ -z "$key" ] && continue
+            echo "Enabling $key for the staging fixture tenant"
+            node scripts/check-feature-flag-registry.mjs --key "$key"
+            FEATURE_KEY="$key" node apps/web/scripts/apply-feature-flag.mjs
+          done
+        env:
+          FLAGS_CSV: ${{ needs.resolve-candidate.outputs.flags_csv }}
+          SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          OTHER_ENV_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          TENANT_SLUG: patelrep-staging-fixture
+          ENABLED: 'true'
+          CHANGE_SOURCE: github-actions:staging-candidate:${{ github.run_id }}
+
+  deploy-api:
+    name: Deploy exact API candidate
+    needs: [resolve-candidate, prepare-staging-database]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-candidate.outputs.sha }}
+          fetch-depth: 1
+      - name: Prove exact candidate checkout
+        run: git checkout --detach "${{ needs.resolve-candidate.outputs.sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-candidate.outputs.sha }}"
+      - name: Refuse a production Railway target
+        run: |
+          test "$STAGING_RAILWAY_ENVIRONMENT" = staging
+          test -n "$STAGING_RAILWAY_PROJECT_ID"
+          test -n "$STAGING_RAILWAY_API_SERVICE_ID"
+          test "$STAGING_RAILWAY_API_SERVICE_ID" != "$PRODUCTION_RAILWAY_API_SERVICE_ID"
+        env:
+          STAGING_RAILWAY_ENVIRONMENT: ${{ vars.STAGING_RAILWAY_ENVIRONMENT }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
+          PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
+      - name: Inject exact API release identity
+        run: npx --yes @railway/cli@4.30.0 variables set RELEASE_SHA="${{ needs.resolve-candidate.outputs.sha }}" APP_ENV=staging --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
+      - name: Deploy API from exact checkout
+        run: npx --yes @railway/cli@4.30.0 up apps/api --ci --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
+      - name: Require API health, readiness, staging database, and exact SHA
+        run: |
+          for attempt in {1..24}; do
+            if curl --fail --silent --show-error "${STAGING_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${STAGING_API_URL%/}/ready" > ready.json; then
+              node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
+
+  deploy-web:
+    name: Deploy exact web candidate
+    needs: [resolve-candidate, deploy-api]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-candidate.outputs.sha }}
+          fetch-depth: 1
+      - name: Prove exact candidate checkout
+        run: git checkout --detach "${{ needs.resolve-candidate.outputs.sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-candidate.outputs.sha }}"
+      - name: Refuse a production Railway target
+        run: |
+          test "$STAGING_RAILWAY_ENVIRONMENT" = staging
+          test -n "$STAGING_RAILWAY_PROJECT_ID"
+          test -n "$STAGING_RAILWAY_WEB_SERVICE_ID"
+          test "$STAGING_RAILWAY_WEB_SERVICE_ID" != "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+        env:
+          STAGING_RAILWAY_ENVIRONMENT: ${{ vars.STAGING_RAILWAY_ENVIRONMENT }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+          PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
+      - name: Inject exact web release identity at build time
+        run: npx --yes @railway/cli@4.30.0 variables set NEXT_PUBLIC_RELEASE_SHA="${{ needs.resolve-candidate.outputs.sha }}" NEXT_PUBLIC_APP_ENV=staging --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+      - name: Deploy web from exact checkout
+        run: npx --yes @railway/cli@4.30.0 up apps/web --ci --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+
+  verify-staging:
+    name: Verify candidate identity and hotel workflows
+    needs: [resolve-candidate, prepare-staging-database, deploy-api, deploy-web]
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_WEB_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-candidate.outputs.sha }}
+          fetch-depth: 1
+      - name: Prove exact candidate checkout
+        run: git checkout --detach "${{ needs.resolve-candidate.outputs.sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-candidate.outputs.sha }}"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install browser test dependencies
+        run: cd apps/web && npm ci && npx playwright install --with-deps chromium
+      - name: Verify deployed web/API/database release identity
+        run: cd apps/web && npm run check:staging-health
+        env:
+          STAGING_WEB_URL: ${{ vars.STAGING_WEB_URL }}
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          STAGING_EXPECTED_RELEASE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
+      - name: Run six-role operational staging smoke
+        run: cd apps/web && npm run test:e2e:staging
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_WEB_URL }}
+          STAGING_FIXTURE_PASSWORD: ${{ secrets.STAGING_FIXTURE_PASSWORD }}
+      - name: Verify deployed API target has no release drift
+        run: cd apps/web && npm run check:deployment-drift
+        env:
+          DEPLOYMENT_TARGETS: ${{ vars.STAGING_WEB_URL }}
+      - name: Final staging API/database smoke
+        run: node scripts/public-smoke.mjs
+        env:
+          PUBLIC_WEB_URL: ${{ vars.STAGING_WEB_URL }}
+          PUBLIC_API_URL: ${{ vars.STAGING_API_URL }}
+          EXPECTED_APP_ENV: staging
+          EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          EXPECTED_RELEASE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-playwright-${{ needs.resolve-candidate.outputs.short_sha }}
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 10
+
+  finalize-staging-gate:
+    name: Report Staging Gate
+    needs: [resolve-candidate, prepare-staging-database, deploy-api, deploy-web, verify-staging]
+    if: always() && needs.resolve-candidate.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          CHECK_ID: ${{ needs.resolve-candidate.outputs.check_id }}
+          PR_NUMBER: ${{ needs.resolve-candidate.outputs.pr_number }}
+          SHA: ${{ needs.resolve-candidate.outputs.sha }}
+          SHORT_SHA: ${{ needs.resolve-candidate.outputs.short_sha }}
+          DATABASE: ${{ needs.prepare-staging-database.result }}
+          API: ${{ needs.deploy-api.result }}
+          WEB: ${{ needs.deploy-web.result }}
+          VERIFY: ${{ needs.verify-staging.result }}
+          STAGING_WEB_URL: ${{ vars.STAGING_WEB_URL }}
+        with:
+          script: |
+            const stages = { Database: process.env.DATABASE, 'API deploy': process.env.API, 'Web deploy': process.env.WEB, 'Release identity + smoke': process.env.VERIFY }
+            const passed = Object.values(stages).every((stage) => stage === 'success')
+            const icon = (stage) => stage === 'success' ? '✅' : '❌'
+            const rows = Object.entries(stages).map(([name, stage]) => `| ${name} | ${icon(stage)} ${stage} |`).join('\n')
+            const summary = `PR #${process.env.PR_NUMBER} · ${process.env.SHA}\n\n${rows}`
+            await github.rest.checks.update({
+              ...context.repo,
+              check_run_id: Number(process.env.CHECK_ID),
+              status: 'completed',
+              conclusion: passed ? 'success' : 'failure',
+              details_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              output: { title: passed ? 'Staging Gate passed' : 'Staging Gate failed', summary },
+            })
+            const marker = '<!-- patelrep-staging-candidate -->'
+            const body = `${marker}\n## Staging Candidate\n\nCommit: \`${process.env.SHORT_SHA}\`\n\n| Check | Status |\n| --- | --- |\n${rows}\n\nStaging: ${process.env.STAGING_WEB_URL}\n\nResult: ${passed ? 'Ready for human review' : 'Fix the branch and push a new commit; production was untouched.'}`
+            const comments = await github.rest.issues.listComments({ ...context.repo, issue_number: Number(process.env.PR_NUMBER), per_page: 100 })
+            const existing = comments.data.find((comment) => comment.user?.type === 'Bot' && comment.body?.includes(marker))
+            if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body })
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: Number(process.env.PR_NUMBER), body })

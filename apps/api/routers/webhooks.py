@@ -67,6 +67,9 @@ async def opera_webhook(request: Request):
              RESERVATION.MODIFIED, ROOM_STATUS.DO_NOT_DISTURB,
              ROOM_STATUS.MAKE_UP_ROOM
     """
+    if settings.app_env == "staging" and not settings.staging_external_integrations_enabled:
+        return {"status": "ignored", "reason": "opera_disabled_in_staging"}
+
     payload = await request.body()
 
     try:

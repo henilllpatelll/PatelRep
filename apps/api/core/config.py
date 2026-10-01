@@ -1,6 +1,9 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
+from urllib.parse import urlparse
 
 
 class Settings(BaseSettings):
@@ -49,9 +52,18 @@ class Settings(BaseSettings):
     # In-process cron scheduler. Starts only in production (see core.scheduler);
     # this is an emergency kill-switch to disable it there without a code change.
     cron_scheduler_enabled: bool = True
-    app_env: str = "development"
+    app_env: Literal["development", "test", "staging", "production"] = "development"
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
+    # Public build identity, injected by the release-candidate workflow.
+    release_sha: str = "unknown"
+    release_version: str = "unknown"
+    # A staging process must be explicitly bound to its own Supabase host.
+    # These hostnames are configuration, never credentials. Keeping them out of
+    # source avoids coupling the release guard to a particular Supabase project.
+    staging_expected_supabase_host: str = ""
+    production_supabase_host: str = ""
+    staging_external_integrations_enabled: bool = False
     api_rate_limit_enabled: bool = True
     api_rate_limit_default_per_minute: int = 180
     api_rate_limit_anonymous_per_minute: int = 60
@@ -71,6 +83,31 @@ class Settings(BaseSettings):
         if url.endswith("/rest/v1"):
             return url[: -len("/rest/v1")]
         return url
+
+    @model_validator(mode="after")
+    def validate_environment_isolation(self) -> "Settings":
+        """Fail closed if a staging API is not pointed at its staged database."""
+        if self.app_env != "staging":
+            return self
+
+        expected_host = self.staging_expected_supabase_host.strip().lower()
+        if not expected_host:
+            raise ValueError(
+                "STAGING_EXPECTED_SUPABASE_HOST is required when APP_ENV=staging"
+            )
+
+        configured_host = (urlparse(self.supabase_project_url).hostname or "").lower()
+        production_host = self.production_supabase_host.strip().lower()
+        if configured_host != expected_host or (
+            production_host and configured_host == production_host
+        ):
+            raise ValueError(
+                "APP_ENV=staging requires SUPABASE_URL to use the configured staging "
+                "Supabase host"
+            )
+        if self.stripe_secret_key and not self.stripe_secret_key.startswith("sk_test_"):
+            raise ValueError("APP_ENV=staging requires a Stripe test-mode secret key")
+        return self
 
 
 @lru_cache()
