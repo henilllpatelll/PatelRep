@@ -36,8 +36,8 @@ import { loadMigrations } from './check-migrations.mjs';
 
 const SUPABASE_CLI = 'supabase@2.76.8';
 
-function run(command, args) {
-  const result = spawnSync(command, args, { stdio: 'inherit', shell: false });
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, { stdio: 'inherit', shell: false, ...options });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} exited with status ${result.status}`);
 }
 
@@ -97,7 +97,11 @@ function main() {
   mkdirSync(join(workspace, 'supabase', 'migrations'), { recursive: true });
   copyFileSync(configPath, join(workspace, 'supabase', 'config.toml'));
   console.log('Wiping remote database to the blank Supabase baseline (empty migrations workspace)...');
-  run('npx', ['--yes', SUPABASE_CLI, 'db', 'reset', '--db-url', databaseUrl, '--workdir', workspace, '--yes']);
+  // `--workdir` alone does not redirect which supabase/migrations a remote
+  // (--db-url) `db reset` replays -- it still reads cwd's real directory,
+  // which is exactly the collision we are trying to avoid here. Actually
+  // changing the child process's cwd is what makes it see the empty one.
+  run('npx', ['--yes', SUPABASE_CLI, 'db', 'reset', '--db-url', databaseUrl, '--workdir', workspace, '--yes'], { cwd: workspace });
 
   const migrationByFilename = new Map(migrations.map((migration) => [migration.filename, migration]));
   const plan = planApplyOrder(migrations, recordedVersions(databaseUrl));
