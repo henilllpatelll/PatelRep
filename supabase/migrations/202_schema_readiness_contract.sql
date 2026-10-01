@@ -20,7 +20,7 @@ BEGIN
         ('room_assignments', 'assigned_to'),
         ('inspection_results', 'template_item_id'),
         ('work_orders', 'asset_id'),
-        ('assets', 'last_failure_at'),
+        ('cron_health', 'last_failure_at'),
         ('tasks', 'status'),
         ('logbook_entries', 'entry_date'),
         ('lost_found_items', 'voided_at'),

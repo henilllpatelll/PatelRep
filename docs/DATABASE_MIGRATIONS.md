@@ -19,6 +19,16 @@ All pre-Phase-3 files are protected by the manifest, but their safety must be as
 
 The historical SQL includes data corrections, trigger/function replacements, and `DROP` operations (notably the `039` pair). They remain immutable because production may have recorded them already. If one blocks a fresh rebuild, repair it with a new forward migration or a documented, one-time clean-rebuild harness—never by casually renaming applied history.
 
+## Real migration history vs. normalized replay history
+
+These are two deliberately separate things. Do not confuse them, and never move an identifier from one into the other.
+
+**REAL MIGRATION HISTORY** — `supabase/migrations/`, unmodified. This is the immutable, production/staging-deployed record. Remote drift checks (`check-db-drift.mjs`, `supabase migration list`), the immutable manifest, and every real deployment (`staging-db-migrate.yml`, the Staging Candidate workflow, any future production migration workflow) operate exclusively on these real, historical identifiers — including the grandfathered `039`/`042`/`110` collisions. Remote environments are never migrated or drift-compared using anything else.
+
+**NORMALIZED REPLAY HISTORY** — an ephemeral, CI/local-only reconstruction mechanism, built fresh on every run by `scripts/build-migration-replay-workspace.mjs` and never committed. Supabase's local migration tracker (`supabase_migrations.schema_migrations`) rejects two files sharing one leading numeric identifier, so a clean `supabase db reset --local` replay of the real directory cannot get past the first grandfathered collision (`039`). The script copies every repository migration, byte-identical, into a temporary directory under a synthetic, unique, monotonically increasing 14-digit version prefix (`20000101000001`, `20000101000002`, ...) that preserves the exact repository execution order — it changes only the migration-tracking filename, never the SQL content. It also copies `config.toml` and `seed.sql` unchanged. The **Database Migration Gate** (`node scripts/build-migration-replay-workspace.test.mjs` invariant tests, then `supabase start`/`db reset --local` with `--workdir` pointed at the generated workspace) and `npm run db:rebuild` are the only consumers. Verified invariants on every build: every repository migration appears exactly once, none are omitted or duplicated, normalized versions are unique, normalized ordering equals repository ordering, and SQL content hashes are identical before and after the copy.
+
+**Never deploy a normalized replay filename to a remote environment.** The grandfathered real identifiers (`039`/`042`/`110`/etc.) are what staging and production actually have recorded; the normalized versions exist only to let a from-scratch local/CI rebuild finish.
+
 ## Required commands
 
 ```bash
@@ -84,10 +94,11 @@ There is intentionally no feature-PR production migration workflow. A future pro
 
 | Condition | Proof |
 | --- | --- |
-| Invalid SQL or missing prior dependency | `supabase db reset --local` in Database Migration Gate fails. |
+| Invalid SQL or missing prior dependency | `supabase db reset --local` against the normalized replay workspace in Database Migration Gate fails. |
 | Released migration changed or deleted | `check-migrations.test.mjs` and immutable manifest checks fail. |
-| Duplicate/backdated new identifier | `check-migrations.test.mjs` fails. |
+| Duplicate/backdated new identifier | `check-migrations.test.mjs` fails (grandfathered historical collisions are reported as notices, not failures). |
 | Destructive SQL without review marker | `check-migrations.test.mjs` fails. |
+| Replay workspace omits/duplicates a migration, or rewrites SQL content | `build-migration-replay-workspace.test.mjs` fails. |
 | Staging behind Git | `check-db-drift.test.mjs` reports precise missing identifiers; workflow allows this only before its apply step. |
 | Staging fully migrated | `check-db-drift.test.mjs` verifies the clean comparison; workflow requires `Status: CLEAN` afterward. |
 | API expects absent schema | API `/ready` unit coverage and migrated-Supabase integration test fail with the named contract. |

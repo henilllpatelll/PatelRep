@@ -120,12 +120,16 @@ jobs:
           version: 2.76.8
       - name: Check immutable migration history and destructive SQL review
         run: node scripts/check-migrations.mjs
-      - name: Start isolated Supabase
-        run: supabase start --exclude studio,imgproxy,logflare,edge-runtime
-      - name: Rebuild database from repository migrations and synthetic seed
-        run: supabase db reset --local
+      - name: Build and self-verify normalized migration replay workspace
+        run: |
+          node --test scripts/build-migration-replay-workspace.test.mjs
+          node scripts/build-migration-replay-workspace.mjs --out "${{ runner.temp }}/migration-replay"
+      - name: Start isolated Supabase (normalized replay workspace)
+        run: supabase start --workdir "${{ runner.temp }}/migration-replay" --exclude studio,imgproxy,logflare,edge-runtime
+      - name: Rebuild database from repository migrations and synthetic seed (normalized replay workspace)
+        run: supabase db reset --local --workdir "${{ runner.temp }}/migration-replay"
       - name: Export isolated Supabase test credentials
-        run: supabase status --output env >> "$GITHUB_ENV"
+        run: supabase status --workdir "${{ runner.temp }}/migration-replay" --output env >> "$GITHUB_ENV"
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Verify high-impact schema contracts, RLS, extensions, and RPCs
