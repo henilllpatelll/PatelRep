@@ -29,6 +29,10 @@ These are two deliberately separate things. Do not confuse them, and never move 
 
 **Never deploy a normalized replay filename to a remote environment.** The grandfathered real identifiers (`039`/`042`/`110`/etc.) are what staging and production actually have recorded; the normalized versions exist only to let a from-scratch local/CI rebuild finish.
 
+## Remote clean-rebuild harness
+
+`scripts/remote-migration-apply.mjs` is the documented, one-time clean-rebuild harness referenced above, for the one case the normalized replay workspace can never be used for: building a brand-new remote database (first staging bootstrap, or disaster recovery) from zero using the real historical identifiers. `supabase db reset`/`db push` apply each file's SQL and its `schema_migrations` tracking insert in one transaction, so the second (and third) file in a grandfathered collision group fails the insert and silently rolls back its own SQL too — it is never actually applied. This script instead wipes the target to Supabase's blank baseline (via `supabase db reset` against an ephemeral, empty-migrations workspace), then replays every real migration file directly via `psql` in exact repository order: the first file to use a given version gets a tracking row (matching what `check-db-drift.mjs` already expects, since it dedupes by version), and every later file sharing that version still has its SQL executed but is not re-recorded. Used by the **Staging Candidate** workflow's database-rebuild step; see `scripts/remote-migration-apply.test.mjs` for the planning-logic unit tests.
+
 ## Required commands
 
 ```bash

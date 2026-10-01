@@ -154,13 +154,13 @@ jobs:
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Rebuild isolated staging database from candidate migrations
-        run: supabase db reset --db-url "$STAGING_SUPABASE_DB_URL" --yes
+        run: |
+          sudo apt-get update && sudo apt-get install --yes postgresql-client
+          node scripts/remote-migration-apply.mjs --db-url "$STAGING_SUPABASE_DB_URL"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify candidate schema contracts
-        run: |
-          sudo apt-get update && sudo apt-get install --yes postgresql-client
-          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
+        run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify staging migration state equals this candidate
