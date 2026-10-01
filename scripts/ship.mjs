@@ -1,8 +1,24 @@
 #!/usr/bin/env node
 import { execSync, spawnSync } from 'child_process';
+import { resolve } from 'path';
+import { pathToFileURL } from 'url';
 import { createInterface } from 'readline/promises';
 
 const AI_KEY = process.env.ANTHROPIC_API_KEY;
+const DEFAULT_PROTECTED_PRODUCTION_BRANCHES = ['main', 'master'];
+
+export function getProtectedProductionBranches(value = process.env.PROTECTED_PRODUCTION_BRANCHES) {
+  const branches = (value ?? '')
+    .split(',')
+    .map((branch) => branch.trim())
+    .filter(Boolean);
+
+  return new Set(branches.length > 0 ? branches : DEFAULT_PROTECTED_PRODUCTION_BRANCHES);
+}
+
+export function isProtectedProductionBranch(branch, protectedBranches = getProtectedProductionBranches()) {
+  return protectedBranches.has(branch);
+}
 
 async function ai(prompt) {
   if (!AI_KEY) return null;
@@ -33,7 +49,30 @@ function spawn(cmd, args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
+function captureIfSuccessful(cmd, args) {
+  const result = spawnSync(cmd, args, {
+    encoding: 'utf8',
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
 async function main() {
+  const branch = run('git rev-parse --abbrev-ref HEAD');
+  if (branch === 'HEAD') {
+    console.error('Shipping from a detached HEAD is disabled. Check out a feature branch first.');
+    process.exit(1);
+  }
+
+  if (isProtectedProductionBranch(branch)) {
+    console.error(`Direct shipping from ${branch} is disabled.`);
+    console.error('Create a feature branch first:');
+    console.error('git checkout -b feat/<name>');
+    process.exit(1);
+  }
+
   const status = run('git status --short');
   if (!status) { console.log('Nothing to commit.'); return; }
 
@@ -61,10 +100,16 @@ async function main() {
   spawn('git', ['commit', '-m', commitMsg]);
 
   // --- push ---
-  const branch = run('git rev-parse --abbrev-ref HEAD');
   spawn('git', ['push', '-u', 'origin', branch]);
 
-  if (branch === 'main') { rl.close(); return; }
+  const existingPrUrl = captureIfSuccessful('gh', [
+    'pr', 'list', '--head', branch, '--state', 'open', '--json', 'url', '--jq', '.[0].url',
+  ]);
+  if (existingPrUrl) {
+    console.log(`Open PR already exists: ${existingPrUrl}`);
+    rl.close();
+    return;
+  }
 
   // --- PR description ---
   let prBody = commitMsg;
@@ -76,9 +121,15 @@ async function main() {
     console.log('done');
   }
 
-  spawn('gh', ['pr', 'create', '--title', commitMsg, '--body', prBody]);
+  const prBase = process.env.SHIP_PR_BASE?.trim() || 'main';
+  spawn('gh', ['pr', 'create', '--base', prBase, '--title', commitMsg, '--body', prBody]);
 
   rl.close();
 }
 
-main().catch(err => { console.error(err.message); process.exit(1); });
+const isExecutedDirectly = process.argv[1]
+  && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+
+if (isExecutedDirectly) {
+  main().catch(err => { console.error(err.message); process.exit(1); });
+}

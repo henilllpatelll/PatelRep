@@ -13,6 +13,13 @@ function getLocalDevOrigins() {
 }
 
 function buildCSP() {
+  const configuredApiOrigin = (() => {
+    try {
+      return process.env.NEXT_PUBLIC_API_URL ? new URL(process.env.NEXT_PUBLIC_API_URL).origin : null
+    } catch {
+      return null
+    }
+  })()
   const connectSrc = [
     "'self'",
     'https://*.supabase.co',
@@ -21,6 +28,7 @@ function buildCSP() {
     'https://patelrep-web-production.up.railway.app',
     'https://stellar-integrity-production-30cf.up.railway.app',
     'https://noble-cooperation-production.up.railway.app',
+    ...(configuredApiOrigin ? [configuredApiOrigin] : []),
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ]
 

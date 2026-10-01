@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, CurrentUser
 from core.database import supabase
+from core.feature_flags import is_feature_enabled
+from core.feature_registry import FEATURE_REGISTRY
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,9 +34,18 @@ async def get_me(current_user: CurrentUser = Depends(get_current_user)):
     user_data["email"] = current_user.email
     user_data["role"] = current_user.role
 
+    hotel_data = (hotel_result.data or {}) if hotel_result else {}
+    if hotel_data:
+        # Enabled keys only — never disabled keys or audit metadata. Iterating
+        # the registry (rather than a wildcard query) keeps an unknown/typo'd
+        # key from ever leaking into the response.
+        hotel_data["enabled_features"] = [
+            key for key in FEATURE_REGISTRY if is_feature_enabled(current_user.hotel_id, key)
+        ]
+
     return {
         "user": user_data,
-        "hotel": (hotel_result.data or {}) if hotel_result else {},
+        "hotel": hotel_data,
         "subscription": (sub_result.data or {}) if sub_result else {},
     }
 

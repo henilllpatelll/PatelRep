@@ -1,0 +1,91 @@
+name: Feature Rollout
+
+# Admin-only, deliberate, tenant-by-tenant release control. Deploying code
+# never enables a flag -- this workflow is the only way a flag's value
+# changes anywhere. It is NOT self-service: GMs cannot trigger this, and
+# dispatching it requires repo write access plus, on production, the
+# `production` Environment's required reviewers.
+#
+# Isolation model: `environment: ${{ inputs.environment }}` selects between
+# the `staging` and `production` GitHub Environments, each configured with
+# its OWN SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY/EXPECTED_SUPABASE_HOST/
+# OTHER_ENV_SUPABASE_HOST/API_URL/WEB_URL. A run targeting staging cannot see
+# production's secrets regardless of inputs -- that is GitHub's own Environment
+# secret scoping, not something this workflow enforces itself. The host check
+# in apply-feature-flag.mjs is defense in depth on top of that, not the
+# primary guarantee. See docs/FEATURE_FLAGS.md for the one-time Environment
+# setup this depends on.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+      tenant_slug:
+        description: Exact tenant slug (not name) -- must match exactly one tenant
+        required: true
+        type: string
+      feature_key:
+        description: Feature key from the registry (apps/api/core/feature_registry.py)
+        required: true
+        type: string
+      enabled:
+        description: Set the flag to true or false for this tenant
+        required: true
+        type: choice
+        options: ['true', 'false']
+
+concurrency:
+  # One rollout change at a time per environment -- never two concurrent
+  # mutations racing against the same tenant_feature_flags table.
+  group: feature-rollout-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  apply-flag:
+    name: Apply flag (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Validate feature key is registered
+        run: node scripts/check-feature-flag-registry.mjs --key "${{ inputs.feature_key }}"
+
+      - name: Install apply-flag dependencies
+        run: cd apps/web && npm ci
+
+      - name: Resolve tenant slug and apply the flag (writes tenant_feature_flags + feature_flag_events)
+        run: cd apps/web && node scripts/apply-feature-flag.mjs
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EXPECTED_SUPABASE_HOST: ${{ vars.EXPECTED_SUPABASE_HOST }}
+          OTHER_ENV_SUPABASE_HOST: ${{ vars.OTHER_ENV_SUPABASE_HOST }}
+          TENANT_SLUG: ${{ inputs.tenant_slug }}
+          FEATURE_KEY: ${{ inputs.feature_key }}
+          ENABLED: ${{ inputs.enabled }}
+          CHANGE_SOURCE: github-actions:feature-rollout:${{ github.run_id }}:${{ github.actor }}
+
+      - name: Post-enable verification (read-only; only runs when turning a flag ON)
+        if: inputs.enabled == 'true'
+        run: cd apps/web && node scripts/verify-feature-rollout.mjs
+        env:
+          API_URL: ${{ vars.API_URL }}
+          WEB_URL: ${{ vars.WEB_URL }}
+
+      - name: Current status for this tenant
+        if: always()
+        run: cd apps/web && node scripts/feature-flag-status.mjs --tenant "${{ inputs.tenant_slug }}"
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

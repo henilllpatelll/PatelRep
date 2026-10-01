@@ -8,6 +8,7 @@ export interface Hotel {
   logo_url?: string
   front_desk_modules?: string[]
   web_redesign_sections?: string[]
+  enabled_features?: string[]
 }
 
 interface Subscription {

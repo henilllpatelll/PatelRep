@@ -1,43 +1,23 @@
 #!/usr/bin/env bash
-# Runs before any push to main. Skips on all other branches.
+# Blocks direct updates to protected production branches. Feature branches are
+# allowed to push normally; GitHub CI validates them through their pull requests.
 
-protected_branch="main"
-current_branch=$(git rev-parse --abbrev-ref HEAD)
+protected_branches="${PROTECTED_PRODUCTION_BRANCHES:-main,master}"
+IFS=',' read -r -a protected_branch_list <<< "$protected_branches"
 
-[ "$current_branch" != "$protected_branch" ] && exit 0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  for protected_branch in "${protected_branch_list[@]}"; do
+    protected_branch="${protected_branch//[[:space:]]/}"
+    [ -z "$protected_branch" ] && continue
 
-echo "pre-push: running checks before push to main..."
+    if [ "$remote_ref" = "refs/heads/$protected_branch" ]; then
+      echo ""
+      echo "BLOCKED: direct push to protected branch '$protected_branch'."
+      echo "Production changes must go through a pull request with a green CI Gate."
+      echo "Create and push a feature branch instead: git checkout -b feat/<name>"
+      exit 1
+    fi
+  done
+done
 
-if command -v ruff &>/dev/null; then RUFF="ruff"; else RUFF="python -m ruff"; fi
-(cd apps/api && $RUFF check .) || { echo ""; echo "BLOCKED: API lint failed — fix ruff errors before pushing."; exit 1; }
-echo "  ✓ API lint"
-
-(cd apps/web && npm run lint --silent 2>&1) || { echo ""; echo "BLOCKED: Web lint failed — fix ESLint errors before pushing."; exit 1; }
-echo "  ✓ Web lint"
-
-(cd apps/web && npm run type-check 2>&1) || { echo ""; echo "BLOCKED: TypeScript type-check failed — fix type errors before pushing."; exit 1; }
-echo "  ✓ Web type-check"
-
-# Lock file sync — catch package.json / package-lock.json drift before CI does
-if ! (cd apps/web && npm ci --dry-run 2>/dev/null); then
-  echo ""
-  echo "BLOCKED: apps/web/package-lock.json is out of sync with package.json."
-  echo "         Run 'npm install' inside apps/web, then re-stage package-lock.json."
-  exit 1
-fi
-echo "  ✓ Lock file in sync"
-
-# Python security audit (skipped if pip-audit not installed locally)
-if command -v pip-audit &>/dev/null; then
-  (cd apps/api && pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-1325 -q) \
-    || { echo ""; echo "BLOCKED: pip-audit found vulnerabilities — update requirements.txt before pushing."; exit 1; }
-  echo "  ✓ Python deps (pip-audit)"
-fi
-
-# Node security audit
-(cd apps/web && npm audit --audit-level=high --silent) \
-  || { echo ""; echo "BLOCKED: npm audit found high/critical vulnerabilities — run 'npm audit fix' in apps/web."; exit 1; }
-echo "  ✓ Node deps (npm audit)"
-
-echo ""
-echo "pre-push: all checks passed — pushing."
+exit 0

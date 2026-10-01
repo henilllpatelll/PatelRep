@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
+from core.config import settings
 from models.requests import OperaConnectRequest, OperaSftpConnectRequest, ResolveOperaSyncConflictRequest
 from services.opera import sync_reservations, bootstrap_opera_data, sync_report_files
 from services.opera.auth import acquire_new_token, get_opera_credentials, get_valid_access_token
@@ -17,6 +18,8 @@ router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 def _require_opera_pilot(current_user: CurrentUser) -> None:
     """D-03: gate every Opera endpoint to explicitly enrolled pilot hotels."""
+    if settings.app_env == "staging" and not settings.staging_external_integrations_enabled:
+        raise HTTPException(status_code=503, detail="Opera integration is disabled in staging")
     result = supabase.table("tenants").select("opera_pilot_enabled") \
         .eq("id", current_user.hotel_id).maybe_single().execute()
     if not result or not result.data or not result.data.get("opera_pilot_enabled"):

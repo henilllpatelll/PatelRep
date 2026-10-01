@@ -303,6 +303,7 @@ def _extract_route_rows(
             continue
 
         require_role_call: ast.Call | None = None
+        require_feature_call: ast.Call | None = None
         auth_dependency_name: str | None = None
 
         for default in _iter_default_exprs(node):
@@ -317,6 +318,11 @@ def _extract_route_rows(
             if isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name):
                 if inner.func.id == "require_role":
                     require_role_call = inner
+                elif inner.func.id == "require_feature":
+                    # require_feature(...) (core/feature_flags.py) wraps
+                    # Depends(get_current_user) internally, so the route IS
+                    # authenticated -- just gated by a tenant flag, not a role.
+                    require_feature_call = inner
                 elif inner.func.id in _AUTH_DEPENDENCY_NAMES:
                     auth_dependency_name = inner.func.id
             elif isinstance(inner, ast.Name) and inner.id in _AUTH_DEPENDENCY_NAMES:
@@ -362,6 +368,9 @@ def _extract_route_rows(
             resolved_roles = _resolve_require_role_args(require_role_call, constants)
             required_roles_display = ", ".join(sorted(set(resolved_roles)))
             source_parts = [f"{ast.unparse(require_role_call)} [L{require_role_call.lineno}]"]
+        elif require_feature_call is not None:
+            required_roles_display = "N/A (feature-gated, not role-based)"
+            source_parts = [f"{ast.unparse(require_feature_call)} [L{require_feature_call.lineno}]"]
         elif verify_cron_call is not None:
             required_roles_display = "N/A (not role-based)"
             source_parts = [f"verify_cron(...) [L{verify_cron_call.lineno}]"]
@@ -462,8 +471,12 @@ def render_markdown(rows: list[dict], api_prefix: str) -> str:
         "filters/scopes a query or response without denying access, which remains `none`. "
         '`N/A (not role-based)` = gated by a separate, deliberate auth mechanism (cron '
         "secret, webhook signature) instead of a role. "
+        '`N/A (feature-gated, not role-based)` = gated by `require_feature(...)` '
+        "(`core/feature_flags.py`) -- authenticated (it wraps `get_current_user`) and "
+        "restricted to tenants with the named flag enabled, but not role-restricted. "
         '`UNVERIFIED (no auth dependency detected)` = no `require_role(...)`, '
-        "`verify_cron(...)`, or `get_current_user*` dependency was found at all -- flag "
+        "`require_feature(...)`, `verify_cron(...)`, or `get_current_user*` dependency "
+        "was found at all -- flag "
         "for review, this may be a route with no authentication. A pytest drift guard "
         "(`apps/api/tests/smoke/test_rbac_matrix_contract.py`) fails CI if this file "
         "ever goes stale relative to the code it describes.",

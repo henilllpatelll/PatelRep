@@ -8,11 +8,12 @@ const RETIRED_API_URLS = [
 ]
 const LIVE_API_URL = 'https://noble-cooperation-production.up.railway.app/v1'
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL
+const appEnv = (process.env.NEXT_PUBLIC_APP_ENV || 'development').toLowerCase()
 
 // Vercel builds expose public environment values at build time. Keep an old
 // deployment setting from stranding staff on the room board while the Vercel
 // project environment is being corrected.
-const API_URL = configuredApiUrl && RETIRED_API_URLS.includes(configuredApiUrl)
+const API_URL = appEnv === 'production' && configuredApiUrl && RETIRED_API_URLS.includes(configuredApiUrl)
   ? LIVE_API_URL
   : configuredApiUrl || 'http://localhost:8000/v1'
 
