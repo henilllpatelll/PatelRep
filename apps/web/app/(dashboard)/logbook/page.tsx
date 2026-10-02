@@ -998,9 +998,12 @@ function LogbookPageContent() {
   }
 
   function handleEntryCreated() {
-    queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
-    queryClient.invalidateQueries({ queryKey: ['logbook-workspace-entries', selectedDate] })
-    queryClient.invalidateQueries({ queryKey: ['logbook-needs-next-shift', selectedDate] })
+    // Keep legacy/list consumers invalidated, but explicitly refetch the active
+    // V2 infinite-query feed. A prefix invalidation alone has proven flaky in
+    // deployed staging and can leave a successfully created handoff invisible.
+    void queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
+    void workspaceEntriesQuery.refetch()
+    void queryClient.invalidateQueries({ queryKey: ['logbook-needs-next-shift', selectedDate] })
   }
 
   function openEntryDetail(entry: LogbookEntry) {
