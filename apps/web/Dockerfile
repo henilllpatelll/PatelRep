@@ -1,12 +1,12 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY apps/web/package.json ./
+COPY package.json ./
 RUN npm install
 
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY apps/web/ ./
+COPY . ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # NEXT_PUBLIC_* vars are baked into the JS bundle at build time, not runtime.

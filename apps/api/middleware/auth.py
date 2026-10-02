@@ -8,6 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from jose.exceptions import JWKError
 from core.config import settings
+from core.roles import ALL_ROLES
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ security = HTTPBearer(auto_error=False)
 
 _jwks_cache: dict | None = None
 _jwks_cache_time: float = 0.0
+_APPLICATION_ROLES = frozenset(ALL_ROLES)
 
 
 async def _fetch_jwks() -> dict:
@@ -40,6 +42,15 @@ class CurrentUser:
     hotel_id: str
     role: str
     email: str = ""
+
+
+def _resolve_application_role(payload: dict, app_metadata: dict | None = None) -> str:
+    """Return the first valid PatelRep role without accepting Supabase DB roles."""
+    metadata = app_metadata if isinstance(app_metadata, dict) else {}
+    for candidate in (payload.get("user_role"), payload.get("role"), metadata.get("role")):
+        if isinstance(candidate, str) and candidate in _APPLICATION_ROLES:
+            return candidate
+    return "none"
 
 
 async def _decode_token(token: str) -> dict:
@@ -78,8 +89,11 @@ async def get_current_user(
         )
     payload = await _decode_token(credentials.credentials)
     user_id = payload.get("sub")
-    hotel_id = payload.get("hotel_id")
-    role = payload.get("user_role") or payload.get("role", "none")
+    app_metadata = payload.get("app_metadata")
+    if not isinstance(app_metadata, dict):
+        app_metadata = {}
+    hotel_id = payload.get("hotel_id") or app_metadata.get("hotel_id")
+    role = _resolve_application_role(payload, app_metadata)
 
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token claims")
@@ -119,7 +133,7 @@ async def get_current_user_no_hotel(
     return CurrentUser(
         user_id=user_id,
         hotel_id=payload.get("hotel_id", ""),
-        role=payload.get("user_role") or payload.get("role", "none"),
+        role=_resolve_application_role(payload, payload.get("app_metadata")),
         email=payload.get("email", "")
     )
 

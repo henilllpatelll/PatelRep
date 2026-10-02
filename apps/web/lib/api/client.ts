@@ -1,13 +1,15 @@
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
 
+import { resolveApiUrl } from './apiUrl'
+
 const RETIRED_API_URLS = [
   'https://patelrep-web-production.up.railway.app/v1',
   'https://stellar-integrity-production-f507.up.railway.app/v1',
   'https://stellar-integrity-production-30cf.up.railway.app/v1',
 ]
 const LIVE_API_URL = 'https://noble-cooperation-production.up.railway.app/v1'
-const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL
+const configuredApiUrl = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL)
 const appEnv = (process.env.NEXT_PUBLIC_APP_ENV || 'development').toLowerCase()
 
 // Vercel builds expose public environment values at build time. Keep an old
@@ -15,7 +17,7 @@ const appEnv = (process.env.NEXT_PUBLIC_APP_ENV || 'development').toLowerCase()
 // project environment is being corrected.
 const API_URL = appEnv === 'production' && configuredApiUrl && RETIRED_API_URLS.includes(configuredApiUrl)
   ? LIVE_API_URL
-  : configuredApiUrl || 'http://localhost:8000/v1'
+  : configuredApiUrl
 
 export const resolvedApiUrl = API_URL
 

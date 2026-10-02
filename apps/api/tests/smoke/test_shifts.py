@@ -105,7 +105,9 @@ async def test_end_shift_closes_session(monkeypatch):
 async def test_roster_returns_latest_session_per_housekeeper(monkeypatch):
     db = make_db()
     monkeypatch.setattr(shifts_router, "supabase", db)
-    now = datetime.now(timezone.utc)
+    roster_day = datetime.now(timezone.utc).replace(
+        hour=12, minute=0, second=0, microsecond=0
+    )
 
     db.rows["hk_shift_sessions"].extend([
         {
@@ -113,7 +115,7 @@ async def test_roster_returns_latest_session_per_housekeeper(monkeypatch):
             "tenant_id": "hotel-a",
             "user_id": "hk-1",
             "status": "ended",
-            "started_at": (now - timedelta(hours=8)).isoformat(),
+            "started_at": (roster_day - timedelta(hours=8)).isoformat(),
             "on_break_since": None,
             "break_seconds": 0,
         },
@@ -122,8 +124,8 @@ async def test_roster_returns_latest_session_per_housekeeper(monkeypatch):
             "tenant_id": "hotel-a",
             "user_id": "hk-1",
             "status": "on_break",
-            "started_at": (now - timedelta(hours=1)).isoformat(),
-            "on_break_since": now.isoformat(),
+            "started_at": (roster_day - timedelta(hours=1)).isoformat(),
+            "on_break_since": roster_day.isoformat(),
             "break_seconds": 0,
         },
         {
@@ -131,13 +133,13 @@ async def test_roster_returns_latest_session_per_housekeeper(monkeypatch):
             "tenant_id": "hotel-b",
             "user_id": "hk-2",
             "status": "active",
-            "started_at": now.isoformat(),
+            "started_at": roster_day.isoformat(),
             "on_break_since": None,
             "break_seconds": 0,
         },
     ])
 
-    response = await shifts_router.get_shift_roster(None, SUPERVISOR)
+    response = await shifts_router.get_shift_roster(roster_day.date(), SUPERVISOR)
     rows = response["data"]
 
     assert len(rows) == 1

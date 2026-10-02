@@ -209,6 +209,8 @@ jobs:
           PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
           STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
           STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
+      - name: Install PostgreSQL client for read-only migration verification
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Show pending production migrations (list-only, no apply)
         id: drift
         run: |
@@ -257,6 +259,8 @@ jobs:
           PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
           STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
           STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
+      - name: Install PostgreSQL client for migration verification
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Apply pending migrations to production only
         run: supabase db push --db-url "$PRODUCTION_SUPABASE_DB_URL"
         env:
@@ -266,9 +270,7 @@ jobs:
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
       - name: Verify production schema contracts
-        run: |
-          sudo apt-get update && sudo apt-get install --yes postgresql-client
-          psql --set ON_ERROR_STOP=1 "$PRODUCTION_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
+        run: psql --set ON_ERROR_STOP=1 "$PRODUCTION_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
 
@@ -364,7 +366,7 @@ jobs:
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
       - name: Deploy web from exact checkout
-        run: npx --yes @railway/cli@4.30.0 up apps/web --ci --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+        run: npx --yes @railway/cli@4.30.0 up apps/web --ci --path-as-root --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
         env:
           RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}

@@ -20,6 +20,7 @@ import { categoryIcon, getCategoryOptions, type LogbookRelatedItem } from '@/lib
 import {
   buildAddHandoffPayload,
   computeFollowUpDueAt,
+  isAddHandoffReady,
   temporaryNoteHours,
   type FollowUpDuePreset,
   type TemporaryNotePreset,
@@ -69,6 +70,7 @@ export function AddHandoffDrawer({
   const toast = useToast()
   const ref = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const wasOpen = useRef(false)
   useModalFocusTrap(ref, isOpen, onClose)
 
   const [content, setContent] = useState('')
@@ -93,9 +95,11 @@ export function AddHandoffDrawer({
   const [now, setNow] = useState(() => new Date())
 
   // Reset every time the drawer opens — never leaks stale values from a previous
-  // submission (spec #38).
+  // submission (spec #38). A late department fetch must not erase entered text.
   useEffect(() => {
-    if (!isOpen) return
+    const justOpened = isOpen && !wasOpen.current
+    wasOpen.current = isOpen
+    if (!justOpened) return
     setNow(new Date())
     setContent('')
     setContentTouched(false)
@@ -116,7 +120,11 @@ export function AddHandoffDrawer({
     setAcknowledgmentTargetIds([])
     setAttachments([])
     setError(null)
-  }, [isOpen, defaultDepartmentId])
+  }, [defaultDepartmentId, isOpen])
+
+  useEffect(() => {
+    if (isOpen && !departmentId && defaultDepartmentId) setDepartmentId(defaultDepartmentId)
+  }, [defaultDepartmentId, departmentId, isOpen])
 
   const staffQuery = useQuery({ queryKey: ['staff-picker'], queryFn: () => staffApi.list(), enabled: isOpen, staleTime: 60_000 })
   const staff = useMemo(() => (staffQuery.data?.data.staff ?? []).filter((member) => member.status === 'active'), [staffQuery.data])
@@ -132,9 +140,21 @@ export function AddHandoffDrawer({
     customIso: duePreset === 'custom' && customDueDate && customDueTime ? new Date(`${customDueDate}T${customDueTime}:00`).toISOString() : undefined,
   })
 
+  // A late department fetch may arrive after the operator starts typing. Use the
+  // latest default immediately without resetting the draft, and expose the same
+  // readiness contract to both the button and submit handler.
+  const effectiveDepartmentId = departmentId || defaultDepartmentId
+  const canSubmit = isAddHandoffReady({
+    departmentId: effectiveDepartmentId,
+    content,
+    priority,
+    requiresAcknowledgment,
+    acknowledgmentTargetIds,
+  })
+
   const mutation = useMutation({
     mutationFn: () => logbookApi.createEntry(buildAddHandoffPayload({
-      departmentId,
+      departmentId: effectiveDepartmentId,
       content,
       category,
       priority,
@@ -179,7 +199,10 @@ export function AddHandoffDrawer({
   function submit(event: React.FormEvent) {
     event.preventDefault()
     setContentTouched(true)
-    if (!content.trim() || !departmentId || (requiresAcknowledgment && (priority !== 'important' || !acknowledgmentTargetIds.length))) return
+    if (!canSubmit) {
+      if (!effectiveDepartmentId) setError(t('logbook.unableToAddHandoff'))
+      return
+    }
     setError(null)
     mutation.mutate()
   }
@@ -340,7 +363,7 @@ export function AddHandoffDrawer({
                   <div className="relative">
                     <select
                       id="handoff-department"
-                      value={departmentId}
+                      value={effectiveDepartmentId}
                       onChange={(e) => setDepartmentId(e.target.value)}
                       className="w-full appearance-none rounded-[var(--r-md)] border border-line bg-surface px-3 py-2 pr-8 text-sm text-ink"
                     >
@@ -406,7 +429,7 @@ export function AddHandoffDrawer({
 
         <div className="flex gap-3 border-t border-line p-4">
           <Button type="button" variant="outline" onClick={onClose} className="flex-1">{t('common.cancel')}</Button>
-          <Button variant="primary" loading={mutation.isPending} disabled={!content.trim()} onClick={() => formRef.current?.requestSubmit()} className="flex-1">
+          <Button variant="primary" loading={mutation.isPending} disabled={!canSubmit} onClick={() => formRef.current?.requestSubmit()} className="flex-1">
             {t('logbook.addHandoffSubmit')}
           </Button>
         </div>

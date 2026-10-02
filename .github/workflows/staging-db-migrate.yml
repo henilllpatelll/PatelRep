@@ -31,6 +31,8 @@ jobs:
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Install PostgreSQL client for read-only migration verification
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Show pending staging migrations
         run: node scripts/check-db-drift.mjs --environment staging --allow-pending
         env:
@@ -44,9 +46,7 @@ jobs:
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify staging schema contracts
-        run: |
-          sudo apt-get update && sudo apt-get install --yes postgresql-client
-          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
+        run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify deployed staging API readiness when configured

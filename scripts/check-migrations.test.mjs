@@ -28,6 +28,17 @@ test('rejects a changed or deleted released migration', () => {
   assert.match(deletedResult.violations.join('\n'), /Released migration deleted/);
 });
 
+test('treats Windows and repository LF line endings as the same immutable SQL content', () => {
+  assert.equal(
+    sha256('CREATE TABLE example (id uuid);\n'),
+    sha256('CREATE TABLE example (id uuid);\r\n'),
+  );
+  assert.notEqual(
+    sha256('CREATE TABLE example (id uuid);\n'),
+    sha256('CREATE TABLE modified (id uuid);\n'),
+  );
+});
+
 test('rejects new backdated and duplicate migration identifiers', () => {
   const released = migration('129_released.sql');
   const newOne = migration('130_first.sql');

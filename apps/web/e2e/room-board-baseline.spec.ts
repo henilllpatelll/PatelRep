@@ -154,6 +154,13 @@ async function gotoWithTheme(page: Page, path: string, mode: 'light' | 'dark'): 
     )
   }, mode)
   await page.goto(path)
+  // Sidebar desktop width follows hover state rather than the persisted UI
+  // preference. Playwright's initial pointer position can land inside it,
+  // leaving it expanded and shifting the whole capture horizontally. Move to
+  // stable content chrome and wait through the width transition so every
+  // baseline begins from the intended collapsed shell.
+  await page.mouse.move(1200, 700)
+  await expect(page.locator('aside[aria-label="Main navigation"]')).toHaveCSS('width', '64px')
   if (mode === 'dark') {
     // Housekeeping redesign Phase 10 dark-mode portal fix: DashboardShell.tsx
     // now mirrors theme/density/accent classes onto document.body (in
@@ -171,7 +178,10 @@ for (const role of ROLES) {
     for (const mode of ['light', 'dark'] as const) {
       test(`housekeeping RoomStatusBoard — ${mode}`, async ({ page }) => {
         await gotoWithTheme(page, '/housekeeping', mode)
-        await page.getByText(FIXTURE_ROOM_NUMBERS.dirty, { exact: true }).waitFor({ state: 'visible', timeout: 15000 })
+        // The first real fixture-data request can cold-start its backend.
+        // Preserve the exact visible-room assertion while allowing it to
+        // settle inside this file's 45-second Playwright test budget.
+        await page.getByText(FIXTURE_ROOM_NUMBERS.dirty, { exact: true }).waitFor({ state: 'visible', timeout: 30000 })
 
         await expect(page).toHaveScreenshot(`housekeeping-board-${role.key}-${mode}.png`, {
           mask: chromeMasks(page),
