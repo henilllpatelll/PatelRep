@@ -778,11 +778,11 @@ function LogbookPageContent() {
   const session = useAuthStore((s) => s.session)
   const currentUserId: string = session?.user?.id ?? ''
   const hotelId: string = (() => {
-    if (!session?.access_token) return ''
+    if (!session?.access_token) return hotel?.id ?? ''
     try {
-      return JSON.parse(atob(session.access_token.split('.')[1]))?.hotel_id ?? ''
+      return JSON.parse(atob(session.access_token.split('.')[1]))?.hotel_id ?? hotel?.id ?? ''
     } catch {
-      return ''
+      return hotel?.id ?? ''
     }
   })()
 
