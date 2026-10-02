@@ -71,7 +71,7 @@ test('core hotel workflows load and safe synthetic mutations succeed', async ({ 
   await expect(page.getByText('Synthetic blue umbrella', { exact: true }).first()).toBeVisible({ timeout: 30_000 })
 
   await page.goto('/logbook')
-  await page.getByRole('button', { name: /add handoff|add entry/i }).first().click()
+  await page.getByRole('button', { name: 'Add Handoff', exact: true }).click()
   const message = `Staging release smoke ${Date.now()}`
   await page.getByRole('dialog').locator('#handoff-content').fill(message)
   const [response] = await Promise.all([
