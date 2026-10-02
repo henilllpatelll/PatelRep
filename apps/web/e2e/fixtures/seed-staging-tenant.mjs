@@ -38,9 +38,10 @@ async function requireOk(result, context) {
   return result.data
 }
 
-async function authUser(email, fullName) {
+async function authUser(email, fullName, role) {
   const created = await supabase.auth.admin.createUser({
     email, password: PASSWORD, email_confirm: true,
+    app_metadata: { hotel_id: TENANT_ID, role, staging_fixture: true },
     user_metadata: { hotel_id: TENANT_ID, full_name: fullName, staging_fixture: true },
   })
   if (!created.error) return created.data.user.id
@@ -50,7 +51,11 @@ async function authUser(email, fullName) {
     const data = await requireOk(await supabase.auth.admin.listUsers({ page, perPage: 200 }), 'List staging users')
     const user = data.users.find((candidate) => candidate.email?.toLowerCase() === email)
     if (user) {
-      await requireOk(await supabase.auth.admin.updateUserById(user.id, { password: PASSWORD, user_metadata: { hotel_id: TENANT_ID, full_name: fullName, staging_fixture: true } }), 'Update staging user')
+    await requireOk(await supabase.auth.admin.updateUserById(user.id, {
+      password: PASSWORD,
+      user_metadata: { hotel_id: TENANT_ID, full_name: fullName, staging_fixture: true },
+      app_metadata: { hotel_id: TENANT_ID, role, staging_fixture: true },
+    }), 'Update staging user')
       return user.id
     }
     if (data.users.length < 200) throw new Error(`Existing staging user ${email} could not be located.`)
@@ -91,7 +96,7 @@ async function main() {
 
   const userIds = {}
   for (const [email, fullName, role] of users) {
-    const userId = await authUser(email, fullName)
+    const userId = await authUser(email, fullName, role)
     userIds[role] = userId
     await requireOk(await supabase.from('user_profiles').upsert({ id: userId, tenant_id: TENANT_ID, full_name: fullName, preferred_name: fullName.replace('Staging ', ''), language_pref: 'en', is_active: true }, { onConflict: 'id' }), `Upsert profile ${role}`)
     await requireOk(await supabase.from('user_roles').upsert({ user_id: userId, tenant_id: TENANT_ID, role, is_active: true }, { onConflict: 'user_id,tenant_id,role' }), `Upsert role ${role}`)
