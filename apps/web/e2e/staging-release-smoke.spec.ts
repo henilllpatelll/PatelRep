@@ -48,8 +48,8 @@ for (const [role, email] of mobileOnlyRoles) {
     await expect(mobileOnlyAlert).toContainText(/mobile app/i)
 
     await page.goto('/dashboard')
-    await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('mobileOnly') === '1')
-    await expect(mobileOnlyAlert).toContainText(/management staff only/i)
+    await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('redirectTo') === '/dashboard')
+    await expect(page.getByRole('heading', { name: /welcome back to your hotel/i })).toBeVisible()
     expect(failures, `fatal browser failures for ${role}`).toEqual([])
   })
 }
@@ -75,8 +75,8 @@ test('core hotel workflows load and safe synthetic mutations succeed', async ({ 
   const message = `Staging release smoke ${Date.now()}`
   await page.getByRole('dialog').locator('textarea').fill(message)
   const [response] = await Promise.all([
-    page.waitForResponse((candidate) => candidate.url().includes('/logbook') && candidate.request().method() === 'POST'),
-    page.getByRole('dialog').getByRole('button', { name: /add entry/i }).click(),
+    page.waitForResponse((candidate) => candidate.url().includes('/logbook/entries') && candidate.request().method() === 'POST'),
+    page.getByRole('dialog').getByRole('button', { name: /add handoff|add entry/i }).click(),
   ])
   expect(response.ok(), await response.text()).toBeTruthy()
   await expect(page.getByText(message, { exact: true }).first()).toBeVisible()
