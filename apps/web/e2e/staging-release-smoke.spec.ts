@@ -48,7 +48,7 @@ for (const [role, email] of mobileOnlyRoles) {
     await expect(mobileOnlyAlert).toContainText(/mobile app/i)
 
     await page.goto('/dashboard')
-    await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('redirectTo') === '/dashboard')
+    await expect(page).toHaveURL(/\/login\?(?:mobileOnly=1|redirectTo=%2Fdashboard)/)
     await expect(page.getByRole('heading', { name: /welcome back to your hotel/i })).toBeVisible()
     expect(failures, `fatal browser failures for ${role}`).toEqual([])
   })
@@ -73,7 +73,7 @@ test('core hotel workflows load and safe synthetic mutations succeed', async ({ 
   await page.goto('/logbook')
   await page.getByRole('button', { name: /add handoff|add entry/i }).first().click()
   const message = `Staging release smoke ${Date.now()}`
-  await page.getByRole('dialog').locator('textarea').fill(message)
+  await page.getByRole('dialog').locator('#handoff-content').fill(message)
   const [response] = await Promise.all([
     page.waitForResponse((candidate) => candidate.url().includes('/logbook/entries') && candidate.request().method() === 'POST'),
     page.getByRole('dialog').getByRole('button', { name: /add handoff|add entry/i }).click(),
