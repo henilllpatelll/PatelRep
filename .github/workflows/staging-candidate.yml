@@ -239,7 +239,7 @@ jobs:
       - name: Deploy API from exact checkout
         run: |
           npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
-          npx --yes @railway/cli@4.30.0 up apps/api --ci --no-gitignore
+          npx --yes @railway/cli@4.30.0 up apps/api --ci --no-gitignore --path-as-root
         env:
           RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
@@ -298,7 +298,7 @@ jobs:
       - name: Deploy web from exact checkout
         run: |
           npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
-          npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore
+          npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root
         env:
           RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
