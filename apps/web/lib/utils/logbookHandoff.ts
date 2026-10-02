@@ -60,6 +60,15 @@ export interface AddHandoffValues {
   acknowledgmentTargetIds?: string[]
 }
 
+/** The create action is ready only when every required hidden/visible field is valid. */
+export function isAddHandoffReady(
+  values: Pick<AddHandoffValues, 'departmentId' | 'content' | 'priority' | 'requiresAcknowledgment' | 'acknowledgmentTargetIds'>,
+): boolean {
+  if (!values.content.trim() || !values.departmentId) return false
+  if (!values.requiresAcknowledgment) return true
+  return values.priority === 'important' && Boolean(values.acknowledgmentTargetIds?.length)
+}
+
 /** Builds the clean structured create payload — status is always derived from
  * needsFollowUp rather than sent as a separate UI concept (spec #14), and
  * follow-up ownership/due are only ever sent alongside status=follow_up. */

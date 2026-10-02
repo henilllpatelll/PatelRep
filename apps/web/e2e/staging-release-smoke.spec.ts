@@ -73,10 +73,13 @@ test('core hotel workflows load and safe synthetic mutations succeed', async ({ 
   await page.goto('/logbook')
   await page.getByRole('button', { name: 'Add Handoff', exact: true }).click()
   const message = `Staging release smoke ${Date.now()}`
-  await page.getByRole('dialog').locator('#handoff-content').fill(message)
+  const handoffDialog = page.getByRole('dialog')
+  await handoffDialog.locator('#handoff-content').fill(message)
+  const submitHandoff = handoffDialog.getByRole('button', { name: /add handoff|add entry/i })
+  await expect(submitHandoff).toBeEnabled({ timeout: 30_000 })
   const [response] = await Promise.all([
     page.waitForResponse((candidate) => candidate.url().includes('/logbook/entries') && candidate.request().method() === 'POST'),
-    page.getByRole('dialog').getByRole('button', { name: /add handoff|add entry/i }).click(),
+    submitHandoff.click(),
   ])
   expect(response.ok(), await response.text()).toBeTruthy()
   await expect(page.getByText(message, { exact: true }).first()).toBeVisible()

@@ -1,7 +1,29 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { buildAddHandoffPayload, computeFollowUpDueAt, shiftHandoffSourceHref, temporaryNoteHours } from './logbookHandoff'
+import { buildAddHandoffPayload, computeFollowUpDueAt, isAddHandoffReady, shiftHandoffSourceHref, temporaryNoteHours } from './logbookHandoff'
+
+test('isAddHandoffReady waits for department hydration and acknowledgment requirements', () => {
+  const base = {
+    departmentId: 'dept-1',
+    content: 'Shift handoff',
+    priority: 'normal' as const,
+    requiresAcknowledgment: false,
+    acknowledgmentTargetIds: [] as string[],
+  }
+
+  assert.equal(isAddHandoffReady({ ...base, departmentId: '' }), false)
+  assert.equal(isAddHandoffReady({ ...base, content: '   ' }), false)
+  assert.equal(isAddHandoffReady(base), true)
+  assert.equal(isAddHandoffReady({ ...base, requiresAcknowledgment: true }), false)
+  assert.equal(isAddHandoffReady({ ...base, priority: 'important', requiresAcknowledgment: true }), false)
+  assert.equal(isAddHandoffReady({
+    ...base,
+    priority: 'important',
+    requiresAcknowledgment: true,
+    acknowledgmentTargetIds: ['user-1'],
+  }), true)
+})
 
 test('buildAddHandoffPayload sends informational status and omits follow-up fields when follow-up is off', () => {
   const payload = buildAddHandoffPayload({
