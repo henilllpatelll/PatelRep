@@ -53,6 +53,20 @@ test('uses the staging Environment account token and refuses every production Ra
   assert.match(webDeploy, /test "\$STAGING_RAILWAY_WEB_SERVICE_ID" != "\$PRODUCTION_RAILWAY_WEB_SERVICE_ID"/)
 })
 
+test('collects API runtime diagnostics only after a protected staging readiness failure', () => {
+  const apiDeploy = workflow.slice(workflow.indexOf('  deploy-api:'), workflow.indexOf('  deploy-web:'))
+  const diagnostics = apiDeploy.slice(
+    apiDeploy.indexOf('- name: Collect staging API runtime diagnostics'),
+    apiDeploy.indexOf('- name: Restore checked-in API release identity'),
+  )
+
+  assert.match(diagnostics, /- name: Collect staging API runtime diagnostics\s+if: failure\(\)/)
+  assert.match(diagnostics, /railway\/cli@4\.30\.0 link --project "\$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "\$STAGING_RAILWAY_API_SERVICE_ID"/)
+  assert.match(diagnostics, /railway\/cli@4\.30\.0 logs --latest --lines 100 --filter "@level:error"/)
+  assert.match(diagnostics, /RAILWAY_API_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_API_TOKEN \}\}/)
+  assert.doesNotMatch(diagnostics, /RAILWAY_TOKEN:/)
+})
+
 test('guards the remote rebuild, installs psql before drift verification, and proves API/web identity before staging smoke', () => {
   const guard = workflow.indexOf('node scripts/staging-target-guard.mjs')
   const remoteRebuild = workflow.indexOf('node scripts/remote-migration-apply.mjs')

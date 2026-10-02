@@ -258,6 +258,15 @@ jobs:
           STAGING_API_URL: ${{ vars.STAGING_API_URL }}
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
+      - name: Collect staging API runtime diagnostics
+        if: failure()
+        run: |
+          npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
+          npx --yes @railway/cli@4.30.0 logs --latest --lines 100 --filter "@level:error"
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
+          STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
+          STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
       - name: Restore checked-in API release identity
         if: always()
         run: git checkout -- apps/api/core/release_identity.json
