@@ -309,6 +309,17 @@ jobs:
         run: cd apps/web && npm audit --audit-level=high
         continue-on-error: true
 
+  release-workflow-contract:
+    name: Release Workflow Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Verify Railway Web build-context convention
+        run: node --test scripts/staging-candidate-workflow.test.mjs
+
   ci-gate:
     name: CI Gate
     runs-on: ubuntu-latest
@@ -326,6 +337,7 @@ jobs:
       - contrast
       - i18n-parity
       - room-board-regression
+      - release-workflow-contract
     steps:
       - name: Require every release check to succeed
         env:
@@ -341,6 +353,7 @@ jobs:
           CONTRAST: ${{ needs.contrast.result }}
           I18N_PARITY: ${{ needs.i18n-parity.result }}
           ROOM_BOARD_REGRESSION: ${{ needs.room-board-regression.result }}
+          RELEASE_WORKFLOW_CONTRACT: ${{ needs.release-workflow-contract.result }}
         run: |
           required_checks=(
             "Lint / API:$LINT_API"
@@ -355,6 +368,7 @@ jobs:
             "Dark-Mode Contrast Gate:$CONTRAST"
             "EN/ES i18n Parity:$I18N_PARITY"
             "Room-Board Pixel-Diff Regression:$ROOM_BOARD_REGRESSION"
+            "Release Workflow Contract:$RELEASE_WORKFLOW_CONTRACT"
           )
 
           failed=0

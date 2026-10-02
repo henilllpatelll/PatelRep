@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const workflow = readFileSync('.github/workflows/staging-candidate.yml', 'utf8')
+const productionRelease = readFileSync('.github/workflows/production-release.yml', 'utf8')
+const productionRollback = readFileSync('.github/workflows/production-rollback.yml', 'utf8')
+const webDockerfile = readFileSync('apps/web/Dockerfile', 'utf8')
 
 test('uses a trusted CI completion trigger and never pull_request_target', () => {
   assert.match(workflow, /workflow_run:/)
@@ -30,6 +33,16 @@ test('injects only public candidate identity into the exact staging build artifa
   assert.ok(webLink >= 0 && webLink < webUpload, 'web upload must use an explicit staging link')
   assert.doesNotMatch(workflow, /variables set RELEASE_SHA/)
   assert.doesNotMatch(workflow, /variables set NEXT_PUBLIC_RELEASE_SHA/)
+})
+
+test('uses one self-contained Web build context in staging, production, and rollback', () => {
+  assert.match(webDockerfile, /^COPY package\.json \.\/\s*$/m)
+  assert.match(webDockerfile, /^COPY \. \.\/\s*$/m)
+  assert.doesNotMatch(webDockerfile, /^COPY apps\/web\//m)
+
+  assert.match(workflow, /up apps\/web --ci --no-gitignore --path-as-root/)
+  assert.match(productionRelease, /up apps\/web --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
+  assert.match(productionRollback, /up apps\/web --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
 })
 
 test('uses the staging Environment account token and refuses every production Railway target', () => {
