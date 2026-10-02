@@ -69,6 +69,7 @@ export function AddHandoffDrawer({
   const toast = useToast()
   const ref = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const wasOpen = useRef(false)
   useModalFocusTrap(ref, isOpen, onClose)
 
   const [content, setContent] = useState('')
@@ -93,9 +94,11 @@ export function AddHandoffDrawer({
   const [now, setNow] = useState(() => new Date())
 
   // Reset every time the drawer opens — never leaks stale values from a previous
-  // submission (spec #38).
+  // submission (spec #38). A late department fetch must not erase entered text.
   useEffect(() => {
-    if (!isOpen) return
+    const justOpened = isOpen && !wasOpen.current
+    wasOpen.current = isOpen
+    if (!justOpened) return
     setNow(new Date())
     setContent('')
     setContentTouched(false)
@@ -116,7 +119,11 @@ export function AddHandoffDrawer({
     setAcknowledgmentTargetIds([])
     setAttachments([])
     setError(null)
-  }, [isOpen, defaultDepartmentId])
+  }, [defaultDepartmentId, isOpen])
+
+  useEffect(() => {
+    if (isOpen && !departmentId && defaultDepartmentId) setDepartmentId(defaultDepartmentId)
+  }, [defaultDepartmentId, departmentId, isOpen])
 
   const staffQuery = useQuery({ queryKey: ['staff-picker'], queryFn: () => staffApi.list(), enabled: isOpen, staleTime: 60_000 })
   const staff = useMemo(() => (staffQuery.data?.data.staff ?? []).filter((member) => member.status === 'active'), [staffQuery.data])
