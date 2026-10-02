@@ -44,11 +44,12 @@ for (const [role, email] of mobileOnlyRoles) {
   test(`${role} is authenticated but restricted to the mobile app`, async ({ page }) => {
     const failures = await submitLogin(page, email)
     await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('mobileOnly') === '1')
-    await expect(page.getByRole('alert')).toContainText(/mobile app/i)
+    const mobileOnlyAlert = page.getByRole('alert').filter({ hasText: 'Web portal is for management staff only' })
+    await expect(mobileOnlyAlert).toContainText(/mobile app/i)
 
     await page.goto('/dashboard')
     await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('mobileOnly') === '1')
-    await expect(page.getByRole('alert')).toContainText(/management staff only/i)
+    await expect(mobileOnlyAlert).toContainText(/management staff only/i)
     expect(failures, `fatal browser failures for ${role}`).toEqual([])
   })
 }

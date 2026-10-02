@@ -11,6 +11,7 @@ import { engineeringApi, type Asset, type PMSchedule, type WorkOrderStats } from
 import { roomUnavailabilityApi } from '@/lib/api/rooms'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { WorkOrdersTab } from '@/components/engineering/tabs/WorkOrdersTab'
@@ -34,7 +35,8 @@ function EngineeringPageContent() {
   const { role, isGM } = useRole()
   const user = useAuthStore((s) => s.user)
   const session = useAuthStore((s) => s.session)
-  const hotelId = getHotelIdFromToken(session?.access_token)
+  const hotel = useHotelStore((s) => s.hotel)
+  const hotelId = getHotelIdFromToken(session?.access_token) || hotel?.id || ''
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const router = useRouter()
