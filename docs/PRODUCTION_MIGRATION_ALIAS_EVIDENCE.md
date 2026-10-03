@@ -1,6 +1,6 @@
 # Production migration alias evidence
 
-`supabase/production-migration-aliases.json` is intentionally empty as of 2026-10-02. Repository evidence establishes that timestamp-style production history exists, but does not establish a precise one-to-one mapping for any individual remote timestamp ID.
+`supabase/production-migration-aliases.json` is intentionally empty as of 2026-10-02. Repository evidence establishes that timestamp-style production history exists, but does not establish a precise one-to-one mapping for any individual remote timestamp ID without the stored production migration name.
 
 ## Evidence reviewed
 
@@ -8,7 +8,10 @@
 - `.planning/milestones/v1.0-phases/04-maintenance-and-housekeeping-programs/04-02-SUMMARY.md` documents timestamp-style remote tracking (including `20260721222226`) and states that it does not match local numeric files, but it does not link any timestamp to a specific file.
 - `.planning/STATE.md` and `.planning/milestones/v1.0-phases/06-pms-and-ai-expansion/06-02-SUMMARY.md` document the broad history drift and why migration repair is unsafe; neither proves individual aliases.
 
-No mapping is inferred from timestamp order, commit order, counts, or adjacent filenames. Add an alias only when a repository record supplies a direct, reviewable one-to-one link, then remove that ID from the unresolved list below.
+No mapping is inferred from timestamp order, commit order, counts, or adjacent filenames. The production preflight reads each remote row's `version` and stored `name` read-only. A timestamp row is automatically reconciled only when that name exactly matches one repository migration stem and therefore identifies one exact migration file. A checked-in fallback alias may name `repository_file` only with non-empty evidence, and it must not contradict an exact stored remote name. Then remove that ID from the unresolved list below.
+
+- Commits `07e2be0fe203b838b87e29520d0b2a27066bb97f`, `7ddedd7790e5069fadb690fcbc73f7d30ab475ac`, and `b0e5978d6b27c1f48e1f7bbdc25b57f6951a557a` explicitly record live application of `085_opera_pilot_flag.sql`, `090_stripe_webhook_events.sql`, and `094_tenant_is_test_flag.sql`, respectively. They are conditional supporting evidence only: each observed timestamp must also have the matching stored production migration name before it is reconciled.
+- Similar explicit application records exist for 084, 092, 093, 095, and 111-115. They remain unresolved until their individual remote `version`/`name` rows are read; commit wording or timing alone is never an alias proof.
 
 ## Verified aliases
 
