@@ -46,6 +46,7 @@ export function shiftHandoffSourceHref(type: LogbookRelatedType | 'part', id: st
 
 export interface AddHandoffValues {
   departmentId: string
+  shiftId?: string | null
   content: string
   category: LogbookCategory
   priority: LogbookPriority
@@ -76,6 +77,7 @@ export function buildAddHandoffPayload(values: AddHandoffValues) {
   const needsFollowUp = values.needsFollowUp
   return {
     department_id: values.departmentId,
+    shift_id: values.shiftId || undefined,
     content: values.content.trim(),
     category: values.category,
     priority: values.priority,

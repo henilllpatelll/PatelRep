@@ -769,6 +769,9 @@ function LogbookPageContent() {
   }, [])
 
   useEffect(() => {
+    // Wait for the property timezone before initializing the workspace date.
+    // Otherwise a UTC browser can pin the feed to a different hotel-local day.
+    if (!hotel?.timezone) return
     const currentDate = todayIso(hotel?.timezone)
     setToday(currentDate)
     setSelectedDate((prev) => prev || currentDate)
@@ -1147,6 +1150,7 @@ function LogbookPageContent() {
           departments={deptsData ?? []}
           defaultDepartmentId={selectedDeptId ?? deptsData?.[0]?.id ?? ''}
           shiftContextLabel={selectedShift ? `${selectedShift.name} · ${isToday ? t('logbook.today') : formatDisplayDate(selectedDate)}` : undefined}
+          activeShiftId={selectedShiftId}
           activeShiftEndTime={selectedShift?.end_time ?? null}
           isHistoricalDate={!isToday}
           onGoToToday={handleToday}

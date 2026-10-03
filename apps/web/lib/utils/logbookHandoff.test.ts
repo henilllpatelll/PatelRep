@@ -44,6 +44,21 @@ test('buildAddHandoffPayload sends informational status and omits follow-up fiel
   assert.equal(payload.expires_hours, undefined)
 })
 
+test('buildAddHandoffPayload preserves the selected shift and never fabricates one', () => {
+  const base = {
+    departmentId: 'dept-1',
+    content: 'Shift handoff',
+    category: 'general' as const,
+    priority: 'normal' as const,
+    needsFollowUp: false,
+    temporaryNoteEnabled: false,
+  }
+
+  assert.equal(buildAddHandoffPayload({ ...base, shiftId: 'shift-1' }).shift_id, 'shift-1')
+  assert.equal(buildAddHandoffPayload(base).shift_id, undefined)
+  assert.equal(buildAddHandoffPayload({ ...base, shiftId: null }).shift_id, undefined)
+})
+
 test('buildAddHandoffPayload sends follow_up status with owner/due when follow-up is on, owner optional', () => {
   const withOwner = buildAddHandoffPayload({
     departmentId: 'dept-1',
