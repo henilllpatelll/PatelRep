@@ -21,24 +21,34 @@ export function normalizeVersion(version) {
 export function buildLocalMigrationInventory(migrations) {
   return migrations
     .filter((migration) => migration?.filename && migration?.version && migration?.name)
-    .map(({ filename, version, name }) => ({
-      filename: String(filename), version: String(version), name: String(name),
-    }));
+    .map(({ filename, version, name }) => {
+      const normalizedFilename = String(filename);
+      return {
+        filename: normalizedFilename,
+        filenameStem: normalizedFilename.replace(/\.sql$/, ''),
+        version: String(version),
+        name: String(name),
+      };
+    });
 }
 
 function indexLocalMigrationInventory(localInventory) {
   const byFilename = new Map();
+  const byFilenameStem = new Map();
   const byName = new Map();
   for (const migration of localInventory) {
     if (byFilename.has(migration.filename)) {
       throw new Error(`Duplicate repository migration filename in inventory: ${migration.filename}.`);
     }
     byFilename.set(migration.filename, migration);
+    const matchingFilenameStems = byFilenameStem.get(migration.filenameStem) ?? [];
+    matchingFilenameStems.push(migration);
+    byFilenameStem.set(migration.filenameStem, matchingFilenameStems);
     const matchingNames = byName.get(migration.name) ?? [];
     matchingNames.push(migration);
     byName.set(migration.name, matchingNames);
   }
-  return { byFilename, byName };
+  return { byFilename, byFilenameStem, byName };
 }
 
 /**
@@ -108,11 +118,14 @@ export function loadProductionMigrationAliasRegistry(registryPath, localInventor
   return validateProductionMigrationAliasRegistry(registry, localInventory);
 }
 
-function exactNamedMigration(remoteRow, byName, byFilename) {
+function exactNamedMigration(remoteRow, byName, byFilename, byFilenameStem) {
   if (!remoteRow.name) return null;
   const candidates = [...(byName.get(remoteRow.name) ?? [])];
   const filenameMatch = byFilename.get(remoteRow.name);
   if (filenameMatch && !candidates.includes(filenameMatch)) candidates.push(filenameMatch);
+  for (const filenameStemMatch of byFilenameStem.get(remoteRow.name) ?? []) {
+    if (!candidates.includes(filenameStemMatch)) candidates.push(filenameStemMatch);
+  }
   return candidates.length === 1 ? candidates[0] : null;
 }
 
@@ -139,7 +152,7 @@ export function applyProductionMigrationAliases(
     };
   }
 
-  const { byFilename, byName } = indexLocalMigrationInventory(localInventory);
+  const { byFilename, byFilenameStem, byName } = indexLocalMigrationInventory(localInventory);
   const aliasesByRemoteId = new Map(aliasRegistry.aliases.map((alias) => [alias.remoteId, alias]));
   const numericRemoteIds = new Set(remoteRows
     .filter((row) => NUMERIC_MIGRATION_ID_PATTERN.test(row.version) && !PRODUCTION_TIMESTAMP_ID_PATTERN.test(row.version))
@@ -163,7 +176,7 @@ export function applyProductionMigrationAliases(
     }
     seenTimestampIds.add(remoteRow.version);
 
-    const exactNameTarget = exactNamedMigration(remoteRow, byName, byFilename);
+    const exactNameTarget = exactNamedMigration(remoteRow, byName, byFilename, byFilenameStem);
     const manualAlias = aliasesByRemoteId.get(remoteRow.version);
     const manualTarget = manualAlias ? byFilename.get(manualAlias.repositoryFile) : null;
     if (manualTarget && exactNameTarget && manualTarget.filename !== exactNameTarget.filename) {
