@@ -122,11 +122,12 @@ export function parseJsonLines(output) {
 export function runReadOnlyQuery(databaseUrl, query, execute = execFileSync, label = 'read-only audit') {
   assertReadOnlyQuery(query);
   try {
+    const { PRODUCTION_SUPABASE_DB_URL: _productionDatabaseUrl, ...safeEnvironment } = process.env;
     const output = execute('psql', [
       '--no-psqlrc', '--set', 'ON_ERROR_STOP=1', '--tuples-only', '--no-align', '--command', query,
     ], {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, PGDATABASE: databaseUrl, PGOPTIONS: '-c default_transaction_read_only=on' },
+      env: { ...safeEnvironment, PGDATABASE: databaseUrl, PGOPTIONS: '-c default_transaction_read_only=on' },
     });
     return parseJsonLines(output);
   } catch {

@@ -49,6 +49,7 @@ test('every pending migration is represented and psql receives the URL only thro
   assert.equal(invocation.command, 'psql');
   assert.equal(invocation.argumentsList.includes('postgresql://secret.example/production'), false);
   assert.equal(invocation.options.env.PGDATABASE, 'postgresql://secret.example/production');
+  assert.equal('PRODUCTION_SUPABASE_DB_URL' in invocation.options.env, false);
   assert.match(invocation.options.env.PGOPTIONS, /default_transaction_read_only=on/);
   assert.equal(JSON.stringify(result).includes('secret.example'), false);
 });
