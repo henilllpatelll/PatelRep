@@ -8,6 +8,8 @@ import { loadMigrations } from './check-migrations.mjs';
 
 const UNRESOLVED_REMOTE_IDS = ['20260517181733', '20260604070643', '20260724140005'];
 const READ_ONLY_QUERY = /^\s*(?:select|with|show)\b/i;
+const SUPPORTED_DATABASE_PROTOCOLS = new Set(['postgres:', 'postgresql:']);
+const SUPPORTED_SSL_MODES = new Set(['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full']);
 
 const existsTable = (name) => `to_regclass('${name}') IS NOT NULL`;
 const columnDefinition = (table, column, { type, notNull, defaultIncludes = [] } = {}) => {
@@ -73,6 +75,67 @@ export function assertReadOnlyQuery(query) {
   }
 }
 
+function decodeUrlComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    throw new Error('Production database URL must be valid and percent-encoded correctly.');
+  }
+}
+
+export function createLibpqEnvironment(databaseUrl, environment = process.env) {
+  let url;
+  try {
+    url = new URL(databaseUrl);
+  } catch {
+    throw new Error('Production database URL must be valid.');
+  }
+  if (!SUPPORTED_DATABASE_PROTOCOLS.has(url.protocol) || !url.hostname || !url.username || !url.pathname || url.pathname === '/') {
+    throw new Error('Production database URL must use a supported PostgreSQL connection format.');
+  }
+
+  const sslMode = url.searchParams.get('sslmode');
+  if (sslMode !== null && !SUPPORTED_SSL_MODES.has(sslMode)) {
+    throw new Error('Production database URL contains an unsupported sslmode.');
+  }
+
+  const safeEnvironment = Object.fromEntries(
+    Object.entries(environment).filter(([key]) => key !== 'PRODUCTION_SUPABASE_DB_URL' && !key.startsWith('PG')),
+  );
+  const libpqEnvironment = {
+    PGHOST: url.hostname,
+    PGPORT: url.port || '5432',
+    PGUSER: decodeUrlComponent(url.username),
+    PGPASSWORD: decodeUrlComponent(url.password),
+    PGDATABASE: decodeUrlComponent(url.pathname.slice(1)),
+  };
+  if (sslMode !== null) libpqEnvironment.PGSSLMODE = sslMode;
+  return { ...safeEnvironment, ...libpqEnvironment };
+}
+
+export function buildReadOnlyTransaction(query) {
+  const normalized = String(query).trim().replace(/;$/, '');
+  assertReadOnlyQuery(normalized);
+  return `BEGIN TRANSACTION READ ONLY;\n${normalized};\nCOMMIT;`;
+}
+
+function auditError(label, category) {
+  return new Error(`Production migration evidence query failed: ${label} (${category}).`);
+}
+
+export function classifyDatabaseError(error) {
+  const stderr = Buffer.isBuffer(error?.stderr) ? error.stderr.toString('utf8') : String(error?.stderr ?? '');
+  if (/password authentication failed|authentication failed/i.test(stderr)) return 'AUTHENTICATION_FAILED';
+  if (/unsupported startup parameter|unrecognized configuration parameter/i.test(stderr)) return 'UNSUPPORTED_STARTUP_PARAMETER';
+  if (/relation .* does not exist/i.test(stderr)) return 'MISSING_RELATION';
+  if (/column .* does not exist/i.test(stderr)) return 'MISSING_COLUMN';
+  if (/permission denied/i.test(stderr)) return 'PERMISSION_DENIED';
+  if (/read-only transaction|cannot execute .* in a read-only/i.test(stderr)) return 'READ_ONLY_ENFORCEMENT_FAILED';
+  if (/syntax error/i.test(stderr)) return 'QUERY_SYNTAX_FAILED';
+  if (/could not connect|connection refused|connection timed out|server closed the connection|network is unreachable/i.test(stderr)) return 'CONNECTION_FAILED';
+  return 'UNKNOWN_DATABASE_ERROR';
+}
+
 export function statementOperationTypes(statements) {
   return [...new Set((Array.isArray(statements) ? statements : [statements]).map((statement) => {
     const match = normalizeSql(statement).match(/^(CREATE(?: OR REPLACE)? (?:TABLE|INDEX|FUNCTION|POLICY|EXTENSION)|ALTER TABLE|DROP POLICY|INSERT INTO|UPDATE|DELETE FROM)/i);
@@ -94,11 +157,24 @@ export function findExactRepositorySqlMatch(statements, migrations) {
   return matches.length === 1 ? matches[0].filename : null;
 }
 
-export function safeRemoteRowEvidence(row, migrations) {
+export function safeRemoteRowEvidence(row, migrations, { statementsAvailable = Object.hasOwn(row, 'statements') } = {}) {
+  if (!statementsAvailable) {
+    return {
+      remote_version: String(row.version),
+      stored_name: String(row.name ?? ''),
+      statements_available: false,
+      statement_count: null,
+      statements_sha256: null,
+      operation_types: null,
+      referenced_objects: null,
+      exact_repository_sql_match: 'NOT_SAFELY_DETERMINABLE',
+    };
+  }
   const statements = Array.isArray(row.statements) ? row.statements : [];
   return {
     remote_version: String(row.version),
     stored_name: String(row.name ?? ''),
+    statements_available: true,
     statement_count: statements.length,
     statements_sha256: fingerprintStatements(statements),
     operation_types: statementOperationTypes(statements),
@@ -120,18 +196,17 @@ export function parseJsonLines(output) {
 }
 
 export function runReadOnlyQuery(databaseUrl, query, execute = execFileSync, label = 'read-only audit') {
-  assertReadOnlyQuery(query);
+  const transaction = buildReadOnlyTransaction(query);
   try {
-    const { PRODUCTION_SUPABASE_DB_URL: _productionDatabaseUrl, ...safeEnvironment } = process.env;
     const output = execute('psql', [
-      '--no-psqlrc', '--set', 'ON_ERROR_STOP=1', '--tuples-only', '--no-align', '--command', query,
+      '--no-psqlrc', '--quiet', '--set', 'ON_ERROR_STOP=1', '--tuples-only', '--no-align', '--command', transaction,
     ], {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...safeEnvironment, PGDATABASE: databaseUrl, PGOPTIONS: '-c default_transaction_read_only=on' },
+      env: createLibpqEnvironment(databaseUrl),
     });
     return parseJsonLines(output);
-  } catch {
-    throw new Error(`Production migration evidence query failed: ${label}.`);
+  } catch (error) {
+    throw auditError(label, classifyDatabaseError(error));
   }
 }
 
@@ -139,9 +214,23 @@ function assertionQuery(name, predicate) {
   return `SELECT json_build_object('assertion', '${name}', 'passed', (${predicate}))::text`;
 }
 
-function unresolvedRowsQuery() {
+function unresolvedRowsQuery(statementsAvailable) {
   const ids = UNRESOLVED_REMOTE_IDS.map((id) => `'${id}'`).join(', ');
-  return `SELECT json_build_object('version', version, 'name', coalesce(name, ''), 'statements', coalesce(to_jsonb(statements), '[]'::jsonb))::text FROM supabase_migrations.schema_migrations WHERE version IN (${ids}) ORDER BY version`;
+  const statements = statementsAvailable ? ", 'statements', coalesce(to_jsonb(statements), '[]'::jsonb)" : '';
+  return `SELECT json_build_object('version', version, 'name', coalesce(name, '')${statements})::text FROM supabase_migrations.schema_migrations WHERE version IN (${ids}) ORDER BY version`;
+}
+
+const READ_ONLY_PROBE_QUERY = "SELECT json_build_object('transaction_read_only', current_setting('transaction_read_only')::boolean)::text";
+const MIGRATION_HISTORY_SHAPE_QUERY = "SELECT json_build_object('relation_exists', to_regclass('supabase_migrations.schema_migrations') IS NOT NULL, 'version', EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'supabase_migrations' AND table_name = 'schema_migrations' AND column_name = 'version'), 'name', EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'supabase_migrations' AND table_name = 'schema_migrations' AND column_name = 'name'), 'statements', EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'supabase_migrations' AND table_name = 'schema_migrations' AND column_name = 'statements'))::text";
+
+export function assertReadOnlyProbe(rows) {
+  if (rows[0]?.transaction_read_only !== true) throw auditError('read-only connection probe', 'READ_ONLY_ENFORCEMENT_FAILED');
+}
+
+export function assertMigrationHistoryShape(shape) {
+  if (!shape?.relation_exists) throw auditError('migration history metadata audit', 'MISSING_RELATION');
+  if (!shape.version || !shape.name) throw auditError('migration history metadata audit', 'MISSING_COLUMN');
+  return { statementsAvailable: shape.statements === true };
 }
 
 const CLEAN_TYPE_QUERY = `SELECT json_build_object(
@@ -163,10 +252,10 @@ function booleanAssertions(row) {
   return Object.entries(row).map(([assertion, passed]) => ({ assertion, passed: Boolean(passed) }));
 }
 
-export function buildSafeReport({ unresolvedRows, migrations, duplicateRows, pendingRows }) {
+export function buildSafeReport({ unresolvedRows, migrations, duplicateRows, pendingRows, statementsAvailable = true }) {
   return {
     environment: 'production',
-    unresolved_remote_rows: unresolvedRows.map((row) => safeRemoteRowEvidence(row, migrations)),
+    unresolved_remote_rows: unresolvedRows.map((row) => safeRemoteRowEvidence(row, migrations, { statementsAvailable })),
     duplicate_file_evidence: duplicateRows,
     pending_file_evidence: pendingRows,
   };
@@ -178,7 +267,11 @@ export function auditSummary(report) {
 
 export function runAudit(databaseUrl, execute = execFileSync) {
   const migrations = loadMigrations(resolve('supabase/migrations'));
-  const unresolvedRows = runReadOnlyQuery(databaseUrl, unresolvedRowsQuery(), execute, 'unresolved migration history audit');
+  assertReadOnlyProbe(runReadOnlyQuery(databaseUrl, READ_ONLY_PROBE_QUERY, execute, 'read-only connection probe'));
+  const { statementsAvailable } = assertMigrationHistoryShape(
+    runReadOnlyQuery(databaseUrl, MIGRATION_HISTORY_SHAPE_QUERY, execute, 'migration history metadata audit')[0],
+  );
+  const unresolvedRows = runReadOnlyQuery(databaseUrl, unresolvedRowsQuery(statementsAvailable), execute, 'unresolved migration history audit');
   const duplicateRows = [
     ['042_room_assignment_clean_type.sql', CLEAN_TYPE_QUERY],
     ['110_room_unavailability_type.sql', UNAVAILABILITY_QUERY],
@@ -193,16 +286,30 @@ export function runAudit(databaseUrl, execute = execFileSync) {
     });
     return { migration: filename, history_status: 'pending', assertions, result: evidenceResult(assertions, requiresDataProof) };
   });
-  return buildSafeReport({ unresolvedRows, migrations, duplicateRows, pendingRows });
+  return buildSafeReport({ unresolvedRows, migrations, duplicateRows, pendingRows, statementsAvailable });
+}
+
+export function buildSanitizedFailureReport(error) {
+  const message = error instanceof Error && /^Production migration evidence query failed: [A-Za-z0-9 ._-]+ \([A-Z_]+\)\.$/.test(error.message)
+    ? error.message
+    : 'Production migration evidence query failed: audit execution (UNKNOWN_DATABASE_ERROR).';
+  return { environment: 'production', status: 'FAILED', error: { message } };
 }
 
 function main() {
   const databaseUrl = process.env.PRODUCTION_SUPABASE_DB_URL;
   if (!databaseUrl) throw new Error('PRODUCTION_SUPABASE_DB_URL is required and is never printed.');
   const reportPath = process.argv.includes('--report') ? process.argv[process.argv.indexOf('--report') + 1] : 'production-migration-evidence-report.json';
-  const report = runAudit(databaseUrl);
-  writeFileSync(resolve(reportPath), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  console.log(auditSummary(report));
+  try {
+    const report = runAudit(databaseUrl);
+    writeFileSync(resolve(reportPath), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    console.log(auditSummary(report));
+  } catch (error) {
+    const report = buildSanitizedFailureReport(error);
+    writeFileSync(resolve(reportPath), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    console.error(report.error.message);
+    process.exitCode = 1;
+  }
 }
 
 if (import.meta.url === new URL(`file://${process.argv[1]}`).href) main();
