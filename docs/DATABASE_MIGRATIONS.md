@@ -86,7 +86,17 @@ The deeper `scripts/schema-contracts.sql` check runs only in the isolated migrat
 
 ## Drift and remote promotion
 
-`check-db-drift.mjs` compares migration **identifiers**, not raw counts, through `supabase migration list`. It reports both migrations missing from the target and unknown migrations present on the target. Because pre-Phase-3 history contains duplicate identifiers, that baseline can only be reconciled at the identifier level; all new identifiers are required to be unambiguous.
+`check-db-drift.mjs` compares migration **identifiers**, not raw counts, through a read-only `psql` query. It reports both migrations missing from the target and unknown migrations present on the target. Because pre-Phase-3 history contains duplicate identifiers, that baseline can only be reconciled at the identifier level; all new identifiers are required to be unambiguous.
+
+### Production timestamp-history aliases
+
+Production has a documented historical condition: older repository migrations were applied through Supabase tooling that recorded auto-generated timestamp identifiers instead of this repository's deterministic numeric filename identifiers. The production preflight may reconcile this history only through [`supabase/production-migration-aliases.json`](../supabase/production-migration-aliases.json).
+
+Each alias is an explicit, production-only, one-to-one `remote_id` (14-digit timestamp) to `repository_id` mapping with an evidence reference. The drift checker validates that every target exists in the repository, that no remote ID or canonical target is repeated, and that an alias cannot hide a second remote ID for the same canonical migration. Staging never loads this file.
+
+Do not infer aliases from timestamps, ordering, counts, or nearby filenames. Add one only when a repository record proves the precise mapping, and cite that record in `evidence`. An unmapped timestamp remains an unknown production migration and stops the release exactly like any other unknown ID. This registry reconciles history for comparison only: it neither changes schema nor rewrites Supabase migration metadata. Never use `supabase migration repair` as a substitute.
+
+The current unproven production timestamp set and evidence review are tracked in [`PRODUCTION_MIGRATION_ALIAS_EVIDENCE.md`](PRODUCTION_MIGRATION_ALIAS_EVIDENCE.md). Future migrations continue to use the repository's deterministic numeric numbering rules.
 
 The manual **Staging Database Migrate** workflow can run only from `main`, uses GitHub's `staging` environment, and accepts only `STAGING_SUPABASE_DB_URL`. It lists pending identifiers, applies them to staging, then requires drift `CLEAN` and schema contracts. It has no production project-ref or URL input.
 

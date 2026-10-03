@@ -45,6 +45,18 @@ test('uses one self-contained Web build context in staging, production, and roll
   assert.match(productionRollback, /up apps\/web --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
 })
 
+test('keeps the production migration preflight fail-closed with pipefail', () => {
+  const preflight = productionRelease.slice(
+    productionRelease.indexOf('  production-db-preflight:'),
+    productionRelease.indexOf('  production-db-migrate:'),
+  )
+
+  assert.match(preflight, /set -o pipefail\s+node scripts\/check-db-drift\.mjs --environment production --allow-pending \| tee drift\.txt\s+status=\$\?\s+set \+o pipefail/)
+  assert.match(preflight, /Unknown on production/)
+  assert.match(preflight, /exit "\$status"/)
+  assert.doesNotMatch(preflight, /continue-on-error/)
+})
+
 test('uses the staging Environment account token and refuses every production Railway target', () => {
   const apiDeploy = workflow.slice(workflow.indexOf('  deploy-api:'), workflow.indexOf('  deploy-web:'))
   const webDeploy = workflow.slice(workflow.indexOf('  deploy-web:'), workflow.indexOf('  verify-staging:'))
