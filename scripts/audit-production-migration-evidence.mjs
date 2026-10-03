@@ -11,24 +11,29 @@ const READ_ONLY_QUERY = /^\s*(?:select|with|show)\b/i;
 const SUPPORTED_DATABASE_PROTOCOLS = new Set(['postgres:', 'postgresql:']);
 const SUPPORTED_SSL_MODES = new Set(['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full']);
 
-const existsTable = (name) => `to_regclass('${name}') IS NOT NULL`;
+export function sqlStringLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+const sqlContainsLiteral = (value) => sqlStringLiteral(`%${String(value)}%`);
+const existsTable = (name) => `to_regclass(${sqlStringLiteral(name)}) IS NOT NULL`;
 const columnDefinition = (table, column, { type, notNull, defaultIncludes = [] } = {}) => {
-  const conditions = [`a.attrelid = to_regclass('${table}')`, `a.attname = '${column}'`, 'NOT a.attisdropped'];
-  if (type) conditions.push(`format_type(a.atttypid, a.atttypmod) = '${type}'`);
+  const conditions = [`a.attrelid = to_regclass(${sqlStringLiteral(table)})`, `a.attname = ${sqlStringLiteral(column)}`, 'NOT a.attisdropped'];
+  if (type) conditions.push(`format_type(a.atttypid, a.atttypmod) = ${sqlStringLiteral(type)}`);
   if (notNull !== undefined) conditions.push(`a.attnotnull IS ${notNull ? 'TRUE' : 'FALSE'}`);
-  for (const value of defaultIncludes) conditions.push(`coalesce(pg_get_expr(d.adbin, d.adrelid), '') ILIKE '%${value}%'`);
+  for (const value of defaultIncludes) conditions.push(`coalesce(pg_get_expr(d.adbin, d.adrelid), '') ILIKE ${sqlContainsLiteral(value)}`);
   return `EXISTS (SELECT 1 FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum WHERE ${conditions.join(' AND ')})`;
 };
-const namedConstraint = (table, name, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass('${table}') AND c.conname = '${name}'${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE '%${fragment}%'`).join('')})`;
-const anyConstraint = (table, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass('${table}')${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE '%${fragment}%'`).join('')})`;
-const indexDefinition = (name, table, fragments = [], predicateFragments = []) => `EXISTS (SELECT 1 FROM pg_index i JOIN pg_class idx ON idx.oid = i.indexrelid JOIN pg_class rel ON rel.oid = i.indrelid WHERE idx.relname = '${name}' AND i.indrelid = to_regclass('${table}')${fragments.map((fragment) => ` AND pg_get_indexdef(i.indexrelid) ILIKE '%${fragment}%'`).join('')}${predicateFragments.map((fragment) => ` AND coalesce(pg_get_expr(i.indpred, i.indrelid), '') ILIKE '%${fragment}%'`).join('')})`;
-const tableRlsEnabled = (table) => `EXISTS (SELECT 1 FROM pg_class WHERE oid = to_regclass('${table}') AND relrowsecurity)`;
+const namedConstraint = (table, name, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass(${sqlStringLiteral(table)}) AND c.conname = ${sqlStringLiteral(name)}${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE ${sqlContainsLiteral(fragment)}`).join('')})`;
+const anyConstraint = (table, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass(${sqlStringLiteral(table)})${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE ${sqlContainsLiteral(fragment)}`).join('')})`;
+const indexDefinition = (name, table, fragments = [], predicateFragments = []) => `EXISTS (SELECT 1 FROM pg_index i JOIN pg_class idx ON idx.oid = i.indexrelid JOIN pg_class rel ON rel.oid = i.indrelid WHERE idx.relname = ${sqlStringLiteral(name)} AND i.indrelid = to_regclass(${sqlStringLiteral(table)})${fragments.map((fragment) => ` AND pg_get_indexdef(i.indexrelid) ILIKE ${sqlContainsLiteral(fragment)}`).join('')}${predicateFragments.map((fragment) => ` AND coalesce(pg_get_expr(i.indpred, i.indrelid), '') ILIKE ${sqlContainsLiteral(fragment)}`).join('')})`;
+const tableRlsEnabled = (table) => `EXISTS (SELECT 1 FROM pg_class WHERE oid = to_regclass(${sqlStringLiteral(table)}) AND relrowsecurity)`;
 export function policyExists(schema, table, name, command, role, expressionType, expressionFragment) {
   const expression = expressionType === 'with_check' ? 'p.polwithcheck' : 'p.polqual';
   const roleCheck = role === 'public'
     ? `p.polroles = '{0}'::oid[]`
-    : `p.polroles @> ARRAY[(SELECT oid FROM pg_roles WHERE rolname = '${role}')]::oid[]`;
-  return `EXISTS (SELECT 1 FROM pg_policy p JOIN pg_class rel ON rel.oid = p.polrelid JOIN pg_namespace n ON n.oid = rel.relnamespace WHERE n.nspname = '${schema}' AND rel.relname = '${table}' AND p.polname = '${name}' AND p.polcmd = '${command}' AND ${roleCheck} AND coalesce(pg_get_expr(${expression}, p.polrelid), '') ILIKE '%${expressionFragment}%')`;
+    : `p.polroles @> ARRAY[(SELECT oid FROM pg_roles WHERE rolname = ${sqlStringLiteral(role)})]::oid[]`;
+  return `EXISTS (SELECT 1 FROM pg_policy p JOIN pg_class rel ON rel.oid = p.polrelid JOIN pg_namespace n ON n.oid = rel.relnamespace WHERE n.nspname = ${sqlStringLiteral(schema)} AND rel.relname = ${sqlStringLiteral(table)} AND p.polname = ${sqlStringLiteral(name)} AND p.polcmd = ${sqlStringLiteral(command)} AND ${roleCheck} AND coalesce(pg_get_expr(${expression}, p.polrelid), '') ILIKE ${sqlContainsLiteral(expressionFragment)})`;
 }
 const interactionConstraint = (values) => namedConstraint('public.ai_interactions', 'ai_interactions_interaction_type_check', values);
 const BASE_INTERACTION_TYPES = ['task_creation', 'room_prediction', 'sop_query', 'failure_prediction', 'shift_summary', 'gm_insight', 'assignment_suggestion', 'onboarding_assistant', 'work_order_triage', 'work_order_creation', 'guest_request_creation', 'task_assignment', 'general', 'housekeeping_briefing'];
@@ -210,12 +215,12 @@ export function runReadOnlyQuery(databaseUrl, query, execute = execFileSync, lab
   }
 }
 
-function assertionQuery(name, predicate) {
-  return `SELECT json_build_object('assertion', '${name}', 'passed', (${predicate}))::text`;
+export function buildAssertionQuery(name, predicate) {
+  return `SELECT json_build_object('assertion', ${sqlStringLiteral(name)}, 'passed', (${predicate}))::text`;
 }
 
 function unresolvedRowsQuery(statementsAvailable) {
-  const ids = UNRESOLVED_REMOTE_IDS.map((id) => `'${id}'`).join(', ');
+  const ids = UNRESOLVED_REMOTE_IDS.map(sqlStringLiteral).join(', ');
   const statements = statementsAvailable ? ", 'statements', coalesce(to_jsonb(statements), '[]'::jsonb)" : '';
   return `SELECT json_build_object('version', version, 'name', coalesce(name, '')${statements})::text FROM supabase_migrations.schema_migrations WHERE version IN (${ids}) ORDER BY version`;
 }
@@ -281,7 +286,7 @@ export function runAudit(databaseUrl, execute = execFileSync) {
   });
   const pendingRows = PENDING_MIGRATION_EFFECTS.map(([filename, checks, requiresDataProof = false]) => {
     const assertions = checks.map(([name, predicate]) => {
-      const row = runReadOnlyQuery(databaseUrl, assertionQuery(name, predicate), execute, `pending migration ${filename} audit`)[0] ?? {};
+      const row = runReadOnlyQuery(databaseUrl, buildAssertionQuery(name, predicate), execute, `pending migration ${filename} audit`)[0] ?? {};
       return { assertion: name, passed: typeof row.passed === 'boolean' ? row.passed : null };
     });
     return { migration: filename, history_status: 'pending', assertions, result: evidenceResult(assertions, requiresDataProof) };

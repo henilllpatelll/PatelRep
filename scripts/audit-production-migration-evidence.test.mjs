@@ -8,6 +8,7 @@ import {
   auditSummary,
   buildReadOnlyTransaction,
   buildSanitizedFailureReport,
+  buildAssertionQuery,
   classifyDatabaseError,
   createLibpqEnvironment,
   evidenceResult,
@@ -18,7 +19,28 @@ import {
   runReadOnlyQuery,
   runAudit,
   safeRemoteRowEvidence,
+  sqlStringLiteral,
 } from './audit-production-migration-evidence.mjs';
+
+function hasBalancedSqlStringLiterals(sql) {
+  for (let index = 0; index < sql.length; index += 1) {
+    if (sql[index] !== "'") continue;
+    index += 1;
+    while (index < sql.length) {
+      if (sql[index] !== "'") {
+        index += 1;
+        continue;
+      }
+      if (sql[index + 1] === "'") {
+        index += 2;
+        continue;
+      }
+      break;
+    }
+    if (index >= sql.length) return false;
+  }
+  return true;
+}
 
 test('statement fingerprints are deterministic and never expose raw SQL in evidence', () => {
   const statements = ['CREATE TABLE public.safe_table (id uuid);'];
@@ -77,6 +99,35 @@ test('only PostgreSQL URLs are accepted for the private libpq connection environ
     error.message === 'Production database URL must use a supported PostgreSQL connection format.'
     && !error.message.includes(unsafeUrl)
   ));
+});
+
+test('trusted audit constants become valid PostgreSQL string literals', () => {
+  assert.equal(sqlStringLiteral('normal fragment'), "'normal fragment'");
+  assert.equal(sqlStringLiteral("bucket_id = 'work-order-photos'"), "'bucket_id = ''work-order-photos'''");
+  assert.equal(sqlStringLiteral("O'Brien's 100%_ready"), "'O''Brien''s 100%_ready'");
+});
+
+test('photo policy evidence preserves quoted bucket predicates with valid SQL literals', () => {
+  const upload = policyExists('storage', 'objects', 'Authenticated staff can upload work order photos', 'a', 'authenticated', 'with_check', "bucket_id = 'work-order-photos'");
+  const cleanPhotos = policyExists('storage', 'objects', 'Authenticated staff can view clean photos', 'r', 'authenticated', 'using', "bucket_id = 'clean-photos'");
+  assert.match(upload, /ILIKE '%bucket_id = ''work-order-photos''%'/);
+  assert.match(cleanPhotos, /ILIKE '%bucket_id = ''clean-photos''%'/);
+  assert.equal(hasBalancedSqlStringLiterals(upload), true);
+  assert.equal(hasBalancedSqlStringLiterals(cleanPhotos), true);
+});
+
+test('all pending migration predicates embed into single read-only assertion SELECT statements', () => {
+  const pending = new Map(PENDING_MIGRATION_EFFECTS.map(([filename, checks]) => [filename, checks]));
+  for (const [filename, checks] of pending) {
+    for (const [assertion, predicate] of checks) {
+      const query = buildAssertionQuery(assertion, predicate);
+      assert.doesNotThrow(() => assertReadOnlyQuery(query), `${filename}:${assertion}`);
+      assert.equal(hasBalancedSqlStringLiterals(query), true, `${filename}:${assertion}`);
+    }
+  }
+  const checks = (filename) => pending.get(filename).map(([, predicate]) => predicate).join('\n');
+  assert.match(checks('050_work_order_photos_bucket.sql'), /bucket_id = ''work-order-photos''/);
+  assert.match(checks('058_clean_photos_private.sql'), /bucket_id = ''clean-photos''/);
 });
 
 test('the read-only wrapper rejects writes and makes the database transaction the final safety boundary', () => {
