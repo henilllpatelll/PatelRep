@@ -56,6 +56,7 @@ interface AddHandoffDrawerProps {
   /** The currently selected shift's end_time ("HH:MM:SS"), if one is known — powers
    * the "End of shift" due preset. Never fabricated when no real shift is selected. */
   activeShiftEndTime?: string | null
+  activeShiftId?: string | null
   isHistoricalDate: boolean
   onGoToToday: () => void
 }
@@ -64,7 +65,7 @@ interface AddHandoffDrawerProps {
  * Portal-free by design — matches this app's verified z-drawer convention used by
  * CreateTaskDrawer/CreateWorkOrderDrawer/RoomDetailDrawer rather than createPortal. */
 export function AddHandoffDrawer({
-  isOpen, onClose, onCreated, departments, defaultDepartmentId, shiftContextLabel, activeShiftEndTime, isHistoricalDate, onGoToToday,
+  isOpen, onClose, onCreated, departments, defaultDepartmentId, shiftContextLabel, activeShiftEndTime, activeShiftId, isHistoricalDate, onGoToToday,
 }: AddHandoffDrawerProps) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -155,6 +156,7 @@ export function AddHandoffDrawer({
   const mutation = useMutation({
     mutationFn: () => logbookApi.createEntry(buildAddHandoffPayload({
       departmentId: effectiveDepartmentId,
+      shiftId: activeShiftId,
       content,
       category,
       priority,

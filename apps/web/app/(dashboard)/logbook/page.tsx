@@ -1147,6 +1147,7 @@ function LogbookPageContent() {
           departments={deptsData ?? []}
           defaultDepartmentId={selectedDeptId ?? deptsData?.[0]?.id ?? ''}
           shiftContextLabel={selectedShift ? `${selectedShift.name} · ${isToday ? t('logbook.today') : formatDisplayDate(selectedDate)}` : undefined}
+          activeShiftId={selectedShiftId}
           activeShiftEndTime={selectedShift?.end_time ?? null}
           isHistoricalDate={!isToday}
           onGoToToday={handleToday}
