@@ -215,8 +215,10 @@ jobs:
         id: drift
         run: |
           set +e
+          set -o pipefail
           node scripts/check-db-drift.mjs --environment production --allow-pending | tee drift.txt
           status=$?
+          set +o pipefail
           set -e
           if grep -q "Unknown on production" drift.txt; then
             echo "::error::Unexpected migrations found on production that are not in this repository. STOPPING -- this requires manual investigation, never automatic repair."
