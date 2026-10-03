@@ -144,6 +144,14 @@ export function applyProductionMigrationAliases(
   const numericRemoteIds = new Set(remoteRows
     .filter((row) => NUMERIC_MIGRATION_ID_PATTERN.test(row.version) && !PRODUCTION_TIMESTAMP_ID_PATTERN.test(row.version))
     .map((row) => normalizeVersion(row.version)));
+  const localFileCountsByVersion = new Map();
+  for (const migration of localInventory) {
+    const normalizedVersion = normalizeVersion(migration.version);
+    localFileCountsByVersion.set(
+      normalizedVersion,
+      (localFileCountsByVersion.get(normalizedVersion) ?? 0) + 1,
+    );
+  }
   const seenTimestampIds = new Set();
   const claimedRepositoryFiles = new Map();
   const verifiedAliases = [];
@@ -168,9 +176,11 @@ export function applyProductionMigrationAliases(
       unresolvedRemoteRows.push(remoteRow);
       return remoteRow.version;
     }
-    if (numericRemoteIds.has(normalizeVersion(target.version))) {
+    const targetVersion = normalizeVersion(target.version);
+    const hasDuplicateRepositoryVersion = (localFileCountsByVersion.get(targetVersion) ?? 0) > 1;
+    if (numericRemoteIds.has(targetVersion) && !hasDuplicateRepositoryVersion) {
       throw new Error(
-        `Production migration alias ${remoteRow.version} would hide a second remote identifier for canonical migration ${normalizeVersion(target.version)}.`,
+        `Production migration alias ${remoteRow.version} would hide a second remote identifier for canonical migration ${targetVersion}.`,
       );
     }
     const priorRemoteId = claimedRepositoryFiles.get(target.filename);
