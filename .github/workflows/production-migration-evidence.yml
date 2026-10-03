@@ -34,8 +34,10 @@ jobs:
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
       - name: Upload sanitized evidence report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: production-migration-evidence
           path: production-migration-evidence-report.json
+          if-no-files-found: warn
           retention-days: 7

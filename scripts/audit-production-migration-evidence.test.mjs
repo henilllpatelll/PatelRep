@@ -2,14 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assertMigrationHistoryShape,
+  assertReadOnlyProbe,
   assertReadOnlyQuery,
   auditSummary,
+  buildReadOnlyTransaction,
+  buildSanitizedFailureReport,
+  classifyDatabaseError,
+  createLibpqEnvironment,
   evidenceResult,
   fingerprintStatements,
   findExactRepositorySqlMatch,
   PENDING_MIGRATION_EFFECTS,
   policyExists,
   runReadOnlyQuery,
+  runAudit,
   safeRemoteRowEvidence,
 } from './audit-production-migration-evidence.mjs';
 
@@ -38,30 +45,108 @@ test('pending evidence remains conservative across all result states', () => {
   assert.equal(evidenceResult([{ passed: true }], true), 'NOT_SAFELY_DETERMINABLE');
 });
 
-test('every pending migration is represented and psql receives the URL only through PGDATABASE', () => {
+test('every pending migration is represented and psql receives decomposed libpq settings only', () => {
   assert.equal(PENDING_MIGRATION_EFFECTS.length, 14);
   let invocation;
-  const result = runReadOnlyQuery('postgresql://secret.example/production', 'SELECT json_build_object(\'ok\', true)::text', (command, argumentsList, options) => {
+  const databaseUrl = 'postgresql://first%20last:pa%24%25word@db.example:6543/prod%2Fdata?sslmode=require';
+  const result = runReadOnlyQuery(databaseUrl, 'SELECT json_build_object(\'ok\', true)::text', (command, argumentsList, options) => {
     invocation = { command, argumentsList, options };
     return '{"ok":true}\n';
   });
   assert.deepEqual(result, [{ ok: true }]);
   assert.equal(invocation.command, 'psql');
-  assert.equal(invocation.argumentsList.includes('postgresql://secret.example/production'), false);
-  assert.equal(invocation.options.env.PGDATABASE, 'postgresql://secret.example/production');
+  assert.equal(invocation.argumentsList.includes(databaseUrl), false);
+  assert.equal(JSON.stringify(invocation.argumentsList).includes(databaseUrl), false);
+  assert.equal(invocation.options.env.PGHOST, 'db.example');
+  assert.equal(invocation.options.env.PGPORT, '6543');
+  assert.equal(invocation.options.env.PGUSER, 'first last');
+  assert.equal(invocation.options.env.PGPASSWORD, 'pa$%word');
+  assert.equal(invocation.options.env.PGDATABASE, 'prod/data');
+  assert.equal(invocation.options.env.PGSSLMODE, 'require');
   assert.equal('PRODUCTION_SUPABASE_DB_URL' in invocation.options.env, false);
-  assert.match(invocation.options.env.PGOPTIONS, /default_transaction_read_only=on/);
-  assert.equal(JSON.stringify(result).includes('secret.example'), false);
+  assert.equal('PGOPTIONS' in invocation.options.env, false);
+  assert.equal(invocation.argumentsList.includes('--quiet'), true);
+  const command = invocation.argumentsList[invocation.argumentsList.indexOf('--command') + 1];
+  assert.match(command, /^BEGIN TRANSACTION READ ONLY;\nSELECT json_build_object\('ok', true\)::text;\nCOMMIT;$/);
+  assert.equal(JSON.stringify(result).includes(databaseUrl), false);
 });
 
-test('psql failures are sanitized and cannot expose the production database URL', () => {
-  const databaseUrl = 'postgresql://secret.example/production';
+test('only PostgreSQL URLs are accepted for the private libpq connection environment', () => {
+  const unsafeUrl = 'https://secret.example/not-a-database';
+  assert.throws(() => createLibpqEnvironment(unsafeUrl), (error) => (
+    error.message === 'Production database URL must use a supported PostgreSQL connection format.'
+    && !error.message.includes(unsafeUrl)
+  ));
+});
+
+test('the read-only wrapper rejects writes and makes the database transaction the final safety boundary', () => {
+  assert.match(buildReadOnlyTransaction('SELECT 1'), /^BEGIN TRANSACTION READ ONLY;\nSELECT 1;\nCOMMIT;$/);
+  assert.throws(() => buildReadOnlyTransaction('UPDATE public.tenants SET name = \'x\''), /non-read-only query/);
+});
+
+test('read-only probe requires PostgreSQL to report true inside the transaction', () => {
+  assert.doesNotThrow(() => assertReadOnlyProbe([{ transaction_read_only: true }]));
+  assert.throws(() => assertReadOnlyProbe([{ transaction_read_only: false }]), /READ_ONLY_ENFORCEMENT_FAILED/);
+  assert.throws(() => assertReadOnlyProbe([]), /READ_ONLY_ENFORCEMENT_FAILED/);
+});
+
+test('psql stderr is classified and sanitized without exposing the production database URL', () => {
+  const databaseUrl = 'postgresql://audit_user:secret_password@secret.example/production';
   assert.throws(() => runReadOnlyQuery(databaseUrl, 'SELECT 1', () => {
-    throw new Error(`psql failed for ${databaseUrl}`);
+    const error = new Error(`psql failed for ${databaseUrl}`);
+    error.stderr = Buffer.from('password authentication failed for user');
+    throw error;
   }, 'pending migration 051 audit'), (error) => (
-    error.message === 'Production migration evidence query failed: pending migration 051 audit.'
+    error.message === 'Production migration evidence query failed: pending migration 051 audit (AUTHENTICATION_FAILED).'
     && !error.message.includes(databaseUrl)
   ));
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('unsupported startup parameter: default_transaction_read_only') }), 'UNSUPPORTED_STARTUP_PARAMETER');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('relation "schema_migrations" does not exist') }), 'MISSING_RELATION');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('column "statements" does not exist') }), 'MISSING_COLUMN');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('permission denied for table schema_migrations') }), 'PERMISSION_DENIED');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('cannot execute UPDATE in a read-only transaction') }), 'READ_ONLY_ENFORCEMENT_FAILED');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('syntax error at or near "oops"') }), 'QUERY_SYNTAX_FAILED');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('could not connect to server') }), 'CONNECTION_FAILED');
+  assert.equal(classifyDatabaseError({ stderr: Buffer.from('unrecognized failure') }), 'UNKNOWN_DATABASE_ERROR');
+});
+
+test('migration history requires version and name but permits a missing statements column safely', () => {
+  assert.doesNotThrow(() => assertMigrationHistoryShape({ relation_exists: true, version: true, name: true, statements: true }));
+  assert.throws(() => assertMigrationHistoryShape({ relation_exists: true, version: false, name: true, statements: true }), /MISSING_COLUMN/);
+  assert.throws(() => assertMigrationHistoryShape({ relation_exists: false, version: false, name: false, statements: false }), /MISSING_RELATION/);
+  const evidence = safeRemoteRowEvidence({ version: '20260517181733', name: 'legacy_migration' }, [], { statementsAvailable: false });
+  assert.deepEqual(evidence, {
+    remote_version: '20260517181733',
+    stored_name: 'legacy_migration',
+    statements_available: false,
+    statement_count: null,
+    statements_sha256: null,
+    operation_types: null,
+    referenced_objects: null,
+    exact_repository_sql_match: 'NOT_SAFELY_DETERMINABLE',
+  });
+});
+
+test('audit retains unresolved migration rows when legacy history has no statements column', () => {
+  const databaseUrl = 'postgresql://audit_user:secret_password@secret.example/production';
+  const invocations = [];
+  const report = runAudit(databaseUrl, (command, argumentsList) => {
+    invocations.push({ command, argumentsList });
+    const query = argumentsList[argumentsList.indexOf('--command') + 1];
+    if (query.includes("current_setting('transaction_read_only')")) return '{"transaction_read_only":true}\n';
+    if (query.includes("'relation_exists'")) return '{"relation_exists":true,"version":true,"name":true,"statements":false}\n';
+    if (query.includes('WHERE version IN')) return [
+      '{"version":"20260517181733","name":"first"}',
+      '{"version":"20260604070643","name":"second"}',
+      '{"version":"20260724140005","name":"third"}',
+    ].join('\n') + '\n';
+    return '{"passed":true}\n';
+  });
+  assert.equal(report.unresolved_remote_rows.length, 3);
+  assert.equal(report.unresolved_remote_rows.every((row) => row.statements_available === false), true);
+  assert.equal(report.unresolved_remote_rows.every((row) => row.exact_repository_sql_match === 'NOT_SAFELY_DETERMINABLE'), true);
+  assert.equal(invocations.every(({ command, argumentsList }) => command === 'psql' && argumentsList.includes('--quiet') && /^BEGIN TRANSACTION READ ONLY;/.test(argumentsList[argumentsList.indexOf('--command') + 1])), true);
+  assert.equal(JSON.stringify(report).includes(databaseUrl), false);
 });
 
 test('serialized reports and normal console summaries never include a database URL', () => {
@@ -69,6 +154,7 @@ test('serialized reports and normal console summaries never include a database U
   const report = { environment: 'production', unresolved_remote_rows: [], duplicate_file_evidence: [], pending_file_evidence: [] };
   assert.equal(JSON.stringify(report).includes(databaseUrl), false);
   assert.equal(auditSummary(report).includes(databaseUrl), false);
+  assert.equal(JSON.stringify(buildSanitizedFailureReport(new Error(databaseUrl))).includes(databaseUrl), false);
 });
 
 test('policy evidence is scoped to the exact schema and table, even for reused tenant_isolation names', () => {
