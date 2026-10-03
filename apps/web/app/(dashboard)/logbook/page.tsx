@@ -769,6 +769,9 @@ function LogbookPageContent() {
   }, [])
 
   useEffect(() => {
+    // Wait for the property timezone before initializing the workspace date.
+    // Otherwise a UTC browser can pin the feed to a different hotel-local day.
+    if (!hotel?.timezone) return
     const currentDate = todayIso(hotel?.timezone)
     setToday(currentDate)
     setSelectedDate((prev) => prev || currentDate)
