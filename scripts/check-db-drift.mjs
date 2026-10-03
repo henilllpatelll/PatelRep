@@ -201,6 +201,42 @@ export function compareMigrationVersions(localVersions, remoteVersions) {
   };
 }
 
+/**
+ * Numeric comparison cannot distinguish grandfathered duplicate migration
+ * files. Production requires file-level proof for every file in such a group;
+ * staging's clean-rebuild harness deliberately remains numeric-only.
+ */
+export function checkDuplicateMigrationCoverage(
+  localInventory,
+  verifiedAliases,
+  environment = 'production',
+) {
+  if (environment !== 'production') return { groups: [], incompleteGroups: [] };
+
+  const migrationsByVersion = new Map();
+  for (const migration of localInventory) {
+    const migrations = migrationsByVersion.get(migration.version) ?? [];
+    migrations.push(migration);
+    migrationsByVersion.set(migration.version, migrations);
+  }
+  const verifiedFiles = new Set(verifiedAliases.map((alias) => alias.repositoryFile));
+  const groups = [...migrationsByVersion.entries()]
+    .filter(([, migrations]) => migrations.length > 1)
+    .map(([version, migrations]) => {
+      const repositoryFiles = migrations.map((migration) => migration.filename);
+      return {
+        version,
+        verifiedFiles: repositoryFiles.filter((filename) => verifiedFiles.has(filename)),
+        unverifiedFiles: repositoryFiles.filter((filename) => !verifiedFiles.has(filename)),
+      };
+    });
+
+  return {
+    groups,
+    incompleteGroups: groups.filter((group) => group.unverifiedFiles.length > 0),
+  };
+}
+
 export function parsePsqlMigrationVersions(output) {
   return String(output).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
@@ -239,8 +275,11 @@ export function getDriftCheckConfig(argv, environmentVariables = process.env) {
   };
 }
 
-export function shouldAllowPendingDrift(result, allowPending) {
-  return allowPending && result.missingOnRemote.length > 0 && result.unknownOnRemote.length === 0;
+export function shouldAllowPendingDrift(result, allowPending, duplicateCoverage = { incompleteGroups: [] }) {
+  return allowPending
+    && result.missingOnRemote.length > 0
+    && result.unknownOnRemote.length === 0
+    && duplicateCoverage.incompleteGroups.length === 0;
 }
 
 function remoteMigrationHistory(databaseUrl) {
@@ -264,6 +303,20 @@ function printMigrationRows(label, rows) {
   for (const row of rows) console.log(`${row.version} | ${row.name || '<empty>'}`);
 }
 
+function printIncompleteDuplicateMigrationCoverage(incompleteGroups) {
+  for (const group of incompleteGroups) {
+    console.log(`Incomplete production migration coverage for duplicate identifier ${group.version}:`);
+    console.log('Verified:');
+    if (group.verifiedFiles.length) {
+      for (const filename of group.verifiedFiles) console.log(`  ${filename}`);
+    } else {
+      console.log('  <none>');
+    }
+    console.log('Unverified:');
+    for (const filename of group.unverifiedFiles) console.log(`  ${filename}`);
+  }
+}
+
 function main() {
   const { environment, databaseUrl, allowPending, showRemoteMigrationNames } = getDriftCheckConfig(process.argv.slice(2));
   const remoteRows = remoteMigrationHistory(databaseUrl);
@@ -275,6 +328,7 @@ function main() {
   const { effectiveRemoteVersions, verifiedAliases, unresolvedRemoteRows } = applyProductionMigrationAliases(
     remoteRows, aliasRegistry, localInventory, environment,
   );
+  const duplicateCoverage = checkDuplicateMigrationCoverage(localInventory, verifiedAliases, environment);
   const duplicateVersions = [...new Set(localInventory
     .filter((migration, index, all) => all.filter((item) => item.version === migration.version).length > 1)
     .map((migration) => migration.version))];
@@ -294,6 +348,7 @@ function main() {
       console.log('<none>');
     }
     printMigrationRows('Unresolved production migration', unresolvedRemoteRows);
+    printIncompleteDuplicateMigrationCoverage(duplicateCoverage.incompleteGroups);
   }
   if (result.missingOnRemote.length) {
     console.log(`Pending on ${environment}: ${result.missingOnRemote.join(', ')}`);
@@ -307,11 +362,11 @@ function main() {
   } else {
     console.log(`Unresolved ${environment} migrations: <none>`);
   }
-  if (!result.missingOnRemote.length && !result.unknownOnRemote.length) {
+  if (!result.missingOnRemote.length && !result.unknownOnRemote.length && !duplicateCoverage.incompleteGroups.length) {
     console.log('Status: CLEAN');
     return;
   }
-  if (shouldAllowPendingDrift(result, allowPending)) {
+  if (shouldAllowPendingDrift(result, allowPending, duplicateCoverage)) {
     console.log('Status: PENDING (allowed for the staging apply step)');
     return;
   }

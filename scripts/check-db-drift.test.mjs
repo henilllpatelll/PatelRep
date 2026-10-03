@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   applyProductionMigrationAliases,
   buildLocalMigrationInventory,
+  checkDuplicateMigrationCoverage,
   compareMigrationVersions,
   getDriftCheckConfig,
   loadProductionMigrationAliasRegistry,
@@ -107,22 +108,32 @@ test('production reconciliation never applies to staging', () => {
   assert.deepEqual(staging.verifiedAliases, []);
 });
 
-for (const [version, files] of [
+const DUPLICATE_MIGRATION_GROUPS = [
   ['039', ['039_drop_room_status_history_trigger.sql', '039_drop_unused_indexes.sql']],
   ['042', ['042_guest_requests_priority.sql', '042_lost_found_photos_bucket.sql', '042_room_assignment_clean_type.sql']],
   ['110', ['110_room_unavailability_type.sql', '110_work_order_console_features.sql']],
-]) {
+];
+
+function duplicateInventory(version, files) {
+  return inventory(...files.map((filename) => migration(
+    filename, version, filename.replace(/^\d+_/, '').replace(/\.sql$/, ''),
+  )));
+}
+
+function reconcileDuplicateFiles(local, files) {
+  const rows = files.map((filename, index) => remote(
+    `202607280907${String(index + 1).padStart(2, '0')}`,
+    filename.replace(/^\d+_/, '').replace(/\.sql$/, ''),
+  ));
+  return applyProductionMigrationAliases(
+    rows, validateProductionMigrationAliasRegistry(aliasRegistry([]), local), local,
+  );
+}
+
+for (const [version, files] of DUPLICATE_MIGRATION_GROUPS) {
   test(`independently reconciles all grandfathered duplicate ${version} files`, () => {
-    const local = inventory(...files.map((filename) => migration(
-      filename, version, filename.replace(/^\d+_/, '').replace(/\.sql$/, ''),
-    )));
-    const rows = files.map((filename, index) => remote(
-      `202607280907${String(index + 1).padStart(2, '0')}`,
-      filename.replace(/^\d+_/, '').replace(/\.sql$/, ''),
-    ));
-    const resolved = applyProductionMigrationAliases(
-      rows, validateProductionMigrationAliasRegistry(aliasRegistry([]), local), local,
-    );
+    const local = duplicateInventory(version, files);
+    const resolved = reconcileDuplicateFiles(local, files);
     assert.deepEqual(resolved.effectiveRemoteVersions, files.map(() => version));
     assert.equal(new Set(resolved.verifiedAliases.map((item) => item.repositoryFile)).size, files.length);
     assert.deepEqual(compareMigrationVersions(files.map(() => version), resolved.effectiveRemoteVersions), {
@@ -130,6 +141,94 @@ for (const [version, files] of [
     });
   });
 }
+
+test('production duplicate 039 coverage fails with one file unverified and passes only when both exact files reconcile', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[0];
+  const local = duplicateInventory(version, files);
+  const partial = reconcileDuplicateFiles(local, files.slice(0, 1));
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, partial.verifiedAliases), {
+    groups: [{ version, verifiedFiles: [files[0]], unverifiedFiles: [files[1]] }],
+    incompleteGroups: [{ version, verifiedFiles: [files[0]], unverifiedFiles: [files[1]] }],
+  });
+
+  const complete = reconcileDuplicateFiles(local, files);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, complete.verifiedAliases).incompleteGroups, []);
+});
+
+test('production duplicate 042 coverage fails at one or two reconciled files and passes only at three', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[1];
+  const local = duplicateInventory(version, files);
+  for (const provenCount of [1, 2]) {
+    const partial = reconcileDuplicateFiles(local, files.slice(0, provenCount));
+    assert.deepEqual(checkDuplicateMigrationCoverage(local, partial.verifiedAliases).incompleteGroups, [{
+      version,
+      verifiedFiles: files.slice(0, provenCount),
+      unverifiedFiles: files.slice(provenCount),
+    }]);
+  }
+
+  const complete = reconcileDuplicateFiles(local, files);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, complete.verifiedAliases).incompleteGroups, []);
+});
+
+test('production duplicate 110 coverage fails with one reconciled file and passes with both', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[2];
+  const local = duplicateInventory(version, files);
+  const partial = reconcileDuplicateFiles(local, files.slice(0, 1));
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, partial.verifiedAliases).incompleteGroups, [{
+    version,
+    verifiedFiles: [files[0]],
+    unverifiedFiles: [files[1]],
+  }]);
+
+  const complete = reconcileDuplicateFiles(local, files);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, complete.verifiedAliases).incompleteGroups, []);
+});
+
+test('a checked-in manual alias is file-level proof for its duplicate migration target', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[0];
+  const local = duplicateInventory(version, files);
+  const registry = validateProductionMigrationAliasRegistry(aliasRegistry([
+    verifiedAlias('20260728090702', files[1]),
+  ]), local);
+  const resolved = applyProductionMigrationAliases([
+    remote('20260728090701', files[0].replace(/^\d+_/, '').replace(/\.sql$/, '')),
+    remote('20260728090702'),
+  ], registry, local);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, resolved.verifiedAliases).incompleteGroups, []);
+});
+
+test('a numeric production row cannot prove a duplicate file group, while unique and staging histories retain their normal behavior', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[0];
+  const local = duplicateInventory(version, files);
+  const numericOnly = applyProductionMigrationAliases(
+    [remote(version)], validateProductionMigrationAliasRegistry(aliasRegistry([]), local), local,
+  );
+  assert.deepEqual(compareMigrationVersions(local.map((item) => item.version), numericOnly.effectiveRemoteVersions), {
+    missingOnRemote: [], unknownOnRemote: [],
+  });
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, numericOnly.verifiedAliases).incompleteGroups, [{
+    version, verifiedFiles: [], unverifiedFiles: files,
+  }]);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, [], 'staging'), {
+    groups: [], incompleteGroups: [],
+  });
+
+  assert.deepEqual(checkDuplicateMigrationCoverage(SINGLE_FILE_INVENTORY, [], 'production'), {
+    groups: [], incompleteGroups: [],
+  });
+  assert.deepEqual(compareMigrationVersions(['085'], ['085']), {
+    missingOnRemote: [], unknownOnRemote: [],
+  });
+});
+
+test('--allow-pending cannot override incomplete production duplicate coverage', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[0];
+  const local = duplicateInventory(version, files);
+  const partial = reconcileDuplicateFiles(local, files.slice(0, 1));
+  const coverage = checkDuplicateMigrationCoverage(local, partial.verifiedAliases);
+  assert.equal(shouldAllowPendingDrift({ missingOnRemote: ['085'], unknownOnRemote: [] }, true, coverage), false);
+});
 
 test('one timestamp cannot claim multiple repository files', () => {
   const local = inventory(
