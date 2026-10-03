@@ -1,0 +1,108 @@
+name: Claude Release Engineer
+
+# Autonomous CI-repair agent (Phase 1: repair only — no auto-merge, no auto-release).
+# Runs only after an upstream workflow FAILED (or on manual dispatch). Claude never receives
+# production credentials; privileged work stays in the dedicated production workflows.
+
+on:
+  workflow_dispatch:
+    inputs:
+      failed_run_id:
+        description: Failed workflow run id to diagnose (leave empty for a general task)
+        required: false
+        type: string
+      instructions:
+        description: Optional task instructions for the release engineer
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - CI
+      - Staging Candidate
+      - Production Migration Evidence Audit
+      - Production Release
+    types: [completed]
+
+# One agent per failed upstream run; never cancel an agent mid-repair.
+concurrency:
+  group: claude-release-engineer-${{ github.event.workflow_run.id || inputs.failed_run_id || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  issues: read
+  checks: read
+
+jobs:
+  repair:
+    name: Diagnose and repair
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Successful upstream runs never invoke Claude. Fork runs are ignored (untrusted logs/code), and
+    # recovery branches are not auto-retried so a failing fix cannot loop; dispatch manually instead.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'failure' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       !startsWith(github.event.workflow_run.head_branch, 'claude/recovery-'))
+    steps:
+      - name: Create PatelRep GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Configure git identity
+        run: |
+          git config user.name "patelrep-release-engineer[bot]"
+          git config user.email "patelrep-release-engineer[bot]@users.noreply.github.com"
+
+      - name: Run Claude release engineer
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            You are the PatelRep autonomous release engineer for ${{ github.repository }}.
+            Before acting, read CLAUDE.md and docs/AUTONOMOUS_RELEASE_ENGINEER.md in full and obey them,
+            including the database safety invariants and the production authority model.
+
+            Trigger: ${{ github.event_name }}
+            Failed upstream workflow: ${{ github.event.workflow_run.name || 'n/a (manual dispatch)' }}
+            Failed run id: ${{ github.event.workflow_run.id || inputs.failed_run_id || 'none given' }}
+            Failed run URL: ${{ github.event.workflow_run.html_url || 'n/a' }}
+            Failed head branch: ${{ github.event.workflow_run.head_branch || 'n/a' }}
+            Failed head SHA: ${{ github.event.workflow_run.head_sha || 'n/a' }}
+            Manual instructions: ${{ inputs.instructions || 'none' }}
+
+            Follow the failure-repair procedure in the document: establish the root cause from the exact
+            failed run's jobs, logs and artifacts first; make the smallest deterministic fix with a
+            regression test; run targeted tests locally; then push once. Update the existing same-repository
+            PR branch if one owns the failure, otherwise use branch claude/recovery-<failed-run-id> and open
+            a PR to main. Do not merge and do not dispatch Production Release.
+          claude_args: >-
+            --max-turns 60
+            --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python:*),Bash(python3:*),Bash(pip:*),Bash(pytest:*),Bash(cd:*),Bash(ls:*),Bash(cat:*),Bash(mkdir:*),Bash(unzip:*),mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log"
+            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(supabase:*),Bash(railway:*),Bash(psql:*)"

@@ -317,8 +317,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-      - name: Verify Railway Web build-context convention
-        run: node --test scripts/staging-candidate-workflow.test.mjs
+      - name: Verify release workflow contracts
+        run: node --test scripts/staging-candidate-workflow.test.mjs scripts/claude-release-engineer-workflow.test.mjs
 
   ci-gate:
     name: CI Gate
