@@ -80,6 +80,52 @@ test('exact production timestamp and stored migration name reconcile to one loca
   assert.deepEqual(filenameResolved.effectiveRemoteVersions, ['085']);
 });
 
+test('exact repository filename stems are production migration evidence', () => {
+  const local = inventory(
+    migration('053_fix_jwt_role_claim.sql', '053', 'fix_jwt_role_claim'),
+    migration('085_opera_pilot_flag.sql', '085', 'opera_pilot_flag'),
+  );
+  const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), local);
+
+  const jwt = applyProductionMigrationAliases(
+    [remote('20260604064032', '053_fix_jwt_role_claim')], registry, local,
+  );
+  assert.deepEqual(jwt.verifiedAliases, [{
+    remoteId: '20260604064032', repositoryFile: '053_fix_jwt_role_claim.sql', repositoryId: '053', source: 'remote-name',
+  }]);
+
+  const opera = applyProductionMigrationAliases(
+    [remote('20260728090702', '085_opera_pilot_flag')], registry, local,
+  );
+  assert.deepEqual(opera.verifiedAliases, [{
+    remoteId: '20260728090702', repositoryFile: '085_opera_pilot_flag.sql', repositoryId: '085', source: 'remote-name',
+  }]);
+});
+
+test('similar-but-not-exact repository filename stems remain unresolved', () => {
+  const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), SINGLE_FILE_INVENTORY);
+  for (const name of [
+    '85_opera_pilot_flag', '085-opera-pilot-flag', 'prefix_085_opera_pilot_flag', '085_opera_pilot',
+  ]) {
+    const row = remote('20260728090702', name);
+    const resolved = applyProductionMigrationAliases([row], registry, SINGLE_FILE_INVENTORY);
+    assert.deepEqual(resolved.unresolvedRemoteRows, [row]);
+  }
+});
+
+test('a repository filename stem remains unresolved when another migration has the same parsed name', () => {
+  const local = inventory(
+    migration('085_opera_pilot_flag.sql', '085', 'opera_pilot_flag'),
+    migration('090_other.sql', '090', '085_opera_pilot_flag'),
+  );
+  const row = remote('20260728090702', '085_opera_pilot_flag');
+  const resolved = applyProductionMigrationAliases(
+    [row], validateProductionMigrationAliasRegistry(aliasRegistry([]), local), local,
+  );
+
+  assert.deepEqual(resolved.unresolvedRemoteRows, [row]);
+});
+
 test('incorrect, missing, and ambiguous remote names remain unresolved', () => {
   const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), SINGLE_FILE_INVENTORY);
   for (const row of [remote('20260728090702', 'not_opera'), remote('20260728090702')]) {
@@ -169,6 +215,21 @@ test('production duplicate 042 coverage fails at one or two reconciled files and
 
   const complete = reconcileDuplicateFiles(local, files);
   assert.deepEqual(checkDuplicateMigrationCoverage(local, complete.verifiedAliases).incompleteGroups, []);
+});
+
+test('duplicate 042 filename stems independently prove only their exact files', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[1];
+  const local = duplicateInventory(version, files);
+  const rows = files.map((filename, index) => remote(
+    `202607280909${String(index + 1).padStart(2, '0')}`,
+    filename.replace(/\.sql$/, ''),
+  ));
+  const resolved = applyProductionMigrationAliases(
+    rows, validateProductionMigrationAliasRegistry(aliasRegistry([]), local), local,
+  );
+
+  assert.deepEqual(resolved.verifiedAliases.map((alias) => alias.repositoryFile), files);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, resolved.verifiedAliases).incompleteGroups, []);
 });
 
 test('production duplicate 110 coverage fails with one reconciled file and passes with both', () => {
@@ -283,6 +344,14 @@ test('one exact repository file cannot be claimed by multiple remote rows', () =
   const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), SINGLE_FILE_INVENTORY);
   assert.throws(() => applyProductionMigrationAliases([
     remote('20260728090702', 'opera_pilot_flag'), remote('20260728090703', 'opera_pilot_flag'),
+  ], registry, SINGLE_FILE_INVENTORY), /claimed by multiple production migration rows/);
+});
+
+test('two timestamp rows cannot claim the same repository filename stem', () => {
+  const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), SINGLE_FILE_INVENTORY);
+  assert.throws(() => applyProductionMigrationAliases([
+    remote('20260728090702', '085_opera_pilot_flag'),
+    remote('20260728090703', '085_opera_pilot_flag'),
   ], registry, SINGLE_FILE_INVENTORY), /claimed by multiple production migration rows/);
 });
 
