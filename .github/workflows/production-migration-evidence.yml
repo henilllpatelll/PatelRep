@@ -1,0 +1,41 @@
+name: Production Migration Evidence Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Read-only production migration evidence
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Refuse any non-production database target
+        run: node scripts/production-target-guard.mjs
+        env:
+          PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_EXPECTED_DATABASE_HOST: ${{ vars.PRODUCTION_EXPECTED_DATABASE_HOST }}
+          PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
+          STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Audit production migration evidence in read-only mode
+        run: node scripts/audit-production-migration-evidence.mjs --report production-migration-evidence-report.json
+        env:
+          PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+      - name: Upload sanitized evidence report
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-migration-evidence
+          path: production-migration-evidence-report.json
+          retention-days: 7

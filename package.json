@@ -10,7 +10,7 @@
     "db:inventory": "node scripts/migration-inventory.mjs",
     "db:drift:staging": "node scripts/check-db-drift.mjs --environment staging",
     "db:drift:production": "node scripts/check-db-drift.mjs --environment production",
-    "db:test": "node --test scripts/check-migrations.test.mjs scripts/build-migration-replay-workspace.test.mjs scripts/check-db-drift.test.mjs scripts/staging-target-guard.test.mjs scripts/production-target-guard.test.mjs scripts/check-feature-flag-registry.test.mjs scripts/public-smoke.test.mjs scripts/release-content-summary.test.mjs scripts/remote-migration-apply.test.mjs",
+    "db:test": "node --test scripts/check-migrations.test.mjs scripts/build-migration-replay-workspace.test.mjs scripts/check-db-drift.test.mjs scripts/staging-target-guard.test.mjs scripts/production-target-guard.test.mjs scripts/check-feature-flag-registry.test.mjs scripts/public-smoke.test.mjs scripts/release-content-summary.test.mjs scripts/remote-migration-apply.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-evidence-workflow.test.mjs",
     "feature-flags:check-registry": "node scripts/check-feature-flag-registry.mjs",
     "ship": "node scripts/ship.mjs",
     "build": "cd apps/web && npm run build",
