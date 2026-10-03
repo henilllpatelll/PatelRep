@@ -222,6 +222,43 @@ test('a numeric production row cannot prove a duplicate file group, while unique
   });
 });
 
+test('a numeric production row rejects a timestamp alias for a unique local migration version', () => {
+  const local = inventory(migration('050_example.sql', '050', 'example'));
+  const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), local);
+
+  assert.throws(() => applyProductionMigrationAliases([
+    remote('50'), remote('20260728090702', 'example'),
+  ], registry, local), /would hide a second remote identifier for canonical migration 50/);
+});
+
+test('numeric production history permits only distinct exact-file proofs for duplicate 042 migrations', () => {
+  const [version, files] = DUPLICATE_MIGRATION_GROUPS[1];
+  const local = duplicateInventory(version, files);
+  const registry = validateProductionMigrationAliasRegistry(aliasRegistry([]), local);
+  const rowsFor = (count) => [
+    remote('42'),
+    ...files.slice(0, count).map((filename, index) => remote(
+      `202607280908${String(index + 1).padStart(2, '0')}`,
+      filename.replace(/^\d+_/, '').replace(/\.sql$/, ''),
+    )),
+  ];
+
+  const one = applyProductionMigrationAliases(rowsFor(1), registry, local);
+  assert.deepEqual(one.verifiedAliases.map((alias) => alias.repositoryFile), files.slice(0, 1));
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, one.verifiedAliases).incompleteGroups, [{
+    version, verifiedFiles: files.slice(0, 1), unverifiedFiles: files.slice(1),
+  }]);
+
+  const two = applyProductionMigrationAliases(rowsFor(2), registry, local);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, two.verifiedAliases).incompleteGroups, [{
+    version, verifiedFiles: files.slice(0, 2), unverifiedFiles: files.slice(2),
+  }]);
+
+  const complete = applyProductionMigrationAliases(rowsFor(3), registry, local);
+  assert.deepEqual(complete.verifiedAliases.map((alias) => alias.repositoryFile), files);
+  assert.deepEqual(checkDuplicateMigrationCoverage(local, complete.verifiedAliases).incompleteGroups, []);
+});
+
 test('--allow-pending cannot override incomplete production duplicate coverage', () => {
   const [version, files] = DUPLICATE_MIGRATION_GROUPS[0];
   const local = duplicateInventory(version, files);
