@@ -7,6 +7,7 @@ import test from 'node:test'
 import {
   PINNED_SUPABASE_CLI_VERSION,
   buildVerifiedApplyWorkspace,
+  findCliOrderingConflicts,
   optionsFromEnvironment,
   parseAppliedMigrations,
   parseDryRunOutput,
@@ -73,6 +74,15 @@ test('the fetched mirror must equal the live remote version set exactly', () => 
   assert.throws(() => verifyFetchedMirror(mirrorDirectory(['001_a.sql', '001_b.sql', '20260517181733_x.sql']), REMOTE), /duplicate versions/)
   assert.throws(() => verifyFetchedMirror(mirrorDirectory(['001_a.sql', '20260517181733_x.sql', 'notes.txt']), REMOTE), /unexpected entry/)
   assert.throws(() => verifyFetchedMirror(ok, [...REMOTE, { version: '001', name: 'dup' }]), /duplicate versions/)
+})
+
+test('CLI ordering: production-shaped history with 020 and 0201 is detected before the CLI sees it', () => {
+  const remote = ['019', '020', '0201', '021', '20260517181733']
+  const files = ['019_a.sql', '020_fix_credits_decimal.sql', '0201_logbook_expires.sql', '021_c.sql', '20260517181733_x.sql']
+  assert.deepEqual(findCliOrderingConflicts(remote, files), ['020'])
+  // Without the prefix pair, and with extra pending files, the walk is clean.
+  assert.deepEqual(findCliOrderingConflicts(['019', '020', '021'], ['019_a.sql', '020_b.sql', '021_c.sql', '050_new.sql']), [])
+  assert.deepEqual(findCliOrderingConflicts(['001', '20260517181733'], ['001_a.sql', '20260517181733_x.sql', '204_p.sql']), [])
 })
 
 // ---- workspace build with fakes ----------------------------------------------------------------------------------
@@ -201,6 +211,16 @@ function mutate(evaluationOverrides) {
   const value = base()
   return { ...value, evaluation: { ...value.evaluation, ...evaluationOverrides } }
 }
+
+failing('remote history holds both 020 and 0201 (CLI filename/version order inversion)', {
+  live: () => ({ ...base(), remoteRows: [...REMOTE, { version: '020', name: 'fix_credits_decimal' }, { version: '0201', name: 'logbook_expires' }] }),
+  runSupabase: (args, { cwd }) => {
+    if (args[1] !== 'fetch') return null
+    mkdirSync(join(cwd, 'supabase', 'migrations'), { recursive: true })
+    for (const file of ['001_a.sql', '20260517181733_x.sql', '020_fix_credits_decimal.sql', '0201_logbook_expires.sql']) writeFileSync(join(cwd, 'supabase', 'migrations', file), '-- x\n')
+    return { status: 0, stdout: '', stderr: '' }
+  },
+}, /reject remote version\(s\) 020 as missing locally/, ['guard', '--version', 'evaluate', 'migration fetch', 'evaluate'])
 
 test('plan never performs a mutating CLI call', () => {
   const h = harness()
