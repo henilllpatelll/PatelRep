@@ -587,3 +587,72 @@ test('a rollback or recovery after resolve or after dispatch is refused by the l
     await assert.rejects(validateProductionRequest({ ...request, mode: 'release' }, fresh.deps), (error) => error instanceof Ineligible, `${label}: Production Release refuses after approval`)
   }
 })
+
+// ---- the three deliberate stages: resolve, request, release -----------------------------------------------------------------
+
+const resolveInput = { ...request, mode: 'resolve' }
+
+test('resolve (the real resolver stage) is a clean no-op when the activation variable is missing or not exactly true', async () => {
+  for (const enabled of [undefined, '', 'false', 'TRUE', 'true ']) {
+    const { deps } = world()
+    const result = await evaluateProductionRequest({ ...resolveInput, enabled }, deps)
+    assert.equal(result.eligible, false, String(enabled))
+    assert.match(result.reason, /PRODUCTION_AUTO_RELEASE_ENABLED/)
+  }
+})
+
+test('resolve evaluates the same security eligibility as request', async () => {
+  const { state, deps } = world()
+  const resolved = await evaluateProductionRequest(resolveInput, deps)
+  assert.deepEqual(resolved, await evaluateProductionRequest(request, deps))
+  assert.equal(resolved.eligible, true)
+  state.artifact = null
+  assert.equal((await evaluateProductionRequest(resolveInput, deps)).eligible, false, 'no artifact: clean no-op')
+  const noBaseline = world()
+  noBaseline.state.releases = []
+  assert.match((await evaluateProductionRequest(resolveInput, noBaseline.deps)).reason, /no managed production release baseline/)
+  const rolledBack = world()
+  rolledBack.state.runtime = { sha: OLDER, version: 'v1.7.9' }
+  assert.equal((await evaluateProductionRequest(resolveInput, rolledBack.deps)).eligible, false)
+})
+
+test('resolve still hard-fails malformed or unprovable security data', async () => {
+  for (const mutate of [
+    (s) => { s.artifact = { ...RESULT, extra: 'x' } },
+    (s) => { s.artifact = 'x' },
+    (s) => { s.tagCommits = {} },
+    (s) => { s.ancestor = false },
+    (s) => { s.healthRuns = null },
+    (s) => { s.active = null },
+  ]) {
+    const { state, deps } = world()
+    mutate(state)
+    await assert.rejects(evaluateProductionRequest(resolveInput, deps), (error) => !(error instanceof Ineligible))
+  }
+  const { deps } = world()
+  await assert.rejects(evaluateProductionRequest({ ...resolveInput, sourceRunId: 'abc' }, deps), /invalid/)
+})
+
+test('resolve and request both keep the active/duplicate production run protection; release never uses it', async () => {
+  for (const mode of ['resolve', 'request']) {
+    const { state, deps } = world()
+    state.active = [{ id: 1, status: 'waiting', workflow: 'production-release.yml', displayTitle: `Production Release ${MERGE}` }]
+    assert.match((await evaluateProductionRequest({ ...request, mode }, deps)).reason, /already active/, mode)
+  }
+  const { state, deps } = world()
+  state.active = [{ id: 1, status: 'in_progress', workflow: 'production-rollback.yml', displayTitle: 'Production Rollback' }]
+  assert.equal((await validateProductionRequest({ ...request, mode: 'release' }, deps)).mergeCommitSha, MERGE)
+})
+
+test('release mode still FAILS on every policy refusal and unknown modes always hard-fail', async () => {
+  const { deps } = world()
+  for (const enabled of [undefined, 'false']) {
+    await assert.rejects(validateProductionRequest({ ...request, mode: 'release', enabled }, deps), (error) => error instanceof Ineligible)
+  }
+  const refused = world()
+  refused.state.mainSha = 'c'.repeat(40)
+  await assert.rejects(validateProductionRequest({ ...request, mode: 'release' }, refused.deps), (error) => error instanceof Ineligible)
+  for (const mode of [undefined, '', 'dispatch', 'Resolve', 'REQUEST', 'resolve ']) {
+    await assert.rejects(evaluateProductionRequest({ ...request, mode }, deps), (error) => !(error instanceof Ineligible) && /unknown validation mode/.test(error.message), String(mode))
+  }
+})
