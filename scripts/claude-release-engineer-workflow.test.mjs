@@ -50,7 +50,7 @@ test('only failures from same-repository, non-recovery runs invoke Claude', () =
   assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'failure'/)
   assert.doesNotMatch(workflow, /conclusion == 'success'/)
   assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
-  assert.match(workflow, /!startsWith\(github\.event\.workflow_run\.head_branch, 'claude\/recovery-'\)/)
+  assert.doesNotMatch(workflow, /startsWith\(github\.event\.workflow_run\.head_branch/)
 })
 
 test('serializes per failed run without cancelling an active repair', () => {
@@ -186,6 +186,19 @@ test('phase 1 does not auto-merge or auto-dispatch Production Release', () => {
 
 test('fork-run rejection and the phase 1 recovery retry guard are preserved', () => {
   assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
-  assert.match(workflow, /startsWith\(github\.event\.workflow_run\.head_branch, 'claude\/recovery-'\)/)
-  assert.match(resolver, /RECOVERY_PREFIX\)/)
+  // The coarse job condition must not try to infer the Staging candidate branch (it reports main).
+  const jobIf = section(workflow, '    if: >-', '    steps:')
+  assert.doesNotMatch(jobIf, /head_branch|recovery/)
+  // The trusted resolver owns retry classification, keyed on the failed source, not the repair branch.
+  assert.match(resolver, /failedSourceBranch\?\.startsWith\(RECOVERY_PREFIX\)/)
+  assert.doesNotMatch(resolver, /repairBranch\.startsWith/)
+  assert.match(workflow, /steps\.ctx\.outputs\.skip != 'true'/)
+})
+
+test('the resolver is checked out from main, never from failed code', () => {
+  const trusted = section(workflow, '# Trusted copy of the resolver', '- name: Resolve repair context')
+  assert.match(trusted, /ref: main/)
+  assert.match(trusted, /persist-credentials: false/)
+  assert.match(trusted, /sparse-checkout: scripts/)
+  assert.doesNotMatch(trusted, /repair_sha|workflow_run\.head_sha/)
 })

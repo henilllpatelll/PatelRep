@@ -61,6 +61,8 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
   let repairSha
   let repairBranch = recoveryBranch
   let repairPrNumber = ''
+  // Branch the FAILED code came from; distinct from repairBranch, which may be a brand-new recovery branch.
+  let failedSourceBranch = run.head_branch
 
   if (run.name === 'CI') {
     repairSha = run.head_sha
@@ -77,7 +79,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
       repairPrNumber = String(pr.number)
     }
   } else if (run.name === 'Staging Candidate') {
-    // Never trust head_sha/head_branch here: they describe main, not the candidate.
+    // Never trust head_sha/head_branch here: they describe main, not the candidate (also for retry detection).
     const context = await deps.readArtifactJson(rootFailedRunId, 'staging-candidate-context')
     exactKeys(context, STAGING_KEYS, 'staging-candidate-context')
     if (!SHA.test(context.candidate_sha)) fail('candidate SHA is not a 40-character SHA')
@@ -86,6 +88,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     const pr = await deps.getPr(Number(context.pr_number))
     requireSameRepoPr(pr, repo, context.candidate_sha, context.candidate_branch)
     repairSha = context.candidate_sha
+    failedSourceBranch = context.candidate_branch
     repairBranch = context.candidate_branch
     repairPrNumber = context.pr_number
   } else if (run.name === 'Production Migration Evidence Audit') {
@@ -103,8 +106,9 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     fail(`unsupported upstream workflow: ${run.name}`)
   }
 
-  // Phase 1 retry guard: failures of Claude's own recovery branches are not retried automatically.
-  const skip = eventName === 'workflow_run' && repairBranch.startsWith(RECOVERY_PREFIX)
+  // Phase 1 retry guard: automatic runs skip failures whose source is already a claude/recovery-* branch.
+  // Must key on the failed source, never on repairBranch (main-based failures create a recovery branch).
+  const skip = eventName === 'workflow_run' && Boolean(failedSourceBranch?.startsWith(RECOVERY_PREFIX))
   return { skip, upstreamWorkflow: run.name, rootFailedRunId, repairSha, repairBranch, repairPrNumber }
 }
 

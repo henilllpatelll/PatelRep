@@ -40,18 +40,20 @@ jobs:
     name: Diagnose and repair
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # Successful upstream runs never invoke Claude. Fork runs are ignored (untrusted logs/code), and
-    # recovery branches are not auto-retried so a failing fix cannot loop; dispatch manually instead.
+    # Coarse eligibility only: successful upstream runs never invoke Claude and fork runs are ignored
+    # (untrusted logs/code). The trusted resolver owns the Phase 1 recovery-branch retry decision
+    # (outputs skip), because Staging Candidate reports main rather than the real candidate branch.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'failure' &&
-       github.event.workflow_run.head_repository.full_name == github.repository &&
-       !startsWith(github.event.workflow_run.head_branch, 'claude/recovery-'))
+       github.event.workflow_run.head_repository.full_name == github.repository)
     steps:
-      # Trusted copy of the resolver from the default branch; the repair checkout comes afterwards.
+      # Trusted copy of the resolver pinned to the default branch (never failed PR/candidate code);
+      # the exact repair checkout comes afterwards.
       - uses: actions/checkout@v7
         with:
+          ref: main
           path: .trusted-resolver
           sparse-checkout: scripts
           persist-credentials: false

@@ -119,3 +119,56 @@ test('manual dispatch without a run id repairs from a recovery branch at the dis
   const result = await resolve(undefined, makeDeps(), 'workflow_dispatch')
   assert.deepEqual([result.repairSha, result.repairBranch, result.upstreamWorkflow], [MAIN_SHA, 'claude/recovery-manual-9', 'manual'])
 })
+
+const ciRun = (overrides) => ({ id: 123, name: 'CI', head_sha: PR_SHA, head_branch: 'feature/x', head_repository: { full_name: REPO }, pull_requests: [{ number: 12 }], ...overrides })
+
+test('retry guard: CI failure on a normal feature PR is not skipped and uses the PR branch', async () => {
+  const result = await resolve(ciRun(), makeDeps())
+  assert.equal(result.skip, false)
+  assert.equal(result.repairBranch, 'feature/x')
+})
+
+test('retry guard: CI failure on an existing claude/recovery-* branch is skipped automatically', async () => {
+  const run = ciRun({ head_branch: 'claude/recovery-123' })
+  const deps = makeDeps({ pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }) })
+  assert.equal((await resolve(run, deps)).skip, true)
+  const noPr = ciRun({ head_branch: 'claude/recovery-123', pull_requests: [] })
+  assert.equal((await resolve(noPr, makeDeps())).skip, true)
+})
+
+test('retry guard: CI failure on main creates a recovery branch and is NOT skipped', async () => {
+  const run = ciRun({ id: 321, head_sha: MAIN_SHA, head_branch: 'main', pull_requests: [] })
+  const result = await resolve(run, makeDeps())
+  assert.equal(result.skip, false)
+  assert.equal(result.repairBranch, 'claude/recovery-321')
+})
+
+test('retry guard: staging failure for a normal feature branch is not skipped, recovery candidate is', async () => {
+  assert.equal((await resolve(stagingRun, makeDeps({ artifact: stagingContext() }))).skip, false)
+  const deps = makeDeps({
+    artifact: stagingContext({ candidate_branch: 'claude/recovery-123' }),
+    pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }),
+  })
+  assert.equal((await resolve(stagingRun, deps)).skip, true)
+})
+
+test('retry guard: evidence audit failure on main is NOT skipped and gets a new recovery branch', async () => {
+  const run = { id: 710, name: 'Production Migration Evidence Audit', head_sha: RELEASE_SHA, head_branch: 'main', head_repository: { full_name: REPO } }
+  const result = await resolve(run, makeDeps())
+  assert.equal(result.skip, false)
+  assert.equal(result.repairBranch, 'claude/recovery-710')
+})
+
+test('retry guard: production release failure is NOT skipped, keeps the exact release SHA', async () => {
+  const run = { id: 810, name: 'Production Release', head_sha: MAIN_SHA, head_branch: 'main', head_repository: { full_name: REPO } }
+  const result = await resolve(run, makeDeps({ artifact: { release_sha: RELEASE_SHA, pr_number: '' } }))
+  assert.equal(result.skip, false)
+  assert.equal(result.repairSha, RELEASE_SHA)
+  assert.equal(result.repairBranch, 'claude/recovery-810')
+})
+
+test('retry guard: manual retry of a recovery failure is NOT skipped', async () => {
+  const run = ciRun({ head_branch: 'claude/recovery-123', status: 'completed', conclusion: 'failure' })
+  const deps = makeDeps({ pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }) })
+  assert.equal((await resolve(run, deps, 'workflow_dispatch')).skip, false)
+})
