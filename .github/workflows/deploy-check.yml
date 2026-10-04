@@ -8,30 +8,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  floor-copy:
-    name: Floor copy translation guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-      - run: npm ci
-        working-directory: apps/web
-      - run: npm run check:floor-copy
-        working-directory: apps/web
-
   public-smoke:
     name: Public smoke verification
     runs-on: ubuntu-latest
-    needs: [check-api, check-web, floor-copy]
+    needs: [check-api, check-web]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Verify public web and API/database readiness
-        run: node scripts/public-smoke.mjs
+      # Runtime monitor of the deployed contract (explicit legacy/modern families, fail closed);
+      # Production Release keeps its own strict release-verification smoke.
+      - name: Verify the deployed production contract
+        run: node scripts/production-monitor-smoke.mjs
         env:
           PUBLIC_WEB_URL: https://patelrep-production-6f35.up.railway.app
           PUBLIC_API_URL: https://noble-cooperation-production.up.railway.app
@@ -51,7 +40,8 @@ jobs:
             fi
             sleep 30
           done
-          echo "::warning::API health check timed out — Railway deploy may still be in progress"
+          echo "::error::API health check failed after all retries — production API is unavailable or a deploy is stuck"
+          exit 1
 
   check-web:
     name: Web health
@@ -68,7 +58,8 @@ jobs:
             fi
             sleep 30
           done
-          echo "::warning::Web health check timed out — Railway deploy may still be in progress"
+          echo "::error::Web health check failed after all retries — production web is unavailable or a deploy is stuck"
+          exit 1
 
   deployment-drift-check:
     name: Deployment API-URL drift check

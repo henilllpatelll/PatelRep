@@ -8,8 +8,8 @@ PRs and does **not** dispatch Production Release. Those are Phase 2.
 
 ## Trigger model
 
-- Automatic: only when `CI`, `Staging Candidate`, `Production Migration Evidence Audit`, or
-  `Production Release` completes with conclusion `failure`, on a same-repository head. Successful
+- Automatic: only when `CI`, `Staging Candidate`, `Production Migration Evidence Audit`,
+  `Production Release`, or `Deploy Health Check` completes with conclusion `failure`, on a same-repository head. Successful
   runs, fork runs, and failures on `claude/recovery-*` branches do not start the agent (no loops).
   **Phase 1 limitation:** the `claude/recovery-*` retry guard is deliberately temporary, to prevent
   autonomous retry loops before the agent has been live-tested. Phase 2 replaces it with bounded
@@ -30,7 +30,28 @@ when an open PR owns the failure, otherwise `claude/recovery-<root_failed_run_id
 | `CI` | The run's exact `head_sha`. If it belongs to an open same-repository PR, that PR is re-fetched and must still be open, target `main`, and have the same head SHA/branch. |
 | `Staging Candidate` | `workflow_run` reports `main` as `head_branch`/`head_sha` even for PR candidates, so it is **not trusted**. The `staging-candidate-context` artifact (identifiers only, 3-day retention) is downloaded from the exact failed run; the PR is re-fetched and must be open, same-repository, based on `main`, with head SHA and branch exactly equal to the artifact. |
 | `Production Migration Evidence Audit` | The failed run's exact `head_sha` (never a newer `main`); fix on `claude/recovery-<run id>`. |
+| `Deploy Health Check` | The failed run's exact `head_sha` (scheduled/push runs execute trusted `main` code, so that exact monitoring revision is repaired); fix on `claude/recovery-<run id>`. |
 | `Production Release` | `release_sha` from the `production-release-context` artifact (identifiers only), because the `release_sha` input can differ from the run's `head_sha`; the commit must exist. Fix on `claude/recovery-<run id>`. |
+
+GitHub Actions run ids are validated as decimal strings of up to 20 digits (current ids have 11);
+PR numbers are validated separately. Unsafe or malformed ids fail closed.
+
+## Production monitoring contract
+
+`Deploy Health Check` runs `scripts/production-monitor-smoke.mjs`, which verifies what is actually
+deployed. It classifies `/health` into an explicit contract family and logs which one it detected:
+
+- **legacy** (predates `/ready`; `env` field, no release identity): requires healthy API/database and
+  `env: production`; does not request `/ready`.
+- **modern** (release-aware): requires `/ready` with a compatible database, a consistent 40-character
+  release SHA and version across `/health`, `/ready` and the Web meta tags.
+- Anything else (partial identity fields, mixed shapes, unknown shapes) fails closed. A `/ready` 404
+  is never ignored: a modern deployment that loses `/ready` fails.
+
+`scripts/public-smoke.mjs` is the separate strict release-verification contract used by Production
+Release and always requires `/ready` and the exact expected release identity. Repairs must not add a
+legacy/no-`/ready` fallback there. `check:floor-copy` stays a CI source gate and is not part of the
+runtime monitor.
 
 ## Failure-repair procedure
 

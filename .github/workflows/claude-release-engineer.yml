@@ -21,6 +21,7 @@ on:
       - Staging Candidate
       - Production Migration Evidence Audit
       - Production Release
+      - Deploy Health Check
     types: [completed]
 
 # One agent per failed upstream run; never cancel an agent mid-repair.

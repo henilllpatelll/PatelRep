@@ -11,7 +11,9 @@ import { fileURLToPath } from 'node:url'
 
 const SHA = /^[0-9a-f]{40}$/
 const BRANCH = /^[A-Za-z0-9._/-]{1,200}$/
-const NUMBER = /^[1-9][0-9]{0,9}$/
+const NUMBER = /^[1-9][0-9]{0,9}$/ // PR numbers
+// GitHub Actions run ids are already 11 digits; keep them as decimal strings with generous headroom.
+const RUN_ID = /^[1-9][0-9]{0,19}$/
 const RECOVERY_PREFIX = 'claude/recovery-'
 
 const STAGING_KEYS = ['candidate_branch', 'candidate_sha', 'ci_run_id', 'pr_number']
@@ -51,7 +53,8 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
   }
 
   const rootFailedRunId = String(run.id)
-  if (!NUMBER.test(rootFailedRunId)) fail('failed run id is invalid')
+  if (typeof run.id === 'number' && !Number.isSafeInteger(run.id)) fail('failed run id is not a safe integer')
+  if (!RUN_ID.test(rootFailedRunId)) fail('failed run id is invalid')
   if (run.head_repository?.full_name !== repo) fail('failed run is not from this repository')
   if (eventName === 'workflow_dispatch' && (run.status !== 'completed' || run.conclusion === 'success')) {
     fail('named run did not fail')
@@ -94,6 +97,10 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
   } else if (run.name === 'Production Migration Evidence Audit') {
     repairSha = run.head_sha
     if (!SHA.test(repairSha ?? '')) fail('audit run head SHA is invalid')
+  } else if (run.name === 'Deploy Health Check') {
+    // Scheduled/push monitoring runs trusted code from main; repair that exact revision.
+    repairSha = run.head_sha
+    if (!SHA.test(repairSha ?? '')) fail('Deploy Health Check run head SHA is invalid')
   } else if (run.name === 'Production Release') {
     // release_sha input may differ from head_sha; read the target the run itself resolved.
     const context = await deps.readArtifactJson(rootFailedRunId, 'production-release-context')
@@ -110,6 +117,13 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
   // Must key on the failed source, never on repairBranch (main-based failures create a recovery branch).
   const skip = eventName === 'workflow_run' && Boolean(failedSourceBranch?.startsWith(RECOVERY_PREFIX))
   return { skip, upstreamWorkflow: run.name, rootFailedRunId, repairSha, repairBranch, repairPrNumber }
+}
+
+/** Validates the manual failed_run_id input; returns '' when none was given. */
+export function parseFailedRunIdInput(value) {
+  const trimmed = (value ?? '').trim()
+  if (trimmed && !RUN_ID.test(trimmed)) fail('failed_run_id input is invalid')
+  return trimmed
 }
 
 function gh(args) {
@@ -146,9 +160,9 @@ function realDeps(repo) {
 async function main() {
   const { EVENT_NAME, REPO, RUN_JSON, INPUT_RUN_ID, GITHUB_RUN_ID, GITHUB_SHA, GITHUB_OUTPUT } = process.env
   let run = RUN_JSON ? JSON.parse(RUN_JSON) : undefined
-  if (EVENT_NAME === 'workflow_dispatch' && INPUT_RUN_ID?.trim()) {
-    if (!NUMBER.test(INPUT_RUN_ID.trim())) fail('failed_run_id input is invalid')
-    run = JSON.parse(gh(['api', `repos/${REPO}/actions/runs/${INPUT_RUN_ID.trim()}`]))
+  const inputRunId = EVENT_NAME === 'workflow_dispatch' ? parseFailedRunIdInput(INPUT_RUN_ID) : ''
+  if (inputRunId) {
+    run = JSON.parse(gh(['api', `repos/${REPO}/actions/runs/${inputRunId}`]))
   } else if (EVENT_NAME === 'workflow_dispatch') {
     run = undefined
   }

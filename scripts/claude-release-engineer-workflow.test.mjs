@@ -9,6 +9,10 @@ const workflow = read('.github/workflows/claude-release-engineer.yml')
 const productionRelease = read('.github/workflows/production-release.yml')
 const stagingCandidate = read('.github/workflows/staging-candidate.yml')
 const resolver = read('scripts/resolve-release-engineer-context.mjs')
+const deployCheck = read('.github/workflows/deploy-check.yml')
+const ciWorkflow = read('.github/workflows/ci.yml')
+const publicSmoke = read('scripts/public-smoke.mjs')
+const monitorSmoke = read('scripts/production-monitor-smoke.mjs')
 const doc = read('docs/AUTONOMOUS_RELEASE_ENGINEER.md')
 const settings = JSON.parse(read('.claude/settings.json'))
 
@@ -36,10 +40,10 @@ test('grants actions: read, keeps output hidden, and bounds the agent', () => {
   assert.match(workflow, /timeout-minutes: \d+/)
 })
 
-test('triggers on manual dispatch and the four upstream workflows only', () => {
+test('triggers on manual dispatch and the five upstream workflows only', () => {
   assert.match(workflow, /workflow_dispatch:/)
   assert.match(workflow, /workflow_run:/)
-  for (const name of ['CI', 'Staging Candidate', 'Production Migration Evidence Audit', 'Production Release']) {
+  for (const name of ['CI', 'Staging Candidate', 'Production Migration Evidence Audit', 'Production Release', 'Deploy Health Check']) {
     assert.match(workflow, new RegExp(`^      - ${name}$`, 'm'))
   }
   assert.doesNotMatch(workflow, /^      - Claude Release Engineer$/m)
@@ -201,4 +205,35 @@ test('the resolver is checked out from main, never from failed code', () => {
   assert.match(trusted, /persist-credentials: false/)
   assert.match(trusted, /sparse-checkout: scripts/)
   assert.doesNotMatch(trusted, /repair_sha|workflow_run\.head_sha/)
+})
+
+test('Deploy Health Check is monitored, only failures of same-repository runs invoke Claude', () => {
+  assert.match(workflow, /^      - Deploy Health Check$/m)
+  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'failure'/)
+  assert.match(workflow, /head_repository\.full_name == github\.repository/)
+  assert.match(resolver, /run\.name === 'Deploy Health Check'/)
+  assert.doesNotMatch(executable, /^\s+environment:/m)
+})
+
+test('Deploy Health Check is a runtime monitor using the dedicated smoke, not source gates', () => {
+  assert.doesNotMatch(deployCheck, /floor-copy/)
+  assert.match(ciWorkflow, /check:floor-copy/)
+  assert.match(deployCheck, /node scripts\/production-monitor-smoke\.mjs/)
+  assert.doesNotMatch(deployCheck, /scripts\/public-smoke\.mjs/)
+  assert.doesNotMatch(deployCheck, /secrets\./)
+  assert.doesNotMatch(deployCheck, /::warning::API health|::warning::Web health/)
+  assert.equal((deployCheck.match(/^\s+exit 1$/gm) ?? []).length >= 3, true)
+  for (const trigger of ['push:', 'schedule:', 'workflow_dispatch:']) assert.ok(deployCheck.includes(trigger))
+})
+
+test('release verification stays strict and the legacy no-/ready contract lives only in the monitor', () => {
+  assert.match(publicSmoke, /resolveUrl\(apiUrl, 'ready'\)/)
+  assert.match(publicSmoke, /readiness\.status !== 'ready' \|\| readiness\.database !== 'compatible'/)
+  assert.doesNotMatch(publicSmoke, /legacy|classifyProductionContract/)
+  assert.match(productionRelease, /node scripts\/public-smoke\.mjs/)
+  assert.match(productionRelease, /EXPECTED_RELEASE_SHA:/)
+  assert.match(productionRelease, /EXPECTED_RELEASE_VERSION:/)
+  assert.doesNotMatch(productionRelease, /production-monitor-smoke/)
+  assert.match(monitorSmoke, /classifyProductionContract/)
+  assert.doesNotMatch(monitorSmoke, /status === 404|\.status === 404/)
 })
