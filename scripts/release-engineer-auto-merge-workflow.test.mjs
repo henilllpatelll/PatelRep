@@ -184,3 +184,13 @@ test('the one-time recovery-branch ruleset setup is documented and the main rule
   assert.match(doc, /17358515/)
   assert.match(doc, /fail[s-]closed|stays ineligible|remains ineligible/i)
 })
+
+test('a no-candidate Staging Candidate run ends in the unprivileged job: eligible=false, merge skipped, no App token', () => {
+  assert.match(scripts.resolver, /: \{ eligible: 'false' \}/)
+  assert.match(mergeJob, /if: needs\.resolve\.outputs\.eligible == 'true'/)
+  assert.ok(!resolveJob.includes('create-github-app-token'))
+  // Only a proven-absent artifact is a clean no-op; download/format problems stay hard errors.
+  assert.match(scripts.policy, /context === null\) refuse\('Staging Candidate run has no PR candidate context'\)/)
+  assert.match(scripts.deps, /if \(matches\.length === 0\) return null/)
+  assert.doesNotMatch(scripts.deps, /catch \{\s*return null/)
+})

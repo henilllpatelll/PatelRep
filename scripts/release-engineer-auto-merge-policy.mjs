@@ -224,6 +224,9 @@ export async function validateAutoMergeCandidate({ repo, stagingRunId, expected 
 
   // Never trust the staging workflow_run head data (it reports main); the sanitized artifact is the identity.
   const context = await deps.readStagingContext(stagingRunId)
+  // null means ONLY "this run uploaded no staging-candidate-context" (e.g. CI on main: no PR candidate), a
+  // clean no-op. Anything else that is not a well-formed candidate identity is a hard failure below.
+  if (context === null) refuse('Staging Candidate run has no PR candidate context')
   if (!context || typeof context !== 'object' || Array.isArray(context) ||
       JSON.stringify(Object.keys(context).sort()) !== JSON.stringify(STAGING_KEYS)) {
     fail('staging-candidate-context has unexpected fields')
