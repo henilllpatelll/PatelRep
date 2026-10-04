@@ -3,25 +3,83 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Phase 1 scope:** diagnose failed workflows and open repair PRs. The agent does **not** merge
-PRs and does **not** dispatch Production Release. Those are Phase 2.
+**Current scope (Phase 2B):** diagnose failed workflows and publish repair PRs with a bounded
+recovery lineage (at most 3 automatic Claude attempts per recovery root). The agent does **not**
+merge PRs and does **not** dispatch Production Release; those are later phases.
+
+## Separated authority
+
+| Job | Holds | Does |
+| --- | --- | --- |
+| `resolve` | read-only workflow token | Runs the trusted resolver (checked out from `main`) to decide the exact failing code, recovery root and attempt number. |
+| `repair` | read-only workflow token + Claude OAuth token | Claude diagnoses, edits and tests locally. It cannot `git push`, commit, create/edit/merge PRs, or dispatch workflows. A trusted step proves `HEAD` is still the repair SHA and hands over a net patch. |
+| `publish` | the PatelRep GitHub App token (the only holder) | `scripts/publish-release-engineer-repair.mjs` (from `main`) creates exactly one commit per attempt, stamps the lineage trailers, pushes normally (never force) and creates or updates exactly one PR. |
 
 ## Trigger model
 
 - Automatic: only when `CI`, `Staging Candidate`, `Production Migration Evidence Audit`,
-  `Production Release`, or `Deploy Health Check` completes with conclusion `failure`, on a same-repository head. Successful
-  runs, fork runs, and failures on `claude/recovery-*` branches do not start the agent (no loops).
-  **Phase 1 limitation:** the `claude/recovery-*` retry guard is deliberately temporary, to prevent
-  autonomous retry loops before the agent has been live-tested. Phase 2 replaces it with bounded
-  autonomous retries. Until then, retry a failed recovery PR with a manual `workflow_dispatch`.
-- Manual: `workflow_dispatch` with an optional failed run id and instructions.
-- One agent per failed run (concurrency group keyed by run id). No polling; event-driven only.
+  `Production Release`, or `Deploy Health Check` completes with conclusion `failure`, on a
+  same-repository head. Successful runs and fork runs do not start the agent.
+- Manual: `workflow_dispatch` with an optional failed run id and instructions. Manual runs may
+  continue past the automatic attempt cap, are marked manual in the PR, and use the same trusted
+  publishing; they never force push, push `main`, merge, or hold production credentials.
+- Repair and publish are serialized by the **resolved recovery root**
+  (`claude-recovery-root-<root>`), not the latest failing run id; running repairs are never
+  cancelled and independent roots run in parallel. No polling; event-driven only.
+
+## Bounded recovery lineage
+
+`MAX_AUTOMATIC_REPAIR_ATTEMPTS = 3` (`scripts/recovery-lineage.mjs`): attempt 1 is the initial
+repair, attempts 2 and 3 are automatic retries, and a failure of attempt 3 stops automation (no
+Claude run, no push, no new PR; the repair PR stays open and the workflow summary says so).
+
+The authoritative counter is **commit trailers** written only by the trusted publisher, never
+commit counts, PR comments, run searches, timestamps or branch age:
+
+```
+PatelRep-Recovery-Root: <root run id | manual-<run id>>
+PatelRep-Recovery-Attempt: <integer>
+PatelRep-Recovery-Source-Run: <failed workflow run id>
+```
+
+- A failure with no managed lineage starts a new root: root = the exact failed run id, attempt 1.
+- A failure of an open same-repository PR candidate head that carries valid trailers (authored by the
+  publisher identity) keeps the same root and uses attempt + 1. Works for `claude/recovery-<root>`
+  branches and for ordinary branches repaired in place (e.g. `feature/foo`).
+- On a `claude/recovery-<root>` branch the root in the name must equal the root in the head
+  commit; disagreement, malformed or partial trailers, forged trailers (wrong author), or a
+  recovery head with no trailers all fail closed.
+- Main-based failures (CI on `main`, Deploy Health Check, Evidence Audit, Production Release) always
+  start a NEW root, even if a commit on `main` happens to contain old trailers.
+- PR body text (`Autonomous attempt N/3`, history) is informational only.
+
+## Publishing guarantees
+
+Before and again immediately before the push the publisher re-fetches the PR and requires: open,
+base `main`, same repository, same head branch, and head SHA equal to the `repair_sha` Claude started
+from. If a human or bot moved the PR meanwhile it stops rather than overwriting. A new recovery
+root uses `claude/recovery-<root>`; if that branch or an open PR for it already exists it is
+refused, never reused or overwritten. A PR is created only after re-querying that none exists;
+otherwise the existing one is updated, preserving its recovery history. Known gap: between the
+`repair` and `publish` jobs another queued agent for the same root could start; its publish then
+fails closed on the stale head check.
+
+## Trusted control plane
+
+The resolver is checked out from `main` once, in the `resolve` job, and its exact commit SHA is
+captured and validated as `trusted_control_plane_sha`. The publisher is checked out at that **same
+SHA** (never mutable `main`), so a moving `main` cannot make the two run different trusted code.
+In the `publish` job the trusted publisher (`trusted-publisher/`, no persisted credentials) and the
+repair worktree (`repair-worktree/`, the exact `repair_sha`, App-authenticated) are sibling
+directories: the patch is only ever applied inside the worktree, so a Claude-produced patch cannot
+replace the publisher or its lineage code before privileged execution. The repair SHA and the
+control-plane SHA are distinct.
 
 ## Repair-context resolution (before checkout)
 
 `scripts/resolve-release-engineer-context.mjs` runs from a trusted default-branch checkout and
-outputs `repair_sha`, `repair_branch`, `repair_pr_number`, `root_failed_run_id`, and
-`upstream_workflow`. Claude is always checked out at `repair_sha`. Anything that cannot be proven
+outputs `repair_sha`, `repair_branch`, `repair_pr_number`, `root_failed_run_id`,
+`failed_run_id`, `repair_attempt`, `automatic_retry_allowed`, `skip` and `upstream_workflow`. Claude is always checked out at `repair_sha`. Anything that cannot be proven
 fails closed before Claude is invoked. `repair_branch` is the branch to push: the PR head branch
 when an open PR owns the failure, otherwise `claude/recovery-<root_failed_run_id>`.
 
@@ -65,8 +123,8 @@ runtime monitor.
 8. If `repair_pr_number` is set, push to that existing same-repository PR branch instead of
    opening another PR.
 9. Otherwise create branch `claude/recovery-<workflow-run-id>`.
-10. Push the fix. Never push directly to `main` (no `git push origin main`, no `HEAD:main`, no
-    force pushes); the `main` ruleset requiring `CI Gate` and `Staging Gate` (no bypass actors)
+10. The trusted publisher pushes the fix (Claude itself cannot push). Never push directly to `main`
+    (no `git push origin main`, no `HEAD:main`, no force pushes); the `main` ruleset requiring `CI Gate` and `Staging Gate` (no bypass actors)
     is the hard backstop and must not be weakened.
 11. Open a PR to `main` containing: root cause, changes, tests run, safety impact.
 12. Let normal CI and Staging Candidate verify it.
@@ -104,15 +162,16 @@ their own GitHub Environments, credentials, and target guards. Automated repairs
 ## Tooling and permissions
 
 - Auth: `CLAUDE_CODE_OAUTH_TOKEN` (Claude subscription). `ANTHROPIC_API_KEY` is not used.
-- Writes use a short-lived token from the PatelRep GitHub App (`PATELREP_APP_CLIENT_ID`,
-  `PATELREP_APP_PRIVATE_KEY`), never the default `GITHUB_TOKEN` or a PAT.
+- Only the publisher job uses a short-lived token from the PatelRep GitHub App (`PATELREP_APP_CLIENT_ID`,
+  `PATELREP_APP_PRIVATE_KEY`) for writes, never a PAT. Claude itself only gets the read-only workflow token.
 - The PatelRep App already has `Workflows: Read & write`, so Claude **may** repair
   `.github/workflows/**`. Workflow changes follow the same path as any repair: a repair branch and
   PR, never a direct push to `main`, and they must pass the normal `CI Gate` and `Staging Gate`.
   Editing a workflow file does not grant the repair workflow any production secret: it has none,
   and GitHub Environment boundaries and target guards stay authoritative.
-- Force-pushes, direct pushes to `main`, and the `supabase`, `railway`, and `psql` CLIs are denied
-  to the agent.
+- Claude gets only the read-only workflow token. It cannot push, commit, edit PRs or dispatch
+  workflows (its tool list allows read-only git and `gh` inspection only); `supabase`, `railway` and
+  `psql` are denied.
 
 ## Cost control
 
