@@ -318,7 +318,26 @@ jobs:
         with:
           node-version: "22"
       - name: Verify release workflow contracts
-        run: node --test scripts/staging-candidate-workflow.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs
+        run: node --test scripts/staging-candidate-workflow.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs scripts/check-db-drift.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-reconciliation.test.mjs scripts/production-migration-apply-workspace.test.mjs
+
+  supabase-cli-apply-contract:
+    name: Supabase CLI Apply Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.76.8
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Exercise the pinned Supabase CLI against a disposable production-shaped history
+        run: node --test scripts/production-migration-apply-cli-contract.test.mjs
+        env:
+          REQUIRE_SUPABASE_CLI_APPLY_CONTRACT: "1"
 
   ci-gate:
     name: CI Gate
@@ -338,6 +357,7 @@ jobs:
       - i18n-parity
       - room-board-regression
       - release-workflow-contract
+      - supabase-cli-apply-contract
     steps:
       - name: Require every release check to succeed
         env:
@@ -354,6 +374,7 @@ jobs:
           I18N_PARITY: ${{ needs.i18n-parity.result }}
           ROOM_BOARD_REGRESSION: ${{ needs.room-board-regression.result }}
           RELEASE_WORKFLOW_CONTRACT: ${{ needs.release-workflow-contract.result }}
+          SUPABASE_CLI_APPLY_CONTRACT: ${{ needs.supabase-cli-apply-contract.result }}
         run: |
           required_checks=(
             "Lint / API:$LINT_API"
@@ -369,6 +390,7 @@ jobs:
             "EN/ES i18n Parity:$I18N_PARITY"
             "Room-Board Pixel-Diff Regression:$ROOM_BOARD_REGRESSION"
             "Release Workflow Contract:$RELEASE_WORKFLOW_CONTRACT"
+            "Supabase CLI Apply Contract:$SUPABASE_CLI_APPLY_CONTRACT"
           )
 
           failed=0
