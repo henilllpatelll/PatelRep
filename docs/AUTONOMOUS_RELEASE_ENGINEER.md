@@ -3,9 +3,10 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 2B):** diagnose failed workflows and publish repair PRs with a bounded
-recovery lineage (at most 3 automatic Claude attempts per recovery root). The agent does **not**
-merge PRs and does **not** dispatch Production Release; those are later phases.
+**Current scope (Phase 2C):** diagnose failed workflows and publish repair PRs with a bounded
+recovery lineage (at most 3 automatic Claude attempts per recovery root), and safely auto-merge a
+narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)").
+Claude itself never merges, and nothing dispatches Production Release; that is Phase 2D.
 
 ## Separated authority
 
@@ -26,6 +27,46 @@ merge PRs and does **not** dispatch Production Release; those are later phases.
 - Repair and publish are serialized by the **resolved recovery root**
   (`claude-recovery-root-<root>`), not the latest failing run id; running repairs are never
   cancelled and independent roots run in parallel. No polling; event-driven only.
+
+## Safe autonomous merge (Phase 2C)
+
+`.github/workflows/claude-release-engineer-auto-merge.yml` makes ONE deterministic merge decision per
+successful `Staging Candidate` run (`workflow_run` completed, conclusion `success`). No polling and
+no GitHub native "auto-merge later". It ends at merge-to-main: it never dispatches Production
+Release/Rollback and holds no production credentials or environments.
+
+| Job | Holds | Does |
+| --- | --- | --- |
+| `resolve` | read-only workflow token | Trusted scripts from `main`; freezes the 40-character control-plane SHA; decides eligibility. No write credential. |
+| `merge` | PatelRep GitHub App token (only here, `contents`+`pull-requests` write) | Runs trusted code at the frozen SHA (never candidate code), serialized by `patelrep-release-engineer-auto-merge-main` (no cancel), re-validates everything from fresh GitHub state, then merges the exact head SHA. |
+
+A PR is eligible only if ALL hold (re-checked independently immediately before merging):
+
+1. Created by exactly `patelrep-release-engineer[bot]` (id 337493489, type Bot).
+2. Head branch is `claude/recovery-<numeric-root>`. `claude/recovery-manual-*` and any `manual-` root
+   never auto-merge. Ordinary, Dependabot and human PRs never auto-merge, even if Claude repaired them.
+3. Publisher-only history: 1-3 commits, trailers valid (root equals the branch root, attempts exactly
+   1..n, attempt 1 source run equals the root), authored and committed as the publisher, no extra commits.
+4. PR open, non-draft, base `main`, same repository, head SHA and branch equal the staging artifact.
+5. Exact successful `CI` run (same SHA, branch, `pull_request` event) and exact successful
+   `Staging Candidate` run, plus completed successful `CI Gate` and `Staging Gate` check runs produced by
+   GitHub Actions (app id 15368). The `Staging Gate` must have been reported by that staging run.
+6. No `CHANGES_REQUESTED`, no unresolved review threads, none of the labels `do-not-merge`,
+   `do not merge`, `hold`, `manual-review`, `needs-human`; mergeable state `clean`.
+7. No changed (or renamed-from) file is high-risk. High-risk always requires a human merge:
+   database/persistence (`supabase/**`, migrations, `*.sql`, `apps/api/core/**`, schema/drift/replay/
+   reconciliation), billing (billing, Stripe, payment, subscription, checkout, invoice, webhook,
+   credits), auth/security (auth, oauth, rbac, permission, credential, secret, session, token, jwt,
+   `apps/api/middleware/**`, `apps/web/proxy.ts`), `.github/**` (including this workflow), `scripts/**`
+   and production/release/rollback/deploy/staging-guard paths, and infrastructure/dependency/config files.
+
+A refusal is reported in the job summary (`Auto-merge ineligible: human review required because changed
+file <path> is classified as <risk>.`), leaves the PR open and does not start another Claude attempt.
+
+Merge: `PUT /pulls/<n>/merge` with `sha=<validated head>` and `merge_method=merge` (GitHub rejects it if the
+head moved). Afterwards the PR must report `merged` with the same head SHA. No force push, rebase, branch
+update or branch deletion; the `main` ruleset (strict `CI Gate` + `Staging Gate`, thread resolution, no
+bypass actors) stays the final backstop.
 
 ## Bounded recovery lineage
 
