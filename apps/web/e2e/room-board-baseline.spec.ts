@@ -197,7 +197,8 @@ for (const role of ROLES) {
         // clicking the text's locator gets reported as intercepted by the
         // overlay, which is correct real-world behavior, not a bug.
         const card = page.getByRole('button', { name: new RegExp(`^Room ${FIXTURE_ROOM_NUMBERS.inProgress},`) }).first()
-        await card.waitFor({ state: 'visible', timeout: 15000 })
+        // Same cold-start allowance as the board test above.
+        await card.waitFor({ state: 'visible', timeout: 30000 })
         await card.click()
 
         const drawer = page.getByRole('dialog')
