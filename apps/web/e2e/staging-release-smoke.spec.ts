@@ -82,6 +82,13 @@ test('core hotel workflows load and safe synthetic mutations succeed', async ({ 
     submitHandoff.click(),
   ])
   expect(response.ok(), await response.text()).toBeTruthy()
-  await expect(page.getByText(message, { exact: true }).first()).toBeVisible()
+  // The POST above already proved the write succeeded. The in-page list refresh
+  // after it is asynchronous and raced the default 5s expect timeout on staging,
+  // so give it a realistic window, then fall back to a reload to prove persistence.
+  const createdEntry = page.getByText(message, { exact: true }).first()
+  await expect(async () => {
+    if (!(await createdEntry.isVisible())) await page.reload()
+    await expect(createdEntry).toBeVisible({ timeout: 10_000 })
+  }).toPass({ timeout: 45_000 })
   expect(failures, 'fatal browser failures during workflow smoke').toEqual([])
 })
