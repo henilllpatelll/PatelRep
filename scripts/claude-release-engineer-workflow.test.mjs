@@ -163,11 +163,14 @@ test('release verification stays strict and the legacy no-/ready contract lives 
   assert.doesNotMatch(monitorSmoke, /status === 404|\.status === 404/)
 })
 
-test('only dependabot[bot] is allowed as a non-human actor, never a wildcard', () => {
+test('exactly dependabot[bot] and the trusted publisher bot are allowed as non-human actors, never a wildcard', () => {
   const allowed = [...workflow.matchAll(/^\s+allowed_bots:\s*(.+)$/gm)].map((m) => m[1].trim())
-  assert.deepEqual(allowed, ['dependabot[bot]'])
-  assert.doesNotMatch(workflow, /allowed_bots:\s*['"]?\*/)
-  assert.doesNotMatch(workflow, /allowed_non_write_users|allowed_bots:[^\n]*[,*]/)
+  assert.deepEqual(allowed, ['dependabot[bot],patelrep-release-engineer[bot]'])
+  const bots = allowed[0].split(',')
+  assert.deepEqual(bots, ['dependabot[bot]', 'patelrep-release-engineer[bot]'])
+  for (const bot of bots) assert.match(bot, /^[a-z0-9-]+\[bot\]$/)
+  assert.doesNotMatch(workflow, /allowed_bots:[^\n]*\*/)
+  assert.doesNotMatch(workflow, /allowed_non_write_users/)
 })
 
 // ---- Phase 2B: separated authority, bounded retries, trusted publishing ----
@@ -274,7 +277,7 @@ test('lineage is authoritative in commit trailers written by the publisher, not 
 test('the Phase 1 branch-name retry guard is gone and the dependabot allowance is preserved', () => {
   assert.doesNotMatch(resolver, /skip[^\n]*failedSourceBranch|failedSourceBranch[^\n]*skip/)
   assert.doesNotMatch(workflow, /startsWith\(github\.event\.workflow_run\.head_branch/)
-  assert.match(repairJob, /allowed_bots: dependabot\[bot\]/)
+  assert.match(repairJob, /allowed_bots: dependabot\[bot\],patelrep-release-engineer\[bot\]\r?\n/)
   assert.match(doc, /bounded recovery lineage/i)
   assert.doesNotMatch(doc, /Phase 2 replaces it with bounded/)
 })
