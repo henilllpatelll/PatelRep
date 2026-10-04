@@ -17,6 +17,31 @@ function gh(args, token, input) {
   })
 }
 
+const STAGING_CONTEXT_ARTIFACT = 'staging-candidate-context'
+
+/**
+ * Returns null ONLY when the run has no artifact named staging-candidate-context (listed explicitly, so a
+ * download error is never mistaken for "no candidate"). Once the artifact exists, every problem throws.
+ */
+export async function readStagingContextFrom({ listArtifacts, download, runId }) {
+  const matches = (await listArtifacts()).filter((artifact) => artifact?.name === STAGING_CONTEXT_ARTIFACT)
+  if (matches.length === 0) return null
+  if (matches.length > 1) throw new Error(`auto-merge: run ${runId} has multiple ${STAGING_CONTEXT_ARTIFACT} artifacts`)
+  if (matches[0].expired) throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} of run ${runId} has expired`)
+  let downloaded
+  try {
+    downloaded = await download()
+  } catch (error) {
+    throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} of run ${runId} could not be downloaded: ${String(error.message).split('\n')[0].slice(0, 120)}`)
+  }
+  if (downloaded.files.length !== 1 || downloaded.files[0] !== 'context.json') throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} has unexpected files`)
+  try {
+    return JSON.parse(downloaded.readFile('context.json'))
+  } catch {
+    throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} is not valid JSON`)
+  }
+}
+
 const jsonLines = (output) => output.split('\n').filter(Boolean).map((line) => JSON.parse(line))
 
 export function realAutoMergeDeps({ repo, readToken, mergeToken }) {
@@ -27,17 +52,16 @@ export function realAutoMergeDeps({ repo, readToken, mergeToken }) {
 
   return {
     getRun: async (id) => api(`repos/${repo}/actions/runs/${id}`),
-    readStagingContext: async (runId) => {
-      const dir = mkdtempSync(path.join(tmpdir(), 'staging-ctx-'))
-      try {
-        read(['run', 'download', String(runId), '--repo', repo, '--name', 'staging-candidate-context', '--dir', dir])
-      } catch {
-        throw new Error(`auto-merge: staging-candidate-context is missing from run ${runId}`)
-      }
-      const files = readdirSync(dir)
-      if (files.length !== 1 || files[0] !== 'context.json') throw new Error('auto-merge: staging-candidate-context has unexpected files')
-      return JSON.parse(readFileSync(path.join(dir, 'context.json'), 'utf8'))
-    },
+    readStagingContext: (runId) =>
+      readStagingContextFrom({
+        listArtifacts: async () => paged(`repos/${repo}/actions/runs/${runId}/artifacts?per_page=100`, '.artifacts[] | @json'),
+        download: async () => {
+          const dir = mkdtempSync(path.join(tmpdir(), 'staging-ctx-'))
+          read(['run', 'download', String(runId), '--repo', repo, '--name', STAGING_CONTEXT_ARTIFACT, '--dir', dir])
+          return { files: readdirSync(dir), readFile: (name) => readFileSync(path.join(dir, name), 'utf8') }
+        },
+        runId,
+      }),
     getPr: async (number) => {
       // GitHub computes mergeability lazily; retry only while it reports "not computed yet".
       for (let attempt = 1; ; attempt += 1) {

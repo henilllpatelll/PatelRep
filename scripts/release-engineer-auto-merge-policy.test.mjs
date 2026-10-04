@@ -12,6 +12,7 @@ import {
   evaluateAutoMerge,
   validateAutoMergeCandidate,
 } from './release-engineer-auto-merge-policy.mjs'
+import { readStagingContextFrom } from './release-engineer-auto-merge-deps.mjs'
 
 const REPO = 'henilllpatelll/PatelRep'
 const ROOT = '37100000001'
@@ -481,4 +482,93 @@ test('unsigned publisher commits and matching email/trailers are not sufficient 
   const result = await evaluateAutoMerge(input, deps)
   assert.equal(result.eligible, false)
   assert.match(result.reason, PROTECTION)
+})
+
+// ---- missing staging-candidate-context (CI on main has no PR candidate) ------------------------------------
+
+test('a successful Staging Candidate run with no candidate artifact is a clean no-op: ineligible, no merge, no error', async () => {
+  const { state, deps } = world()
+  state.context = null
+  const calls = []
+  for (const name of ['getPr', 'getApp', 'listBranchRulesets', 'listPrCommits', 'listPrFiles', 'listCheckRuns', 'merge']) {
+    const original = deps[name]
+    deps[name] = async (...args) => { calls.push(name); return original(...args) }
+  }
+  const result = await evaluateAutoMerge(input, deps)
+  assert.deepEqual(result, { eligible: false, reason: 'Auto-merge ineligible: Staging Candidate run has no PR candidate context.' })
+  assert.deepEqual(calls, [], 'nothing else is read or written when there is no candidate')
+  // The privileged path also refuses cleanly and never merges.
+  await assert.rejects(mergeRepair({ ...input, expected }, deps), (error) => error instanceof Ineligible && /no PR candidate context/.test(error.message))
+  assert.deepEqual(state.mergeCalls, [])
+})
+
+test('only an explicit null means "no candidate": undefined and non-object content still hard-fail', async () => {
+  for (const bad of [undefined, 0, '', false, 'x', [], {}, { pr_number: '77' }, { ...world().state.context, extra: 1 }]) {
+    const { state, deps } = world()
+    state.context = bad
+    await assert.rejects(evaluateAutoMerge(input, deps), (error) => !(error instanceof Ineligible) && /unexpected fields/.test(error.message), JSON.stringify(bad))
+  }
+})
+
+test('candidate contexts with invalid fields still hard-fail', async () => {
+  const bad = [
+    [{ candidate_sha: 'zz' }, /40-character SHA/],
+    [{ candidate_sha: 'A'.repeat(40) }, /40-character SHA/],
+    [{ pr_number: '0' }, /PR number is invalid/],
+    [{ pr_number: '12abc' }, /PR number is invalid/],
+    [{ ci_run_id: '0' }, /CI run id is invalid/],
+    [{ ci_run_id: 'x' }, /CI run id is invalid/],
+    [{ candidate_branch: 'bad branch!' }, /branch is invalid/],
+  ]
+  for (const [patch, pattern] of bad) {
+    const { state, deps } = world()
+    state.context = { ...state.context, ...patch }
+    await assert.rejects(evaluateAutoMerge(input, deps), (error) => !(error instanceof Ineligible) && pattern.test(error.message), JSON.stringify(patch))
+  }
+})
+
+test('a missing artifact weakens nothing: with a real candidate every other Phase 2C refusal still applies', async () => {
+  const { deps } = world()
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, true) // the happy path is unchanged
+  await assertIneligible((s) => { s.rulesets = [] }, PROTECTION)
+  await assertIneligible((s) => { s.pr.head.ref = 'claude/recovery-manual-5'; s.context.candidate_branch = 'claude/recovery-manual-5'; s.ciRun.head_branch = 'claude/recovery-manual-5' }, /manual/)
+  await assertIneligible((s) => { s.commits = [{ ...commit(SHA1, 1), message: 'no trailers\n' }] }, /no recovery trailers/)
+  await assertIneligible((s) => { s.files = [{ filename: '.github/workflows/ci.yml' }, { filename: 'a.ts' }] }, /classified as github-automation/)
+  await assertIneligible((s) => { s.ciRun.conclusion = 'failure' }, /CI run/)
+  await assertIneligible((s) => { s.checks['Staging Gate'] = [] }, /no Staging Gate/)
+  const { state, deps: fresh } = world()
+  await mergeRepair({ ...input, expected }, fresh)
+  assert.deepEqual(state.mergeCalls, [{ number: 77, sha: SHA1 }])
+})
+
+// ---- staging context reader: absence is proven by listing, never inferred from an error ------------------------
+
+const reader = (overrides) => readStagingContextFrom({
+  runId: STAGING_RUN,
+  listArtifacts: async () => [{ name: 'staging-candidate-context', expired: false }],
+  download: async () => ({ files: ['context.json'], readFile: () => JSON.stringify({ ok: true }) }),
+  ...overrides,
+})
+
+test('reader returns null only when the exact artifact is absent from the run', async () => {
+  assert.equal(await reader({ listArtifacts: async () => [] }), null)
+  assert.equal(await reader({ listArtifacts: async () => [{ name: 'staging-playwright-abc' }, { name: 'repair-output' }] }), null)
+  let downloads = 0
+  await reader({ listArtifacts: async () => [], download: async () => { downloads += 1 } })
+  assert.equal(downloads, 0, 'no download is attempted when the artifact is absent')
+})
+
+test('reader returns the parsed content of a present, well-formed artifact', async () => {
+  assert.deepEqual(await reader({}), { ok: true })
+})
+
+test('reader hard-fails once the artifact exists and anything is wrong', async () => {
+  await assert.rejects(reader({ download: async () => { throw new Error('HTTP 500: boom') } }), /could not be downloaded/)
+  await assert.rejects(reader({ listArtifacts: async () => { throw new Error('HTTP 403') } }), /HTTP 403/)
+  await assert.rejects(reader({ listArtifacts: async () => [{ name: 'staging-candidate-context' }, { name: 'staging-candidate-context' }] }), /multiple/)
+  await assert.rejects(reader({ listArtifacts: async () => [{ name: 'staging-candidate-context', expired: true }] }), /expired/)
+  await assert.rejects(reader({ download: async () => ({ files: [], readFile: () => '' }) }), /unexpected files/)
+  await assert.rejects(reader({ download: async () => ({ files: ['context.json', 'extra.txt'], readFile: () => '{}' }) }), /unexpected files/)
+  await assert.rejects(reader({ download: async () => ({ files: ['other.json'], readFile: () => '{}' }) }), /unexpected files/)
+  await assert.rejects(reader({ download: async () => ({ files: ['context.json'], readFile: () => '{not json' }) }), /not valid JSON/)
 })
