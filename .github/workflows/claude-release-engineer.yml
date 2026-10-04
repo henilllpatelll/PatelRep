@@ -140,8 +140,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Read-only workflow token: Claude can inspect runs/jobs/logs/artifacts but cannot publish.
           github_token: ${{ github.token }}
-          # Dependabot PR failures are legitimate repair targets; allow exactly this bot, never '*'.
-          allowed_bots: dependabot[bot]
+          # Exactly two bot actors: Dependabot PRs and the trusted publisher App repair PRs (attempts 2/3). Never wildcard.
+          allowed_bots: dependabot[bot],patelrep-release-engineer[bot]
           additional_permissions: |
             actions: read
           prompt: |
