@@ -546,7 +546,7 @@ export function parseAttestedStatements(output) {
   return byId;
 }
 
-function remoteAttestedStatements(databaseUrl, remoteIds) {
+export function remoteAttestedStatements(databaseUrl, remoteIds) {
   if (!remoteIds.length) return new Map();
   try {
     const output = execFileSync('psql', [
@@ -559,7 +559,7 @@ function remoteAttestedStatements(databaseUrl, remoteIds) {
   }
 }
 
-function remoteMigrationHistory(databaseUrl) {
+export function remoteMigrationHistory(databaseUrl) {
   try {
     const output = execFileSync('psql', [
       '--set', 'ON_ERROR_STOP=1', databaseUrl, '--tuples-only', '--no-align',
@@ -594,28 +594,44 @@ function printIncompleteDuplicateMigrationCoverage(incompleteGroups) {
   }
 }
 
-function main() {
-  const { environment, databaseUrl, allowPending, showRemoteMigrationNames } = getDriftCheckConfig(process.argv.slice(2));
+/**
+ * Read live migration history with fixed read-only psql queries and evaluate it against the repository. Shared by the
+ * drift CLI and the production apply workspace so both reach the same conclusion from the same evidence.
+ */
+export function evaluateLiveMigrationDrift({
+  environment, databaseUrl, allowPending = false,
+  migrationsDirectory = 'supabase/migrations',
+  aliasRegistryPath = PRODUCTION_ALIAS_REGISTRY_PATH,
+  knownHistoryPath = PRODUCTION_KNOWN_HISTORY_PATH,
+  forwardRepairPath = PRODUCTION_FORWARD_REPAIR_PATH,
+}) {
   const remoteRows = remoteMigrationHistory(databaseUrl);
-  const migrations = loadMigrations(resolve('supabase/migrations'));
+  const migrations = loadMigrations(resolve(migrationsDirectory));
   const localInventory = buildLocalMigrationInventory(migrations);
-  const localVersions = localInventory.map((migration) => migration.version);
   const production = environment === 'production';
   const aliasRegistry = production
-    ? loadProductionMigrationAliasRegistry(resolve(PRODUCTION_ALIAS_REGISTRY_PATH), localInventory)
+    ? loadProductionMigrationAliasRegistry(resolve(aliasRegistryPath), localInventory)
     : { aliases: [] };
   // Production-only registries; staging never reads them.
   const knownHistory = production
-    ? loadProductionKnownHistoryRegistry(resolve(PRODUCTION_KNOWN_HISTORY_PATH), localInventory, aliasRegistry)
+    ? loadProductionKnownHistoryRegistry(resolve(knownHistoryPath), localInventory, aliasRegistry)
     : { rows: [] };
   const forwardRepairs = production
-    ? loadDuplicateForwardRepairRegistry(resolve(PRODUCTION_FORWARD_REPAIR_PATH), migrations)
+    ? loadDuplicateForwardRepairRegistry(resolve(forwardRepairPath), migrations)
     : { repairs: [] };
   const presentAttestedIds = knownHistory.rows.map((row) => row.remoteId).filter((id) => remoteRows.some((row) => row.version === id));
   const statementsByRemoteId = production ? remoteAttestedStatements(databaseUrl, presentAttestedIds) : new Map();
   const evaluation = evaluateMigrationDrift({
     environment, remoteRows, statementsByRemoteId, localInventory, aliasRegistry, knownHistory, forwardRepairs, allowPending,
   });
+  return { remoteRows, migrations, localInventory, aliasRegistry, knownHistory, forwardRepairs, evaluation };
+}
+
+function main() {
+  const { environment, databaseUrl, allowPending, showRemoteMigrationNames } = getDriftCheckConfig(process.argv.slice(2));
+  const { remoteRows, localInventory, evaluation } = evaluateLiveMigrationDrift({ environment, databaseUrl, allowPending });
+  const localVersions = localInventory.map((migration) => migration.version);
+  const production = environment === 'production';
   const { verifiedAliases, attestedRows, unresolvedRemoteRows, duplicateCoverage } = evaluation;
   const duplicateVersions = [...new Set(localInventory
     .filter((migration, index, all) => all.filter((item) => item.version === migration.version).length > 1)

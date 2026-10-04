@@ -281,6 +281,16 @@ jobs:
           exit "$status"
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+      - name: Prove the ephemeral apply workspace and Supabase CLI plan (dry run, no apply)
+        if: steps.drift.outputs.pending == 'true'
+        run: node scripts/production-migration-apply-workspace.mjs plan
+        env:
+          PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_EXPECTED_DATABASE_HOST: ${{ vars.PRODUCTION_EXPECTED_DATABASE_HOST }}
+          PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
+          STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
 
   production-db-migrate:
     name: Apply production migrations
@@ -312,14 +322,28 @@ jobs:
           STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
       - name: Install PostgreSQL client for migration verification
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
-      - name: Apply pending migrations to production only
-        run: supabase db push --db-url "$PRODUCTION_SUPABASE_DB_URL"
+      - name: Apply verified pending migrations through the ephemeral production workspace
+        run: node scripts/production-migration-apply-workspace.mjs apply
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_EXPECTED_DATABASE_HOST: ${{ vars.PRODUCTION_EXPECTED_DATABASE_HOST }}
+          PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
+          STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
       - name: Verify production migration identifiers are clean
         run: node scripts/check-db-drift.mjs --environment production
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+      - name: Verify attestations, forward repairs and duplicate coverage after apply
+        run: node scripts/production-migration-apply-workspace.mjs verify-applied
+        env:
+          PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_EXPECTED_DATABASE_HOST: ${{ vars.PRODUCTION_EXPECTED_DATABASE_HOST }}
+          PRODUCTION_EXPECTED_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+          STAGING_DATABASE_HOST: ${{ vars.STAGING_DATABASE_HOST }}
+          STAGING_SUPABASE_HOST: ${{ vars.STAGING_SUPABASE_HOST }}
       - name: Verify production schema contracts
         run: psql --set ON_ERROR_STOP=1 "$PRODUCTION_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
