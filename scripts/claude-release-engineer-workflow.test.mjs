@@ -68,8 +68,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // provenance verification, run-name, actions: read, and release-based versioning (production-release-request-workflow.test.mjs
   // asserts the human Environment gates and concurrency lock are intact). Migration apply: production-migration-apply-workspace.test.mjs
   // pins the ephemeral-workspace apply contract.
+  // Railway account-token auth: `variables set` is preceded by an explicit `railway link` (account tokens have no project scope).
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '89e367a9693393680dd46364b244119dbdd3a66f164efa697f886e0bcacb8dfd')
+  assert.equal(digest, '8593dd24a8261aab32b0275cf944b0a0fb672a60896aa82c7f58ff3179024cd7')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
