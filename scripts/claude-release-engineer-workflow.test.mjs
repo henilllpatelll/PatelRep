@@ -86,7 +86,8 @@ test('production-release.yml changes only by the sanitized release-context hando
   const digest = createHash('sha256').update(productionRelease).digest('hex')
   // Phase 1 follow-up: only change is the identifier-only production-release-context handoff artifact.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '23b47af4c0adea801d6c8bad3305aa4afbd7c75838953bb177226d898bbc2965')
+  // Re-pinned for Dependabot action bumps (github-script v9, upload-artifact v7, setup-cli v3) only.
+  assert.equal(digest, 'a7b418f0a5648b491bf9a4125da2b2110cbfde4008af46eb0b12d91831e4f040')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
