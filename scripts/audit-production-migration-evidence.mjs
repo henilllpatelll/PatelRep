@@ -24,11 +24,12 @@ const anyConstraint = (table, fragments) => `EXISTS (SELECT 1 FROM pg_constraint
 const indexDefinition = (name, table, fragments = [], predicateFragments = []) => `EXISTS (SELECT 1 FROM pg_index i JOIN pg_class idx ON idx.oid = i.indexrelid JOIN pg_class rel ON rel.oid = i.indrelid WHERE idx.relname = '${name}' AND i.indrelid = to_regclass('${table}')${fragments.map((fragment) => ` AND pg_get_indexdef(i.indexrelid) ILIKE '%${fragment}%'`).join('')}${predicateFragments.map((fragment) => ` AND coalesce(pg_get_expr(i.indpred, i.indrelid), '') ILIKE '%${fragment}%'`).join('')})`;
 const tableRlsEnabled = (table) => `EXISTS (SELECT 1 FROM pg_class WHERE oid = to_regclass('${table}') AND relrowsecurity)`;
 export function policyExists(schema, table, name, command, role, expressionType, expressionFragment) {
+  const literalFragment = String(expressionFragment).replace(/'/g, "''");
   const expression = expressionType === 'with_check' ? 'p.polwithcheck' : 'p.polqual';
   const roleCheck = role === 'public'
     ? `p.polroles = '{0}'::oid[]`
     : `p.polroles @> ARRAY[(SELECT oid FROM pg_roles WHERE rolname = '${role}')]::oid[]`;
-  return `EXISTS (SELECT 1 FROM pg_policy p JOIN pg_class rel ON rel.oid = p.polrelid JOIN pg_namespace n ON n.oid = rel.relnamespace WHERE n.nspname = '${schema}' AND rel.relname = '${table}' AND p.polname = '${name}' AND p.polcmd = '${command}' AND ${roleCheck} AND coalesce(pg_get_expr(${expression}, p.polrelid), '') ILIKE '%${expressionFragment}%')`;
+  return `EXISTS (SELECT 1 FROM pg_policy p JOIN pg_class rel ON rel.oid = p.polrelid JOIN pg_namespace n ON n.oid = rel.relnamespace WHERE n.nspname = '${schema}' AND rel.relname = '${table}' AND p.polname = '${name}' AND p.polcmd = '${command}' AND ${roleCheck} AND coalesce(pg_get_expr(${expression}, p.polrelid), '') ILIKE '%${literalFragment}%')`;
 }
 const interactionConstraint = (values) => namedConstraint('public.ai_interactions', 'ai_interactions_interaction_type_check', values);
 const BASE_INTERACTION_TYPES = ['task_creation', 'room_prediction', 'sop_query', 'failure_prediction', 'shift_summary', 'gm_insight', 'assignment_suggestion', 'onboarding_assistant', 'work_order_triage', 'work_order_creation', 'guest_request_creation', 'task_assignment', 'general', 'housekeeping_briefing'];

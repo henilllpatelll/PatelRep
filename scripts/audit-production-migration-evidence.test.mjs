@@ -165,6 +165,17 @@ test('policy evidence is scoped to the exact schema and table, even for reused t
   assert.notEqual(comments, reads);
 });
 
+test('policy evidence escapes single quotes in expression fragments so the SQL stays valid', () => {
+  const sql = policyExists('storage', 'objects', 'Public can view work order photos', 'r', 'public', 'using', "bucket_id = 'work-order-photos'");
+  assert.ok(sql.includes("ILIKE '%bucket_id = ''work-order-photos''%'"));
+  for (const [, checks] of PENDING_MIGRATION_EFFECTS) {
+    for (const [, predicate] of checks) {
+      const stripped = predicate.replace(/''/g, '');
+      assert.equal((stripped.match(/'/g) ?? []).length % 2, 0);
+    }
+  }
+});
+
 test('incomplete structural evidence never becomes EFFECTS_PRESENT', () => {
   assert.equal(evidenceResult([{ passed: true }, { passed: false }]), 'EFFECTS_PARTIAL');
   assert.equal(evidenceResult([{ passed: false }, { passed: false }]), 'EFFECTS_ABSENT');
