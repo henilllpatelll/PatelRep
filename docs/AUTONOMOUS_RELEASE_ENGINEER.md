@@ -3,10 +3,12 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 2C):** diagnose failed workflows and publish repair PRs with a bounded
-recovery lineage (at most 3 automatic Claude attempts per recovery root), and safely auto-merge a
-narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)").
-Claude itself never merges, and nothing dispatches Production Release; that is Phase 2D.
+**Current scope (Phase 2D):** diagnose failed workflows and publish repair PRs with a bounded
+recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
+narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
+for one narrower case further REQUEST a production release (see "Controlled production release
+request (Phase 2D)"). Claude itself never merges and never dispatches anything; the Phase 2D request
+workflow can only dispatch the existing Production Release, which still needs human approval.
 
 ## Separated authority
 
@@ -72,6 +74,10 @@ A PR is eligible only if ALL hold (re-checked independently immediately before m
    (fail-closed): `Auto-merge ineligible: dedicated recovery branches are not protected for
    publisher-only creation and updates.` This never triggers a repair.
 
+After a fully verified merge the `merge` job also uploads the identifier-only `auto-merge-result`
+artifact (see Phase 2D below). It exists only for a real, verified merge: never for a no-op,
+ineligible candidate, failed merge or failed post-merge verification, and candidates cannot write it.
+
 A refusal is reported in the job summary (`Auto-merge ineligible: human review required because changed
 file <path> is classified as <risk>.`), leaves the PR open and does not start another Claude attempt.
 
@@ -100,6 +106,137 @@ add the App to it).
 
 Until this ruleset exists and matches exactly, Phase 2C auto-merge remains ineligible. If the workflow
 token cannot read ruleset bypass actors, auto-merge also stays ineligible (it never guesses).
+
+## Controlled production release request (Phase 2D)
+
+**Automatic request ≠ automatic production approval.** Phase 2D may only *request* a Production
+Release. Production does not run until a human approves the `production` GitHub Environment on the
+dispatched run. Nothing here holds production credentials, uses that Environment, approves a
+deployment or changes Environment protection, and Production Rollback stays human-only.
+
+Final authority chain:
+
+Deploy Health failure → Claude diagnosis → trusted publisher → recovery PR → CI → Staging → Phase 2C
+merge → Phase 2D Production Release request → **HUMAN production Environment approval** → DB
+preflight/migration if applicable → API → exact API verification → Web → strict production
+verification → tag/GitHub Release → ongoing Deploy Health monitoring.
+
+### The `auto-merge-result` artifact (Phase 2C output)
+
+Written by the trusted merge script after the exact-SHA merge, the fresh re-fetch (`merged == true`,
+head still the candidate) and a parent check that the merge commit's parents are exactly the
+`base_main_sha` read from fresh GitHub state immediately before the merge and the candidate head.
+Name `auto-merge-result`, one file `context.json`, 3 days retention, identifiers only (no PR text, no
+credentials):
+
+| Field | Meaning |
+| --- | --- |
+| `pr_number`, `candidate_branch` (`claude/recovery-<root>`), `candidate_sha` | the merged recovery PR |
+| `merge_commit_sha`, `base_main_sha` | the merge commit and the main tip it was merged onto |
+| `root_run_id`, `attempt` | numeric recovery root and attempt |
+| `ci_run_id`, `staging_run_id` | the exact gate runs Phase 2C verified |
+
+### Request workflow
+
+`.github/workflows/claude-release-engineer-production-request.yml` triggers only on completed
+`Claude Release Engineer Auto-Merge` runs (no polling, schedule, push, PR or manual trigger) and has two
+jobs with separated authority:
+
+| Job | Holds | Does |
+| --- | --- | --- |
+| `resolve` | read-only workflow token | Trusted scripts from `main`; freezes the control-plane SHA; decides eligibility. No App key, no production credentials, no environment, cannot dispatch. |
+| `request-release` | PatelRep App token (only here, `actions: write` only, created after revalidation) | Serialized by `patelrep-production-release-request` (no cancel); checks out the exact frozen SHA (never candidate code); re-validates everything from fresh GitHub state; then dispatches `production-release.yml` with `release_sha=<merge commit>`, `version_bump=patch` and `automation_source_run_id=<auto-merge run>`. |
+
+The App needs the repository permission **Actions: read and write** for that dispatch (the token is scoped
+to exactly that). It never receives `contents` or any production secret.
+
+### Request eligibility (ALL must hold; evaluated by resolve, request-release and again by Production Release)
+
+0. Activation: repository variable `PRODUCTION_AUTO_RELEASE_ENABLED` equals exactly `true`; otherwise the
+   workflow is a clean no-op. Workflows never create or change it. The owner enables it manually only
+   after Phase 2D is merged, the first managed production release was done manually, and the
+   `production` Environment still requires human approval.
+1. Source run is the exact successful `Claude Release Engineer Auto-Merge` run of this repository. A missing
+   artifact is a clean no-op; a malformed, duplicate, expired or unreadable one is a hard failure.
+2. The merged PR is re-fetched: merged, base `main`, created by `patelrep-release-engineer[bot]` (id
+   337493489, type Bot), head `claude/recovery-<numeric-root>` (manual roots rejected), head SHA and merge
+   commit equal the artifact, valid publisher trailers and history exactly as in Phase 2C, merge commit
+   parents equal `base_main_sha` and the candidate head. The PR body is never trusted.
+3. `main` is still exactly the recovery merge commit. If it moved even one commit, no automatic release;
+   a human may still release an explicit older main ancestor.
+4. A managed production baseline exists: the newest completed GitHub Release (not draft, not prerelease,
+   tag exactly `vX.Y.Z`) whose tag resolves to a commit that is an ancestor of `main`. The historical
+   two-segment milestone tags `v1.0`-`v1.7` are not releases. With none the request is ineligible:
+   `Production release request ineligible: no managed production release baseline exists; seed the first
+   release manually.` A broken newest release (missing/non-commit/non-ancestor tag) is a hard failure.
+5. The deployed runtime equals the ledger: the GitHub Release is only the release ledger. A human Production
+   Rollback redeploys an older tag and creates no new tag or Release, so the newest Release is not
+   necessarily what runs. `scripts/production-runtime-identity.mjs` reads ONLY the public production
+   endpoints (API `/health`, Web `/login` meta tags; no secret, Environment or credential) and must prove a
+   modern, Web/API-agreeing identity with a 40-character SHA and a managed `vX.Y.Z` version, and that
+   identity must equal the managed baseline tag AND SHA. Legacy, partial, unreachable, malformed or
+   disagreeing identity, or any mismatch (e.g. Release `v1.8.1` but production rolled back to `v1.8.0`), is
+   ineligible with "a manual production decision is required"; production is never "corrected" forward.
+   This is an identity proof, not a health requirement: identity on an otherwise unhealthy response counts.
+5b. No piggybacking: `base_main_sha` equals the baseline release commit, so the recovery merge is the only
+   unreleased commit. Otherwise main contains unreleased work and a human must decide the release.
+6. Root is a production-health failure: the `root_run_id` run is a completed, failed `Deploy Health Check`
+   (schedule or push, not a manual dispatch) of this repository whose head SHA equals `base_main_sha`.
+   Roots from CI, Staging Candidate, Production Release, the Evidence Audit or manual dispatch never
+   request production automatically.
+6b. Not stale: if a newer successful `Deploy Health Check` (workflow `deploy-check.yml`, same repository, schedule
+   or push, completed) exists for the SAME `base_main_sha`, production recovered after the root failure and
+   the request is ineligible. Manual dispatch runs never count as recovery proof; unprovable or malformed run
+   history fails closed.
+7. Low-risk paths: the same Phase 2C classifier over the PR's changed and renamed-from files. Any high-risk
+   path (database, billing, auth/security, `.github/**`, `scripts/**`, release/deploy, infrastructure) is
+   human-only.
+8. Provenance rulesets are intact: the recovery ruleset exactly as Phase 2C requires (Integration id
+   5179664, `always`, the only bypass actor, `creation`/`update`/`non_fast_forward`), and the main ruleset
+   active with strict `CI Gate` + `Staging Gate`, thread resolution, `non_fast_forward`, `deletion` and NO
+   bypass actors. Weakening either fails closed. Neither ruleset is modified by any workflow.
+
+Not automatic, always a human release decision: feature PRs, human/Dependabot PRs, CI/Staging/Production
+Release/Evidence-Audit recovery, manual roots, DB/billing/auth/infrastructure/control-plane changes,
+stale merges and recoveries merged on top of unreleased main work. A repair whose root is a failed
+Production Release can be diagnosed by Claude but never requests another production release, and
+nothing automatically retries or rolls back a production release.
+
+### Idempotency
+
+A rerun does nothing if the baseline release already is the target commit. Production Release shares the
+non-cancelling `production-deploy` concurrency group and a newer pending run *replaces* an older pending one,
+so the request never dispatches while any Production Release or Rollback run is queued, running or awaiting
+approval: if the active run is this exact request (the run name carries the target SHA and source run) it is a
+clean no-op, otherwise the request is declined and a human releases manually. If duplicate state cannot be
+proven, the request fails closed.
+
+All of rules 0-8 (including the runtime identity and health-recovery checks) run at all three stages: the
+resolver, the request job right before the App token exists, and Production Release after the human approval and
+before any production step. A rollback or recovery that happens between dispatch and approval therefore fails
+the release with production untouched.
+
+### Production Release in automated mode
+
+Production Release stays the only path to production and keeps every guard (SHA/main-ancestry, CI and Staging
+Gate, tree identity, target guards, migration preflight and unknown-migration blocking, API before Web, exact
+identity, `/health`, `/ready`, drift, tag and Release only after verification, shared concurrency). When
+`automation_source_run_id` is blank it behaves exactly as a manual release. When present it additionally runs
+`scripts/production-release-request.mjs release` as the first step of the Environment-gated first job, i.e.
+after the human approval and before any production step. It requires the dispatch actor to be the trusted
+publisher bot (`patelrep-release-engineer[bot]`, id 337493489), `refs/heads/main`, `release_sha` equal to the
+merge commit and to the workflow commit, `version_bump=patch`, and re-derives every eligibility rule above
+(including the activation variable). If anything changed between request and approval the release fails
+before production is touched.
+
+### Versioning and the first release
+
+The previous version comes from completed GitHub Releases (`scripts/release-version.mjs`). With none, the next
+release is the one-time bootstrap `v1.8.0` (`v1.7` is never read as `v1.7.0`). Afterwards: patch `v1.8.0` ->
+`v1.8.1`, minor `v1.8.1` -> `v1.9.0`, major `v1.9.0` -> `v2.0.0`. Automated requests are always patch. If the
+computed tag, or any three-segment tag at or above it, exists without a completed GitHub Release (or the
+computed tag has a draft/prerelease), the release fails closed: tags are never skipped, deleted or rewritten
+automatically and a human must investigate.
 
 ## Bounded recovery lineage
 
@@ -228,10 +365,11 @@ evidence is resolved with more investigation or code that gathers evidence — n
 
 This workflow holds no production credentials: no `PRODUCTION_SUPABASE_DB_URL`, no Railway
 production tokens, no Supabase service-role keys, no Stripe keys. It never runs production SQL
-or Railway commands itself. It may only dispatch the existing controlled workflows —
-`Production Migration Evidence Audit`, `Production Release`, `Production Rollback` — which keep
-their own GitHub Environments, credentials, and target guards. Automated repairs must not change
-`production-release.yml` eligibility, target guards, versioning, or rollback semantics.
+or Railway commands itself. The only dispatch automation performs is the Phase 2D request of the existing
+`Production Release` (patch, narrow recovery case only, behind the human `production` Environment
+approval and its own independent re-verification). `Production Rollback` and the Evidence Audit are never
+dispatched by automation. Automated repairs must not change `production-release.yml` eligibility, target
+guards, versioning, or rollback semantics (all control-plane paths are high-risk and need a human merge).
 
 ## Tooling and permissions
 

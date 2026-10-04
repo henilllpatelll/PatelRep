@@ -62,11 +62,13 @@ test('the prompt points Claude at CLAUDE.md and the operating document', () => {
   assert.match(doc, /claude\/recovery-<workflow-run-id>/)
 })
 
-test('production-release.yml changes only by the sanitized release-context handoff', () => {
+test('production-release.yml changes only deliberately (release-context handoff, Phase 2D automated mode and release-based versioning)', () => {
   const digest = createHash('sha256').update(productionRelease).digest('hex')
-  // Phase 1 follow-up: only change is the identifier-only production-release-context handoff artifact.
+  // Phase 1: identifier-only production-release-context handoff. Phase 2D: optional automation_source_run_id
+  // provenance verification, run-name, actions: read, and release-based versioning (production-release-request-workflow.test.mjs
+  // asserts the human Environment gates and concurrency lock are intact).
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '23b47af4c0adea801d6c8bad3305aa4afbd7c75838953bb177226d898bbc2965')
+  assert.equal(digest, '7ca47aa72bb4247012d1075577006c4aeb7f0fe59c741f4d7f7b65bfced16b09')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

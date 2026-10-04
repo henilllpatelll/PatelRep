@@ -23,6 +23,8 @@ const STAGING_RUN = '37200000002'
 const CI_RUN = '37200000001'
 const BRANCH = `claude/recovery-${ROOT}`
 const APP_ID = PUBLISHER_APP.integrationId
+const MAIN_SHA = 'e'.repeat(40)
+const MERGE_SHA = 'd'.repeat(40)
 
 const protectedRuleset = (overrides = {}) => ({
   id: 9,
@@ -74,7 +76,10 @@ function world() {
     unresolvedThreads: 0,
     rulesets: [protectedRuleset()],
     mergeCalls: [],
-    mergeResponse: { merged: true, sha: 'd'.repeat(40) },
+    mergeResponse: { merged: true, sha: MERGE_SHA },
+    mainSha: MAIN_SHA,
+    mergeCommit: null,
+    mainShaCalls: 0,
     afterMerge: null,
     beforeMerge: null,
   }
@@ -87,6 +92,11 @@ function world() {
     readStagingContext: async () => state.context,
     getPr: async () => state.pr,
     getMergedPr: async () => state.afterMerge ?? { ...state.pr, merged: true },
+    getMainSha: async () => {
+      state.mainShaCalls += 1
+      return state.mainSha
+    },
+    getCommit: async (sha) => state.mergeCommit ?? { sha, parents: [state.mainSha, state.pr.head.sha] },
     listPrCommits: async () => state.commits,
     listPrFiles: async () => state.files,
     listCheckRuns: async (_sha, name) => state.checks[name] ?? [],
@@ -124,7 +134,8 @@ test('a publisher-created numeric-root recovery PR with green exact gates is eli
   assert.deepEqual({ ...result, reason: undefined }, { eligible: true, prNumber: 77, sha: SHA1, branch: BRANCH, root: ROOT, attempt: 1, ciRunId: CI_RUN, stagingRunId: STAGING_RUN, reason: undefined })
   const merged = await mergeRepair({ ...input, expected }, deps)
   assert.deepEqual(state.mergeCalls, [{ number: 77, sha: SHA1 }])
-  assert.equal(merged.mergeCommitSha, 'd'.repeat(40))
+  assert.equal(merged.mergeCommitSha, MERGE_SHA)
+  assert.equal(merged.baseMainSha, MAIN_SHA)
 })
 
 test('a three-attempt recovery history with monotonic attempts is eligible', async () => {
@@ -572,4 +583,29 @@ test('reader hard-fails once the artifact exists and anything is wrong', async (
   await assert.rejects(reader({ download: async () => ({ files: ['context.json', 'extra.txt'], readFile: () => '{}' }) }), /unexpected files/)
   await assert.rejects(reader({ download: async () => ({ files: ['other.json'], readFile: () => '{}' }) }), /unexpected files/)
   await assert.rejects(reader({ download: async () => ({ files: ['context.json'], readFile: () => '{not json' }) }), /not valid JSON/)
+})
+
+// ---- Phase 2D: verified merge facts feeding the auto-merge-result handoff ----------------------------------------------
+
+test('the merge result carries the freshly read pre-merge main SHA and the proven merge commit', async () => {
+  const { state, deps } = world()
+  const merged = await mergeRepair({ ...input, expected }, deps)
+  assert.equal(state.mainShaCalls, 1)
+  assert.deepEqual({ base: merged.baseMainSha, merge: merged.mergeCommitSha, root: merged.root, attempt: merged.attempt, ci: merged.ciRunId, staging: merged.stagingRunId }, { base: MAIN_SHA, merge: MERGE_SHA, root: ROOT, attempt: 1, ci: CI_RUN, staging: STAGING_RUN })
+})
+
+test('an unprovable merge commit or base fails the job, so no handoff can be written', async () => {
+  for (const mutate of [
+    (s) => { s.mergeResponse = { merged: true } },
+    (s) => { s.mergeResponse = { merged: true, sha: 'not-a-sha' } },
+    (s) => { s.afterMerge = { ...s.pr, merged: true, merge_commit_sha: 'f'.repeat(40) } },
+    (s) => { s.mergeCommit = { sha: MERGE_SHA, parents: [MAIN_SHA] } },
+    (s) => { s.mergeCommit = { sha: MERGE_SHA, parents: ['f'.repeat(40), SHA1] } },
+    (s) => { s.mergeCommit = { sha: MERGE_SHA, parents: [MAIN_SHA, SHA2] } },
+    (s) => { s.mainSha = '' },
+  ]) {
+    const { state, deps } = world()
+    mutate(state)
+    await assert.rejects(mergeRepair({ ...input, expected }, deps), /auto-merge:/)
+  }
 })
