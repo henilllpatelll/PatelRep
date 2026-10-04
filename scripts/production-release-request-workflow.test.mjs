@@ -211,8 +211,15 @@ test('versioning comes from completed GitHub Releases through the tested module,
   assert.doesNotMatch(job, /ref: \$\{\{ needs\.resolve-and-verify-eligibility\.outputs\.target_sha \}\}/)
 })
 
+test('production Railway auth uses the account-token environment variable only', () => {
+  for (const wf of [release, rollback]) {
+    assert.match(wf, /RAILWAY_API_TOKEN: \\$\\{\\{ secrets\\.PRODUCTION_RAILWAY_API_TOKEN \\}\\}/)
+    assert.doesNotMatch(wf, /RAILWAY_TOKEN: \\$\\{\\{ secrets\\.PRODUCTION_RAILWAY_TOKEN \\}\\}/)
+  }
+})
+
 test('Production Rollback is untouched and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '7f283da4d4893e0167238e1ac9dd0e1549c594251f405b67cdeff495d1c73787')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '5b9a984b4bc59c80cb738a71d3ffe418a694d614be84447224a780e1191d7c67')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
