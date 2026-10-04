@@ -211,8 +211,25 @@ test('versioning comes from completed GitHub Releases through the tested module,
   assert.doesNotMatch(job, /ref: \$\{\{ needs\.resolve-and-verify-eligibility\.outputs\.target_sha \}\}/)
 })
 
+test('Production Release and Rollback authenticate Railway with the account token via RAILWAY_API_TOKEN only', () => {
+  for (const [name, workflow] of [['release', release], ['rollback', rollback]]) {
+    const wf = code(workflow)
+    assert.equal((wf.match(/RAILWAY_API_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_API_TOKEN \}\}/g) ?? []).length, 4, `${name}: 4 Railway steps use the account token`)
+    assert.doesNotMatch(wf, /PRODUCTION_RAILWAY_TOKEN/, `${name}: legacy secret not referenced`)
+    assert.doesNotMatch(wf, /^\s*RAILWAY_TOKEN:/m, `${name}: RAILWAY_TOKEN is never set alongside RAILWAY_API_TOKEN`)
+    for (const step of wf.split(/\n {6}- name: /).filter((part) => /@railway\/cli/.test(part))) {
+      if (/railway\/cli@[\d.]+ variables set/.test(step)) {
+        assert.doesNotMatch(step, /--project/, `${name}: variables set stays free of --project`)
+        assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
+      } else {
+        assert.match(step, /up apps\/(api|web) --ci(?: --path-as-root)? --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
+      }
+    }
+  }
+})
+
 test('Production Rollback is untouched and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '7f283da4d4893e0167238e1ac9dd0e1549c594251f405b67cdeff495d1c73787')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '4e7fe4364ef966c3d3f66b1e65b452d608ab39c885bcc808dc814a7fbe701295')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
