@@ -116,6 +116,8 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
+          # Dependabot PR failures are legitimate repair targets; allow exactly this bot, never '*'.
+          allowed_bots: dependabot[bot]
           additional_permissions: |
             actions: read
           prompt: |

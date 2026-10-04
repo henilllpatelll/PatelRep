@@ -237,3 +237,19 @@ test('release verification stays strict and the legacy no-/ready contract lives 
   assert.match(monitorSmoke, /classifyProductionContract/)
   assert.doesNotMatch(monitorSmoke, /status === 404|\.status === 404/)
 })
+
+test('only dependabot[bot] is allowed as a non-human actor, never a wildcard', () => {
+  const allowed = [...workflow.matchAll(/^\s+allowed_bots:\s*(.+)$/gm)].map((m) => m[1].trim())
+  assert.deepEqual(allowed, ['dependabot[bot]'])
+  assert.doesNotMatch(workflow, /allowed_bots:\s*['"]?\*/)
+  assert.doesNotMatch(workflow, /allowed_non_write_users|allowed_bots:[^\n]*[,*]/)
+})
+
+test('bot allowance does not loosen same-repository failed-run, fork, or credential protections', () => {
+  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'failure'/)
+  assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
+  assert.doesNotMatch(executable, /^\s+environment:/m)
+  assert.doesNotMatch(executable, /PRODUCTION_|RAILWAY|SUPABASE|STRIPE|SERVICE_ROLE/i)
+  assert.doesNotMatch(executable, /gh pr merge|gh workflow run|--auto\b/)
+  assert.match(workflow, /ref: main/)
+})
