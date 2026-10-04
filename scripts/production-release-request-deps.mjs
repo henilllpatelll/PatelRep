@@ -3,6 +3,7 @@
 // request workflow itself with a separate, narrowly scoped App token.
 import { execFileSync } from 'node:child_process'
 import { AUTO_MERGE_RESULT_ARTIFACT } from './auto-merge-result.mjs'
+import { readProductionRuntimeIdentity } from './production-runtime-identity.mjs'
 import { realAutoMergeDeps } from './release-engineer-auto-merge-deps.mjs'
 import { ACTIVE_RUN_STATUSES } from './production-release-request-policy.mjs'
 
@@ -43,6 +44,14 @@ export function realProductionRequestDeps({ repo, readToken }) {
   return {
     ...base,
     ...releaseDeps,
+    // Public endpoints only: no credential of any kind.
+    readRuntimeIdentity: () => readProductionRuntimeIdentity(),
+    // Successful Deploy Health Check runs of one exact commit (workflow file, server-side head_sha filter).
+    listHealthRuns: async (headSha) =>
+      releaseDeps.paged(
+        `repos/${repo}/actions/workflows/deploy-check.yml/runs?head_sha=${headSha}&status=success&per_page=100`,
+        '.workflow_runs[] | {id, name, event, status, conclusion, head_sha, created_at, repository: {full_name: .repository.full_name}, head_repository: {full_name: .head_repository.full_name}} | @json',
+      ),
     readAutoMergeResult: (runId) => base.readNamedContext(runId, AUTO_MERGE_RESULT_ARTIFACT),
     // Queued, running or awaiting-approval Production Release / Rollback runs. run-name carries the target SHA.
     listActiveProductionRuns: async () => {

@@ -26,6 +26,13 @@ const CANDIDATE = 'a'.repeat(40)
 const BASE = 'e'.repeat(40)
 const MERGE = 'd'.repeat(40)
 const BRANCH = `claude/recovery-${ROOT}`
+const ROOT_AT = '2026-10-01T12:00:00Z'
+const LATER = '2026-10-01T12:15:00Z'
+const EARLIER = '2026-10-01T11:45:00Z'
+const healthRun = (id, overrides = {}) => ({
+  id: Number(id), name: 'Deploy Health Check', event: 'schedule', status: 'completed', conclusion: 'success', head_sha: BASE, created_at: LATER,
+  repository: { full_name: REPO }, head_repository: { full_name: REPO }, ...overrides,
+})
 
 const RESULT = Object.freeze({
   attempt: '1',
@@ -91,7 +98,7 @@ function world() {
     artifact: { ...RESULT },
     runs: {
       [SOURCE_RUN]: run(SOURCE_RUN, 'Claude Release Engineer Auto-Merge', { event: 'workflow_run' }),
-      [ROOT]: run(ROOT, 'Deploy Health Check', { conclusion: 'failure', event: 'schedule', head_sha: BASE }),
+      [ROOT]: run(ROOT, 'Deploy Health Check', { conclusion: 'failure', event: 'schedule', head_sha: BASE, created_at: ROOT_AT }),
       [CI_RUN]: run(CI_RUN, 'CI', { head_sha: CANDIDATE, event: 'pull_request' }),
       [STAGING_RUN]: run(STAGING_RUN, 'Staging Candidate'),
     },
@@ -109,6 +116,8 @@ function world() {
     tagCommits: { 'v1.8.0': BASE },
     ancestor: true,
     active: [],
+    runtime: { sha: BASE, version: 'v1.8.0' },
+    healthRuns: [],
   }
   const deps = {
     getRun: async (id) => state.runs[String(id)] ?? null,
@@ -128,6 +137,14 @@ function world() {
       return state.tagCommits[tag]
     },
     isAncestorOfMain: async () => state.ancestor,
+    readRuntimeIdentity: async () => {
+      if (state.runtime instanceof Error) throw state.runtime
+      return state.runtime
+    },
+    listHealthRuns: async () => {
+      if (state.healthRuns instanceof Error) throw state.healthRuns
+      return state.healthRuns
+    },
     listActiveProductionRuns: async () => state.active,
   }
   return { state, deps }
@@ -293,7 +310,7 @@ test('a broken newest release (missing tag, non-ancestor tag) fails hard rather 
 })
 
 test('no unreleased-change piggybacking: the baseline must equal the recovery base', async () => {
-  await assertIneligible((s) => { s.tagCommits = { 'v1.8.0': 'b'.repeat(40) } }, /main contains unreleased changes/)
+  await assertIneligible((s) => { s.tagCommits = { 'v1.8.0': 'b'.repeat(40) }; s.runtime = { sha: 'b'.repeat(40), version: 'v1.8.0' } }, /main contains unreleased changes/)
 })
 
 test('an already released target is a clean no-op, never a second deployment', async () => {
@@ -402,7 +419,7 @@ test('automated mode requires the trusted bot, main, the exact SHA at the workfl
 test('release-time revalidation fails if anything changed between request and approval', async () => {
   const mutations = [
     [(s) => { s.mainSha = 'c'.repeat(40) }, /main moved/],
-    [(s) => { s.tagCommits = { 'v1.8.0': 'b'.repeat(40) } }, /unreleased changes/],
+    [(s) => { s.tagCommits = { 'v1.8.0': 'b'.repeat(40) }; s.runtime = { sha: 'b'.repeat(40), version: 'v1.8.0' } }, /unreleased changes/],
     [(s) => { s.runs[ROOT].conclusion = 'success' }, /not a failure/],
     [(s) => { s.rulesets = [mainRuleset()] }, /publisher-only/],
     [(s) => { s.files = [{ filename: 'supabase/migrations/1.sql' }, { filename: 'a.ts' }] }, /database/],
@@ -469,4 +486,104 @@ test('the production baseline is the newest completed release whose tag is a com
   assert.equal(await resolveProductionBaseline(deps({ listReleases: async () => MILESTONES.map((tag) => release(tag)) })), null)
   await assert.rejects(resolveProductionBaseline(deps({ isAncestorOfMain: async () => false })), /not an ancestor of main/)
   await assert.rejects(resolveProductionBaseline(deps({ resolveTagCommit: async () => '' })), /does not resolve to a commit/)
+})
+
+// ---- deployed runtime must equal the managed baseline (rollback creates no tag or Release) ----------------------------
+
+const OLDER = 'b'.repeat(40)
+
+test('runtime identical to the managed baseline stays eligible', async () => {
+  const { deps } = world()
+  assert.equal((await evaluateProductionRequest(request, deps)).eligible, true)
+})
+
+test('rollback regression: newest Release v1.8.1/A but production runs v1.8.0/B means NO automatic request', async () => {
+  const A = BASE
+  const { state, deps } = world()
+  state.releases = [release('v1.8.0'), release('v1.8.1')]
+  state.tagCommits = { 'v1.8.0': OLDER, 'v1.8.1': A } // ledger baseline alone would select v1.8.1 / A and look eligible
+  state.runtime = { sha: OLDER, version: 'v1.8.0' } // a human rolled production back
+  const result = await evaluateProductionRequest(request, deps)
+  assert.equal(result.eligible, false)
+  assert.match(result.reason, /runtime production \(v1\.8\.0 \/ b+\) does not match the managed release baseline \(v1\.8\.1 \/ e+\); a manual production decision is required/)
+  // The ledger alone would have approved: prove the runtime check is what refuses.
+  state.runtime = { sha: A, version: 'v1.8.1' }
+  assert.equal((await evaluateProductionRequest(request, deps)).eligible, true)
+})
+
+test('any runtime/baseline difference refuses; unprovable runtime identity refuses', async () => {
+  await assertIneligible((s) => { s.runtime = { sha: 'c'.repeat(40), version: 'v1.8.0' } }, /does not match the managed release baseline/)
+  await assertIneligible((s) => { s.runtime = { sha: BASE, version: 'v1.8.1' } }, /does not match the managed release baseline/)
+  await assertIneligible((s) => { s.runtime = { sha: BASE, version: 'v1.8.0-rc1' } }, /does not match the managed release baseline/)
+  await assertIneligible((s) => { s.runtime = null }, /does not match the managed release baseline/)
+  for (const message of ['legacy contract', 'unreachable', 'Web disagrees with API', 'partial identity']) {
+    await assertIneligible((s) => { s.runtime = new Error(`production runtime identity: ${message}`) }, /deployed production identity could not be proven.*manual production decision/)
+  }
+})
+
+// ---- a recovered production health makes the failure stale ---------------------------------------------------------------
+
+test('a newer successful Deploy Health Check of the same SHA makes the request ineligible', async () => {
+  await assertIneligible((s) => { s.healthRuns = [healthRun('37100000050')] }, /Production health recovered after root failure 37100000001 \(run 37100000050 succeeded\); automatic production release is no longer warranted/)
+  await assertIneligible((s) => { s.healthRuns = [healthRun('37100000050', { event: 'push' })] }, /recovered/)
+  // identical timestamp: the higher run id is the newer run
+  await assertIneligible((s) => { s.healthRuns = [healthRun('37100000050', { created_at: ROOT_AT })] }, /recovered/)
+})
+
+test('only a truly newer, trusted, successful run at the same SHA proves recovery', async () => {
+  const eligibleWith = async (healthRuns) => {
+    const { state, deps } = world()
+    state.healthRuns = healthRuns
+    return (await evaluateProductionRequest(request, deps)).eligible
+  }
+  assert.equal(await eligibleWith([]), true, 'only the failure exists')
+  assert.equal(await eligibleWith([healthRun('37100000050', { conclusion: 'failure' })]), true, 'a newer failure does not clear the root')
+  assert.equal(await eligibleWith([healthRun('37100000050', { status: 'in_progress', conclusion: null })]), true)
+  assert.equal(await eligibleWith([healthRun('37100000040', { created_at: EARLIER })]), true, 'an older success before the root does not block')
+  assert.equal(await eligibleWith([healthRun('37100000050', { created_at: ROOT_AT })]), false)
+  assert.equal(await eligibleWith([healthRun('37100000001', { created_at: ROOT_AT })]), true, 'the root itself is not a recovery')
+  assert.equal(await eligibleWith([healthRun('37100000050', { event: 'workflow_dispatch' })]), true, 'a manual health run is not recovery proof')
+})
+
+test('unprovable or foreign health history fails closed; a success on a different SHA never counts as recovery', async () => {
+  for (const healthRuns of [
+    null,
+    [null],
+    [healthRun('37100000050', { head_sha: 'c'.repeat(40) })],
+    [healthRun('37100000050', { name: 'CI' })],
+    [healthRun('37100000050', { created_at: 'not a date' })],
+    [healthRun('abc')],
+    [healthRun('37100000050', { repository: { full_name: 'evil/fork' } })],
+    new Error('HTTP 500'),
+  ]) {
+    const { state, deps } = world()
+    state.healthRuns = healthRuns
+    await assert.rejects(evaluateProductionRequest(request, deps))
+  }
+  const { state, deps } = world()
+  state.runs[ROOT].created_at = 'garbage'
+  await assert.rejects(evaluateProductionRequest(request, deps), /no valid creation time/)
+})
+
+// ---- three-stage revalidation ----------------------------------------------------------------------------------------------
+
+test('a rollback or recovery after resolve or after dispatch is refused by the later stage; nothing is dispatched', async () => {
+  for (const [label, change] of [
+    ['rollback', (s) => { s.runtime = { sha: OLDER, version: 'v1.7.9' } }],
+    ['runtime unavailable', (s) => { s.runtime = new Error('production runtime identity: API /health is unreachable') }],
+    ['health recovered', (s) => { s.healthRuns = [healthRun('37100000050')] }],
+  ]) {
+    const { state, deps } = world()
+    // stage 1: resolver
+    assert.equal((await evaluateProductionRequest({ ...request }, deps)).eligible, true, `${label}: resolver`)
+    // between resolve and request-release
+    change(state)
+    const requested = await evaluateProductionRequest({ ...request }, deps)
+    assert.equal(requested.eligible, false, `${label}: request-release revalidation refuses, so no App token or dispatch`)
+    // after a (hypothetical) dispatch, between request and Environment approval
+    const fresh = world()
+    assert.equal((await evaluateProductionRequest(request, fresh.deps)).eligible, true)
+    change(fresh.state)
+    await assert.rejects(validateProductionRequest({ ...request, mode: 'release' }, fresh.deps), (error) => error instanceof Ineligible, `${label}: Production Release refuses after approval`)
+  }
 })

@@ -169,12 +169,25 @@ to exactly that). It never receives `contents` or any production secret.
    two-segment milestone tags `v1.0`-`v1.7` are not releases. With none the request is ineligible:
    `Production release request ineligible: no managed production release baseline exists; seed the first
    release manually.` A broken newest release (missing/non-commit/non-ancestor tag) is a hard failure.
-5. No piggybacking: `base_main_sha` equals the baseline release commit, so the recovery merge is the only
+5. The deployed runtime equals the ledger: the GitHub Release is only the release ledger. A human Production
+   Rollback redeploys an older tag and creates no new tag or Release, so the newest Release is not
+   necessarily what runs. `scripts/production-runtime-identity.mjs` reads ONLY the public production
+   endpoints (API `/health`, Web `/login` meta tags; no secret, Environment or credential) and must prove a
+   modern, Web/API-agreeing identity with a 40-character SHA and a managed `vX.Y.Z` version, and that
+   identity must equal the managed baseline tag AND SHA. Legacy, partial, unreachable, malformed or
+   disagreeing identity, or any mismatch (e.g. Release `v1.8.1` but production rolled back to `v1.8.0`), is
+   ineligible with "a manual production decision is required"; production is never "corrected" forward.
+   This is an identity proof, not a health requirement: identity on an otherwise unhealthy response counts.
+5b. No piggybacking: `base_main_sha` equals the baseline release commit, so the recovery merge is the only
    unreleased commit. Otherwise main contains unreleased work and a human must decide the release.
 6. Root is a production-health failure: the `root_run_id` run is a completed, failed `Deploy Health Check`
    (schedule or push, not a manual dispatch) of this repository whose head SHA equals `base_main_sha`.
    Roots from CI, Staging Candidate, Production Release, the Evidence Audit or manual dispatch never
    request production automatically.
+6b. Not stale: if a newer successful `Deploy Health Check` (workflow `deploy-check.yml`, same repository, schedule
+   or push, completed) exists for the SAME `base_main_sha`, production recovered after the root failure and
+   the request is ineligible. Manual dispatch runs never count as recovery proof; unprovable or malformed run
+   history fails closed.
 7. Low-risk paths: the same Phase 2C classifier over the PR's changed and renamed-from files. Any high-risk
    path (database, billing, auth/security, `.github/**`, `scripts/**`, release/deploy, infrastructure) is
    human-only.
@@ -197,6 +210,11 @@ so the request never dispatches while any Production Release or Rollback run is 
 approval: if the active run is this exact request (the run name carries the target SHA and source run) it is a
 clean no-op, otherwise the request is declined and a human releases manually. If duplicate state cannot be
 proven, the request fails closed.
+
+All of rules 0-8 (including the runtime identity and health-recovery checks) run at all three stages: the
+resolver, the request job right before the App token exists, and Production Release after the human approval and
+before any production step. A rollback or recovery that happens between dispatch and approval therefore fails
+the release with production untouched.
 
 ### Production Release in automated mode
 

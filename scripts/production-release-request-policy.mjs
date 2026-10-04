@@ -79,7 +79,8 @@ export function requireAutomatedDispatch({ actor, actorId, ref, workflowSha, rel
 /**
  * @param {{repo: string, sourceRunId: string, enabled: string|undefined, mode: 'request'|'release'}} input
  * @param {object} deps getRun, readAutoMergeResult(runId), getMergedPr, listPrCommits, listPrFiles, getCommit,
- *   getMainSha, listBranchRulesets, listReleases, resolveTagCommit, isAncestorOfMain, listActiveProductionRuns
+ *   getMainSha, listBranchRulesets, listReleases, resolveTagCommit, isAncestorOfMain, readRuntimeIdentity,
+ *   listHealthRuns(headSha), listActiveProductionRuns
  * Throws Ineligible for any policy refusal (clean no-op when requesting) and Error for malformed/unprovable data.
  */
 export async function validateProductionRequest({ repo, sourceRunId, enabled, mode }, deps) {
@@ -134,6 +135,18 @@ export async function validateProductionRequest({ repo, sourceRunId, enabled, mo
   if (!baseline) refuse(NO_BASELINE_MESSAGE)
   if (baseline.sha === mergeCommitSha) refuse(`${baseline.tag} already released ${mergeCommitSha}`)
 
+  // The GitHub Release is only the ledger. After a human rollback (which creates no tag/Release) the newest
+  // release is NOT what is deployed, so the live public runtime identity must equal the managed baseline.
+  let runtime
+  try {
+    runtime = await deps.readRuntimeIdentity()
+  } catch (error) {
+    refuse(`the deployed production identity could not be proven (${String(error.message).split('\n')[0].slice(0, 160)}); a manual production decision is required`)
+  }
+  if (runtime?.sha !== baseline.sha || runtime?.version !== baseline.tag) {
+    refuse(`runtime production (${runtime?.version} / ${runtime?.sha}) does not match the managed release baseline (${baseline.tag} / ${baseline.sha}); a manual production decision is required`)
+  }
+
   // E. no piggybacking of unreleased main commits
   if (baseline.sha !== result.base_main_sha) {
     refuse(`main contains unreleased changes (the last release ${baseline.tag} is ${baseline.sha}, the recovery was merged onto ${result.base_main_sha}); a manual release decision is required`)
@@ -147,6 +160,24 @@ export async function validateProductionRequest({ repo, sourceRunId, enabled, mo
   if (rootRun.status !== 'completed' || rootRun.conclusion !== 'failure') refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} is ${rootRun.status}/${rootRun.conclusion}, not a failure`)
   if (!ROOT_EVENTS.includes(rootRun.event)) refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} was a ${rootRun.event} run`)
   if (rootRun.head_sha !== result.base_main_sha) refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} ran at ${rootRun.head_sha}, not the released baseline`)
+
+  // A newer successful Deploy Health Check of the SAME baseline commit means production recovered after the
+  // root failure, so the automatic release is no longer warranted. Unprovable history fails closed.
+  const rootCreated = Date.parse(rootRun.created_at)
+  if (!Number.isFinite(rootCreated)) fail(`root run ${result.root_run_id} has no valid creation time`)
+  const healthRuns = await deps.listHealthRuns(result.base_main_sha)
+  if (!Array.isArray(healthRuns)) fail('Deploy Health Check history could not be proven')
+  for (const health of healthRuns) {
+    if (!health || health.head_sha !== result.base_main_sha || health.name !== ROOT_WORKFLOW_NAME || !Number.isFinite(Date.parse(health.created_at)) || !/^[1-9][0-9]*$/.test(String(health.id))) {
+      fail('Deploy Health Check history contains a malformed run')
+    }
+    if (health.repository?.full_name !== repo || health.head_repository?.full_name !== repo) fail('Deploy Health Check history contains a foreign run')
+    if (!ROOT_EVENTS.includes(health.event) || health.status !== 'completed' || health.conclusion !== 'success') continue
+    const created = Date.parse(health.created_at)
+    if (created > rootCreated || (created === rootCreated && Number(health.id) > Number(result.root_run_id))) {
+      refuse(`Production health recovered after root failure ${result.root_run_id} (run ${health.id} succeeded); automatic production release is no longer warranted`)
+    }
+  }
 
   // The exact gates that Phase 2C verified must still describe this candidate.
   const ciRun = await deps.getRun(result.ci_run_id)
