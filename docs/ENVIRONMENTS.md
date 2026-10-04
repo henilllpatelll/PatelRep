@@ -66,7 +66,7 @@ Required reviewer: repository owner. Shared by `feature-rollout.yml` (environmen
 
 `SUPABASE_URL`, `EXPECTED_SUPABASE_HOST`, `OTHER_ENV_SUPABASE_HOST`, `API_URL`, `WEB_URL` (feature-rollout's own vars — see [FEATURE_FLAGS.md](FEATURE_FLAGS.md)), plus `PRODUCTION_SUPABASE_URL`, `PRODUCTION_SUPABASE_HOST`, `PRODUCTION_EXPECTED_DATABASE_HOST`, `PRODUCTION_API_URL`, `PRODUCTION_WEB_URL`, `PRODUCTION_RAILWAY_PROJECT_ID`, `PRODUCTION_RAILWAY_ENVIRONMENT`, `PRODUCTION_RAILWAY_API_SERVICE_ID`, `PRODUCTION_RAILWAY_WEB_SERVICE_ID`, `STAGING_DATABASE_HOST`, `STAGING_SUPABASE_HOST` (deny-list pair, mirroring the existing staging-side pattern).
 
-Secrets: `SUPABASE_SERVICE_ROLE_KEY` (feature-rollout), `PRODUCTION_SUPABASE_DB_URL`, `PRODUCTION_RAILWAY_TOKEN`. These are set directly by a repository admin (`gh secret set NAME --env production`) — never typed into an AI assistant conversation, since Supabase's own tooling deliberately cannot return a service-role key and a Railway token is a high-blast-radius credential.
+Secrets: `SUPABASE_SERVICE_ROLE_KEY` (feature-rollout), `PRODUCTION_SUPABASE_DB_URL`, `PRODUCTION_RAILWAY_API_TOKEN`. This repository currently uses a Railway account token because project tokens are unavailable on the current Railway plan; GitHub maps the secret to the Railway CLI's `RAILWAY_API_TOKEN` (never set alongside `RAILWAY_TOKEN`). These are set directly by a repository admin (`gh secret set NAME --env production`) — never typed into an AI assistant conversation, since Supabase's own tooling deliberately cannot return a service-role key and a Railway token is a high-blast-radius credential.
 
 ## Secret hygiene
 
