@@ -69,8 +69,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // asserts the human Environment gates and concurrency lock are intact). Migration apply: production-migration-apply-workspace.test.mjs
   // pins the ephemeral-workspace apply contract.
   // Railway account-token auth: `variables set` is preceded by an explicit `railway link` (account tokens have no project scope).
+  // Railway deploy: `railway up apps/api|apps/web` pass --path-as-root (otherwise the CLI fails with "prefix not found").
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '8593dd24a8261aab32b0275cf944b0a0fb672a60896aa82c7f58ff3179024cd7')
+  assert.equal(digest, '5d05d48af664ccfd988d741b8e3b68505f7ce1329474aa71782212ecad4adb0e')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
