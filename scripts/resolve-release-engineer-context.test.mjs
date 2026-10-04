@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { resolveRepairContext } from './resolve-release-engineer-context.mjs'
+import { parseFailedRunIdInput, resolveRepairContext } from './resolve-release-engineer-context.mjs'
 
 const REPO = 'acme/patelrep'
 const MAIN_SHA = 'a'.repeat(40)
@@ -171,4 +171,38 @@ test('retry guard: manual retry of a recovery failure is NOT skipped', async () 
   const run = ciRun({ head_branch: 'claude/recovery-123', status: 'completed', conclusion: 'failure' })
   const deps = makeDeps({ pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }) })
   assert.equal((await resolve(run, deps, 'workflow_dispatch')).skip, false)
+})
+
+test('real-shaped 11-digit GitHub run ids are accepted for automatic and manual resolution', async () => {
+  for (const id of [37165282257, 37165114302]) {
+    const ci = ciRun({ id, head_branch: 'main', head_sha: MAIN_SHA, pull_requests: [] })
+    const automatic = await resolve(ci, makeDeps())
+    assert.equal(automatic.rootFailedRunId, String(id))
+    assert.equal(automatic.repairBranch, `claude/recovery-${id}`)
+    assert.equal(automatic.skip, false)
+    const manual = await resolve({ ...ci, status: 'completed', conclusion: 'failure' }, makeDeps(), 'workflow_dispatch')
+    assert.equal(manual.rootFailedRunId, String(id))
+    assert.equal(parseFailedRunIdInput(String(id)), String(id))
+  }
+  assert.equal(parseFailedRunIdInput('  37165282257 '), '37165282257')
+  assert.equal(parseFailedRunIdInput('99999999999999999999'), '99999999999999999999')
+})
+
+test('malformed or unsafe run ids still fail closed', async () => {
+  for (const bad of ['0', '-1', '12a', '1e10', '0123', '1'.repeat(21), '37165282257; rm -rf /']) {
+    assert.throws(() => parseFailedRunIdInput(bad), /invalid/, bad)
+  }
+  assert.equal(parseFailedRunIdInput(''), '')
+  assert.equal(parseFailedRunIdInput(undefined), '')
+  await assert.rejects(resolve(ciRun({ id: 0 }), makeDeps()), /invalid/)
+  await assert.rejects(resolve(ciRun({ id: 2 ** 60 }), makeDeps()), /safe integer/)
+  await assert.rejects(resolve(ciRun({ id: '12a' }), makeDeps()), /invalid/)
+})
+
+test('Deploy Health Check failures resolve from the exact failed SHA on a recovery branch', async () => {
+  const run = { id: 37165114302, name: 'Deploy Health Check', head_sha: MAIN_SHA, head_branch: 'main', head_repository: { full_name: REPO } }
+  const result = await resolve(run, makeDeps())
+  assert.deepEqual([result.skip, result.repairSha, result.repairBranch, result.repairPrNumber, result.upstreamWorkflow], [false, MAIN_SHA, 'claude/recovery-37165114302', '', 'Deploy Health Check'])
+  await assert.rejects(resolve({ ...run, head_sha: 'main' }, makeDeps()), /head SHA is invalid/)
+  await assert.rejects(resolve({ ...run, head_repository: { full_name: 'evil/fork' } }, makeDeps()), /not from this repository/)
 })
