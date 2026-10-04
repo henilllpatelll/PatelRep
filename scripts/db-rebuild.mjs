@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const SUPABASE_CLI = 'supabase@2.76.8';
+const SUPABASE_CLI = 'supabase@2.112.0';
 const REPLAY_DIR = join(tmpdir(), 'patelrep-migration-replay');
 
 function run(command, argumentsList) {
@@ -18,7 +18,7 @@ function run(command, argumentsList) {
 // repository order preserved, byte-identical SQL) and rebuild against that
 // instead of the real directory.
 run('node', ['scripts/build-migration-replay-workspace.mjs', '--out', REPLAY_DIR]);
-run('npx', ['--yes', SUPABASE_CLI, 'start', '--workdir', REPLAY_DIR, '--exclude', 'studio,imgproxy,logflare,edge-runtime']);
+run('npx', ['--yes', SUPABASE_CLI, 'start', '--workdir', REPLAY_DIR, '--exclude', 'studio,imgproxy,logflare,vector,edge-runtime']);
 run('npx', ['--yes', SUPABASE_CLI, 'db', 'reset', '--local', '--workdir', REPLAY_DIR]);
 run('node', ['scripts/db-contracts.mjs']);
 console.log('Clean Supabase rebuild and schema-contract verification completed.');

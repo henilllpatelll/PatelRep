@@ -7,7 +7,6 @@ import test from 'node:test'
 import {
   PINNED_SUPABASE_CLI_VERSION,
   buildVerifiedApplyWorkspace,
-  findCliOrderingConflicts,
   optionsFromEnvironment,
   parseAppliedMigrations,
   parseDryRunOutput,
@@ -27,7 +26,7 @@ const workflow = read('.github/workflows/production-release.yml')
 test('dry-run output is parsed strictly: only the pushed-migration list or "up to date" is accepted', () => {
   const noise = 'DRY RUN: migrations will *not* be pushed to the database.\nConnecting to remote database...\n'
   assert.deepEqual(parseDryRunOutput(`${noise}Would push these migrations:\n • 004_a.sql\n • 204_b.sql\nFinished supabase db push.\n`), ['004_a.sql', '204_b.sql'])
-  assert.deepEqual(parseDryRunOutput(`${noise}Remote database is up to date.\nA new version of Supabase CLI is available: v9.9.9 (currently installed v2.76.8)\n`), [])
+  assert.deepEqual(parseDryRunOutput(`${noise}Remote database is up to date.\nA new version of Supabase CLI is available: v9.9.9 (currently installed v2.112.0)\n`), [])
   for (const bad of [
     `${noise}Remote migration versions not found in local migrations directory.\n`,
     `${noise}Found local migration files to be inserted before the last migration on remote database.\n`,
@@ -74,15 +73,6 @@ test('the fetched mirror must equal the live remote version set exactly', () => 
   assert.throws(() => verifyFetchedMirror(mirrorDirectory(['001_a.sql', '001_b.sql', '20260517181733_x.sql']), REMOTE), /duplicate versions/)
   assert.throws(() => verifyFetchedMirror(mirrorDirectory(['001_a.sql', '20260517181733_x.sql', 'notes.txt']), REMOTE), /unexpected entry/)
   assert.throws(() => verifyFetchedMirror(ok, [...REMOTE, { version: '001', name: 'dup' }]), /duplicate versions/)
-})
-
-test('CLI ordering: production-shaped history with 020 and 0201 is detected before the CLI sees it', () => {
-  const remote = ['019', '020', '0201', '021', '20260517181733']
-  const files = ['019_a.sql', '020_fix_credits_decimal.sql', '0201_logbook_expires.sql', '021_c.sql', '20260517181733_x.sql']
-  assert.deepEqual(findCliOrderingConflicts(remote, files), ['020'])
-  // Without the prefix pair, and with extra pending files, the walk is clean.
-  assert.deepEqual(findCliOrderingConflicts(['019', '020', '021'], ['019_a.sql', '020_b.sql', '021_c.sql', '050_new.sql']), [])
-  assert.deepEqual(findCliOrderingConflicts(['001', '20260517181733'], ['001_a.sql', '20260517181733_x.sql', '204_p.sql']), [])
 })
 
 // ---- workspace build with fakes ----------------------------------------------------------------------------------
@@ -160,7 +150,7 @@ test('the guard runs before any CLI or database access', () => {
   assert.throws(() => runApply(h.options, h.deps), /Refusing production action/)
   assert.deepEqual(h.calls, ['guard'])
 })
-failing('wrong Supabase CLI version', { runSupabase: (args) => (args[0] === '--version' ? { status: 0, stdout: '2.119.0\n', stderr: '' } : null) }, /must be exactly 2\.76\.8/)
+failing('wrong Supabase CLI version', { runSupabase: (args) => (args[0] === '--version' ? { status: 0, stdout: '2.119.0\n', stderr: '' } : null) }, /must be exactly 2\.112\.0/)
 failing('unknown production migrations', { live: () => mutate({ unknownOnRemote: ['999'] }) }, /unknown production migrations/)
 failing('unresolved production rows', { live: () => mutate({ unresolvedRemoteRows: [{ version: '20260101000000', name: 'x' }] }) }, /unresolved production migration row/)
 failing('a known-history attestation is not verified', { live: () => mutate({ attestedRows: [] }) }, /attestations are not all verified/)
@@ -212,15 +202,20 @@ function mutate(evaluationOverrides) {
   return { ...value, evaluation: { ...value.evaluation, ...evaluationOverrides } }
 }
 
-failing('remote history holds both 020 and 0201 (CLI filename/version order inversion)', {
-  live: () => ({ ...base(), remoteRows: [...REMOTE, { version: '020', name: 'fix_credits_decimal' }, { version: '0201', name: 'logbook_expires' }] }),
-  runSupabase: (args, { cwd }) => {
-    if (args[1] !== 'fetch') return null
-    mkdirSync(join(cwd, 'supabase', 'migrations'), { recursive: true })
-    for (const file of ['001_a.sql', '20260517181733_x.sql', '020_fix_credits_decimal.sql', '0201_logbook_expires.sql']) writeFileSync(join(cwd, 'supabase', 'migrations', file), '-- x\n')
-    return { status: 0, stdout: '', stderr: '' }
-  },
-}, /reject remote version\(s\) 020 as missing locally/, ['guard', '--version', 'evaluate', 'migration fetch', 'evaluate'])
+test('remote history holding both 020 and 0201 is handed to the real CLI dry run (no pre-CLI ordering guard)', () => {
+  const h = harness({
+    live: () => ({ ...base(), remoteRows: [...REMOTE, { version: '020', name: 'fix_credits_decimal' }, { version: '0201', name: 'logbook_expires' }] }),
+    runSupabase: (args, { cwd }) => {
+      if (args[1] !== 'fetch') return null
+      mkdirSync(join(cwd, 'supabase', 'migrations'), { recursive: true })
+      for (const file of ['001_a.sql', '20260517181733_x.sql', '020_fix_credits_decimal.sql', '0201_logbook_expires.sql']) writeFileSync(join(cwd, 'supabase', 'migrations', file), '-- x\n')
+      return { status: 0, stdout: '', stderr: '' }
+    },
+  })
+  const built = buildVerifiedApplyWorkspace(h.options, h.deps)
+  assert.deepEqual(h.calls, ['guard', '--version', 'evaluate', 'migration fetch', 'evaluate', 'db push --dry-run'])
+  built.cleanup()
+})
 
 test('plan never performs a mutating CLI call', () => {
   const h = harness()

@@ -113,7 +113,7 @@ jobs:
           node-version: '22'
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.76.8
+          version: 2.112.0
       - name: Refuse any non-production database target
         run: node scripts/production-target-guard.mjs
         env:

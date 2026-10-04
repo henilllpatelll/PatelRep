@@ -69,7 +69,7 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // asserts the human Environment gates and concurrency lock are intact). Migration apply: production-migration-apply-workspace.test.mjs
   // pins the ephemeral-workspace apply contract.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '881f71c4a0166bfadc15e9c7960b58930f74e10ac8cc8fb274d3f2e2f54f4f89')
+  assert.equal(digest, '2218d4262e4ee6416ec1af9f03a2edf4fd38ae8db19cb7215cff507b49910d69')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

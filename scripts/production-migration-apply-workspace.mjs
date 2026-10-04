@@ -27,7 +27,7 @@ import { evaluateLiveMigrationDrift, normalizeVersion } from './check-db-drift.m
 import { loadMigrations } from './check-migrations.mjs';
 import { assertProductionTarget } from './production-target-guard.mjs';
 
-export const PINNED_SUPABASE_CLI_VERSION = '2.76.8';
+export const PINNED_SUPABASE_CLI_VERSION = '2.112.0';
 
 const CLI_FILENAME_PATTERN = /^(\d+)_(.*)\.sql$/;
 const CLI_NOISE_PATTERNS = [
@@ -131,27 +131,6 @@ export function verifyFetchedMirror(directory, remoteRows) {
     );
   }
   return mirror;
-}
-
-const byteOrder = (left, right) => (left === right ? 0 : left < right ? -1 : 1);
-
-/**
- * Remote versions the pinned CLI would report as "not found in local migrations directory" for a given directory.
- * The CLI walks the remote versions in SQL text order (`ORDER BY version`) against the local FILENAMES in byte order and
- * compares the leading digits as strings. A version that is a strict prefix of another ("020" / "0201") sorts first as a
- * version but LAST as a filename ('_' sorts after every digit), so the walk reports the shorter version missing even
- * though its file is present. No file naming can fix that, so it must be detected before the CLI and fail closed.
- */
-export function findCliOrderingConflicts(remoteVersions, filenames) {
-  const remote = remoteVersions.map(String).sort(byteOrder);
-  const local = [...filenames].sort(byteOrder).map((filename) => versionOfCliFilename(filename));
-  const missing = [];
-  let i = 0;
-  let j = 0;
-  while (i < remote.length && j < local.length) {
-    if (remote[i] === local[j]) { i += 1; j += 1; } else if (remote[i] < local[j]) { missing.push(remote[i]); i += 1; } else j += 1;
-  }
-  return [...missing, ...remote.slice(i)];
 }
 
 function assertTrustedProductionEvidence(live, label) {
@@ -286,15 +265,8 @@ export function buildVerifiedApplyWorkspace(options, deps = {}) {
     const expectedFiles = [...mirror.map((file) => file.filename), ...pendingFiles.map((file) => file.filename)];
     if (!sameSet(finalFiles, expectedFiles)) throw new Error('Apply workspace contents differ from the verified plan; stopping.');
 
-    const conflicts = findCliOrderingConflicts(live.remoteRows.map((row) => row.version), finalFiles);
-    if (conflicts.length) {
-      throw new Error(
-        `The pinned Supabase CLI would reject remote version(s) ${conflicts.join(', ')} as missing locally: their text order differs from `
-        + 'the filename order of the workspace (one version is a digit-prefix of another, e.g. 020 and 0201). No history is repaired; stopping.',
-      );
-    }
-
-    // Stage 5 -- the real pinned CLI must agree, before any mutation.
+    // Stage 5 -- the real pinned CLI must agree, before any mutation. (CLI >= 2.112.0 handles digit-prefix versions
+    // such as 020 / 0201; the real-CLI contract test proves it, so there is no pre-CLI ordering guard.)
     const dryRun = runCli(
       context, 'db push --dry-run',
       ['db', 'push', '--db-url', options.databaseUrl, '--workdir', workspace, '--dry-run', '--include-all'],

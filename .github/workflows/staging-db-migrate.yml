@@ -19,7 +19,7 @@ jobs:
           node-version: "22"
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.76.8
+          version: 2.112.0
       - name: Confirm migration history is safe to release
         run: node scripts/check-migrations.mjs
       - name: Refuse any non-staging database target
