@@ -1,0 +1,256 @@
+name: Claude Release Engineer
+
+# Autonomous CI-repair agent (Phase 2B: bounded retries + trusted publishing; no auto-merge, no auto-release).
+# Three jobs with separated authority:
+#   resolve  - trusted resolver from main decides the exact failing code, recovery root and attempt number
+#   repair   - Claude edits/tests locally with a READ-ONLY token; it cannot push or touch PRs
+#   publish  - deterministic script holding the GitHub App token creates ONE commit per attempt, stamps the
+#              recovery-lineage trailers, pushes normally (never force) and creates/updates exactly one PR
+# Claude never receives production credentials; privileged work stays in the dedicated production workflows.
+
+on:
+  workflow_dispatch:
+    inputs:
+      failed_run_id:
+        description: Failed workflow run id to diagnose (leave empty for a general task)
+        required: false
+        type: string
+      instructions:
+        description: Optional task instructions for the release engineer
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - CI
+      - Staging Candidate
+      - Production Migration Evidence Audit
+      - Production Release
+      - Deploy Health Check
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  issues: read
+  checks: read
+
+jobs:
+  resolve:
+    name: Resolve repair context
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Coarse eligibility only: successful upstream runs never invoke Claude and fork runs are ignored
+    # (untrusted logs/code). The trusted resolver owns lineage and the automatic attempt cap.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'failure' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    outputs:
+      trusted_control_plane_sha: ${{ steps.trusted-sha.outputs.sha }}
+      skip: ${{ steps.ctx.outputs.skip }}
+      manual: ${{ steps.ctx.outputs.manual }}
+      retry_exhausted: ${{ steps.ctx.outputs.retry_exhausted }}
+      automatic_retry_allowed: ${{ steps.ctx.outputs.automatic_retry_allowed }}
+      failed_run_id: ${{ steps.ctx.outputs.failed_run_id }}
+      root_failed_run_id: ${{ steps.ctx.outputs.root_failed_run_id }}
+      repair_attempt: ${{ steps.ctx.outputs.repair_attempt }}
+      repair_sha: ${{ steps.ctx.outputs.repair_sha }}
+      repair_branch: ${{ steps.ctx.outputs.repair_branch }}
+      repair_pr_number: ${{ steps.ctx.outputs.repair_pr_number }}
+      upstream_workflow: ${{ steps.ctx.outputs.upstream_workflow }}
+    steps:
+      # Trusted resolver pinned to the default branch (never failed PR/candidate code).
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          path: .trusted-resolver
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      # Freeze ONE exact trusted control-plane revision. Every later trusted-code checkout (the publisher)
+      # uses this SHA, so a moving `main` can never make resolver and publisher run different code.
+      - name: Capture trusted control-plane SHA
+        id: trusted-sha
+        run: |
+          sha=$(git -C .trusted-resolver rev-parse HEAD)
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then echo "Invalid trusted control-plane SHA"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Trusted control plane: $sha"
+
+      # Deterministically resolve the exact failing code and lineage. Fails closed (no Claude) if unprovable.
+      - name: Resolve repair context
+        id: ctx
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_JSON: ${{ toJSON(github.event.workflow_run) }}
+          INPUT_RUN_ID: ${{ inputs.failed_run_id }}
+        run: node .trusted-resolver/scripts/resolve-release-engineer-context.mjs
+
+      - name: Report automatic retry exhaustion
+        if: steps.ctx.outputs.retry_exhausted == 'true' && steps.ctx.outputs.skip == 'true'
+        env:
+          ROOT: ${{ steps.ctx.outputs.root_failed_run_id }}
+          ATTEMPT: ${{ steps.ctx.outputs.repair_attempt }}
+          MAX: ${{ steps.ctx.outputs.max_automatic_attempts }}
+        run: |
+          echo "::warning::Autonomous retry limit reached for recovery root $ROOT (next attempt $ATTEMPT would exceed $MAX). Claude was not invoked; the repair PR stays open for human investigation."
+          echo "Autonomous retry limit reached for recovery root $ROOT after $MAX attempts. Dispatch this workflow manually to continue." >> "$GITHUB_STEP_SUMMARY"
+
+  repair:
+    name: Diagnose and repair (read-only)
+    needs: resolve
+    if: needs.resolve.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Serialize by RESOLVED recovery root (not the latest failing run id); never cancel a running repair.
+    concurrency:
+      group: claude-recovery-root-${{ needs.resolve.outputs.root_failed_run_id }}
+      cancel-in-progress: false
+    outputs:
+      has_changes: ${{ steps.capture.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.repair_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Prove exact failing checkout
+        env:
+          REPAIR_SHA: ${{ needs.resolve.outputs.repair_sha }}
+        run: test "$(git rev-parse HEAD)" = "$REPAIR_SHA"
+
+      - name: Run Claude release engineer
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Read-only workflow token: Claude can inspect runs/jobs/logs/artifacts but cannot publish.
+          github_token: ${{ github.token }}
+          # Exactly two bot actors: Dependabot PRs and the trusted publisher App repair PRs (attempts 2/3). Never wildcard.
+          allowed_bots: dependabot[bot],patelrep-release-engineer[bot]
+          additional_permissions: |
+            actions: read
+          prompt: |
+            You are the PatelRep autonomous release engineer for ${{ github.repository }}.
+            Before acting, read CLAUDE.md and docs/AUTONOMOUS_RELEASE_ENGINEER.md in full and obey them,
+            including the database safety invariants and the production authority model.
+
+            Trigger: ${{ github.event_name }}
+            Upstream workflow: ${{ needs.resolve.outputs.upstream_workflow }}
+            Latest failed workflow run id: ${{ needs.resolve.outputs.failed_run_id }}
+            Recovery root run id: ${{ needs.resolve.outputs.root_failed_run_id }}
+            Autonomous attempt: ${{ needs.resolve.outputs.repair_attempt }} (manual dispatch: ${{ needs.resolve.outputs.manual }})
+            Repair SHA (exact failing code, already checked out): ${{ needs.resolve.outputs.repair_sha }}
+            Repair PR number (empty means a new recovery PR will be opened): ${{ needs.resolve.outputs.repair_pr_number }}
+            Manual instructions: ${{ inputs.instructions || 'none' }}
+
+            Always begin from the exact failing code at the repair SHA; do not switch to main.
+            Follow the failure-repair procedure in the document: establish the root cause from the failed
+            run's jobs, logs and artifacts first; make the smallest deterministic fix with a regression
+            test; run targeted tests locally.
+            You work locally only. Edit files and run tests, but do NOT commit, push, create or edit PRs,
+            comment, merge, or run any git command that changes history or branches: a trusted publisher
+            step will create the single repair commit, push it and open or update the PR from your working
+            tree. Never push directly to main and do not dispatch Production Release.
+            When finished, write a short markdown report to .repair-report/summary.md with the sections
+            "Root cause", "Changes" and "Tests run" (it is collected and removed before publishing).
+          claude_args: >-
+            --max-turns 60
+            --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git merge-base:*),Bash(git cat-file:*),Bash(git rev-list:*),Bash(git restore:*),Bash(gh run view:*),Bash(gh run list:*),Bash(gh run download:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr list:*),Bash(gh api:*),Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python:*),Bash(python3:*),Bash(pip:*),Bash(pytest:*),Bash(cd:*),Bash(ls:*),Bash(cat:*),Bash(mkdir:*),Bash(unzip:*),mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log"
+            --disallowedTools "Bash(git push:*),Bash(git push --force:*),Bash(git push -f:*),Bash(git push --force-with-lease:*),Bash(git push origin main:*),Bash(git push origin HEAD:main:*),Bash(git commit:*),Bash(git reset:*),Bash(git rebase:*),Bash(git merge:*),Bash(git checkout:*),Bash(git switch:*),Bash(git branch:*),Bash(git tag:*),Bash(git remote:*),Bash(git config:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr close:*),Bash(gh pr review:*),Bash(gh issue:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh run rerun:*),Bash(gh run cancel:*),Bash(gh api * --method*),Bash(gh api * -X*),Bash(gh api * -f*),Bash(gh api * -F*),Bash(gh api * --input*),Bash(supabase:*),Bash(railway:*),Bash(psql:*)"
+
+      # Trusted capture: Claude must not have changed history; hand over a net patch + report only.
+      - name: Capture repair patch
+        id: capture
+        env:
+          REPAIR_SHA: ${{ needs.resolve.outputs.repair_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$REPAIR_SHA"
+          mkdir -p "$RUNNER_TEMP/repair-out"
+          if [ -f .repair-report/summary.md ]; then cp .repair-report/summary.md "$RUNNER_TEMP/repair-out/summary.md"; fi
+          rm -rf .repair-report
+          git add -A
+          git diff --cached --binary "$REPAIR_SHA" > "$RUNNER_TEMP/repair-out/repair.patch"
+          size=$(wc -c < "$RUNNER_TEMP/repair-out/repair.patch")
+          if [ "$size" -gt 5242880 ]; then echo "Repair patch is too large ($size bytes)"; exit 1; fi
+          if [ "$size" -gt 0 ]; then echo "has_changes=true" >> "$GITHUB_OUTPUT"; else echo "has_changes=false" >> "$GITHUB_OUTPUT"; echo "::warning::Claude produced no changes; nothing to publish."; fi
+
+      - name: Upload repair output
+        if: steps.capture.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: repair-output
+          path: ${{ runner.temp }}/repair-out
+          retention-days: 3
+          if-no-files-found: error
+
+  publish:
+    name: Publish repair (trusted)
+    needs: [resolve, repair]
+    if: needs.repair.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: claude-recovery-root-${{ needs.resolve.outputs.root_failed_run_id }}
+      cancel-in-progress: false
+    steps:
+      # The only job holding the write-capable PatelRep GitHub App token.
+      - name: Create PatelRep GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+
+      # Two SIBLING checkouts under the workspace: the repair worktree (exact failing candidate, the only
+      # place a Claude patch is ever applied) and the trusted publisher code (exact frozen control-plane
+      # SHA, no persisted credentials). Candidate or patched files can never replace publisher code.
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ needs.resolve.outputs.repair_sha }}
+          fetch-depth: 0
+          path: repair-worktree
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          path: trusted-publisher
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: repair-output
+          path: ${{ runner.temp }}/repair-out
+
+      - name: Publish repair commit and PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          PATCH_FILE: ${{ runner.temp }}/repair-out/repair.patch
+          SUMMARY_FILE: ${{ runner.temp }}/repair-out/summary.md
+          REPAIR_SHA: ${{ needs.resolve.outputs.repair_sha }}
+          REPAIR_BRANCH: ${{ needs.resolve.outputs.repair_branch }}
+          REPAIR_PR_NUMBER: ${{ needs.resolve.outputs.repair_pr_number }}
+          ROOT_FAILED_RUN_ID: ${{ needs.resolve.outputs.root_failed_run_id }}
+          FAILED_RUN_ID: ${{ needs.resolve.outputs.failed_run_id }}
+          REPAIR_ATTEMPT: ${{ needs.resolve.outputs.repair_attempt }}
+          UPSTREAM_WORKFLOW: ${{ needs.resolve.outputs.upstream_workflow }}
+          MANUAL: ${{ needs.resolve.outputs.manual }}
+        working-directory: repair-worktree
+        run: node "$GITHUB_WORKSPACE/trusted-publisher/scripts/publish-release-engineer-repair.mjs"

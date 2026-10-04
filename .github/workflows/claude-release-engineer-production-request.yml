@@ -1,0 +1,121 @@
+name: Claude Release Engineer Production Request
+
+# Phase 2D: after Phase 2C has auto-merged a low-risk recovery PR, REQUEST (never perform) a production release.
+# Automatic request != automatic production approval. The only write this workflow can make is dispatching the
+# existing Production Release workflow, whose `production` Environment still requires a human approval before
+# any production job runs. It holds no production credential, never uses the `production` Environment and never
+# touches rollback. Two jobs with separated authority:
+#   resolve         - read-only token, trusted scripts from main, decides eligibility; holds NO write credential
+#   request-release - the ONLY job with the PatelRep GitHub App token (actions: write, nothing else); runs the exact
+#                     frozen control-plane SHA, never checks out candidate code, re-validates everything from fresh
+#                     GitHub state and only then dispatches Production Release (patch bump only)
+# It stays inert unless the repository owner has manually set the repository variable
+# PRODUCTION_AUTO_RELEASE_ENABLED to "true"; no workflow ever creates or changes that variable.
+
+on:
+  workflow_run:
+    workflows:
+      - Claude Release Engineer Auto-Merge
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  resolve:
+    name: Resolve production release request eligibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only a successful, same-repository Auto-Merge run is ever considered; its artifact is the identity.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    outputs:
+      trusted_control_plane_sha: ${{ steps.trusted-sha.outputs.sha }}
+      eligible: ${{ steps.eligibility.outputs.eligible }}
+      merge_commit_sha: ${{ steps.eligibility.outputs.merge_commit_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          path: .trusted-resolver
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      # Freeze ONE exact trusted control-plane revision; the request job checks out exactly this SHA.
+      - name: Capture trusted control-plane SHA
+        id: trusted-sha
+        run: |
+          sha=$(git -C .trusted-resolver rev-parse HEAD)
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then echo "Invalid trusted control-plane SHA"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Trusted control plane: $sha"
+
+      - name: Resolve eligibility
+        id: eligibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          PRODUCTION_AUTO_RELEASE_ENABLED: ${{ vars.PRODUCTION_AUTO_RELEASE_ENABLED }}
+        run: node .trusted-resolver/scripts/production-release-request.mjs resolve
+
+  request-release:
+    name: Request Production Release (trusted)
+    needs: resolve
+    if: needs.resolve.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One production request at a time; a running request is never cancelled.
+    concurrency:
+      group: patelrep-production-release-request
+      cancel-in-progress: false
+    steps:
+      # Trusted request code at the EXACT frozen control-plane SHA. Candidate code is never checked out.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          path: trusted-request
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      # Full re-validation from fresh GitHub state, including idempotency (no active/duplicate release run).
+      - name: Revalidate eligibility and duplicate state
+        id: revalidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_MERGE_COMMIT_SHA: ${{ needs.resolve.outputs.merge_commit_sha }}
+          PRODUCTION_AUTO_RELEASE_ENABLED: ${{ vars.PRODUCTION_AUTO_RELEASE_ENABLED }}
+        run: node trusted-request/scripts/production-release-request.mjs request
+
+      # The only place the write-capable App token exists, created only after revalidation succeeded.
+      # It may do exactly one thing: dispatch the existing Production Release workflow.
+      - name: Create PatelRep GitHub App token
+        id: app-token
+        if: steps.revalidate.outputs.dispatch == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+          permission-actions: write
+
+      # Always a patch release at the exact merge commit. Production does not run until a human approves the
+      # `production` Environment on the dispatched run, and that run re-verifies all provenance first.
+      - name: Request Production Release (human Environment approval still required)
+        if: steps.revalidate.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          TARGET_SHA: ${{ steps.revalidate.outputs.target_sha }}
+          SOURCE_RUN_ID: ${{ steps.revalidate.outputs.source_run_id }}
+        run: |
+          printf '%s' "$TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$SOURCE_RUN_ID" | grep -Eq '^[1-9][0-9]{0,19}$'
+          gh workflow run production-release.yml --repo "$REPO" --ref main \
+            -f release_sha="$TARGET_SHA" -f version_bump=patch -f automation_source_run_id="$SOURCE_RUN_ID"
+          echo "Requested Production Release for $TARGET_SHA (patch). It now awaits human production Environment approval." | tee -a "$GITHUB_STEP_SUMMARY"

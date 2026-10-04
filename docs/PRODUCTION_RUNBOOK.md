@@ -48,6 +48,16 @@ Concise operational procedures for releasing, recovering, and verifying PatelRep
 3. Dispatch **Production Rollback** with that version, approve it, and verify health completes successfully.
 4. Once stable, write up what happened and fix forward through the normal PR path before attempting to re-release the version that caused the outage.
 
+## Automated Production Release request (Phase 2D)
+
+A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **It does not deploy by itself: it waits for the `production` Environment approval.** Review the recovery PR and the release content summary before approving; rejecting the approval leaves production untouched. After approval the run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
+
+- Automatic requests are declined when the live production identity (public `/health` + web meta) differs from the newest managed Release, e.g. after you roll back by hand, or when `Deploy Health Check` has since succeeded on the same commit. Either way a human decides.
+- To stop automatic requests immediately: set `PRODUCTION_AUTO_RELEASE_ENABLED` to anything other than `true` (or delete it). Manual releases are unaffected.
+- If a release fails or partially deploys, nothing retries and nothing rolls back automatically. Decide deliberately: fix forward through a normal PR and manual release, or run Production Rollback by hand (see above).
+- `release version: ... exists without a completed production GitHub Release` means a `vX.Y.Z` tag exists with no completed GitHub Release (an interrupted or manually created tag). The workflow never skips or deletes tags: find out why the tag exists, then fix it deliberately (e.g. complete or remove the orphan tag by hand) before releasing again.
+- The very first managed release is `v1.8.0` and must be dispatched manually; automated requests stay ineligible until a completed `vX.Y.Z` GitHub Release exists.
+
 ## Known release-safety risk (as of this phase)
 
 The `staging` GitHub Environment currently has no configured variables or secrets (a pre-existing gap from Phases 4–5, not introduced here). Until an administrator configures it per [ENVIRONMENTS.md](ENVIRONMENTS.md), `Staging Candidate` cannot actually run, which means no commit can currently produce a real `Staging Gate` success — and Production Release's eligibility check will correctly refuse every release until that is fixed. This is the safe failure direction (refuse rather than skip verification), not a bug in this workflow.
