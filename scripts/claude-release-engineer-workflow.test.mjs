@@ -118,7 +118,7 @@ test('production release publishes only release identifiers for failure recovery
 })
 
 test('resolver never trusts staging workflow_run head data and fails closed', () => {
-  const staging = section(resolver, "run.name === 'Staging Candidate'", "run.name === 'Production Migration Evidence Audit'")
+  const staging = section(resolver, "workflowName === 'Staging Candidate'", "workflowName === 'Production Migration Evidence Audit'")
   assert.doesNotMatch(staging, /run\.head_sha|run\.head_branch/)
   assert.match(staging, /requireSameRepoPr\(pr, repo, context\.candidate_sha, context\.candidate_branch\)/)
   assert.match(resolver, /pr\.state !== 'open'/)
@@ -139,7 +139,8 @@ test('Deploy Health Check is monitored, only failures of same-repository runs in
   assert.match(workflow, /^      - Deploy Health Check$/m)
   assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'failure'/)
   assert.match(workflow, /head_repository\.full_name == github\.repository/)
-  assert.match(resolver, /run\.name === 'Deploy Health Check'/)
+  assert.match(resolver, /workflowName === 'Deploy Health Check'/)
+  assert.match(resolver, /'\.github\/workflows\/production-release\.yml': 'Production Release'/)
   assert.doesNotMatch(executable, /^\s+environment:/m)
 })
 

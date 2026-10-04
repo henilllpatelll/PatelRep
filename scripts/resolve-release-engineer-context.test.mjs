@@ -174,3 +174,26 @@ test('Deploy Health Check failures resolve from the exact failed SHA on a recove
   await assert.rejects(resolve({ ...run, head_sha: 'main' }, makeDeps()), /head SHA is invalid/)
   await assert.rejects(resolve({ ...run, head_repository: { full_name: 'evil/fork' } }, makeDeps()), /not from this repository/)
 })
+
+test('production release with its dynamic run-name is identified by workflow path (real run 37216970315 shape)', async () => {
+  const run = {
+    id: 37216970315,
+    name: 'Production Release ' + MAIN_SHA,
+    path: '.github/workflows/production-release.yml@refs/heads/main',
+    head_sha: MAIN_SHA, head_branch: 'main', head_repository: { full_name: REPO },
+  }
+  const artifact = { release_sha: RELEASE_SHA, pr_number: '' }
+  const result = await resolve(run, makeDeps({ artifact }))
+  assert.equal(result.upstreamWorkflow, 'Production Release')
+  assert.equal(result.repairSha, RELEASE_SHA)
+  const mainTip = { ...run, name: 'Production Release main-tip (automated request from run 5)' }
+  assert.equal((await resolve(mainTip, makeDeps({ artifact }))).upstreamWorkflow, 'Production Release')
+})
+
+test('workflow identity fails closed: a spoofed name cannot override the path, and unknown paths are rejected', async () => {
+  const base = { id: 820, head_sha: MAIN_SHA, head_branch: 'main', head_repository: { full_name: REPO } }
+  const artifact = { release_sha: RELEASE_SHA, pr_number: '' }
+  await assert.rejects(resolve({ ...base, name: 'Production Release', path: '.github/workflows/other.yml@refs/heads/main' }, makeDeps({ artifact })), /unsupported upstream workflow/)
+  await assert.rejects(resolve({ ...base, name: 'Production Release ' + MAIN_SHA }, makeDeps({ artifact })), /unsupported upstream workflow/)
+  await assert.rejects(resolve({ ...base, name: 'Production Release', path: '.github/workflows/claude-release-engineer.yml@refs/heads/main' }, makeDeps({ artifact })), /unsupported upstream workflow/)
+})

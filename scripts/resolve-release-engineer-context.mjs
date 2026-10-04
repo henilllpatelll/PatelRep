@@ -27,6 +27,24 @@ const RECOVERY_PREFIX = RECOVERY_BRANCH_PREFIX
 const STAGING_KEYS = ['candidate_branch', 'candidate_sha', 'ci_run_id', 'pr_number']
 const RELEASE_KEYS = ['pr_number', 'release_sha']
 
+// Stable workflow identity. `run.name` is the run's display title, which a workflow may override with `run-name`
+// (Production Release does), so the workflow FILE path is the trusted identity whenever the run carries one.
+const WORKFLOW_BY_PATH = {
+  '.github/workflows/ci.yml': 'CI',
+  '.github/workflows/staging-candidate.yml': 'Staging Candidate',
+  '.github/workflows/production-migration-evidence.yml': 'Production Migration Evidence Audit',
+  '.github/workflows/production-release.yml': 'Production Release',
+  '.github/workflows/deploy-check.yml': 'Deploy Health Check',
+}
+
+export function workflowIdentity(run) {
+  if (typeof run.path === 'string' && run.path) {
+    const workflowPath = run.path.split('@')[0]
+    return WORKFLOW_BY_PATH[workflowPath] ?? `path ${workflowPath}`
+  }
+  return run.name
+}
+
 function fail(message) {
   throw new Error(`release-engineer context: ${message}`)
 }
@@ -110,7 +128,9 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
   // Branch the FAILED code came from; distinct from repairBranch, which may be a brand-new recovery branch.
   let failedSourceBranch = run.head_branch
 
-  if (run.name === 'CI') {
+  const workflowName = workflowIdentity(run)
+
+  if (workflowName === 'CI') {
     repairSha = run.head_sha
     if (!SHA.test(repairSha ?? '')) fail('CI run head SHA is invalid')
     let prNumber = run.pull_requests?.[0]?.number
@@ -124,7 +144,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
       candidatePr = pr
       repairPrNumber = String(pr.number)
     }
-  } else if (run.name === 'Staging Candidate') {
+  } else if (workflowName === 'Staging Candidate') {
     // Never trust head_sha/head_branch here: they describe main, not the candidate (also for retry detection).
     const context = await deps.readArtifactJson(rootFailedRunId, 'staging-candidate-context')
     exactKeys(context, STAGING_KEYS, 'staging-candidate-context')
@@ -137,14 +157,14 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     failedSourceBranch = context.candidate_branch
     candidatePr = pr
     repairPrNumber = context.pr_number
-  } else if (run.name === 'Production Migration Evidence Audit') {
+  } else if (workflowName === 'Production Migration Evidence Audit') {
     repairSha = run.head_sha
     if (!SHA.test(repairSha ?? '')) fail('audit run head SHA is invalid')
-  } else if (run.name === 'Deploy Health Check') {
+  } else if (workflowName === 'Deploy Health Check') {
     // Scheduled/push monitoring runs trusted code from main; repair that exact revision.
     repairSha = run.head_sha
     if (!SHA.test(repairSha ?? '')) fail('Deploy Health Check run head SHA is invalid')
-  } else if (run.name === 'Production Release') {
+  } else if (workflowName === 'Production Release') {
     // release_sha input may differ from head_sha; read the target the run itself resolved.
     const context = await deps.readArtifactJson(rootFailedRunId, 'production-release-context')
     exactKeys(context, RELEASE_KEYS, 'production-release-context')
@@ -153,7 +173,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     if (!(await deps.commitExists(context.release_sha))) fail('release SHA is not a known commit')
     repairSha = context.release_sha
   } else {
-    fail(`unsupported upstream workflow: ${run.name}`)
+    fail(`unsupported upstream workflow: ${workflowName}`)
   }
 
   // Lineage is inherited only from a proven open PR candidate head; main-based failures always start a
@@ -172,7 +192,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     if (failedSourceBranch?.startsWith(RECOVERY_PREFIX)) fail(`failed source ${failedSourceBranch} is a recovery branch without an open PR`)
     repairBranch = recoveryBranchFor(root)
   }
-  return lineageResult({ eventName, upstreamWorkflow: run.name, failedRunId: rootFailedRunId, root, attempt, repairSha, repairBranch, repairPrNumber })
+  return lineageResult({ eventName, upstreamWorkflow: workflowName, failedRunId: rootFailedRunId, root, attempt, repairSha, repairBranch, repairPrNumber })
 }
 
 /** Validates the manual failed_run_id input; returns '' when none was given. */
