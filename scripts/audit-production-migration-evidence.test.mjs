@@ -8,8 +8,11 @@ import {
   auditSummary,
   buildReadOnlyTransaction,
   buildSanitizedFailureReport,
+  buildAssertionQuery,
+  CLEAN_TYPE_QUERY,
   classifyDatabaseError,
   createLibpqEnvironment,
+  escapeLikePattern,
   evidenceResult,
   fingerprintStatements,
   findExactRepositorySqlMatch,
@@ -18,7 +21,30 @@ import {
   runReadOnlyQuery,
   runAudit,
   safeRemoteRowEvidence,
+  sqlContainsLiteral,
+  sqlStringLiteral,
+  UNAVAILABILITY_QUERY,
 } from './audit-production-migration-evidence.mjs';
+
+function hasBalancedSqlStringLiterals(sql) {
+  for (let index = 0; index < sql.length; index += 1) {
+    if (sql[index] !== "'") continue;
+    index += 1;
+    while (index < sql.length) {
+      if (sql[index] !== "'") {
+        index += 1;
+        continue;
+      }
+      if (sql[index + 1] === "'") {
+        index += 2;
+        continue;
+      }
+      break;
+    }
+    if (index >= sql.length) return false;
+  }
+  return true;
+}
 
 test('statement fingerprints are deterministic and never expose raw SQL in evidence', () => {
   const statements = ['CREATE TABLE public.safe_table (id uuid);'];
@@ -77,6 +103,62 @@ test('only PostgreSQL URLs are accepted for the private libpq connection environ
     error.message === 'Production database URL must use a supported PostgreSQL connection format.'
     && !error.message.includes(unsafeUrl)
   ));
+});
+
+test('trusted audit constants become valid PostgreSQL string literals', () => {
+  assert.equal(sqlStringLiteral('normal fragment'), "'normal fragment'");
+  assert.equal(sqlStringLiteral("bucket_id = 'work-order-photos'"), "'bucket_id = ''work-order-photos'''");
+  assert.equal(sqlStringLiteral("O'Brien's 100%_ready"), "'O''Brien''s 100%_ready'");
+});
+
+test('trusted evidence fragments become literal LIKE substrings with an explicit escape character', () => {
+  assert.equal(escapeLikePattern('task_creation'), 'task!_creation');
+  assert.equal(escapeLikePattern('housekeeper_shift_recap'), 'housekeeper!_shift!_recap');
+  assert.equal(escapeLikePattern('100%_ready'), '100!%!_ready');
+  assert.equal(escapeLikePattern('value!with!escape'), 'value!!with!!escape');
+  assert.equal(sqlContainsLiteral('task_creation'), "'%task!_creation%' ESCAPE '!'");
+  assert.equal(sqlContainsLiteral('housekeeper_shift_recap'), "'%housekeeper!_shift!_recap%' ESCAPE '!'");
+  assert.equal(sqlContainsLiteral('100%_ready'), "'%100!%!_ready%' ESCAPE '!'");
+  assert.equal(sqlContainsLiteral('value!with!escape'), "'%value!!with!!escape%' ESCAPE '!'");
+  assert.equal(sqlContainsLiteral("bucket_id = 'work-order-photos'"), "'%bucket!_id = ''work-order-photos''%' ESCAPE '!'");
+});
+
+test('photo policy evidence preserves quoted bucket predicates with valid SQL literals', () => {
+  const upload = policyExists('storage', 'objects', 'Authenticated staff can upload work order photos', 'a', 'authenticated', 'with_check', "bucket_id = 'work-order-photos'");
+  const cleanPhotos = policyExists('storage', 'objects', 'Authenticated staff can view clean photos', 'r', 'authenticated', 'using', "bucket_id = 'clean-photos'");
+  assert.match(upload, /ILIKE '%bucket!_id = ''work-order-photos''%' ESCAPE '!'/);
+  assert.match(cleanPhotos, /ILIKE '%bucket!_id = ''clean-photos''%' ESCAPE '!'/);
+  assert.equal(hasBalancedSqlStringLiterals(upload), true);
+  assert.equal(hasBalancedSqlStringLiterals(cleanPhotos), true);
+});
+
+test('all pending migration predicates embed into single read-only assertion SELECT statements', () => {
+  const pending = new Map(PENDING_MIGRATION_EFFECTS.map(([filename, checks]) => [filename, checks]));
+  for (const [filename, checks] of pending) {
+    for (const [assertion, predicate] of checks) {
+      const query = buildAssertionQuery(assertion, predicate);
+      assert.doesNotThrow(() => assertReadOnlyQuery(query), `${filename}:${assertion}`);
+      assert.equal(hasBalancedSqlStringLiterals(query), true, `${filename}:${assertion}`);
+    }
+  }
+  const checks = (filename) => pending.get(filename).map(([, predicate]) => predicate).join('\n');
+  assert.match(checks('050_work_order_photos_bucket.sql'), /bucket!_id = ''work-order-photos''/);
+  assert.match(checks('058_clean_photos_private.sql'), /bucket!_id = ''clean-photos''/);
+  assert.match(checks('099_ai_interactions_widen_briefing_types.sql'), /task!_creation/);
+  assert.match(checks('100_ai_interactions_housekeeper_shift_recap.sql'), /housekeeper!_shift!_recap/);
+  assert.match(checks('202_schema_readiness_contract.sql'), /schema!_contract!_version'', 130/);
+  assert.match(checks('202_schema_readiness_contract.sql'), /room!_status/);
+  assert.match(checks('202_schema_readiness_contract.sql'), /match!_sop!_chunks/);
+});
+
+test('duplicate migration structural evidence uses the same literal LIKE contract', () => {
+  for (const [name, predicate] of [['clean_type', CLEAN_TYPE_QUERY], ['room_unavailability', UNAVAILABILITY_QUERY]]) {
+    const query = buildAssertionQuery(name, predicate);
+    assert.doesNotThrow(() => assertReadOnlyQuery(query));
+    assert.equal(hasBalancedSqlStringLiterals(query), true);
+  }
+  assert.match(UNAVAILABILITY_QUERY, /OUT!_OF!_ORDER/);
+  assert.match(UNAVAILABILITY_QUERY, /room!_unavailability!_events/);
 });
 
 test('the read-only wrapper rejects writes and makes the database transaction the final safety boundary', () => {
@@ -175,7 +257,7 @@ test('catalog predicates require named interaction constraints, definitions, and
   const pending = new Map(PENDING_MIGRATION_EFFECTS.map(([filename, checks]) => [filename, checks]));
   const checks = (filename) => pending.get(filename).map(([, predicate]) => predicate).join('\n');
   assert.match(checks('099_ai_interactions_widen_briefing_types.sql'), /conname = 'ai_interactions_interaction_type_check'/);
-  assert.match(checks('100_ai_interactions_housekeeper_shift_recap.sql'), /housekeeper_shift_recap/);
+  assert.match(checks('100_ai_interactions_housekeeper_shift_recap.sql'), /housekeeper!_shift!_recap/);
   assert.match(checks('120_logbook_search_indexes.sql'), /pg_get_indexdef/);
   assert.match(checks('121_logbook_collaboration.sql'), /logbook_entry_acknowledgments/);
   assert.match(checks('202_schema_readiness_contract.sql'), /provolatile = 's'/);

@@ -11,24 +11,35 @@ const READ_ONLY_QUERY = /^\s*(?:select|with|show)\b/i;
 const SUPPORTED_DATABASE_PROTOCOLS = new Set(['postgres:', 'postgresql:']);
 const SUPPORTED_SSL_MODES = new Set(['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full']);
 
-const existsTable = (name) => `to_regclass('${name}') IS NOT NULL`;
+export function sqlStringLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+export function escapeLikePattern(value) {
+  return String(value).replace(/!/g, '!!').replace(/%/g, '!%').replace(/_/g, '!_');
+}
+
+export function sqlContainsLiteral(value) {
+  return `${sqlStringLiteral(`%${escapeLikePattern(value)}%`)} ESCAPE ${sqlStringLiteral('!')}`;
+}
+const existsTable = (name) => `to_regclass(${sqlStringLiteral(name)}) IS NOT NULL`;
 const columnDefinition = (table, column, { type, notNull, defaultIncludes = [] } = {}) => {
-  const conditions = [`a.attrelid = to_regclass('${table}')`, `a.attname = '${column}'`, 'NOT a.attisdropped'];
-  if (type) conditions.push(`format_type(a.atttypid, a.atttypmod) = '${type}'`);
+  const conditions = [`a.attrelid = to_regclass(${sqlStringLiteral(table)})`, `a.attname = ${sqlStringLiteral(column)}`, 'NOT a.attisdropped'];
+  if (type) conditions.push(`format_type(a.atttypid, a.atttypmod) = ${sqlStringLiteral(type)}`);
   if (notNull !== undefined) conditions.push(`a.attnotnull IS ${notNull ? 'TRUE' : 'FALSE'}`);
-  for (const value of defaultIncludes) conditions.push(`coalesce(pg_get_expr(d.adbin, d.adrelid), '') ILIKE '%${value}%'`);
+  for (const value of defaultIncludes) conditions.push(`coalesce(pg_get_expr(d.adbin, d.adrelid), '') ILIKE ${sqlContainsLiteral(value)}`);
   return `EXISTS (SELECT 1 FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum WHERE ${conditions.join(' AND ')})`;
 };
-const namedConstraint = (table, name, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass('${table}') AND c.conname = '${name}'${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE '%${fragment}%'`).join('')})`;
-const anyConstraint = (table, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass('${table}')${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE '%${fragment}%'`).join('')})`;
-const indexDefinition = (name, table, fragments = [], predicateFragments = []) => `EXISTS (SELECT 1 FROM pg_index i JOIN pg_class idx ON idx.oid = i.indexrelid JOIN pg_class rel ON rel.oid = i.indrelid WHERE idx.relname = '${name}' AND i.indrelid = to_regclass('${table}')${fragments.map((fragment) => ` AND pg_get_indexdef(i.indexrelid) ILIKE '%${fragment}%'`).join('')}${predicateFragments.map((fragment) => ` AND coalesce(pg_get_expr(i.indpred, i.indrelid), '') ILIKE '%${fragment}%'`).join('')})`;
-const tableRlsEnabled = (table) => `EXISTS (SELECT 1 FROM pg_class WHERE oid = to_regclass('${table}') AND relrowsecurity)`;
+const namedConstraint = (table, name, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass(${sqlStringLiteral(table)}) AND c.conname = ${sqlStringLiteral(name)}${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE ${sqlContainsLiteral(fragment)}`).join('')})`;
+const anyConstraint = (table, fragments) => `EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = to_regclass(${sqlStringLiteral(table)})${fragments.map((fragment) => ` AND pg_get_constraintdef(c.oid) ILIKE ${sqlContainsLiteral(fragment)}`).join('')})`;
+const indexDefinition = (name, table, fragments = [], predicateFragments = []) => `EXISTS (SELECT 1 FROM pg_index i JOIN pg_class idx ON idx.oid = i.indexrelid JOIN pg_class rel ON rel.oid = i.indrelid WHERE idx.relname = ${sqlStringLiteral(name)} AND i.indrelid = to_regclass(${sqlStringLiteral(table)})${fragments.map((fragment) => ` AND pg_get_indexdef(i.indexrelid) ILIKE ${sqlContainsLiteral(fragment)}`).join('')}${predicateFragments.map((fragment) => ` AND coalesce(pg_get_expr(i.indpred, i.indrelid), '') ILIKE ${sqlContainsLiteral(fragment)}`).join('')})`;
+const tableRlsEnabled = (table) => `EXISTS (SELECT 1 FROM pg_class WHERE oid = to_regclass(${sqlStringLiteral(table)}) AND relrowsecurity)`;
 export function policyExists(schema, table, name, command, role, expressionType, expressionFragment) {
   const expression = expressionType === 'with_check' ? 'p.polwithcheck' : 'p.polqual';
   const roleCheck = role === 'public'
     ? `p.polroles = '{0}'::oid[]`
-    : `p.polroles @> ARRAY[(SELECT oid FROM pg_roles WHERE rolname = '${role}')]::oid[]`;
-  return `EXISTS (SELECT 1 FROM pg_policy p JOIN pg_class rel ON rel.oid = p.polrelid JOIN pg_namespace n ON n.oid = rel.relnamespace WHERE n.nspname = '${schema}' AND rel.relname = '${table}' AND p.polname = '${name}' AND p.polcmd = '${command}' AND ${roleCheck} AND coalesce(pg_get_expr(${expression}, p.polrelid), '') ILIKE '%${expressionFragment}%')`;
+    : `p.polroles @> ARRAY[(SELECT oid FROM pg_roles WHERE rolname = ${sqlStringLiteral(role)})]::oid[]`;
+  return `EXISTS (SELECT 1 FROM pg_policy p JOIN pg_class rel ON rel.oid = p.polrelid JOIN pg_namespace n ON n.oid = rel.relnamespace WHERE n.nspname = ${sqlStringLiteral(schema)} AND rel.relname = ${sqlStringLiteral(table)} AND p.polname = ${sqlStringLiteral(name)} AND p.polcmd = ${sqlStringLiteral(command)} AND ${roleCheck} AND coalesce(pg_get_expr(${expression}, p.polrelid), '') ILIKE ${sqlContainsLiteral(expressionFragment)})`;
 }
 const interactionConstraint = (values) => namedConstraint('public.ai_interactions', 'ai_interactions_interaction_type_check', values);
 const BASE_INTERACTION_TYPES = ['task_creation', 'room_prediction', 'sop_query', 'failure_prediction', 'shift_summary', 'gm_insight', 'assignment_suggestion', 'onboarding_assistant', 'work_order_triage', 'work_order_creation', 'guest_request_creation', 'task_assignment', 'general', 'housekeeping_briefing'];
@@ -47,7 +58,7 @@ export const PENDING_MIGRATION_EFFECTS = [
     ['clean_photos_authenticated_read_policy', policyExists('storage', 'objects', 'Authenticated staff can view clean photos', 'r', 'authenticated', 'using', "bucket_id = 'clean-photos'")],
     ['clean_photos_public_read_policy_absent', `NOT ${policyExists('storage', 'objects', 'Public can view clean photos', 'r', 'public', 'using', "bucket_id = 'clean-photos'")}`],
   ]],
-  ['098_flip_web_redesign_sections_on.sql', [['redesign_sections_default', `EXISTS (SELECT 1 FROM pg_attrdef d JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum WHERE d.adrelid = 'public.tenants'::regclass AND a.attname = 'web_redesign_sections' AND pg_get_expr(d.adbin, d.adrelid) LIKE '%housekeeping%')`]], true],
+  ['098_flip_web_redesign_sections_on.sql', [['redesign_sections_default', `EXISTS (SELECT 1 FROM pg_attrdef d JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum WHERE d.adrelid = 'public.tenants'::regclass AND a.attname = 'web_redesign_sections' AND pg_get_expr(d.adbin, d.adrelid) LIKE ${sqlContainsLiteral('housekeeping')})`]], true],
   ['099_ai_interactions_widen_briefing_types.sql', [['interaction_type_constraint', interactionConstraint(BRIEFING_INTERACTION_TYPES)]]],
   ['100_ai_interactions_housekeeper_shift_recap.sql', [['interaction_type_constraint', interactionConstraint([...BRIEFING_INTERACTION_TYPES, 'housekeeper_shift_recap'])]]],
   ['119_shift_summary_identity.sql', [['handoff_data_column', columnDefinition('public.shift_summaries', 'handoff_data', { type: 'jsonb', notNull: true, defaultIncludes: ['{}'] })], ['updated_at_column', columnDefinition('public.shift_summaries', 'updated_at', { type: 'timestamp with time zone', notNull: true, defaultIncludes: ['now'] })], ['shift_identity_constraint', anyConstraint('public.shift_summaries', ['UNIQUE (tenant_id, shift_id, shift_date)'])]], true],
@@ -56,7 +67,7 @@ export const PENDING_MIGRATION_EFFECTS = [
   ['122_logbook_phase8_retention_translations.sql', [['archive_reason', columnDefinition('public.logbook_entries', 'archive_reason', { type: 'text' }) + ' AND ' + anyConstraint('public.logbook_entries', ['archive_reason', 'manual', 'expired'])], ['archived_by', columnDefinition('public.logbook_entries', 'archived_by', { type: 'uuid' }) + ` AND EXISTS (SELECT 1 FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey) WHERE c.conrelid = to_regclass('public.logbook_entries') AND c.contype = 'f' AND a.attname = 'archived_by' AND c.confdeltype = 'n')`], ['expiry_index', indexDefinition('idx_logbook_entries_expiry_cleanup', 'public.logbook_entries', ['expires_at'], ['expires_at IS NOT NULL', 'archived_at IS NULL'])], ['translations_structure', existsTable('public.logbook_content_translations') + ' AND ' + columnDefinition('public.logbook_content_translations', 'source_hash', { type: 'text', notNull: true }) + ' AND ' + anyConstraint('public.logbook_content_translations', ['UNIQUE (tenant_id, source_type, source_id, source_hash, target_language)'])], ['translation_index_and_rls', indexDefinition('idx_logbook_translation_lookup', 'public.logbook_content_translations', ['tenant_id', 'source_type', 'source_id', 'source_hash', 'target_language']) + ' AND ' + tableRlsEnabled('public.logbook_content_translations') + ' AND ' + policyExists('public', 'logbook_content_translations', 'tenant_isolation', '*', 'public', 'using', 'tenant_id')], ['event_type_constraint', anyConstraint('public.logbook_entry_events', ['attachment_removed', 'comment_added', 'acknowledgment_requested', 'acknowledgment_reset'])] ]],
   ['124_housekeeping_workload_settings.sql', [['target_credits_column', columnDefinition('public.tenants', 'housekeeping_target_credits', { type: 'numeric(5,2)' })], ['credit_weights_column', columnDefinition('public.tenants', 'housekeeping_credit_weights', { type: 'jsonb' })], ['capacity_overrides_column', columnDefinition('public.tenants', 'housekeeping_capacity_overrides', { type: 'jsonb' })]]],
   ['126_housekeeping_assignment_preferences.sql', [['assignment_preferences_column', columnDefinition('public.tenants', 'housekeeping_assignment_preferences', { type: 'jsonb' })]]],
-  ['202_schema_readiness_contract.sql', [['schema_readiness_function', `EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'app_schema_readiness' AND pg_get_function_identity_arguments(p.oid) = '' AND p.provolatile = 's' AND p.prosecdef AND coalesce(array_to_string(p.proconfig, ','), '') LIKE '%search_path=pg_catalog, public%' AND pg_get_functiondef(p.oid) LIKE '%schema_contract_version%, 130%' AND pg_get_functiondef(p.oid) LIKE '%room_status%' AND pg_get_functiondef(p.oid) LIKE '%match_sop_chunks%' AND pg_get_functiondef(p.oid) LIKE '%pgcrypto%' AND pg_get_functiondef(p.oid) LIKE '%vector%' AND has_function_privilege('anon', p.oid, 'EXECUTE') AND has_function_privilege('authenticated', p.oid, 'EXECUTE') AND has_function_privilege('service_role', p.oid, 'EXECUTE') AND NOT has_function_privilege('public', p.oid, 'EXECUTE'))`]]],
+  ['202_schema_readiness_contract.sql', [['schema_readiness_function', `EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'app_schema_readiness' AND pg_get_function_identity_arguments(p.oid) = '' AND p.provolatile = 's' AND p.prosecdef AND coalesce(array_to_string(p.proconfig, ','), '') LIKE ${sqlContainsLiteral('search_path=pg_catalog, public')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral("schema_contract_version', 130")} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('room_status')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('match_sop_chunks')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('pgcrypto')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('vector')} AND has_function_privilege('anon', p.oid, 'EXECUTE') AND has_function_privilege('authenticated', p.oid, 'EXECUTE') AND has_function_privilege('service_role', p.oid, 'EXECUTE') AND NOT has_function_privilege('public', p.oid, 'EXECUTE'))`]]],
 ];
 
 export function normalizeSql(sql) {
@@ -210,12 +221,12 @@ export function runReadOnlyQuery(databaseUrl, query, execute = execFileSync, lab
   }
 }
 
-function assertionQuery(name, predicate) {
-  return `SELECT json_build_object('assertion', '${name}', 'passed', (${predicate}))::text`;
+export function buildAssertionQuery(name, predicate) {
+  return `SELECT json_build_object('assertion', ${sqlStringLiteral(name)}, 'passed', (${predicate}))::text`;
 }
 
 function unresolvedRowsQuery(statementsAvailable) {
-  const ids = UNRESOLVED_REMOTE_IDS.map((id) => `'${id}'`).join(', ');
+  const ids = UNRESOLVED_REMOTE_IDS.map(sqlStringLiteral).join(', ');
   const statements = statementsAvailable ? ", 'statements', coalesce(to_jsonb(statements), '[]'::jsonb)" : '';
   return `SELECT json_build_object('version', version, 'name', coalesce(name, '')${statements})::text FROM supabase_migrations.schema_migrations WHERE version IN (${ids}) ORDER BY version`;
 }
@@ -233,18 +244,18 @@ export function assertMigrationHistoryShape(shape) {
   return { statementsAvailable: shape.statements === true };
 }
 
-const CLEAN_TYPE_QUERY = `SELECT json_build_object(
+export const CLEAN_TYPE_QUERY = `SELECT json_build_object(
   'column_definition', ${columnDefinition('public.room_assignments', 'clean_type', { type: 'text', notNull: true, defaultIncludes: ['DEP'] })},
   'allowed_values_constraint', ${anyConstraint('public.room_assignments', ['CHECK', 'clean_type', 'DEP', 'FULL', 'LIGHT'])},
-  'comment_present', coalesce(col_description(to_regclass('public.room_assignments'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('public.room_assignments') AND attname = 'clean_type' AND NOT attisdropped)), '') LIKE '%DEP, FULL, or LIGHT%'
+  'comment_present', coalesce(col_description(to_regclass('public.room_assignments'), (SELECT attnum FROM pg_attribute WHERE attrelid = to_regclass('public.room_assignments') AND attname = 'clean_type' AND NOT attisdropped)), '') LIKE ${sqlContainsLiteral('DEP, FULL, or LIGHT')}
 )::text`;
 
-const UNAVAILABILITY_QUERY = `SELECT json_build_object(
-  'function_signature_and_security', EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND p.prosecdef AND coalesce(array_to_string(p.proconfig, ','), '') LIKE '%search_path=public%'),
-  'type_validation', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE '%OUT_OF_ORDER%' AND pg_get_functiondef(p.oid) LIKE '%OUT_OF_SERVICE%'),
-  'period_insert', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE '%INSERT INTO room_unavailability_periods%'),
-  'room_status_update', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE '%UPDATE room_status%' AND pg_get_functiondef(p.oid) LIKE '%OOO%'),
-  'history_and_event_writes', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE '%room_status_history%' AND pg_get_functiondef(p.oid) LIKE '%room_unavailability_events%' AND pg_get_functiondef(p.oid) LIKE '%CREATED%'),
+export const UNAVAILABILITY_QUERY = `SELECT json_build_object(
+  'function_signature_and_security', EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND p.prosecdef AND coalesce(array_to_string(p.proconfig, ','), '') LIKE ${sqlContainsLiteral('search_path=public')}),
+  'type_validation', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('OUT_OF_ORDER')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('OUT_OF_SERVICE')}),
+  'period_insert', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('INSERT INTO room_unavailability_periods')}),
+  'room_status_update', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('UPDATE room_status')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('OOO')}),
+  'history_and_event_writes', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('room_status_history')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('room_unavailability_events')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('CREATED')}),
   'service_role_only_privileges', EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.create_room_unavailability(uuid,uuid,text,text,text,text,timestamp with time zone,uuid,uuid,uuid,text)') AND has_function_privilege('service_role', p.oid, 'EXECUTE') AND NOT has_function_privilege('anon', p.oid, 'EXECUTE') AND NOT has_function_privilege('authenticated', p.oid, 'EXECUTE') AND NOT has_function_privilege('public', p.oid, 'EXECUTE'))
 )::text`;
 
@@ -281,7 +292,7 @@ export function runAudit(databaseUrl, execute = execFileSync) {
   });
   const pendingRows = PENDING_MIGRATION_EFFECTS.map(([filename, checks, requiresDataProof = false]) => {
     const assertions = checks.map(([name, predicate]) => {
-      const row = runReadOnlyQuery(databaseUrl, assertionQuery(name, predicate), execute, `pending migration ${filename} audit`)[0] ?? {};
+      const row = runReadOnlyQuery(databaseUrl, buildAssertionQuery(name, predicate), execute, `pending migration ${filename} audit`)[0] ?? {};
       return { assertion: name, passed: typeof row.passed === 'boolean' ? row.passed : null };
     });
     return { migration: filename, history_status: 'pending', assertions, result: evidenceResult(assertions, requiresDataProof) };
