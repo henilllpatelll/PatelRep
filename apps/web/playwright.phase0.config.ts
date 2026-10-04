@@ -16,8 +16,11 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: `npm run dev -- --hostname localhost --port ${webPort}`,
+    // Webpack dev: Turbopack dev (16.3.0-preview) fails to resolve next/font/google
+    // ("@vercel/turbopack-next/internal/font/google/font"), so /login never serves.
+    command: `npm run dev -- --webpack --hostname localhost --port ${webPort}`,
     url: `${baseURL}/login`,
+    timeout: 120_000,
     reuseExistingServer: !process.env.CI,
     env: {
       ...process.env,
