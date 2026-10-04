@@ -5,7 +5,7 @@ import { PUBLISHER_EMAIL, formatTrailers } from './recovery-lineage.mjs'
 import {
   GATE_APP,
   Ineligible,
-  PUBLISHER_APP_SLUG,
+  PUBLISHER_APP,
   RECOVERY_BRANCH_RULESET_PATTERN,
   TRUSTED_BOT,
   classifyChangedFile,
@@ -22,14 +22,14 @@ const SHA3 = 'c'.repeat(40)
 const STAGING_RUN = '37200000002'
 const CI_RUN = '37200000001'
 const BRANCH = `claude/recovery-${ROOT}`
-const APP_ID = 424242
+const APP_ID = PUBLISHER_APP.integrationId
 
 const protectedRuleset = (overrides = {}) => ({
   id: 9,
   target: 'branch',
   enforcement: 'active',
   conditions: { ref_name: { include: [RECOVERY_BRANCH_RULESET_PATTERN], exclude: [] } },
-  rules: [{ type: 'creation' }, { type: 'update' }],
+  rules: [{ type: 'creation' }, { type: 'update' }, { type: 'non_fast_forward' }],
   bypass_actors: [{ actor_id: APP_ID, actor_type: 'Integration', bypass_mode: 'always' }],
   ...overrides,
 })
@@ -72,7 +72,6 @@ function world() {
     checks: { 'CI Gate': [gate('CI Gate')], 'Staging Gate': [gate('Staging Gate')] },
     reviews: [],
     unresolvedThreads: 0,
-    app: { id: APP_ID, slug: PUBLISHER_APP_SLUG },
     rulesets: [protectedRuleset()],
     mergeCalls: [],
     mergeResponse: { merged: true, sha: 'd'.repeat(40) },
@@ -80,10 +79,6 @@ function world() {
     beforeMerge: null,
   }
   const deps = {
-    getApp: async () => {
-      if (state.app instanceof Error) throw state.app
-      return state.app
-    },
     listBranchRulesets: async () => {
       if (state.rulesets instanceof Error) throw state.rulesets
       return state.rulesets
@@ -410,8 +405,9 @@ test('missing or weakened recovery-branch protection makes auto-merge ineligible
     'tag ruleset': [protectedRuleset({ target: 'tag' })],
     'wrong target pattern': [protectedRuleset({ conditions: { ref_name: { include: ['refs/heads/claude/*'], exclude: [] } } })],
     'pattern excluded': [protectedRuleset({ conditions: { ref_name: { include: [RECOVERY_BRANCH_RULESET_PATTERN], exclude: ['refs/heads/claude/recovery-1*'] } } })],
-    'missing creation': [protectedRuleset({ rules: [{ type: 'update' }] })],
-    'missing update': [protectedRuleset({ rules: [{ type: 'creation' }] })],
+    'missing creation': [protectedRuleset({ rules: [{ type: 'update' }, { type: 'non_fast_forward' }] })],
+    'missing update': [protectedRuleset({ rules: [{ type: 'creation' }, { type: 'non_fast_forward' }] })],
+    'missing non_fast_forward': [protectedRuleset({ rules: [{ type: 'creation' }, { type: 'update' }] })],
     'only deletion rule': [protectedRuleset({ rules: [{ type: 'deletion' }] })],
     'no bypass actor': bypass(),
     'user bypass': bypass({ actor_id: 1, actor_type: 'User', bypass_mode: 'always' }),
@@ -445,18 +441,23 @@ test('a qualifying ruleset is enough even when other rulesets exist, but another
   assert.equal((await evaluateAutoMerge(input, deps)).eligible, false)
 })
 
-test('the PatelRep App id is resolved from its exact slug, never assumed', async () => {
-  const apps = [null, undefined, {}, { slug: PUBLISHER_APP_SLUG }, { id: APP_ID }, { id: APP_ID, slug: 'other-app' }, { id: '424242', slug: PUBLISHER_APP_SLUG }, { id: 0, slug: PUBLISHER_APP_SLUG }, new Error('HTTP 404')]
-  for (const app of apps) await assertIneligible((s) => { s.app = app }, PROTECTION)
-  // The ruleset actor id must equal the resolved id: a different resolved id invalidates the same ruleset.
-  await assertIneligible((s) => { s.app = { id: APP_ID + 1, slug: PUBLISHER_APP_SLUG } }, PROTECTION)
+test('the trusted Integration id is pinned (5179664) and never looked up at runtime', async () => {
+  assert.equal(PUBLISHER_APP.integrationId, 5179664)
+  assert.equal(PUBLISHER_APP.slug, 'patelrep-release-engineer')
+  const { deps } = world()
+  assert.equal(deps.getApp, undefined, 'no GitHub App lookup dependency exists')
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, true)
+  for (const id of [APP_ID + 1, APP_ID - 1, 0, '5179664', null, 424242]) {
+    await assertIneligible((s) => { s.rulesets = [protectedRuleset({ bypass_actors: [{ actor_id: id, actor_type: 'Integration', bypass_mode: 'always' }] })] }, PROTECTION)
+  }
   await assertIneligible((s) => { s.rulesets = new Error('HTTP 403: Resource not accessible by integration') }, PROTECTION)
 })
 
 test('ordinary non-recovery PRs are rejected on identity before any ruleset read', async () => {
   const { state, deps } = world()
   let reads = 0
-  deps.getApp = async () => { reads += 1; return state.app }
+  const list = deps.listBranchRulesets
+  deps.listBranchRulesets = async () => { reads += 1; return list() }
   state.pr.head.ref = 'feature/x'
   state.context.candidate_branch = 'feature/x'
   assert.equal((await evaluateAutoMerge(input, deps)).eligible, false)
@@ -490,7 +491,7 @@ test('a successful Staging Candidate run with no candidate artifact is a clean n
   const { state, deps } = world()
   state.context = null
   const calls = []
-  for (const name of ['getPr', 'getApp', 'listBranchRulesets', 'listPrCommits', 'listPrFiles', 'listCheckRuns', 'merge']) {
+  for (const name of ['getPr', 'listBranchRulesets', 'listPrCommits', 'listPrFiles', 'listCheckRuns', 'merge']) {
     const original = deps[name]
     deps[name] = async (...args) => { calls.push(name); return original(...args) }
   }

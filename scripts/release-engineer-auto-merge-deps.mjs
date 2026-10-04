@@ -70,7 +70,6 @@ export function realAutoMergeDeps({ repo, readToken, mergeToken }) {
         await new Promise((resolve) => setTimeout(resolve, MERGEABLE_DELAY_MS))
       }
     },
-    getApp: async (slug) => api(`apps/${encodeURIComponent(slug)}`),
     // Full detail objects (the list endpoint omits bypass actors and rules). Read-only; never mutates rulesets.
     listBranchRulesets: async () => {
       const summaries = JSON.parse(read(['api', `repos/${repo}/rulesets?per_page=100`]))

@@ -161,13 +161,15 @@ test('the operating document records the Phase 2C boundaries', () => {
 
 test('both resolver and merge paths verify the recovery-branch ruleset through the shared policy, read-only', () => {
   assert.match(scripts.policy, /await requirePublisherOnlyRecoveryBranches\(deps\)/)
-  assert.match(scripts.policy, /deps\.getApp\(PUBLISHER_APP_SLUG\)/)
+  assert.match(scripts.policy, /integrationId: 5179664/)
+  assert.match(scripts.policy, /'creation', 'update', 'non_fast_forward'/)
   assert.match(scripts.policy, /refs\/heads\/claude\/recovery-\*/)
-  assert.match(scripts.policy, /actor\.actor_id === app\.id/)
-  assert.doesNotMatch(scripts.policy, /actor_id: \d|actor_id === \d/, 'the App id is resolved from the slug, never hard-coded')
+  assert.match(scripts.policy, /actor\.actor_id === PUBLISHER_APP\.integrationId/)
+  const scriptCode = Object.values(scripts).join('\n').split('\n').filter((line) => !/^\s*\/\//.test(line)).join('\n')
+  assert.doesNotMatch(scriptCode, /getApp|\bapps\/\$\{|gh api apps\/|\/apps\//, 'no dynamic GET /apps lookup remains')
+  assert.doesNotMatch(scripts.policy, /actor_id === \d/)
   assert.match(scripts.resolver, /evaluateAutoMerge/)
   assert.match(scripts.merge, /validateAutoMergeCandidate/)
-  assert.match(scripts.deps, /apps\/\$\{encodeURIComponent\(slug\)\}/)
   assert.match(scripts.deps, /rulesets\?per_page=100/)
   // Rulesets are only ever read: the single mutating API call in all scripts is the exact-SHA merge PUT.
   const mutating = [...Object.values(scripts).join('\n').matchAll(/'--method', '(PUT|POST|PATCH|DELETE)'/g)].map((m) => m[1])
