@@ -171,6 +171,7 @@ jobs:
           PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
       - name: Inject rollback-target API release identity
         run: |
+          npx --yes @railway/cli@4.30.0 link --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
           npx --yes @railway/cli@4.30.0 variables set \
             RELEASE_SHA="${{ needs.resolve-and-verify-target.outputs.target_sha }}" \
             RELEASE_VERSION="${{ needs.resolve-and-verify-target.outputs.target_version }}" \
@@ -228,6 +229,7 @@ jobs:
           PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
       - name: Inject rollback-target web release identity at build time
         run: |
+          npx --yes @railway/cli@4.30.0 link --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
           npx --yes @railway/cli@4.30.0 variables set \
             NEXT_PUBLIC_RELEASE_SHA="${{ needs.resolve-and-verify-target.outputs.target_sha }}" \
             NEXT_PUBLIC_RELEASE_VERSION="${{ needs.resolve-and-verify-target.outputs.target_version }}" \

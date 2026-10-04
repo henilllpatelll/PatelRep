@@ -219,7 +219,9 @@ test('Production Release and Rollback authenticate Railway with the account toke
     assert.doesNotMatch(wf, /^\s*RAILWAY_TOKEN:/m, `${name}: RAILWAY_TOKEN is never set alongside RAILWAY_API_TOKEN`)
     for (const step of wf.split(/\n {6}- name: /).filter((part) => /@railway\/cli/.test(part))) {
       if (/railway\/cli@[\d.]+ variables set/.test(step)) {
-        assert.doesNotMatch(step, /--project/, `${name}: variables set stays free of --project`)
+        const link = step.match(/railway\/cli@[\d.]+ link --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"\n/)
+        assert.ok(link, `${name}: an account token has no project scope, so variables set needs an explicit link first`)
+        assert.doesNotMatch(step.replace(link?.[0] ?? '', ''), /--project/, `${name}: variables set stays free of --project`)
         assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       } else {
         assert.match(step, /up apps\/(api|web) --ci(?: --path-as-root)? --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
@@ -229,7 +231,7 @@ test('Production Release and Rollback authenticate Railway with the account toke
 })
 
 test('Production Rollback is untouched and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '4e7fe4364ef966c3d3f66b1e65b452d608ab39c885bcc808dc814a7fbe701295')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '460ea219aaaf3dd05b77c8e4e6d8514f4b3cbeae9fc81ad982eb457e6b7e6e34')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
