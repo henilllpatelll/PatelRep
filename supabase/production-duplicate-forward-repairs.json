@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "environment": "production",
+  "repairs": [
+    {
+      "source_file": "042_room_assignment_clean_type.sql",
+      "repair_file": "204_reconcile_room_assignment_clean_type.sql",
+      "repair_sha256": "23045e3e51546c30e18317dd867194c86ae198374d1f4a9dfa168c9276dd96af",
+      "evidence": "Production Migration Evidence Audit run 37212200992: 042 effects present (column, allowed-values constraint, comment); numeric 042 row not provable, so 204 is the deterministic forward reconciliation"
+    },
+    {
+      "source_file": "110_room_unavailability_type.sql",
+      "repair_file": "205_reconcile_room_unavailability_type.sql",
+      "repair_sha256": "a1e02b24fc748bcf052f8139d13ddd8667b531eeb1584f71325f938272d3be7e",
+      "evidence": "Production Migration Evidence Audit run 37212200992: 110 effects absent in production, so 205 applies the canonical behavior as a forward repair"
+    }
+  ]
+}

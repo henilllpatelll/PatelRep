@@ -96,6 +96,18 @@ Each alias is an explicit, production-only, one-to-one `remote_id` (14-digit tim
 
 Do not infer aliases from timestamps, ordering, counts, or nearby filenames. Add one only when a repository record proves the precise mapping, and cite that record in `evidence`. An unmapped timestamp remains an unknown production migration and stops the release exactly like any other unknown ID. This registry reconciles history for comparison only: it neither changes schema nor rewrites Supabase migration metadata. Never use `supabase migration repair` as a substitute.
 
+### Production-only known history (attestations, not aliases)
+
+Three production rows exist only in production history and match no repository SQL (Production Migration Evidence Audit run `37212200992`). They are recorded in [`supabase/production-known-history.json`](../supabase/production-known-history.json). This is **not** an alias registry: an attested row never maps to a repository migration, never becomes an effective local version and is never proof that a repository migration ran (nearby files such as `038_add_fk_indexes.sql` are not identity).
+
+An entry is accepted only when live production matches ALL of: `remote_id`, stored `name`, statement count and the normalized statement SHA-256 (the same `scripts/migration-statement-fingerprint.mjs` the audit uses). Any mismatch, an unreadable `statements` column, a malformed or duplicate entry, or an entry that collides with an alias or repository migration name is a hard failure; every other unknown row still blocks the release. Staging never loads the file, and no raw SQL is stored or printed (only counts, names and fingerprints).
+
+### Grandfathered duplicate forward repairs
+
+Numeric history cannot prove which duplicate file a numeric row represents. [`supabase/production-duplicate-forward-repairs.json`](../supabase/production-duplicate-forward-repairs.json) maps each unprovable duplicate to one unique, later forward migration pinned by content hash: `042_room_assignment_clean_type.sql` -> `204_reconcile_room_assignment_clean_type.sql` (idempotent re-assertion of the clean_type contract) and `110_room_unavailability_type.sql` -> `205_reconcile_room_unavailability_type.sql` (the canonical function and service-role-only privileges, whose effects were absent). The historical files are never edited. A repair satisfies duplicate coverage only when it is already recorded on production, or (`--allow-pending`) is pending in that same controlled release; otherwise the duplicate group stays incomplete. It is not a generic bypass, and unrelated incomplete duplicate groups still block.
+
+The read-only **Production Migration Evidence Audit** now also reports the same drift evaluation (`migration_preflight` in its sanitized report): known rows verified, unknown rows, aliases, duplicate coverage, forward repair status and pending repository migrations. Run it after this reconciliation merges and before another Production Release. Nothing here runs `supabase migration repair`, writes `supabase_migrations`, or applies 204/205; the controlled release does that.
+
 The current unproven production timestamp set and evidence review are tracked in [`PRODUCTION_MIGRATION_ALIAS_EVIDENCE.md`](PRODUCTION_MIGRATION_ALIAS_EVIDENCE.md). Future migrations continue to use the repository's deterministic numeric numbering rules.
 
 The manual **Staging Database Migrate** workflow can run only from `main`, uses GitHub's `staging` environment, and accepts only `STAGING_SUPABASE_DB_URL`. It lists pending identifiers, applies them to staging, then requires drift `CLEAN` and schema contracts. It has no production project-ref or URL input.

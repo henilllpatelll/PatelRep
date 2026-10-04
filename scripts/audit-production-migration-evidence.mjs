@@ -1,10 +1,19 @@
 #!/usr/bin/env node
-import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { loadMigrations } from './check-migrations.mjs';
+import {
+  REMOTE_HISTORY_QUERY,
+  attestedStatementsQuery,
+  buildLocalMigrationInventory,
+  evaluateMigrationDrift,
+  loadDuplicateForwardRepairRegistry,
+  loadProductionKnownHistoryRegistry,
+  loadProductionMigrationAliasRegistry,
+} from './check-db-drift.mjs';
+import { fingerprintStatements, normalizeSql } from './migration-statement-fingerprint.mjs';
 
 const UNRESOLVED_REMOTE_IDS = ['20260517181733', '20260604070643', '20260724140005'];
 const READ_ONLY_QUERY = /^\s*(?:select|with|show)\b/i;
@@ -70,14 +79,7 @@ export const PENDING_MIGRATION_EFFECTS = [
   ['202_schema_readiness_contract.sql', [['schema_readiness_function', `EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'app_schema_readiness' AND pg_get_function_identity_arguments(p.oid) = '' AND p.provolatile = 's' AND p.prosecdef AND coalesce(array_to_string(p.proconfig, ','), '') LIKE ${sqlContainsLiteral('search_path=pg_catalog, public')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral("schema_contract_version', 130")} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('room_status')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('match_sop_chunks')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('pgcrypto')} AND pg_get_functiondef(p.oid) LIKE ${sqlContainsLiteral('vector')} AND has_function_privilege('anon', p.oid, 'EXECUTE') AND has_function_privilege('authenticated', p.oid, 'EXECUTE') AND has_function_privilege('service_role', p.oid, 'EXECUTE') AND NOT has_function_privilege('public', p.oid, 'EXECUTE'))`]]],
 ];
 
-export function normalizeSql(sql) {
-  return String(sql).replace(/\r\n/g, '\n').trim().replace(/\s+/g, ' ');
-}
-
-export function fingerprintStatements(statements) {
-  const normalized = (Array.isArray(statements) ? statements : [statements]).map(normalizeSql);
-  return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
-}
+export { fingerprintStatements, normalizeSql };
 
 export function assertReadOnlyQuery(query) {
   const normalized = String(query).trim().replace(/;$/, '');
@@ -272,6 +274,80 @@ export function buildSafeReport({ unresolvedRows, migrations, duplicateRows, pen
   };
 }
 
+/** Sanitized, SQL-free view of the shared production drift evaluation (counts, ids, names, fingerprints only). */
+export function buildPreflightReport(evaluation) {
+  return {
+    status: evaluation.status,
+    unknown_production_migration_count: evaluation.unknownOnRemote.length,
+    unknown_production_migrations: evaluation.unknownOnRemote,
+    unresolved_production_rows: evaluation.unresolvedRemoteRows.map((row) => ({ version: row.version, name: row.name })),
+    verified_known_history: evaluation.attestedRows.map((row) => ({
+      remote_id: row.remoteId,
+      stored_name: row.storedName,
+      statement_count: row.statementCount,
+      statements_sha256: row.statementsSha256,
+    })),
+    verified_repository_aliases: evaluation.verifiedAliases.map((alias) => ({
+      remote_id: alias.remoteId,
+      repository_file: alias.repositoryFile,
+      source: alias.source,
+    })),
+    duplicate_history: evaluation.duplicateCoverage.groups.map((group) => ({
+      identifier: group.version,
+      verified_files: group.verifiedFiles,
+      forward_repaired_files: group.forwardRepairedFiles ?? [],
+      unverified_files: group.unverifiedFiles,
+    })),
+    forward_duplicate_repairs: evaluation.duplicateCoverage.groups.flatMap((group) => (group.forwardRepairs ?? []).map((repair) => ({
+      source_file: repair.sourceFile,
+      repair_file: repair.repairFile,
+      status: repair.status,
+    }))),
+    pending_repository_migrations: evaluation.missingOnRemote,
+  };
+}
+
+function safePreflightFailure(error) {
+  const message = error instanceof Error ? String(error.message).split('\n')[0].slice(0, 300) : '';
+  const safe = message && !/postgres(?:ql)?:\/\/|password|secret/i.test(message) ? message : 'production migration preflight could not be evaluated';
+  return { status: 'FAILED', reason: safe };
+}
+
+/**
+ * The same production drift/preflight evaluation as the controlled release (with --allow-pending semantics), run
+ * through the read-only audit connection only. Never mutates anything and never emits raw SQL.
+ */
+export function runMigrationPreflight(databaseUrl, migrations, statementsAvailable, execute = execFileSync) {
+  try {
+    const remoteRows = runReadOnlyQuery(databaseUrl, REMOTE_HISTORY_QUERY, execute, 'migration preflight history')
+      .map((row) => {
+        if (!row || row.version === undefined || typeof row.name !== 'string') throw new Error('production migration history rows are malformed');
+        return { version: String(row.version), name: row.name };
+      });
+    const localInventory = buildLocalMigrationInventory(migrations);
+    const aliasRegistry = loadProductionMigrationAliasRegistry(resolve('supabase/production-migration-aliases.json'), localInventory);
+    const knownHistory = loadProductionKnownHistoryRegistry(resolve('supabase/production-known-history.json'), localInventory, aliasRegistry);
+    const forwardRepairs = loadDuplicateForwardRepairRegistry(resolve('supabase/production-duplicate-forward-repairs.json'), migrations);
+    const presentIds = knownHistory.rows.map((row) => row.remoteId).filter((id) => remoteRows.some((row) => row.version === id));
+    const statementsByRemoteId = new Map();
+    if (statementsAvailable && presentIds.length) {
+      for (const row of runReadOnlyQuery(databaseUrl, attestedStatementsQuery(presentIds), execute, 'migration preflight statements')) {
+        statementsByRemoteId.set(String(row.version), Array.isArray(row.statements) ? row.statements : null);
+      }
+    }
+    return buildPreflightReport(evaluateMigrationDrift({
+      environment: 'production', remoteRows, statementsByRemoteId, localInventory, aliasRegistry, knownHistory, forwardRepairs, allowPending: true,
+    }));
+  } catch (error) {
+    return safePreflightFailure(error);
+  }
+}
+
+export function preflightSummary(preflight) {
+  if (preflight.status === 'FAILED') return `Migration preflight FAILED: ${preflight.reason}.`;
+  return `Migration preflight ${preflight.status}: ${preflight.unknown_production_migration_count} unknown production migrations, ${preflight.verified_known_history.length} known production-only rows verified, ${preflight.forward_duplicate_repairs.length} forward duplicate repairs (${preflight.forward_duplicate_repairs.filter((repair) => repair.status === 'applied').length} applied), ${preflight.pending_repository_migrations.length} repository migrations pending.`;
+}
+
 export function auditSummary(report) {
   return `Production migration evidence audit complete: ${report.unresolved_remote_rows.length} unresolved rows, ${report.duplicate_file_evidence.length} duplicate-file checks, ${report.pending_file_evidence.length} pending migration checks.`;
 }
@@ -297,7 +373,10 @@ export function runAudit(databaseUrl, execute = execFileSync) {
     });
     return { migration: filename, history_status: 'pending', assertions, result: evidenceResult(assertions, requiresDataProof) };
   });
-  return buildSafeReport({ unresolvedRows, migrations, duplicateRows, pendingRows, statementsAvailable });
+  return {
+    ...buildSafeReport({ unresolvedRows, migrations, duplicateRows, pendingRows, statementsAvailable }),
+    migration_preflight: runMigrationPreflight(databaseUrl, migrations, statementsAvailable, execute),
+  };
 }
 
 export function buildSanitizedFailureReport(error) {
@@ -315,6 +394,9 @@ function main() {
     const report = runAudit(databaseUrl);
     writeFileSync(resolve(reportPath), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     console.log(auditSummary(report));
+    console.log(preflightSummary(report.migration_preflight));
+    // A preflight that could not be evaluated (e.g. a failed attestation) must not look like a green audit.
+    if (report.migration_preflight.status === 'FAILED') process.exitCode = 1;
   } catch (error) {
     const report = buildSanitizedFailureReport(error);
     writeFileSync(resolve(reportPath), `${JSON.stringify(report, null, 2)}\n`, 'utf8');

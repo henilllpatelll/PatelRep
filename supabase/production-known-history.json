@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "environment": "production",
+  "rows": [
+    {
+      "remote_id": "20260517181733",
+      "stored_name": "add_remaining_fk_indexes",
+      "statement_count": 1,
+      "statements_sha256": "54e572d122af0d153033646a9970f127d2089d5243298c3d3cebac0637e7fe8d",
+      "operation_types": ["CREATE INDEX"],
+      "referenced_objects": ["public.guest_requests", "public.housekeeper_profiles", "public.notifications", "public.room_assignments", "public.shift_assignments", "public.work_orders"],
+      "evidence": "Production Migration Evidence Audit run 37212200992: exact repository SQL match NONE"
+    },
+    {
+      "remote_id": "20260604070643",
+      "stored_name": "fix_profile_and_roles_rls_for_self_read",
+      "statement_count": 1,
+      "statements_sha256": "a1f07cb1becb48e466e614569584f9c1407c4c5b4e3195dc11136c722e7962c5",
+      "referenced_objects": ["auth.jwt", "auth.uid", "public.user_profiles", "public.user_roles"],
+      "evidence": "Production Migration Evidence Audit run 37212200992: exact repository SQL match NONE"
+    },
+    {
+      "remote_id": "20260724140005",
+      "stored_name": "logbook_expires_repair",
+      "statement_count": 1,
+      "statements_sha256": "6d837f67433ee226b9ce1327aec28794a18352a28e49856b97aa9be7929efd5b",
+      "operation_types": ["ALTER TABLE"],
+      "evidence": "Production Migration Evidence Audit run 37212200992: exact repository SQL match NONE"
+    }
+  ]
+}

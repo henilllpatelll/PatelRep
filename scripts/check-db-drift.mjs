@@ -4,8 +4,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { loadMigrations } from './check-migrations.mjs';
+import { fingerprintStatements } from './migration-statement-fingerprint.mjs';
 
 const PRODUCTION_ALIAS_REGISTRY_PATH = 'supabase/production-migration-aliases.json';
+const PRODUCTION_KNOWN_HISTORY_PATH = 'supabase/production-known-history.json';
+const PRODUCTION_FORWARD_REPAIR_PATH = 'supabase/production-duplicate-forward-repairs.json';
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const PRODUCTION_TIMESTAMP_ID_PATTERN = /^\d{14}$/;
 const NUMERIC_MIGRATION_ID_PATTERN = /^\d+$/;
 
@@ -118,6 +122,146 @@ export function loadProductionMigrationAliasRegistry(registryPath, localInventor
   return validateProductionMigrationAliasRegistry(registry, localInventory);
 }
 
+const KNOWN_HISTORY_REQUIRED_KEYS = ['evidence', 'remote_id', 'statement_count', 'statements_sha256', 'stored_name'];
+const KNOWN_HISTORY_OPTIONAL_KEYS = ['operation_types', 'referenced_objects'];
+
+/**
+ * Validate the production-only attestations of historical rows that exist ONLY in production history. This is
+ * deliberately NOT an alias registry: an attested row never maps to a repository migration. Each entry names the
+ * exact row (id + stored name + statement count + normalized statement SHA-256). No raw SQL is ever stored.
+ */
+export function validateProductionKnownHistoryRegistry(registry, localInventory = [], aliasRegistry = { aliases: [] }) {
+  const fail = (message) => {
+    throw new Error(`Production known-history registry: ${message}`);
+  };
+  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) fail('must be a JSON object.');
+  if (registry.schema_version !== 1) fail('schema_version must be 1.');
+  if (registry.environment !== 'production') fail('environment must be production.');
+  if (!Array.isArray(registry.rows)) fail('rows must be an array.');
+  const { byFilename, byFilenameStem, byName } = indexLocalMigrationInventory(localInventory);
+  const aliasIds = new Set((aliasRegistry?.aliases ?? []).map((alias) => alias.remoteId));
+  const remoteIds = new Set();
+  const fingerprints = new Set();
+  const rows = registry.rows.map((row, index) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) fail(`row ${index} must be an object.`);
+    const keys = Object.keys(row);
+    for (const key of KNOWN_HISTORY_REQUIRED_KEYS) if (!keys.includes(key)) fail(`row ${index} is missing ${key}.`);
+    for (const key of keys) {
+      if (!KNOWN_HISTORY_REQUIRED_KEYS.includes(key) && !KNOWN_HISTORY_OPTIONAL_KEYS.includes(key)) fail(`row ${index} has unexpected field ${key}.`);
+    }
+    if (typeof row.remote_id !== 'string' || !PRODUCTION_TIMESTAMP_ID_PATTERN.test(row.remote_id)) fail(`row ${index} remote_id must be a 14-digit timestamp identifier.`);
+    if (typeof row.stored_name !== 'string' || !row.stored_name.trim() || row.stored_name !== row.stored_name.trim()) fail(`row ${index} stored_name must be a non-empty exact name.`);
+    if (!Number.isInteger(row.statement_count) || row.statement_count < 1) fail(`row ${index} statement_count must be a positive integer.`);
+    if (typeof row.statements_sha256 !== 'string' || !SHA256_PATTERN.test(row.statements_sha256)) fail(`row ${index} statements_sha256 must be a lowercase SHA-256 hex digest.`);
+    if (typeof row.evidence !== 'string' || !row.evidence.trim()) fail(`row ${index} evidence must be a non-empty string.`);
+    for (const key of KNOWN_HISTORY_OPTIONAL_KEYS) {
+      if (row[key] !== undefined && (!Array.isArray(row[key]) || row[key].some((item) => typeof item !== 'string' || !item.trim()))) fail(`row ${index} ${key} must be an array of strings.`);
+    }
+    if (remoteIds.has(row.remote_id)) fail(`duplicate attestation for remote_id ${row.remote_id}.`);
+    if (fingerprints.has(row.statements_sha256)) fail(`duplicate attestation fingerprint for remote_id ${row.remote_id}.`);
+    if (aliasIds.has(row.remote_id)) fail(`remote_id ${row.remote_id} is also a repository alias; an attested row never maps to a repository migration.`);
+    if (byName.has(row.stored_name) || byFilename.has(row.stored_name) || byFilenameStem.has(row.stored_name)) {
+      fail(`stored_name of ${row.remote_id} matches a repository migration; an attested row never maps to a repository migration.`);
+    }
+    remoteIds.add(row.remote_id);
+    fingerprints.add(row.statements_sha256);
+    return {
+      remoteId: row.remote_id,
+      storedName: row.stored_name,
+      statementCount: row.statement_count,
+      statementsSha256: row.statements_sha256,
+      evidence: row.evidence.trim(),
+    };
+  });
+  return { rows };
+}
+
+export function loadProductionKnownHistoryRegistry(registryPath, localInventory, aliasRegistry) {
+  let registry;
+  try {
+    registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+  } catch {
+    throw new Error('Unable to read production known-history registry.');
+  }
+  return validateProductionKnownHistoryRegistry(registry, localInventory, aliasRegistry);
+}
+
+const FORWARD_REPAIR_KEYS = ['evidence', 'repair_file', 'repair_sha256', 'source_file'];
+
+/**
+ * Validate the explicit forward-repair proofs for grandfathered duplicate migration files. A mapping only ever
+ * lets one specific unique, later migration (pinned by content hash) stand in as the deterministic proof for one
+ * specific duplicate file; it is never a generic duplicate-history bypass.
+ * @param {object[]} migrations repository migrations with filename, version and checksum
+ */
+export function validateDuplicateForwardRepairRegistry(registry, migrations) {
+  const fail = (message) => {
+    throw new Error(`Production duplicate forward-repair registry: ${message}`);
+  };
+  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) fail('must be a JSON object.');
+  if (registry.schema_version !== 1) fail('schema_version must be 1.');
+  if (registry.environment !== 'production') fail('environment must be production.');
+  if (!Array.isArray(registry.repairs)) fail('repairs must be an array.');
+  const byFile = new Map(migrations.map((migration) => [migration.filename, migration]));
+  const filesByVersion = new Map();
+  for (const migration of migrations) {
+    const files = filesByVersion.get(normalizeVersion(migration.version)) ?? [];
+    files.push(migration.filename);
+    filesByVersion.set(normalizeVersion(migration.version), files);
+  }
+  const sources = new Set();
+  const repairFiles = new Set();
+  const repairs = registry.repairs.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) fail(`entry ${index} must be an object.`);
+    if (JSON.stringify(Object.keys(entry).sort()) !== JSON.stringify(FORWARD_REPAIR_KEYS)) fail(`entry ${index} must have exactly ${FORWARD_REPAIR_KEYS.join(', ')}.`);
+    const { source_file: sourceFile, repair_file: repairFile, repair_sha256: repairSha, evidence } = entry;
+    for (const [name, value] of [['source_file', sourceFile], ['repair_file', repairFile], ['evidence', evidence]]) {
+      if (typeof value !== 'string' || !value.trim()) fail(`entry ${index} ${name} must be a non-empty string.`);
+    }
+    if (typeof repairSha !== 'string' || !SHA256_PATTERN.test(repairSha)) fail(`entry ${index} repair_sha256 must be a lowercase SHA-256 hex digest.`);
+    const source = byFile.get(sourceFile);
+    if (!source) fail(`source ${sourceFile} does not exist in the repository migrations.`);
+    if ((filesByVersion.get(normalizeVersion(source.version)) ?? []).length < 2) fail(`source ${sourceFile} is not part of a duplicate identifier group.`);
+    const repair = byFile.get(repairFile);
+    if (!repair) fail(`repair ${repairFile} does not exist in the repository migrations.`);
+    if ((filesByVersion.get(normalizeVersion(repair.version)) ?? []).length !== 1) fail(`repair ${repairFile} must have a unique, non-duplicate identifier.`);
+    if (Number(repair.version) <= Number(source.version)) fail(`repair ${repairFile} must have a later identifier than ${sourceFile}.`);
+    if (repair.checksum !== repairSha) fail(`repair ${repairFile} content differs from the attested fingerprint.`);
+    if (sources.has(sourceFile)) fail(`source ${sourceFile} is claimed more than once.`);
+    if (repairFiles.has(repairFile)) fail(`repair ${repairFile} is claimed more than once.`);
+    sources.add(sourceFile);
+    repairFiles.add(repairFile);
+    return { sourceFile, repairFile, repairVersion: repair.version, evidence: evidence.trim() };
+  });
+  return { repairs };
+}
+
+export function loadDuplicateForwardRepairRegistry(registryPath, migrations) {
+  let registry;
+  try {
+    registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+  } catch {
+    throw new Error('Unable to read production duplicate forward-repair registry.');
+  }
+  return validateDuplicateForwardRepairRegistry(registry, migrations);
+}
+
+function verifyKnownHistoryRow(attestation, remoteRow, statements) {
+  const id = attestation.remoteId;
+  if (remoteRow.name !== attestation.storedName) {
+    throw new Error(`Production row ${id} has stored name "${remoteRow.name}", which differs from its known-history attestation.`);
+  }
+  if (!Array.isArray(statements)) {
+    throw new Error(`Production row ${id} statements are unavailable, so its known-history attestation cannot be verified.`);
+  }
+  if (statements.length !== attestation.statementCount) {
+    throw new Error(`Production row ${id} statement count ${statements.length} differs from its known-history attestation.`);
+  }
+  if (fingerprintStatements(statements) !== attestation.statementsSha256) {
+    throw new Error(`Production row ${id} statement fingerprint differs from its known-history attestation.`);
+  }
+}
+
 function exactNamedMigration(remoteRow, byName, byFilename, byFilenameStem) {
   if (!remoteRow.name) return null;
   const candidates = [...(byName.get(remoteRow.name) ?? [])];
@@ -140,6 +284,7 @@ export function applyProductionMigrationAliases(
   aliasRegistry,
   localInventory,
   environment = 'production',
+  { knownHistory = { rows: [] }, statementsByRemoteId = new Map() } = {},
 ) {
   const remoteRows = remoteMigrations.map((migration) => ({
     version: String(migration.version), name: String(migration.name ?? ''),
@@ -148,6 +293,7 @@ export function applyProductionMigrationAliases(
     return {
       effectiveRemoteVersions: remoteRows.map((row) => row.version),
       verifiedAliases: [],
+      attestedRows: [],
       unresolvedRemoteRows: [],
     };
   }
@@ -168,7 +314,9 @@ export function applyProductionMigrationAliases(
   const seenTimestampIds = new Set();
   const claimedRepositoryFiles = new Map();
   const verifiedAliases = [];
+  const attestedRows = [];
   const unresolvedRemoteRows = [];
+  const attestationsByRemoteId = new Map(knownHistory.rows.map((row) => [row.remoteId, row]));
   const effectiveRemoteVersions = remoteRows.map((remoteRow) => {
     if (!PRODUCTION_TIMESTAMP_ID_PATTERN.test(remoteRow.version)) return remoteRow.version;
     if (seenTimestampIds.has(remoteRow.version)) {
@@ -185,6 +333,22 @@ export function applyProductionMigrationAliases(
       );
     }
     const target = exactNameTarget ?? manualTarget;
+    const attestation = attestationsByRemoteId.get(remoteRow.version);
+    if (attestation) {
+      // Exact production-only historical row: id + stored name + statement count + normalized fingerprint must
+      // all match, and it must never ALSO resolve to a repository migration. It yields no effective version.
+      verifyKnownHistoryRow(attestation, remoteRow, statementsByRemoteId.get(remoteRow.version));
+      if (target) {
+        throw new Error(`Production row ${remoteRow.version} is attested as production-only but also maps to repository migration ${target.filename}.`);
+      }
+      attestedRows.push({
+        remoteId: attestation.remoteId,
+        storedName: attestation.storedName,
+        statementCount: attestation.statementCount,
+        statementsSha256: attestation.statementsSha256,
+      });
+      return null;
+    }
     if (!target) {
       unresolvedRemoteRows.push(remoteRow);
       return remoteRow.version;
@@ -212,7 +376,12 @@ export function applyProductionMigrationAliases(
     return target.version;
   });
 
-  return { effectiveRemoteVersions, verifiedAliases, unresolvedRemoteRows };
+  return {
+    effectiveRemoteVersions: effectiveRemoteVersions.filter((version) => version !== null),
+    verifiedAliases,
+    attestedRows,
+    unresolvedRemoteRows,
+  };
 }
 
 export function compareMigrationVersions(localVersions, remoteVersions) {
@@ -233,6 +402,7 @@ export function checkDuplicateMigrationCoverage(
   localInventory,
   verifiedAliases,
   environment = 'production',
+  forwardRepairs = null,
 ) {
   if (environment !== 'production') return { groups: [], incompleteGroups: [] };
 
@@ -243,14 +413,40 @@ export function checkDuplicateMigrationCoverage(
     migrationsByVersion.set(migration.version, migrations);
   }
   const verifiedFiles = new Set(verifiedAliases.map((alias) => alias.repositoryFile));
+  // A forward repair covers its ONE source file only when that exact repair is already recorded on production, or
+  // (--allow-pending) is one of the migrations pending in this same controlled release. Otherwise it stays visible
+  // as unapplied and the group remains incomplete.
+  const repairStatus = (repair) => {
+    const version = normalizeVersion(repair.repairVersion);
+    if (forwardRepairs.appliedVersions.has(version)) return 'applied';
+    if (forwardRepairs.allowPending && forwardRepairs.pendingVersions.has(version)) return 'pending';
+    return 'unapplied';
+  };
+  const repairsBySource = new Map((forwardRepairs?.repairs ?? []).map((repair) => [repair.sourceFile, repair]));
   const groups = [...migrationsByVersion.entries()]
     .filter(([, migrations]) => migrations.length > 1)
     .map(([version, migrations]) => {
       const repositoryFiles = migrations.map((migration) => migration.filename);
+      if (!forwardRepairs) {
+        return {
+          version,
+          verifiedFiles: repositoryFiles.filter((filename) => verifiedFiles.has(filename)),
+          unverifiedFiles: repositoryFiles.filter((filename) => !verifiedFiles.has(filename)),
+        };
+      }
+      const repairs = repositoryFiles
+        .filter((filename) => !verifiedFiles.has(filename) && repairsBySource.has(filename))
+        .map((filename) => {
+          const repair = repairsBySource.get(filename);
+          return { sourceFile: filename, repairFile: repair.repairFile, status: repairStatus(repair) };
+        });
+      const covered = new Set(repairs.filter((repair) => repair.status !== 'unapplied').map((repair) => repair.sourceFile));
       return {
         version,
         verifiedFiles: repositoryFiles.filter((filename) => verifiedFiles.has(filename)),
-        unverifiedFiles: repositoryFiles.filter((filename) => !verifiedFiles.has(filename)),
+        forwardRepairedFiles: [...covered],
+        forwardRepairs: repairs,
+        unverifiedFiles: repositoryFiles.filter((filename) => !verifiedFiles.has(filename) && !covered.has(filename)),
       };
     });
 
@@ -305,11 +501,69 @@ export function shouldAllowPendingDrift(result, allowPending, duplicateCoverage 
     && duplicateCoverage.incompleteGroups.length === 0;
 }
 
+/**
+ * Pure drift evaluation shared by the controlled-release preflight and the read-only evidence audit, so both always
+ * reach the same conclusion. Throws on malformed or unprovable security data (fail closed).
+ */
+export function evaluateMigrationDrift({
+  environment, remoteRows, statementsByRemoteId = new Map(), localInventory, aliasRegistry = { aliases: [] },
+  knownHistory = { rows: [] }, forwardRepairs = { repairs: [] }, allowPending = false,
+}) {
+  const localVersions = localInventory.map((migration) => migration.version);
+  const resolved = applyProductionMigrationAliases(remoteRows, aliasRegistry, localInventory, environment, { knownHistory, statementsByRemoteId });
+  const result = compareMigrationVersions(localVersions, resolved.effectiveRemoteVersions);
+  const duplicateCoverage = checkDuplicateMigrationCoverage(localInventory, resolved.verifiedAliases, environment, {
+    repairs: forwardRepairs.repairs,
+    appliedVersions: new Set(resolved.effectiveRemoteVersions.map(normalizeVersion)),
+    pendingVersions: new Set(result.missingOnRemote),
+    allowPending,
+  });
+  let status = 'BLOCKED';
+  if (!result.missingOnRemote.length && !result.unknownOnRemote.length && !duplicateCoverage.incompleteGroups.length) status = 'CLEAN';
+  else if (shouldAllowPendingDrift(result, allowPending, duplicateCoverage)) status = 'PENDING';
+  return { ...resolved, ...result, duplicateCoverage, status };
+}
+
+export const REMOTE_HISTORY_QUERY = "select json_build_object('version', version, 'name', coalesce(name, ''))::text from supabase_migrations.schema_migrations order by version";
+
+/** Fixed read-only query for the statements of attested rows only. Ids come from the validated registry. */
+export function attestedStatementsQuery(remoteIds) {
+  const ids = remoteIds.map((id) => `'${id}'`).join(', ');
+  return `select json_build_object('version', m.version, 'statements', to_jsonb(m)->'statements')::text from supabase_migrations.schema_migrations m where m.version in (${ids}) order by m.version`;
+}
+
+export function parseAttestedStatements(output) {
+  const byId = new Map();
+  for (const line of parsePsqlMigrationVersions(output)) {
+    let row;
+    try {
+      row = JSON.parse(line);
+    } catch {
+      throw new Error('Unable to parse remote migration statements row.');
+    }
+    byId.set(String(row.version), Array.isArray(row.statements) ? row.statements : null);
+  }
+  return byId;
+}
+
+function remoteAttestedStatements(databaseUrl, remoteIds) {
+  if (!remoteIds.length) return new Map();
+  try {
+    const output = execFileSync('psql', [
+      '--no-psqlrc', '--quiet', '--set', 'ON_ERROR_STOP=1', databaseUrl, '--tuples-only', '--no-align',
+      '--command', 'SET default_transaction_read_only = on', '--command', attestedStatementsQuery(remoteIds),
+    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return parseAttestedStatements(output);
+  } catch {
+    throw new Error('Unable to read remote migration statements with psql.');
+  }
+}
+
 function remoteMigrationHistory(databaseUrl) {
   try {
     const output = execFileSync('psql', [
       '--set', 'ON_ERROR_STOP=1', databaseUrl, '--tuples-only', '--no-align',
-      '--command', "select json_build_object('version', version, 'name', coalesce(name, ''))::text from supabase_migrations.schema_migrations order by version",
+      '--command', REMOTE_HISTORY_QUERY,
     ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     return parsePsqlRemoteMigrations(output);
   } catch {
@@ -343,25 +597,36 @@ function printIncompleteDuplicateMigrationCoverage(incompleteGroups) {
 function main() {
   const { environment, databaseUrl, allowPending, showRemoteMigrationNames } = getDriftCheckConfig(process.argv.slice(2));
   const remoteRows = remoteMigrationHistory(databaseUrl);
-  const localInventory = buildLocalMigrationInventory(loadMigrations(resolve('supabase/migrations')));
+  const migrations = loadMigrations(resolve('supabase/migrations'));
+  const localInventory = buildLocalMigrationInventory(migrations);
   const localVersions = localInventory.map((migration) => migration.version);
-  const aliasRegistry = environment === 'production'
+  const production = environment === 'production';
+  const aliasRegistry = production
     ? loadProductionMigrationAliasRegistry(resolve(PRODUCTION_ALIAS_REGISTRY_PATH), localInventory)
     : { aliases: [] };
-  const { effectiveRemoteVersions, verifiedAliases, unresolvedRemoteRows } = applyProductionMigrationAliases(
-    remoteRows, aliasRegistry, localInventory, environment,
-  );
-  const duplicateCoverage = checkDuplicateMigrationCoverage(localInventory, verifiedAliases, environment);
+  // Production-only registries; staging never reads them.
+  const knownHistory = production
+    ? loadProductionKnownHistoryRegistry(resolve(PRODUCTION_KNOWN_HISTORY_PATH), localInventory, aliasRegistry)
+    : { rows: [] };
+  const forwardRepairs = production
+    ? loadDuplicateForwardRepairRegistry(resolve(PRODUCTION_FORWARD_REPAIR_PATH), migrations)
+    : { repairs: [] };
+  const presentAttestedIds = knownHistory.rows.map((row) => row.remoteId).filter((id) => remoteRows.some((row) => row.version === id));
+  const statementsByRemoteId = production ? remoteAttestedStatements(databaseUrl, presentAttestedIds) : new Map();
+  const evaluation = evaluateMigrationDrift({
+    environment, remoteRows, statementsByRemoteId, localInventory, aliasRegistry, knownHistory, forwardRepairs, allowPending,
+  });
+  const { verifiedAliases, attestedRows, unresolvedRemoteRows, duplicateCoverage } = evaluation;
   const duplicateVersions = [...new Set(localInventory
     .filter((migration, index, all) => all.filter((item) => item.version === migration.version).length > 1)
     .map((migration) => migration.version))];
-  const result = compareMigrationVersions(localVersions, effectiveRemoteVersions);
+  const result = { missingOnRemote: evaluation.missingOnRemote, unknownOnRemote: evaluation.unknownOnRemote };
 
   console.log(`Canonical repository migration identifiers: ${new Set(localVersions.map(normalizeVersion)).size}`);
   console.log(`${environment} applied identifiers: ${new Set(remoteRows.map((row) => normalizeVersion(row.version))).size}`);
-  if (duplicateVersions.length) console.log(`KNOWN HISTORICAL CONDITION â€” duplicate repository identifiers: ${duplicateVersions.join(', ')}`);
+  if (duplicateVersions.length) console.log(`KNOWN HISTORICAL CONDITION — duplicate repository identifiers: ${duplicateVersions.join(', ')}`);
   if (showRemoteMigrationNames) printMigrationRows('Remote migration version/name rows', remoteRows);
-  if (environment === 'production') {
+  if (production) {
     console.log('Verified production aliases:');
     if (verifiedAliases.length) {
       for (const alias of verifiedAliases) {
@@ -370,7 +635,16 @@ function main() {
     } else {
       console.log('<none>');
     }
+    console.log('Verified known production-only history (not repository migrations):');
+    if (attestedRows.length) {
+      for (const row of attestedRows) console.log(`${row.remoteId} | ${row.storedName} | statements=${row.statementCount} | sha256=${row.statementsSha256}`);
+    } else {
+      console.log('<none>');
+    }
     printMigrationRows('Unresolved production migration', unresolvedRemoteRows);
+    for (const group of duplicateCoverage.groups) {
+      for (const repair of group.forwardRepairs ?? []) console.log(`Forward duplicate repair: ${repair.sourceFile} -> ${repair.repairFile} (${repair.status})`);
+    }
     printIncompleteDuplicateMigrationCoverage(duplicateCoverage.incompleteGroups);
   }
   if (result.missingOnRemote.length) {
@@ -385,11 +659,11 @@ function main() {
   } else {
     console.log(`Unresolved ${environment} migrations: <none>`);
   }
-  if (!result.missingOnRemote.length && !result.unknownOnRemote.length && !duplicateCoverage.incompleteGroups.length) {
+  if (evaluation.status === 'CLEAN') {
     console.log('Status: CLEAN');
     return;
   }
-  if (shouldAllowPendingDrift(result, allowPending, duplicateCoverage)) {
+  if (evaluation.status === 'PENDING') {
     console.log('Status: PENDING (allowed for the staging apply step)');
     return;
   }
