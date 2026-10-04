@@ -12,7 +12,11 @@ import {
 
 export const TRUSTED_BOT = Object.freeze({ login: 'patelrep-release-engineer[bot]', id: 337493489, type: 'Bot' })
 export const GATE_APP = Object.freeze({ slug: 'github-actions', id: 15368 })
-export const PUBLISHER_APP_SLUG = 'patelrep-release-engineer'
+// Pinned trusted identity of the PatelRep GitHub App. integrationId is the ruleset bypass `actor_id` read
+// from the live, active `claude-recovery-branches` ruleset. It is deliberately NOT discovered at runtime
+// (the read-only workflow token cannot call GET /apps/{slug}). If the App is ever recreated and receives a
+// new id, auto-merge fails closed until this constant is changed through a human-reviewed PR.
+export const PUBLISHER_APP = Object.freeze({ slug: 'patelrep-release-engineer', integrationId: 5179664 })
 export const RECOVERY_BRANCH_RULESET_PATTERN = 'refs/heads/claude/recovery-*'
 export const HUMAN_HOLD_LABELS = Object.freeze(['do-not-merge', 'do not merge', 'hold', 'manual-review', 'needs-human'])
 
@@ -110,16 +114,11 @@ const UNPROTECTED = 'dedicated recovery branches are not protected for publisher
  * closed (Ineligible, never a Claude repair trigger) on any missing, disabled, partial or malformed state.
  */
 export async function requirePublisherOnlyRecoveryBranches(deps) {
-  let app
   let rulesets
   try {
-    app = await deps.getApp(PUBLISHER_APP_SLUG)
     rulesets = await deps.listBranchRulesets()
   } catch (error) {
-    refuse(`${UNPROTECTED} (could not read the GitHub App or rulesets: ${String(error.message).split('\n')[0].slice(0, 120)})`)
-  }
-  if (!app || app.slug !== PUBLISHER_APP_SLUG || !Number.isSafeInteger(app.id) || app.id <= 0) {
-    refuse(`${UNPROTECTED} (GitHub App ${PUBLISHER_APP_SLUG} could not be resolved)`)
+    refuse(`${UNPROTECTED} (could not read the repository rulesets: ${String(error.message).split('\n')[0].slice(0, 120)})`)
   }
   if (!Array.isArray(rulesets)) refuse(`${UNPROTECTED} (malformed ruleset response)`)
 
@@ -131,11 +130,11 @@ export async function requirePublisherOnlyRecoveryBranches(deps) {
     if (Array.isArray(ref.exclude) ? ref.exclude.length > 0 : ref.exclude != null) return false
     if (!Array.isArray(ruleset.rules)) return false
     const types = ruleset.rules.map((rule) => rule?.type)
-    if (!types.includes('creation') || !types.includes('update')) return false
+    if (!['creation', 'update', 'non_fast_forward'].every((type) => types.includes(type))) return false
     const bypass = ruleset.bypass_actors
     if (!Array.isArray(bypass) || bypass.length !== 1) return false
     const [actor] = bypass
-    return actor?.actor_type === 'Integration' && actor.actor_id === app.id && actor.bypass_mode === 'always'
+    return actor?.actor_type === 'Integration' && actor.actor_id === PUBLISHER_APP.integrationId && actor.bypass_mode === 'always'
   }
   if (!rulesets.some(protects)) refuse(UNPROTECTED)
 }
@@ -213,7 +212,7 @@ function requireSuccessfulRun(run, { name, repo, runId }) {
  * Re-derives everything from the exact successful Staging Candidate run and fresh GitHub state.
  * Throws Ineligible for any policy refusal and a plain Error for malformed/unprovable data (fail closed).
  * @param {{repo: string, stagingRunId: string, expected?: {prNumber: string, sha: string, branch: string, ciRunId: string}}} input
- * @param {object} deps getApp(slug), listBranchRulesets() (full ruleset objects), getRun, readStagingContext, getPr, listPrCommits, listPrFiles, listCheckRuns, listReviews,
+ * @param {object} deps listBranchRulesets() (full ruleset objects), getRun, readStagingContext, getPr, listPrCommits, listPrFiles, listCheckRuns, listReviews,
  *   countUnresolvedThreads
  */
 export async function validateAutoMergeCandidate({ repo, stagingRunId, expected }, deps) {
