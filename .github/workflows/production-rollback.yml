@@ -175,7 +175,7 @@ jobs:
             RELEASE_SHA="${{ needs.resolve-and-verify-target.outputs.target_sha }}" \
             RELEASE_VERSION="${{ needs.resolve-and-verify-target.outputs.target_version }}" \
             APP_ENV=production \
-            --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
+            --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
         env:
           RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
@@ -232,7 +232,7 @@ jobs:
             NEXT_PUBLIC_RELEASE_SHA="${{ needs.resolve-and-verify-target.outputs.target_sha }}" \
             NEXT_PUBLIC_RELEASE_VERSION="${{ needs.resolve-and-verify-target.outputs.target_version }}" \
             NEXT_PUBLIC_APP_ENV=production \
-            --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
+            --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
         env:
           RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
