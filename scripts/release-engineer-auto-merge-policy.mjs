@@ -28,11 +28,11 @@ const STAGING_KEYS = ['candidate_branch', 'candidate_sha', 'ci_run_id', 'pr_numb
 /** A clean policy refusal: the PR simply is not auto-merge eligible (not an error, no retry loop). */
 export class Ineligible extends Error {}
 
-function refuse(message) {
+export function refuse(message) {
   throw new Ineligible(message)
 }
 
-function fail(message) {
+export function fail(message) {
   throw new Error(`auto-merge: ${message}`)
 }
 
@@ -139,7 +139,7 @@ export async function requirePublisherOnlyRecoveryBranches(deps) {
   if (!rulesets.some(protects)) refuse(UNPROTECTED)
 }
 
-function requireTrustedCreator(pr) {
+export function requireTrustedCreator(pr) {
   const user = pr.user
   if (!user || user.login !== TRUSTED_BOT.login || user.type !== TRUSTED_BOT.type || user.id !== TRUSTED_BOT.id) {
     refuse(`PR #${pr.number} was not created by ${TRUSTED_BOT.login}`)
@@ -155,7 +155,7 @@ function requireOpenCandidate(pr, repo, sha, branch) {
   if (pr.head.sha !== sha) refuse(`PR #${pr.number} head moved to ${pr.head.sha}`)
 }
 
-function requirePublisherHistory(commits, root, pr) {
+export function requirePublisherHistory(commits, root, pr) {
   if (commits.length < 1 || commits.length > MAX_AUTOMATIC_REPAIR_ATTEMPTS) {
     refuse(`recovery PR has ${commits.length} commits; expected 1-${MAX_AUTOMATIC_REPAIR_ATTEMPTS} publisher commits`)
   }
@@ -201,7 +201,7 @@ function requireGate(checkRuns, name, label) {
   return latest
 }
 
-function requireSuccessfulRun(run, { name, repo, runId }) {
+export function requireSuccessfulRun(run, { name, repo, runId }) {
   if (!run || String(run.id) !== String(runId)) fail(`run ${runId} could not be fetched`)
   if (run.name !== name) refuse(`run ${runId} is ${run.name}, not ${name}`)
   if (run.status !== 'completed' || run.conclusion !== 'success') refuse(`${name} run ${runId} is ${run.status}/${run.conclusion}, not success`)

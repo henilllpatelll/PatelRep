@@ -20,27 +20,30 @@ function gh(args, token, input) {
 const STAGING_CONTEXT_ARTIFACT = 'staging-candidate-context'
 
 /**
- * Returns null ONLY when the run has no artifact named staging-candidate-context (listed explicitly, so a
- * download error is never mistaken for "no candidate"). Once the artifact exists, every problem throws.
+ * Returns null ONLY when the run has no artifact with this name (listed explicitly, so a download error is
+ * never mistaken for "absent"). Once the artifact exists, every problem throws. Shared by the Phase 2C
+ * staging-context reader and the Phase 2D auto-merge-result reader.
  */
-export async function readStagingContextFrom({ listArtifacts, download, runId }) {
-  const matches = (await listArtifacts()).filter((artifact) => artifact?.name === STAGING_CONTEXT_ARTIFACT)
+export async function readNamedContextFrom({ name, listArtifacts, download, runId }) {
+  const matches = (await listArtifacts()).filter((artifact) => artifact?.name === name)
   if (matches.length === 0) return null
-  if (matches.length > 1) throw new Error(`auto-merge: run ${runId} has multiple ${STAGING_CONTEXT_ARTIFACT} artifacts`)
-  if (matches[0].expired) throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} of run ${runId} has expired`)
+  if (matches.length > 1) throw new Error(`auto-merge: run ${runId} has multiple ${name} artifacts`)
+  if (matches[0].expired) throw new Error(`auto-merge: ${name} of run ${runId} has expired`)
   let downloaded
   try {
     downloaded = await download()
   } catch (error) {
-    throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} of run ${runId} could not be downloaded: ${String(error.message).split('\n')[0].slice(0, 120)}`)
+    throw new Error(`auto-merge: ${name} of run ${runId} could not be downloaded: ${String(error.message).split('\n')[0].slice(0, 120)}`)
   }
-  if (downloaded.files.length !== 1 || downloaded.files[0] !== 'context.json') throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} has unexpected files`)
+  if (downloaded.files.length !== 1 || downloaded.files[0] !== 'context.json') throw new Error(`auto-merge: ${name} has unexpected files`)
   try {
     return JSON.parse(downloaded.readFile('context.json'))
   } catch {
-    throw new Error(`auto-merge: ${STAGING_CONTEXT_ARTIFACT} is not valid JSON`)
+    throw new Error(`auto-merge: ${name} is not valid JSON`)
   }
 }
+
+export const readStagingContextFrom = (args) => readNamedContextFrom({ name: STAGING_CONTEXT_ARTIFACT, ...args })
 
 const jsonLines = (output) => output.split('\n').filter(Boolean).map((line) => JSON.parse(line))
 
@@ -50,18 +53,26 @@ export function realAutoMergeDeps({ repo, readToken, mergeToken }) {
   const api = (endpoint) => JSON.parse(read(['api', endpoint]))
   const paged = (endpoint, jq) => jsonLines(read(['api', '--paginate', endpoint, '--jq', jq]))
 
-  return {
+  const realDeps = {
     getRun: async (id) => api(`repos/${repo}/actions/runs/${id}`),
-    readStagingContext: (runId) =>
-      readStagingContextFrom({
+    readNamedContext: (runId, name) =>
+      readNamedContextFrom({
+        name,
         listArtifacts: async () => paged(`repos/${repo}/actions/runs/${runId}/artifacts?per_page=100`, '.artifacts[] | @json'),
         download: async () => {
-          const dir = mkdtempSync(path.join(tmpdir(), 'staging-ctx-'))
-          read(['run', 'download', String(runId), '--repo', repo, '--name', STAGING_CONTEXT_ARTIFACT, '--dir', dir])
-          return { files: readdirSync(dir), readFile: (name) => readFileSync(path.join(dir, name), 'utf8') }
+          const dir = mkdtempSync(path.join(tmpdir(), 'run-ctx-'))
+          read(['run', 'download', String(runId), '--repo', repo, '--name', name, '--dir', dir])
+          return { files: readdirSync(dir), readFile: (file) => readFileSync(path.join(dir, file), 'utf8') }
         },
         runId,
       }),
+    readStagingContext: (runId) => realDeps.readNamedContext(runId, STAGING_CONTEXT_ARTIFACT),
+    // Fresh tip of main (read-only) and a commit's parents, used to prove the exact pre-merge base.
+    getMainSha: async () => api(`repos/${repo}/branches/main`).commit?.sha ?? '',
+    getCommit: async (sha) => {
+      const commit = api(`repos/${repo}/commits/${sha}`)
+      return { sha: commit.sha, parents: (commit.parents ?? []).map((parent) => parent.sha) }
+    },
     getPr: async (number) => {
       // GitHub computes mergeability lazily; retry only while it reports "not computed yet".
       for (let attempt = 1; ; attempt += 1) {
@@ -107,4 +118,5 @@ export function realAutoMergeDeps({ repo, readToken, mergeToken }) {
       return JSON.parse(gh(['api', '--method', 'PUT', `repos/${repo}/pulls/${number}/merge`, '--input', '-'], mergeToken, body))
     },
   }
+  return realDeps
 }

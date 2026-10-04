@@ -15,6 +15,15 @@ name: Production Release
 # independent of Railway's GitHub auto-deploy trigger (which is pinned to a
 # fixed commit for the two production services -- see docs/ENVIRONMENTS.md).
 
+# Phase 2D: the Claude Release Engineer may REQUEST (dispatch) this workflow for a narrowly scoped recovery fix by
+# passing `automation_source_run_id`. That never bypasses anything: the `production` Environment below still
+# requires a human approval, and in automated mode this workflow independently re-verifies the whole provenance
+# (scripts/production-release-request.mjs release) after that approval and before any production step.
+# Manual dispatches leave `automation_source_run_id` blank and keep the original semantics unchanged.
+
+# The run name carries the exact target so a duplicate automated request is deterministically detectable.
+run-name: Production Release ${{ inputs.release_sha || 'main-tip' }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -28,6 +37,10 @@ on:
         type: choice
         default: patch
         options: [patch, minor, major]
+      automation_source_run_id:
+        description: "Automation only: Auto-Merge run id of the recovery merge being released (leave blank for a manual release)"
+        required: false
+        type: string
 
 concurrency:
   # Shared with production-rollback.yml so a release and a rollback can never
@@ -37,6 +50,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read
   checks: read
   pull-requests: read
 
@@ -55,6 +69,24 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v7
+        if: inputs.automation_source_run_id != ''
+        with:
+          node-version: '22'
+      # Automated-request mode only: runs after the human `production` Environment approval and before anything
+      # else. Re-derives the whole request provenance from fresh GitHub state; any refusal fails the release.
+      - name: Verify automated request provenance
+        if: inputs.automation_source_run_id != ''
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          node scripts/production-release-request.mjs release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          VERSION_BUMP: ${{ inputs.version_bump }}
+          PRODUCTION_AUTO_RELEASE_ENABLED: ${{ vars.PRODUCTION_AUTO_RELEASE_ENABLED }}
       - id: resolve
         uses: actions/github-script@v8
         env:
@@ -159,26 +191,20 @@ jobs:
       next_version: ${{ steps.version.outputs.next }}
       previous_tag: ${{ steps.version.outputs.previous }}
     steps:
+      # Versioning code comes from the workflow's own commit (never the possibly older release target) and the
+      # previous version from COMPLETED GitHub Releases, not arbitrary tags (see docs/RELEASE_PROCESS.md).
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
-          fetch-depth: 0
-      - name: Compute next version from the previous release tag
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Compute next version from the previous completed production release
         id: version
-        run: |
-          previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || echo "v0.0.0")
-          previous_clean="${previous#v}"
-          IFS='.' read -r major minor patch <<< "$previous_clean"
-          case "$BUMP" in
-            major) major=$((major + 1)); minor=0; patch=0 ;;
-            minor) minor=$((minor + 1)); patch=0 ;;
-            patch) patch=$((patch + 1)) ;;
-          esac
-          next="v${major}.${minor}.${patch}"
-          echo "Decided release version: $next (previous: $previous, bump: $BUMP)"
-          echo "previous=$previous" >> "$GITHUB_OUTPUT"
-          echo "next=$next" >> "$GITHUB_OUTPUT"
+        run: node scripts/release-version.mjs
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           BUMP: ${{ inputs.version_bump }}
 
   release-content-summary:

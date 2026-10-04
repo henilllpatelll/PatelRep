@@ -8,6 +8,8 @@ name: Claude Release Engineer Auto-Merge
 #   merge   - the ONLY job with the PatelRep GitHub App token; runs the exact frozen control-plane SHA,
 #             never checks out candidate code, re-validates everything and merges the exact head SHA
 # The main ruleset (CI Gate, Staging Gate, thread resolution, no bypass actors) remains the final backstop.
+# After a fully verified merge the merge job also writes the identifier-only `auto-merge-result` artifact
+# (the sole input of the Phase 2D production-release request). It never exists for a no-op or failed merge.
 # Changes under .github/** (including this file) and scripts/** are classified high-risk and never auto-merge.
 
 on:
@@ -102,4 +104,14 @@ jobs:
           EXPECTED_SHA: ${{ needs.resolve.outputs.candidate_sha }}
           EXPECTED_BRANCH: ${{ needs.resolve.outputs.candidate_branch }}
           EXPECTED_CI_RUN_ID: ${{ needs.resolve.outputs.ci_run_id }}
+          RESULT_DIR: ${{ runner.temp }}/auto-merge-result
         run: node trusted-merge/scripts/merge-release-engineer-repair.mjs
+
+      # Reached only when the merge script succeeded, i.e. after the exact-SHA merge was proven.
+      - name: Upload sanitized auto-merge result
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-merge-result
+          path: ${{ runner.temp }}/auto-merge-result/context.json
+          retention-days: 3
+          if-no-files-found: error
