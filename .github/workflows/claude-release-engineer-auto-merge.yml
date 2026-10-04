@@ -1,0 +1,105 @@
+name: Claude Release Engineer Auto-Merge
+
+# Phase 2C: safe autonomous merge of dedicated PatelRep recovery PRs, decided ONCE per successful
+# Staging Candidate run (no polling, no native "auto-merge later"). Phase 2C ends at merge-to-main:
+# nothing here dispatches Production Release/Rollback or touches production credentials.
+# Two jobs with separated authority:
+#   resolve - read-only token, trusted scripts from main, decides eligibility; holds NO write credential
+#   merge   - the ONLY job with the PatelRep GitHub App token; runs the exact frozen control-plane SHA,
+#             never checks out candidate code, re-validates everything and merges the exact head SHA
+# The main ruleset (CI Gate, Staging Gate, thread resolution, no bypass actors) remains the final backstop.
+# Changes under .github/** (including this file) and scripts/** are classified high-risk and never auto-merge.
+
+on:
+  workflow_run:
+    workflows:
+      - Staging Candidate
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  resolve:
+    name: Resolve auto-merge eligibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only a successful, same-repository Staging Candidate run is ever considered.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    outputs:
+      trusted_control_plane_sha: ${{ steps.trusted-sha.outputs.sha }}
+      eligible: ${{ steps.eligibility.outputs.eligible }}
+      pr_number: ${{ steps.eligibility.outputs.pr_number }}
+      candidate_sha: ${{ steps.eligibility.outputs.candidate_sha }}
+      candidate_branch: ${{ steps.eligibility.outputs.candidate_branch }}
+      ci_run_id: ${{ steps.eligibility.outputs.ci_run_id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          path: .trusted-resolver
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      # Freeze ONE exact trusted control-plane revision; the merge job checks out exactly this SHA.
+      - name: Capture trusted control-plane SHA
+        id: trusted-sha
+        run: |
+          sha=$(git -C .trusted-resolver rev-parse HEAD)
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then echo "Invalid trusted control-plane SHA"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Trusted control plane: $sha"
+
+      - name: Resolve auto-merge eligibility
+        id: eligibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          STAGING_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: node .trusted-resolver/scripts/resolve-release-engineer-auto-merge.mjs
+
+  merge:
+    name: Merge exact SHA (trusted)
+    needs: resolve
+    if: needs.resolve.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One merge into main at a time; a running merge is never cancelled.
+    concurrency:
+      group: patelrep-release-engineer-auto-merge-main
+      cancel-in-progress: false
+    steps:
+      # Trusted merge code at the EXACT frozen control-plane SHA. Candidate code is never checked out.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          path: trusted-merge
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      # The only place the write-capable PatelRep GitHub App token exists.
+      - name: Create PatelRep GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Revalidate and merge the exact candidate SHA
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+          GH_MERGE_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          STAGING_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+          EXPECTED_SHA: ${{ needs.resolve.outputs.candidate_sha }}
+          EXPECTED_BRANCH: ${{ needs.resolve.outputs.candidate_branch }}
+          EXPECTED_CI_RUN_ID: ${{ needs.resolve.outputs.ci_run_id }}
+        run: node trusted-merge/scripts/merge-release-engineer-repair.mjs
