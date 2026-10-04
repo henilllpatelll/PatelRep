@@ -49,33 +49,64 @@ jobs:
        github.event.workflow_run.head_repository.full_name == github.repository &&
        !startsWith(github.event.workflow_run.head_branch, 'claude/recovery-'))
     steps:
+      # Trusted copy of the resolver from the default branch; the repair checkout comes afterwards.
+      - uses: actions/checkout@v7
+        with:
+          path: .trusted-resolver
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      # Deterministically resolve the exact failing code. Fails closed (no Claude) if it cannot be proven.
+      - name: Resolve repair context
+        id: ctx
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_JSON: ${{ toJSON(github.event.workflow_run) }}
+          INPUT_RUN_ID: ${{ inputs.failed_run_id }}
+        run: |
+          node .trusted-resolver/scripts/resolve-release-engineer-context.mjs
+          rm -rf .trusted-resolver
+
       - name: Create PatelRep GitHub App token
         id: app-token
+        if: steps.ctx.outputs.skip != 'true'
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
           private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@v7
+        if: steps.ctx.outputs.skip != 'true'
         with:
           token: ${{ steps.app-token.outputs.token }}
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ steps.ctx.outputs.repair_sha }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v7
+        if: steps.ctx.outputs.skip != 'true'
         with:
           node-version: "22"
 
       - uses: actions/setup-python@v7
+        if: steps.ctx.outputs.skip != 'true'
         with:
           python-version: "3.12"
 
-      - name: Configure git identity
+      - name: Position repair branch at the exact failing commit
+        if: steps.ctx.outputs.skip != 'true'
+        env:
+          REPAIR_SHA: ${{ steps.ctx.outputs.repair_sha }}
+          REPAIR_BRANCH: ${{ steps.ctx.outputs.repair_branch }}
         run: |
           git config user.name "patelrep-release-engineer[bot]"
           git config user.email "patelrep-release-engineer[bot]@users.noreply.github.com"
+          test "$(git rev-parse HEAD)" = "$REPAIR_SHA"
+          git switch -c "$REPAIR_BRANCH"
 
       - name: Run Claude release engineer
+        if: steps.ctx.outputs.skip != 'true'
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -90,19 +121,23 @@ jobs:
             including the database safety invariants and the production authority model.
 
             Trigger: ${{ github.event_name }}
-            Failed upstream workflow: ${{ github.event.workflow_run.name || 'n/a (manual dispatch)' }}
-            Failed run id: ${{ github.event.workflow_run.id || inputs.failed_run_id || 'none given' }}
-            Failed run URL: ${{ github.event.workflow_run.html_url || 'n/a' }}
-            Failed head branch: ${{ github.event.workflow_run.head_branch || 'n/a' }}
-            Failed head SHA: ${{ github.event.workflow_run.head_sha || 'n/a' }}
+            Upstream workflow: ${{ steps.ctx.outputs.upstream_workflow }}
+            Root failed workflow run id: ${{ steps.ctx.outputs.root_failed_run_id }}
+            Repair SHA (exact failing code, already checked out): ${{ steps.ctx.outputs.repair_sha }}
+            Repair branch (already created locally at the repair SHA): ${{ steps.ctx.outputs.repair_branch }}
+            Repair PR number (empty means none): ${{ steps.ctx.outputs.repair_pr_number }}
             Manual instructions: ${{ inputs.instructions || 'none' }}
 
-            Follow the failure-repair procedure in the document: establish the root cause from the exact
+            Always begin from the exact failing code at the repair SHA; do not switch to main.
+            Follow the failure-repair procedure in the document: establish the root cause from the root
             failed run's jobs, logs and artifacts first; make the smallest deterministic fix with a
-            regression test; run targeted tests locally; then push once. Update the existing same-repository
-            PR branch if one owns the failure, otherwise use branch claude/recovery-<failed-run-id> and open
-            a PR to main. Do not merge and do not dispatch Production Release.
+            regression test; run targeted tests locally; then push once.
+            If the repair PR number is set, it is an open same-repository PR: push to its existing branch
+            (the repair branch) and do not open another PR. Otherwise push the repair branch
+            claude/recovery-<root failed run id> and open a PR to main.
+            Never push directly to main (no git push origin main, no HEAD:main, no force pushes) and do
+            not merge. Do not dispatch Production Release.
           claude_args: >-
             --max-turns 60
             --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python:*),Bash(python3:*),Bash(pip:*),Bash(pytest:*),Bash(cd:*),Bash(ls:*),Bash(cat:*),Bash(mkdir:*),Bash(unzip:*),mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log"
-            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(supabase:*),Bash(railway:*),Bash(psql:*)"
+            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(git push --force-with-lease:*),Bash(git push * --force*),Bash(git push * -f*),Bash(git push * +*),Bash(git push origin main:*),Bash(git push -u origin main:*),Bash(git push --set-upstream origin main:*),Bash(git push origin HEAD:main:*),Bash(git push origin HEAD:refs/heads/main:*),Bash(git push origin refs/heads/main:*),Bash(gh pr merge:*),Bash(gh workflow run production-release*),Bash(supabase:*),Bash(railway:*),Bash(psql:*)"

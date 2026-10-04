@@ -7,6 +7,8 @@ import test from 'node:test'
 const read = (file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
 const workflow = read('.github/workflows/claude-release-engineer.yml')
 const productionRelease = read('.github/workflows/production-release.yml')
+const stagingCandidate = read('.github/workflows/staging-candidate.yml')
+const resolver = read('scripts/resolve-release-engineer-context.mjs')
 const doc = read('docs/AUTONOMOUS_RELEASE_ENGINEER.md')
 const settings = JSON.parse(read('.claude/settings.json'))
 
@@ -76,10 +78,11 @@ test('the prompt points Claude at CLAUDE.md and the operating document', () => {
   assert.match(doc, /claude\/recovery-<workflow-run-id>/)
 })
 
-test('production-release.yml is unchanged by Phase 1', () => {
+test('production-release.yml changes only by the sanitized release-context handoff', () => {
   const digest = createHash('sha256').update(productionRelease).digest('hex')
-  // Update deliberately (Phase 2) when production-release.yml is meant to change.
-  assert.equal(digest, '10ba09dda0941b6fd459b26f082f7490dd76e8a40ea91caf391363222032b221')
+  // Phase 1 follow-up: only change is the identifier-only production-release-context handoff artifact.
+  // Update deliberately whenever production-release.yml is meant to change.
+  assert.equal(digest, '23b47af4c0adea801d6c8bad3305aa4afbd7c75838953bb177226d898bbc2965')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
@@ -103,4 +106,86 @@ test('local hook launcher is a no-op under CI', () => {
     assert.equal(result.status, 0)
     assert.equal(result.stdout + result.stderr, '')
   }
+})
+
+const section = (text, from, to) => text.slice(text.indexOf(from), text.indexOf(to, text.indexOf(from)))
+
+test('staging candidate publishes a sanitized, short-lived candidate context artifact early', () => {
+  const resolveJob = section(stagingCandidate, '  resolve-candidate:', '  prepare-staging-database:')
+  const step = section(resolveJob, '- name: Record sanitized candidate context', '- name: Upload sanitized candidate context')
+  assert.match(step, /\{pr_number: \$pr_number, candidate_sha: \$candidate_sha, candidate_branch: \$candidate_branch, ci_run_id: \$ci_run_id\}/)
+  assert.doesNotMatch(step, /secrets\.|vars\.|PASSWORD|TOKEN|RAILWAY|SUPABASE|http/i)
+  const upload = resolveJob.slice(resolveJob.indexOf('- name: Upload sanitized candidate context'))
+  assert.match(upload, /name: staging-candidate-context/)
+  assert.match(upload, /retention-days: 3/)
+  assert.match(upload, /if-no-files-found: error/)
+  // Same job as the trusted-candidate resolution, so it exists even when later staging jobs fail.
+  assert.ok(resolveJob.indexOf('id: candidate') < resolveJob.indexOf('Record sanitized candidate context'))
+})
+
+test('production release publishes only release identifiers for failure recovery', () => {
+  assert.match(productionRelease, /JSON\.stringify\(\{ release_sha: targetSha, pr_number: prNumber \}\)/)
+  assert.match(productionRelease, /name: production-release-context/)
+  assert.match(productionRelease, /retention-days: 3/)
+  assert.match(productionRelease, /check-db-drift\.mjs --environment production --allow-pending/)
+})
+
+test('repair context is resolved before checkout and checkout uses repair_sha', () => {
+  assert.ok(workflow.indexOf('id: ctx') < workflow.indexOf('ref: ${{ steps.ctx.outputs.repair_sha }}'))
+  assert.match(workflow, /ref: \$\{\{ steps\.ctx\.outputs\.repair_sha \}\}/)
+  assert.doesNotMatch(workflow, /ref: \$\{\{[^}]*workflow_run\.head_sha/)
+  assert.match(workflow, /scripts\/resolve-release-engineer-context\.mjs/)
+  for (const output of ['repair_sha', 'repair_branch', 'repair_pr_number', 'root_failed_run_id', 'upstream_workflow']) {
+    assert.match(resolver, new RegExp(`${output}:`))
+    assert.match(workflow, new RegExp(`steps\.ctx\.outputs\.${output}`))
+  }
+})
+
+test('resolver never trusts staging workflow_run head data and fails closed', () => {
+  const staging = section(resolver, "run.name === 'Staging Candidate'", "run.name === 'Production Migration Evidence Audit'")
+  assert.doesNotMatch(staging, /run\.head_sha|run\.head_branch/)
+  assert.match(staging, /requireSameRepoPr\(pr, repo, context\.candidate_sha, context\.candidate_branch\)/)
+  assert.match(resolver, /pr\.state !== 'open'/)
+  assert.match(resolver, /base\?\.ref !== 'main'/)
+  assert.match(resolver, /full_name !== repo/)
+  assert.match(workflow, /Never push directly to main/)
+})
+
+test('direct pushes to main and force pushes are denied while repair-branch pushes stay allowed', () => {
+  const deny = workflow.match(/--disallowedTools "([^"]*)"/)[1].split(',')
+  for (const rule of [
+    'Bash(git push origin main:*)',
+    'Bash(git push origin HEAD:main:*)',
+    'Bash(git push --force:*)',
+    'Bash(git push -f:*)',
+    'Bash(git push --force-with-lease:*)',
+  ]) {
+    assert.ok(deny.includes(rule), `missing deny rule ${rule}`)
+  }
+  const allow = workflow.match(/--allowedTools "([^"]*)"/)[1].split(',')
+  assert.ok(allow.includes('Bash(git:*)'))
+  assert.ok(!deny.includes('Bash(git push:*)') && !deny.includes('Bash(git push origin:*)'))
+})
+
+test('workflow-file edits are allowed through repair PRs, documented against the App permission', () => {
+  assert.doesNotMatch(workflow, /disallowedTools[^\n]*\.github\/workflows/)
+  assert.doesNotMatch(workflow, /Edit\(\.github/)
+  assert.match(doc, /Workflows: Read & write/)
+  assert.doesNotMatch(doc, /deliberately has no `workflows`/)
+  assert.match(doc, /may\*\* repair\s+`\.github\/workflows\/\*\*`/)
+  assert.match(doc, /Phase 2 replaces it with bounded\s+autonomous retries/)
+})
+
+test('phase 1 does not auto-merge or auto-dispatch Production Release', () => {
+  assert.doesNotMatch(executable, /gh pr merge|merge_pull_request|--auto\b|gh workflow run|gh api[^\n]*dispatches/)
+  const deny = workflow.match(/--disallowedTools "([^"]*)"/)[1]
+  assert.match(deny, /Bash\(gh pr merge:\*\)/)
+  assert.match(deny, /Bash\(gh workflow run production-release\*\)/)
+  assert.match(workflow, /Do not dispatch Production Release/)
+})
+
+test('fork-run rejection and the phase 1 recovery retry guard are preserved', () => {
+  assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
+  assert.match(workflow, /startsWith\(github\.event\.workflow_run\.head_branch, 'claude\/recovery-'\)/)
+  assert.match(resolver, /RECOVERY_PREFIX\)/)
 })

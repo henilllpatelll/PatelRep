@@ -115,10 +115,33 @@ jobs:
             core.setOutput('eligible', 'true')
             core.setOutput('pr_number', String(current.number))
             core.setOutput('sha', candidateSha)
+            core.setOutput('branch', current.head.ref)
             core.setOutput('short_sha', candidateSha.slice(0, 7))
             core.setOutput('flags_csv', flagsCsv)
             core.setOutput('check_id', String(check.data.id))
             core.setOutput('ci_run_id', ciRunId)
+
+      # workflow_run reports head_branch/head_sha of the default branch, not of the PR candidate.
+      # Publish the exact, already-revalidated candidate identity (identifiers only, no secrets) so
+      # the Claude release engineer can start from the code that actually failed staging.
+      - name: Record sanitized candidate context
+        if: steps.candidate.outputs.eligible == 'true'
+        env:
+          PR_NUMBER: ${{ steps.candidate.outputs.pr_number }}
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          CANDIDATE_BRANCH: ${{ steps.candidate.outputs.branch }}
+          CI_RUN_ID: ${{ steps.candidate.outputs.ci_run_id }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/staging-candidate-context"
+          jq -n --arg pr_number "$PR_NUMBER" --arg candidate_sha "$CANDIDATE_SHA" --arg candidate_branch "$CANDIDATE_BRANCH" --arg ci_run_id "$CI_RUN_ID" '{pr_number: $pr_number, candidate_sha: $candidate_sha, candidate_branch: $candidate_branch, ci_run_id: $ci_run_id}' > "$RUNNER_TEMP/staging-candidate-context/context.json"
+      - name: Upload sanitized candidate context
+        if: steps.candidate.outputs.eligible == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-candidate-context
+          path: ${{ runner.temp }}/staging-candidate-context/context.json
+          retention-days: 3
+          if-no-files-found: error
 
   prepare-staging-database:
     name: Prepare disposable staging database

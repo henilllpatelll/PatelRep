@@ -318,7 +318,7 @@ jobs:
         with:
           node-version: "22"
       - name: Verify release workflow contracts
-        run: node --test scripts/staging-candidate-workflow.test.mjs scripts/claude-release-engineer-workflow.test.mjs
+        run: node --test scripts/staging-candidate-workflow.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs
 
   ci-gate:
     name: CI Gate
