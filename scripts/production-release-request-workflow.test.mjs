@@ -230,6 +230,11 @@ test('Production Release and Rollback authenticate Railway with the account toke
   }
 })
 
+test('Production Release deploys apps/api and apps/web with --path-as-root (without it railway up fails with "prefix not found")', () => {
+  assert.match(releaseCode, /up apps\/api --ci --path-as-root --project /)
+  assert.match(releaseCode, /up apps\/web --ci --path-as-root --project /)
+})
+
 test('Production Rollback is untouched and remains human-only', () => {
   assert.equal(createHash('sha256').update(rollback).digest('hex'), '460ea219aaaf3dd05b77c8e4e6d8514f4b3cbeae9fc81ad982eb457e6b7e6e34')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
