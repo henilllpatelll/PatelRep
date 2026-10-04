@@ -29,6 +29,9 @@ export const SOURCE_WORKFLOW_NAME = 'Claude Release Engineer Auto-Merge'
 export const ROOT_WORKFLOW_NAME = 'Deploy Health Check'
 // A health failure may come from the schedule or a push to main; a manual dispatch is never an automatic root.
 export const ROOT_EVENTS = Object.freeze(['schedule', 'push'])
+// resolve: read-only first look; request: fresh revalidation right before dispatch (same security eligibility);
+// release: re-verification inside Production Release after human approval (refusals FAIL the release).
+export const VALIDATION_MODES = Object.freeze(['resolve', 'request', 'release'])
 export const AUTOMATED_VERSION_BUMP = 'patch'
 export const NO_BASELINE_MESSAGE = 'Production release request ineligible: no managed production release baseline exists; seed the first release manually.'
 export const REQUIRED_MAIN_CHECKS = Object.freeze(['CI Gate', 'Staging Gate'])
@@ -77,14 +80,14 @@ export function requireAutomatedDispatch({ actor, actorId, ref, workflowSha, rel
 }
 
 /**
- * @param {{repo: string, sourceRunId: string, enabled: string|undefined, mode: 'request'|'release'}} input
+ * @param {{repo: string, sourceRunId: string, enabled: string|undefined, mode: 'resolve'|'request'|'release'}} input
  * @param {object} deps getRun, readAutoMergeResult(runId), getMergedPr, listPrCommits, listPrFiles, getCommit,
  *   getMainSha, listBranchRulesets, listReleases, resolveTagCommit, isAncestorOfMain, readRuntimeIdentity,
  *   listHealthRuns(headSha), listActiveProductionRuns
  * Throws Ineligible for any policy refusal (clean no-op when requesting) and Error for malformed/unprovable data.
  */
 export async function validateProductionRequest({ repo, sourceRunId, enabled, mode }, deps) {
-  if (!['request', 'release'].includes(mode)) fail('unknown validation mode')
+  if (!VALIDATION_MODES.includes(mode)) fail('unknown validation mode')
   if (enabled !== 'true') refuse(`${ACTIVATION_VARIABLE} is not "true"`)
   if (!RUN_ID_PATTERN.test(String(sourceRunId))) fail('source run id is invalid')
 
@@ -192,9 +195,9 @@ export async function validateProductionRequest({ repo, sourceRunId, enabled, mo
   const high = findHighRiskChange(files)
   if (high) refuse(`human release decision required because changed file ${high.path} is classified as ${high.risk}`)
 
-  // Idempotency (request mode): Production Release serializes in `production-deploy` and a newer pending run
+  // Idempotency (pre-dispatch stages resolve and request, never release): Production Release serializes in `production-deploy` and a newer pending run
   // would REPLACE an older pending one, so never dispatch while any release/rollback run is queued or waiting.
-  if (mode === 'request') {
+  if (mode !== 'release') {
     const active = await deps.listActiveProductionRuns()
     if (!Array.isArray(active)) fail('active production runs could not be proven')
     if (active.length > 0) {
