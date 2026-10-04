@@ -5,6 +5,8 @@ import { PUBLISHER_EMAIL, formatTrailers } from './recovery-lineage.mjs'
 import {
   GATE_APP,
   Ineligible,
+  PUBLISHER_APP_SLUG,
+  RECOVERY_BRANCH_RULESET_PATTERN,
   TRUSTED_BOT,
   classifyChangedFile,
   evaluateAutoMerge,
@@ -19,6 +21,17 @@ const SHA3 = 'c'.repeat(40)
 const STAGING_RUN = '37200000002'
 const CI_RUN = '37200000001'
 const BRANCH = `claude/recovery-${ROOT}`
+const APP_ID = 424242
+
+const protectedRuleset = (overrides = {}) => ({
+  id: 9,
+  target: 'branch',
+  enforcement: 'active',
+  conditions: { ref_name: { include: [RECOVERY_BRANCH_RULESET_PATTERN], exclude: [] } },
+  rules: [{ type: 'creation' }, { type: 'update' }],
+  bypass_actors: [{ actor_id: APP_ID, actor_type: 'Integration', bypass_mode: 'always' }],
+  ...overrides,
+})
 
 const commit = (sha, attempt, overrides = {}) => ({
   sha,
@@ -58,12 +71,22 @@ function world() {
     checks: { 'CI Gate': [gate('CI Gate')], 'Staging Gate': [gate('Staging Gate')] },
     reviews: [],
     unresolvedThreads: 0,
+    app: { id: APP_ID, slug: PUBLISHER_APP_SLUG },
+    rulesets: [protectedRuleset()],
     mergeCalls: [],
     mergeResponse: { merged: true, sha: 'd'.repeat(40) },
     afterMerge: null,
     beforeMerge: null,
   }
   const deps = {
+    getApp: async () => {
+      if (state.app instanceof Error) throw state.app
+      return state.app
+    },
+    listBranchRulesets: async () => {
+      if (state.rulesets instanceof Error) throw state.rulesets
+      return state.rulesets
+    },
     getRun: async (id) => (String(id) === STAGING_RUN ? state.stagingRun : String(id) === CI_RUN ? state.ciRun : null),
     readStagingContext: async () => state.context,
     getPr: async () => state.pr,
@@ -364,4 +387,98 @@ test('malformed data throws instead of being treated as ineligible or eligible',
   state.stagingRun = null
   await assert.rejects(validateAutoMergeCandidate(input, deps), /could not be fetched/)
   await assert.rejects(validateAutoMergeCandidate({ repo: REPO, stagingRunId: 'abc' }, deps), /invalid/)
+})
+
+// ---- publisher-only recovery-branch protection (provenance anchor) ---------------------------------------
+
+const PROTECTION = /dedicated recovery branches are not protected for publisher-only creation and updates/
+
+test('a correctly configured recovery-branch ruleset with exactly the PatelRep App is accepted', async () => {
+  const { deps } = world()
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, true)
+})
+
+test('missing or weakened recovery-branch protection makes auto-merge ineligible, never an error', async () => {
+  const bypass = (...actors) => [protectedRuleset({ bypass_actors: actors })]
+  const app = { actor_id: APP_ID, actor_type: 'Integration', bypass_mode: 'always' }
+  const cases = {
+    'no ruleset': [],
+    'only an unrelated ruleset': [protectedRuleset({ conditions: { ref_name: { include: ['~DEFAULT_BRANCH'], exclude: [] } } })],
+    'disabled ruleset': [protectedRuleset({ enforcement: 'disabled' })],
+    'evaluate-only ruleset': [protectedRuleset({ enforcement: 'evaluate' })],
+    'tag ruleset': [protectedRuleset({ target: 'tag' })],
+    'wrong target pattern': [protectedRuleset({ conditions: { ref_name: { include: ['refs/heads/claude/*'], exclude: [] } } })],
+    'pattern excluded': [protectedRuleset({ conditions: { ref_name: { include: [RECOVERY_BRANCH_RULESET_PATTERN], exclude: ['refs/heads/claude/recovery-1*'] } } })],
+    'missing creation': [protectedRuleset({ rules: [{ type: 'update' }] })],
+    'missing update': [protectedRuleset({ rules: [{ type: 'creation' }] })],
+    'only deletion rule': [protectedRuleset({ rules: [{ type: 'deletion' }] })],
+    'no bypass actor': bypass(),
+    'user bypass': bypass({ actor_id: 1, actor_type: 'User', bypass_mode: 'always' }),
+    'repository role (admin) bypass': bypass({ actor_id: 5, actor_type: 'RepositoryRole', bypass_mode: 'always' }),
+    'organization admin bypass': bypass({ actor_id: 1, actor_type: 'OrganizationAdmin', bypass_mode: 'always' }),
+    'team bypass': bypass({ actor_id: 7, actor_type: 'Team', bypass_mode: 'always' }),
+    'dependabot bypass': bypass({ actor_id: 29110, actor_type: 'Integration', bypass_mode: 'always' }),
+    'unrelated app bypass': bypass({ actor_id: 99, actor_type: 'Integration', bypass_mode: 'always' }),
+    'PatelRep app plus a second actor': bypass(app, { actor_id: 1, actor_type: 'User', bypass_mode: 'always' }),
+    'PatelRep app plus another app': bypass(app, { actor_id: 99, actor_type: 'Integration', bypass_mode: 'always' }),
+    'right id wrong actor type': bypass({ actor_id: APP_ID, actor_type: 'Team', bypass_mode: 'always' }),
+    'pull-request-only bypass mode': bypass({ actor_id: APP_ID, actor_type: 'Integration', bypass_mode: 'pull_request' }),
+    'ruleset without bypass_actors field': [protectedRuleset({ bypass_actors: undefined })],
+    'malformed rules': [protectedRuleset({ rules: 'creation,update' })],
+    'malformed ruleset entries': [null, 'x', 42, {}],
+    'malformed ruleset response': { message: 'nope' },
+  }
+  for (const [label, rulesets] of Object.entries(cases)) {
+    await assertIneligible((s) => { s.rulesets = rulesets }, PROTECTION).catch((error) => {
+      error.message = `${label}: ${error.message}`
+      throw error
+    })
+  }
+})
+
+test('a qualifying ruleset is enough even when other rulesets exist, but another ruleset cannot rescue a weak one', async () => {
+  const { state, deps } = world()
+  state.rulesets = [protectedRuleset({ id: 1, conditions: { ref_name: { include: ['~DEFAULT_BRANCH'], exclude: [] } }, bypass_actors: [] }), protectedRuleset({ id: 2 })]
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, true)
+  state.rulesets = [protectedRuleset({ id: 2, bypass_actors: [] })]
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, false)
+})
+
+test('the PatelRep App id is resolved from its exact slug, never assumed', async () => {
+  const apps = [null, undefined, {}, { slug: PUBLISHER_APP_SLUG }, { id: APP_ID }, { id: APP_ID, slug: 'other-app' }, { id: '424242', slug: PUBLISHER_APP_SLUG }, { id: 0, slug: PUBLISHER_APP_SLUG }, new Error('HTTP 404')]
+  for (const app of apps) await assertIneligible((s) => { s.app = app }, PROTECTION)
+  // The ruleset actor id must equal the resolved id: a different resolved id invalidates the same ruleset.
+  await assertIneligible((s) => { s.app = { id: APP_ID + 1, slug: PUBLISHER_APP_SLUG } }, PROTECTION)
+  await assertIneligible((s) => { s.rulesets = new Error('HTTP 403: Resource not accessible by integration') }, PROTECTION)
+})
+
+test('ordinary non-recovery PRs are rejected on identity before any ruleset read', async () => {
+  const { state, deps } = world()
+  let reads = 0
+  deps.getApp = async () => { reads += 1; return state.app }
+  state.pr.head.ref = 'feature/x'
+  state.context.candidate_branch = 'feature/x'
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, false)
+  assert.equal(reads, 0)
+})
+
+test('the privileged merge revalidates recovery-branch protection immediately before merging', async () => {
+  const { state, deps } = world()
+  assert.equal((await evaluateAutoMerge(input, deps)).eligible, true) // the resolver said yes ...
+  state.rulesets = [protectedRuleset({ bypass_actors: [...protectedRuleset().bypass_actors, { actor_id: 1, actor_type: 'User', bypass_mode: 'always' }] })]
+  // ... but protection changed before the privileged job ran
+  await assert.rejects(mergeRepair({ ...input, expected }, deps), (error) => error instanceof Ineligible && PROTECTION.test(error.message))
+  assert.deepEqual(state.mergeCalls, [])
+  state.rulesets = [protectedRuleset()]
+  await mergeRepair({ ...input, expected }, deps)
+  assert.deepEqual(state.mergeCalls, [{ number: 77, sha: SHA1 }])
+})
+
+test('unsigned publisher commits and matching email/trailers are not sufficient provenance without the ruleset', async () => {
+  const { state, deps } = world()
+  assert.equal(state.commits[0].authorEmail, PUBLISHER_EMAIL)
+  state.rulesets = []
+  const result = await evaluateAutoMerge(input, deps)
+  assert.equal(result.eligible, false)
+  assert.match(result.reason, PROTECTION)
 })

@@ -46,6 +46,13 @@ export function realAutoMergeDeps({ repo, readToken, mergeToken }) {
         await new Promise((resolve) => setTimeout(resolve, MERGEABLE_DELAY_MS))
       }
     },
+    getApp: async (slug) => api(`apps/${encodeURIComponent(slug)}`),
+    // Full detail objects (the list endpoint omits bypass actors and rules). Read-only; never mutates rulesets.
+    listBranchRulesets: async () => {
+      const summaries = JSON.parse(read(['api', `repos/${repo}/rulesets?per_page=100`]))
+      if (!Array.isArray(summaries)) throw new Error('auto-merge: malformed ruleset list')
+      return summaries.filter((r) => r.target === 'branch').map((r) => api(`repos/${repo}/rulesets/${r.id}`))
+    },
     getMergedPr: async (number) => api(`repos/${repo}/pulls/${number}`),
     listPrCommits: async (number) =>
       paged(`repos/${repo}/pulls/${number}/commits?per_page=100`, '.[] | @json').map((c) => ({

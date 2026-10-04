@@ -60,6 +60,14 @@ A PR is eligible only if ALL hold (re-checked independently immediately before m
    `apps/api/middleware/**`, `apps/web/proxy.ts`), `.github/**` (including this workflow), `scripts/**`
    and production/release/rollback/deploy/staging-guard paths, and infrastructure/dependency/config files.
 
+8. Recovery branches are provably publisher-only: a fresh read of the repository rulesets finds an ACTIVE
+   branch ruleset for `refs/heads/claude/recovery-*` with `creation` and `update` rules whose ONLY bypass
+   actor is the PatelRep GitHub App (an `Integration` whose id equals the id GitHub reports for the slug
+   `patelrep-release-engineer`; the id is never hard-coded). Publisher commits are unsigned and their
+   email/trailers are forgeable, so this ruleset (not the commit identity) is the provenance anchor.
+   Without it auto-merge stays ineligible (fail-closed): `Auto-merge ineligible: dedicated recovery
+   branches are not protected for publisher-only creation and updates.` This never triggers a repair.
+
 A refusal is reported in the job summary (`Auto-merge ineligible: human review required because changed
 file <path> is classified as <risk>.`), leaves the PR open and does not start another Claude attempt.
 
@@ -67,6 +75,26 @@ Merge: `PUT /pulls/<n>/merge` with `sha=<validated head>` and `merge_method=merg
 head moved). Afterwards the PR must report `merged` with the same head SHA. No force push, rebase, branch
 update or branch deletion; the `main` ruleset (strict `CI Gate` + `Staging Gate`, thread resolution, no
 bypass actors) stays the final backstop.
+
+### One-time setup: publisher-only recovery-branch ruleset
+
+Do this once in the GitHub UI (Settings -> Rules -> Rulesets -> New ruleset -> New branch ruleset). It is
+never created or changed by a workflow, and it is separate from the `main` ruleset (id `17358515`, which keeps
+strict `CI Gate` + `Staging Gate`, thread resolution, 0 approvals, NO bypass actors; do not edit it and do not
+add the App to it).
+
+- **Ruleset name:** `claude-recovery-branches` (any name works; the validator matches on content).
+- **Enforcement status:** `Active` (not Disabled, not Evaluate).
+- **Bypass list:** exactly one entry: the GitHub App `patelrep-release-engineer`, bypass mode `Always`
+  (API shape: `actor_type: Integration`, `bypass_mode: always`). No repository roles, admins, users, teams,
+  Dependabot or other Apps.
+- **Target branches:** Add target -> Include by pattern -> `claude/recovery-*`
+  (stored as `refs/heads/claude/recovery-*`). No exclusions.
+- **Branch rules:** enable `Restrict creations` (`creation`) and `Restrict updates` (`update`). Leave
+  `Restrict deletions` off for now so test branches can still be cleaned up manually.
+
+Until this ruleset exists and matches exactly, Phase 2C auto-merge remains ineligible. If the workflow
+token cannot read ruleset bypass actors, auto-merge also stays ineligible (it never guesses).
 
 ## Bounded recovery lineage
 

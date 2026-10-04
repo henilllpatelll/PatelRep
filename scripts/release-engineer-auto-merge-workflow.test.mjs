@@ -100,7 +100,7 @@ test('merge uses the exact-SHA merge API with normal merge commits and no bypass
   assert.match(scripts.deps, /'PUT', `repos\/\$\{repo\}\/pulls\/\$\{number\}\/merge`/)
   assert.match(scripts.merge, /deps\.merge\(candidate\.prNumber, candidate\.sha\)/)
   for (const source of Object.values(scripts)) {
-    assert.doesNotMatch(source, /squash|rebase|update-branch|--force|force-with-lease|bypass|git push|git merge|delete.*branch|git\/refs/i)
+    assert.doesNotMatch(source, /squash|rebase|update-branch|--force|force-with-lease|git push|git merge|delete.*branch|git\/refs/i)
   }
   assert.match(scripts.merge, /merged !== true/)
   assert.match(scripts.merge, /merged\.head\?\.sha !== candidate\.sha/)
@@ -157,4 +157,30 @@ test('the operating document records the Phase 2C boundaries', () => {
   assert.match(doc, /claude\/recovery-<numeric-root>/)
   assert.match(doc, /never auto-merge/i)
   assert.match(doc, /Phase 2D/)
+})
+
+test('both resolver and merge paths verify the recovery-branch ruleset through the shared policy, read-only', () => {
+  assert.match(scripts.policy, /await requirePublisherOnlyRecoveryBranches\(deps\)/)
+  assert.match(scripts.policy, /deps\.getApp\(PUBLISHER_APP_SLUG\)/)
+  assert.match(scripts.policy, /refs\/heads\/claude\/recovery-\*/)
+  assert.match(scripts.policy, /actor\.actor_id === app\.id/)
+  assert.doesNotMatch(scripts.policy, /actor_id: \d|actor_id === \d/, 'the App id is resolved from the slug, never hard-coded')
+  assert.match(scripts.resolver, /evaluateAutoMerge/)
+  assert.match(scripts.merge, /validateAutoMergeCandidate/)
+  assert.match(scripts.deps, /apps\/\$\{encodeURIComponent\(slug\)\}/)
+  assert.match(scripts.deps, /rulesets\?per_page=100/)
+  // Rulesets are only ever read: the single mutating API call in all scripts is the exact-SHA merge PUT.
+  const mutating = [...Object.values(scripts).join('\n').matchAll(/'--method', '(PUT|POST|PATCH|DELETE)'/g)].map((m) => m[1])
+  assert.deepEqual(mutating, ['PUT'])
+  assert.doesNotMatch(workflowCode, /administration/i)
+})
+
+test('the one-time recovery-branch ruleset setup is documented and the main ruleset stays separate', () => {
+  assert.match(doc, /refs\/heads\/claude\/recovery-\*/)
+  assert.match(doc, /Restrict creations/)
+  assert.match(doc, /Restrict updates/)
+  assert.match(doc, /patelrep-release-engineer/)
+  assert.match(doc, /Integration/)
+  assert.match(doc, /17358515/)
+  assert.match(doc, /fail[s-]closed|stays ineligible|remains ineligible/i)
 })

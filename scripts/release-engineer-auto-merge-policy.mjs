@@ -12,6 +12,8 @@ import {
 
 export const TRUSTED_BOT = Object.freeze({ login: 'patelrep-release-engineer[bot]', id: 337493489, type: 'Bot' })
 export const GATE_APP = Object.freeze({ slug: 'github-actions', id: 15368 })
+export const PUBLISHER_APP_SLUG = 'patelrep-release-engineer'
+export const RECOVERY_BRANCH_RULESET_PATTERN = 'refs/heads/claude/recovery-*'
 export const HUMAN_HOLD_LABELS = Object.freeze(['do-not-merge', 'do not merge', 'hold', 'manual-review', 'needs-human'])
 
 const SHA = /^[0-9a-f]{40}$/
@@ -100,6 +102,44 @@ export function dedicatedRecoveryRoot(branch) {
   return root
 }
 
+const UNPROTECTED = 'dedicated recovery branches are not protected for publisher-only creation and updates'
+
+/**
+ * Provenance anchor: recovery commits are unsigned and emails/trailers are forgeable, so auto-merge is only
+ * allowed while an ACTIVE branch ruleset makes claude/recovery-* writable by the PatelRep App alone. Fails
+ * closed (Ineligible, never a Claude repair trigger) on any missing, disabled, partial or malformed state.
+ */
+export async function requirePublisherOnlyRecoveryBranches(deps) {
+  let app
+  let rulesets
+  try {
+    app = await deps.getApp(PUBLISHER_APP_SLUG)
+    rulesets = await deps.listBranchRulesets()
+  } catch (error) {
+    refuse(`${UNPROTECTED} (could not read the GitHub App or rulesets: ${String(error.message).split('\n')[0].slice(0, 120)})`)
+  }
+  if (!app || app.slug !== PUBLISHER_APP_SLUG || !Number.isSafeInteger(app.id) || app.id <= 0) {
+    refuse(`${UNPROTECTED} (GitHub App ${PUBLISHER_APP_SLUG} could not be resolved)`)
+  }
+  if (!Array.isArray(rulesets)) refuse(`${UNPROTECTED} (malformed ruleset response)`)
+
+  const protects = (ruleset) => {
+    if (!ruleset || typeof ruleset !== 'object') return false
+    if (ruleset.target !== 'branch' || ruleset.enforcement !== 'active') return false
+    const ref = ruleset.conditions?.ref_name
+    if (!Array.isArray(ref?.include) || !ref.include.includes(RECOVERY_BRANCH_RULESET_PATTERN)) return false
+    if (Array.isArray(ref.exclude) ? ref.exclude.length > 0 : ref.exclude != null) return false
+    if (!Array.isArray(ruleset.rules)) return false
+    const types = ruleset.rules.map((rule) => rule?.type)
+    if (!types.includes('creation') || !types.includes('update')) return false
+    const bypass = ruleset.bypass_actors
+    if (!Array.isArray(bypass) || bypass.length !== 1) return false
+    const [actor] = bypass
+    return actor?.actor_type === 'Integration' && actor.actor_id === app.id && actor.bypass_mode === 'always'
+  }
+  if (!rulesets.some(protects)) refuse(UNPROTECTED)
+}
+
 function requireTrustedCreator(pr) {
   const user = pr.user
   if (!user || user.login !== TRUSTED_BOT.login || user.type !== TRUSTED_BOT.type || user.id !== TRUSTED_BOT.id) {
@@ -173,7 +213,7 @@ function requireSuccessfulRun(run, { name, repo, runId }) {
  * Re-derives everything from the exact successful Staging Candidate run and fresh GitHub state.
  * Throws Ineligible for any policy refusal and a plain Error for malformed/unprovable data (fail closed).
  * @param {{repo: string, stagingRunId: string, expected?: {prNumber: string, sha: string, branch: string, ciRunId: string}}} input
- * @param {object} deps getRun, readStagingContext, getPr, listPrCommits, listPrFiles, listCheckRuns, listReviews,
+ * @param {object} deps getApp(slug), listBranchRulesets() (full ruleset objects), getRun, readStagingContext, getPr, listPrCommits, listPrFiles, listCheckRuns, listReviews,
  *   countUnresolvedThreads
  */
 export async function validateAutoMergeCandidate({ repo, stagingRunId, expected }, deps) {
@@ -205,6 +245,7 @@ export async function validateAutoMergeCandidate({ repo, stagingRunId, expected 
   requireTrustedCreator(pr)
   const root = dedicatedRecoveryRoot(pr.head?.ref)
   requireOpenCandidate(pr, repo, sha, branch)
+  await requirePublisherOnlyRecoveryBranches(deps)
   const labels = (pr.labels ?? []).map((label) => String(label.name ?? '').trim().toLowerCase())
   const hold = labels.find((label) => HUMAN_HOLD_LABELS.includes(label))
   if (hold) refuse(`PR #${pr.number} carries the human-gate label "${hold}"`)
