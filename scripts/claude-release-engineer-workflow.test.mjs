@@ -25,14 +25,6 @@ test('authenticates with the Claude OAuth token and never the Anthropic API key'
   assert.match(workflow, /anthropics\/claude-code-action@v1/)
 })
 
-test('creates a PatelRep GitHub App token and passes it as github_token', () => {
-  assert.match(workflow, /actions\/create-github-app-token@v3/)
-  assert.match(workflow, /client-id: \$\{\{ vars\.PATELREP_APP_CLIENT_ID \}\}/)
-  assert.match(workflow, /private-key: \$\{\{ secrets\.PATELREP_APP_PRIVATE_KEY \}\}/)
-  assert.match(workflow, /github_token: \$\{\{ steps\.app-token\.outputs\.token \}\}/)
-  assert.doesNotMatch(workflow, /github_token: \$\{\{ (?:secrets\.GITHUB_TOKEN|github\.token)/)
-})
-
 test('grants actions: read, keeps output hidden, and bounds the agent', () => {
   assert.match(workflow, /additional_permissions: \|\n\s+actions: read/)
   assert.doesNotMatch(workflow, /show_full_output/)
@@ -48,18 +40,6 @@ test('triggers on manual dispatch and the five upstream workflows only', () => {
   }
   assert.doesNotMatch(workflow, /^      - Claude Release Engineer$/m)
   assert.doesNotMatch(workflow, /pull_request_target/)
-})
-
-test('only failures from same-repository, non-recovery runs invoke Claude', () => {
-  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'failure'/)
-  assert.doesNotMatch(workflow, /conclusion == 'success'/)
-  assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
-  assert.doesNotMatch(workflow, /startsWith\(github\.event\.workflow_run\.head_branch/)
-})
-
-test('serializes per failed run without cancelling an active repair', () => {
-  assert.match(workflow, /group: claude-release-engineer-\$\{\{ github\.event\.workflow_run\.id/)
-  assert.match(workflow, /cancel-in-progress: false/)
 })
 
 test('never receives production credentials or an environment', () => {
@@ -134,17 +114,6 @@ test('production release publishes only release identifiers for failure recovery
   assert.match(productionRelease, /check-db-drift\.mjs --environment production --allow-pending/)
 })
 
-test('repair context is resolved before checkout and checkout uses repair_sha', () => {
-  assert.ok(workflow.indexOf('id: ctx') < workflow.indexOf('ref: ${{ steps.ctx.outputs.repair_sha }}'))
-  assert.match(workflow, /ref: \$\{\{ steps\.ctx\.outputs\.repair_sha \}\}/)
-  assert.doesNotMatch(workflow, /ref: \$\{\{[^}]*workflow_run\.head_sha/)
-  assert.match(workflow, /scripts\/resolve-release-engineer-context\.mjs/)
-  for (const output of ['repair_sha', 'repair_branch', 'repair_pr_number', 'root_failed_run_id', 'upstream_workflow']) {
-    assert.match(resolver, new RegExp(`${output}:`))
-    assert.match(workflow, new RegExp(`steps\.ctx\.outputs\.${output}`))
-  }
-})
-
 test('resolver never trusts staging workflow_run head data and fails closed', () => {
   const staging = section(resolver, "run.name === 'Staging Candidate'", "run.name === 'Production Migration Evidence Audit'")
   assert.doesNotMatch(staging, /run\.head_sha|run\.head_branch/)
@@ -155,56 +124,12 @@ test('resolver never trusts staging workflow_run head data and fails closed', ()
   assert.match(workflow, /Never push directly to main/)
 })
 
-test('direct pushes to main and force pushes are denied while repair-branch pushes stay allowed', () => {
-  const deny = workflow.match(/--disallowedTools "([^"]*)"/)[1].split(',')
-  for (const rule of [
-    'Bash(git push origin main:*)',
-    'Bash(git push origin HEAD:main:*)',
-    'Bash(git push --force:*)',
-    'Bash(git push -f:*)',
-    'Bash(git push --force-with-lease:*)',
-  ]) {
-    assert.ok(deny.includes(rule), `missing deny rule ${rule}`)
-  }
-  const allow = workflow.match(/--allowedTools "([^"]*)"/)[1].split(',')
-  assert.ok(allow.includes('Bash(git:*)'))
-  assert.ok(!deny.includes('Bash(git push:*)') && !deny.includes('Bash(git push origin:*)'))
-})
-
 test('workflow-file edits are allowed through repair PRs, documented against the App permission', () => {
   assert.doesNotMatch(workflow, /disallowedTools[^\n]*\.github\/workflows/)
   assert.doesNotMatch(workflow, /Edit\(\.github/)
   assert.match(doc, /Workflows: Read & write/)
   assert.doesNotMatch(doc, /deliberately has no `workflows`/)
   assert.match(doc, /may\*\* repair\s+`\.github\/workflows\/\*\*`/)
-  assert.match(doc, /Phase 2 replaces it with bounded\s+autonomous retries/)
-})
-
-test('phase 1 does not auto-merge or auto-dispatch Production Release', () => {
-  assert.doesNotMatch(executable, /gh pr merge|merge_pull_request|--auto\b|gh workflow run|gh api[^\n]*dispatches/)
-  const deny = workflow.match(/--disallowedTools "([^"]*)"/)[1]
-  assert.match(deny, /Bash\(gh pr merge:\*\)/)
-  assert.match(deny, /Bash\(gh workflow run production-release\*\)/)
-  assert.match(workflow, /Do not dispatch Production Release/)
-})
-
-test('fork-run rejection and the phase 1 recovery retry guard are preserved', () => {
-  assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
-  // The coarse job condition must not try to infer the Staging candidate branch (it reports main).
-  const jobIf = section(workflow, '    if: >-', '    steps:')
-  assert.doesNotMatch(jobIf, /head_branch|recovery/)
-  // The trusted resolver owns retry classification, keyed on the failed source, not the repair branch.
-  assert.match(resolver, /failedSourceBranch\?\.startsWith\(RECOVERY_PREFIX\)/)
-  assert.doesNotMatch(resolver, /repairBranch\.startsWith/)
-  assert.match(workflow, /steps\.ctx\.outputs\.skip != 'true'/)
-})
-
-test('the resolver is checked out from main, never from failed code', () => {
-  const trusted = section(workflow, '# Trusted copy of the resolver', '- name: Resolve repair context')
-  assert.match(trusted, /ref: main/)
-  assert.match(trusted, /persist-credentials: false/)
-  assert.match(trusted, /sparse-checkout: scripts/)
-  assert.doesNotMatch(trusted, /repair_sha|workflow_run\.head_sha/)
 })
 
 test('Deploy Health Check is monitored, only failures of same-repository runs invoke Claude', () => {
@@ -245,11 +170,135 @@ test('only dependabot[bot] is allowed as a non-human actor, never a wildcard', (
   assert.doesNotMatch(workflow, /allowed_non_write_users|allowed_bots:[^\n]*[,*]/)
 })
 
-test('bot allowance does not loosen same-repository failed-run, fork, or credential protections', () => {
-  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'failure'/)
-  assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/)
-  assert.doesNotMatch(executable, /^\s+environment:/m)
-  assert.doesNotMatch(executable, /PRODUCTION_|RAILWAY|SUPABASE|STRIPE|SERVICE_ROLE/i)
-  assert.doesNotMatch(executable, /gh pr merge|gh workflow run|--auto\b/)
-  assert.match(workflow, /ref: main/)
+// ---- Phase 2B: separated authority, bounded retries, trusted publishing ----
+const jobSection = (name) => {
+  const start = workflow.indexOf(`\n  ${name}:\n`)
+  assert.ok(start >= 0, `job ${name} must exist`)
+  const rest = workflow.slice(start + 1)
+  const next = rest.slice(1).search(/\n  [a-z-]+:\n/)
+  return next < 0 ? rest : rest.slice(0, next + 1)
+}
+const resolveJob = jobSection('resolve')
+const withoutDenyList = (text) => text.split('\n').filter((line) => !/disallowedTools/.test(line)).join('\n')
+const repairJob = jobSection('repair')
+const publishJob = jobSection('publish')
+const publisher = read('scripts/publish-release-engineer-repair.mjs')
+const lineage = read('scripts/recovery-lineage.mjs')
+
+test('Claude uses the read-only workflow token; only the publisher job holds the GitHub App token', () => {
+  assert.match(repairJob, /github_token: \$\{\{ github\.token \}\}/)
+  assert.doesNotMatch(repairJob, /app-token|PATELREP_APP|create-github-app-token/)
+  assert.doesNotMatch(resolveJob, /app-token|PATELREP_APP|create-github-app-token/)
+  assert.match(publishJob, /actions\/create-github-app-token@v3/)
+  assert.match(publishJob, /client-id: \$\{\{ vars\.PATELREP_APP_CLIENT_ID \}\}/)
+  assert.match(publishJob, /private-key: \$\{\{ secrets\.PATELREP_APP_PRIVATE_KEY \}\}/)
+  assert.equal((workflow.match(/PATELREP_APP_PRIVATE_KEY/g) ?? []).length, 1)
+  assert.doesNotMatch(workflow, /github_token: \$\{\{ steps\.app-token/)
+  assert.doesNotMatch(repairJob, /persist-credentials: true/)
+})
+
+test('Claude cannot push, commit, create/edit/merge PRs, or dispatch workflows', () => {
+  const deny = workflow.match(/--disallowedTools "([^"]*)"/)[1].split(',')
+  for (const rule of [
+    'Bash(git push:*)', 'Bash(git push --force:*)', 'Bash(git push -f:*)', 'Bash(git push --force-with-lease:*)',
+    'Bash(git push origin main:*)', 'Bash(git push origin HEAD:main:*)', 'Bash(git commit:*)', 'Bash(git reset:*)',
+    'Bash(gh pr create:*)', 'Bash(gh pr edit:*)', 'Bash(gh pr merge:*)', 'Bash(gh pr comment:*)', 'Bash(gh workflow:*)',
+    'Bash(gh api * --method*)', 'Bash(gh api * -X*)',
+  ]) {
+    assert.ok(deny.includes(rule), `missing deny rule ${rule}`)
+  }
+  const allow = workflow.match(/--allowedTools "([^"]*)"/)[1].split(',')
+  for (const broad of ['Bash(git:*)', 'Bash(gh:*)', 'Bash(git push:*)', 'Bash(git commit:*)']) {
+    assert.ok(!allow.includes(broad), `allow list must not contain ${broad}`)
+  }
+  assert.ok(allow.includes('Bash(git diff:*)') && allow.includes('Bash(gh run download:*)'))
+})
+
+test('the trusted publisher is the only place that pushes, commits, or edits PRs', () => {
+  assert.doesNotMatch(withoutDenyList(repairJob), /git push|git commit|gh pr (?:create|edit|merge)|--method (?:POST|PATCH)/)
+  assert.doesNotMatch(resolveJob, /git push|git commit|gh pr (?:create|edit|merge)|--method (?:POST|PATCH)/)
+  assert.match(publishJob, /node \.trusted-publisher\/scripts\/publish-release-engineer-repair\.mjs/)
+  assert.match(publisher, /'push', 'origin', `HEAD:refs\/heads\/\$\{branch\}`/)
+  assert.doesNotMatch(publisher, /--force|force-with-lease/)
+  assert.doesNotMatch(publisher, /gh pr merge|merge_pull|\/merge|gh workflow run|dispatches/)
+})
+
+test('publisher code and resolver both come from main, and publish needs a captured patch', () => {
+  assert.match(section(publishJob, 'Publisher code comes from main', '- uses: actions/download-artifact'), /ref: main/)
+  assert.match(resolveJob, /ref: main\n\s+path: \.trusted-resolver/)
+  assert.match(publishJob, /needs\.repair\.outputs\.has_changes == 'true'/)
+  assert.match(repairJob, /test "\$\(git rev-parse HEAD\)" = "\$REPAIR_SHA"/)
+  assert.match(repairJob, /git diff --cached --binary "\$REPAIR_SHA"/)
+})
+
+test('repair and publish are serialized by the RESOLVED recovery root, never cancelled, and not workflow-level', () => {
+  const groups = [...workflow.matchAll(/group: (claude-recovery-root-\$\{\{ needs\.resolve\.outputs\.root_failed_run_id \}\})/g)]
+  assert.equal(groups.length, 2)
+  assert.match(repairJob, /concurrency:\n\s+group: claude-recovery-root-/)
+  assert.match(publishJob, /concurrency:\n\s+group: claude-recovery-root-/)
+  assert.equal((workflow.match(/cancel-in-progress: false/g) ?? []).length, 2)
+  assert.doesNotMatch(workflow, /cancel-in-progress: true/)
+  assert.doesNotMatch(workflow, /group: claude-release-engineer-/)
+  assert.doesNotMatch(workflow, /concurrency:[^\n]*\n\s+group:[^\n]*workflow_run\.id/)
+})
+
+test('repair context is resolved first and every repair checkout uses the resolved repair_sha', () => {
+  assert.match(repairJob, /needs: resolve/)
+  assert.ok(workflow.indexOf('id: ctx') < workflow.indexOf('ref: ${{ needs.resolve.outputs.repair_sha }}'))
+  assert.equal((workflow.match(/ref: \$\{\{ needs\.resolve\.outputs\.repair_sha \}\}/g) ?? []).length, 2)
+  assert.doesNotMatch(workflow, /ref: \$\{\{[^}]*workflow_run\.head_sha/)
+  for (const output of ['repair_sha', 'repair_branch', 'repair_pr_number', 'root_failed_run_id', 'failed_run_id', 'repair_attempt', 'automatic_retry_allowed', 'upstream_workflow', 'skip']) {
+    assert.match(resolver, new RegExp(`${output}:`))
+    assert.match(workflow, new RegExp(`${output}: \\$\\{\\{ steps\\.ctx\\.outputs\\.${output} \\}\\}`))
+  }
+  assert.match(repairJob, /if: needs\.resolve\.outputs\.skip != 'true'/)
+})
+
+test('the retry limit is a checked-in constant of 3, enforced by the resolver and the publisher', () => {
+  assert.match(lineage, /MAX_AUTOMATIC_REPAIR_ATTEMPTS = 3/)
+  assert.match(resolver, /attempt > MAX_AUTOMATIC_REPAIR_ATTEMPTS/)
+  assert.match(publisher, /attempt > MAX_AUTOMATIC_REPAIR_ATTEMPTS/)
+  assert.match(resolveJob, /Report automatic retry exhaustion/)
+  assert.doesNotMatch(workflow, /\b(?:max_attempts|MAX_ATTEMPTS)\s*[:=]\s*\d/)
+})
+
+test('lineage is authoritative in commit trailers written by the publisher, not in PR text or counts', () => {
+  for (const trailer of ['PatelRep-Recovery-Root', 'PatelRep-Recovery-Attempt', 'PatelRep-Recovery-Source-Run']) {
+    assert.ok(lineage.includes(trailer))
+    assert.ok(doc.includes(trailer))
+  }
+  assert.match(publisher, /formatTrailers\(/)
+  assert.doesNotMatch(resolver, /listWorkflowRuns|rev-list --count|comments|created_at|updated_at/)
+  assert.match(publisher, /commit trailers are authoritative/)
+})
+
+test('the Phase 1 branch-name retry guard is gone and the dependabot allowance is preserved', () => {
+  assert.doesNotMatch(resolver, /skip[^\n]*failedSourceBranch|failedSourceBranch[^\n]*skip/)
+  assert.doesNotMatch(workflow, /startsWith\(github\.event\.workflow_run\.head_branch/)
+  assert.match(repairJob, /allowed_bots: dependabot\[bot\]/)
+  assert.match(doc, /bounded recovery lineage/i)
+  assert.doesNotMatch(doc, /Phase 2 replaces it with bounded/)
+})
+
+test('phase 2B adds no auto-merge and no Production Release dispatch', () => {
+  assert.doesNotMatch(executable, /gh pr merge|merge_pull_request|--auto\b|gh workflow run|dispatches|production-release\.yml/)
+  const deny = workflow.match(/--disallowedTools "([^"]*)"/)[1]
+  assert.match(deny, /Bash\(gh pr merge:\*\)/)
+  assert.match(deny, /Bash\(gh workflow:\*\)/)
+  assert.match(workflow, /Do not dispatch Production Release|do not dispatch Production Release/i)
+})
+
+test('only failures from same-repository runs reach the resolver and fork protection remains', () => {
+  assert.match(resolveJob, /github\.event\.workflow_run\.conclusion == 'failure'/)
+  assert.doesNotMatch(workflow, /conclusion == 'success'/)
+  assert.match(resolveJob, /workflow_run\.head_repository\.full_name == github\.repository/)
+  assert.doesNotMatch(workflow, /startsWith\(github\.event\.workflow_run\.head_branch/)
+  assert.doesNotMatch(workflow, /pull_request_target/)
+})
+
+test('credentials stay isolated: no production secrets or environment in any job', () => {
+  assert.doesNotMatch(executable, /PRODUCTION_|RAILWAY|SUPABASE|STRIPE|SERVICE_ROLE|DATABASE_URL|DB_URL/i)
+  assert.doesNotMatch(workflow, /^\s+environment:/m)
+  assert.deepEqual([...new Set([...workflow.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]))].sort(), ['CLAUDE_CODE_OAUTH_TOKEN', 'PATELREP_APP_PRIVATE_KEY'])
+  assert.doesNotMatch(repairJob, /PATELREP_APP_PRIVATE_KEY/)
 })

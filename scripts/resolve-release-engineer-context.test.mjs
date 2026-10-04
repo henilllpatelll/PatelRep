@@ -22,7 +22,8 @@ const stagingContext = (overrides = {}) => ({
 // Staging workflow_run payloads report main, not the PR candidate.
 const stagingRun = { id: 500, name: 'Staging Candidate', head_sha: MAIN_SHA, head_branch: 'main', head_repository: { full_name: REPO } }
 
-const makeDeps = ({ pr = openPr(), artifact, openPrs = [], commitKnown = true } = {}) => ({
+const makeDeps = ({ pr = openPr(), artifact, openPrs = [], commitKnown = true, commit = { message: 'feat: x', authorEmail: 'dev@example.com' } } = {}) => ({
+  getCommit: async () => commit,
   getPr: async () => pr,
   listOpenPrsForBranch: async () => openPrs,
   readArtifactJson: async (_runId, name) => {
@@ -62,16 +63,6 @@ test('staging failure fails closed for stale SHA, changed head branch, closed PR
   await assert.rejects(resolve(stagingRun, makeDeps({ artifact, pr: openPr({ state: 'closed' }) })), /not open/)
   await assert.rejects(resolve(stagingRun, makeDeps({ artifact, pr: openPr({ head: prHead({ repo: { full_name: 'evil/fork' } }) }) })), /not from this repository/)
   await assert.rejects(resolve(stagingRun, makeDeps({ artifact, pr: openPr({ base: { ref: 'develop' } }) })), /does not target main/)
-})
-
-test('staging failure on a recovery PR is skipped automatically but allowed manually', async () => {
-  const deps = makeDeps({
-    artifact: stagingContext({ candidate_branch: 'claude/recovery-31' }),
-    pr: openPr({ head: prHead({ ref: 'claude/recovery-31' }) }),
-  })
-  assert.equal((await resolve(stagingRun, deps)).skip, true)
-  const manual = await resolve({ ...stagingRun, status: 'completed', conclusion: 'failure' }, deps, 'workflow_dispatch')
-  assert.equal(manual.skip, false)
 })
 
 test('CI failure resolves from its exact failed SHA and revalidates its PR', async () => {
@@ -128,28 +119,11 @@ test('retry guard: CI failure on a normal feature PR is not skipped and uses the
   assert.equal(result.repairBranch, 'feature/x')
 })
 
-test('retry guard: CI failure on an existing claude/recovery-* branch is skipped automatically', async () => {
-  const run = ciRun({ head_branch: 'claude/recovery-123' })
-  const deps = makeDeps({ pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }) })
-  assert.equal((await resolve(run, deps)).skip, true)
-  const noPr = ciRun({ head_branch: 'claude/recovery-123', pull_requests: [] })
-  assert.equal((await resolve(noPr, makeDeps())).skip, true)
-})
-
 test('retry guard: CI failure on main creates a recovery branch and is NOT skipped', async () => {
   const run = ciRun({ id: 321, head_sha: MAIN_SHA, head_branch: 'main', pull_requests: [] })
   const result = await resolve(run, makeDeps())
   assert.equal(result.skip, false)
   assert.equal(result.repairBranch, 'claude/recovery-321')
-})
-
-test('retry guard: staging failure for a normal feature branch is not skipped, recovery candidate is', async () => {
-  assert.equal((await resolve(stagingRun, makeDeps({ artifact: stagingContext() }))).skip, false)
-  const deps = makeDeps({
-    artifact: stagingContext({ candidate_branch: 'claude/recovery-123' }),
-    pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }),
-  })
-  assert.equal((await resolve(stagingRun, deps)).skip, true)
 })
 
 test('retry guard: evidence audit failure on main is NOT skipped and gets a new recovery branch', async () => {
@@ -165,12 +139,6 @@ test('retry guard: production release failure is NOT skipped, keeps the exact re
   assert.equal(result.skip, false)
   assert.equal(result.repairSha, RELEASE_SHA)
   assert.equal(result.repairBranch, 'claude/recovery-810')
-})
-
-test('retry guard: manual retry of a recovery failure is NOT skipped', async () => {
-  const run = ciRun({ head_branch: 'claude/recovery-123', status: 'completed', conclusion: 'failure' })
-  const deps = makeDeps({ pr: openPr({ head: prHead({ ref: 'claude/recovery-123' }) }) })
-  assert.equal((await resolve(run, deps, 'workflow_dispatch')).skip, false)
 })
 
 test('real-shaped 11-digit GitHub run ids are accepted for automatic and manual resolution', async () => {

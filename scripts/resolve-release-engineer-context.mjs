@@ -8,13 +8,21 @@ import { appendFileSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  MAX_AUTOMATIC_REPAIR_ATTEMPTS,
+  PUBLISHER_EMAIL,
+  RECOVERY_BRANCH_PREFIX,
+  parseTrailers,
+  recoveryBranchFor,
+  rootFromRecoveryBranch,
+} from './recovery-lineage.mjs'
 
 const SHA = /^[0-9a-f]{40}$/
 const BRANCH = /^[A-Za-z0-9._/-]{1,200}$/
 const NUMBER = /^[1-9][0-9]{0,9}$/ // PR numbers
 // GitHub Actions run ids are already 11 digits; keep them as decimal strings with generous headroom.
 const RUN_ID = /^[1-9][0-9]{0,19}$/
-const RECOVERY_PREFIX = 'claude/recovery-'
+const RECOVERY_PREFIX = RECOVERY_BRANCH_PREFIX
 
 const STAGING_KEYS = ['candidate_branch', 'candidate_sha', 'ci_run_id', 'pr_number']
 const RELEASE_KEYS = ['pr_number', 'release_sha']
@@ -44,12 +52,48 @@ function requireSameRepoPr(pr, repo, expectedSha, expectedBranch) {
  * @param {string} input.repo owner/name
  * @param {string} input.fallbackSha sha to use when a manual dispatch names no failed run
  * @param {string} input.currentRunId id of this workflow run
- * @param {object} deps getPr(number), listOpenPrsForBranch(branch), readArtifactJson(runId, name), commitExists(sha)
+ * @param {object} deps getPr(number), listOpenPrsForBranch(branch), readArtifactJson(runId, name), commitExists(sha),
+ *   getCommit(sha) -> { message, authorEmail }
  */
+
+/**
+ * Recovers lineage from the exact failed candidate head commit of a proven open PR.
+ * Returns null when the head carries no recovery trailers (a fresh root); throws (fail closed) on
+ * malformed/forged trailers or any disagreement between a recovery branch name and its trailers.
+ */
+function inheritLineage(branch, commit) {
+  const encodedRoot = rootFromRecoveryBranch(branch)
+  const trailers = parseTrailers(commit.message)
+  if (trailers && commit.authorEmail !== PUBLISHER_EMAIL) fail('recovery trailers are not on a trusted-publisher commit')
+  if (encodedRoot !== null) {
+    if (!trailers) fail(`recovery branch ${branch} head has no trusted recovery lineage`)
+    if (trailers.root !== encodedRoot) fail(`recovery branch root ${encodedRoot} disagrees with commit root ${trailers.root}`)
+  }
+  return trailers
+}
+
+function lineageResult({ eventName, upstreamWorkflow, failedRunId, root, attempt, repairSha, repairBranch, repairPrNumber }) {
+  const manual = eventName === 'workflow_dispatch'
+  const retryExhausted = attempt > MAX_AUTOMATIC_REPAIR_ATTEMPTS
+  return {
+    skip: !manual && retryExhausted,
+    manual,
+    retryExhausted,
+    automaticRetryAllowed: manual || !retryExhausted,
+    upstreamWorkflow,
+    failedRunId,
+    rootFailedRunId: root,
+    repairAttempt: attempt,
+    repairSha,
+    repairBranch,
+    repairPrNumber,
+  }
+}
 export async function resolveRepairContext({ eventName, run, repo, fallbackSha, currentRunId }, deps) {
   if (!run) {
     if (!SHA.test(fallbackSha ?? '')) fail('manual run has no valid fallback SHA')
-    return { skip: false, upstreamWorkflow: 'manual', rootFailedRunId: `manual-${currentRunId}`, repairSha: fallbackSha, repairBranch: `${RECOVERY_PREFIX}manual-${currentRunId}`, repairPrNumber: '' }
+    const root = `manual-${currentRunId}`
+    return lineageResult({ eventName, upstreamWorkflow: 'manual', failedRunId: String(currentRunId), root, attempt: 1, repairSha: fallbackSha, repairBranch: recoveryBranchFor(root), repairPrNumber: '' })
   }
 
   const rootFailedRunId = String(run.id)
@@ -60,10 +104,9 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     fail('named run did not fail')
   }
 
-  const recoveryBranch = `${RECOVERY_PREFIX}${rootFailedRunId}`
   let repairSha
-  let repairBranch = recoveryBranch
   let repairPrNumber = ''
+  let candidatePr = null
   // Branch the FAILED code came from; distinct from repairBranch, which may be a brand-new recovery branch.
   let failedSourceBranch = run.head_branch
 
@@ -78,7 +121,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     if (prNumber) {
       const pr = await deps.getPr(prNumber)
       requireSameRepoPr(pr, repo, repairSha, run.head_branch)
-      repairBranch = pr.head.ref
+      candidatePr = pr
       repairPrNumber = String(pr.number)
     }
   } else if (run.name === 'Staging Candidate') {
@@ -92,7 +135,7 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     requireSameRepoPr(pr, repo, context.candidate_sha, context.candidate_branch)
     repairSha = context.candidate_sha
     failedSourceBranch = context.candidate_branch
-    repairBranch = context.candidate_branch
+    candidatePr = pr
     repairPrNumber = context.pr_number
   } else if (run.name === 'Production Migration Evidence Audit') {
     repairSha = run.head_sha
@@ -113,10 +156,23 @@ export async function resolveRepairContext({ eventName, run, repo, fallbackSha, 
     fail(`unsupported upstream workflow: ${run.name}`)
   }
 
-  // Phase 1 retry guard: automatic runs skip failures whose source is already a claude/recovery-* branch.
-  // Must key on the failed source, never on repairBranch (main-based failures create a recovery branch).
-  const skip = eventName === 'workflow_run' && Boolean(failedSourceBranch?.startsWith(RECOVERY_PREFIX))
-  return { skip, upstreamWorkflow: run.name, rootFailedRunId, repairSha, repairBranch, repairPrNumber }
+  // Lineage is inherited only from a proven open PR candidate head; main-based failures always start a
+  // NEW root at attempt 1 even if some commit reaching main carries old recovery trailers.
+  let root = rootFailedRunId
+  let attempt = 1
+  let repairBranch
+  if (candidatePr) {
+    const lineage = inheritLineage(candidatePr.head.ref, await deps.getCommit(repairSha))
+    if (lineage) {
+      root = lineage.root
+      attempt = lineage.attempt + 1
+    }
+    repairBranch = candidatePr.head.ref
+  } else {
+    if (failedSourceBranch?.startsWith(RECOVERY_PREFIX)) fail(`failed source ${failedSourceBranch} is a recovery branch without an open PR`)
+    repairBranch = recoveryBranchFor(root)
+  }
+  return lineageResult({ eventName, upstreamWorkflow: run.name, failedRunId: rootFailedRunId, root, attempt, repairSha, repairBranch, repairPrNumber })
 }
 
 /** Validates the manual failed_run_id input; returns '' when none was given. */
@@ -146,6 +202,10 @@ function realDeps(repo) {
       if (files.length !== 1 || files[0] !== 'context.json') fail(`artifact ${name} has unexpected files`)
       return JSON.parse(readFileSync(path.join(dir, 'context.json'), 'utf8'))
     },
+    getCommit: async (sha) => {
+      const data = JSON.parse(gh(['api', `repos/${repo}/commits/${sha}`]))
+      return { message: data.commit?.message ?? '', authorEmail: data.commit?.author?.email ?? '' }
+    },
     commitExists: async (sha) => {
       try {
         gh(['api', `repos/${repo}/commits/${sha}`])
@@ -172,6 +232,12 @@ async function main() {
   )
   const lines = {
     skip: String(result.skip),
+    manual: String(result.manual),
+    retry_exhausted: String(result.retryExhausted),
+    automatic_retry_allowed: String(result.automaticRetryAllowed),
+    max_automatic_attempts: String(MAX_AUTOMATIC_REPAIR_ATTEMPTS),
+    failed_run_id: result.failedRunId,
+    repair_attempt: String(result.repairAttempt),
     repair_sha: result.repairSha,
     repair_branch: result.repairBranch,
     repair_pr_number: result.repairPrNumber,
