@@ -35,6 +35,17 @@ test('injects only public candidate identity into the exact staging build artifa
   assert.doesNotMatch(workflow, /variables set NEXT_PUBLIC_RELEASE_SHA/)
 })
 
+test('Railway variables set is not passed --project (unsupported by CLI 4.30.0; the token scopes the project)', () => {
+  for (const wf of [productionRelease, productionRollback]) {
+    const calls = wf.match(/railway\/cli@4\.30\.0 variables set[\s\S]*?--service "[^"]+"/g) ?? []
+    assert.equal(calls.length, 2, 'expected API and web variables set calls')
+    for (const call of calls) {
+      assert.doesNotMatch(call, /--project/)
+      assert.match(call, /--environment production --service/)
+    }
+  }
+})
+
 test('uses one self-contained Web build context in staging, production, and rollback', () => {
   assert.match(webDockerfile, /^COPY package\.json \.\/\s*$/m)
   assert.match(webDockerfile, /^COPY \. \.\/\s*$/m)

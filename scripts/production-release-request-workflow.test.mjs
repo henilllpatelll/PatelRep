@@ -212,7 +212,7 @@ test('versioning comes from completed GitHub Releases through the tested module,
 })
 
 test('Production Rollback is untouched and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '8685c475189b7bd2b499ce1f856e8f1d02ccb1a07f74f68d713508bc9867ba55')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '7f283da4d4893e0167238e1ac9dd0e1549c594251f405b67cdeff495d1c73787')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
