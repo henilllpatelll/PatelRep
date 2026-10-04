@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import test from 'node:test'
 import { classifyChangedFile } from './release-engineer-auto-merge-policy.mjs'
 
@@ -231,4 +231,33 @@ test('the docs state the authority chain, the first release and that a request i
   assert.match(releaseProcess, /Automatic request ≠ automatic production approval/)
   assert.match(releaseProcess, /automation_source_run_id/)
   assert.doesNotMatch(releaseProcess, /v0\.0\.1/)
+})
+
+// ---- required CI actually runs the Phase 2D tests ---------------------------------------------------------------------------
+
+test('the required Release Workflow Contract CI job permanently runs all four Phase 2D test files', () => {
+  const ci = read('.github/workflows/ci.yml')
+  const job = jobSection(ci, 'release-workflow-contract')
+  const command = job.match(/run: (node --test [^\n]+)/)[1]
+  const files = command.split(/\s+/).slice(2)
+  for (const file of [
+    'scripts/production-release-request-policy.test.mjs',
+    'scripts/production-release-request-workflow.test.mjs',
+    'scripts/production-runtime-identity.test.mjs',
+    'scripts/production-release-request-cli.test.mjs',
+  ]) {
+    assert.ok(files.includes(file), `${file} must run in Release Workflow Contract`)
+  }
+  // The older release-engineer set stays, every listed file exists, and nothing is optional.
+  for (const file of ['scripts/staging-candidate-workflow.test.mjs', 'scripts/claude-release-engineer-workflow.test.mjs', 'scripts/release-engineer-auto-merge-policy.test.mjs', 'scripts/release-engineer-auto-merge-workflow.test.mjs', 'scripts/public-smoke.test.mjs']) {
+    assert.ok(files.includes(file), `${file} stays in the job`)
+  }
+  for (const file of files) assert.ok(existsSync(file), `${file} exists`)
+  assert.equal(new Set(files).size, files.length, 'no duplicates')
+  assert.doesNotMatch(job, /continue-on-error|\n\s+if:/)
+  // CI Gate must keep requiring this job.
+  const gate = jobSection(ci, 'ci-gate')
+  assert.match(gate, /- release-workflow-contract\n/)
+  assert.match(gate, /RELEASE_WORKFLOW_CONTRACT: \$\{\{ needs\.release-workflow-contract\.result \}\}/)
+  assert.match(gate, /"Release Workflow Contract:\$RELEASE_WORKFLOW_CONTRACT"/)
 })
