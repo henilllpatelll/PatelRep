@@ -42,7 +42,15 @@ for (const [role, email, landing] of webRoles) {
 
 for (const [role, email] of mobileOnlyRoles) {
   test(`${role} is authenticated but restricted to the mobile app`, async ({ page }) => {
-    const failures = await submitLogin(page, email)
+    // The restricted-role flow signs the session out (supabase.auth.signOut on /login?mobileOnly=1).
+    // Supabase may answer that logout with 401 when the session is already invalid, and the browser
+    // logs it as a generic console error. That is expected here, so exclude it only when a 401 on the
+    // auth logout endpoint was actually observed.
+    let logoutUnauthorized = false
+    page.on('response', (response) => {
+      if (response.status() === 401 && new URL(response.url()).pathname.endsWith('/auth/v1/logout')) logoutUnauthorized = true
+    })
+    const allFailures = await submitLogin(page, email)
     await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('mobileOnly') === '1')
     const mobileOnlyAlert = page.getByRole('alert').filter({ hasText: 'Web portal is for management staff only' })
     await expect(mobileOnlyAlert).toContainText(/mobile app/i)
@@ -50,6 +58,9 @@ for (const [role, email] of mobileOnlyRoles) {
     await page.goto('/dashboard')
     await expect(page).toHaveURL(/\/login\?(?:mobileOnly=1|redirectTo=%2Fdashboard)/)
     await expect(page.getByRole('heading', { name: /welcome back to your hotel/i })).toBeVisible()
+    const failures = logoutUnauthorized
+      ? allFailures.filter((failure) => failure !== 'Failed to load resource: the server responded with a status of 401 ()')
+      : allFailures
     expect(failures, `fatal browser failures for ${role}`).toEqual([])
   })
 }
