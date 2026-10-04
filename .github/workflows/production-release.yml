@@ -57,12 +57,26 @@ jobs:
           fetch-depth: 0
       - id: resolve
         uses: actions/github-script@v8
+        env:
+          RELEASE_CONTEXT_DIR: ${{ runner.temp }}/production-release-context
         with:
           script: |
             const requestedSha = context.payload.inputs.release_sha?.trim()
             const main = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' })
             const currentMainSha = main.data.commit.sha
             const targetSha = requestedSha || currentMainSha
+
+            // Identifier-only handoff for the Claude release engineer (release_sha may differ from
+            // the run's head_sha). Written before any check so it exists even when eligibility fails.
+            const fs = require('fs')
+            const writeReleaseContext = (prNumber) => {
+              fs.mkdirSync(process.env.RELEASE_CONTEXT_DIR, { recursive: true })
+              fs.writeFileSync(
+                `${process.env.RELEASE_CONTEXT_DIR}/context.json`,
+                JSON.stringify({ release_sha: targetSha, pr_number: prNumber }),
+              )
+            }
+            writeReleaseContext('')
 
             core.info(`Resolved target: ${targetSha}`)
             core.info(`Current main tip: ${currentMainSha}`)
@@ -121,11 +135,20 @@ jobs:
               return fail(`Target ${targetSha}'s tree does not match staging-verified PR #${mergedPr.number} head ${prHeadSha}'s tree. The merged result differs from what passed Staging Gate.`)
             }
 
+            writeReleaseContext(String(mergedPr.number))
             core.setOutput('eligible', 'true')
             core.setOutput('target_sha', targetSha)
             core.setOutput('short_sha', targetSha.slice(0, 7))
             core.setOutput('pr_number', String(mergedPr.number))
             core.info(`Eligible: PR #${mergedPr.number} (head ${prHeadSha}) passed Staging Gate and its tree matches ${targetSha}.`)
+      - name: Upload sanitized release context
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-context
+          path: ${{ runner.temp }}/production-release-context/context.json
+          retention-days: 3
+          if-no-files-found: ignore
 
   compute-version:
     name: Compute next release version
