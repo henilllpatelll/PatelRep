@@ -379,13 +379,13 @@ jobs:
             APP_ENV=production \
             --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
         env:
-          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_API_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
       - name: Deploy API from exact checkout
         run: npx --yes @railway/cli@4.30.0 up apps/api --ci --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_API_SERVICE_ID"
         env:
-          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_API_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_API_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_API_SERVICE_ID }}
       - name: Require API health, readiness, production database, and exact release identity (hard failure on timeout)
@@ -437,13 +437,13 @@ jobs:
             NEXT_PUBLIC_APP_ENV=production \
             --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
         env:
-          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_API_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
       - name: Deploy web from exact checkout
         run: npx --yes @railway/cli@4.30.0 up apps/web --ci --path-as-root --project "$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "$PRODUCTION_RAILWAY_WEB_SERVICE_ID"
         env:
-          RAILWAY_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.PRODUCTION_RAILWAY_API_TOKEN }}
           PRODUCTION_RAILWAY_PROJECT_ID: ${{ vars.PRODUCTION_RAILWAY_PROJECT_ID }}
           PRODUCTION_RAILWAY_WEB_SERVICE_ID: ${{ vars.PRODUCTION_RAILWAY_WEB_SERVICE_ID }}
 
