@@ -217,14 +217,13 @@ test('Claude cannot push, commit, create/edit/merge PRs, or dispatch workflows',
 test('the trusted publisher is the only place that pushes, commits, or edits PRs', () => {
   assert.doesNotMatch(withoutDenyList(repairJob), /git push|git commit|gh pr (?:create|edit|merge)|--method (?:POST|PATCH)/)
   assert.doesNotMatch(resolveJob, /git push|git commit|gh pr (?:create|edit|merge)|--method (?:POST|PATCH)/)
-  assert.match(publishJob, /node \.trusted-publisher\/scripts\/publish-release-engineer-repair\.mjs/)
+  assert.match(publishJob, /node "\$GITHUB_WORKSPACE\/trusted-publisher\/scripts\/publish-release-engineer-repair\.mjs"/)
   assert.match(publisher, /'push', 'origin', `HEAD:refs\/heads\/\$\{branch\}`/)
   assert.doesNotMatch(publisher, /--force|force-with-lease/)
   assert.doesNotMatch(publisher, /gh pr merge|merge_pull|\/merge|gh workflow run|dispatches/)
 })
 
 test('publisher code and resolver both come from main, and publish needs a captured patch', () => {
-  assert.match(section(publishJob, 'Publisher code comes from main', '- uses: actions/download-artifact'), /ref: main/)
   assert.match(resolveJob, /ref: main\n\s+path: \.trusted-resolver/)
   assert.match(publishJob, /needs\.repair\.outputs\.has_changes == 'true'/)
   assert.match(repairJob, /test "\$\(git rev-parse HEAD\)" = "\$REPAIR_SHA"/)
@@ -301,4 +300,50 @@ test('credentials stay isolated: no production secrets or environment in any job
   assert.doesNotMatch(workflow, /^\s+environment:/m)
   assert.deepEqual([...new Set([...workflow.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]))].sort(), ['CLAUDE_CODE_OAUTH_TOKEN', 'PATELREP_APP_PRIVATE_KEY'])
   assert.doesNotMatch(repairJob, /PATELREP_APP_PRIVATE_KEY/)
+})
+
+test('the trusted control-plane SHA is captured from the resolver checkout of main and validated', () => {
+  assert.match(resolveJob, /ref: main\n\s+path: \.trusted-resolver/)
+  const capture = section(resolveJob, '- name: Capture trusted control-plane SHA', '# Deterministically resolve')
+  assert.match(capture, /git -C \.trusted-resolver rev-parse HEAD/)
+  assert.match(capture, /\^\[0-9a-f\]\{40\}\$/)
+  assert.match(workflow, /trusted_control_plane_sha: \$\{\{ steps\.trusted-sha\.outputs\.sha \}\}/)
+  assert.ok(workflow.indexOf('id: trusted-sha') < workflow.indexOf('id: ctx'))
+})
+
+test('the publisher uses the exact frozen control-plane SHA, never mutable main', () => {
+  assert.doesNotMatch(publishJob, /ref: main/)
+  assert.doesNotMatch(repairJob, /ref: main/)
+  const trusted = section(publishJob, 'ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}', '- uses: actions/download-artifact')
+  assert.match(trusted, /path: trusted-publisher/)
+  assert.match(trusted, /persist-credentials: false/)
+  assert.equal((workflow.match(/ref: main/g) ?? []).length, 1)
+  assert.equal((workflow.match(/trusted_control_plane_sha/g) ?? []).length, 2)
+})
+
+test('failed candidate code never supplies the resolver or publisher implementation', () => {
+  assert.doesNotMatch(workflow, /node [^\n]*repair-worktree\/scripts/)
+  assert.doesNotMatch(workflow, /node \.\/scripts|node scripts\//)
+  assert.doesNotMatch(repairJob, /scripts\/(?:resolve-release-engineer-context|publish-release-engineer-repair|recovery-lineage)/)
+  assert.match(resolveJob, /node \.trusted-resolver\/scripts\/resolve-release-engineer-context\.mjs/)
+})
+
+test('the trusted publisher is a sibling checkout outside the repair worktree and patches only the worktree', () => {
+  const repairCheckout = section(publishJob, 'path: repair-worktree', '- uses: actions/checkout@v7\n        with:\n          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}')
+  assert.match(publishJob, /token: \$\{\{ steps\.app-token\.outputs\.token \}\}\n\s+ref: \$\{\{ needs\.resolve\.outputs\.repair_sha \}\}\n\s+fetch-depth: 0\n\s+path: repair-worktree/)
+  assert.ok(repairCheckout.length > 0)
+  const paths = [...publishJob.matchAll(/^\s+path: (.+)$/gm)].map((m) => m[1].trim())
+  assert.deepEqual(paths.filter((p) => !p.includes('runner.temp')).sort(), ['repair-worktree', 'trusted-publisher'])
+  for (const p of paths) {
+    assert.doesNotMatch(p, /^repair-worktree\/|^\.|^\//)
+  }
+  assert.doesNotMatch(workflow, /\.trusted-publisher/)
+  // The publisher script runs from the trusted checkout; its git operations run in the repair worktree.
+  assert.match(publishJob, /working-directory: repair-worktree\n\s+run: node "\$GITHUB_WORKSPACE\/trusted-publisher\/scripts\//)
+  // The patch artifact is downloaded outside both checkouts, so it can only be applied by the publisher.
+  assert.match(publishJob, /name: repair-output\n\s+path: \$\{\{ runner\.temp \}\}\/repair-out/)
+  assert.match(publishJob, /PATCH_FILE: \$\{\{ runner\.temp \}\}\/repair-out\/repair\.patch/)
+  // The publisher applies the patch via git in cwd only.
+  assert.match(publisher, /'apply', '--index', '--binary', '--whitespace=nowarn', patchFile/)
+  assert.doesNotMatch(publisher, /process\.chdir|cwd:/)
 })

@@ -48,6 +48,7 @@ jobs:
        github.event.workflow_run.conclusion == 'failure' &&
        github.event.workflow_run.head_repository.full_name == github.repository)
     outputs:
+      trusted_control_plane_sha: ${{ steps.trusted-sha.outputs.sha }}
       skip: ${{ steps.ctx.outputs.skip }}
       manual: ${{ steps.ctx.outputs.manual }}
       retry_exhausted: ${{ steps.ctx.outputs.retry_exhausted }}
@@ -67,6 +68,16 @@ jobs:
           path: .trusted-resolver
           sparse-checkout: scripts
           persist-credentials: false
+
+      # Freeze ONE exact trusted control-plane revision. Every later trusted-code checkout (the publisher)
+      # uses this SHA, so a moving `main` can never make resolver and publisher run different code.
+      - name: Capture trusted control-plane SHA
+        id: trusted-sha
+        run: |
+          sha=$(git -C .trusted-resolver rev-parse HEAD)
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then echo "Invalid trusted control-plane SHA"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Trusted control plane: $sha"
 
       # Deterministically resolve the exact failing code and lineage. Fails closed (no Claude) if unprovable.
       - name: Resolve repair context
@@ -205,17 +216,20 @@ jobs:
           client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
           private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
 
+      # Two SIBLING checkouts under the workspace: the repair worktree (exact failing candidate, the only
+      # place a Claude patch is ever applied) and the trusted publisher code (exact frozen control-plane
+      # SHA, no persisted credentials). Candidate or patched files can never replace publisher code.
       - uses: actions/checkout@v7
         with:
           token: ${{ steps.app-token.outputs.token }}
           ref: ${{ needs.resolve.outputs.repair_sha }}
           fetch-depth: 0
+          path: repair-worktree
 
-      # Publisher code comes from main, never from the repaired revision.
       - uses: actions/checkout@v7
         with:
-          ref: main
-          path: .trusted-publisher
+          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          path: trusted-publisher
           sparse-checkout: scripts
           persist-credentials: false
 
@@ -238,4 +252,5 @@ jobs:
           REPAIR_ATTEMPT: ${{ needs.resolve.outputs.repair_attempt }}
           UPSTREAM_WORKFLOW: ${{ needs.resolve.outputs.upstream_workflow }}
           MANUAL: ${{ needs.resolve.outputs.manual }}
-        run: node .trusted-publisher/scripts/publish-release-engineer-repair.mjs
+        working-directory: repair-worktree
+        run: node "$GITHUB_WORKSPACE/trusted-publisher/scripts/publish-release-engineer-repair.mjs"

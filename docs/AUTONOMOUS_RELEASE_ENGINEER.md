@@ -64,6 +64,17 @@ otherwise the existing one is updated, preserving its recovery history. Known ga
 `repair` and `publish` jobs another queued agent for the same root could start; its publish then
 fails closed on the stale head check.
 
+## Trusted control plane
+
+The resolver is checked out from `main` once, in the `resolve` job, and its exact commit SHA is
+captured and validated as `trusted_control_plane_sha`. The publisher is checked out at that **same
+SHA** (never mutable `main`), so a moving `main` cannot make the two run different trusted code.
+In the `publish` job the trusted publisher (`trusted-publisher/`, no persisted credentials) and the
+repair worktree (`repair-worktree/`, the exact `repair_sha`, App-authenticated) are sibling
+directories: the patch is only ever applied inside the worktree, so a Claude-produced patch cannot
+replace the publisher or its lineage code before privileged execution. The repair SHA and the
+control-plane SHA are distinct.
+
 ## Repair-context resolution (before checkout)
 
 `scripts/resolve-release-engineer-context.mjs` runs from a trusted default-branch checkout and
