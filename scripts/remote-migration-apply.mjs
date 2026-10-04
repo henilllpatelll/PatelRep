@@ -34,7 +34,7 @@ import { join, resolve } from 'node:path';
 
 import { loadMigrations } from './check-migrations.mjs';
 
-const SUPABASE_CLI = 'supabase@2.76.8';
+const SUPABASE_CLI = 'supabase@2.112.0';
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: 'inherit', shell: false, ...options });

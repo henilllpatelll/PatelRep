@@ -32,6 +32,8 @@ const CLI_BIN = process.env.SUPABASE_CLI_BIN || 'supabase';
 const REPO_ROOT = resolve('.');
 const CONTAINER = `patelrep-apply-contract-${process.pid}`;
 const IMAGE = 'postgres:16-alpine';
+// 020 is a strict digit-prefix of 0201 (as in production); CLI < 2.112.0 wrongly reported 020 missing.
+const PREFIX_PAIR = ['020', '0201'];
 const PRODUCTION_ONLY = ['20260517181733', '20260604070643'];
 
 function tryRun(command, args) {
@@ -144,6 +146,8 @@ function buildFixtures() {
   const seedMigrations = join(seed, 'supabase', 'migrations');
   writeMigration(seedMigrations, '001_init.sql', 'create table public.t_init (id int);');
   writeMigration(seedMigrations, '002_second.sql', 'create table public.t_second (id int);');
+  writeMigration(seedMigrations, '020_fix_credits_decimal.sql', 'create table public.t_v020 (id int);');
+  writeMigration(seedMigrations, '0201_logbook_expires.sql', 'create table public.t_v0201 (id int);');
   writeMigration(seedMigrations, '003_dup_a_remote.sql', 'create table public.t_dup_a (id int);');
   writeMigration(seedMigrations, '20260301000000_dup_b.sql', 'create table public.t_dup_b (id int);');
   writeMigration(seedMigrations, `${PRODUCTION_ONLY[0]}_prod_only_one.sql`, 'create table public.t_prod_one (id int);');
@@ -160,6 +164,8 @@ function buildFixtures() {
   writeMigration(repoMigrations, '002_second.sql', 'create table public.t_second (id int);');
   writeMigration(repoMigrations, '003_dup_a.sql', 'create table public.t_dup_a (id int);');
   writeMigration(repoMigrations, '003_dup_b.sql', 'create table public.t_dup_b (id int);');
+  writeMigration(repoMigrations, '020_fix_credits_decimal.sql', 'create table public.t_v020 (id int);');
+  writeMigration(repoMigrations, '0201_logbook_expires.sql', 'create table public.t_v0201 (id int);');
   writeMigration(repoMigrations, '004_new_feature.sql', 'create table public.t_new_feature (id int);');
   writeMigration(repoMigrations, '204_reconcile_dup_a.sql', 'alter table public.t_dup_a add column if not exists reconciled boolean;');
   writeMigration(repoMigrations, '205_other_new.sql', 'create table public.t_other_new (id int);');
@@ -202,7 +208,7 @@ const EXPECTED_PENDING = ['004_new_feature.sql', '204_reconcile_dup_a.sql', '205
 const noRepairOrPull = (calls) => calls.every((args) => !args.includes('repair') && !args.includes('pull') && !args.includes('reset'));
 
 test('the pinned CLI is exactly the version production uses', { skip }, () => {
-  assert.equal(PINNED_SUPABASE_CLI_VERSION, '2.76.8');
+  assert.equal(PINNED_SUPABASE_CLI_VERSION, '2.112.0');
   assert.equal(cliInDirectory(['--version'], tmpdir()).stdout.trim().split(/\r?\n/)[0], PINNED_SUPABASE_CLI_VERSION);
 });
 
@@ -224,8 +230,10 @@ test('the ephemeral workspace mirrors every remote version, overlays only the ex
   try {
     const files = readdirSync(join(built.workspace, 'supabase', 'migrations')).sort();
     const remoteVersions = historyBefore.map((row) => row.version);
-    assert.equal(remoteVersions.length, 6);
+    assert.equal(remoteVersions.length, 8);
+    for (const version of PREFIX_PAIR) assert.ok(remoteVersions.includes(version), `remote history contains ${version}`);
     for (const version of remoteVersions) assert.ok(files.some((name) => name.startsWith(`${version}_`)), `mirror represents remote version ${version}`);
+    for (const version of PREFIX_PAIR) assert.equal(files.filter((name) => name.startsWith(`${version}_`)).length, 1, `mirror preserves ${version} exactly once`);
     assert.deepEqual(files.filter((name) => EXPECTED_PENDING.includes(name)), EXPECTED_PENDING);
     assert.equal(files.length, remoteVersions.length + EXPECTED_PENDING.length);
     assert.ok(!files.includes('003_dup_a.sql') && !files.includes('003_dup_b.sql'), 'grandfathered duplicate source files are never copied');
@@ -247,6 +255,7 @@ test('plan: the CLI dry run proposes exactly the evaluator\'s pending set, with 
   const historyBefore = historySnapshot();
   const plan = runPlan(options(), { runSupabase: recorder.runSupabase, log: () => {} });
   assert.deepEqual(plan.pending, EXPECTED_PENDING);
+  assert.ok(!plan.pending.some((name) => /^0201?_/.test(name)), '020 / 0201 are never proposed again');
   assert.deepEqual(historySnapshot(), historyBefore);
   const verbs = recorder.calls.map((args) => args.slice(0, 2).join(' '));
   assert.deepEqual(verbs, ['--version', 'migration fetch', 'db push']);
@@ -283,7 +292,7 @@ test('apply: rebuilds from scratch, applies exactly the verified set, and record
   for (const row of added) assert.ok(row.statements.length > 0, `${row.version} recorded with its statements by the CLI`);
   assert.equal(psql("select count(*) from information_schema.tables where table_name in ('t_new_feature','t_other_new')"), '2');
   assert.equal(psql("select count(*) from information_schema.columns where table_name = 't_dup_a' and column_name = 'reconciled'"), '1');
-  for (const id of PRODUCTION_ONLY) assert.equal(after.some((row) => row.version === id), true);
+  for (const id of [...PRODUCTION_ONLY, ...PREFIX_PAIR]) assert.equal(after.some((row) => row.version === id), true);
 });
 
 test('post-apply: drift is CLEAN, attestations are exact and 204 is recorded by normal application', { skip }, () => {

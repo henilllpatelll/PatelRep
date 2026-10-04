@@ -44,7 +44,7 @@ npm run db:drift:staging
 npm run db:drift:production
 ```
 
-`db:rebuild` uses pinned `supabase@2.76.8`, requires Docker Desktop, and runs `db:contracts` after reset. `db:contracts` requires PostgreSQL client tools (`psql`). Both commands operate only on the local Supabase ports unless an explicit drift environment variable is supplied.
+`db:rebuild` uses pinned `supabase@2.112.0`, requires Docker Desktop, and runs `db:contracts` after reset. `db:contracts` requires PostgreSQL client tools (`psql`). Both commands operate only on the local Supabase ports unless an explicit drift environment variable is supplied.
 
 ## Immutable migration rule
 
@@ -110,7 +110,7 @@ The read-only **Production Migration Evidence Audit** now also reports the same 
 
 ### Production apply: ephemeral verified workspace
 
-The pinned Supabase CLI (`2.76.8`) refuses to `db push` from the normal repository directory because the three attested production-only rows have no local file ("Remote migration versions not found in local migrations directory"); `--include-all` does not change that, and rewriting production history is forbidden. [`scripts/production-migration-apply-workspace.mjs`](../scripts/production-migration-apply-workspace.mjs) therefore applies through a throwaway, release-scoped workspace under `$RUNNER_TEMP` that is never committed, uploaded, printed or reused:
+The pinned Supabase CLI (`2.112.0`, which includes the upstream prefix-ordering fix for versions such as `020` / `0201`) refuses to `db push` from the normal repository directory because the three attested production-only rows have no local file ("Remote migration versions not found in local migrations directory"); `--include-all` does not change that, and rewriting production history is forbidden. [`scripts/production-migration-apply-workspace.mjs`](../scripts/production-migration-apply-workspace.mjs) therefore applies through a throwaway, release-scoped workspace under `$RUNNER_TEMP` that is never committed, uploaded, printed or reused:
 
 1. **Revalidate**: the production target guard, the exact pinned CLI version, and the attestation-aware drift evaluation (all attestations exact; zero unknown or unresolved rows; duplicate coverage complete only through applied/pending forward repairs).
 2. **Mirror**: copy only `supabase/config.toml`, then `supabase migration fetch` (read-only against the database) to mirror the real remote history.

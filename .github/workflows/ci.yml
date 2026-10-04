@@ -117,7 +117,7 @@ jobs:
           python-version: "3.12"
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.76.8
+          version: 2.112.0
       - name: Check immutable migration history and destructive SQL review
         run: node scripts/check-migrations.mjs
       - name: Build and self-verify normalized migration replay workspace
@@ -331,7 +331,7 @@ jobs:
           node-version: "22"
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.76.8
+          version: 2.112.0
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Exercise the pinned Supabase CLI against a disposable production-shaped history

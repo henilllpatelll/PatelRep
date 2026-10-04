@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const SUPABASE_CLI = 'supabase@2.76.8';
+const SUPABASE_CLI = 'supabase@2.112.0';
 const REPLAY_DIR = join(tmpdir(), 'patelrep-migration-replay');
 
 function run(command, argumentsList) {
