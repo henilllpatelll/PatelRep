@@ -224,16 +224,22 @@ test('Production Release and Rollback authenticate Railway with the account toke
         assert.doesNotMatch(step.replace(link?.[0] ?? '', ''), /--project/, `${name}: variables set stays free of --project`)
         assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       } else {
-        assert.match(step, /up apps\/(api|web) --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
+        assert.match(step, /railway\/cli@[\d.]+ up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       }
     }
   }
 })
 
-test('Production Release and Rollback deploy apps/api and apps/web with --path-as-root (without it railway up fails with "prefix not found")', () => {
+test('Production Release and Rollback upload the repository root (no path argument, no --path-as-root) so the service Root Directory selects apps/api or apps/web', () => {
   for (const wf of [releaseCode, code(rollback)]) {
-    assert.match(wf, /up apps\/api --ci --path-as-root --project /)
-    assert.match(wf, /up apps\/web --ci --path-as-root --project /)
+    const ups = wf.match(/railway\/cli@[\d.]+ up\b[^\r\n]*/g) ?? []
+    assert.equal(ups.length, 2, 'expected API and web railway up calls')
+    for (const up of ups) {
+      assert.match(up, /^railway\/cli@[\d.]+ up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"$/)
+      assert.doesNotMatch(up, /apps\/(api|web)/)
+      assert.doesNotMatch(up, /--path-as-root/)
+    }
+    assert.doesNotMatch(wf, /--path-as-root/)
   }
 })
 
@@ -246,7 +252,7 @@ test('Production Release and Rollback set Railway release variables with --skip-
 })
 
 test('Production Rollback is pinned and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '22c55b70a13109bbb56a52d7e5adb053789eb45158bc5535851952b4cf0b1462')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), 'c2f3d592d3cc694758c5fe491ea3ddfa328c2632b5bebb5936efc2135b116751')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)

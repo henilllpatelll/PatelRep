@@ -52,8 +52,8 @@ test('uses one self-contained Web build context in staging, production, and roll
   assert.doesNotMatch(webDockerfile, /^COPY apps\/web\//m)
 
   assert.match(workflow, /up apps\/web --ci --no-gitignore --path-as-root/)
-  assert.match(productionRelease, /up apps\/web --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
-  assert.match(productionRollback, /up apps\/web --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
+  assert.match(productionRelease, /up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
+  assert.match(productionRollback, /up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
 })
 
 test('keeps the production migration preflight fail-closed with pipefail', () => {
