@@ -86,12 +86,12 @@ jobs:
               current.head.repo.full_name !== context.repo.owner + '/' + context.repo.repo
             ) return core.setOutput('eligible', 'false')
 
-            const checks = await github.rest.checks.listForRef({ ...context.repo, ref: candidateSha, per_page: 100 })
-            if (!checks.data.check_runs.some((check) => check.name === 'CI Gate' && check.conclusion === 'success')) {
+            const checkRuns = await github.paginate(github.rest.checks.listForRef, { ...context.repo, ref: candidateSha, per_page: 100 })
+            if (!checkRuns.some((check) => check.name === 'CI Gate' && check.conclusion === 'success')) {
               return core.setOutput('eligible', 'false')
             }
 
-            const stagingCheck = checks.data.check_runs.find((check) => check.name === 'Staging Gate')
+            const stagingCheck = checkRuns.find((check) => check.name === 'Staging Gate')
             const checkInput = {
               ...context.repo,
               status: 'in_progress',
