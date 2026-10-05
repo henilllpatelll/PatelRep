@@ -224,19 +224,21 @@ test('Production Release and Rollback authenticate Railway with the account toke
         assert.doesNotMatch(step.replace(link?.[0] ?? '', ''), /--project/, `${name}: variables set stays free of --project`)
         assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       } else {
-        assert.match(step, /up apps\/(api|web) --ci(?: --path-as-root)? --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
+        assert.match(step, /up apps\/(api|web) --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       }
     }
   }
 })
 
-test('Production Release deploys apps/api and apps/web with --path-as-root (without it railway up fails with "prefix not found")', () => {
-  assert.match(releaseCode, /up apps\/api --ci --path-as-root --project /)
-  assert.match(releaseCode, /up apps\/web --ci --path-as-root --project /)
+test('Production Release and Rollback deploy apps/api and apps/web with --path-as-root (without it railway up fails with "prefix not found")', () => {
+  for (const wf of [releaseCode, code(rollback)]) {
+    assert.match(wf, /up apps\/api --ci --path-as-root --project /)
+    assert.match(wf, /up apps\/web --ci --path-as-root --project /)
+  }
 })
 
-test('Production Rollback is untouched and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '460ea219aaaf3dd05b77c8e4e6d8514f4b3cbeae9fc81ad982eb457e6b7e6e34')
+test('Production Rollback is pinned and remains human-only', () => {
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '19a789194a460a04bd467ddc728bd8aeb2b859f935695209b00d2f8d09773d73')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
