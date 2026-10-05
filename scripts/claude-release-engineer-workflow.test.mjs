@@ -71,8 +71,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // Railway account-token auth: `variables set` is preceded by an explicit `railway link` (account tokens have no project scope).
   // Railway deploy: `railway up --ci` uploads the repo root with no path argument; the service Root Directory (apps/api|apps/web) selects the app.
   // Railway variables: `variables set` passes --skip-deploys so only `railway up` deploys (no racing redeploy).
+  // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '425da117ccb897a5553f9ce7cd1837c5dcccc94961eb152e80fbd468284e9852')
+  assert.equal(digest, '3df1fe32e0de9b44140e083e568025e502a91e290894c7a796ac8c46962fbb5b')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

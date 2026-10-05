@@ -352,7 +352,7 @@ jobs:
   deploy-api:
     name: Deploy exact API release
     needs: [resolve-and-verify-eligibility, compute-version, production-db-preflight, production-db-migrate]
-    if: always() && needs.resolve-and-verify-eligibility.outputs.eligible == 'true' && needs.production-db-preflight.result == 'success' && (needs.production-db-migrate.result == 'success' || needs.production-db-migrate.result == 'skipped')
+    if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.outputs.eligible == 'true' && needs.compute-version.result == 'success' && needs.production-db-preflight.result == 'success' && (needs.production-db-migrate.result == 'success' || needs.production-db-migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -412,6 +412,7 @@ jobs:
   deploy-web:
     name: Deploy exact web release
     needs: [resolve-and-verify-eligibility, compute-version, deploy-api]
+    if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.result == 'success' && needs.resolve-and-verify-eligibility.outputs.eligible == 'true' && needs.compute-version.result == 'success' && needs.deploy-api.result == 'success' }}
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -452,6 +453,7 @@ jobs:
   verify-production-release:
     name: Verify production release identity and smoke
     needs: [resolve-and-verify-eligibility, compute-version, deploy-api, deploy-web]
+    if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.result == 'success' && needs.compute-version.result == 'success' && needs.deploy-api.result == 'success' && needs.deploy-web.result == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -485,6 +487,7 @@ jobs:
   tag-and-release:
     name: Tag and create GitHub Release
     needs: [resolve-and-verify-eligibility, compute-version, verify-production-release]
+    if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.result == 'success' && needs.compute-version.result == 'success' && needs.verify-production-release.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

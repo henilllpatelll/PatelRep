@@ -114,6 +114,7 @@ test('guards the remote rebuild, installs psql before drift verification, and pr
   assert.ok(postgresClient >= 0 && postgresClient < driftCheck, 'psql must be installed before drift verification')
   assert.ok(fixtureAccess > driftCheck && fixtureAccess < fixtureSeed, 'fixture service access must be established only after clean drift verification and before seeding')
   assert.match(workflow, /grant all privileges on all tables in schema public to service_role/i)
+  assert.match(workflow, /grant all privileges on all tables in schema public to service_role;[^"]*notify pgrst, 'reload schema'/i, 'PostgREST must reload its schema cache after the rebuild and grants, before the API serves the smoke')
   assert.match(workflow, /npm run check:staging-health/)
   assert.match(workflow, /npm run test:e2e:staging/)
   assert.match(workflow, /npm run check:deployment-drift/)

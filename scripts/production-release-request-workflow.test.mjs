@@ -301,3 +301,51 @@ test('the required Release Workflow Contract CI job permanently runs all four Ph
   assert.match(gate, /RELEASE_WORKFLOW_CONTRACT: \$\{\{ needs\.release-workflow-contract\.result \}\}/)
   assert.match(gate, /"Release Workflow Contract:\$RELEASE_WORKFLOW_CONTRACT"/)
 })
+
+test('production-release job gates are fail-closed and do not propagate an intentionally skipped migration', () => {
+  const jobIf = (name) => {
+    const match = jobSection(release, name).match(/\n    if: (.+)\n/)
+    assert.ok(match, `${name} has an explicit job-level if`)
+    return match[1]
+  }
+  const gated = ['deploy-api', 'deploy-web', 'verify-production-release', 'tag-and-release']
+  for (const name of gated) {
+    const condition = jobIf(name)
+    assert.match(condition, /^\$\{\{ !cancelled\(\) && /, `${name} continues only via !cancelled()`)
+    assert.doesNotMatch(condition, /always\(\)/, `${name} must not use always()`)
+  }
+  for (const name of [...release.matchAll(/\n  ([a-z-]+):\n    (?:name|needs|if|runs-on):/g)].map((m) => m[1])) {
+    const header = jobSection(release, name).split('\n    steps:')[0]
+    assert.doesNotMatch(header, /always\(\)/, `${name} job-level condition must not use always()`)
+  }
+
+  const api = jobIf('deploy-api')
+  assert.match(api, /needs\.resolve-and-verify-eligibility\.outputs\.eligible == 'true'/)
+  assert.match(api, /needs\.production-db-preflight\.result == 'success'/)
+  assert.match(api, /\(needs\.production-db-migrate\.result == 'success' \|\| needs\.production-db-migrate\.result == 'skipped'\)/)
+
+  const web = jobIf('deploy-web')
+  for (const clause of [
+    "needs.resolve-and-verify-eligibility.result == 'success'",
+    "needs.resolve-and-verify-eligibility.outputs.eligible == 'true'",
+    "needs.compute-version.result == 'success'",
+    "needs.deploy-api.result == 'success'",
+  ]) assert.ok(web.includes(clause), `deploy-web requires ${clause}`)
+
+  const verify = jobIf('verify-production-release')
+  for (const dep of ['resolve-and-verify-eligibility', 'compute-version', 'deploy-api', 'deploy-web']) {
+    assert.ok(verify.includes(`needs.${dep}.result == 'success'`), `verification requires ${dep} success`)
+  }
+
+  const tag = jobIf('tag-and-release')
+  for (const dep of ['resolve-and-verify-eligibility', 'compute-version', 'verify-production-release']) {
+    assert.ok(tag.includes(`needs.${dep}.result == 'success'`), `tagging requires ${dep} success`)
+  }
+
+  // Only the API gate may tolerate the skipped migration; no other job references it or accepts 'skipped'.
+  for (const name of ['deploy-web', 'verify-production-release', 'tag-and-release']) {
+    const condition = jobIf(name)
+    assert.doesNotMatch(condition, /production-db-migrate/, `${name} must not reference the migration job`)
+    assert.doesNotMatch(condition, /'skipped'/, `${name} must not accept a skipped dependency`)
+  }
+})
