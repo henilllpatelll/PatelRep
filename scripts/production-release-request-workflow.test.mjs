@@ -252,7 +252,7 @@ test('Production Release and Rollback set Railway release variables with --skip-
 })
 
 test('Production Rollback is pinned and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), 'c2f3d592d3cc694758c5fe491ea3ddfa328c2632b5bebb5936efc2135b116751')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), 'def008664591ceaf947e7ac1b3bff8bcbfc491c7d80200640e49b4032c4753a8')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
