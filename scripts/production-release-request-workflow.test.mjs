@@ -174,6 +174,13 @@ test('every production job keeps the human `production` Environment gate and the
   assert.equal(release.match(/gh release create/g).length, 1)
 })
 
+test('Web/verify/tag run even when the migration job is skipped (no pending migrations), but only after upstream success', () => {
+  // A skipped production-db-migrate otherwise propagates a skip through deploy-api's dependents.
+  assert.match(jobSection(release, 'deploy-web'), /if: always\(\) && needs\.deploy-api\.result == 'success'\n/)
+  assert.match(jobSection(release, 'verify-production-release'), /if: always\(\) && needs\.deploy-api\.result == 'success' && needs\.deploy-web\.result == 'success'\n/)
+  assert.match(jobSection(release, 'tag-and-release'), /if: always\(\) && needs\.verify-production-release\.result == 'success'\n/)
+})
+
 test('Production Release automated mode: optional input, provenance verified in the approved job before anything else', () => {
   assert.match(release, /automation_source_run_id:\n {8}description: [^\n]*\n {8}required: false\n {8}type: string/)
   assert.match(release, /run-name: Production Release \$\{\{ inputs\.release_sha \|\| 'main-tip' \}\}/)

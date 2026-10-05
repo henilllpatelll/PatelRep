@@ -412,6 +412,9 @@ jobs:
   deploy-web:
     name: Deploy exact web release
     needs: [resolve-and-verify-eligibility, compute-version, deploy-api]
+    # always() is required: production-db-migrate is legitimately skipped when no migrations are pending, and
+    # GitHub propagates a skipped ancestor to every job without always(), silently skipping Web/verify/tag.
+    if: always() && needs.deploy-api.result == 'success'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -452,6 +455,7 @@ jobs:
   verify-production-release:
     name: Verify production release identity and smoke
     needs: [resolve-and-verify-eligibility, compute-version, deploy-api, deploy-web]
+    if: always() && needs.deploy-api.result == 'success' && needs.deploy-web.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -485,6 +489,7 @@ jobs:
   tag-and-release:
     name: Tag and create GitHub Release
     needs: [resolve-and-verify-eligibility, compute-version, verify-production-release]
+    if: always() && needs.verify-production-release.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
