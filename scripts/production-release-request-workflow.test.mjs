@@ -237,8 +237,16 @@ test('Production Release and Rollback deploy apps/api and apps/web with --path-a
   }
 })
 
+test('Production Release and Rollback set Railway release variables with --skip-deploys so only `railway up` deploys (a variable-triggered redeploy raced the upload and failed it)', () => {
+  for (const wf of [releaseCode, code(rollback)]) {
+    const calls = wf.match(/railway\/cli@4\.30\.0 variables set[\s\S]*?--service "[^"]+"[^\n]*/g) ?? []
+    assert.equal(calls.length, 2, 'expected API and web variables set calls')
+    for (const call of calls) assert.match(call, /--skip-deploys$/)
+  }
+})
+
 test('Production Rollback is pinned and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), '19a789194a460a04bd467ddc728bd8aeb2b859f935695209b00d2f8d09773d73')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '22c55b70a13109bbb56a52d7e5adb053789eb45158bc5535851952b4cf0b1462')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
