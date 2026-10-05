@@ -72,8 +72,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // Railway deploy: `railway up --ci` uploads the repo root with no path argument; the service Root Directory (apps/api|apps/web) selects the app.
   // Railway variables: `variables set` passes --skip-deploys so only `railway up` deploys (no racing redeploy).
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
+  // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '3df1fe32e0de9b44140e083e568025e502a91e290894c7a796ac8c46962fbb5b')
+  assert.equal(digest, '630f365f4381426b1b326b7b1d875d0bf5a1827b1004196df328a17be5370697')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

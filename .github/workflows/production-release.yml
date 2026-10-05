@@ -139,8 +139,9 @@ jobs:
             }
 
             // 3. Must have a successful CI Gate.
-            const checks = await github.rest.checks.listForRef({ ...context.repo, ref: targetSha, per_page: 100 })
-            if (!checks.data.check_runs.some((c) => c.name === 'CI Gate' && c.conclusion === 'success')) {
+            // Paginate: a commit can carry more than 100 check runs.
+            const checkRuns = await github.paginate(github.rest.checks.listForRef, { ...context.repo, ref: targetSha, per_page: 100 })
+            if (!checkRuns.some((c) => c.name === 'CI Gate' && c.conclusion === 'success')) {
               return fail(`Target SHA ${targetSha} does not have a successful CI Gate check.`)
             }
 
@@ -153,8 +154,8 @@ jobs:
 
             // 5. That PR's head commit (pre-merge) must have passed Staging Gate.
             const prHeadSha = mergedPr.head.sha
-            const prChecks = await github.rest.checks.listForRef({ ...context.repo, ref: prHeadSha, per_page: 100 })
-            if (!prChecks.data.check_runs.some((c) => c.name === 'Staging Gate' && c.conclusion === 'success')) {
+            const prCheckRuns = await github.paginate(github.rest.checks.listForRef, { ...context.repo, ref: prHeadSha, per_page: 100 })
+            if (!prCheckRuns.some((c) => c.name === 'Staging Gate' && c.conclusion === 'success')) {
               return fail(`PR #${mergedPr.number}'s head commit ${prHeadSha} does not have a successful Staging Gate check. This release has not been staging-verified.`)
             }
 

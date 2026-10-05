@@ -14,6 +14,13 @@ test('uses a trusted CI completion trigger and never pull_request_target', () =>
   assert.match(workflow, /head\.repo\.full_name !== context\.repo\.owner \+ '\/' \+ context\.repo\.repo/)
 })
 
+test('gate lookups paginate check runs (commits can carry more than 100)', () => {
+  for (const source of [workflow, productionRelease]) {
+    assert.doesNotMatch(source, /checks\.listForRef\(/)
+    assert.match(source, /github\.paginate\(github\.rest\.checks\.listForRef/)
+  }
+})
+
 test('serializes candidates and deploys one exact SHA through both services', () => {
   assert.match(workflow, /group: staging-release-candidate/)
   assert.match(workflow, /cancel-in-progress: false/)
