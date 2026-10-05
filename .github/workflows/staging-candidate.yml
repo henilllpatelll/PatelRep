@@ -192,7 +192,7 @@ jobs:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Grant staging fixture service access
         run: |
-          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role;"
+          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role; notify pgrst, 'reload schema';"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Install fixture dependencies
