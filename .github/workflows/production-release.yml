@@ -88,7 +88,7 @@ jobs:
           VERSION_BUMP: ${{ inputs.version_bump }}
           PRODUCTION_AUTO_RELEASE_ENABLED: ${{ vars.PRODUCTION_AUTO_RELEASE_ENABLED }}
       - id: resolve
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           RELEASE_CONTEXT_DIR: ${{ runner.temp }}/production-release-context
         with:
@@ -175,7 +175,7 @@ jobs:
             core.info(`Eligible: PR #${mergedPr.number} (head ${prHeadSha}) passed Staging Gate and its tree matches ${targetSha}.`)
       - name: Upload sanitized release context
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-release-context
           path: ${{ runner.temp }}/production-release-context/context.json
@@ -244,7 +244,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
       - name: Confirm migration history is safe to release
@@ -308,7 +308,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
       - name: Refuse any non-production database target
