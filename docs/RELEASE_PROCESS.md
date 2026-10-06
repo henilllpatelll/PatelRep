@@ -252,6 +252,40 @@ or Supabase command, no workflow dispatch and no tag/Release mutation. Database 
 repairs migration history. Failed/cancelled deploy attempts remain `unknown_after_attempt`; they are never
 guessed safe.
 
+### Incident closeout and exact-SHA re-entry gate (Phase 4B)
+
+A verified automatic rollback now opens a release **quarantine** until a later Production Release succeeds. The
+quarantine is derived from immutable workflow history and the Phase 4A rollback evidence; there is no mutable
+"breaker off" repository variable. Manual rollbacks do not open this Phase 4B state.
+
+Fix-forward work still uses the normal PR → CI Gate → Staging Gate → merge path. After the fix is merged, wait for
+the merged `main` SHA to receive a successful `CI Gate`, then the repository owner manually dispatches
+`.github/workflows/production-incident-closeout.yml` with the exact automated rollback run id and the exact
+current fixed `main` SHA. The closeout workflow is read-only: no `production` Environment, no production
+credentials, no App write token, no deploy/migrate/tag/release/dispatch capability. It refuses non-owner actors,
+a stale/non-active rollback, a runtime that no longer equals the verified rollback target, the original failed
+candidate, a non-current re-entry SHA, missing CI Gate, or an active Production Release/Rollback.
+
+A successful closeout uploads `production-incident-closeout/context.json` (90-day retention), schema
+`patelrep.production-incident-closeout.v1`. It binds one incident and rollback to one exact SHA with decision
+`approved_for_exact_sha`; there is no free-text authorization.
+
+Production Release now begins with a read-only `verify-incident-reentry` job **before any production Environment
+job**. With no active automatic-rollback quarantine, ordinary manual and Phase 2D release behavior is unchanged and
+a stale closeout input is refused. While quarantine is active:
+
+1. an automated Production Release is categorically refused;
+2. `release_sha` must be supplied explicitly;
+3. `incident_closeout_run_id` must name a successful owner-dispatched closeout;
+4. the closeout artifact must authorize that exact SHA and exact active rollback/incident; and
+5. public production identity must still equal the verified rollback target.
+
+The normal Production Release eligibility, migration, API-before-Web, exact smoke, tag/Release, and evidence gates
+still run afterwards. The Phase 3A evidence ledger records both the closeout run id and the re-entry preflight
+result. A failed re-entry release leaves quarantine active. The same closeout may be retried only for the same exact
+SHA; changing the intended re-entry SHA requires a new closeout. The first successful Production Release after the
+automatic rollback naturally closes that quarantine in workflow history.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
