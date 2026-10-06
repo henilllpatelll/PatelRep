@@ -24,6 +24,10 @@ name: Production Release
 
 # Phase 3A adds only a sanitized evidence ledger after the release graph finishes. The ledger job has no
 # production Environment or production credentials and cannot deploy, migrate, tag, release, or roll back.
+#
+# Phase 4B adds an unprivileged re-entry preflight before any production Environment job. Normal releases
+# need no extra input. If a verified automated rollback incident is still open, automatic requests are refused
+# and a manual release must pin the exact SHA + version bump authorized by Production Incident Re-entry.
 # The run name carries the exact target so a duplicate automated request is deterministically detectable.
 run-name: Production Release ${{ inputs.release_sha || 'main-tip' }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}
 
@@ -44,6 +48,10 @@ on:
         description: "Automation only: Auto-Merge run id of the recovery merge being released (leave blank for a manual release)"
         required: false
         type: string
+      reentry_source_run_id:
+        description: "Incident re-entry only: successful Production Incident Re-entry run id; otherwise leave blank"
+        required: false
+        type: string
 
 concurrency:
   # Shared with production-rollback.yml so a release and a rollback can never
@@ -58,8 +66,44 @@ permissions:
   pull-requests: read
 
 jobs:
+  verify-production-reentry:
+    name: Verify production incident re-entry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      pull-requests: read
+    outputs:
+      required: ${{ steps.reentry.outputs.required }}
+      rollback_run_id: ${{ steps.reentry.outputs.rollback_run_id }}
+      authorization_run_id: ${{ steps.reentry.outputs.authorization_run_id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - id: reentry
+        name: Refuse unresolved rollback re-entry without exact human authorization
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/production-incident-reentry.mjs release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          VERSION_BUMP: ${{ inputs.version_bump }}
+          REENTRY_SOURCE_RUN_ID: ${{ inputs.reentry_source_run_id }}
+          AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+
   resolve-and-verify-eligibility:
     name: Resolve and verify release eligibility
+    needs: verify-production-reentry
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -520,6 +564,7 @@ jobs:
   production-release-evidence:
     name: Production release evidence ledger
     needs:
+      - verify-production-reentry
       - resolve-and-verify-eligibility
       - compute-version
       - release-content-summary
@@ -552,6 +597,9 @@ jobs:
           CONTROL_PLANE_SHA: ${{ github.sha }}
           VERSION_BUMP: ${{ inputs.version_bump }}
           AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          REENTRY_SOURCE_RUN_ID: ${{ inputs.reentry_source_run_id }}
+          REENTRY_ROLLBACK_RUN_ID: ${{ needs.verify-production-reentry.outputs.rollback_run_id }}
+          REENTRY_PREFLIGHT_RESULT: ${{ needs.verify-production-reentry.result }}
           ELIGIBLE: ${{ needs.resolve-and-verify-eligibility.outputs.eligible }}
           TARGET_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
           PR_NUMBER: ${{ needs.resolve-and-verify-eligibility.outputs.pr_number }}

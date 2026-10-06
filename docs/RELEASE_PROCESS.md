@@ -252,6 +252,41 @@ or Supabase command, no workflow dispatch and no tag/Release mutation. Database 
 repairs migration history. Failed/cancelled deploy attempts remain `unknown_after_attempt`; they are never
 guessed safe.
 
+### Incident closeout and production re-entry gate (Phase 4B)
+
+A verified automated rollback intentionally places the release line in **quarantine**. Phase 4B turns that
+quarantine into an explicit production-release gate rather than relying only on convention. The new
+`.github/workflows/production-incident-reentry.yml` is manually dispatched and read-only: it has no
+`production` Environment, no production secrets, no deployment/database authority, and cannot dispatch a release
+or rollback.
+
+To authorize re-entry, the operator supplies the exact **Production Rollback run id**, the exact current
+`main` SHA, and the intended version bump. Trusted code independently re-reads the Phase 4A rollback evidence,
+re-runs the Phase 3D quarantine proof, requires no active production operation, refuses the original failed
+candidate SHA, requires the new SHA to descend from that failed candidate, and proves its `CI Gate`, staged PR
+`Staging Gate`, and merged/staged tree identity. The resulting
+`production-incident-reentry/context.json` artifact authorizes only that one SHA + bump.
+
+`Production Release` now starts with an **unprivileged** `verify-production-reentry` job before any
+`production` Environment access. With no unresolved automated rollback, normal manual and eligible Phase 2D
+release behavior is unchanged. With an unresolved rollback, automatic release requests are refused; a human must
+use an exact `release_sha` plus the successful `reentry_source_run_id`, and the policy revalidates the live
+quarantine and exact authorization. If `main` moved, the rollback/incident changed, or any provenance is stale,
+the release fails before production access.
+
+A successful re-entry deployment does **not** immediately close the incident. Production Release evidence records
+the authorization run id and rollback run id, and Production Release Stabilization must finish without a confirmed
+new incident. Only `stable` or `transient_unconfirmed` stabilization emits
+`production-incident-closeout/context.json`. Until that closeout exists, the old rollback remains open and any
+next release still requires explicit re-entry authorization. A new `post_release_regression` emits no closeout
+and can enter the normal Phase 3 rollback path again.
+
+Both post-release-regression rollback (runtime behind the newest managed Release) and partial-release rollback
+(runtime restored to the still-current managed baseline) are covered; the latter is why runtime-vs-Release
+comparison alone is not sufficient. Trusted incident artifacts retain for 90 days; if required provenance has
+expired before closeout, re-entry fails closed for human investigation rather than inferring that the incident was
+resolved.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.

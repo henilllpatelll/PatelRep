@@ -62,7 +62,7 @@ test('the prompt points Claude at CLAUDE.md and the operating document', () => {
   assert.match(doc, /claude\/recovery-<workflow-run-id>/)
 })
 
-test('production-release.yml changes only deliberately (release-context handoff, Phase 2D automated mode, release-based versioning and the ephemeral verified migration-apply workspace)', () => {
+test('production-release.yml changes only deliberately (trusted release path plus Phase 4B re-entry preflight)', () => {
   const digest = createHash('sha256').update(productionRelease).digest('hex')
   // Phase 1: identifier-only production-release-context handoff. Phase 2D: optional automation_source_run_id
   // provenance verification, run-name, actions: read, and release-based versioning (production-release-request-workflow.test.mjs
@@ -74,8 +74,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
   // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
   // Phase 3A: a final read-only evidence-ledger job records sanitized release/mutation outcomes; it has no production Environment or credentials.
+  // Phase 4B: an unprivileged re-entry preflight runs before any production Environment and the ledger records exact re-entry provenance.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, 'e0019bb82db128d5659f7cc0afc7f2a47e54d5fa7cd102b85ed2c0fe4ab9d06c')
+  assert.equal(digest, '14b32272dacfe35f2aa64c5bba1320247e8944ae9da7ad1c245c8c11a433de42')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

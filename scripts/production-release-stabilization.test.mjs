@@ -149,6 +149,46 @@ test('successful release gets exact-release stabilization and two consecutive fa
   assert.deepEqual(incident.stabilization.probes.map((p) => p.ok), [false, false])
 })
 
+test('authorized stable re-entry emits an incident closeout and a new regression does not', async () => {
+  const reentry = { present: true, valid: true, authorization_run_id: '37480000001', rollback_run_id: '37470000001' }
+  const released = evidence({
+    disposition: 'released',
+    production_verified: true,
+    source: { mode: 'manual', automation_source_run_id: null, version_bump: 'patch', reentry },
+    mutations: {
+      database: 'no_change',
+      api: 'deployed_and_verified',
+      web: 'deployed_and_verified',
+      release_record: 'created',
+    },
+  })
+
+  const stable = await classifyProductionRelease({
+    sourceRun: sourceRun({ conclusion: 'success' }),
+    evidence: released,
+    classifier,
+    deps: deps(),
+    stabilize: async () => ({ outcome: 'stable', probes: [{ attempt: 1, ok: true }] }),
+  })
+  assert.equal(stable.incident, null)
+  assert.equal(stable.closeout.schema, 'patelrep.production-incident-closeout.v1')
+  assert.deepEqual(stable.closeout.reentry, {
+    authorization_run_id: '37480000001',
+    rollback_run_id: '37470000001',
+  })
+  assert.equal(stable.closeout.closed, true)
+
+  const regressed = await classifyProductionRelease({
+    sourceRun: sourceRun({ conclusion: 'success' }),
+    evidence: released,
+    classifier,
+    deps: deps(),
+    stabilize: async () => ({ outcome: 'post_release_regression', probes: [{ attempt: 1, ok: false }, { attempt: 2, ok: false }] }),
+  })
+  assert.equal(regressed.closeout, null)
+  assert.equal(regressed.incident.classification, 'post_release_regression')
+})
+
 test('single transient failure is not enough to confirm an incident', async () => {
   const outcomes = [false, true, false]
   let index = 0
