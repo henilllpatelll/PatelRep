@@ -126,3 +126,13 @@ test('guards the remote rebuild, installs psql before drift verification, and pr
   assert.match(workflow, /npm run test:e2e:staging/)
   assert.match(workflow, /npm run check:deployment-drift/)
 })
+
+test('web service root directory carries its own Dockerfile Railway config', () => {
+  // Production deploys upload the repo root and Railway applies the service Root Directory
+  // (apps/web). Config-as-code is read from that directory, so without apps/web/railway.toml
+  // Railway falls back to Railpack instead of apps/web/Dockerfile and the deploy fails.
+  const config = readFileSync('apps/web/railway.toml', 'utf8')
+  assert.match(config, /builder\s*=\s*"DOCKERFILE"/)
+  assert.match(config, /dockerfilePath\s*=\s*"Dockerfile"/)
+  assert.match(config, /healthcheckPath\s*=\s*"\/login"/)
+})
