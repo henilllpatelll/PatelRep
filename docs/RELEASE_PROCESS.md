@@ -131,6 +131,25 @@ The previous version is derived by `scripts/release-version.mjs` from **complete
 
 A tag and GitHub Release are created **only after** every verification step above succeeds. A failed release leaves no tag, however far it got.
 
+### Production release evidence ledger (Phase 3A)
+
+Every `Production Release` run now ends with a separate **Production release evidence ledger** job. It runs with
+`if: always()` only so failures and partial releases still leave evidence; it has **no `production` Environment,
+no production secrets, and no deployment or rollback authority**. It checks out the workflow's exact control-plane
+SHA and writes one sanitized `production-release-evidence/context.json` artifact (90-day retention).
+
+The evidence records identifiers and GitHub job outcomes only: release run id/attempt and control-plane SHA,
+manual vs automated-request source, candidate SHA/PR/version when known, the previous completed managed release
+tag **and the commit that tag resolves to**, whether database preflight found pending migrations, every release-job
+result, final verification state, and a conservative mutation classification.
+
+Mutation state is deliberately fail-closed. A skipped deploy means `not_started`; a successful deploy means
+`deployed_and_verified`; a failed or cancelled deploy is `unknown_after_attempt`, because the job may have
+changed Railway before failing. Likewise, a successful migration job is `verified_applied`, a clean preflight
+with no pending migration is `no_change`, and a failed/cancelled migration attempt is
+`unknown_after_attempt`—never inferred to mean "nothing changed." Phase 3A **does not consume this artifact to
+roll back anything**; it only establishes trustworthy evidence for later Phase 3 incident-containment work.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
