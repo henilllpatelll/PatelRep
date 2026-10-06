@@ -11,6 +11,7 @@ import { PRODUCTION_API_URL, PRODUCTION_WEB_URL } from './production-runtime-ide
 export const RELEASE_EVIDENCE_ARTIFACT = 'production-release-evidence'
 export const STABILIZATION_RESULT_ARTIFACT = 'production-release-stabilization'
 export const INCIDENT_ARTIFACT = 'production-release-incident'
+export const CLOSEOUT_ARTIFACT = 'production-incident-closeout'
 export const STABILIZATION_ATTEMPTS = 3
 export const INITIAL_DELAY_MS = 30_000
 export const BETWEEN_PROBES_MS = 60_000
@@ -88,6 +89,15 @@ export function validateReleaseEvidence(evidence, sourceRun) {
     if (!VERSION.test(previous.tag ?? '') || !SHA.test(previous.sha ?? '')) throw new Error('release stabilization: invalid previous release identity')
   }
 
+  let reentry = null
+  const rawReentry = evidence.source?.reentry
+  if (rawReentry?.present === true) {
+    if (rawReentry.valid !== true) throw new Error('release stabilization: release evidence has invalid re-entry provenance')
+    const authorizationRunId = requireMatch('re-entry authorization run id', rawReentry.authorization_run_id, RUN_ID)
+    const rollbackRunId = requireMatch('re-entry rollback run id', rawReentry.rollback_run_id, RUN_ID)
+    reentry = { authorization_run_id: authorizationRunId, rollback_run_id: rollbackRunId }
+  }
+
   if (disposition === 'released') {
     if (sourceRun.conclusion !== 'success') throw new Error('release stabilization: released evidence came from a non-successful source run')
     if (!candidate.eligible || !candidate.release_sha || !candidate.version || evidence.production_verified !== true) {
@@ -106,6 +116,7 @@ export function validateReleaseEvidence(evidence, sourceRun) {
     previous_release: previous,
     production_verified: evidence.production_verified === true,
     mutations,
+    reentry,
   }
 }
 
@@ -205,6 +216,7 @@ function buildBaseResult({ classifier, sourceRun, validated, classification, sta
       production_verified: validated.production_verified,
       mutations: validated.mutations,
     },
+    reentry: validated.reentry,
     classification,
     stabilization,
   }
@@ -222,6 +234,23 @@ function buildIncident(result) {
     previous_release: result.previous_release,
     release_state: result.release_state,
     stabilization: result.stabilization,
+  }
+}
+
+
+function buildCloseout(result) {
+  if (!result.reentry) return null
+  if (!['stable', 'transient_unconfirmed'].includes(result.classification)) return null
+  if (result.release_state.disposition !== 'released' || result.release_state.production_verified !== true) return null
+  return {
+    schema: 'patelrep.production-incident-closeout.v1',
+    workflow: 'Production Release Stabilization',
+    classifier: result.classifier,
+    source_release: result.source_release,
+    reentry: result.reentry,
+    candidate: result.candidate,
+    classification: result.classification,
+    closed: true,
   }
 }
 
@@ -257,7 +286,7 @@ export async function classifyProductionRelease({
   }
 
   const result = buildBaseResult({ classifier, sourceRun, validated, classification, stabilization })
-  return { result, incident: buildIncident(result) }
+  return { result, incident: buildIncident(result), closeout: buildCloseout(result) }
 }
 
 async function main() {
@@ -282,7 +311,7 @@ async function main() {
   if (!evidence) throw new Error('release stabilization: source Production Release has no evidence artifact')
 
   const classifier = { run_id: classifierRunId, run_attempt: classifierAttempt, control_plane_sha: classifierSha }
-  const { result, incident } = await classifyProductionRelease({
+  const { result, incident, closeout } = await classifyProductionRelease({
     sourceRun,
     evidence,
     classifier,
@@ -291,7 +320,8 @@ async function main() {
 
   const resultDir = clean(env.RESULT_DIR)
   const incidentDir = clean(env.INCIDENT_DIR)
-  if (!resultDir || !incidentDir) throw new Error('release stabilization: result directories are required')
+  const closeoutDir = clean(env.CLOSEOUT_DIR)
+  if (!resultDir || !incidentDir || !closeoutDir) throw new Error('release stabilization: result directories are required')
   mkdirSync(resultDir, { recursive: true })
   writeFileSync(path.join(resultDir, 'context.json'), `${JSON.stringify(result, null, 2)}\n`, { mode: 0o600 })
 
@@ -299,11 +329,15 @@ async function main() {
     mkdirSync(incidentDir, { recursive: true })
     writeFileSync(path.join(incidentDir, 'context.json'), `${JSON.stringify(incident, null, 2)}\n`, { mode: 0o600 })
   }
+  if (closeout) {
+    mkdirSync(closeoutDir, { recursive: true })
+    writeFileSync(path.join(closeoutDir, 'context.json'), `${JSON.stringify(closeout, null, 2)}\n`, { mode: 0o600 })
+  }
 
   if (env.GITHUB_OUTPUT) {
-    appendFileSync(env.GITHUB_OUTPUT, `incident=${incident ? 'true' : 'false'}\nclassification=${result.classification}\n`)
+    appendFileSync(env.GITHUB_OUTPUT, `incident=${incident ? 'true' : 'false'}\ncloseout=${closeout ? 'true' : 'false'}\nclassification=${result.classification}\n`)
   }
-  console.log(`Production release stabilization: classification=${result.classification}; incident=${incident ? 'true' : 'false'}`)
+  console.log(`Production release stabilization: classification=${result.classification}; incident=${incident ? 'true' : 'false'}; closeout=${closeout ? 'true' : 'false'}`)
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
