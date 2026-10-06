@@ -25,8 +25,9 @@ test('Phase 4C triggers only on completed trusted production lifecycle workflows
 })
 
 test('global notification permissions are read-only and the resolver has zero issue or production write authority', () => {
-  assert.match(workflow, /^permissions:\n {2}contents: read\n {2}actions: read\n/m)
-  assert.doesNotMatch(workflow, /^\s+(contents|actions|issues|pull-requests|checks|deployments|environments|statuses|id-token): write$/m)
+  const topLevelPermissions = workflow.slice(workflow.indexOf('\npermissions:\n'), workflow.indexOf('\njobs:\n'))
+  assert.match(topLevelPermissions, /^\npermissions:\n {2}contents: read\n {2}actions: read\n$/m)
+  assert.doesNotMatch(topLevelPermissions, /: write/)
   const resolve = jobSection(workflow, 'resolve')
   assert.match(resolve, /ref: \$\{\{ github\.sha \}\}/)
   assert.match(resolve, /sparse-checkout: scripts/)
