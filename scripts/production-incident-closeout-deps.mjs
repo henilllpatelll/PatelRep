@@ -15,9 +15,9 @@ export function realIncidentCloseoutDeps({ repo, readToken }) {
     readRollbackEvidence: (runId) => base.readNamedContext(runId, ROLLBACK_EVIDENCE_ARTIFACT),
     readIncident: (runId) => base.readNamedContext(runId, INCIDENT_ARTIFACT),
     readIncidentCloseout: (runId) => base.readNamedContext(runId, INCIDENT_CLOSEOUT_ARTIFACT),
-    listSuccessfulRollbackRuns: async () =>
+    listCompletedRollbackRuns: async () =>
       base.paged(
-        `repos/${repo}/actions/workflows/production-rollback.yml/runs?status=success&per_page=100`,
+        `repos/${repo}/actions/workflows/production-rollback.yml/runs?status=completed&per_page=100`,
         '.workflow_runs[] | {id, name, path, event, status, conclusion, head_branch, head_sha, run_attempt, display_title, created_at, actor: {login: .actor.login, id: .actor.id}, repository: {full_name: .repository.full_name}, head_repository: {full_name: .head_repository.full_name}} | @json',
       ),
     listSuccessfulReleaseRuns: async () =>
