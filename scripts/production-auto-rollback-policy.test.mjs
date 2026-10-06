@@ -13,20 +13,21 @@ const C = 'c'.repeat(40)
 const STAB_RUN = '37430000001'
 const RELEASE_RUN = '37420000001'
 
-const executionContract = `
-run-name: Production Rollback ${{ inputs.target_version }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}
-on:
-  workflow_dispatch:
-    inputs:
-      automation_source_run_id:
-        description: "Automation only"
-jobs:
-  resolve:
-    steps:
-      - run: node scripts/production-auto-rollback-request.mjs rollback
-        env:
-          PRODUCTION_AUTO_ROLLBACK_ENABLED: ${{ vars.PRODUCTION_AUTO_ROLLBACK_ENABLED }}
-`
+const executionContract = [
+  "run-name: Production Rollback ${{ inputs.target_version }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}",
+  'on:',
+  '  workflow_dispatch:',
+  '    inputs:',
+  '      automation_source_run_id:',
+  '        description: "Automation only"',
+  'jobs:',
+  '  resolve:',
+  '    steps:',
+  '      - run: node scripts/production-auto-rollback-request.mjs rollback',
+  '        env:',
+  '          PRODUCTION_AUTO_ROLLBACK_ENABLED: ${{ vars.PRODUCTION_AUTO_ROLLBACK_ENABLED }}',
+].join('\n')
+
 
 const stabilizationRun = (overrides = {}) => ({
   id: Number(STAB_RUN),
