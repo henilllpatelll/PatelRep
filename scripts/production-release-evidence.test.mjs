@@ -17,6 +17,9 @@ const base = (overrides = {}) => ({
   nextVersion: 'v1.8.1',
   versionBump: 'patch',
   automationSourceRunId: '',
+  reentrySourceRunId: '',
+  reentryRollbackRunId: '',
+  reentryPreflightResult: 'success',
   resolveResult: 'success',
   computeVersionResult: 'success',
   contentSummaryResult: 'success',
@@ -41,6 +44,44 @@ test('clean release records exact identities and no database change', async () =
   assert.equal(e.mutations.release_record, 'created')
   assert.equal(e.production_verified, true)
   assert.equal(e.disposition, 'released')
+})
+
+test('authorized incident re-entry provenance is recorded without free-form data', async () => {
+  const e = await buildProductionReleaseEvidence(base({
+    reentrySourceRunId: '37480000001',
+    reentryRollbackRunId: '37470000001',
+  }), deps)
+  assert.deepEqual(e.source.reentry, {
+    present: true,
+    valid: true,
+    authorization_run_id: '37480000001',
+    rollback_run_id: '37470000001',
+  })
+
+  const malformed = await buildProductionReleaseEvidence(base({
+    eligible: 'false',
+    reentrySourceRunId: 'not-a-run token=https://secret.example',
+    reentryRollbackRunId: '',
+    reentryPreflightResult: 'failure',
+    resolveResult: 'skipped',
+    computeVersionResult: 'skipped',
+    contentSummaryResult: 'skipped',
+    dbPreflightResult: 'skipped',
+    dbPending: '',
+    dbMigrateResult: 'skipped',
+    apiResult: 'skipped',
+    webResult: 'skipped',
+    verifyResult: 'skipped',
+    tagResult: 'skipped',
+    targetSha: '',
+    prNumber: '',
+    previousTag: '',
+    nextVersion: '',
+  }), { resolveTagCommit: async () => { throw new Error('must not resolve') } })
+  assert.equal(malformed.source.reentry.present, true)
+  assert.equal(malformed.source.reentry.valid, false)
+  assert.equal(malformed.source.reentry.authorization_run_id, null)
+  assert.doesNotMatch(JSON.stringify(malformed), /token|https?:\/\/|secret/i)
 })
 
 test('successful migration is distinct from no-change', async () => {
