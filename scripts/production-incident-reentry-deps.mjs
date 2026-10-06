@@ -5,6 +5,7 @@ import { realAutoRollbackRequestDeps } from './production-auto-rollback-deps.mjs
 const ROLLBACK_EVIDENCE_ARTIFACT = 'production-rollback-evidence'
 const RELEASE_EVIDENCE_ARTIFACT = 'production-release-evidence'
 export const REENTRY_ARTIFACT = 'production-incident-reentry'
+export const CLOSEOUT_ARTIFACT = 'production-incident-closeout'
 
 const runJq = '.workflow_runs[] | {id, run_attempt, name, path, event, status, conclusion, head_branch, head_sha, created_at, display_title, repository: {full_name: .repository.full_name}, head_repository: {full_name: .head_repository.full_name}} | @json'
 
@@ -16,9 +17,12 @@ export function realProductionIncidentReentryDeps({ repo, readToken }) {
       base.paged(`repos/${repo}/actions/workflows/production-rollback.yml/runs?status=completed&per_page=100`, runJq),
     listReleaseRuns: async () =>
       base.paged(`repos/${repo}/actions/workflows/production-release.yml/runs?status=completed&per_page=100`, runJq),
+    listStabilizationRuns: async () =>
+      base.paged(`repos/${repo}/actions/workflows/production-release-stabilization.yml/runs?status=completed&per_page=100`, runJq),
     readRollbackEvidence: (runId) => base.readNamedContext(runId, ROLLBACK_EVIDENCE_ARTIFACT),
     readReleaseEvidence: (runId) => base.readNamedContext(runId, RELEASE_EVIDENCE_ARTIFACT),
     readReentryAuthorization: (runId) => base.readNamedContext(runId, REENTRY_ARTIFACT),
+    readCloseout: (runId) => base.readNamedContext(runId, CLOSEOUT_ARTIFACT),
     listAssociatedPullRequests: async (sha) =>
       base.api(`repos/${repo}/commits/${encodeURIComponent(sha)}/pulls`),
     getCommitTree: async (sha) =>
