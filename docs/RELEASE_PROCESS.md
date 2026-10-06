@@ -150,6 +150,34 @@ with no pending migration is `no_change`, and a failed/cancelled migration attem
 `unknown_after_attempt`—never inferred to mean "nothing changed." Phase 3A **does not consume this artifact to
 roll back anything**; it only establishes trustworthy evidence for later Phase 3 incident-containment work.
 
+### Release stabilization and incident classification (Phase 3B)
+
+`.github/workflows/production-release-stabilization.yml` runs only after a completed **Production Release**.
+It is deliberately read-only: `contents: read` + `actions: read`, no `production` Environment, no production
+secrets, no App token and no dispatch/deploy/migrate/tag/rollback capability. It checks out trusted `main`
+control-plane code, verifies the exact source run and Phase 3A evidence artifact, and refuses malformed or
+cross-repository provenance.
+
+A failed release is a **partial release incident** only when final production verification did not succeed and
+the evidence proves or cannot exclude a production mutation (migration applied/attempted, API deploy
+applied/attempted, or Web deploy applied/attempted). A failure before any production mutation is recorded as
+`pre_production_failure_no_incident`. If exact final production verification passed and only tag/GitHub Release
+bookkeeping later failed, it is `release_record_failure_no_runtime_incident` rather than a rollback signal.
+
+A successfully released version receives a short release-specific stabilization window against the public
+production endpoints using the same strict exact-release smoke contract as Production Release. The policy waits
+30 seconds, then performs up to three probes 60 seconds apart. **Two consecutive failures** are required to
+confirm `post_release_regression`; a single or non-consecutive failure is `transient_unconfirmed` and does not
+create an incident.
+
+Every run retains a sanitized `production-release-stabilization/context.json` result for 90 days. Confirmed
+partial-release or post-release-regression incidents additionally emit
+`production-release-incident/context.json`. These artifacts contain categorical identifiers/states only; remote
+probe error text is left in human-readable Actions logs and is never put in the trusted handoff.
+
+Phase 3B still **does not dispatch Production Rollback**. It only proves and classifies incident state for a later
+separately reviewed Phase 3 decision/request layer.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
