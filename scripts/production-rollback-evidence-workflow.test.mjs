@@ -66,7 +66,7 @@ test('Phase 4A adds exactly one rollback job-level always path and no soft produ
 
 test('rollback evidence scripts are sanitized and cannot deploy mutate DB or dispatch workflows', () => {
   for (const [name, source] of [['evidence', evidence], ['capture', capture]]) {
-    assert.doesNotMatch(source, /railway\\/cli|supabase\\/setup-cli|supabase migration|psql|git push|gh workflow run|create-github-app-token|RAILWAY_API_TOKEN|PRODUCTION_SUPABASE_DB_URL/i, name)
+    assert.doesNotMatch(source, /railway\/cli|supabase\/setup-cli|supabase migration|psql|git push|gh workflow run|create-github-app-token|RAILWAY_API_TOKEN|PRODUCTION_SUPABASE_DB_URL/i, name)
   }
   assert.match(evidence, /patelrep\.production-rollback-evidence\.v1/)
   assert.match(evidence, /not_mutated_by_workflow/)
