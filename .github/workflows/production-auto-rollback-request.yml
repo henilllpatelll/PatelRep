@@ -1,0 +1,108 @@
+name: Production Auto-Rollback Request
+
+# Phase 3C: decide and REQUEST (never execute) a narrowly eligible rollback after Phase 3B confirms a
+# production incident. This workflow has no production Environment or production credentials.
+# Separated authority:
+#   resolve          - read-only token, trusted scripts from main, decides eligibility
+#   request-rollback - fresh read-only revalidation; only then may it create an actions:write App token
+#                      whose sole purpose is dispatching Production Rollback
+#
+# This remains inert until BOTH:
+#   1) repository variable PRODUCTION_AUTO_ROLLBACK_ENABLED is exactly "true", and
+#   2) Production Rollback contains the Phase 3D automated provenance revalidation contract.
+# Phase 3C intentionally refuses today's human-only rollback workflow.
+
+on:
+  workflow_run:
+    workflows:
+      - Production Release Stabilization
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  resolve:
+    name: Resolve automatic rollback request eligibility
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      trusted_control_plane_sha: ${{ steps.trusted-sha.outputs.sha }}
+      eligible: ${{ steps.eligibility.outputs.eligible }}
+      target_version: ${{ steps.eligibility.outputs.target_version }}
+      target_sha: ${{ steps.eligibility.outputs.target_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          path: .trusted-resolver
+          sparse-checkout: scripts
+          persist-credentials: false
+      - name: Capture trusted control-plane SHA
+        id: trusted-sha
+        run: |
+          sha=$(git -C .trusted-resolver rev-parse HEAD)
+          printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Trusted control plane: $sha"
+      - name: Resolve rollback eligibility
+        id: eligibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          PRODUCTION_AUTO_ROLLBACK_ENABLED: ${{ vars.PRODUCTION_AUTO_ROLLBACK_ENABLED }}
+        run: node .trusted-resolver/scripts/production-auto-rollback-request.mjs resolve
+
+  request-rollback:
+    name: Request Production Rollback (trusted)
+    needs: resolve
+    if: needs.resolve.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: patelrep-production-auto-rollback-request
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          path: trusted-request
+          sparse-checkout: scripts
+          persist-credentials: false
+      - name: Revalidate rollback eligibility and duplicate state
+        id: revalidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_CONTROL_PLANE_SHA: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          EXPECTED_TARGET_VERSION: ${{ needs.resolve.outputs.target_version }}
+          PRODUCTION_AUTO_ROLLBACK_ENABLED: ${{ vars.PRODUCTION_AUTO_ROLLBACK_ENABLED }}
+        run: node trusted-request/scripts/production-auto-rollback-request.mjs request
+      - name: Create PatelRep GitHub App token
+        id: app-token
+        if: steps.revalidate.outputs.dispatch == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+          permission-actions: write
+      - name: Request exact known-good Production Rollback
+        if: steps.revalidate.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          TARGET_VERSION: ${{ steps.revalidate.outputs.target_version }}
+          SOURCE_RUN_ID: ${{ steps.revalidate.outputs.source_run_id }}
+        run: |
+          printf '%s' "$TARGET_VERSION" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          printf '%s' "$SOURCE_RUN_ID" | grep -Eq '^[1-9][0-9]{0,19}$'
+          gh workflow run production-rollback.yml --repo "$REPO" --ref main \
+            -f target_version="$TARGET_VERSION" -f automation_source_run_id="$SOURCE_RUN_ID"
+          echo "Requested Production Rollback to $TARGET_VERSION for confirmed incident run $SOURCE_RUN_ID. The rollback workflow must re-verify all provenance before production access." | tee -a "$GITHUB_STEP_SUMMARY"

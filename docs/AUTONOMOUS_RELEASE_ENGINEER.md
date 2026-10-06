@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 3B):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 3C):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -284,6 +284,28 @@ text stays in logs and is not copied into the trusted incident handoff.
 Both the stabilization result and confirmed incident artifacts are sanitized and retained for 90 days. Phase 3B
 only classifies; no automatic rollback, database reversal, feature-flag mutation, deployment, or release retry is
 authorized.
+
+## Trusted automatic rollback request (Phase 3C)
+
+Phase 3C adds a new trusted workflow,
+`.github/workflows/production-auto-rollback-request.yml`, triggered only after a successful
+`Production Release Stabilization` run. Claude is not involved in this decision and receives no new authority.
+
+The resolver has read-only `contents/actions/pull-requests` access and executes trusted `main` scripts. It
+freezes one exact control-plane SHA. Only if the shared rollback policy says the incident is eligible does the
+second job run. That job checks out the exact frozen SHA, revalidates all live state, and only then may create a
+short-lived PatelRep App token with **Actions: write only**. The request job has no `production` Environment,
+Supabase/Railway credentials, database access, deployment permission, or feature-flag authority.
+
+Eligibility requires `PRODUCTION_AUTO_ROLLBACK_ENABLED=true`, exact same-repository Phase 3B provenance,
+independent validation of the original Production Release evidence, `database = no_change`, the exact failing
+runtime still live, a fresh failing strict smoke, a low-risk candidate PR, an exact completed previous release/tag,
+and no active release/rollback. Anything ambiguous refuses.
+
+The shared policy also exposes `rollback` validation mode for Phase 3D. Phase 3C will not dispatch until the
+trusted `production-rollback.yml` itself contains `automation_source_run_id` and calls that rollback mode before
+production access. Therefore the current Production Rollback remains human-dispatched after Phase 3C merges, even
+if the owner accidentally enables `PRODUCTION_AUTO_ROLLBACK_ENABLED` early.
 
 ## Bounded recovery lineage
 
