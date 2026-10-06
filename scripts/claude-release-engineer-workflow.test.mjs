@@ -74,8 +74,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
   // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
   // Phase 3A: a final read-only evidence-ledger job records sanitized release/mutation outcomes; it has no production Environment or credentials.
+  // Phase 4B: read-only incident re-entry preflight runs before the first production Environment job and binds any quarantine re-entry to an owner closeout + exact SHA.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, 'e0019bb82db128d5659f7cc0afc7f2a47e54d5fa7cd102b85ed2c0fe4ab9d06c')
+  assert.equal(digest, 'a4bc3f698bc70f87dcc02efe0b2b5e5f244cf897681d3ba10f4455280719aa18')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
