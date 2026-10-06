@@ -33,6 +33,12 @@ test('audit executes exact trusted main SHA and uses a separate non-cancelling c
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$GITHUB_SHA"/)
 })
 
+test('audit summary uses shell-safe printf so Markdown backticks never execute state values', () => {
+  assert.match(workflow, /printf -- '- State: \`%s\`\\n'/)
+  assert.match(workflow, /printf -- '- Consistent: \`%s\`\\n'/)
+  assert.doesNotMatch(workflow, /echo "- State: \`\$STATE\`"/)
+})
+
 test('audit artifact is uploaded before any inconsistent-state failure', () => {
   const uploadIndex = workflow.indexOf('Upload production release audit evidence')
   const failIndex = workflow.indexOf('Fail on inconsistent production release state')

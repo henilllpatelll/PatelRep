@@ -90,7 +90,7 @@ function requireIncident(incident, sourceRun) {
   return incident
 }
 
-function requireRollbackExecutionContract(source) {
+export function requireRollbackExecutionContract(source) {
   if (typeof source !== 'string') fail('rollback workflow contract could not be read')
   const markers = [
     /automation_source_run_id:\n {8}description:/,

@@ -1,0 +1,73 @@
+name: Production Recovery Readiness
+
+# Phase 5B: live, read-only recovery drill against public production identity and trusted GitHub evidence.
+# No production Environment, no production secrets, no DB access, no write token, no workflow dispatch.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '29 11 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: production-recovery-readiness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  readiness:
+    name: Verify live recovery readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove trusted main recovery-drill context
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: readiness
+        name: Evaluate live production recovery readiness
+        run: node scripts/production-recovery-readiness.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          RESULT_DIR: ${{ runner.temp }}/production-recovery-readiness
+      - name: Upload recovery readiness evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-recovery-readiness
+          path: ${{ runner.temp }}/production-recovery-readiness/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Summarize recovery readiness
+        env:
+          STATE: ${{ steps.readiness.outputs.state }}
+          PASS: ${{ steps.readiness.outputs.pass }}
+          REASON: ${{ steps.readiness.outputs.reason_code }}
+        run: |
+          printf '%s\n' '## Production Recovery Readiness' >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- State: `%s`\n' "$STATE" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Pass: `%s`\n' "$PASS" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$REASON" ]; then printf -- '- Reason: `%s`\n' "$REASON" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Fail on unproven recovery readiness
+        if: steps.readiness.outputs.pass != 'true'
+        env:
+          STATE: ${{ steps.readiness.outputs.state }}
+          REASON: ${{ steps.readiness.outputs.reason_code }}
+        run: |
+          echo "::error::Production recovery readiness failed: state=$STATE reason=$REASON"
+          exit 1
