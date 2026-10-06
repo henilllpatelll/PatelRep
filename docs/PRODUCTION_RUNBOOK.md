@@ -178,6 +178,34 @@ Every issue update links back to the trusted Actions run. If the notification wo
 Actions run; never work around it by weakening production gates. The notifier has only `issues: write` and cannot
 release or roll back production.
 
+## Production Release Audit (Phase 4D)
+
+**Production Release Audit** runs automatically every six hours and on each `main` push. It is read-only.
+Use its artifact and GitHub Issue notification to distinguish real release-ledger drift from an intentional
+rollback quarantine.
+
+Healthy states:
+- `consistent_managed_release` — runtime exactly matches newest completed managed Release.
+- `quarantined_post_release_regression` — automatic rollback is proven and runtime intentionally trails the
+  failed managed Release; follow the Phase 4B fix-forward/re-entry process.
+- `quarantined_partial_release_failure` — automatic rollback restored the managed baseline while the failed
+  candidate stayed unmanaged; follow the same Phase 4B re-entry process.
+- `deferred_active_production_operation` — a release/rollback was actively mutating production, so the audit
+  intentionally deferred judgment. The next scheduled audit should re-prove steady state.
+
+An `inconsistent` result fails the audit after uploading evidence and opens/updates the
+`audit:production-integrity` notification issue. Common reason codes include:
+`runtime_managed_release_mismatch`, `runtime_identity_unproven`, `managed_release_unproven`,
+`managed_release_missing`, `unmanaged_release_tag_conflict`, `incident_state_unproven`,
+`rollback_quarantine_unproven`, and `reentry_state_unproven`.
+
+Do not "fix" an audit by retagging, deleting Releases, repairing migration history, or redeploying blindly.
+First establish which identity/evidence invariant is broken. The audit cannot mutate production and its issue
+notifier has only `issues: write`.
+
+A later fully proven healthy/quarantined audit closes an existing production-integrity issue. A deferred audit
+does not close it because transient state was not evaluated.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
