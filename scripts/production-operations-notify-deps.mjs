@@ -32,7 +32,7 @@ export function realProductionNotificationDeps({ repo, readToken, issueToken }) 
     readNamedContext: base.readNamedContext,
     listNotificationRuns: async () =>
       paged(
-        `repos/${repo}/actions/workflows/production-operations-notify.yml/runs?status=completed&per_page=100`,
+        `repos/${repo}/actions/workflows/production-operations-notify.yml/runs?status=success&per_page=100`,
         '.workflow_runs[] | {id,run_attempt,name,path,event,status,conclusion,head_branch,head_sha,created_at,repository:{full_name:.repository.full_name},head_repository:{full_name:.head_repository.full_name}} | @json',
       ),
     readNotificationResult: (runId) => base.readNamedContext(runId, NOTIFICATION_ARTIFACT),
