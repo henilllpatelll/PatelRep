@@ -15,6 +15,9 @@ name: Production Rollback
 # Phase 3D: an automated dispatch carries automation_source_run_id. That mode first re-runs the trusted
 # Phase 3C policy from the exact workflow SHA in an unprivileged job BEFORE any production Environment job.
 # Manual dispatch leaves automation_source_run_id blank and keeps the original operator-driven semantics.
+#
+# Phase 4A adds read-only before/after evidence only. It does not add rollback, database, tag, release,
+# or deployment authority and never receives production secrets.
 
 run-name: Production Rollback ${{ inputs.target_version }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}
 
@@ -74,9 +77,32 @@ jobs:
           TARGET_VERSION: ${{ inputs.target_version }}
           PRODUCTION_AUTO_ROLLBACK_ENABLED: ${{ vars.PRODUCTION_AUTO_ROLLBACK_ENABLED }}
 
+  capture-pre-rollback-runtime:
+    name: Capture pre-rollback runtime identity
+    needs: verify-automation-provenance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.capture.outputs.status }}
+      sha: ${{ steps.capture.outputs.sha }}
+      version: ${{ steps.capture.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - id: capture
+        name: Capture public Web/API identity without production credentials
+        run: node scripts/production-rollback-runtime-capture.mjs
+
   resolve-and-verify-target:
     name: Resolve and verify rollback target
-    needs: verify-automation-provenance
+    needs: [verify-automation-provenance, capture-pre-rollback-runtime]
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -366,3 +392,60 @@ jobs:
           SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
           TARGET_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
           TARGET_SHA: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+
+
+  production-rollback-evidence:
+    name: Production rollback evidence ledger
+    needs:
+      - verify-automation-provenance
+      - capture-pre-rollback-runtime
+      - resolve-and-verify-target
+      - compatibility-check
+      - deploy-api
+      - deploy-web
+      - verify-rollback
+      - verify-automated-circuit-breaker
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Write sanitized rollback evidence
+        run: node scripts/production-rollback-evidence.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          REQUESTED_TARGET_VERSION: ${{ inputs.target_version }}
+          AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          PROVENANCE_RESULT: ${{ needs.verify-automation-provenance.result }}
+          PRE_RUNTIME_RESULT: ${{ needs.capture-pre-rollback-runtime.result }}
+          PRE_RUNTIME_STATUS: ${{ needs.capture-pre-rollback-runtime.outputs.status }}
+          PRE_RUNTIME_SHA: ${{ needs.capture-pre-rollback-runtime.outputs.sha }}
+          PRE_RUNTIME_VERSION: ${{ needs.capture-pre-rollback-runtime.outputs.version }}
+          RESOLVE_RESULT: ${{ needs.resolve-and-verify-target.result }}
+          RESOLVED_TARGET_SHA: ${{ needs.resolve-and-verify-target.outputs.target_sha }}
+          RESOLVED_TARGET_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
+          COMPATIBILITY_RESULT: ${{ needs.compatibility-check.result }}
+          API_RESULT: ${{ needs.deploy-api.result }}
+          WEB_RESULT: ${{ needs.deploy-web.result }}
+          VERIFY_RESULT: ${{ needs.verify-rollback.result }}
+          CIRCUIT_RESULT: ${{ needs.verify-automated-circuit-breaker.result }}
+          RESULT_DIR: ${{ runner.temp }}/production-rollback-evidence
+      - name: Upload sanitized rollback evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-rollback-evidence
+          path: ${{ runner.temp }}/production-rollback-evidence/context.json
+          retention-days: 90
+          if-no-files-found: error
