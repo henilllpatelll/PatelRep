@@ -17,8 +17,8 @@ const jobSection = (source, name) => {
   return next < 0 ? source.slice(start) : source.slice(start, start + 1 + next)
 }
 
-test('Phase 4C triggers only on completed trusted production lifecycle workflows', () => {
-  assert.match(workflow, /on:\n {2}workflow_run:\n {4}workflows:\n {6}- Production Release Stabilization\n {6}- Production Rollback\n {6}- Production Incident Re-entry\n {4}types: \[completed\]/)
+test('Phase 4C/4D notifier triggers only on completed trusted production lifecycle workflows', () => {
+  assert.match(workflow, /on:\n {2}workflow_run:\n {4}workflows:\n {6}- Production Release Stabilization\n {6}- Production Rollback\n {6}- Production Incident Re-entry\n {6}- Production Release Audit\n {4}types: \[completed\]/)
   assert.doesNotMatch(workflowCode, /workflow_dispatch|schedule:|cron:|pull_request|push:/)
   assert.match(jobSection(workflow, 'resolve'), /if: github\.event\.workflow_run\.head_repository\.full_name == github\.repository/)
   assert.match(workflow, /SOURCE_RUN_ID: \$\{\{ github\.event\.workflow_run\.id \}\}/)
@@ -78,6 +78,9 @@ test('normal stable releases are explicitly no-op to prevent alert fatigue', () 
   assert.match(policy, /automated_rollback_restored/)
   assert.match(policy, /reentry_authorized/)
   assert.match(policy, /incident_closed/)
+  assert.match(policy, /audit_inconsistent/)
+  assert.match(policy, /audit_recovered/)
+  assert.match(policy, /close_existing/)
 })
 
 test('no other workflow gains Issues write through Phase 4C changes', () => {

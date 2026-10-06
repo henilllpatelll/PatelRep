@@ -1,0 +1,73 @@
+name: Production Release Audit
+
+# Phase 4D: periodic, read-only integrity audit of the production release ledger/runtime/quarantine state.
+# No production Environment, production secrets, deployment credentials, write token, DB access, or dispatch authority.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: production-release-audit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    name: Audit production release integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove trusted main audit context
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: audit
+        name: Evaluate production release state
+        run: node scripts/production-release-audit.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          RESULT_DIR: ${{ runner.temp }}/production-release-audit
+      - name: Upload production release audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-audit
+          path: ${{ runner.temp }}/production-release-audit/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Summarize production release audit
+        env:
+          STATE: ${{ steps.audit.outputs.state }}
+          CONSISTENT: ${{ steps.audit.outputs.consistent }}
+          REASON: ${{ steps.audit.outputs.reason_code }}
+        run: |
+          echo "## Production Release Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo "- State: `$STATE`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Consistent: `$CONSISTENT`" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$REASON" ]; then echo "- Reason: `$REASON`" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Fail on inconsistent production release state
+        if: steps.audit.outputs.consistent != 'true'
+        env:
+          STATE: ${{ steps.audit.outputs.state }}
+          REASON: ${{ steps.audit.outputs.reason_code }}
+        run: |
+          echo "::error::Production release audit failed: state=$STATE reason=$REASON"
+          exit 1
