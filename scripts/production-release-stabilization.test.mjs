@@ -5,6 +5,7 @@ import {
   classifyReleaseEvidence,
   stabilizeExactRelease,
   validateReleaseEvidence,
+  validateSourceRun,
 } from './production-release-stabilization.mjs'
 
 const A = 'a'.repeat(40)
@@ -52,6 +53,25 @@ const deps = (overrides = {}) => ({
 })
 
 const classifier = { run_id: '37420000001', run_attempt: 1, control_plane_sha: C }
+
+test('source run provenance must be exact trusted Production Release on main', () => {
+  const run = sourceRun()
+  assert.equal(validateSourceRun(run, { repo: 'henilllpatelll/PatelRep', sourceRunId: String(run.id) }), run)
+  for (const bad of [
+    { name: 'Other Workflow' },
+    { path: '.github/workflows/other.yml' },
+    { event: 'push' },
+    { status: 'in_progress' },
+    { head_branch: 'feature/foo' },
+    { repository: { full_name: 'other/repo' } },
+    { head_repository: { full_name: 'other/repo' } },
+  ]) {
+    assert.throws(
+      () => validateSourceRun(sourceRun(bad), { repo: 'henilllpatelll/PatelRep', sourceRunId: '37410000001' }),
+      /release stabilization:/,
+    )
+  }
+})
 
 test('failed release before any production mutation is not an incident', async () => {
   const { result, incident } = await classifyProductionRelease({
