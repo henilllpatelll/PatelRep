@@ -558,6 +558,7 @@ jobs:
   production-release-evidence:
     name: Production release evidence ledger
     needs:
+      - verify-incident-reentry
       - resolve-and-verify-eligibility
       - compute-version
       - release-content-summary
@@ -591,6 +592,7 @@ jobs:
           VERSION_BUMP: ${{ inputs.version_bump }}
           AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
           INCIDENT_CLOSEOUT_RUN_ID: ${{ inputs.incident_closeout_run_id }}
+          INCIDENT_REENTRY_RESULT: ${{ needs.verify-incident-reentry.result }}
           ELIGIBLE: ${{ needs.resolve-and-verify-eligibility.outputs.eligible }}
           TARGET_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
           PR_NUMBER: ${{ needs.resolve-and-verify-eligibility.outputs.pr_number }}
