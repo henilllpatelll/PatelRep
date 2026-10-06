@@ -48,6 +48,17 @@ Concise operational procedures for releasing, recovering, and verifying PatelRep
 3. Dispatch **Production Rollback** with that version and verify health completes successfully.
 4. Once stable, write up what happened and fix forward through the normal PR path before attempting to re-release the version that caused the outage.
 
+## Release evidence after failures (Phase 3A)
+
+Every Production Release now uploads a `production-release-evidence` artifact even when the release fails. Use
+that record before deciding whether a rollback is safe. In particular, `unknown_after_attempt` for database, API,
+or Web means the workflow cannot prove whether the failed job partially mutated production; treat that as requiring
+human investigation. `no_change` is the only database state that proves the release had no migration to apply,
+and `verified_applied` proves the migration job completed and post-apply verification passed.
+
+Phase 3A does **not** automatically dispatch Production Rollback and does not alter this runbook's manual recovery
+order. Never interpret a failed job as evidence that nothing changed.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).

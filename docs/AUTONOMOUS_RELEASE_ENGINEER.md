@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 2D):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 3A):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -243,6 +243,21 @@ release is the one-time bootstrap `v1.8.0` (`v1.7` is never read as `v1.7.0`). A
 computed tag, or any three-segment tag at or above it, exists without a completed GitHub Release (or the
 computed tag has a draft/prerelease), the release fails closed: tags are never skipped, deleted or rewritten
 automatically and a human must investigate.
+
+## Production Release evidence ledger (Phase 3A)
+
+Phase 3A adds evidence, **not authority**. The final `production-release-evidence` job in
+`.github/workflows/production-release.yml` waits for the entire release graph and uses `if: always()` so even a
+failed or partial production release emits a sanitized record. The job has `contents: read` only, does not use the
+`production` Environment, receives no production secret, and cannot migrate, deploy, tag, create a Release,
+dispatch another workflow, or roll back.
+
+Its `production-release-evidence/context.json` artifact records the exact workflow/run identity, candidate and
+previous managed release identities when provable, each release-job result, database-pending state, final
+production verification, and conservative mutation states. Failed or cancelled mutation jobs are recorded as
+`unknown_after_attempt`; absence of a success is never converted into proof that production was untouched.
+The artifact is retained for 90 days. Nothing in Phase 3A automatically acts on it; automatic rollback remains
+out of scope until a later Phase 3 subphase adds a separately reviewed policy and provenance re-verification.
 
 ## Bounded recovery lineage
 

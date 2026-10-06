@@ -22,6 +22,8 @@ name: Production Release
 # (scripts/production-release-request.mjs release) before any production step.
 # Manual dispatches leave `automation_source_run_id` blank and keep the original semantics unchanged.
 
+# Phase 3A adds only a sanitized evidence ledger after the release graph finishes. The ledger job has no
+# production Environment or production credentials and cannot deploy, migrate, tag, release, or roll back.
 # The run name carries the exact target so a duplicate automated request is deterministically detectable.
 run-name: Production Release ${{ inputs.release_sha || 'main-tip' }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}
 
@@ -514,3 +516,63 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
+
+  production-release-evidence:
+    name: Production release evidence ledger
+    needs:
+      - resolve-and-verify-eligibility
+      - compute-version
+      - release-content-summary
+      - production-db-preflight
+      - production-db-migrate
+      - deploy-api
+      - deploy-web
+      - verify-production-release
+      - tag-and-release
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Write sanitized release evidence
+        run: node scripts/production-release-evidence.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          VERSION_BUMP: ${{ inputs.version_bump }}
+          AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          ELIGIBLE: ${{ needs.resolve-and-verify-eligibility.outputs.eligible }}
+          TARGET_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
+          PR_NUMBER: ${{ needs.resolve-and-verify-eligibility.outputs.pr_number }}
+          PREVIOUS_TAG: ${{ needs.compute-version.outputs.previous_tag }}
+          NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
+          RESOLVE_RESULT: ${{ needs.resolve-and-verify-eligibility.result }}
+          COMPUTE_VERSION_RESULT: ${{ needs.compute-version.result }}
+          CONTENT_SUMMARY_RESULT: ${{ needs.release-content-summary.result }}
+          DB_PREFLIGHT_RESULT: ${{ needs.production-db-preflight.result }}
+          DB_PENDING: ${{ needs.production-db-preflight.outputs.pending }}
+          DB_MIGRATE_RESULT: ${{ needs.production-db-migrate.result }}
+          API_RESULT: ${{ needs.deploy-api.result }}
+          WEB_RESULT: ${{ needs.deploy-web.result }}
+          VERIFY_RESULT: ${{ needs.verify-production-release.result }}
+          TAG_RESULT: ${{ needs.tag-and-release.result }}
+          RESULT_DIR: ${{ runner.temp }}/production-release-evidence
+      - name: Upload sanitized release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-evidence
+          path: ${{ runner.temp }}/production-release-evidence/context.json
+          retention-days: 90
+          if-no-files-found: error
+
