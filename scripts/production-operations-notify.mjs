@@ -209,11 +209,9 @@ function makeIntent({ run, key, kind, operation, severity, title, details, close
   })
 }
 
-async function incidentIdFromRollbackRun(rollbackRunId, deps) {
-  const rollbackRun = await deps.getRun(rollbackRunId)
-  if (!rollbackRun || rollbackRun.name !== 'Production Rollback' || rollbackRun.path !== '.github/workflows/production-rollback.yml') {
-    fail('closeout rollback run is not trusted Production Rollback')
-  }
+async function incidentIdFromRollbackRun(repo, rollbackRunId, deps) {
+  const rollbackRun = validateSourceRun(await deps.getRun(rollbackRunId), { repo, sourceRunId: rollbackRunId })
+  if (rollbackRun.name !== 'Production Rollback') fail('closeout rollback run is not trusted Production Rollback')
   const evidence = await deps.readNamedContext(rollbackRunId, 'production-rollback-evidence')
   if (!evidence) fail('closeout rollback evidence is missing')
   const validated = validateRollbackEvidence(evidence, rollbackRun)
@@ -247,7 +245,7 @@ export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
     const closeoutRaw = await deps.readNamedContext(sourceRunId, 'production-incident-closeout')
     if (closeoutRaw) {
       const closeout = validateCloseout(closeoutRaw, run)
-      const incidentRunId = await incidentIdFromRollbackRun(closeout.rollback_run_id, deps)
+      const incidentRunId = await incidentIdFromRollbackRun(repo, closeout.rollback_run_id, deps)
       return makeIntent({
         run,
         key: `incident:${incidentRunId}`,
@@ -507,7 +505,7 @@ async function findPriorNotification({ repo, intent, deps }) {
   return { duplicate: false, issue_number: issueNumber }
 }
 
-async function publishIntent({ repo, owner, intent, expectedDigest, notificationRun }, deps) {
+export async function publishIntent({ repo, owner, intent, expectedDigest }, deps) {
   if (digestIntent(intent) !== expectedDigest) fail('notification intent changed between resolve and publish')
   if (intent.operation === 'none') fail('publish received a no-op intent')
 
@@ -615,7 +613,6 @@ async function main() {
       owner,
       intent,
       expectedDigest,
-      notificationRun,
     }, deps)
     const result = writeResult({ dir: clean(env.RESULT_DIR), run: notificationRun, intent, published })
     console.log(`Production notification published: issue #${result.issue_number}; action=${result.action}; event=${result.event_id}`)
