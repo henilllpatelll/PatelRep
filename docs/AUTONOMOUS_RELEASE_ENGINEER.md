@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 4B):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 4C):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -368,6 +368,30 @@ new rollback incident instead.
 
 The re-entry and closeout artifacts follow the existing 90-day trusted-evidence retention. Missing/expired
 provenance fails closed and requires human investigation; no workflow reconstructs or guesses missing evidence.
+
+## Production operations notifications (Phase 4C)
+
+Phase 4C adds visibility, not release authority. `Production Operations Notify` consumes only completed
+stabilization, rollback, and incident re-entry runs. A read-only resolver derives a sanitized intent; a separate
+publisher with only `issues: write` revalidates that intent before creating, commenting on, reopening, or closing
+a GitHub Issue.
+
+The publisher has no production Environment, production secrets, deployment tokens, GitHub App token,
+`actions: write`, `contents: write`, workflow dispatch, tag/Release mutation, database access, or merge
+authority. Notification publishing is serialized with its own non-cancelling concurrency group and does not share
+or acquire the production deployment lock.
+
+Incident threading is derived from trusted evidence:
+- a Phase 3B rollback-class incident opens key `incident:<stabilization-run-id>`;
+- Phase 4A automated rollback evidence carries that same stabilization run id, so rollback results update the same thread;
+- Phase 4B re-entry authorization carries the same incident id, so authorization updates that thread;
+- Phase 4B closeout references the exact rollback run, whose trusted rollback evidence resolves back to the same incident id, and only then closes the thread.
+
+Mutable issue content never becomes authority. The mapping from lifecycle key to issue number comes from prior
+successful `patelrep.production-operations-notification.v1` artifacts. Exact source-event reruns are deduplicated
+from the same trusted artifacts. Stable releases are explicit no-ops to avoid alert fatigue; release failures,
+confirmed incidents, rollback failures, missing evidence, re-entry failures, and human-intervention states remain
+visible.
 
 ## Bounded recovery lineage
 
