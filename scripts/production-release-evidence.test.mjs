@@ -18,6 +18,7 @@ const base = (overrides = {}) => ({
   versionBump: 'patch',
   automationSourceRunId: '',
   incidentCloseoutRunId: '',
+  incidentReentryResult: 'success',
   resolveResult: 'success',
   computeVersionResult: 'success',
   contentSummaryResult: 'success',
@@ -34,6 +35,7 @@ const base = (overrides = {}) => ({
 test('clean release records exact identities and no database change', async () => {
   const e = await buildProductionReleaseEvidence(base(), deps)
   assert.deepEqual(e.previous_release, { tag: 'v1.8.0', sha: A })
+  assert.equal(e.jobs.incident_reentry, 'success')
   assert.equal(e.candidate.release_sha, B)
   assert.equal(e.candidate.version, 'v1.8.1')
   assert.equal(e.mutations.database, 'no_change')
