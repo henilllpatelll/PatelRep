@@ -1,0 +1,74 @@
+name: Production Automation Watchdog
+
+# Phase 5C: read-only observation of stuck production automation and missing safety heartbeats.
+# No production Environment, secrets, deployment credentials, write token, DB access, or dispatch authority.
+# It never cancels, reruns, dispatches, approves, deploys, migrates, or rolls back anything.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: production-automation-watchdog
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  watchdog:
+    name: Observe production automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove trusted main watchdog context
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: watchdog
+        name: Evaluate production automation health
+        run: node scripts/production-automation-watchdog.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          RESULT_DIR: ${{ runner.temp }}/production-automation-watchdog
+      - name: Upload production automation watchdog evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-automation-watchdog
+          path: ${{ runner.temp }}/production-automation-watchdog/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Summarize production automation watchdog
+        if: always()
+        env:
+          STATE: ${{ steps.watchdog.outputs.state }}
+          FINDINGS: ${{ steps.watchdog.outputs.findings }}
+        run: |
+          printf '%s\n' '## Production Automation Watchdog' >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- State: `%s`\n' "$STATE" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Findings: `%s`\n' "$FINDINGS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail on unhealthy production automation
+        if: steps.watchdog.outputs.healthy != 'true'
+        env:
+          STATE: ${{ steps.watchdog.outputs.state }}
+          FINDINGS: ${{ steps.watchdog.outputs.findings }}
+        run: |
+          echo "::error::Production automation watchdog is not healthy: state=$STATE findings=$FINDINGS"
+          exit 1

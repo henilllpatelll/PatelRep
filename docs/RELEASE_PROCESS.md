@@ -419,6 +419,46 @@ The current v1.8.0 production baseline is expected to report
 `limited_bootstrap_no_previous_release` until a later managed Release exists. That limitation is real: historical
 two-segment milestone tags are deliberately not treated as production rollback targets.
 
+### Production automation watchdog (Phase 5C)
+
+Phase 5C adds observation and alerting only. `.github/workflows/production-automation-watchdog.yml` runs on
+`main` pushes, every 15 minutes (offset from Deploy Health Check), and by manual dispatch with only
+`contents: read` + `actions: read`, no `production` Environment, no secrets, and its own non-cancelling
+`production-automation-watchdog` concurrency group. It executes the exact trusted `main` SHA and records it.
+
+Policy lives in `scripts/production-automation-watchdog.mjs` (read-only GitHub access in
+`production-automation-watchdog-deps.mjs`) and is deterministic: `now` is injected into the classifier. Budgets are
+constants in code, not workflow inputs:
+
+| Check | Budget | Reason |
+| --- | --- | --- |
+| Production Release/Rollback `in_progress` | 45 min | well above any healthy release; a human must look |
+| Production Release/Rollback queued/waiting/requested/pending | 30 min | unanswered approval or blocked queue |
+| Control-plane run active (stabilization, auto-rollback request, re-entry, notify, audit, readiness) | 20 min | their jobs have `timeout-minutes: 10` |
+| Deploy Health Check last completed run | 45 min | scheduled every 15 min |
+| Production Release Audit last completed run | 7 h | scheduled every 6 h |
+| Production Recovery Readiness last completed run | 26 h | scheduled daily |
+| Release Resilience Drill last completed run | 8 days | scheduled weekly |
+
+Boundaries are exclusive (exactly at the budget is still within budget). Workflow identity is the exact workflow
+file path plus repository, run id, attempt and head SHA; `run.name` / display title is never read or stored.
+Malformed timestamps, wrong repository/path, or unreadable GitHub state yield `unproven`, never healthy.
+
+States: `healthy`, `active_within_budget`, `degraded`, `critical`, `unproven`. Findings use stable codes:
+`production_operation_stuck`, `production_operation_waiting_too_long`, `control_plane_run_stuck`,
+`deploy_health_heartbeat_stale`, `release_audit_heartbeat_stale`, `recovery_readiness_heartbeat_stale`,
+`resilience_drill_heartbeat_stale`, `github_actions_state_unproven`.
+
+Every run uploads `production-automation-watchdog/context.json` (schema `patelrep.production-automation-watchdog.v1`,
+90 days) before an unhealthy run fails. `Production Operations Notify` now also listens for this workflow, selects
+it by exact workflow path, strictly validates the artifact (schema, run id/attempt, control-plane SHA, finding
+codes/severity), and publishes through the existing `issues: write`-only publisher on one lifecycle key,
+`watchdog:production-automation`. A finding fingerprint taken from trusted prior notification artifacts suppresses
+repeat comments for an unchanged condition. Phase 4D semantics are unchanged.
+
+The watchdog does not cancel, rerun, dispatch, approve, merge, push, tag, or touch migration history, and it cannot
+self-heal. The Phase 5A drill gains `stuck_production_operation_is_detected_without_mutation` (in-memory only).
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.

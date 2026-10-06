@@ -14,7 +14,7 @@ test('all Phase 5A synthetic resilience scenarios pass end to end', async () => 
   assert.ok(result.cases.every((item) => item.passed))
 })
 
-test('drill catalog covers rollback eligibility, quarantine, re-entry, audit drift, stale auth, and active-operation deferral', () => {
+test('drill catalog covers rollback eligibility, quarantine, re-entry, audit drift, stale auth, active-operation deferral, and stuck-operation detection', () => {
   assert.deepEqual([...DRILL_CASES], [
     'post_release_regression_full_cycle',
     'database_change_blocks_auto_rollback',

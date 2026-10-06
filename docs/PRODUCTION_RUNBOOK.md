@@ -251,6 +251,50 @@ Any `failed` result means recovery readiness is not proven. Inspect the
 path. The drill never uses production DB credentials; database compatibility remains an execution-time rollback
 gate, not a read-only drill claim.
 
+## Production Automation Watchdog (Phase 5C)
+
+**Production Automation Watchdog** is a read-only observer. Every 15 minutes (and on `main` pushes / manual
+dispatch) it looks for production automation that is stuck or has silently stopped running. It never cancels,
+reruns, dispatches, approves, deploys, migrates, or rolls back anything, and it holds no production credentials.
+A watchdog Issue is only a pointer to a human decision.
+
+Watchdog issues use the single thread `watchdog:production-automation` and carry the Phase 4C severity:
+
+- **active_within_budget** (no issue) — a Production Release/Rollback or control-plane run is active but younger
+  than its budget. Normal; nothing to do. A healthy/active result closes an existing watchdog issue.
+- **degraded** (warning) — a production operation has been queued/waiting/pending longer than **30 minutes**
+  (often an unanswered Environment approval or a blocked concurrency slot), or a scheduled safety heartbeat is
+  stale: Deploy Health Check **45 min**, Production Release Audit **7 h**, Production Recovery Readiness **26 h**,
+  Release Resilience Drill **8 days**. A stale heartbeat means the scheduler or workflow stopped running; a recent
+  completed *failure* still counts as alive because failures are handled by their own notifications.
+- **critical** — a Production Release/Rollback has been `in_progress` longer than **45 minutes**, or a
+  control-plane workflow (stabilization, auto-rollback request, re-entry, notify, audit, readiness) has been
+  active longer than **20 minutes** (their jobs time out at 10).
+- **unproven** (critical) — GitHub state was missing, malformed, from the wrong repository/path, or unreadable.
+  Absence of proof is never treated as healthy.
+
+Repeated identical conditions do not add comments: the notifier compares a fingerprint of the finding set against
+the latest *trusted notification artifact* (never the Issue text). A new stuck run, changed finding set, severity
+change, or recovery produces an update.
+
+Human response to a stuck Production Release or Rollback:
+
+1. **First determine whether production mutation has begun** — open the run, read which steps completed
+   (Railway deploys, migration step, verification), and check live runtime identity.
+2. **Do not blindly cancel or re-run it.** A run that may have partially mutated production can leave API, Web
+   and database out of step; cancelling or retrying can make that worse.
+3. Database mutation ambiguity is human-only. Never use `supabase migration repair`, edit migration history, or
+   run reverse migrations to "unstick" a run.
+4. The existing evidence, quarantine, and Phase 4B re-entry procedures remain authoritative. If a rollback is
+   warranted, use the trusted Production Rollback path, not a workaround.
+5. For a stale heartbeat, check Actions for a disabled workflow, a GitHub scheduler delay, or a broken workflow
+   file, and fix it through a normal PR.
+
+The Phase 4D audit still reports `deferred_active_production_operation` while a production operation is active;
+the watchdog is what tells you when that deferral has lasted too long. Evidence is the
+`production-automation-watchdog/context.json` artifact (schema `patelrep.production-automation-watchdog.v1`,
+90-day retention), uploaded before an unhealthy run is failed.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).

@@ -7,6 +7,19 @@ import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NOTIFICATION_ARTIFACT, realProductionNotificationDeps } from './production-operations-notify-deps.mjs'
+import {
+  FINDING_SEVERITY,
+  MONITORED_WORKFLOW_PATHS,
+  STATES,
+  WATCHDOG_ARTIFACT,
+  WATCHDOG_NOTIFICATION_KEY,
+  WATCHDOG_SCHEMA,
+  WATCHDOG_WORKFLOW_NAME,
+  WATCHDOG_WORKFLOW_PATH,
+  deriveState,
+  fingerprintFindings,
+  severityForState,
+} from './production-automation-watchdog.mjs'
 
 export const NOTIFICATION_SCHEMA = 'patelrep.production-operations-notification.v1'
 export const INTENT_SCHEMA = 'patelrep.production-operations-notification-intent.v1'
@@ -81,6 +94,10 @@ const SOURCE_WORKFLOWS = Object.freeze({
   },
   '.github/workflows/production-release-audit.yml': {
     workflow: 'Production Release Audit',
+    event: ['push', 'schedule', 'workflow_dispatch'],
+  },
+  [WATCHDOG_WORKFLOW_PATH]: {
+    workflow: WATCHDOG_WORKFLOW_NAME,
     event: ['push', 'schedule', 'workflow_dispatch'],
   },
 })
@@ -188,8 +205,8 @@ function validateReentryAuthorization(auth, run) {
   }
 }
 
-function makeIntent({ run, key, kind, operation, severity, title, details, closeAfterPublish = false }) {
-  if (!/^(incident|release|rollback|reentry|workflow|audit):[A-Za-z0-9._:-]{1,120}$/.test(key)) fail('invalid notification key')
+function makeIntent({ run, key, kind, operation, severity, title, details, closeAfterPublish = false, eventId = null }) {
+  if (!/^(incident|release|rollback|reentry|workflow|audit|watchdog):[A-Za-z0-9._:-]{1,120}$/.test(key)) fail('invalid notification key')
   if (!['open_update', 'close', 'close_existing', 'none'].includes(operation)) fail('invalid notification operation')
   if (!['info', 'warning', 'critical'].includes(severity)) fail('invalid notification severity')
   if (!/^[A-Za-z0-9][A-Za-z0-9 ._:\-()[\]/]{0,180}$/.test(title)) fail('invalid notification title')
@@ -199,7 +216,7 @@ function makeIntent({ run, key, kind, operation, severity, title, details, close
   const sourceId = String(run.id)
   return Object.freeze({
     schema: INTENT_SCHEMA,
-    event_id: `${run.workflow}:${sourceId}:${kind}`,
+    event_id: eventId ?? `${run.workflow}:${sourceId}:${kind}`,
     key,
     kind,
     operation,
@@ -217,6 +234,145 @@ function makeIntent({ run, key, kind, operation, severity, title, details, close
   })
 }
 
+const WATCHDOG_RUN_STATUSES = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending', 'completed'])
+const UNEVALUATED_CONCLUSIONS = new Set(['cancelled', 'skipped', 'stale', 'neutral'])
+const MAX_WATCHDOG_FINDINGS = 100
+
+function optionalNonNegative(value) {
+  if (value === null || value === undefined) return null
+  if (!Number.isFinite(value) || value < 0) fail('watchdog finding number is invalid')
+  return Math.floor(value)
+}
+
+function validateWatchdogResult(result, run) {
+  if (!result || result.schema !== WATCHDOG_SCHEMA || result.workflow !== WATCHDOG_WORKFLOW_NAME) fail('malformed watchdog artifact')
+  if (String(result.run?.id ?? '') !== String(run.id) ||
+      Number(result.run?.attempt) !== Number(run.run_attempt) ||
+      result.run?.control_plane_sha !== run.head_sha) {
+    fail('watchdog artifact provenance mismatch')
+  }
+  if (!STATES.includes(result.state) || typeof result.healthy !== 'boolean' || result.severity !== severityForState(result.state)) {
+    fail('watchdog state is malformed')
+  }
+  if (result.healthy !== (result.state === 'healthy' || result.state === 'active_within_budget')) fail('watchdog health flag contradicts its state')
+  if (!Array.isArray(result.findings) || result.findings.length > MAX_WATCHDOG_FINDINGS) fail('watchdog findings are malformed')
+  const findings = result.findings.map((finding) => {
+    if (!finding || !Object.hasOwn(FINDING_SEVERITY, finding.code)) fail('watchdog finding code is unknown')
+    if (finding.severity !== FINDING_SEVERITY[finding.code]) fail('watchdog finding severity is invalid')
+    const subject = finding.subject
+    if (!subject || !MONITORED_WORKFLOW_PATHS.has(subject.workflow_path)) fail('watchdog finding workflow path is not trusted')
+    const runId = subject.run_id === null || subject.run_id === undefined ? null : requireMatch('watchdog finding run id', subject.run_id, RUN_ID)
+    const attempt = subject.run_attempt === null || subject.run_attempt === undefined ? null : Number(subject.run_attempt)
+    if (attempt !== null && (!Number.isInteger(attempt) || attempt < 1)) fail('watchdog finding run attempt is invalid')
+    const status = subject.status === null || subject.status === undefined ? null : clean(subject.status)
+    if (status !== null && !WATCHDOG_RUN_STATUSES.has(status)) fail('watchdog finding status is invalid')
+    return {
+      code: finding.code,
+      severity: finding.severity,
+      subject: { workflow_path: subject.workflow_path, run_id: runId, run_attempt: attempt, status },
+      age_minutes: optionalNonNegative(finding.age_minutes),
+      budget_minutes: optionalNonNegative(finding.budget_minutes),
+    }
+  })
+  const consistent = findings.length === 0
+    ? result.state === 'healthy' || result.state === 'active_within_budget'
+    : result.state === deriveState(findings, 0)
+  if (!consistent) fail('watchdog state contradicts its findings')
+  return { state: result.state, severity: result.severity, healthy: result.healthy, findings }
+}
+
+function watchdogDetail(finding) {
+  const file = finding.subject.workflow_path.split('/').pop()
+  const run = finding.subject.run_id ? ` run ${finding.subject.run_id}` : ''
+  const age = finding.age_minutes !== null && finding.budget_minutes !== null
+    ? ` (${finding.age_minutes}m, budget ${finding.budget_minutes}m)`
+    : ''
+  return `${finding.code}: ${file}${run}${age}`
+}
+
+async function buildWatchdogIntent({ repo, run, sourceRunId }, deps) {
+  const common = { run, key: WATCHDOG_NOTIFICATION_KEY }
+  const fixed = (kind, title, details) => makeIntent({
+    ...common, kind, operation: 'open_update', severity: 'critical', title, details, eventId: `watchdog:${kind}`,
+  })
+
+  if (UNEVALUATED_CONCLUSIONS.has(run.conclusion)) {
+    return makeIntent({
+      ...common,
+      kind: 'watchdog_not_evaluated',
+      operation: 'none',
+      severity: 'info',
+      title: 'Production automation watchdog run did not evaluate',
+      details: [`Watchdog run concluded ${run.conclusion}; the next scheduled run re-evaluates the full state.`],
+    })
+  }
+
+  const raw = await deps.readNamedContext(sourceRunId, WATCHDOG_ARTIFACT)
+  if (!raw) {
+    return fixed('watchdog_evidence_missing', `Production automation watchdog evidence missing (run ${run.id})`, [
+      `Production Automation Watchdog concluded ${run.conclusion} but its trusted evidence artifact is unavailable.`,
+      'Production automation health is unproven; do not infer it from the workflow conclusion.',
+    ])
+  }
+  const result = validateWatchdogResult(raw, run)
+
+  if (result.healthy && run.conclusion !== 'success') {
+    return fixed('watchdog_workflow_failed', 'Production automation watchdog failed after a healthy result', [
+      `Watchdog evidence reported ${result.state}, but the workflow concluded ${run.conclusion}.`,
+      'Inspect the watchdog workflow itself before trusting future periodic checks.',
+    ])
+  }
+  if (!result.healthy && run.conclusion !== 'failure') {
+    return fixed('watchdog_conclusion_mismatch', 'Production automation watchdog conclusion contradicts its evidence', [
+      `Watchdog evidence reported ${result.state}, but the workflow concluded ${run.conclusion}.`,
+      'Treat production automation health as unproven until the watchdog run is inspected.',
+    ])
+  }
+
+  let intent
+  if (result.healthy) {
+    intent = makeIntent({
+      ...common,
+      kind: 'watchdog_recovered',
+      operation: 'close_existing',
+      severity: 'info',
+      title: `Production automation watchdog healthy: ${result.state}`,
+      details: [`No stuck production automation or stale safety heartbeat was found (${result.state}).`],
+      eventId: 'watchdog:ok',
+    })
+  } else {
+    const shown = result.findings.slice(0, 20).map(watchdogDetail)
+    if (result.findings.length > shown.length) shown.push(`...and ${result.findings.length - shown.length} more finding(s); see the watchdog artifact.`)
+    intent = makeIntent({
+      ...common,
+      kind: `watchdog_${result.state}`,
+      operation: 'open_update',
+      severity: result.severity,
+      title: `Production automation watchdog ${result.state}: ${result.findings.length} finding(s)`,
+      details: [
+        ...shown,
+        'The watchdog is observation-only: it did not cancel, rerun, or dispatch anything. A human must decide the response.',
+      ],
+      eventId: `watchdog:${result.state}:${fingerprintFindings(result.findings)}`,
+    })
+  }
+
+  // Alert-spam guard: trusted prior notification artifacts (never mutable Issue content) decide whether this exact
+  // condition was already the latest published state of the watchdog lifecycle thread.
+  const latest = await latestNotificationForKey({ repo, key: WATCHDOG_NOTIFICATION_KEY, deps })
+  if (latest?.event_id === intent.event_id) {
+    return makeIntent({
+      ...common,
+      kind: 'watchdog_unchanged',
+      operation: 'none',
+      severity: 'info',
+      title: 'Production automation watchdog condition unchanged',
+      details: ['The identical watchdog condition was already published; no notification is needed.'],
+    })
+  }
+  return intent
+}
+
 async function incidentIdFromRollbackRun(repo, rollbackRunId, deps) {
   const rollbackRun = validateSourceRun(await deps.getRun(rollbackRunId), { repo, sourceRunId: rollbackRunId })
   if (rollbackRun.workflow !== 'Production Rollback') fail('closeout rollback run is not trusted Production Rollback')
@@ -229,6 +385,8 @@ async function incidentIdFromRollbackRun(repo, rollbackRunId, deps) {
 
 export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
   const run = validateSourceRun(await deps.getRun(sourceRunId), { repo, sourceRunId })
+
+  if (run.workflow === WATCHDOG_WORKFLOW_NAME) return buildWatchdogIntent({ repo, run, sourceRunId }, deps)
 
   if (run.workflow === 'Production Release Audit') {
     const raw = await deps.readNamedContext(sourceRunId, 'production-release-audit')
@@ -629,15 +787,36 @@ function validateNotificationResult(result, run) {
   return { event_id: result.event_id, key: result.key, issue_number: Number(issueNumber), action: result.action }
 }
 
-async function findPriorNotification({ repo, intent, deps }) {
+// Validated prior notification results, newest first.
+async function listPriorNotifications({ repo, deps }) {
   const runs = await deps.listNotificationRuns()
   if (!Array.isArray(runs)) fail('notification run list is malformed')
-  let issueNumber = null
-  for (const run of runs) {
+  const dated = runs.every((run) => Number.isFinite(Date.parse(run?.created_at ?? '')))
+  const ordered = dated ? [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)) : runs
+  const results = []
+  for (const run of ordered) {
     validateNotificationRun(run, repo)
     const raw = await deps.readNotificationResult(String(run.id))
-    if (raw === null) continue
-    const result = validateNotificationResult(raw, run)
+    if (raw !== null) results.push(validateNotificationResult(raw, run))
+  }
+  return results
+}
+
+async function latestNotificationForKey({ repo, key, deps }) {
+  return (await listPriorNotifications({ repo, deps })).find((result) => result.key === key) ?? null
+}
+
+async function findPriorNotification({ repo, intent, deps }) {
+  const results = await listPriorNotifications({ repo, deps })
+  if (intent.key === WATCHDOG_NOTIFICATION_KEY) {
+    // Condition-based thread: only the latest published state deduplicates, so a condition that recurs after a
+    // different one (A -> B -> A) is published again.
+    const latest = results.find((result) => result.key === intent.key)
+    const mapped = results.find((result) => result.key === intent.key && result.issue_number !== null)
+    return { duplicate: latest?.event_id === intent.event_id, issue_number: mapped?.issue_number ?? null }
+  }
+  let issueNumber = null
+  for (const result of results) {
     if (result.event_id === intent.event_id) return { duplicate: true, issue_number: result.issue_number }
     if (result.key === intent.key && result.issue_number !== null && issueNumber === null) issueNumber = result.issue_number
   }
