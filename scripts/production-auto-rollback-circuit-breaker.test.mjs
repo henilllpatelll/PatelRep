@@ -64,6 +64,7 @@ function deps({ incident = regressionIncident, runtime = { sha: A, version: 'v1.
     readRuntimeIdentity: async () => runtime,
     listReleases: async () => releaseList,
     listTagNames: async () => Object.keys(tagMap),
+    isAncestorOfMain: async (sha) => [A, B, C].includes(sha),
   }
 }
 
