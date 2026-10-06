@@ -1,0 +1,91 @@
+name: Production Operations Notify
+
+# Phase 4C: GitHub-native production release/incident notifications.
+# The resolver is read-only. The publisher may write GitHub Issues only. Neither job receives the
+# production Environment, production secrets, deployment credentials, App tokens, or workflow-dispatch authority.
+
+on:
+  workflow_run:
+    workflows:
+      - Production Release Stabilization
+      - Production Rollback
+      - Production Incident Re-entry
+    types: [completed]
+
+concurrency:
+  group: production-operations-notifications
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  resolve:
+    name: Resolve production notification
+    if: github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      notify: ${{ steps.resolve.outputs.notify }}
+      intent_digest: ${{ steps.resolve.outputs.intent_digest }}
+      trusted_control_plane_sha: ${{ steps.trusted.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Freeze trusted notification control-plane SHA
+        id: trusted
+        run: |
+          sha="$(git rev-parse HEAD)"
+          printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - id: resolve
+        name: Classify trusted production event
+        run: node scripts/production-operations-notify.mjs resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+
+  publish:
+    name: Publish production notification
+    needs: resolve
+    if: needs.resolve.outputs.notify == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Revalidate and publish to GitHub Issues only
+        run: node scripts/production-operations-notify.mjs publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_INTENT_DIGEST: ${{ needs.resolve.outputs.intent_digest }}
+          NOTIFICATION_RUN_ID: ${{ github.run_id }}
+          NOTIFICATION_RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
+          RESULT_DIR: ${{ runner.temp }}/production-operations-notification
+      - name: Upload sanitized notification result
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-operations-notification
+          path: ${{ runner.temp }}/production-operations-notification/context.json
+          retention-days: 90
+          if-no-files-found: error

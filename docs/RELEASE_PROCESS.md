@@ -287,6 +287,37 @@ comparison alone is not sufficient. Trusted incident artifacts retain for 90 day
 expired before closeout, re-entry fails closed for human investigation rather than inferring that the incident was
 resolved.
 
+### Production release & incident notifications (Phase 4C)
+
+Phase 4C adds a GitHub-native notification layer with **no production authority**. The
+`.github/workflows/production-operations-notify.yml` workflow listens only for completed
+`Production Release Stabilization`, `Production Rollback`, and `Production Incident Re-entry` runs.
+
+The notification path is split into two jobs. `resolve` is read-only and derives a sanitized notification
+intent from trusted evidence. `publish` runs only when an alert is actually needed, checks out the exact frozen
+control-plane SHA, recomputes the same intent, requires the SHA-256 digest to match, and receives only
+`issues: write` in addition to read permissions. It cannot deploy, migrate, tag, release, dispatch workflows,
+change repository variables/secrets, or use a production Environment.
+
+GitHub Issues are the durable notification surface. The issue is assigned to the repository owner so an actionable
+production event generates a direct GitHub notification. Lifecycle behavior is intentionally low-noise:
+
+- normal `stable` and `transient_unconfirmed` releases create no issue;
+- confirmed `post_release_regression` and `partial_release_failure` create a critical incident issue;
+- non-rollback release failures/refusals create a release-attention issue;
+- automatic rollback results update the original incident thread;
+- successful automatic rollback explicitly says **re-entry is still required**;
+- rollback failure, missing evidence, or unproven quarantine keeps the issue critical/open;
+- successful re-entry authorization updates the original incident and records the exact SHA/bump to release;
+- verified Phase 4B closeout closes that original incident issue;
+- successful manual rollback creates a standalone notification and closes it after recording the restored target;
+- failed manual rollback stays open for human investigation.
+
+Notification reruns are idempotent. Each event has a deterministic source-run event id, and successful notification
+runs retain a sanitized `production-operations-notification/context.json` artifact for 90 days. Later lifecycle
+events discover the trusted prior issue number from those artifacts instead of trusting mutable issue titles or
+bodies. Exact reruns are recorded as `deduplicated` without writing another comment.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
