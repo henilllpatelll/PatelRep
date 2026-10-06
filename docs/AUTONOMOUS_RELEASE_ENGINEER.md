@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 4A):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 4B):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -341,6 +341,31 @@ Both the pre-runtime capture and terminal ledger run without the `production` En
 write tokens, Supabase/Railway authority or workflow-dispatch capability. The ledger cannot initiate or retry a
 rollback. Database evidence is permanently categorical as `not_mutated_by_workflow`: rollback may read migration
 history for compatibility but never reverses or repairs it.
+
+## Incident closeout and production re-entry gate (Phase 4B)
+
+Phase 4B prevents an automatic rollback from boomeranging back into production. An exactly restored automated
+rollback is treated as an active quarantine until a later Production Release succeeds. This includes the case
+where final rollback identity verification passed but the post-restore circuit-breaker proof failed; the runtime
+is still considered quarantined for human re-entry.
+
+`Production Incident Closeout` is a new manual `workflow_dispatch` with read-only permissions. Only
+`github.repository_owner` may successfully close an incident. It accepts an automated rollback run id and one
+exact re-entry SHA, then independently proves the active rollback/Phase 4A evidence/Phase 3B incident chain, the
+current public rollback runtime, current-main identity, failed-candidate ancestry, successful CI Gate, and an idle
+production lane. It emits only `production-incident-closeout/context.json`; it never dispatches Production
+Release or Rollback.
+
+Production Release has a new unprivileged `verify-incident-reentry` job before the first `production`
+Environment job. With active quarantine, automated release mode is categorically refused. Manual mode must provide
+an explicit `release_sha` and `incident_closeout_run_id`; the closeout must be a completed owner-dispatched run
+after the rollback and before the release, and its immutable artifact must authorize that exact SHA. Runtime
+identity is re-read at release time and must still equal the rollback target.
+
+A closeout does not bypass ordinary release eligibility or database/deployment verification. It is only permission
+to attempt the normal release path for one exact fixed SHA. Failed attempts leave quarantine active; a successful
+Production Release newer than the rollback is the only natural close condition. Phase 2D never receives or passes
+a closeout id, so automated recovery cannot use this path to re-enter an incident line.
 
 ## Bounded recovery lineage
 
