@@ -492,6 +492,37 @@ test('publisher creates and assigns a new issue with sanitized trusted identifie
   assert.doesNotMatch(calls[0].body, /token=|secret=|password=/i)
 })
 
+test('healthy audit closes an existing production-integrity issue', async () => {
+  const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: AUDIT }, deps({
+    sourceRun: auditRun(),
+    artifacts: { [`${AUDIT}:production-release-audit`]: auditArtifact() },
+  }))
+  const priorRunId = '37630000003'
+  const writes = []
+  const d = {
+    ...deps({
+      notificationRuns: [notificationRun(priorRunId)],
+      notificationResults: {
+        [priorRunId]: notificationResult({
+          runId: priorRunId,
+          eventId: `Production Release Audit:37639999999:audit_inconsistent`,
+          key: 'audit:production-integrity',
+          issueNumber: 55,
+          action: 'created',
+        }),
+      },
+    }),
+    getIssue: async () => ({ number: 55, state: 'open' }),
+    createIssue: async () => { throw new Error('must not create') },
+    commentIssue: async (number, body) => { writes.push(['comment', number, body]) },
+    setIssueState: async (number, state) => { writes.push(['state', number, state]) },
+  }
+  const result = await publishIntent({ repo: REPO, owner: 'henilllpatelll', intent, expectedDigest: digestIntent(intent) }, d)
+  assert.deepEqual(result, { issue_number: 55, action: 'closed' })
+  assert.equal(writes.filter(([kind]) => kind === 'comment').length, 1)
+  assert.deepEqual(writes.find(([kind]) => kind === 'state').slice(1), [55, 'closed'])
+})
+
 test('publisher refuses intent drift before any issue write', async () => {
   const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: STAB }, deps({
     artifacts: { [`${STAB}:production-release-stabilization`]: stabilization('post_release_regression') },
