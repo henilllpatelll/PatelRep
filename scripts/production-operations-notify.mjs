@@ -618,8 +618,8 @@ function validateNotificationResult(result, run) {
   }
   if (typeof result.event_id !== 'string' || typeof result.key !== 'string') fail('notification result identity is malformed')
   if (!['created', 'commented', 'closed', 'deduplicated', 'no_existing_issue'].includes(result.action)) fail('notification result action is invalid')
-  if (result.action === 'no_existing_issue') {
-    if (result.issue_number !== null) fail('no-existing-issue result unexpectedly carries an issue number')
+  if (result.action === 'no_existing_issue' || (result.action === 'deduplicated' && result.issue_number === null)) {
+    if (result.action === 'no_existing_issue' && result.issue_number !== null) fail('no-existing-issue result unexpectedly carries an issue number')
     return { event_id: result.event_id, key: result.key, issue_number: null, action: result.action }
   }
   const issueNumber = requireMatch('notification issue number', result.issue_number, ISSUE_NUMBER)
