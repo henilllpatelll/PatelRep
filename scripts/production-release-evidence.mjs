@@ -63,6 +63,7 @@ export async function buildProductionReleaseEvidence(input, deps = {}) {
   const previousTag = optionalMatch('previous release tag', input.previousTag, VERSION)
   const nextVersion = optionalMatch('candidate release version', input.nextVersion, VERSION)
   const automationSourceRunId = optionalMatch('automation source run id', input.automationSourceRunId, RUN_ID)
+  const incidentCloseoutRunId = optionalMatch('incident closeout run id', input.incidentCloseoutRunId, RUN_ID)
   const eligible = optional(input.eligible)
   if (!['', 'true', 'false'].includes(eligible)) throw new Error('production release evidence: invalid eligible value')
   const versionBump = optional(input.versionBump)
@@ -112,6 +113,7 @@ export async function buildProductionReleaseEvidence(input, deps = {}) {
     source: {
       mode: automationSourceRunId ? 'automated_recovery_request' : 'manual',
       automation_source_run_id: automationSourceRunId,
+      incident_closeout_run_id: incidentCloseoutRunId,
       version_bump: versionBump,
     },
     candidate: {
@@ -144,6 +146,7 @@ async function main() {
       nextVersion: env.NEXT_VERSION,
       versionBump: env.VERSION_BUMP,
       automationSourceRunId: env.AUTOMATION_SOURCE_RUN_ID,
+      incidentCloseoutRunId: env.INCIDENT_CLOSEOUT_RUN_ID,
       resolveResult: env.RESOLVE_RESULT,
       computeVersionResult: env.COMPUTE_VERSION_RESULT,
       contentSummaryResult: env.CONTENT_SUMMARY_RESULT,
