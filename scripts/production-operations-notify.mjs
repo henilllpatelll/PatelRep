@@ -239,7 +239,20 @@ export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
     }
 
     const resultRaw = await deps.readNamedContext(sourceRunId, 'production-release-stabilization')
-    if (!resultRaw) fail('successful stabilization run has no stabilization result artifact')
+    if (!resultRaw) {
+      return makeIntent({
+        run,
+        key: `workflow:stabilization-${run.id}`,
+        kind: 'stabilization_evidence_missing',
+        operation: 'open_update',
+        severity: 'critical',
+        title: `Production stabilization evidence missing (run ${run.id})`,
+        details: [
+          'The stabilization workflow succeeded but its trusted classification artifact is missing.',
+          'Human investigation is required; do not infer production release state.',
+        ],
+      })
+    }
     const result = validateStabilization(resultRaw, run)
 
     const closeoutRaw = await deps.readNamedContext(sourceRunId, 'production-incident-closeout')
@@ -412,7 +425,20 @@ export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
       })
     }
     const raw = await deps.readNamedContext(sourceRunId, 'production-incident-reentry')
-    if (!raw) fail('successful re-entry run has no authorization artifact')
+    if (!raw) {
+      return makeIntent({
+        run,
+        key: `reentry:${run.id}`,
+        kind: 'reentry_evidence_missing',
+        operation: 'open_update',
+        severity: 'critical',
+        title: `Production re-entry evidence missing (run ${run.id})`,
+        details: [
+          'The re-entry workflow succeeded but its exact authorization artifact is missing.',
+          'Do not dispatch Production Release from this run; investigate the missing evidence first.',
+        ],
+      })
+    }
     const auth = validateReentryAuthorization(raw, run)
     return makeIntent({
       run,
