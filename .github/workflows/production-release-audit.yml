@@ -59,10 +59,10 @@ jobs:
           CONSISTENT: ${{ steps.audit.outputs.consistent }}
           REASON: ${{ steps.audit.outputs.reason_code }}
         run: |
-          echo "## Production Release Audit" >> "$GITHUB_STEP_SUMMARY"
-          echo "- State: `$STATE`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Consistent: `$CONSISTENT`" >> "$GITHUB_STEP_SUMMARY"
-          if [ -n "$REASON" ]; then echo "- Reason: `$REASON`" >> "$GITHUB_STEP_SUMMARY"; fi
+          printf '%s\n' '## Production Release Audit' >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- State: `%s`\n' "$STATE" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Consistent: `%s`\n' "$CONSISTENT" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$REASON" ]; then printf -- '- Reason: `%s`\n' "$REASON" >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Fail on inconsistent production release state
         if: steps.audit.outputs.consistent != 'true'
         env:
