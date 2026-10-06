@@ -181,10 +181,10 @@ export async function stabilizeExactRelease({
     if (attempt < attempts && betweenProbesMs > 0) await sleep(betweenProbesMs)
   }
 
-  return {
-    outcome: probes.some((probeResult) => !probeResult.ok) ? 'transient_unconfirmed' : 'stable',
-    probes,
+  if (probes.some((probeResult) => !probeResult.ok)) {
+    return { outcome: 'transient_unconfirmed', probes }
   }
+  return { outcome: 'stable', probes }
 }
 
 function buildBaseResult({ classifier, sourceRun, validated, classification, stabilization }) {
