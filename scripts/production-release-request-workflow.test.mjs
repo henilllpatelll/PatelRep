@@ -259,11 +259,18 @@ test('Production Release and Rollback set Railway release variables with --skip-
   }
 })
 
-test('Production Rollback is pinned and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), 'eee774c492130f51a8079bafa5db94c847b21ffe2220d8720f1a18e3b8e96c36')
+test('Production Rollback preserves manual dispatch and hardens optional automated mode', () => {
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
-  assert.doesNotMatch(rollback, /automation_source_run_id/)
+  assert.match(rollback, /target_version:/)
+  assert.match(rollback, /automation_source_run_id:/)
+  assert.match(rollback, /automation_source_run_id:\n {8}description:[^\n]*\n {8}required: false\n {8}default: ""/)
+  assert.match(rollback, /run-name: Production Rollback .*automation_source_run_id/)
+  assert.match(rollback, /node scripts\/production-auto-rollback-request\.mjs rollback/)
+  assert.match(rollback, /PRODUCTION_AUTO_ROLLBACK_ENABLED/)
   assert.match(rollback, /group: production-deploy/)
+  assert.match(rollback, /cancel-in-progress: false/)
+  assert.match(rollback, /node scripts\/production-auto-rollback-circuit-breaker\.mjs/)
+  assert.doesNotMatch(rollback, /supabase migration repair|migration repair/i)
 })
 
 // ---- no human Environment approval is assumed or impersonated; the trusted gates are the safety boundary -----------------
@@ -329,7 +336,8 @@ test('the docs state the authority chain, the first release and that a request i
   assert.match(doc, /PRODUCTION_AUTO_RELEASE_ENABLED/)
   assert.match(doc, /Deploy Health Check/)
   assert.match(doc, /auto-merge-result/)
-  assert.match(doc, /Production Rollback[^\n]*human/i)
+  assert.match(doc, /Production Rollback/)
+  assert.match(doc, /PRODUCTION_AUTO_ROLLBACK_ENABLED/)
   assert.match(releaseProcess, /v1\.8\.0/)
   assert.match(releaseProcess, /Automatic request ≠ automatic production approval/)
   assert.match(releaseProcess, /automation_source_run_id/)
