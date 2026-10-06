@@ -590,9 +590,12 @@ async function main() {
 
   if (mode === 'publish') {
     const expectedDigest = requireMatch('expected intent digest', env.EXPECTED_INTENT_DIGEST, /^[0-9a-f]{64}$/)
+    const notificationRunId = requireMatch('notification run id', env.NOTIFICATION_RUN_ID, RUN_ID)
+    const notificationRunAttempt = Number(clean(env.NOTIFICATION_RUN_ATTEMPT))
+    if (!Number.isInteger(notificationRunAttempt) || notificationRunAttempt < 1) fail('invalid notification run attempt')
     const notificationRun = validateNotificationRun({
-      id: env.NOTIFICATION_RUN_ID,
-      run_attempt: env.NOTIFICATION_RUN_ATTEMPT,
+      id: notificationRunId,
+      run_attempt: notificationRunAttempt,
       name: WORKFLOW_NAME,
       path: WORKFLOW_PATH,
       event: 'workflow_run',
@@ -605,9 +608,11 @@ async function main() {
     }, repo)
     // The synthetic shape above exists only to sanitize the result artifact's own run identity.
     // GitHub has not completed the current notification run yet, so prior-run discovery cannot include it.
+    const owner = clean(env.REPO_OWNER)
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(owner)) fail('invalid repository owner')
     const published = await publishIntent({
       repo,
-      owner: clean(env.REPO_OWNER),
+      owner,
       intent,
       expectedDigest,
       notificationRun,
