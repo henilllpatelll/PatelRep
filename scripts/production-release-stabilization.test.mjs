@@ -58,7 +58,6 @@ test('source run provenance must be exact trusted Production Release on main', (
   const run = sourceRun()
   assert.equal(validateSourceRun(run, { repo: 'henilllpatelll/PatelRep', sourceRunId: String(run.id) }), run)
   for (const bad of [
-    { name: 'Other Workflow' },
     { path: '.github/workflows/other.yml' },
     { event: 'push' },
     { status: 'in_progress' },
@@ -71,6 +70,29 @@ test('source run provenance must be exact trusted Production Release on main', (
       /release stabilization:/,
     )
   }
+})
+
+test('dynamic run-name is display metadata: trusted Production Release path is accepted', () => {
+  const repo = 'henilllpatelll/PatelRep'
+  for (const name of [`Production Release ${C}`, 'Production Release main-tip (automated request from run 37400000001)', 'Totally Different Title']) {
+    const run = sourceRun({ name })
+    assert.equal(validateSourceRun(run, { repo, sourceRunId: String(run.id) }), run)
+  }
+  for (const bad of [
+    { path: '.github/workflows/production-release-audit.yml' },
+    { path: '.github/workflows/production-release.yml.bak' },
+    { path: '' },
+    { path: undefined },
+  ]) {
+    assert.throws(
+      () => validateSourceRun(sourceRun({ name: `Production Release ${C}`, ...bad }), { repo, sourceRunId: '37410000001' }),
+      /not the trusted Production Release workflow/,
+    )
+  }
+  assert.throws(
+    () => validateSourceRun(sourceRun({ name: `Production Release ${C}` }), { repo, sourceRunId: '37410000002' }),
+    /source run id mismatch/,
+  )
 })
 
 test('failed release before any production mutation is not an incident', async () => {

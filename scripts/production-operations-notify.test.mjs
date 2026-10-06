@@ -46,7 +46,7 @@ const stabilizationRun = (overrides = {}) => ({
 const rollbackRun = (overrides = {}) => ({
   ...runBase({
     id: ROLLBACK,
-    name: 'Production Rollback',
+    name: `Production Rollback v1.8.0 (automated request from run ${STAB})`,
     path: '.github/workflows/production-rollback.yml',
     event: 'workflow_dispatch',
     createdAt: '2026-10-06T08:10:00Z',
@@ -57,7 +57,7 @@ const rollbackRun = (overrides = {}) => ({
 const reentryRun = (overrides = {}) => ({
   ...runBase({
     id: REENTRY,
-    name: 'Production Incident Re-entry',
+    name: `Production Incident Re-entry for rollback ${ROLLBACK} -> ${B}`,
     path: '.github/workflows/production-incident-reentry.yml',
     event: 'workflow_dispatch',
     createdAt: '2026-10-06T08:20:00Z',
@@ -536,6 +536,37 @@ test('publisher refuses intent drift before any issue write', async () => {
     /intent changed between resolve and publish/,
   )
   assert.equal(wrote, false)
+})
+
+test('dynamic run names yield the canonical workflow identity and deterministic event ids', async () => {
+  const rollbackIntent = await buildNotificationIntent({ repo: REPO, sourceRunId: ROLLBACK }, deps({
+    sourceRun: rollbackRun(),
+    artifacts: { [`${ROLLBACK}:production-rollback-evidence`]: rollbackEvidence() },
+  }))
+  assert.equal(rollbackIntent.source.workflow, 'Production Rollback')
+  assert.match(rollbackIntent.event_id, /^Production Rollback:/)
+
+  const renamed = await buildNotificationIntent({ repo: REPO, sourceRunId: ROLLBACK }, deps({
+    sourceRun: rollbackRun({ name: 'Some Other Run Title' }),
+    artifacts: { [`${ROLLBACK}:production-rollback-evidence`]: rollbackEvidence() },
+  }))
+  assert.equal(renamed.event_id, rollbackIntent.event_id)
+  assert.equal(renamed.source.workflow, 'Production Rollback')
+
+  const reentryIntent = await buildNotificationIntent({ repo: REPO, sourceRunId: REENTRY }, deps({ sourceRun: reentryRun() }))
+  assert.equal(reentryIntent.source.workflow, 'Production Incident Re-entry')
+  assert.match(reentryIntent.event_id, /^Production Incident Re-entry:/)
+})
+
+test('a trusted display name on the wrong workflow path is rejected', async () => {
+  for (const name of ['Production Rollback', 'Production Incident Re-entry', 'Production Release Stabilization']) {
+    await assert.rejects(
+      buildNotificationIntent({ repo: REPO, sourceRunId: STAB }, deps({
+        sourceRun: stabilizationRun({ name, path: '.github/workflows/production-release.yml' }),
+      })),
+      /production notification: source is not a trusted production operations workflow/,
+    )
+  }
 })
 
 test('source provenance rejects wrong workflow path repo branch or event', async () => {

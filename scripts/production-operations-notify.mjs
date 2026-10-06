@@ -63,29 +63,32 @@ function optionalSha(value) {
   return normalized
 }
 
+// The workflow FILE path is the trusted identity. run.name is only the run's display title and
+// changes whenever a workflow sets run-name (Production Rollback / Incident Re-entry do), so it is
+// never used to select or authorize a source workflow.
 const SOURCE_WORKFLOWS = Object.freeze({
-  'Production Release Stabilization': {
-    path: '.github/workflows/production-release-stabilization.yml',
+  '.github/workflows/production-release-stabilization.yml': {
+    workflow: 'Production Release Stabilization',
     event: 'workflow_run',
   },
-  'Production Rollback': {
-    path: '.github/workflows/production-rollback.yml',
+  '.github/workflows/production-rollback.yml': {
+    workflow: 'Production Rollback',
     event: 'workflow_dispatch',
   },
-  'Production Incident Re-entry': {
-    path: '.github/workflows/production-incident-reentry.yml',
+  '.github/workflows/production-incident-reentry.yml': {
+    workflow: 'Production Incident Re-entry',
     event: 'workflow_dispatch',
   },
-  'Production Release Audit': {
-    path: '.github/workflows/production-release-audit.yml',
+  '.github/workflows/production-release-audit.yml': {
+    workflow: 'Production Release Audit',
     event: ['push', 'schedule', 'workflow_dispatch'],
   },
 })
 
 export function validateSourceRun(run, { repo, sourceRunId }) {
   if (!run || String(run.id) !== String(sourceRunId)) fail('source run id mismatch')
-  const expected = SOURCE_WORKFLOWS[run.name]
-  if (!expected || run.path !== expected.path) fail('source is not a trusted production operations workflow')
+  const expected = Object.hasOwn(SOURCE_WORKFLOWS, run.path) ? SOURCE_WORKFLOWS[run.path] : null
+  if (!expected) fail('source is not a trusted production operations workflow')
   const expectedEvents = Array.isArray(expected.event) ? expected.event : [expected.event]
   if (!expectedEvents.includes(run.event) || run.status !== 'completed') fail('source workflow is not completed with the expected event')
   if (run.head_branch !== 'main') fail('source workflow did not run from main')
@@ -94,7 +97,7 @@ export function validateSourceRun(run, { repo, sourceRunId }) {
   if (!['success', 'failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale'].includes(run.conclusion)) {
     fail('source workflow conclusion is unknown')
   }
-  return run
+  return Object.freeze({ ...run, workflow: expected.workflow })
 }
 
 function validateStabilization(result, run) {
@@ -196,14 +199,14 @@ function makeIntent({ run, key, kind, operation, severity, title, details, close
   const sourceId = String(run.id)
   return Object.freeze({
     schema: INTENT_SCHEMA,
-    event_id: `${run.name}:${sourceId}:${kind}`,
+    event_id: `${run.workflow}:${sourceId}:${kind}`,
     key,
     kind,
     operation,
     severity,
     title,
     source: {
-      workflow: run.name,
+      workflow: run.workflow,
       run_id: sourceId,
       run_attempt: Number(run.run_attempt),
       control_plane_sha: run.head_sha,
@@ -216,7 +219,7 @@ function makeIntent({ run, key, kind, operation, severity, title, details, close
 
 async function incidentIdFromRollbackRun(repo, rollbackRunId, deps) {
   const rollbackRun = validateSourceRun(await deps.getRun(rollbackRunId), { repo, sourceRunId: rollbackRunId })
-  if (rollbackRun.name !== 'Production Rollback') fail('closeout rollback run is not trusted Production Rollback')
+  if (rollbackRun.workflow !== 'Production Rollback') fail('closeout rollback run is not trusted Production Rollback')
   const evidence = await deps.readNamedContext(rollbackRunId, 'production-rollback-evidence')
   if (!evidence) fail('closeout rollback evidence is missing')
   const validated = validateRollbackEvidence(evidence, rollbackRun)
@@ -227,7 +230,7 @@ async function incidentIdFromRollbackRun(repo, rollbackRunId, deps) {
 export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
   const run = validateSourceRun(await deps.getRun(sourceRunId), { repo, sourceRunId })
 
-  if (run.name === 'Production Release Audit') {
+  if (run.workflow === 'Production Release Audit') {
     const raw = await deps.readNamedContext(sourceRunId, 'production-release-audit')
     if (!raw) {
       return makeIntent({
@@ -328,7 +331,7 @@ export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
     })
   }
 
-  if (run.name === 'Production Release Stabilization') {
+  if (run.workflow === 'Production Release Stabilization') {
     if (run.conclusion !== 'success') {
       return makeIntent({
         run,
@@ -434,7 +437,7 @@ export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
     })
   }
 
-  if (run.name === 'Production Rollback') {
+  if (run.workflow === 'Production Rollback') {
     let evidence = null
     try {
       evidence = await deps.readNamedContext(sourceRunId, 'production-rollback-evidence')
@@ -515,7 +518,7 @@ export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
     })
   }
 
-  if (run.name === 'Production Incident Re-entry') {
+  if (run.workflow === 'Production Incident Re-entry') {
     if (run.conclusion !== 'success') {
       return makeIntent({
         run,

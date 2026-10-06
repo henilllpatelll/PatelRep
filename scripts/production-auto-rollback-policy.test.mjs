@@ -283,6 +283,20 @@ test('incident and original Production Release evidence are independently cross-
   await assert.rejects(validateAutoRollbackRequest(input(), deps), /incident candidate disagrees/)
 })
 
+test('dynamic Production Release run-name is accepted; only the exact workflow path is trusted', async () => {
+  const name = `Production Release ${C}`
+  const { deps } = world({ releaseRun: releaseRun({ name }) })
+  const result = await validateAutoRollbackRequest(input(), deps)
+  assert.equal(result.targetVersion, 'v1.8.0')
+
+  for (const path of ['.github/workflows/production-rollback.yml', '.github/workflows/production-release.yml.bak', '']) {
+    const wrong = world({ releaseRun: releaseRun({ name: 'Production Release', path }) })
+    await assert.rejects(validateAutoRollbackRequest(input(), wrong.deps), /incident source is not Production Release/)
+  }
+  const mismatched = world({ releaseRun: releaseRun({ name, run_attempt: 2 }) })
+  await assert.rejects(validateAutoRollbackRequest(input(), mismatched.deps), /attempt mismatch/)
+})
+
 test('rollback mode reuses the same policy but skips active-run self-blocking', async () => {
   const { deps } = world({ active: [{ id: 9, workflow: 'production-rollback.yml', status: 'in_progress' }] })
   const result = await validateAutoRollbackRequest(input('rollback'), deps)
