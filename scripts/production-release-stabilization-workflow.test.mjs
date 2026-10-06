@@ -43,15 +43,23 @@ test('the classifier executes trusted main control-plane code, never candidate c
   assert.match(job, /node scripts\/production-release-stabilization\.mjs/)
 })
 
-test('stabilization result is always retained and incident artifact exists only for confirmed incidents', () => {
+test('stabilization result is always retained, incidents stay conditional, and Phase 4B closeout is separate', () => {
   const job = jobSection(workflow, 'classify')
   assert.match(job, /name: production-release-stabilization/)
   assert.match(job, /retention-days: 90/)
   assert.match(job, /if-no-files-found: error/)
-  const incidentUpload = job.slice(job.indexOf('Upload confirmed production incident'))
+  const incidentUpload = job.slice(job.indexOf('Upload confirmed production incident'), job.indexOf('Upload successful incident closeout'))
   assert.match(incidentUpload, /if: steps\.classify\.outputs\.incident == 'true'/)
   assert.match(incidentUpload, /name: production-release-incident/)
   assert.match(incidentUpload, /retention-days: 90/)
+  const closeoutUpload = job.slice(job.indexOf('Upload successful incident closeout'), job.indexOf('Summarize classification'))
+  assert.match(closeoutUpload, /if: steps\.classify\.outputs\.closeout == 'true'/)
+  assert.match(closeoutUpload, /name: production-incident-closeout/)
+  assert.match(closeoutUpload, /retention-days: 90/)
+  assert.match(job, /CLOSEOUT_DIR: \$\{\{ runner\.temp \}\}\/production-incident-closeout/)
+  assert.match(script, /patelrep\.production-incident-closeout\.v1/)
+  assert.match(script, /\['stable', 'transient_unconfirmed'\]/)
+  assert.doesNotMatch(closeoutUpload, /secrets\.|environment: production|create-github-app-token|gh workflow run/i)
 })
 
 test('classifier policy requires repeated exact-release probe failures and stores no remote error text in the incident handoff', () => {
