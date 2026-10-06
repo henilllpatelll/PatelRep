@@ -99,7 +99,7 @@ async function findMatchingReentry({ repo, open, mainSha, deps }) {
   return { state: 'required', authorization_run_id: null, release_sha: null, version_bump: null }
 }
 
-export async function auditProductionReleaseState({ repo }, deps) {
+export async function auditProductionReleaseState({ repo }, deps, helpers = { findLatestOpenAutomatedRollback, verifyAutoRollbackCircuitBreaker }) {
   if (!repo) throw new Error('production release audit: repository is required')
   const result = shell('consistent_managed_release')
 
@@ -158,7 +158,7 @@ export async function auditProductionReleaseState({ repo }, deps) {
 
   let open
   try {
-    open = await findLatestOpenAutomatedRollback({ repo, deps })
+    open = await helpers.findLatestOpenAutomatedRollback({ repo, deps })
   } catch {
     result.state = 'inconsistent'
     result.consistent = false
@@ -183,7 +183,7 @@ export async function auditProductionReleaseState({ repo }, deps) {
 
   let quarantine
   try {
-    quarantine = await verifyAutoRollbackCircuitBreaker(
+    quarantine = await helpers.verifyAutoRollbackCircuitBreaker(
       {
         repo,
         sourceRunId: open.evidence.incident_run_id,
