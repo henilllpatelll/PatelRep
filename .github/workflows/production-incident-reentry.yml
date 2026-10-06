@@ -1,0 +1,81 @@
+name: Production Incident Re-entry
+
+# Phase 4B: explicit human authorization to re-enter the production release line after a verified
+# automated rollback. This workflow is evidence-only: no production Environment, production secrets,
+# deployment credentials, write-capable App token, workflow dispatch, tag/Release write, or database access.
+# It authorizes exactly one current-main SHA + version bump and never deploys anything itself.
+
+run-name: Production Incident Re-entry for rollback ${{ inputs.rollback_run_id }} -> ${{ inputs.release_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_run_id:
+        description: "Exact Production Rollback run id to close/re-enter"
+        required: true
+        type: string
+      release_sha:
+        description: "Exact current main SHA to authorize for the next Production Release"
+        required: true
+        type: string
+      version_bump:
+        description: "Version bump authorized for that exact release SHA"
+        required: true
+        type: choice
+        default: patch
+        options: [patch, minor, major]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+
+jobs:
+  authorize:
+    name: Authorize exact incident re-entry
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove trusted main workflow context
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Validate open incident, rollback quarantine, and exact fix-forward candidate
+        run: node scripts/production-incident-reentry.mjs authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          VERSION_BUMP: ${{ inputs.version_bump }}
+          RESULT_DIR: ${{ runner.temp }}/production-incident-reentry
+      - name: Upload exact re-entry authorization
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-incident-reentry
+          path: ${{ runner.temp }}/production-incident-reentry/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Summarize authorized re-entry
+        env:
+          ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          VERSION_BUMP: ${{ inputs.version_bump }}
+        run: |
+          echo "## Production incident re-entry authorized" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Rollback run: `$ROLLBACK_RUN_ID`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Exact release SHA: `$RELEASE_SHA`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version bump: `$VERSION_BUMP`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This workflow did not deploy or mutate production." >> "$GITHUB_STEP_SUMMARY"
