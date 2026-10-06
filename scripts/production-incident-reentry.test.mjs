@@ -100,7 +100,7 @@ const authRun = {
   head_repository: { full_name: REPO },
 }
 
-function deps({ classification = 'post_release_regression', releaseRuns = [], mainSha = D, active = [], auth = null } = {}) {
+function deps({ classification = 'post_release_regression', releaseRuns = [], stabilizationRuns = [], closeouts = {}, mainSha = D, active = [], auth = null } = {}) {
   const releases = classification === 'post_release_regression'
     ? [
         { tag_name: 'v1.8.1', draft: false, prerelease: false },
@@ -112,12 +112,16 @@ function deps({ classification = 'post_release_regression', releaseRuns = [], ma
     listRollbackRuns: async () => [rollbackRun()],
     readRollbackEvidence: async () => rollbackEvidence(),
     listReleaseRuns: async () => releaseRuns,
+    listStabilizationRuns: async () => stabilizationRuns,
     readReleaseEvidence: async (id) => releaseRuns.find((run) => String(run.id) === String(id))?.evidence ?? null,
+    readCloseout: async (id) => closeouts[String(id)] ?? null,
     getRun: async (id) => {
       if (String(id) === INCIDENT_RUN) return incidentRun
       if (String(id) === AUTH_RUN) return authRun
       const closing = releaseRuns.find((run) => String(run.id) === String(id))
-      return closing ?? null
+      if (closing) return closing
+      const stabilization = stabilizationRuns.find((run) => String(run.id) === String(id))
+      return stabilization ?? null
     },
     readIncident: async () => incident(classification),
     resolveTagCommit: async (tag) => ({ 'v1.8.0': A, 'v1.8.1': B }[tag]),
@@ -270,7 +274,17 @@ test('stale rollback id, active production operation, missing CI or Staging proo
   )
 })
 
-test('successful authorized release closes the rollback incident for later releases', async () => {
+test('successful re-entry stays open until stabilization emits the verified closeout artifact', async () => {
+  const authorization = await authorizeProductionIncidentReentry({
+    repo: REPO,
+    runId: AUTH_RUN,
+    runAttempt: '1',
+    controlPlaneSha: C,
+    rollbackRunId: ROLLBACK_RUN,
+    releaseSha: D,
+    versionBump: 'patch',
+  }, deps())
+
   const closingRun = {
     id: 37530000001,
     run_attempt: 1,
@@ -299,7 +313,44 @@ test('successful authorized release closes the rollback incident for later relea
     production_verified: true,
     disposition: 'released',
   }
-  const open = await findLatestOpenAutomatedRollback({ repo: REPO, deps: deps({ releaseRuns: [closingRun] }) })
+
+  const beforeCloseout = await findLatestOpenAutomatedRollback({
+    repo: REPO,
+    deps: deps({ releaseRuns: [closingRun], auth: authorization }),
+  })
+  assert.equal(String(beforeCloseout.run.id), ROLLBACK_RUN)
+
+  const stabilizationRun = {
+    id: 37540000001,
+    run_attempt: 1,
+    name: 'Production Release Stabilization',
+    path: '.github/workflows/production-release-stabilization.yml',
+    event: 'workflow_run',
+    status: 'completed',
+    conclusion: 'success',
+    head_branch: 'main',
+    head_sha: C,
+    created_at: '2026-10-06T03:10:00Z',
+    repository: { full_name: REPO },
+    head_repository: { full_name: REPO },
+  }
+  const closeout = {
+    schema: 'patelrep.production-incident-closeout.v1',
+    workflow: 'Production Release Stabilization',
+    classifier: { run_id: String(stabilizationRun.id), run_attempt: 1, control_plane_sha: C },
+    source_release: { run_id: String(closingRun.id), run_attempt: 1, control_plane_sha: D, conclusion: 'success' },
+    reentry: { authorization_run_id: AUTH_RUN, rollback_run_id: ROLLBACK_RUN },
+    candidate: { eligible: true, release_sha: D, pr_number: 109, version: 'v1.8.2' },
+    classification: 'stable',
+    closed: true,
+  }
+  const closedDeps = deps({
+    releaseRuns: [closingRun],
+    stabilizationRuns: [stabilizationRun],
+    closeouts: { [String(stabilizationRun.id)]: closeout },
+    auth: authorization,
+  })
+  const open = await findLatestOpenAutomatedRollback({ repo: REPO, deps: closedDeps })
   assert.equal(open, null)
 
   const result = await verifyProductionReleaseReentry({
@@ -308,7 +359,7 @@ test('successful authorized release closes the rollback incident for later relea
     versionBump: 'patch',
     reentrySourceRunId: '',
     automationSourceRunId: '',
-  }, deps({ releaseRuns: [closingRun] }))
+  }, closedDeps)
   assert.deepEqual(result, { required: false, rollback_run_id: null, authorization_run_id: null })
 })
 
