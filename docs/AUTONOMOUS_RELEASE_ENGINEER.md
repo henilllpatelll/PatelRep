@@ -116,7 +116,7 @@ repository), so there is no manual "Review deployments → Approve and deploy" c
 Environment only scopes production secrets and variables, and the Production Release workflow itself
 enforces eligibility and fails closed. The request path holds no production credentials, never uses that
 Environment, never approves a deployment (never call GitHub's pending-deployment approval API) or changes
-Environment protection, and Production Rollback stays human-dispatched. The request itself is gated by the
+Environment protection. Phase 2D itself never dispatches Production Rollback; only the separately gated Phase 3C incident path may do so. The release request itself is gated by the
 `PRODUCTION_AUTO_RELEASE_ENABLED` variable and the trusted checks below.
 
 Final authority chain:
@@ -469,9 +469,9 @@ evidence is resolved with more investigation or code that gathers evidence — n
 
 This workflow holds no production credentials: no `PRODUCTION_SUPABASE_DB_URL`, no Railway
 production tokens, no Supabase service-role keys, no Stripe keys. It never runs production SQL
-or Railway commands itself. The only dispatch automation performs is the Phase 2D request of the existing
+or Railway commands itself. Production automation has only two bounded dispatch paths: the Phase 2D request of the existing
 `Production Release` (patch, narrow recovery case only, with its own independent re-verification and no separate Environment
-approval). `Production Rollback` may be dispatched only by the narrowly gated Phase 3C automatic-rollback requester; the Evidence Audit is never
+approval) and the Phase 3C request of `Production Rollback` for a confirmed zero-migration, low-risk incident. The Evidence Audit is never
 dispatched by automation. Automated repairs must not change `production-release.yml` eligibility, target
 guards, versioning, or rollback semantics (all control-plane paths are high-risk and need a human merge).
 
