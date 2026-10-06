@@ -138,10 +138,10 @@ jobs:
           fi
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
-      - name: Require explicit human confirmation that this rollback is schema-compatible
+      - name: Remind the operator that rollback schema-compatibility is their responsibility
         run: |
           echo "This workflow never runs a reverse/contract migration automatically."
-          echo "Before approving this run in the 'production' Environment, confirm:"
+          echo "There is no separate Environment approval pause; the dispatching operator must have confirmed:"
           echo "  - no destructive/CONTRACT migration shipped between $TARGET_VERSION and the current production release, OR"
           echo "  - if one did, this rollback has been reviewed and is known safe (see docs/DATABASE_MIGRATIONS.md)."
           echo "If unsure, stop this run and use a feature-flag kill switch or a forward-fix PR instead."

@@ -3,8 +3,8 @@ name: Feature Rollout
 # Admin-only, deliberate, tenant-by-tenant release control. Deploying code
 # never enables a flag -- this workflow is the only way a flag's value
 # changes anywhere. It is NOT self-service: GMs cannot trigger this, and
-# dispatching it requires repo write access plus, on production, the
-# `production` Environment's required reviewers.
+# dispatching it requires repo write access. The `production` Environment
+# scopes production secrets/variables; it no longer requires a reviewer.
 #
 # Isolation model: `environment: ${{ inputs.environment }}` selects between
 # the `staging` and `production` GitHub Environments, each configured with

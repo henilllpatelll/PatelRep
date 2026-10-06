@@ -1,9 +1,9 @@
 // Phase 2D: eligibility for an AUTOMATED production-release REQUEST. One strict policy, evaluated three times
 // from fresh GitHub state: by the read-only resolver, again by the request job right before it dispatches, and
-// a third time by Production Release itself (after the human `production` Environment approval, before any
-// production step). Automatic request != automatic production approval: this code can only decide whether the
-// existing Production Release workflow may be dispatched; it never touches production credentials or the
-// Environment gate.
+// a third time by Production Release itself (before any production step). Automatic request != automatic
+// production approval: this code can only decide whether the existing Production Release workflow may be
+// dispatched; it never touches production credentials or the `production` Environment. No separate human
+// deployment approval exists, so these checks (and every refusal failing closed) ARE the safety boundary.
 //
 // Scope is deliberately narrow: ONLY a low-risk Phase 2C recovery PR that repaired a failed Deploy Health Check
 // of the exact currently released production baseline. Everything else stays a manual release decision.
@@ -30,7 +30,7 @@ export const ROOT_WORKFLOW_NAME = 'Deploy Health Check'
 // A health failure may come from the schedule or a push to main; a manual dispatch is never an automatic root.
 export const ROOT_EVENTS = Object.freeze(['schedule', 'push'])
 // resolve: read-only first look; request: fresh revalidation right before dispatch (same security eligibility);
-// release: re-verification inside Production Release after human approval (refusals FAIL the release).
+// release: re-verification inside Production Release before any production step (refusals FAIL the release).
 export const VALIDATION_MODES = Object.freeze(['resolve', 'request', 'release'])
 export const AUTOMATED_VERSION_BUMP = 'patch'
 export const NO_BASELINE_MESSAGE = 'Production release request ineligible: no managed production release baseline exists; seed the first release manually.'
@@ -202,7 +202,7 @@ export async function validateProductionRequest({ repo, sourceRunId, enabled, mo
     if (!Array.isArray(active)) fail('active production runs could not be proven')
     if (active.length > 0) {
       const duplicate = active.some((run) => run.workflow === 'production-release.yml' && String(run.displayTitle ?? '').includes(mergeCommitSha))
-      refuse(duplicate ? `a Production Release for ${mergeCommitSha} is already active or awaiting approval` : 'another Production Release or Rollback run is active; not queueing an automated request behind it')
+      refuse(duplicate ? `a Production Release for ${mergeCommitSha} is already active or queued` : 'another Production Release or Rollback run is active; not queueing an automated request behind it')
     }
   }
 

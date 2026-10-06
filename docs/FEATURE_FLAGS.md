@@ -85,7 +85,7 @@ All rollout changes go through `.github/workflows/feature-rollout.yml` (`workflo
 
 **Environment isolation**: the job declares `environment: ${{ inputs.environment }}`, selecting between the `staging` and `production` GitHub Environments. Each Environment has its own `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`EXPECTED_SUPABASE_HOST`/`OTHER_ENV_SUPABASE_HOST`/`API_URL`/`WEB_URL`. A run targeting `staging` cannot see `production`'s secrets — that's GitHub's own Environment secret scoping. `apps/web/scripts/apply-feature-flag.mjs` additionally checks the resolved Supabase host against the expected/other-environment allowlist as defense in depth, mirroring `scripts/staging-target-guard.mjs`.
 
-**Admin-only**: dispatching the workflow requires repo write access; on `production`, the Environment's required reviewers must also approve the run. This is what makes rollout a deliberate operator action, not self-service.
+**Admin-only**: dispatching the workflow requires repo write access; the `production` Environment scopes production secrets and no longer requires a reviewer approval. Rollout remains a deliberate operator action (repo write access to dispatch), not self-service.
 
 **Cohort rollout** is just running this workflow once per tenant slug in an explicit list — deliberately not a percentage or a batch UI. Each run is its own audited `feature_flag_events` row. A future `--batch` mode could accept a comma-separated slug list without changing the architecture, but isn't built now; the spec this system implements explicitly bans percentage/random rollout.
 
@@ -139,7 +139,7 @@ Background jobs and externally-triggered endpoints must honor the same tenant fl
 This system depends on a `production` GitHub Environment that does not exist yet (only `staging` does today). A repository admin must:
 
 1. Create the `production` Environment (Settings → Environments).
-2. Add required reviewers to `production` (this is what makes production rollout admin-gated).
+2. Ensure only trusted admins have repo write access (the `production` Environment has no Required Reviewer, so dispatch permission is the rollout gate).
 3. Add `SUPABASE_URL`, `EXPECTED_SUPABASE_HOST`, `OTHER_ENV_SUPABASE_HOST`, `API_URL`, `WEB_URL` (variables) and `SUPABASE_SERVICE_ROLE_KEY` (secret) to **both** the `staging` and `production` Environments, each pointed at its own Supabase project and app URLs (staging's `OTHER_ENV_SUPABASE_HOST` is production's host, and vice versa).
 
 ## Deferred / explicitly out of scope

@@ -66,15 +66,16 @@ test('production-release.yml changes only deliberately (release-context handoff,
   const digest = createHash('sha256').update(productionRelease).digest('hex')
   // Phase 1: identifier-only production-release-context handoff. Phase 2D: optional automation_source_run_id
   // provenance verification, run-name, actions: read, and release-based versioning (production-release-request-workflow.test.mjs
-  // asserts the human Environment gates and concurrency lock are intact). Migration apply: production-migration-apply-workspace.test.mjs
+  // asserts the production Environment scoping, safety gates and concurrency lock are intact; no human Environment approval is assumed). Migration apply: production-migration-apply-workspace.test.mjs
   // pins the ephemeral-workspace apply contract.
   // Railway account-token auth: `variables set` is preceded by an explicit `railway link` (account tokens have no project scope).
   // Railway deploy: API `railway up --ci` uploads the repo root (service Root Directory apps/api selects the app); web uses `up apps/web --path-as-root` (no web Root Directory; root upload fell back to Railpack).
   // Railway variables: `variables set` passes --skip-deploys so only `railway up` deploys (no racing redeploy).
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
   // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
+  // Comment-only: the Required Reviewer on the production Environment was removed outside the repo, so the human-approval wording was rewritten (no functional change).
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '731f70ba60c82b23363725f2da51f4e3c461c71d91e8f91f8e9b179966d0056a')
+  assert.equal(digest, '7d9f2d7de011cd95068a02ef372de81c570e8bba1ed85f66328c8369be23aa8e')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

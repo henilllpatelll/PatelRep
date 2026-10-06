@@ -377,7 +377,7 @@ test('request mode never dispatches while any production release/rollback run is
   state.active = [{ id: 1, status: 'waiting', workflow: 'production-release.yml', displayTitle: `Production Release ${MERGE} (automated request from run ${SOURCE_RUN})` }]
   let result = await evaluateProductionRequest(request, deps)
   assert.equal(result.eligible, false)
-  assert.match(result.reason, /already active or awaiting approval/)
+  assert.match(result.reason, /already active or queued/)
   state.active = [{ id: 2, status: 'in_progress', workflow: 'production-rollback.yml', displayTitle: 'Production Rollback' }]
   result = await evaluateProductionRequest(request, deps)
   assert.match(result.reason, /another Production Release or Rollback run is active/)
@@ -416,7 +416,7 @@ test('automated mode requires the trusted bot, main, the exact SHA at the workfl
   }
 })
 
-test('release-time revalidation fails if anything changed between request and approval', async () => {
+test('release-time revalidation fails if anything changed between request and release', async () => {
   const mutations = [
     [(s) => { s.mainSha = 'c'.repeat(40) }, /main moved/],
     [(s) => { s.tagCommits = { 'v1.8.0': 'b'.repeat(40) }; s.runtime = { sha: 'b'.repeat(40), version: 'v1.8.0' } }, /unreleased changes/],
@@ -580,11 +580,11 @@ test('a rollback or recovery after resolve or after dispatch is refused by the l
     change(state)
     const requested = await evaluateProductionRequest({ ...request }, deps)
     assert.equal(requested.eligible, false, `${label}: request-release revalidation refuses, so no App token or dispatch`)
-    // after a (hypothetical) dispatch, between request and Environment approval
+    // after a (hypothetical) dispatch, between request and the release-time re-verification
     const fresh = world()
     assert.equal((await evaluateProductionRequest(request, fresh.deps)).eligible, true)
     change(fresh.state)
-    await assert.rejects(validateProductionRequest({ ...request, mode: 'release' }, fresh.deps), (error) => error instanceof Ineligible, `${label}: Production Release refuses after approval`)
+    await assert.rejects(validateProductionRequest({ ...request, mode: 'release' }, fresh.deps), (error) => error instanceof Ineligible, `${label}: Production Release refuses at release-time re-verification`)
   }
 })
 

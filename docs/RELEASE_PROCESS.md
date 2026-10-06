@@ -13,12 +13,12 @@ This pipeline (CI Gate + Staging Gate required on `main`) was verified end-to-en
 5. The trusted **Staging Candidate** workflow deploys the exact CI-passed SHA to isolated staging and reports **Staging Gate**.
 6. Review the deployed staging candidate and perform relevant manual hotel-workflow verification.
 7. Intentionally merge the approved PR into `main` in GitHub. This workflow never auto-merges. `main` is now *release-eligible*, not yet deployed.
-8. Separately and deliberately, dispatch **Production Release** (`.github/workflows/production-release.yml`) and have the `production` Environment's required reviewer approve it. See "Production Release" below — it is the only path code reaches production; merging to `main` alone never deploys it. If the change introduced a new feature flag (see [FEATURE_FLAGS.md](FEATURE_FLAGS.md)), it is deployed **disabled** for every tenant.
+8. Separately and deliberately, dispatch **Production Release** (`.github/workflows/production-release.yml`). The `production` Environment scopes production secrets and variables but has no Required Reviewer: there is no manual "Approve and deploy" click, and the workflow's own trusted gates decide eligibility and fail closed. See "Production Release" below — it is the only path code reaches production; merging to `main` alone never deploys it. If the change introduced a new feature flag (see [FEATURE_FLAGS.md](FEATURE_FLAGS.md)), it is deployed **disabled** for every tenant.
 9. Separately and deliberately, run **Feature Rollout** to enable the flag for a pilot tenant, verify, then expand. See [FEATURE_FLAGS.md](FEATURE_FLAGS.md).
 
 The resulting path is:
 
-`main` → feature branch → PR → CI Gate → Staging Candidate → Staging Gate → human QA → human merge → `main` (release-eligible) → **Production Release** (approved, DB → API → web → verify → tag/Release) → Feature Rollout (pilot → cohort → full)
+`main` → feature branch → PR → CI Gate → Staging Candidate → Staging Gate → human QA → human merge → `main` (release-eligible) → **Production Release** (gated by the workflow's trusted checks, DB → API → web → verify → tag/Release) → Feature Rollout (pilot → cohort → full)
 
 The existing Deploy Health Check workflow (`deploy-check.yml`) continues to run independently on a schedule and on every push to `main`, as ongoing drift/regression monitoring — it is not the production deploy mechanism and does not gate releases.
 
@@ -88,7 +88,7 @@ An emergency does not create a routine bypass for review, CI, or deployment veri
 
 ## Database release path
 
-For any database change: create a new migration → run `npm run db:check` and clean reconstruction → pass the Database Migration Gate → merge to `main` → manually run **Staging Database Migrate** → verify staging `/ready` and drift `CLEAN` → make an intentional approved production release → run production drift/readiness verification.
+For any database change: create a new migration → run `npm run db:check` and clean reconstruction → pass the Database Migration Gate → merge to `main` → manually run **Staging Database Migrate** → verify staging `/ready` and drift `CLEAN` → make an intentional production release → run production drift/readiness verification.
 
 Do not edit an applied migration, use a PR to mutate production, or treat a raw migration count as drift verification. See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md) for immutable-history, destructive-review, emergency, and expand/migrate/contract rules.
 
@@ -96,11 +96,11 @@ Do not edit an applied migration, use a PR to mutate production, or treat a raw 
 
 Merging to `main` and deploying to production never enables a feature flag — **deploy and release are separate actions.** A newly deployed flag defaults to OFF for every tenant until someone deliberately runs `.github/workflows/feature-rollout.yml` to enable it for a specific tenant slug, in a specific environment (`staging` or `production`). This is the only way a flag's value changes; there is no GM-facing toggle.
 
-Rollout is admin-only (the `production` GitHub Environment requires reviewer approval), audited (every change is recorded in `feature_flag_events`), and reversible without a redeploy (disabling a flag is the same workflow run with `enabled: false`). See [FEATURE_FLAGS.md](FEATURE_FLAGS.md) for the full system, the standard new-feature lifecycle, and the kill-switch procedure.
+Rollout is admin-only (dispatching requires repo write access; the `production` GitHub Environment scopes secrets and has no Required Reviewer), audited (every change is recorded in `feature_flag_events`), and reversible without a redeploy (disabling a flag is the same workflow run with `enabled: false`). See [FEATURE_FLAGS.md](FEATURE_FLAGS.md) for the full system, the standard new-feature lifecycle, and the kill-switch procedure.
 
 ## Production Release (Phase 6)
 
-Merging a PR into `main` makes code *eligible* for production. It does not deploy it. `main`'s two production Railway services (`noble-cooperation` API, `PatelRep` web) are pinned to a fixed commit SHA — a plain push to `main` does not trigger a production deploy. The only way code reaches production is an intentional run of `.github/workflows/production-release.yml`, which a human dispatches (optionally pinning an explicit `release_sha`; it defaults to the current `main` tip) and the `production` GitHub Environment's required reviewer approves.
+Merging a PR into `main` makes code *eligible* for production. It does not deploy it. `main`'s two production Railway services (`noble-cooperation` API, `PatelRep` web) are pinned to a fixed commit SHA — a plain push to `main` does not trigger a production deploy. The only way code reaches production is an intentional run of `.github/workflows/production-release.yml`, which a human dispatches (optionally pinning an explicit `release_sha`; it defaults to the current `main` tip) and which then proceeds without a separate Environment approval, failing closed on any trusted-gate refusal.
 
 The full path is now:
 
@@ -115,7 +115,7 @@ Before touching production, the workflow refuses to proceed unless the target co
 3. Has a merged PR associated with it (works across squash merges, which change the commit SHA) whose **pre-merge head commit** has a successful `Staging Gate` check.
 4. Has a git **tree** identical to that staging-verified PR head's tree — proven via the GitHub API, not assumed from commit-SHA equality. This is what actually proves "the code being released is the code that passed staging," since a squash merge changes the commit SHA even when the file tree is unchanged.
 
-If the operator starts a release for one SHA and `main` advances before approval, the workflow releases the explicitly resolved SHA chosen at start — it never silently re-resolves "latest main" mid-run.
+If the operator starts a release for one SHA and `main` advances before the run starts, the workflow releases the explicitly resolved SHA chosen at start — it never silently re-resolves "latest main" mid-run.
 
 ### Database, API, Web ordering
 
@@ -133,9 +133,9 @@ A tag and GitHub Release are created **only after** every verification step abov
 
 ### Automated release requests (Phase 2D)
 
-**Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment still requires a human reviewer's approval before any job runs, and after that approval the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
+**Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
 
-The feature is inert until the repository owner manually sets the repository variable `PRODUCTION_AUTO_RELEASE_ENABLED=true` — only after Phase 2D is merged, the first managed release (`v1.8.0`) was completed manually, and the `production` Environment still requires human approval. No workflow ever sets or changes it. Everything else — feature merges, unreleased work on `main`, database/billing/auth/infrastructure/control-plane changes, CI/Staging/Production-Release/Evidence-Audit recovery, and any retry after a failed or partial production release — stays a manual release decision. Rollback is never automated. Full contract: [AUTONOMOUS_RELEASE_ENGINEER.md](AUTONOMOUS_RELEASE_ENGINEER.md).
+The feature is inert until the repository owner manually sets the repository variable `PRODUCTION_AUTO_RELEASE_ENABLED=true` — only after Phase 2D is merged, the first managed release (`v1.8.0`) was completed manually, and understood that, with no Environment approval pause, enabling it lets an eligible recovery merge proceed to production without a human click. No workflow ever sets or changes it. Everything else — feature merges, unreleased work on `main`, database/billing/auth/infrastructure/control-plane changes, CI/Staging/Production-Release/Evidence-Audit recovery, and any retry after a failed or partial production release — stays a manual release decision. Rollback is never automated. Full contract: [AUTONOMOUS_RELEASE_ENGINEER.md](AUTONOMOUS_RELEASE_ENGINEER.md).
 
 ### Rollback
 

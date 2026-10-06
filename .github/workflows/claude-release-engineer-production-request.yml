@@ -2,8 +2,9 @@ name: Claude Release Engineer Production Request
 
 # Phase 2D: after Phase 2C has auto-merged a low-risk recovery PR, REQUEST (never perform) a production release.
 # Automatic request != automatic production approval. The only write this workflow can make is dispatching the
-# existing Production Release workflow, whose `production` Environment still requires a human approval before
-# any production job runs. It holds no production credential, never uses the `production` Environment and never
+# existing Production Release workflow, which itself enforces release eligibility and fails closed (the `production`
+# Environment scopes production secrets/variables; no separate human deployment approval is required). It holds no
+# production credential, never uses the `production` Environment and never
 # touches rollback. Two jobs with separated authority:
 #   resolve         - read-only token, trusted scripts from main, decides eligibility; holds NO write credential
 #   request-release - the ONLY job with the PatelRep GitHub App token (actions: write, nothing else); runs the exact
@@ -104,9 +105,9 @@ jobs:
           private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
           permission-actions: write
 
-      # Always a patch release at the exact merge commit. Production does not run until a human approves the
-      # `production` Environment on the dispatched run, and that run re-verifies all provenance first.
-      - name: Request Production Release (human Environment approval still required)
+      # Always a patch release at the exact merge commit. The dispatched run re-verifies all provenance before any
+      # production step and fails closed on any refusal.
+      - name: Request Production Release (patch, exact merge commit)
         if: steps.revalidate.outputs.dispatch == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -118,4 +119,4 @@ jobs:
           printf '%s' "$SOURCE_RUN_ID" | grep -Eq '^[1-9][0-9]{0,19}$'
           gh workflow run production-release.yml --repo "$REPO" --ref main \
             -f release_sha="$TARGET_SHA" -f version_bump=patch -f automation_source_run_id="$SOURCE_RUN_ID"
-          echo "Requested Production Release for $TARGET_SHA (patch). It now awaits human production Environment approval." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Requested Production Release for $TARGET_SHA (patch). It will re-verify all provenance before any production step." | tee -a "$GITHUB_STEP_SUMMARY"
