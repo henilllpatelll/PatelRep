@@ -21,6 +21,10 @@ name: Production Release
 # enforces release eligibility and fails closed. In automated mode it independently re-verifies the whole provenance
 # (scripts/production-release-request.mjs release) before any production step.
 # Manual dispatches leave `automation_source_run_id` blank and keep the original semantics unchanged.
+#
+# Phase 4B: before any production Environment job, a read-only re-entry gate checks whether a successful automated
+# rollback has left production quarantined. If so, automation is refused and a manual release must name both an
+# exact release_sha and a successful owner-only Production Incident Closeout run authorizing that exact SHA.
 
 # Phase 3A adds only a sanitized evidence ledger after the release graph finishes. The ledger job has no
 # production Environment or production credentials and cannot deploy, migrate, tag, release, or roll back.
@@ -44,6 +48,10 @@ on:
         description: "Automation only: Auto-Merge run id of the recovery merge being released (leave blank for a manual release)"
         required: false
         type: string
+      incident_closeout_run_id:
+        description: "Phase 4B manual re-entry only: successful Production Incident Closeout run id; leave blank when no quarantine is active"
+        required: false
+        type: string
 
 concurrency:
   # Shared with production-rollback.yml so a release and a rollback can never
@@ -58,8 +66,38 @@ permissions:
   pull-requests: read
 
 jobs:
+  verify-incident-reentry:
+    name: Verify production incident re-entry
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Enforce automatic-rollback quarantine before production access
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          node scripts/production-incident-closeout.mjs release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          RUN_ID: ${{ github.run_id }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          INCIDENT_CLOSEOUT_RUN_ID: ${{ inputs.incident_closeout_run_id }}
+
   resolve-and-verify-eligibility:
     name: Resolve and verify release eligibility
+    needs: verify-incident-reentry
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -552,6 +590,7 @@ jobs:
           CONTROL_PLANE_SHA: ${{ github.sha }}
           VERSION_BUMP: ${{ inputs.version_bump }}
           AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          INCIDENT_CLOSEOUT_RUN_ID: ${{ inputs.incident_closeout_run_id }}
           ELIGIBLE: ${{ needs.resolve-and-verify-eligibility.outputs.eligible }}
           TARGET_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
           PR_NUMBER: ${{ needs.resolve-and-verify-eligibility.outputs.pr_number }}
