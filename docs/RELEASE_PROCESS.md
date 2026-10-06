@@ -318,6 +318,41 @@ runs retain a sanitized `production-operations-notification/context.json` artifa
 events discover the trusted prior issue number from those artifacts instead of trusting mutable issue titles or
 bodies. Exact reruns are recorded as `deduplicated` without writing another comment.
 
+### Periodic production release audit (Phase 4D)
+
+`.github/workflows/production-release-audit.yml` is a read-only integrity audit that runs on every push to
+`main`, every six hours, and by manual dispatch. It has only `contents: read` + `actions: read`, no
+`production` Environment, no production secrets, no Railway/Supabase/database access, no write token, and no
+workflow-dispatch authority.
+
+The audit does **not** equate "runtime != newest Release" with failure. It recognizes three valid production
+states:
+
+- `consistent_managed_release`: live Web/API identity exactly equals the newest completed managed GitHub
+  Release/tag.
+- `quarantined_post_release_regression`: Phase 4A/4B prove an unresolved automatic rollback where runtime is
+  intentionally on the previous known-good release while the newest managed Release remains the failed candidate.
+- `quarantined_partial_release_failure`: Phase 4A/4B prove an unresolved partial-release rollback where runtime
+  correctly equals the current managed baseline and the failed candidate was never completed as a managed Release.
+
+If a Production Release or Production Rollback is active, the audit records
+`deferred_active_production_operation` rather than judging transient deployment state.
+
+The audit reuses the canonical `resolveProductionBaseline`, Phase 4B open-incident resolver, and Phase 3D
+circuit-breaker proof. It also checks for strict `vX.Y.Z` tags at/above the managed baseline that do not have a
+completed GitHub Release, and reports the current re-entry state as required, authorized for current `main`, or
+authorization-stale-after-main-moved.
+
+Every run uploads `production-release-audit/context.json` with schema
+`patelrep.production-release-audit.v1` before an inconsistent run is failed. The artifact contains only
+sanitized identifiers and categorical state. Unprovable baseline/runtime/incident/quarantine/re-entry state fails
+closed with stable reason codes instead of copying remote error text.
+
+Phase 4C now consumes Production Release Audit completions. Inconsistency updates one critical
+`audit:production-integrity` GitHub Issue. A later fully proven normal/quarantined audit closes that issue if it
+exists; healthy audits do not create a new issue. Deferred audits do not close a prior integrity alert because
+they did not re-prove steady state.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
