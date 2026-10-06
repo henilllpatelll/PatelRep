@@ -4,6 +4,8 @@ name: Production Release Stabilization
 # This workflow has no production Environment, no production secrets, and no write permission. It never
 # dispatches Production Rollback. A successful release receives a short exact-release stabilization window;
 # a failed release is classified from the trusted Phase 3A evidence ledger.
+# Phase 4B additionally emits a read-only incident closeout artifact after an authorized re-entry
+# release stabilizes without a confirmed new incident.
 
 on:
   workflow_run:
@@ -50,6 +52,7 @@ jobs:
           TRUSTED_CONTROL_PLANE_SHA: ${{ steps.trusted.outputs.sha }}
           RESULT_DIR: ${{ runner.temp }}/production-release-stabilization
           INCIDENT_DIR: ${{ runner.temp }}/production-release-incident
+          CLOSEOUT_DIR: ${{ runner.temp }}/production-incident-closeout
       - name: Upload sanitized stabilization result
         uses: actions/upload-artifact@v4
         with:
@@ -65,12 +68,22 @@ jobs:
           path: ${{ runner.temp }}/production-release-incident/context.json
           retention-days: 90
           if-no-files-found: error
+      - name: Upload successful incident closeout
+        if: steps.classify.outputs.closeout == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-incident-closeout
+          path: ${{ runner.temp }}/production-incident-closeout/context.json
+          retention-days: 90
+          if-no-files-found: error
       - name: Summarize classification
         env:
           CLASSIFICATION: ${{ steps.classify.outputs.classification }}
           INCIDENT: ${{ steps.classify.outputs.incident }}
+          CLOSEOUT: ${{ steps.classify.outputs.closeout }}
         run: |
-          echo "## Phase 3B production release classification" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Production release stabilization" >> "$GITHUB_STEP_SUMMARY"
           echo "- Classification: `$CLASSIFICATION`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Confirmed incident: `$INCIDENT`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Incident closeout: `$CLOSEOUT`" >> "$GITHUB_STEP_SUMMARY"
           echo "- This workflow is read-only and did not dispatch or perform a rollback." >> "$GITHUB_STEP_SUMMARY"
