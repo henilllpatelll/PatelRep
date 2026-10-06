@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 4C):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 4D):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -392,6 +392,28 @@ successful `patelrep.production-operations-notification.v1` artifacts. Exact sou
 from the same trusted artifacts. Stable releases are explicit no-ops to avoid alert fatigue; release failures,
 confirmed incidents, rollback failures, missing evidence, re-entry failures, and human-intervention states remain
 visible.
+
+## Periodic production release integrity audit (Phase 4D)
+
+Phase 4D adds observation, not authority. `Production Release Audit` is scheduled every six hours, runs on main
+pushes, and is manually dispatchable only from `main`. It uses read-only repository/Actions access, the exact
+workflow SHA, a separate non-cancelling audit concurrency group, and never enters the `production` Environment.
+
+The state machine intentionally treats verified rollback quarantine as **consistent**. It reuses
+`resolveProductionBaseline`, `findLatestOpenAutomatedRollback`, and
+`verifyAutoRollbackCircuitBreaker` rather than implementing parallel release semantics. This preserves both
+Phase 3D quarantine shapes: managed-Release mismatch after a post-release regression and failed-candidate-unmanaged
+after a partial-release failure.
+
+The audit also checks the managed semver ledger for strict tags without completed Releases, proves public Web/API
+identity, records whether re-entry is required/current/stale, and defers rather than alerting while Production
+Release/Rollback is active. Every run emits `patelrep.production-release-audit.v1`; inconsistent state fails only
+after the evidence artifact is uploaded.
+
+Phase 4C listens to audit completion. The audit itself remains unable to write Issues. The existing separated
+notification publisher opens/updates one `audit:production-integrity` issue on inconsistency and closes an
+existing issue only after a later non-deferred audit fully proves a valid steady/quarantined state. Mutable Issue
+state is never used as release authority.
 
 ## Bounded recovery lineage
 
