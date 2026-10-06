@@ -37,7 +37,7 @@ const requireState = (kind, value) => {
   return value
 }
 
-function validateSourceRun(run, { repo, sourceRunId }) {
+export function validateSourceRun(run, { repo, sourceRunId }) {
   if (!run || String(run.id) !== sourceRunId) throw new Error('release stabilization: source run id mismatch')
   if (run.name !== 'Production Release' || run.path !== '.github/workflows/production-release.yml') {
     throw new Error('release stabilization: source is not the trusted Production Release workflow')
