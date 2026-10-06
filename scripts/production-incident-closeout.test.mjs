@@ -157,7 +157,7 @@ const closeoutArtifact = (overrides = {}) => ({
 
 function deps(overrides = {}) {
   return {
-    listSuccessfulRollbackRuns: async () => [rollbackRun()],
+    listCompletedRollbackRuns: async () => [rollbackRun()],
     listSuccessfulReleaseRuns: async () => [],
     isAutomatedRollbackRun: (run) => /\(automated request from run [1-9][0-9]*\)$/.test(run.display_title ?? ''),
     readRollbackEvidence: async () => rollbackEvidence(),
@@ -198,7 +198,7 @@ test('manual rollback history does not open the Phase 4B quarantine', async () =
   const q = await resolveActiveAutomatedRollbackQuarantine(
     { repo: REPO },
     deps({
-      listSuccessfulRollbackRuns: async () => [rollbackRun({ display_title: 'Production Rollback v1.8.0' })],
+      listCompletedRollbackRuns: async () => [rollbackRun({ display_title: 'Production Rollback v1.8.0' })],
     }),
   )
   assert.equal(q, null)
@@ -212,10 +212,31 @@ test('missing or contradictory rollback evidence fails closed', async () => {
   await assert.rejects(
     resolveActiveAutomatedRollbackQuarantine(
       { repo: REPO },
-      deps({ readRollbackEvidence: async () => rollbackEvidence({ quarantine: 'unproven' }) }),
+      deps({ readRollbackEvidence: async () => rollbackEvidence({
+        quarantine: 'bogus',
+        disposition: 'restored_quarantine_unproven',
+        jobs: { ...rollbackEvidence().jobs, circuit_breaker: 'failure' },
+      }) }),
     ),
-    /verified restored quarantine/,
+    /invalid post-restore quarantine state/,
   )
+})
+
+test('restored runtime stays quarantined even when the circuit-breaker proof failed', async () => {
+  const q = await resolveActiveAutomatedRollbackQuarantine(
+    { repo: REPO },
+    deps({
+      listCompletedRollbackRuns: async () => [rollbackRun({ conclusion: 'failure' })],
+      readRollbackEvidence: async () => rollbackEvidence({
+        quarantine: 'unproven',
+        disposition: 'restored_quarantine_unproven',
+        jobs: { ...rollbackEvidence().jobs, circuit_breaker: 'failure' },
+      }),
+    }),
+  )
+  assert.equal(q.run.id, '500')
+  assert.equal(q.quarantine, 'unproven')
+  assert.deepEqual(q.target, { version: 'v1.8.0', sha: A })
 })
 
 test('owner closeout binds the active incident to the exact fixed current main SHA', async () => {
@@ -272,7 +293,7 @@ test('closeout refuses non-owner stale unsafe or busy decisions', async () => {
 })
 
 test('ordinary Production Release remains unchanged when no automatic rollback quarantine is active', async () => {
-  const ordinary = deps({ listSuccessfulRollbackRuns: async () => [] })
+  const ordinary = deps({ listCompletedRollbackRuns: async () => [] })
   const result = await validateProductionReentry({
     repo: REPO,
     repositoryOwner: OWNER,
