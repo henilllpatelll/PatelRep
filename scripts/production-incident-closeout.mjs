@@ -206,9 +206,13 @@ export async function resolveActiveAutomatedRollbackQuarantine({ repo }, deps) {
   }
 
   const evidence = await deps.readRollbackEvidence(String(rollbackRun.id))
-  // Phase 4B only owns re-entry after production was actually restored to a known target.
-  // An automated rollback that failed before exact final verification remains a general human recovery case.
-  if (!evidence || evidence.production_verified !== true || evidence.jobs?.rollback_verification !== 'success') return null
+  // A successful automated rollback after Phase 4A must have evidence; absence is an integrity failure.
+  // A failed/cancelled rollback that never reached exact final verification remains a general human recovery case.
+  if (!evidence) {
+    if (rollbackRun.conclusion === 'success') fail('successful automated rollback has no Phase 4A evidence')
+    return null
+  }
+  if (evidence.production_verified !== true || evidence.jobs?.rollback_verification !== 'success') return null
   const rollbackEvidence = validateRollbackEvidence(evidence, rollbackRun)
   const incidentRun = validateIncidentRun(await deps.getRun(rollbackEvidence.incidentRunId), {
     repo,
