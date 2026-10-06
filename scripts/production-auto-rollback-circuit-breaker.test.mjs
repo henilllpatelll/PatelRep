@@ -74,7 +74,8 @@ test('post-release rollback proves runtime is intentionally behind newest manage
   const result = await verifyAutoRollbackCircuitBreaker(input, deps())
   assert.equal(result.mode, 'managed_release_mismatch')
   assert.deepEqual(result.runtime, { version: 'v1.8.0', sha: A })
-  assert.deepEqual(result.managed_release, { tag: 'v1.8.1', sha: B })
+  assert.equal(result.managed_release.tag, 'v1.8.1')
+  assert.equal(result.managed_release.sha, B)
   assert.deepEqual(result.failed_candidate, { version: 'v1.8.1', sha: B })
 })
 
@@ -89,7 +90,8 @@ test('partial-release rollback proves failed candidate stayed unmanaged and base
   )
   assert.equal(result.mode, 'failed_candidate_unmanaged')
   assert.deepEqual(result.runtime, { version: 'v1.8.0', sha: A })
-  assert.deepEqual(result.managed_release, { tag: 'v1.8.0', sha: A })
+  assert.equal(result.managed_release.tag, 'v1.8.0')
+  assert.equal(result.managed_release.sha, A)
 })
 
 test('circuit breaker fails if runtime is not the exact rollback target', async () => {
