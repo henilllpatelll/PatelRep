@@ -10,6 +10,7 @@ on:
       - Production Release Stabilization
       - Production Rollback
       - Production Incident Re-entry
+      - Production Release Audit
     types: [completed]
 
 concurrency:
