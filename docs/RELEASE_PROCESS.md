@@ -233,6 +233,25 @@ the original incident cannot be replayed through Phase 2D because that path only
 roots. Failure to prove either quarantine state makes the rollback workflow fail after restoration so a human must
 decide how to re-enter the release line.
 
+### Production rollback evidence ledger (Phase 4A)
+
+Every `Production Rollback` run now carries its own sanitized evidence trail. Before target resolution, a
+read-only public-runtime capture records the exact Web/API release identity when it can be proven; an unreachable,
+legacy, malformed, or contradictory runtime is recorded only as `unproven` and no endpoint error text enters the
+artifact. This capture has no `production` Environment and no production credentials.
+
+After the entire rollback graph finishes, `production-rollback-evidence` runs with `if: always()` and writes
+`production-rollback-evidence/context.json` (90-day retention). The ledger records the rollback run id/attempt and
+control-plane SHA, manual vs automated source, sanitized request validity, before-runtime identity state, exact
+resolved target tag/SHA, every rollback job result, fail-closed API/Web mutation states, final verified target
+identity when rollback smoke passed, and the automated circuit-breaker result when applicable.
+
+The ledger is evidence-only: `contents: read`, no `production` Environment, no production secrets, no Railway
+or Supabase command, no workflow dispatch and no tag/Release mutation. Database state is recorded as
+`not_mutated_by_workflow` because Production Rollback performs compatibility reads only and never reverses or
+repairs migration history. Failed/cancelled deploy attempts remain `unknown_after_attempt`; they are never
+guessed safe.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.

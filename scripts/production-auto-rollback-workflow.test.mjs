@@ -81,9 +81,10 @@ test('Phase 3D wires independent rollback-side revalidation before any productio
   assert.match(preflight, /node scripts\/production-auto-rollback-request\.mjs rollback/)
   assert.match(preflight, /PRODUCTION_AUTO_ROLLBACK_ENABLED: \$\{\{ vars\.PRODUCTION_AUTO_ROLLBACK_ENABLED \}\}/)
   const resolve = jobSection(rollback, 'resolve-and-verify-target')
-  assert.match(resolve, /needs: verify-automation-provenance/)
+  assert.match(resolve, /needs: \[verify-automation-provenance, capture-pre-rollback-runtime\]/)
   assert.match(resolve, /environment: production/)
-  assert.ok(rollback.indexOf('verify-automation-provenance:') < rollback.indexOf('resolve-and-verify-target:'))
+  assert.ok(rollback.indexOf('verify-automation-provenance:') < rollback.indexOf('capture-pre-rollback-runtime:'))
+  assert.ok(rollback.indexOf('capture-pre-rollback-runtime:') < rollback.indexOf('resolve-and-verify-target:'))
   assert.match(policy, /Phase 3D must land before auto-rollback requests can dispatch/)
 })
 
