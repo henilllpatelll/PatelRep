@@ -59,6 +59,27 @@ and `verified_applied` proves the migration job completed and post-apply verific
 Phase 3A does **not** automatically dispatch Production Rollback and does not alter this runbook's manual recovery
 order. Never interpret a failed job as evidence that nothing changed.
 
+## Release stabilization and incident classification (Phase 3B)
+
+After each completed Production Release, **Production Release Stabilization** reads the Phase 3A evidence and
+classifies the result without production credentials or write authority.
+
+- `partial_release_failure`: final production verification failed and DB/API/Web was applied, attempted, or
+  cannot be proven untouched. Treat this as a real production incident requiring containment analysis.
+- `post_release_regression`: a successfully released exact SHA/version failed the strict public production
+  smoke twice consecutively during the short stabilization window.
+- `transient_unconfirmed`: one/non-consecutive probe failure only. Do not treat this as confirmed rollback
+  evidence; normal Deploy Health monitoring continues.
+- `pre_production_failure_no_incident`: the release failed before any production mutation.
+- `release_record_failure_no_runtime_incident`: production passed exact final verification but tag/Release
+  bookkeeping failed afterwards; repair the release ledger deliberately rather than rolling back a verified
+  runtime.
+
+A confirmed incident creates the sanitized `production-release-incident` artifact. **Nothing consumes that
+artifact to roll back production in Phase 3B.** Production Rollback remains manual, and database reverse
+migration remains prohibited. If the evidence says `unknown_after_attempt`, keep treating the mutation as
+possibly applied until proven otherwise.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
