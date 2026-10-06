@@ -17,6 +17,7 @@ const base = (overrides = {}) => ({
   nextVersion: 'v1.8.1',
   versionBump: 'patch',
   automationSourceRunId: '',
+  incidentCloseoutRunId: '',
   resolveResult: 'success',
   computeVersionResult: 'success',
   contentSummaryResult: 'success',
@@ -93,6 +94,16 @@ test('ineligible release does not invent candidate or previous-release identity'
   assert.equal(e.previous_release, null)
   assert.equal(e.mutations.database, 'not_proven')
   assert.equal(e.disposition, 'refused_before_release_eligibility')
+})
+
+
+test('manual incident re-entry records the exact closeout run id', async () => {
+  const e = await buildProductionReleaseEvidence(base({ incidentCloseoutRunId: '37499999999' }), deps)
+  assert.equal(e.source.incident_closeout_run_id, '37499999999')
+  await assert.rejects(
+    buildProductionReleaseEvidence(base({ incidentCloseoutRunId: 'main' }), deps),
+    /invalid incident closeout run id/,
+  )
 })
 
 test('malformed evidence hard-fails and serialized evidence is sanitized', async () => {
