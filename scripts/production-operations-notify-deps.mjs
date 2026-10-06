@@ -30,10 +30,11 @@ export function realProductionNotificationDeps({ repo, readToken, issueToken }) 
   return {
     getRun: base.getRun,
     readNamedContext: base.readNamedContext,
-    listNotificationRuns: async () =>
+    // Artifact-first: only published notification evidence is listed (never every notify workflow run).
+    listNotificationArtifacts: async () =>
       paged(
-        `repos/${repo}/actions/workflows/production-operations-notify.yml/runs?status=success&per_page=100`,
-        '.workflow_runs[] | {id,run_attempt,name,path,event,status,conclusion,head_branch,head_sha,created_at,repository:{full_name:.repository.full_name},head_repository:{full_name:.head_repository.full_name}} | @json',
+        `repos/${repo}/actions/artifacts?name=${NOTIFICATION_ARTIFACT}&per_page=100`,
+        '.artifacts[] | {id,name,expired,created_at,workflow_run:{id:.workflow_run.id,head_branch:.workflow_run.head_branch,head_sha:.workflow_run.head_sha}} | @json',
       ),
     readNotificationResult: (runId) => base.readNamedContext(runId, NOTIFICATION_ARTIFACT),
     getIssue: async (number) => api(`repos/${repo}/issues/${number}`),

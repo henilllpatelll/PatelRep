@@ -19,9 +19,13 @@ export const WATCHDOG_NOTIFICATION_KEY = 'watchdog:production-automation'
 export const ACTIVE_RUN_STATUSES = Object.freeze(['queued', 'in_progress', 'waiting', 'requested', 'pending'])
 
 // Fixed policy. Deliberately NOT configurable from workflow inputs, env, or repository variables.
-// Production Release/Rollback jobs are bounded well under these by their own timeout-minutes; an operation that is
-// still running 45 minutes after it started is stuck, not slow. Approval/queue waits of 30 minutes need a human.
-// Control-plane jobs carry timeout-minutes of 10, so 20 minutes is twice their hard ceiling.
+// These are conservative OPERATIONAL OBSERVATION thresholds, not derived from a universal workflow timeout:
+// - Production Release has no explicit job timeout (GitHub's default job limit is far longer), and Production
+//   Rollback sets one only on its provenance job, so a hung production job could otherwise run for hours.
+//   45 minutes in progress is chosen as well beyond a healthy release; 30 minutes queued/waiting needs a human.
+// - Control-plane jobs vary: stabilization, auto-rollback request and re-entry use 10 minutes; audit and recovery
+//   readiness use 15; Production Operations Notify sets none. 20 minutes exceeds every explicit ceiling, so a
+//   run still active then is abnormal, but it is a threshold for a human to look, not a proven hard limit.
 export const POLICY = Object.freeze({
   production_in_progress_minutes: 45,
   production_waiting_minutes: 30,

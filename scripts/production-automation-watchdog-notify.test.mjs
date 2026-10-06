@@ -62,10 +62,12 @@ async function artifactFor({ id, stuckRuns = [], heartbeatAge = 1 }) {
 
 const stuck = (id, minutes = 60) => apiRun(RELEASE, { id, run_started_at: minutesAgo(minutes), created_at: minutesAgo(minutes + 1) })
 
-// Fake world: a list of prior notification results (newest first) plus the artifact of the source run being resolved.
-function world({ source, artifact, prior = [] }) {
-  const runs = prior.map((item, index) => ({
-    id: 40_000_000_000 + index,
+// Fake world: published notification results (newest first) plus the artifact of the source run being resolved.
+// `noopExecutions` models successful Production Operations Notify runs that published nothing (no artifact).
+function world({ source, artifact, prior = [], noopExecutions = 0, mutate = {} }) {
+  const calls = { getRun: 0, readResult: 0, listArtifacts: 0 }
+  const baseRun = (id, index) => ({
+    id: Number(id),
     run_attempt: 1,
     name: 'Production Operations Notify',
     path: '.github/workflows/production-operations-notify.yml',
@@ -77,21 +79,49 @@ function world({ source, artifact, prior = [] }) {
     created_at: new Date(NOW.getTime() - index * 60_000).toISOString(),
     repository: { full_name: REPO },
     head_repository: { full_name: REPO },
-  }))
-  const results = Object.fromEntries(prior.map((item, index) => [String(40_000_000_000 + index), {
-    schema: 'patelrep.production-operations-notification.v1',
-    workflow: 'Production Operations Notify',
-    run: { id: String(40_000_000_000 + index), attempt: 1, control_plane_sha: SHA },
-    key: WATCHDOG_NOTIFICATION_KEY,
-    issue_number: item.issue_number === undefined ? '77' : item.issue_number,
-    action: item.action ?? 'created',
-    event_id: item.event_id,
-  }]))
+  })
+  const runs = new Map()
+  const artifacts = []
+  const results = {}
+  prior.forEach((item, index) => {
+    const id = String(40_000_000_000 + index)
+    runs.set(id, { ...baseRun(id, index), ...(item.run ?? {}) })
+    artifacts.push({
+      id: index + 1,
+      name: 'production-operations-notification',
+      expired: false,
+      created_at: runs.get(id).created_at,
+      workflow_run: { id: Number(id), head_branch: 'main', head_sha: SHA },
+      ...(item.artifact ?? {}),
+    })
+    results[id] = {
+      schema: 'patelrep.production-operations-notification.v1',
+      workflow: 'Production Operations Notify',
+      run: { id, attempt: 1, control_plane_sha: SHA },
+      key: item.key ?? WATCHDOG_NOTIFICATION_KEY,
+      issue_number: item.issue_number === undefined ? '77' : item.issue_number,
+      action: item.action ?? 'created',
+      event_id: item.event_id,
+      ...(item.result ?? {}),
+    }
+  })
+  for (let i = 0; i < noopExecutions; i += 1) runs.set(String(50_000_000_000 + i), baseRun(50_000_000_000 + i, prior.length + i))
   return {
-    getRun: async () => source,
+    calls,
+    now: () => NOW.getTime(),
+    getRun: async (id) => {
+      calls.getRun += 1
+      return String(id) === String(source?.id) ? source : runs.get(String(id)) ?? null
+    },
     readNamedContext: async (_runId, name) => (name === WATCHDOG_ARTIFACT ? artifact : null),
-    listNotificationRuns: async () => runs,
-    readNotificationResult: async (runId) => results[String(runId)] ?? null,
+    listNotificationArtifacts: async () => {
+      calls.listArtifacts += 1
+      return mutate.artifacts ? mutate.artifacts(artifacts) : artifacts
+    },
+    readNotificationResult: async (runId) => {
+      calls.readResult += 1
+      return results[String(runId)] ?? null
+    },
   }
 }
 
@@ -258,4 +288,118 @@ test('the watchdog notification path writes only through the existing publisher 
     publishIntent({ repo: REPO, owner: 'henilllpatelll', intent, expectedDigest: '0'.repeat(64) }, world({ source: sourceRun(id), artifact: null })),
     /changed between resolve and publish/,
   )
+})
+
+const NOTE = { event_id: 'watchdog:ok', action: 'closed' }
+
+test('thousands of no-artifact notification executions cause no per-run lookups', async () => {
+  const id = '39200000001'
+  const deps = world({ source: sourceRun(id), artifact: await artifactFor({ id, stuckRuns: [stuck(1)] }), noopExecutions: 5000 })
+  const intent = await resolve(deps, id)
+  assert.equal(intent.operation, 'open_update')
+  assert.equal(deps.calls.listArtifacts, 1)
+  assert.equal(deps.calls.readResult, 0)
+  // Only the source run itself was fetched; none of the 5000 no-op executions were.
+  assert.equal(deps.calls.getRun, 1)
+})
+
+test('lookup work scales with published artifacts and stops once the latest state and mapping are known', async () => {
+  const id = '39200000002'
+  const intent = await resolve(world({ source: sourceRun(id), artifact: await artifactFor({ id, stuckRuns: [stuck(1)] }) }), id)
+  const prior = [
+    { event_id: intent.event_id },
+    ...Array.from({ length: 40 }, (_, index) => ({ event_id: `watchdog:old-${index}` })),
+  ]
+  const deps = world({ source: sourceRun(id), artifact: await artifactFor({ id, stuckRuns: [stuck(1)] }), prior, noopExecutions: 3000 })
+  const repeat = await resolve(deps, id)
+  assert.equal(repeat.operation, 'none')
+  assert.equal(deps.calls.readResult, 1, 'newest published artifact decides; older evidence is not read')
+  assert.equal(deps.calls.getRun, 2)
+})
+
+test('only production-operations-notification artifacts are examined', async () => {
+  const id = '39200000003'
+  const deps = world({
+    source: sourceRun(id),
+    artifact: await artifactFor({ id, stuckRuns: [stuck(1)] }),
+    prior: [NOTE],
+    mutate: {
+      artifacts: (list) => [
+        { id: 900, name: 'production-release-audit', expired: false, created_at: minutesAgo(1), workflow_run: { id: 1, head_branch: 'main', head_sha: SHA } },
+        { id: 901, name: 'something-else', expired: false, created_at: minutesAgo(1) },
+        ...list,
+      ],
+    },
+  })
+  const intent = await resolve(deps, id)
+  assert.equal(intent.operation, 'open_update')
+  assert.equal(deps.calls.readResult, 1)
+})
+
+test('a candidate artifact whose source run fails validation fails closed', async () => {
+  const id = '39200000004'
+  const live = await artifactFor({ id, stuckRuns: [stuck(1)] })
+  const cases = {
+    'wrong workflow path': { run: { path: '.github/workflows/ci.yml' } },
+    'wrong repository': { run: { repository: { full_name: 'evil/PatelRep' } } },
+    'wrong head repository': { run: { head_repository: { full_name: 'evil/PatelRep' } } },
+    'wrong event': { run: { event: 'workflow_dispatch' } },
+    'not completed': { run: { status: 'in_progress' } },
+    'not successful': { run: { conclusion: 'failure' } },
+    'not main': { run: { head_branch: 'feature' } },
+    'bad SHA': { run: { head_sha: 'nope' } },
+    'artifact SHA differs from run': { artifact: { workflow_run: { id: 40_000_000_000, head_branch: 'main', head_sha: 'd'.repeat(40) } } },
+    'result run id differs': { result: { run: { id: '1', attempt: 1, control_plane_sha: SHA } } },
+    'result attempt differs': { result: { run: { id: '40000000000', attempt: 2, control_plane_sha: SHA } } },
+    'result SHA differs': { result: { run: { id: '40000000000', attempt: 1, control_plane_sha: 'd'.repeat(40) } } },
+    'result schema wrong': { result: { schema: 'patelrep.other.v1' } },
+  }
+  for (const [label, extra] of Object.entries(cases)) {
+    await assert.rejects(
+      resolve(world({ source: sourceRun(id), artifact: live, prior: [{ ...NOTE, ...extra }] }), id),
+      /production notification:/,
+      label,
+    )
+  }
+})
+
+test('listed-but-unreadable or malformed artifact metadata fails closed; expired and out-of-retention evidence is ignored', async () => {
+  const id = '39200000005'
+  const live = await artifactFor({ id, stuckRuns: [stuck(1)] })
+  const missing = world({ source: sourceRun(id), artifact: live, prior: [NOTE] })
+  missing.readNotificationResult = async () => null
+  await assert.rejects(resolve(missing, id), /unreadable/)
+
+  for (const bad of [
+    { created_at: 'yesterday' },
+    { expired: 'no' },
+    { workflow_run: { id: 'abc', head_branch: 'main', head_sha: SHA } },
+    { workflow_run: { id: 40_000_000_000, head_branch: 'main', head_sha: 'short' } },
+  ]) {
+    await assert.rejects(resolve(world({ source: sourceRun(id), artifact: live, prior: [{ ...NOTE, artifact: bad }] }), id), /malformed|invalid/, JSON.stringify(bad))
+  }
+  await assert.rejects(resolve(world({ source: sourceRun(id), artifact: live, mutate: { artifacts: () => [null] } }), id), /malformed/)
+
+  for (const ignored of [{ expired: true }, { created_at: new Date(NOW.getTime() - 91 * 86_400_000).toISOString() }]) {
+    const deps = world({ source: sourceRun(id), artifact: live, prior: [{ event_id: 'watchdog:ok', artifact: ignored }] })
+    assert.equal((await resolve(deps, id)).operation, 'open_update')
+    assert.equal(deps.calls.readResult, 0, 'ignored evidence is never read or trusted')
+  }
+})
+
+test('issue number mapping comes from validated published artifacts only, never from mutable Issue content', async () => {
+  const id = '39200000006'
+  const intent = await resolve(world({ source: sourceRun(id), artifact: await artifactFor({ id, stuckRuns: [stuck(1)] }) }), id)
+  const calls = []
+  const deps = {
+    ...world({ source: sourceRun(id), artifact: null, prior: [{ event_id: 'watchdog:other', issue_number: '88' }] }),
+    getIssue: async (number) => { calls.push(['getIssue', number]); return { number, state: 'closed', title: 'attacker', body: 'watchdog:production-automation 1' } },
+    commentIssue: async (number) => { calls.push(['comment', number]) },
+    setIssueState: async (number, state) => { calls.push(['state', number, state]) },
+    createIssue: async () => { throw new Error('must reuse the mapped thread') },
+    listIssues: async () => { throw new Error('issue search must never be used') },
+  }
+  const published = await publishIntent({ repo: REPO, owner: 'henilllpatelll', intent, expectedDigest: digestIntent(intent) }, deps)
+  assert.equal(published.issue_number, 88)
+  assert.deepEqual(calls, [['getIssue', 88], ['state', 88, 'open'], ['comment', 88]])
 })

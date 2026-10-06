@@ -761,7 +761,7 @@ function renderComment(intent, repo) {
 }
 
 function validateNotificationRun(run, repo) {
-  if (!run || run.name !== WORKFLOW_NAME || run.path !== WORKFLOW_PATH ||
+  if (!run || run.path !== WORKFLOW_PATH ||
       run.event !== 'workflow_run' || run.status !== 'completed' || run.conclusion !== 'success' ||
       run.head_branch !== 'main' || run.repository?.full_name !== repo || run.head_repository?.full_name !== repo) {
     fail('prior notification run provenance is invalid')
@@ -787,34 +787,68 @@ function validateNotificationResult(result, run) {
   return { event_id: result.event_id, key: result.key, issue_number: Number(issueNumber), action: result.action }
 }
 
-// Validated prior notification results, newest first.
-async function listPriorNotifications({ repo, deps }) {
-  const runs = await deps.listNotificationRuns()
-  if (!Array.isArray(runs)) fail('notification run list is malformed')
-  const dated = runs.every((run) => Number.isFinite(Date.parse(run?.created_at ?? '')))
-  const ordered = dated ? [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)) : runs
+// Published-evidence lookup. Work scales with retained published notification ARTIFACTS, never with the number of
+// successful Production Operations Notify workflow runs (most watchdog runs are no-ops that publish nothing).
+// Artifact metadata is only a pointer: every candidate's source run is independently re-fetched and re-validated.
+const NOTIFICATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/
+
+function candidateArtifacts(artifacts, nowMs) {
+  if (!Array.isArray(artifacts)) fail('notification artifact list is malformed')
+  const seenRuns = new Set()
+  const candidates = []
+  for (const artifact of artifacts) {
+    if (!artifact || typeof artifact !== 'object') fail('notification artifact metadata is malformed')
+    if (artifact.name !== NOTIFICATION_ARTIFACT) continue
+    const runId = requireMatch('notification artifact run id', artifact.workflow_run?.id, RUN_ID)
+    if (typeof artifact.expired !== 'boolean' || !ISO_TIMESTAMP.test(clean(artifact.created_at)) || !SHA.test(clean(artifact.workflow_run?.head_sha))) {
+      fail('notification artifact metadata is malformed')
+    }
+    const createdMs = Date.parse(artifact.created_at)
+    // Expired or beyond-retention evidence is explicitly out of scope and is never trusted.
+    if (artifact.expired || nowMs - createdMs > NOTIFICATION_RETENTION_MS) continue
+    if (seenRuns.has(runId)) continue
+    seenRuns.add(runId)
+    candidates.push({ runId, createdMs, headSha: artifact.workflow_run.head_sha, headBranch: artifact.workflow_run.head_branch })
+  }
+  return candidates.sort((a, b) => b.createdMs - a.createdMs || (BigInt(b.runId) > BigInt(a.runId) ? 1 : -1))
+}
+
+// Validated published notification results, newest first. `done(results)` lets a caller stop once it has what it needs.
+async function listPublishedNotifications({ repo, deps, done = () => false }) {
+  const nowMs = typeof deps.now === 'function' ? deps.now() : Date.now()
   const results = []
-  for (const run of ordered) {
-    validateNotificationRun(run, repo)
-    const raw = await deps.readNotificationResult(String(run.id))
-    if (raw !== null) results.push(validateNotificationResult(raw, run))
+  for (const candidate of candidateArtifacts(await deps.listNotificationArtifacts(), nowMs)) {
+    const run = validateNotificationRun(await deps.getRun(candidate.runId), repo)
+    if (String(run.id) !== candidate.runId || run.head_sha !== candidate.headSha || run.head_branch !== candidate.headBranch) {
+      fail('notification artifact does not match its source run')
+    }
+    const raw = await deps.readNotificationResult(candidate.runId)
+    if (raw === null) fail('published notification artifact is unreadable')
+    results.push(validateNotificationResult(raw, run))
+    if (done(results)) break
   }
   return results
 }
 
+const hasLatestAndMapping = (key) => (results) =>
+  results.some((result) => result.key === key) && results.some((result) => result.key === key && result.issue_number !== null)
+
 async function latestNotificationForKey({ repo, key, deps }) {
-  return (await listPriorNotifications({ repo, deps })).find((result) => result.key === key) ?? null
+  const results = await listPublishedNotifications({ repo, deps, done: (found) => found.some((result) => result.key === key) })
+  return results.find((result) => result.key === key) ?? null
 }
 
 async function findPriorNotification({ repo, intent, deps }) {
-  const results = await listPriorNotifications({ repo, deps })
   if (intent.key === WATCHDOG_NOTIFICATION_KEY) {
     // Condition-based thread: only the latest published state deduplicates, so a condition that recurs after a
-    // different one (A -> B -> A) is published again.
+    // different one (A -> B -> A) is published again. Stops as soon as the latest state and issue mapping are known.
+    const results = await listPublishedNotifications({ repo, deps, done: hasLatestAndMapping(intent.key) })
     const latest = results.find((result) => result.key === intent.key)
     const mapped = results.find((result) => result.key === intent.key && result.issue_number !== null)
     return { duplicate: latest?.event_id === intent.event_id, issue_number: mapped?.issue_number ?? null }
   }
+  const results = await listPublishedNotifications({ repo, deps })
   let issueNumber = null
   for (const result of results) {
     if (result.event_id === intent.event_id) return { duplicate: true, issue_number: result.issue_number }

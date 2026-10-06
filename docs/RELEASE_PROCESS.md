@@ -432,9 +432,9 @@ constants in code, not workflow inputs:
 
 | Check | Budget | Reason |
 | --- | --- | --- |
-| Production Release/Rollback `in_progress` | 45 min | well above any healthy release; a human must look |
+| Production Release/Rollback `in_progress` | 45 min | conservative observation threshold; Production Release has no explicit job timeout, so a hung job could otherwise run for hours |
 | Production Release/Rollback queued/waiting/requested/pending | 30 min | unanswered approval or blocked queue |
-| Control-plane run active (stabilization, auto-rollback request, re-entry, notify, audit, readiness) | 20 min | their jobs have `timeout-minutes: 10` |
+| Control-plane run active (stabilization, auto-rollback request, re-entry, notify, audit, readiness) | 20 min | conservative observation threshold above every explicit timeout (10 min stabilization/auto-rollback request/re-entry; 15 min audit/readiness; none on Notify) |
 | Deploy Health Check last completed run | 45 min | scheduled every 15 min |
 | Production Release Audit last completed run | 7 h | scheduled every 6 h |
 | Production Recovery Readiness last completed run | 26 h | scheduled daily |
@@ -454,7 +454,12 @@ Every run uploads `production-automation-watchdog/context.json` (schema `patelre
 it by exact workflow path, strictly validates the artifact (schema, run id/attempt, control-plane SHA, finding
 codes/severity), and publishes through the existing `issues: write`-only publisher on one lifecycle key,
 `watchdog:production-automation`. A finding fingerprint taken from trusted prior notification artifacts suppresses
-repeat comments for an unchanged condition. Phase 4D semantics are unchanged.
+repeat comments for an unchanged condition. That history lookup is artifact-first: it lists only non-expired
+`production-operations-notification` artifacts inside the 90-day retention window, independently re-fetches and
+re-validates each candidate's source run (exact path, repository, event, status, conclusion, main, SHA, attempt), and
+stops once the latest state and issue mapping are known, so its cost scales with published evidence rather than with
+the four-times-hourly count of no-op notification runs. Issue content is never authority. Phase 4D semantics are
+unchanged.
 
 The watchdog does not cancel, rerun, dispatch, approve, merge, push, tag, or touch migration history, and it cannot
 self-heal. The Phase 5A drill gains `stuck_production_operation_is_detected_without_mutation` (in-memory only).

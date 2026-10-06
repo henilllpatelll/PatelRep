@@ -91,6 +91,16 @@ test('notifier adds the watchdog trigger without adding another issues:write or 
   assert.match(notify, /Condition-based thread/)
 })
 
+test('notification history lookup is artifact-first and never enumerates every notify workflow run', () => {
+  const notifyDeps = read('scripts/production-operations-notify-deps.mjs')
+  assert.doesNotMatch(executable(notify), /listNotificationRuns/)
+  assert.doesNotMatch(executable(notifyDeps), /listNotificationRuns|workflows\/production-operations-notify\.yml\/runs/)
+  assert.match(executable(notifyDeps), /actions\/artifacts\?name=\$\{NOTIFICATION_ARTIFACT\}/)
+  assert.match(notify, /NOTIFICATION_RETENTION_MS = 90/)
+  assert.match(notify, /await deps\.getRun\(candidate\.runId\)/)
+  assert.doesNotMatch(executable(notifyDeps), /writeApi\('(PUT|DELETE)'|actions\/artifacts\/[^`]*method/)
+})
+
 test('Phase 5C control-plane files remain human-merge only', () => {
   for (const file of [
     '.github/workflows/production-automation-watchdog.yml',

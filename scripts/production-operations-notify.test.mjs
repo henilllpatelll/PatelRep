@@ -163,10 +163,19 @@ function deps({ sourceRun = stabilizationRun(), artifacts = {}, extraRuns = {}, 
       if (String(sourceRun.id) === String(id)) return sourceRun
       if (String(id) === ROLLBACK) return extraRuns[ROLLBACK] ?? rollbackRun()
       if (String(id) === REENTRY) return extraRuns[REENTRY] ?? reentryRun()
-      return extraRuns[String(id)] ?? null
+      return extraRuns[String(id)] ?? notificationRuns.find((run) => String(run.id) === String(id)) ?? null
     },
     readNamedContext: async (runId, name) => artifacts[`${runId}:${name}`] ?? null,
-    listNotificationRuns: async () => notificationRuns,
+    now: () => Date.parse('2026-10-06T12:00:00Z'),
+    listNotificationArtifacts: async () => notificationRuns
+      .filter((run) => notificationResults[String(run.id)])
+      .map((run) => ({
+        id: Number(run.id),
+        name: 'production-operations-notification',
+        expired: false,
+        created_at: run.created_at,
+        workflow_run: { id: run.id, head_branch: run.head_branch, head_sha: run.head_sha },
+      })),
     readNotificationResult: async (runId) => notificationResults[String(runId)] ?? null,
   }
 }

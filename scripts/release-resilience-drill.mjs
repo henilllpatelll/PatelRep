@@ -642,7 +642,7 @@ async function drillStuckProductionOperationIsDetectedWithoutMutation() {
       String(runId) === watchdogRunId && name === 'production-automation-watchdog'
         ? { ...result, run: { id: watchdogRunId, attempt: 1, control_plane_sha: C } }
         : null,
-    listNotificationRuns: async () => [],
+    listNotificationArtifacts: async () => [],
     readNotificationResult: async () => null,
   })
   assert.equal(intent.key, 'watchdog:production-automation')

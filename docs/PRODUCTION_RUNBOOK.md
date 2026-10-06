@@ -269,7 +269,7 @@ Watchdog issues use the single thread `watchdog:production-automation` and carry
   completed *failure* still counts as alive because failures are handled by their own notifications.
 - **critical** — a Production Release/Rollback has been `in_progress` longer than **45 minutes**, or a
   control-plane workflow (stabilization, auto-rollback request, re-entry, notify, audit, readiness) has been
-  active longer than **20 minutes** (their jobs time out at 10).
+  active longer than **20 minutes**. This is a conservative observation threshold: explicit job timeouts are 10 minutes (stabilization, auto-rollback request, re-entry) and 15 minutes (audit, recovery readiness), and Production Operations Notify sets none.
 - **unproven** (critical) — GitHub state was missing, malformed, from the wrong repository/path, or unreadable.
   Absence of proof is never treated as healthy.
 
