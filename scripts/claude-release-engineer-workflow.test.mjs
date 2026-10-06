@@ -73,9 +73,9 @@ test('production-release.yml changes only deliberately (release-context handoff,
   // Railway variables: `variables set` passes --skip-deploys so only `railway up` deploys (no racing redeploy).
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
   // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
-  // Comment-only: the Required Reviewer on the production Environment was removed outside the repo, so the human-approval wording was rewritten (no functional change).
+  // Phase 3A: a final read-only evidence-ledger job records sanitized release/mutation outcomes; it has no production Environment or credentials.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '7d9f2d7de011cd95068a02ef372de81c570e8bba1ed85f66328c8369be23aa8e')
+  assert.equal(digest, 'e0019bb82db128d5659f7cc0afc7f2a47e54d5fa7cd102b85ed2c0fe4ab9d06c')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
