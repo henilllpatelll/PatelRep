@@ -126,6 +126,34 @@ incident review before any fix-forward/re-entry decision. In particular:
 The evidence job itself has no production Environment or credentials and cannot deploy, migrate, tag, release or
 dispatch another workflow.
 
+## Re-entering production after an automated rollback (Phase 4B)
+
+Do not immediately release the failed line again after an automated rollback. The rollback remains an open
+production incident until a staged fix-forward is explicitly authorized and its release stabilizes.
+
+1. Fix forward through the normal PR → **CI Gate** → **Staging Gate** → merge path.
+2. Record the successful automated **Production Rollback run id** that restored production.
+3. Run **Production Incident Re-entry** with that rollback run id, the exact current `main` SHA to release, and
+   the intended version bump. This workflow does not deploy anything.
+4. If it succeeds, note its workflow run id.
+5. Manually dispatch **Production Release** with the exact same `release_sha` and version bump, and set
+   `reentry_source_run_id` to the successful Production Incident Re-entry run id.
+6. Let **Production Release Stabilization** finish. The incident is closed only when it emits the
+   `production-incident-closeout` artifact. `stable` and `transient_unconfirmed` may close the prior
+   incident; a confirmed new regression does not.
+
+The authorization becomes stale if `main` moves. Re-run Production Incident Re-entry for the new exact main SHA;
+never edit an artifact or reuse authorization for another commit/bump. The original failed candidate cannot
+authorize itself for re-entry, and an automatic Production Release request can never consume a re-entry
+authorization.
+
+This gate also covers an automated rollback of a **partial release**, where production may equal the current
+managed Release even though the failed candidate was never tagged. Do not infer "no incident" from
+runtime==managed-release alone.
+
+If the required 90-day evidence artifacts expired before closeout, or the gate cannot independently re-prove
+quarantine, stop and investigate manually. Do not recreate or guess the missing incident provenance.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
