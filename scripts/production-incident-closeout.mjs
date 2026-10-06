@@ -39,8 +39,9 @@ function validateRollbackRun(run, { repo, runId }) {
   if (run.name !== 'Production Rollback' || run.path !== '.github/workflows/production-rollback.yml') {
     fail('source is not the trusted Production Rollback workflow')
   }
-  if (run.event !== 'workflow_dispatch' || run.status !== 'completed' || run.conclusion !== 'success') {
-    fail('rollback run is not a completed success')
+  if (run.event !== 'workflow_dispatch' || run.status !== 'completed' ||
+      !['success', 'failure', 'cancelled'].includes(run.conclusion)) {
+    fail('rollback run is not completed')
   }
   if (run.head_branch !== 'main' || !sameRepository(run, repo)) fail('rollback run provenance mismatch')
   requireMatch('rollback control-plane SHA', run.head_sha, SHA)
@@ -60,12 +61,19 @@ function validateRollbackEvidence(evidence, rollbackRun) {
       !RUN_ID.test(String(evidence.source?.automation_source_run_id ?? ''))) {
     fail('rollback evidence does not prove an automated incident source')
   }
-  if (evidence.production_verified !== true ||
-      evidence.quarantine !== 'verified' ||
-      evidence.disposition !== 'restored' ||
-      evidence.jobs?.rollback_verification !== 'success' ||
-      evidence.jobs?.circuit_breaker !== 'success') {
-    fail('rollback evidence does not prove a verified restored quarantine')
+  if (evidence.production_verified !== true || evidence.jobs?.rollback_verification !== 'success') {
+    fail('rollback evidence does not prove a verified restored runtime')
+  }
+  const verifiedQuarantine =
+    evidence.quarantine === 'verified' &&
+    evidence.disposition === 'restored' &&
+    evidence.jobs?.circuit_breaker === 'success'
+  const unprovenQuarantine =
+    evidence.quarantine === 'unproven' &&
+    evidence.disposition === 'restored_quarantine_unproven' &&
+    ['failure', 'cancelled'].includes(evidence.jobs?.circuit_breaker)
+  if (!verifiedQuarantine && !unprovenQuarantine) {
+    fail('rollback evidence has an invalid post-restore quarantine state')
   }
   if (evidence.mutations?.database !== 'not_mutated_by_workflow' ||
       evidence.mutations?.release_record !== 'not_created_by_workflow') {
@@ -82,6 +90,7 @@ function validateRollbackEvidence(evidence, rollbackRun) {
   return {
     incidentRunId: String(evidence.source.automation_source_run_id),
     target: { version, sha },
+    quarantine: evidence.quarantine,
   }
 }
 
@@ -172,7 +181,7 @@ function validateCloseoutArtifact(artifact, closeoutRun, { rollback, incident, t
 export async function resolveActiveAutomatedRollbackQuarantine({ repo }, deps) {
   if (!repo) fail('repository is required')
   const [rollbackRuns, releaseRuns] = await Promise.all([
-    deps.listSuccessfulRollbackRuns(),
+    deps.listCompletedRollbackRuns(),
     deps.listSuccessfulReleaseRuns(),
   ])
   if (!Array.isArray(rollbackRuns) || !Array.isArray(releaseRuns)) fail('production run history could not be proven')
@@ -197,6 +206,9 @@ export async function resolveActiveAutomatedRollbackQuarantine({ repo }, deps) {
   }
 
   const evidence = await deps.readRollbackEvidence(String(rollbackRun.id))
+  // Phase 4B only owns re-entry after production was actually restored to a known target.
+  // An automated rollback that failed before exact final verification remains a general human recovery case.
+  if (!evidence || evidence.production_verified !== true || evidence.jobs?.rollback_verification !== 'success') return null
   const rollbackEvidence = validateRollbackEvidence(evidence, rollbackRun)
   const incidentRun = validateIncidentRun(await deps.getRun(rollbackEvidence.incidentRunId), {
     repo,
@@ -211,6 +223,7 @@ export async function resolveActiveAutomatedRollbackQuarantine({ repo }, deps) {
       controlPlaneSha: rollbackRun.head_sha,
     },
     target: rollbackEvidence.target,
+    quarantine: rollbackEvidence.quarantine,
     incident,
   })
 }
