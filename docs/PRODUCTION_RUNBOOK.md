@@ -105,8 +105,8 @@ the existing operator-reviewed compatibility behavior.
 After exact rollback smoke succeeds, the read-only circuit-breaker check proves either (a) a post-release rollback
 is intentionally behind the newest managed Release, which blocks Phase 2D automatic promotion, or (b) a partial
 failed release never became a managed Release and production is back on the prior baseline. Do not manually change
-tags/Releases to defeat this quarantine. Fix forward through the normal PR → CI → Staging path, then make a
-deliberate release decision.
+tags/Releases to defeat this quarantine. Fix forward through the normal PR → CI → Staging path, then use the
+Phase 4B owner closeout + exact-SHA manual re-entry procedure below.
 
 ## Rollback evidence after recovery attempts (Phase 4A)
 
@@ -125,6 +125,31 @@ incident review before any fix-forward/re-entry decision. In particular:
 
 The evidence job itself has no production Environment or credentials and cannot deploy, migrate, tag, release or
 dispatch another workflow.
+
+## Re-enter production after an automatic rollback (Phase 4B)
+
+Do **not** immediately re-release the failed line after an automatic rollback. A verified automatic rollback opens
+a Phase 4B quarantine. The recovery sequence is:
+
+1. Fix the regression in a new PR and pass the normal **CI Gate** + **Staging Gate** before merge.
+2. Merge the fix to `main`, then wait for the merged `main` SHA's push CI to finish with **CI Gate = success**.
+3. Confirm production still reports the exact rollback target SHA/version and no Production Release/Rollback is active.
+4. As the repository owner, dispatch **Production Incident Closeout** with:
+   - `rollback_run_id`: the automated Production Rollback run that restored production;
+   - `reentry_sha`: the exact current fixed `main` SHA.
+5. Confirm the closeout run succeeds and retains `production-incident-closeout/context.json`.
+6. Manually dispatch **Production Release** from `main` with:
+   - `release_sha`: exactly the closeout's `reentry_sha`;
+   - `incident_closeout_run_id`: the successful closeout run id;
+   - `automation_source_run_id`: blank.
+7. Let the normal release gates run. A successful Production Release closes quarantine. A failed release does not.
+
+Automation cannot perform step 4 or use a closeout to re-enter quarantine. If `main` changes and you want to
+release the newer SHA, run a new closeout for that exact SHA. If production identity changes after closeout but
+before release, the re-entry preflight refuses and you must reassess rather than force through it.
+
+The same closeout can be reused only to retry its exact SHA after a failed release attempt. Once a successful
+Production Release closes the quarantine, supplying the old closeout id is rejected as stale.
 
 ## Automated Production Release request (Phase 2D)
 
