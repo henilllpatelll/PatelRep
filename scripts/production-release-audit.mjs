@@ -83,6 +83,7 @@ async function findMatchingReentry({ repo, open, mainSha, deps }) {
   const runs = await deps.listReentryRuns()
   if (!Array.isArray(runs)) throw new Error('production release audit: re-entry run list is malformed')
   for (const run of runs) {
+    if (Date.parse(run.created_at ?? '') <= Date.parse(open.run.created_at ?? '')) continue
     const runId = String(run.id)
     const trusted = validateReentryAuthorizationRun(run, { repo, runId })
     const raw = await deps.readReentryAuthorization(runId)
