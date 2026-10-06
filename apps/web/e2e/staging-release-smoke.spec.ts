@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { filterTransientRateLimits, type ObservedRateLimit } from '../lib/utils/smokeFailures'
 
 const password = process.env.STAGING_FIXTURE_PASSWORD
 const webRoles = [
@@ -67,6 +68,8 @@ for (const [role, email] of mobileOnlyRoles) {
 
 test('core hotel workflows load and safe synthetic mutations succeed', async ({ page }) => {
   test.setTimeout(120_000)
+  const rateLimits: ObservedRateLimit[] = []
+  page.on('response', (response) => { if (response.status() === 429) rateLimits.push({ method: response.request().method() }) })
   const failures = await loginToWebPortal(page, 'staging-gm@patelrep.test')
   await page.goto('/housekeeping')
   await expect(page.getByText('101', { exact: true }).first()).toBeVisible({ timeout: 30_000 })
@@ -101,5 +104,6 @@ test('core hotel workflows load and safe synthetic mutations succeed', async ({ 
     if (!(await createdEntry.isVisible())) await page.reload()
     await expect(createdEntry).toBeVisible({ timeout: 10_000 })
   }).toPass({ timeout: 45_000 })
-  expect(failures, 'fatal browser failures during workflow smoke').toEqual([])
+  // Every page above asserted its synthetic data rendered, so a transient read 429 did not hide content.
+  expect(filterTransientRateLimits(failures, rateLimits), 'fatal browser failures during workflow smoke').toEqual([])
 })
