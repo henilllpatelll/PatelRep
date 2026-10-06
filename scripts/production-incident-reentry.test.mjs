@@ -22,7 +22,7 @@ const AUTH_RUN = '37520000001'
 const rollbackRun = (overrides = {}) => ({
   id: Number(ROLLBACK_RUN),
   run_attempt: 1,
-  name: 'Production Rollback',
+  name: `Production Rollback v1.8.0 (automated request from run ${INCIDENT_RUN})`,
   path: '.github/workflows/production-rollback.yml',
   event: 'workflow_dispatch',
   status: 'completed',
@@ -89,7 +89,7 @@ const incident = (classification = 'post_release_regression') => ({
 const authRun = {
   id: Number(AUTH_RUN),
   run_attempt: 1,
-  name: 'Production Incident Re-entry',
+  name: `Production Incident Re-entry for rollback ${ROLLBACK_RUN} -> ${D}`,
   path: '.github/workflows/production-incident-reentry.yml',
   event: 'workflow_dispatch',
   status: 'completed',
@@ -243,6 +243,18 @@ test('failed candidate cannot authorize itself and moving main invalidates prior
   )
 })
 
+test('workflow identity is the exact path, never the dynamic run display name', async () => {
+  const input = { repo: REPO, runId: AUTH_RUN, runAttempt: '1', controlPlaneSha: C, rollbackRunId: ROLLBACK_RUN, releaseSha: D, versionBump: 'patch' }
+  // A trusted-looking display name on the wrong workflow file must fail closed.
+  const wrongRollback = { ...deps(), listRollbackRuns: async () => [rollbackRun({ name: 'Production Rollback', path: '.github/workflows/other.yml' })] }
+  await assert.rejects(authorizeProductionIncidentReentry(input, wrongRollback), /not trusted Production Rollback/)
+  // Dynamic names on the exact paths are accepted (rollbackRun and authRun fixtures use them).
+  assert.match(rollbackRun().name, /^Production Rollback v/)
+  assert.match(authRun.name, /^Production Incident Re-entry for rollback /)
+  const open = await findLatestOpenAutomatedRollback({ repo: REPO, deps: deps() })
+  assert.equal(String(open.run.id), ROLLBACK_RUN)
+})
+
 test('stale rollback id, active production operation, missing CI or Staging proof all fail closed', async () => {
   await assert.rejects(
     authorizeProductionIncidentReentry({
@@ -288,7 +300,7 @@ test('successful re-entry stays open until stabilization emits the verified clos
   const closingRun = {
     id: 37530000001,
     run_attempt: 1,
-    name: 'Production Release',
+    name: `Production Release ${D}`,
     path: '.github/workflows/production-release.yml',
     event: 'workflow_dispatch',
     status: 'completed',

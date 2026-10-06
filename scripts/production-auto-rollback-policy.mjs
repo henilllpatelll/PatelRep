@@ -105,7 +105,8 @@ export function requireRollbackExecutionContract(source) {
 
 function requireReleaseRun(run, { repo, incident }) {
   if (!run || String(run.id) !== String(incident.source_release?.run_id)) fail('incident source Production Release run id mismatch')
-  if (run.name !== 'Production Release' || run.path !== '.github/workflows/production-release.yml') fail('incident source is not Production Release')
+  // run.name is a dynamic display title (run-name); the exact workflow path is the trusted identity.
+  if (run.path !== '.github/workflows/production-release.yml') fail('incident source is not Production Release')
   if (run.event !== 'workflow_dispatch' || run.status !== 'completed') fail('incident source Production Release is not completed')
   if (run.head_branch !== 'main') fail('incident source Production Release did not run from main')
   if (run.repository?.full_name !== repo || run.head_repository?.full_name !== repo) fail('incident source Production Release repository mismatch')

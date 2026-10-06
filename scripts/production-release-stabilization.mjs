@@ -40,7 +40,8 @@ const requireState = (kind, value) => {
 
 export function validateSourceRun(run, { repo, sourceRunId }) {
   if (!run || String(run.id) !== sourceRunId) throw new Error('release stabilization: source run id mismatch')
-  if (run.name !== 'Production Release' || run.path !== '.github/workflows/production-release.yml') {
+  // run.name is a dynamic display title (run-name); the exact workflow path is the trusted identity.
+  if (run.path !== '.github/workflows/production-release.yml') {
     throw new Error('release stabilization: source is not the trusted Production Release workflow')
   }
   if (run.event !== 'workflow_dispatch' || run.status !== 'completed') {

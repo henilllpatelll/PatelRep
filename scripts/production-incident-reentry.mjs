@@ -30,7 +30,8 @@ function requireMatch(name, value, pattern) {
 
 function validateRepoRun(run, { repo, runId, name, path: workflowPath, event = 'workflow_dispatch', requireSuccess = false }) {
   if (!run || String(run.id) !== String(runId)) fail(`${name} run id mismatch`)
-  if (run.name !== name || run.path !== workflowPath) fail(`run ${runId} is not trusted ${name}`)
+  // `name` is for messages only: run.name is a dynamic display title (run-name), so the exact path is the identity.
+  if (run.path !== workflowPath) fail(`run ${runId} is not trusted ${name}`)
   if (run.event !== event || run.status !== 'completed') fail(`${name} run ${runId} is not a completed ${event}`)
   if (requireSuccess && run.conclusion !== 'success') fail(`${name} run ${runId} did not succeed`)
   if (run.head_branch !== 'main') fail(`${name} run ${runId} did not run from main`)
