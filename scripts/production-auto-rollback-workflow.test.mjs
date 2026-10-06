@@ -10,6 +10,7 @@ const rollback = read('.github/workflows/production-rollback.yml')
 const policy = read('scripts/production-auto-rollback-policy.mjs')
 const cli = read('scripts/production-auto-rollback-request.mjs')
 const deps = read('scripts/production-auto-rollback-deps.mjs')
+const circuit = read('scripts/production-auto-rollback-circuit-breaker.mjs')
 
 const jobSection = (source, name) => {
   const start = source.indexOf(`\n  ${name}:\n`)
@@ -68,13 +69,41 @@ test('no other workflow gains a production rollback dispatch path', () => {
   }
 })
 
-test('Phase 3C remains inert until Phase 3D wires independent rollback-side revalidation', () => {
-  assert.doesNotMatch(rollback, /automation_source_run_id/)
-  assert.doesNotMatch(rollback, /production-auto-rollback-request\.mjs rollback/)
+test('Phase 3D wires independent rollback-side revalidation before any production Environment job', () => {
+  assert.match(rollback, /run-name: Production Rollback .*automation_source_run_id/)
+  assert.match(rollback, /automation_source_run_id:\n {8}description:/)
+  const preflight = jobSection(rollback, 'verify-automation-provenance')
+  assert.doesNotMatch(preflight, /environment: production|secrets\.|RAILWAY|SUPABASE|psql|create-github-app-token/)
+  assert.match(preflight, /ref: \$\{\{ github\.sha \}\}/)
+  assert.match(preflight, /persist-credentials: false/)
+  assert.match(preflight, /if: inputs\.automation_source_run_id == ''/)
+  assert.match(preflight, /if: inputs\.automation_source_run_id != ''/)
+  assert.match(preflight, /node scripts\/production-auto-rollback-request\.mjs rollback/)
+  assert.match(preflight, /PRODUCTION_AUTO_ROLLBACK_ENABLED: \$\{\{ vars\.PRODUCTION_AUTO_ROLLBACK_ENABLED \}\}/)
+  const resolve = jobSection(rollback, 'resolve-and-verify-target')
+  assert.match(resolve, /needs: verify-automation-provenance/)
+  assert.match(resolve, /environment: production/)
+  assert.ok(rollback.indexOf('verify-automation-provenance:') < rollback.indexOf('resolve-and-verify-target:'))
   assert.match(policy, /Phase 3D must land before auto-rollback requests can dispatch/)
-  assert.match(policy, /automation_source_run_id:\\n/)
-  assert.match(policy, /production-auto-rollback-request\\\.mjs rollback/)
-  assert.match(policy, /run-name: Production Rollback/)
+})
+
+test('automated rollback requires CLEAN DB drift while manual rollback keeps operator-reviewed compatibility behavior', () => {
+  const compatibility = jobSection(rollback, 'compatibility-check')
+  assert.match(compatibility, /AUTOMATION_SOURCE_RUN_ID: \$\{\{ inputs\.automation_source_run_id \}\}/)
+  assert.match(compatibility, /if \[ -n "\$AUTOMATION_SOURCE_RUN_ID" \]; then/)
+  assert.match(compatibility, /grep -qx "Status: CLEAN" drift\.txt/)
+  assert.match(compatibility, /Automated rollback requires CLEAN production migration history/)
+  assert.match(compatibility, /if grep -q "Missing on production" drift\.txt/)
+  assert.match(compatibility, /if grep -q "Unknown on production" drift\.txt/)
+  assert.doesNotMatch(compatibility, /migration repair|supabase migration repair/i)
+})
+
+test('manual rollback remains available with a blank automation source and no automation switch requirement', () => {
+  assert.match(rollback, /automation_source_run_id:\n {8}description:[^\n]*\n {8}required: false\n {8}default: ""/)
+  const preflight = jobSection(rollback, 'verify-automation-provenance')
+  assert.match(preflight, /Manual rollback dispatch; automated provenance validation is not applicable/)
+  const manual = preflight.match(/- name: Preserve manual rollback semantics[\s\S]*?(?=\n {6}- name:|$)/)?.[0] ?? ''
+  assert.doesNotMatch(manual, /PRODUCTION_AUTO_ROLLBACK_ENABLED|production-auto-rollback-request/)
 })
 
 test('policy keeps zero-migration, exact-runtime, fresh-failure, low-risk and no-active-run gates', () => {
@@ -102,6 +131,19 @@ test('the request CLI exposes rollback mode for Phase 3D but never dispatches it
   assert.match(deps, /runPublicSmoke/)
 })
 
+test('Phase 3D verifies a read-only circuit breaker only after exact rollback verification succeeds', () => {
+  const breaker = jobSection(rollback, 'verify-automated-circuit-breaker')
+  assert.match(breaker, /needs: \[resolve-and-verify-target, verify-rollback\]/)
+  assert.match(breaker, /inputs\.automation_source_run_id != '' && needs\.verify-rollback\.result == 'success'/)
+  assert.match(breaker, /permissions:\n {6}contents: read\n {6}actions: read/)
+  assert.doesNotMatch(breaker, /environment: production|secrets\.|RAILWAY|SUPABASE|psql|create-github-app-token|gh workflow run/)
+  assert.match(breaker, /node scripts\/production-auto-rollback-circuit-breaker\.mjs/)
+  assert.match(circuit, /managed_release_mismatch/)
+  assert.match(circuit, /failed_candidate_unmanaged/)
+  assert.match(circuit, /resolveProductionBaseline/)
+  assert.match(circuit, /readRuntimeIdentity/)
+})
+
 test('owner switch is explicit and workflows never create or modify it', () => {
   assert.match(workflow, /PRODUCTION_AUTO_ROLLBACK_ENABLED: \$\{\{ vars\.PRODUCTION_AUTO_ROLLBACK_ENABLED \}\}/)
   assert.match(policy, /PRODUCTION_AUTO_ROLLBACK_ENABLED/)
@@ -111,7 +153,7 @@ test('owner switch is explicit and workflows never create or modify it', () => {
   }
 })
 
-test('Release Workflow Contract requires both Phase 3C test files', () => {
+test('Release Workflow Contract requires the Phase 3C/3D rollback test files', () => {
   const ci = read('.github/workflows/ci.yml')
   const start = ci.indexOf('\n  release-workflow-contract:\n')
   assert.ok(start >= 0)
@@ -122,6 +164,7 @@ test('Release Workflow Contract requires both Phase 3C test files', () => {
   for (const file of [
     'scripts/production-auto-rollback-policy.test.mjs',
     'scripts/production-auto-rollback-workflow.test.mjs',
+    'scripts/production-auto-rollback-circuit-breaker.test.mjs',
   ]) {
     assert.ok(files.includes(file), `${file} must run in Release Workflow Contract`)
     assert.ok(existsSync(file), `${file} exists`)

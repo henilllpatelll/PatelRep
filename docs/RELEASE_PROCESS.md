@@ -199,19 +199,45 @@ incident; the incident artifact alone is not treated as sufficient authority. Pa
 eligible when Web/API public identity can still prove the exact failing candidate. Ambiguous partial identity is
 human-only.
 
-**Phase 3C is intentionally inert until Phase 3D lands.** Before dispatching, the policy reads the trusted
-`production-rollback.yml` from the exact current control-plane SHA and requires an
-`automation_source_run_id` input plus a call to
-`scripts/production-auto-rollback-request.mjs rollback` inside Production Rollback. The current human-only
-rollback workflow has neither, so the resolver cleanly refuses with “Phase 3D must land before auto-rollback
-requests can dispatch.” This prevents enabling the switch early from bypassing rollback-side provenance
-re-verification.
+Before dispatching, the policy reads the trusted `production-rollback.yml` from the exact current
+control-plane SHA and requires the Phase 3D rollback-side contract: an `automation_source_run_id` input,
+automation-aware run identity, and a call to `scripts/production-auto-rollback-request.mjs rollback` before
+production access. If that contract is ever removed or weakened, Phase 3C immediately becomes inert again.
+
+### Hardened automated rollback execution & circuit breaker (Phase 3D)
+
+`.github/workflows/production-rollback.yml` keeps its manual `target_version` dispatch and adds one optional
+`automation_source_run_id`. Blank means the original manual behavior. Non-blank means automated mode and is
+accepted only after a new **unprivileged** `verify-automation-provenance` job checks out the exact workflow SHA
+and runs `production-auto-rollback-request.mjs rollback`. That is the third independent evaluation of the same
+Phase 3C policy (resolve → request → rollback). The production jobs depend on this preflight, so an automated run
+cannot reach the `production` Environment, Supabase, or Railway before fresh provenance revalidation succeeds.
+
+Automated database compatibility is stricter than manual rollback. Phase 3C already requires the failed release's
+database state to be exactly `no_change`; Phase 3D then requires the previous release checkout's production drift
+result to be exactly `Status: CLEAN`. Any missing, unknown, pending, or otherwise ambiguous migration state fails
+the automated rollback. Manual rollback keeps the existing operator-reviewed compatibility behavior. Neither mode
+runs a reverse migration, changes migration history, or uses `supabase migration repair`.
+
+The deployment path itself is unchanged: resolve exact completed previous Release/tag → database compatibility →
+API repo-root Railway upload → exact API health/readiness identity → Web `apps/web --path-as-root` → exact
+Web/API public smoke + deployment-drift verification. API must still verify before Web starts. Rollback still
+creates **no tag and no GitHub Release**.
+
+After a successful automated rollback, a separate read-only circuit-breaker job proves the automatic loop is
+quarantined. For `post_release_regression`, live runtime must now equal the previous release while the newest
+managed GitHub Release remains the failed candidate; the existing Phase 2D release-request policy therefore sees
+runtime != managed baseline and refuses automatic promotion. For `partial_release_failure`, the failed candidate
+must still have no completed GitHub Release and runtime must be restored to the prior/current managed baseline;
+the original incident cannot be replayed through Phase 2D because that path only accepts Deploy Health recovery
+roots. Failure to prove either quarantine state makes the rollback workflow fail after restoration so a human must
+decide how to re-enter the release line.
 
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
 
-The feature is inert until the repository owner manually sets the repository variable `PRODUCTION_AUTO_RELEASE_ENABLED=true` — only after Phase 2D is merged, the first managed release (`v1.8.0`) was completed manually, and understood that, with no Environment approval pause, enabling it lets an eligible recovery merge proceed to production without a human click. No workflow ever sets or changes it. Everything else — feature merges, unreleased work on `main`, database/billing/auth/infrastructure/control-plane changes, CI/Staging/Production-Release/Evidence-Audit recovery, and any retry after a failed or partial production release — stays a manual release decision. Rollback is never automated. Full contract: [AUTONOMOUS_RELEASE_ENGINEER.md](AUTONOMOUS_RELEASE_ENGINEER.md).
+The feature is inert until the repository owner manually sets the repository variable `PRODUCTION_AUTO_RELEASE_ENABLED=true` — only after Phase 2D is merged, the first managed release (`v1.8.0`) was completed manually, and understood that, with no Environment approval pause, enabling it lets an eligible recovery merge proceed to production without a human click. No workflow ever sets or changes it. Everything else — feature merges, unreleased work on `main`, database/billing/auth/infrastructure/control-plane changes, CI/Staging/Production-Release/Evidence-Audit recovery, and production incidents that do not satisfy the narrow Phase 3C/3D rollback policy — stays a manual release decision. Full contract: [AUTONOMOUS_RELEASE_ENGINEER.md](AUTONOMOUS_RELEASE_ENGINEER.md).
 
 ### Rollback
 

@@ -1,7 +1,7 @@
 // Phase 3C: deterministic policy for an AUTOMATED Production Rollback REQUEST.
-// This policy is evaluated by a read-only resolver and again immediately before the request workflow
-// obtains its actions:write App token. Phase 3D will reuse the same policy inside Production Rollback
-// before any production step. Until that rollback-side revalidation contract exists, Phase 3C is inert.
+// This policy is evaluated by a read-only resolver, again immediately before the request workflow
+// obtains its actions:write App token, and a third time by Production Rollback in automated mode BEFORE
+// any production Environment job. Missing/changed rollback-side revalidation fails closed.
 import {
   Ineligible,
   TRUSTED_BOT,

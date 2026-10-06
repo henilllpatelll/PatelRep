@@ -11,6 +11,12 @@ name: Production Rollback
 # The expected recovery order is: (1) disable the affected feature flag via
 # Feature Rollout, (2) redeploy a known-good application version with this
 # workflow, (3) forward-fix via a normal PR if neither is sufficient.
+#
+# Phase 3D: an automated dispatch carries automation_source_run_id. That mode first re-runs the trusted
+# Phase 3C policy from the exact workflow SHA in an unprivileged job BEFORE any production Environment job.
+# Manual dispatch leaves automation_source_run_id blank and keeps the original operator-driven semantics.
+
+run-name: Production Rollback ${{ inputs.target_version }}${{ inputs.automation_source_run_id && format(' (automated request from run {0})', inputs.automation_source_run_id) || '' }}
 
 on:
   workflow_dispatch:
@@ -18,6 +24,11 @@ on:
       target_version:
         description: "Known-good release tag to restore, e.g. v1.8.0 (must already have a GitHub Release)"
         required: true
+        type: string
+      automation_source_run_id:
+        description: "Automation only: trusted Production Release Stabilization run id; leave blank for manual rollback"
+        required: false
+        default: ""
         type: string
 
 concurrency:
@@ -29,10 +40,43 @@ concurrency:
 permissions:
   contents: read
   checks: read
+  actions: read
+  pull-requests: read
 
 jobs:
+  verify-automation-provenance:
+    name: Verify automated rollback provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        if: inputs.automation_source_run_id != ''
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        if: inputs.automation_source_run_id != ''
+        with:
+          node-version: '22'
+      - name: Preserve manual rollback semantics
+        if: inputs.automation_source_run_id == ''
+        run: echo "Manual rollback dispatch; automated provenance validation is not applicable."
+      - name: Independently revalidate automated rollback before production access
+        if: inputs.automation_source_run_id != ''
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          node scripts/production-auto-rollback-request.mjs rollback
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          TARGET_VERSION: ${{ inputs.target_version }}
+          PRODUCTION_AUTO_ROLLBACK_ENABLED: ${{ vars.PRODUCTION_AUTO_ROLLBACK_ENABLED }}
+
   resolve-and-verify-target:
     name: Resolve and verify rollback target
+    needs: verify-automation-provenance
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -129,6 +173,16 @@ jobs:
         id: drift
         run: |
           node scripts/check-db-drift.mjs --environment production --allow-pending | tee drift.txt
+
+          if [ -n "$AUTOMATION_SOURCE_RUN_ID" ]; then
+            if ! grep -qx "Status: CLEAN" drift.txt; then
+              echo "::error::Automated rollback requires CLEAN production migration history at the exact previous release. Any drift or ambiguity stays human-only."
+              exit 1
+            fi
+            echo "Automated rollback database compatibility verified CLEAN."
+            exit 0
+          fi
+
           if grep -q "Missing on production" drift.txt; then
             echo "::notice::Production has migrations this older release's code never saw -- expected for a same-release-line rollback (expand-only schema changes old code simply does not use)."
           fi
@@ -138,15 +192,21 @@ jobs:
           fi
         env:
           PRODUCTION_SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
-      - name: Remind the operator that rollback schema-compatibility is their responsibility
+          AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+      - name: State rollback database safety contract
         run: |
           echo "This workflow never runs a reverse/contract migration automatically."
-          echo "There is no separate Environment approval pause; the dispatching operator must have confirmed:"
-          echo "  - no destructive/CONTRACT migration shipped between $TARGET_VERSION and the current production release, OR"
-          echo "  - if one did, this rollback has been reviewed and is known safe (see docs/DATABASE_MIGRATIONS.md)."
-          echo "If unsure, stop this run and use a feature-flag kill switch or a forward-fix PR instead."
+          if [ -n "$AUTOMATION_SOURCE_RUN_ID" ]; then
+            echo "Automated mode: Phase 3C independently proved the failing release applied zero migrations, and this job required CLEAN drift at the exact rollback target."
+          else
+            echo "Manual mode: there is no separate Environment approval pause; the dispatching operator must have confirmed:"
+            echo "  - no destructive/CONTRACT migration shipped between $TARGET_VERSION and the current production release, OR"
+            echo "  - if one did, this rollback has been reviewed and is known safe (see docs/DATABASE_MIGRATIONS.md)."
+            echo "If unsure, stop this run and use a feature-flag kill switch or a forward-fix PR instead."
+          fi
         env:
           TARGET_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
+          AUTOMATION_SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
 
   deploy-api:
     name: Redeploy known-good API
@@ -280,3 +340,29 @@ jobs:
           DEPLOYMENT_TARGETS: ${{ vars.PRODUCTION_WEB_URL }}
       - name: Rollback complete
         run: echo "Production restored to ${{ needs.resolve-and-verify-target.outputs.target_version }} (${{ needs.resolve-and-verify-target.outputs.short_sha }}). No new tag or GitHub Release is created by a rollback."
+
+  verify-automated-circuit-breaker:
+    name: Verify automated rollback circuit breaker
+    needs: [resolve-and-verify-target, verify-rollback]
+    if: ${{ inputs.automation_source_run_id != '' && needs.verify-rollback.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove the automatic release loop is quarantined
+        run: node scripts/production-auto-rollback-circuit-breaker.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ inputs.automation_source_run_id }}
+          TARGET_VERSION: ${{ needs.resolve-and-verify-target.outputs.target_version }}
+          TARGET_SHA: ${{ needs.resolve-and-verify-target.outputs.target_sha }}

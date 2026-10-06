@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 3C):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 3D):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -302,10 +302,29 @@ independent validation of the original Production Release evidence, `database = 
 runtime still live, a fresh failing strict smoke, a low-risk candidate PR, an exact completed previous release/tag,
 and no active release/rollback. Anything ambiguous refuses.
 
-The shared policy also exposes `rollback` validation mode for Phase 3D. Phase 3C will not dispatch until the
-trusted `production-rollback.yml` itself contains `automation_source_run_id` and calls that rollback mode before
-production access. Therefore the current Production Rollback remains human-dispatched after Phase 3C merges, even
-if the owner accidentally enables `PRODUCTION_AUTO_ROLLBACK_ENABLED` early.
+The shared policy also exposes `rollback` validation mode. Phase 3D wires that mode into the trusted
+`production-rollback.yml` before any production Environment job. Phase 3C continuously checks that this hook is
+still present; removing it makes automatic rollback requests fail closed.
+
+## Hardened automated rollback execution and circuit breaker (Phase 3D)
+
+Production Rollback now accepts optional `automation_source_run_id`. Manual dispatch leaves it blank and keeps
+the existing operator path. Automated mode must first pass `verify-automation-provenance`, an unprivileged job
+that checks out the exact workflow SHA and runs the same Phase 3C policy in `rollback` mode. That means one
+incident is independently evaluated three times: the read-only resolver, the request job immediately before the
+App token, and Production Rollback itself immediately before any production access.
+
+The rollback workflow receives no new write authority. Its existing `production` Environment, Supabase/Railway
+secrets, exact known-good tag resolution, shared `production-deploy` lock, API-before-Web deployment, exact
+identity checks and final smoke remain the execution boundary. Automated mode is *more restrictive* on database
+compatibility: because policy requires `database = no_change`, drift at the previous release must be exactly
+`CLEAN`. Manual rollback retains its existing human compatibility decision. No mode reverses migrations.
+
+After exact rollback verification, a separate read-only job proves quarantine. A post-release regression must
+leave the live runtime on the previous tag while the managed Release ledger still points to the failed newer
+release, which causes Phase 2D's existing runtime-vs-managed-baseline guard to refuse automatic promotion. A
+partial release failure must leave the failed candidate unmanaged and restore the existing baseline. Nothing
+automatically re-tags, deletes a Release, retries the failed release, or starts an automatic fix-forward loop.
 
 ## Bounded recovery lineage
 

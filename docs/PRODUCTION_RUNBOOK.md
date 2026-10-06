@@ -82,11 +82,11 @@ possibly applied until proven otherwise.
 
 ## Automatic rollback request decision (Phase 3C)
 
-Phase 3C adds an owner-controlled rollback **request** path, not rollback execution authority. The repository
-variable `PRODUCTION_AUTO_ROLLBACK_ENABLED` must equal exactly `true`; otherwise confirmed incidents are only
-recorded. Even when the variable is true, Phase 3C refuses to dispatch unless Production Rollback contains the
-Phase 3D automated provenance revalidation hook. Therefore **merging Phase 3C alone does not make rollback
-automatic**.
+Phase 3C adds the owner-controlled rollback request path. The repository variable
+`PRODUCTION_AUTO_ROLLBACK_ENABLED` must equal exactly `true`; otherwise confirmed incidents are only recorded.
+Phase 3D now supplies the required rollback-side provenance hook, so an incident that passes every 3C gate may be
+dispatched automatically. Unsetting or changing the variable from exactly `true` stops new automatic rollback
+requests; manual rollback remains available.
 
 The automatic request is limited to confirmed Phase 3B incidents where all of the following remain provable:
 the failing release applied **zero production migrations** (`database = no_change`), the live Web/API identity is
@@ -97,9 +97,16 @@ stale incident, recovered runtime, partial/unprovable identity, changed tag, or 
 manual.
 
 The request workflow also re-reads the original Production Release evidence rather than trusting the incident
-artifact by itself. If it ever dispatches after Phase 3D is installed, it passes only the previous
-`target_version` plus the Phase 3B `automation_source_run_id`. Production Rollback must independently re-run
-the same policy before production access.
+artifact by itself. It passes only the previous `target_version` plus the Phase 3B
+`automation_source_run_id`. Production Rollback independently re-runs the same policy before production access.
+Automated mode additionally requires **CLEAN** migration drift at the exact previous release; manual mode retains
+the existing operator-reviewed compatibility behavior.
+
+After exact rollback smoke succeeds, the read-only circuit-breaker check proves either (a) a post-release rollback
+is intentionally behind the newest managed Release, which blocks Phase 2D automatic promotion, or (b) a partial
+failed release never became a managed Release and production is back on the prior baseline. Do not manually change
+tags/Releases to defeat this quarantine. Fix forward through the normal PR → CI → Staging path, then make a
+deliberate release decision.
 
 ## Automated Production Release request (Phase 2D)
 
