@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 3D):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 4A):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -326,6 +326,22 @@ release, which causes Phase 2D's existing runtime-vs-managed-baseline guard to r
 partial release failure must leave the failed candidate unmanaged and restore the existing baseline. Nothing
 automatically re-tags, deletes a Release, retries the failed release, or starts an automatic fix-forward loop.
 
+## Production rollback evidence ledger (Phase 4A)
+
+Phase 4A adds no new production authority. Production Rollback now attempts a read-only public identity capture
+before target resolution and, after the full graph finishes, runs a separate `production-rollback-evidence` job
+with `if: always()`. The artifact schema is `patelrep.production-rollback-evidence.v1` and retention is 90 days.
+
+The ledger records only sanitized categorical state and exact managed identifiers: run provenance, manual vs
+automated source, before-runtime identity when provable, exact rollback target, job outcomes, conservative API/Web
+mutation state, final verified target identity, and automated quarantine proof. Invalid free-form target/source
+input is represented by validity flags instead of copied into the artifact.
+
+Both the pre-runtime capture and terminal ledger run without the `production` Environment, production secrets,
+write tokens, Supabase/Railway authority or workflow-dispatch capability. The ledger cannot initiate or retry a
+rollback. Database evidence is permanently categorical as `not_mutated_by_workflow`: rollback may read migration
+history for compatibility but never reverses or repairs it.
+
 ## Bounded recovery lineage
 
 `MAX_AUTOMATIC_REPAIR_ATTEMPTS = 3` (`scripts/recovery-lineage.mjs`): attempt 1 is the initial
@@ -455,7 +471,7 @@ This workflow holds no production credentials: no `PRODUCTION_SUPABASE_DB_URL`, 
 production tokens, no Supabase service-role keys, no Stripe keys. It never runs production SQL
 or Railway commands itself. The only dispatch automation performs is the Phase 2D request of the existing
 `Production Release` (patch, narrow recovery case only, with its own independent re-verification and no separate Environment
-approval). `Production Rollback` and the Evidence Audit are never
+approval). `Production Rollback` may be dispatched only by the narrowly gated Phase 3C automatic-rollback requester; the Evidence Audit is never
 dispatched by automation. Automated repairs must not change `production-release.yml` eligibility, target
 guards, versioning, or rollback semantics (all control-plane paths are high-risk and need a human merge).
 
