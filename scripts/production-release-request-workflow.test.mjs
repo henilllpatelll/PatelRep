@@ -280,14 +280,35 @@ test('Production Release keeps every fail-closed gate now that no Environment ap
     /verify-production-release/, // final verification before tag/release
   ]) assert.match(releaseCode, gate, `production-release.yml keeps ${gate}`)
   assert.doesNotMatch(releaseCode, /continue-on-error/, 'no soft failure on production-critical jobs')
-  // No job-level always(): the only always() is the context-artifact upload STEP. Every job-level !cancelled() condition demands explicit upstream success.
-  assert.equal(releaseCode.match(/always\(\)/g).length, 1)
-  assert.doesNotMatch(releaseCode, /^ {4}if: (\$\{\{ )?always\(\)/m)
+  // Phase 3A adds exactly one job-level always(): the read-only evidence ledger must run after failures.
+  // The pre-existing context-artifact upload remains the only step-level always().
+  assert.equal(releaseCode.match(/always\(\)/g).length, 2)
+  const ledger = jobSection(release, 'production-release-evidence')
+  assert.match(ledger, /if: \$\{\{ always\(\) \}\}/)
+  assert.equal((releaseCode.match(/^ {4}if: \$\{\{ always\(\) \}\}$/gm) ?? []).length, 1)
   const cancelGuards = releaseCode.match(/^ {4}if: \$\{\{ !cancelled\(\).*$/gm)
   assert.ok(cancelGuards.length >= 1)
   for (const guard of cancelGuards) assert.match(guard, /\.result == 'success'/, `${guard} requires explicit upstream success`)
   assert.match(releaseCode, /test "\$GITHUB_REF" = refs\/heads\/main/, 'automated provenance verification still pins main')
   assert.match(releaseCode, /node scripts\/production-release-request\.mjs release/)
+})
+
+test('Phase 3A ledger is evidence-only, always runs, and has no production authority', () => {
+  const ledger = jobSection(release, 'production-release-evidence')
+  for (const dep of ['resolve-and-verify-eligibility', 'compute-version', 'release-content-summary', 'production-db-preflight', 'production-db-migrate', 'deploy-api', 'deploy-web', 'verify-production-release', 'tag-and-release']) {
+    assert.ok(ledger.includes(`- ${dep}`), `ledger waits for ${dep}`)
+  }
+  assert.match(ledger, /if: \$\{\{ always\(\) \}\}/)
+  assert.match(ledger, /permissions:\n {6}contents: read/)
+  assert.doesNotMatch(ledger, /environment: production|secrets\.|PRODUCTION_(SUPABASE|RAILWAY)|supabase|railway|psql|git push|gh release create|production-rollback|create-github-app-token/i)
+  assert.match(ledger, /node scripts\/production-release-evidence\.mjs/)
+  assert.match(ledger, /name: production-release-evidence/)
+  assert.match(ledger, /retention-days: 90/)
+  assert.match(ledger, /if-no-files-found: error/)
+  assert.match(ledger, /CONTROL_PLANE_SHA: \$\{\{ github\.sha \}\}/)
+  assert.match(ledger, /DB_MIGRATE_RESULT: \$\{\{ needs\.production-db-migrate\.result \}\}/)
+  assert.match(ledger, /API_RESULT: \$\{\{ needs\.deploy-api\.result \}\}/)
+  assert.match(ledger, /WEB_RESULT: \$\{\{ needs\.deploy-web\.result \}\}/)
 })
 
 // ---- documentation -------------------------------------------------------------------------------------------------
@@ -307,7 +328,7 @@ test('the docs state the authority chain, the first release and that a request i
 
 // ---- required CI actually runs the Phase 2D tests ---------------------------------------------------------------------------
 
-test('the required Release Workflow Contract CI job permanently runs all four Phase 2D test files', () => {
+test('the required Release Workflow Contract CI job permanently runs the Phase 2D and Phase 3A tests', () => {
   const ci = read('.github/workflows/ci.yml')
   const job = jobSection(ci, 'release-workflow-contract')
   const command = job.match(/run: (node --test [^\n]+)/)[1]
@@ -317,6 +338,7 @@ test('the required Release Workflow Contract CI job permanently runs all four Ph
     'scripts/production-release-request-workflow.test.mjs',
     'scripts/production-runtime-identity.test.mjs',
     'scripts/production-release-request-cli.test.mjs',
+    'scripts/production-release-evidence.test.mjs',
   ]) {
     assert.ok(files.includes(file), `${file} must run in Release Workflow Contract`)
   }
@@ -346,7 +368,7 @@ test('production-release job gates are fail-closed and do not propagate an inten
     assert.match(condition, /^\$\{\{ !cancelled\(\) && /, `${name} continues only via !cancelled()`)
     assert.doesNotMatch(condition, /always\(\)/, `${name} must not use always()`)
   }
-  for (const name of [...release.matchAll(/\n  ([a-z-]+):\n    (?:name|needs|if|runs-on):/g)].map((m) => m[1])) {
+  for (const name of [...release.matchAll(/\n  ([a-z-]+):\n    (?:name|needs|if|runs-on):/g)].map((m) => m[1]).filter((name) => name !== 'production-release-evidence')) {
     const header = jobSection(release, name).split('\n    steps:')[0]
     assert.doesNotMatch(header, /always\(\)/, `${name} job-level condition must not use always()`)
   }
