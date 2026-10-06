@@ -6,10 +6,9 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { verifyAutoRollbackCircuitBreaker } from './production-auto-rollback-circuit-breaker.mjs'
-import { REENTRY_ARTIFACT, realProductionIncidentReentryDeps } from './production-incident-reentry-deps.mjs'
+import { CLOSEOUT_ARTIFACT, REENTRY_ARTIFACT, realProductionIncidentReentryDeps } from './production-incident-reentry-deps.mjs'
 
-export { REENTRY_ARTIFACT }
-export const CLOSEOUT_ARTIFACT = 'production-incident-closeout'
+export { CLOSEOUT_ARTIFACT, REENTRY_ARTIFACT }
 export const REENTRY_WORKFLOW_NAME = 'Production Incident Re-entry'
 export const REENTRY_WORKFLOW_PATH = '.github/workflows/production-incident-reentry.yml'
 
@@ -116,19 +115,75 @@ export function validateReentryAuthorization(authorization, sourceRun) {
 }
 
 function validateClosingReleaseEvidence(evidence, run, rollbackRunId) {
-  if (!evidence || evidence.schema !== 'patelrep.production-release-evidence.v1' || evidence.workflow !== 'Production Release') return false
+  if (!evidence || evidence.schema !== 'patelrep.production-release-evidence.v1' || evidence.workflow !== 'Production Release') return null
   if (String(evidence.run?.id ?? '') !== String(run.id) || Number(evidence.run?.attempt) !== Number(run.run_attempt) || evidence.run?.control_plane_sha !== run.head_sha) {
     fail('closing release evidence provenance mismatch')
   }
   const reentry = evidence.source?.reentry
-  if (reentry?.present !== true || reentry?.valid !== true) return false
-  if (String(reentry.rollback_run_id ?? '') !== String(rollbackRunId)) return false
-  if (!RUN_ID.test(String(reentry.authorization_run_id ?? ''))) fail('closing release evidence has malformed authorization run id')
-  if (evidence.disposition !== 'released' || evidence.production_verified !== true) return false
-  if (!SHA.test(evidence.candidate?.release_sha ?? '') || !VERSION.test(evidence.candidate?.version ?? '')) {
-    fail('closing release evidence lacks exact candidate identity')
+  if (reentry?.present !== true || reentry?.valid !== true) return null
+  if (String(reentry.rollback_run_id ?? '') !== String(rollbackRunId)) return null
+  const authorizationRunId = requireMatch('closing release authorization run id', reentry.authorization_run_id, RUN_ID)
+  if (evidence.disposition !== 'released' || evidence.production_verified !== true) return null
+  const releaseSha = requireMatch('closing release SHA', evidence.candidate?.release_sha, SHA)
+  const releaseVersion = requireMatch('closing release version', evidence.candidate?.version, VERSION)
+  return { authorization_run_id: authorizationRunId, release_sha: releaseSha, release_version: releaseVersion }
+}
+
+async function hasVerifiedCloseout({ repo, rollbackRun, deps }) {
+  const runs = await deps.listStabilizationRuns()
+  if (!Array.isArray(runs)) fail('stabilization run list is malformed')
+
+  for (const run of runs) {
+    if (Date.parse(run.created_at ?? '') <= Date.parse(rollbackRun.created_at ?? '')) continue
+    validateRepoRun(run, {
+      repo,
+      runId: String(run.id),
+      name: 'Production Release Stabilization',
+      path: '.github/workflows/production-release-stabilization.yml',
+      event: 'workflow_run',
+      requireSuccess: true,
+    })
+    const closeout = await deps.readCloseout(String(run.id))
+    if (closeout === null) continue
+    if (closeout.schema !== 'patelrep.production-incident-closeout.v1' || closeout.workflow !== 'Production Release Stabilization' || closeout.closed !== true) {
+      fail('malformed production incident closeout')
+    }
+    if (String(closeout.classifier?.run_id ?? '') !== String(run.id) ||
+        Number(closeout.classifier?.run_attempt) !== Number(run.run_attempt) ||
+        closeout.classifier?.control_plane_sha !== run.head_sha) {
+      fail('incident closeout classifier provenance mismatch')
+    }
+    if (!['stable', 'transient_unconfirmed'].includes(closeout.classification)) fail('incident closeout has invalid stabilization classification')
+    if (String(closeout.reentry?.rollback_run_id ?? '') !== String(rollbackRun.id)) continue
+    const authorizationRunId = requireMatch('closeout authorization run id', closeout.reentry?.authorization_run_id, RUN_ID)
+    const sourceReleaseRunId = requireMatch('closeout source release run id', closeout.source_release?.run_id, RUN_ID)
+
+    const releaseRun = validateRepoRun(await deps.getRun(sourceReleaseRunId), {
+      repo,
+      runId: sourceReleaseRunId,
+      name: 'Production Release',
+      path: '.github/workflows/production-release.yml',
+      event: 'workflow_dispatch',
+      requireSuccess: true,
+    })
+    const releaseEvidence = await deps.readReleaseEvidence(sourceReleaseRunId)
+    const closing = validateClosingReleaseEvidence(releaseEvidence, releaseRun, String(rollbackRun.id))
+    if (!closing) fail('incident closeout source release does not carry matching re-entry provenance')
+    if (closing.authorization_run_id !== authorizationRunId) fail('incident closeout authorization run mismatch')
+    if (closeout.candidate?.release_sha !== closing.release_sha || closeout.candidate?.version !== closing.release_version) {
+      fail('incident closeout candidate identity mismatch')
+    }
+
+    const authRun = validateReentryAuthorizationRun(await deps.getRun(authorizationRunId), { repo, runId: authorizationRunId })
+    const authRaw = await deps.readReentryAuthorization(authorizationRunId)
+    if (authRaw === null) fail('incident closeout authorization artifact is missing')
+    const auth = validateReentryAuthorization(authRaw, authRun)
+    if (auth.rollback_run_id !== String(rollbackRun.id) || auth.authorized_release.sha !== closing.release_sha) {
+      fail('incident closeout authorization does not match rollback and closing release')
+    }
+    return true
   }
-  return true
+  return false
 }
 
 export async function findLatestOpenAutomatedRollback({ repo, deps }) {
@@ -151,25 +206,7 @@ export async function findLatestOpenAutomatedRollback({ repo, deps }) {
     const rollback = validateRollbackEvidence(raw, run)
     if (!rollback) continue
 
-    const releaseRuns = await deps.listReleaseRuns()
-    if (!Array.isArray(releaseRuns)) fail('release run list is malformed')
-    for (const releaseRun of releaseRuns) {
-      if (releaseRun.status !== 'completed' || releaseRun.conclusion !== 'success') continue
-      if (Date.parse(releaseRun.created_at ?? '') <= Date.parse(run.created_at ?? '')) continue
-      validateRepoRun(releaseRun, {
-        repo,
-        runId: String(releaseRun.id),
-        name: 'Production Release',
-        path: '.github/workflows/production-release.yml',
-        event: 'workflow_dispatch',
-        requireSuccess: true,
-      })
-      const releaseEvidence = await deps.readReleaseEvidence(String(releaseRun.id))
-      if (releaseEvidence !== null && validateClosingReleaseEvidence(releaseEvidence, releaseRun, String(run.id))) {
-        return null
-      }
-    }
-
+    if (await hasVerifiedCloseout({ repo, rollbackRun: run, deps })) return null
     return Object.freeze({ run, evidence: rollback })
   }
   return null
