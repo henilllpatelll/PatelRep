@@ -1,0 +1,76 @@
+name: Production Release Stabilization
+
+# Phase 3B: read-only production incident classification after a completed Production Release.
+# This workflow has no production Environment, no production secrets, and no write permission. It never
+# dispatches Production Rollback. A successful release receives a short exact-release stabilization window;
+# a failed release is classified from the trusted Phase 3A evidence ledger.
+
+on:
+  workflow_run:
+    workflows:
+      - Production Release
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  classify:
+    name: Stabilize and classify completed production release
+    if: github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # workflow_run executes the workflow definition from the default branch. Explicitly check out trusted
+      # main control-plane code; never execute the released candidate SHA or source-run checkout.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Freeze trusted control-plane SHA
+        id: trusted
+        run: |
+          sha="$(git rev-parse HEAD)"
+          printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - name: Classify release and stabilize exact successful release
+        id: classify
+        run: node scripts/production-release-stabilization.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          CLASSIFIER_RUN_ID: ${{ github.run_id }}
+          CLASSIFIER_RUN_ATTEMPT: ${{ github.run_attempt }}
+          TRUSTED_CONTROL_PLANE_SHA: ${{ steps.trusted.outputs.sha }}
+          RESULT_DIR: ${{ runner.temp }}/production-release-stabilization
+          INCIDENT_DIR: ${{ runner.temp }}/production-release-incident
+      - name: Upload sanitized stabilization result
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-stabilization
+          path: ${{ runner.temp }}/production-release-stabilization/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Upload confirmed production incident
+        if: steps.classify.outputs.incident == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-incident
+          path: ${{ runner.temp }}/production-release-incident/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Summarize classification
+        env:
+          CLASSIFICATION: ${{ steps.classify.outputs.classification }}
+          INCIDENT: ${{ steps.classify.outputs.incident }}
+        run: |
+          echo "## Phase 3B production release classification" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Classification: `$CLASSIFICATION`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Confirmed incident: `$INCIDENT`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This workflow is read-only and did not dispatch or perform a rollback." >> "$GITHUB_STEP_SUMMARY"

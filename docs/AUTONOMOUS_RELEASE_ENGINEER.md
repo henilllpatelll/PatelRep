@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 3A):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 3B):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -258,6 +258,32 @@ production verification, and conservative mutation states. Failed or cancelled m
 `unknown_after_attempt`; absence of a success is never converted into proof that production was untouched.
 The artifact is retained for 90 days. Nothing in Phase 3A automatically acts on it; automatic rollback remains
 out of scope until a later Phase 3 subphase adds a separately reviewed policy and provenance re-verification.
+
+## Production Release stabilization and incident classification (Phase 3B)
+
+Phase 3B consumes the trusted Phase 3A evidence after each completed Production Release, but still adds **no
+production authority**. `.github/workflows/production-release-stabilization.yml` is a `workflow_run` consumer
+of `Production Release` with read-only repository/Actions permissions. It never uses the `production`
+Environment, never receives production credentials or the PatelRep App token, and never dispatches Production
+Rollback.
+
+The classifier verifies that the source is the exact completed `.github/workflows/production-release.yml` run
+from this repository's `main`, that the evidence run id/attempt/control-plane SHA match, and that the source
+control-plane SHA remains an ancestor of `main`. Successful releases must additionally have exactly one
+completed GitHub Release whose tag resolves to the candidate SHA before stabilization begins.
+
+Failed releases are incidents only when final production verification failed and the Phase 3A mutation states
+prove or cannot exclude DB/API/Web mutation. A runtime that passed exact final verification but later failed
+only while creating the tag/GitHub Release is explicitly **not** a rollback incident.
+
+For a successful release, strict public Web/API/readiness + exact SHA/version checks run after a 30-second delay,
+up to three times at 60-second intervals. Two consecutive failures are required to emit
+`production-release-incident`; one/non-consecutive failure is recorded as `transient_unconfirmed`. Probe error
+text stays in logs and is not copied into the trusted incident handoff.
+
+Both the stabilization result and confirmed incident artifacts are sanitized and retained for 90 days. Phase 3B
+only classifies; no automatic rollback, database reversal, feature-flag mutation, deployment, or release retry is
+authorized.
 
 ## Bounded recovery lineage
 
