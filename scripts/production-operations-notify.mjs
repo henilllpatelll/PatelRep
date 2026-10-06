@@ -76,13 +76,18 @@ const SOURCE_WORKFLOWS = Object.freeze({
     path: '.github/workflows/production-incident-reentry.yml',
     event: 'workflow_dispatch',
   },
+  'Production Release Audit': {
+    path: '.github/workflows/production-release-audit.yml',
+    event: ['push', 'schedule', 'workflow_dispatch'],
+  },
 })
 
 export function validateSourceRun(run, { repo, sourceRunId }) {
   if (!run || String(run.id) !== String(sourceRunId)) fail('source run id mismatch')
   const expected = SOURCE_WORKFLOWS[run.name]
   if (!expected || run.path !== expected.path) fail('source is not a trusted production operations workflow')
-  if (run.event !== expected.event || run.status !== 'completed') fail('source workflow is not completed with the expected event')
+  const expectedEvents = Array.isArray(expected.event) ? expected.event : [expected.event]
+  if (!expectedEvents.includes(run.event) || run.status !== 'completed') fail('source workflow is not completed with the expected event')
   if (run.head_branch !== 'main') fail('source workflow did not run from main')
   if (run.repository?.full_name !== repo || run.head_repository?.full_name !== repo) fail('source repository provenance mismatch')
   requireMatch('source control-plane SHA', run.head_sha, SHA)
@@ -181,8 +186,8 @@ function validateReentryAuthorization(auth, run) {
 }
 
 function makeIntent({ run, key, kind, operation, severity, title, details, closeAfterPublish = false }) {
-  if (!/^(incident|release|rollback|reentry|workflow):[A-Za-z0-9._:-]{1,120}$/.test(key)) fail('invalid notification key')
-  if (!['open_update', 'close', 'none'].includes(operation)) fail('invalid notification operation')
+  if (!/^(incident|release|rollback|reentry|workflow|audit):[A-Za-z0-9._:-]{1,120}$/.test(key)) fail('invalid notification key')
+  if (!['open_update', 'close', 'close_existing', 'none'].includes(operation)) fail('invalid notification operation')
   if (!['info', 'warning', 'critical'].includes(severity)) fail('invalid notification severity')
   if (!/^[A-Za-z0-9][A-Za-z0-9 ._:\-()[\]/]{0,180}$/.test(title)) fail('invalid notification title')
   if (!Array.isArray(details) || details.some((line) => typeof line !== 'string' || line.length > 220 || /[\r\n]/.test(line))) {
@@ -221,6 +226,107 @@ async function incidentIdFromRollbackRun(repo, rollbackRunId, deps) {
 
 export async function buildNotificationIntent({ repo, sourceRunId }, deps) {
   const run = validateSourceRun(await deps.getRun(sourceRunId), { repo, sourceRunId })
+
+  if (run.name === 'Production Release Audit') {
+    const raw = await deps.readNamedContext(sourceRunId, 'production-release-audit')
+    if (!raw) {
+      return makeIntent({
+        run,
+        key: 'audit:production-integrity',
+        kind: 'audit_evidence_missing',
+        operation: 'open_update',
+        severity: 'critical',
+        title: `Production release audit evidence missing (run ${run.id})`,
+        details: [
+          `Production Release Audit concluded ${run.conclusion} but its trusted audit artifact is unavailable.`,
+          'Human investigation is required; do not infer production integrity from the workflow conclusion alone.',
+        ],
+      })
+    }
+    if (raw.schema !== 'patelrep.production-release-audit.v1' || raw.workflow !== 'Production Release Audit') {
+      fail('malformed production release audit artifact')
+    }
+    if (String(raw.run?.id ?? '') !== String(run.id) ||
+        Number(raw.run?.attempt) !== Number(run.run_attempt) ||
+        raw.run?.control_plane_sha !== run.head_sha) {
+      fail('production release audit provenance mismatch')
+    }
+    const validStates = new Set([
+      'consistent_managed_release',
+      'quarantined_post_release_regression',
+      'quarantined_partial_release_failure',
+      'deferred_active_production_operation',
+      'inconsistent',
+    ])
+    if (!validStates.has(raw.state) || typeof raw.consistent !== 'boolean') fail('production release audit state is malformed')
+
+    if (raw.consistent === true) {
+      if (run.conclusion !== 'success') {
+        return makeIntent({
+          run,
+          key: 'audit:production-integrity',
+          kind: 'audit_workflow_failed_after_consistent_result',
+          operation: 'open_update',
+          severity: 'critical',
+          title: 'Production release audit workflow failed after a consistent result',
+          details: [
+            `Audit state was ${raw.state}, but workflow conclusion was ${run.conclusion}.`,
+            'Inspect the audit workflow itself before trusting future periodic checks.',
+          ],
+        })
+      }
+      if (raw.state === 'deferred_active_production_operation') {
+        return makeIntent({
+          run,
+          key: 'audit:production-integrity',
+          kind: 'audit_deferred',
+          operation: 'none',
+          severity: 'info',
+          title: 'Production release audit deferred during active deployment',
+          details: ['A Production Release or Rollback was active; the audit intentionally did not judge transient state.'],
+        })
+      }
+      return makeIntent({
+        run,
+        key: 'audit:production-integrity',
+        kind: 'audit_recovered',
+        operation: 'close_existing',
+        severity: 'info',
+        title: `Production release audit healthy: ${raw.state}`,
+        details: [
+          `Audit proved state ${raw.state}.`,
+          raw.runtime?.proven === true
+            ? `Runtime: ${raw.runtime.version} / ${raw.runtime.sha}.`
+            : 'Runtime identity was not required for this audit state.',
+          raw.managed_release?.proven === true
+            ? `Managed Release: ${raw.managed_release.tag} / ${raw.managed_release.sha}.`
+            : 'Managed Release identity was not required for this audit state.',
+        ],
+      })
+    }
+
+    const reason = clean(raw.reason_code) || 'unproven'
+    return makeIntent({
+      run,
+      key: 'audit:production-integrity',
+      kind: 'audit_inconsistent',
+      operation: 'open_update',
+      severity: 'critical',
+      title: `Production release audit inconsistent: ${reason}`,
+      details: [
+        `Audit reason: ${reason}; workflow conclusion: ${run.conclusion}.`,
+        raw.runtime?.proven === true
+          ? `Runtime: ${raw.runtime.version} / ${raw.runtime.sha}.`
+          : 'Runtime identity was not proven.',
+        raw.managed_release?.proven === true
+          ? `Managed Release: ${raw.managed_release.tag} / ${raw.managed_release.sha}.`
+          : 'Managed Release identity was not proven.',
+        raw.incident?.open === true
+          ? `Open rollback incident: rollback run ${raw.incident.rollback_run_id}, source incident ${raw.incident.incident_run_id}, quarantine ${raw.incident.quarantine_mode ?? 'unproven'}.`
+          : 'No trusted open automated rollback incident justified the observed state.',
+      ],
+    })
+  }
 
   if (run.name === 'Production Release Stabilization') {
     if (run.conclusion !== 'success') {
@@ -511,8 +617,12 @@ function validateNotificationResult(result, run) {
     fail('notification result provenance mismatch')
   }
   if (typeof result.event_id !== 'string' || typeof result.key !== 'string') fail('notification result identity is malformed')
+  if (!['created', 'commented', 'closed', 'deduplicated', 'no_existing_issue'].includes(result.action)) fail('notification result action is invalid')
+  if (result.action === 'no_existing_issue') {
+    if (result.issue_number !== null) fail('no-existing-issue result unexpectedly carries an issue number')
+    return { event_id: result.event_id, key: result.key, issue_number: null, action: result.action }
+  }
   const issueNumber = requireMatch('notification issue number', result.issue_number, ISSUE_NUMBER)
-  if (!['created', 'commented', 'closed', 'deduplicated'].includes(result.action)) fail('notification result action is invalid')
   return { event_id: result.event_id, key: result.key, issue_number: Number(issueNumber), action: result.action }
 }
 
@@ -526,7 +636,7 @@ async function findPriorNotification({ repo, intent, deps }) {
     if (raw === null) continue
     const result = validateNotificationResult(raw, run)
     if (result.event_id === intent.event_id) return { duplicate: true, issue_number: result.issue_number }
-    if (result.key === intent.key && issueNumber === null) issueNumber = result.issue_number
+    if (result.key === intent.key && result.issue_number !== null && issueNumber === null) issueNumber = result.issue_number
   }
   return { duplicate: false, issue_number: issueNumber }
 }
@@ -542,6 +652,9 @@ export async function publishIntent({ repo, owner, intent, expectedDigest }, dep
 
   let issueNumber = prior.issue_number
   let action
+  if (issueNumber === null && intent.operation === 'close_existing') {
+    return { issue_number: null, action: 'no_existing_issue' }
+  }
   if (issueNumber === null) {
     const created = await deps.createIssue({
       title: `[${intent.severity.toUpperCase()}] ${intent.title}`,
@@ -559,7 +672,7 @@ export async function publishIntent({ repo, owner, intent, expectedDigest }, dep
     action = 'commented'
   }
 
-  if (intent.operation === 'close' || intent.close_after_publish) {
+  if (intent.operation === 'close' || intent.operation === 'close_existing' || intent.close_after_publish) {
     if (action === 'created') await deps.commentIssue(issueNumber, renderComment(intent, repo))
     await deps.setIssueState(issueNumber, 'closed')
     action = 'closed'
@@ -581,7 +694,7 @@ function writeResult({ dir, run, intent, published }) {
     event_id: intent.event_id,
     key: intent.key,
     source: intent.source,
-    issue_number: String(published.issue_number),
+    issue_number: published.issue_number === null ? null : String(published.issue_number),
     action: published.action,
   }
   mkdirSync(dir, { recursive: true })
