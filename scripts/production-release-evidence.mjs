@@ -63,12 +63,17 @@ export async function buildProductionReleaseEvidence(input, deps = {}) {
   const previousTag = optionalMatch('previous release tag', input.previousTag, VERSION)
   const nextVersion = optionalMatch('candidate release version', input.nextVersion, VERSION)
   const automationSourceRunId = optionalMatch('automation source run id', input.automationSourceRunId, RUN_ID)
+  const reentryRaw = optional(input.reentrySourceRunId)
+  const reentrySourceRunId = RUN_ID.test(reentryRaw) ? reentryRaw : null
+  const reentryPresent = reentryRaw !== ''
+  const reentryRollbackRunId = optionalMatch('re-entry rollback run id', input.reentryRollbackRunId, RUN_ID)
   const eligible = optional(input.eligible)
   if (!['', 'true', 'false'].includes(eligible)) throw new Error('production release evidence: invalid eligible value')
   const versionBump = optional(input.versionBump)
   if (!['patch', 'minor', 'major'].includes(versionBump)) throw new Error('production release evidence: invalid version bump')
 
   const jobs = Object.freeze({
+    reentry_preflight: jobResult('re-entry preflight', input.reentryPreflightResult),
     eligibility: jobResult('eligibility', input.resolveResult),
     version: jobResult('version', input.computeVersionResult),
     content_summary: jobResult('content summary', input.contentSummaryResult),
@@ -113,6 +118,12 @@ export async function buildProductionReleaseEvidence(input, deps = {}) {
       mode: automationSourceRunId ? 'automated_recovery_request' : 'manual',
       automation_source_run_id: automationSourceRunId,
       version_bump: versionBump,
+      reentry: {
+        present: reentryPresent,
+        valid: !reentryPresent || reentrySourceRunId !== null,
+        authorization_run_id: reentrySourceRunId,
+        rollback_run_id: reentryRollbackRunId,
+      },
     },
     candidate: {
       eligible: eligible === 'true',
@@ -144,6 +155,9 @@ async function main() {
       nextVersion: env.NEXT_VERSION,
       versionBump: env.VERSION_BUMP,
       automationSourceRunId: env.AUTOMATION_SOURCE_RUN_ID,
+      reentrySourceRunId: env.REENTRY_SOURCE_RUN_ID,
+      reentryRollbackRunId: env.REENTRY_ROLLBACK_RUN_ID,
+      reentryPreflightResult: env.REENTRY_PREFLIGHT_RESULT,
       resolveResult: env.RESOLVE_RESULT,
       computeVersionResult: env.COMPUTE_VERSION_RESULT,
       contentSummaryResult: env.CONTENT_SUMMARY_RESULT,
