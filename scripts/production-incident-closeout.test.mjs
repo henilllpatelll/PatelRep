@@ -207,7 +207,7 @@ test('manual rollback history does not open the Phase 4B quarantine', async () =
 test('missing or contradictory rollback evidence fails closed', async () => {
   await assert.rejects(
     resolveActiveAutomatedRollbackQuarantine({ repo: REPO }, deps({ readRollbackEvidence: async () => null })),
-    /rollback evidence is missing or malformed/,
+    /successful automated rollback has no Phase 4A evidence/,
   )
   await assert.rejects(
     resolveActiveAutomatedRollbackQuarantine(
