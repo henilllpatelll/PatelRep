@@ -108,13 +108,31 @@ failed release never became a managed Release and production is back on the prio
 tags/Releases to defeat this quarantine. Fix forward through the normal PR → CI → Staging path, then make a
 deliberate release decision.
 
+## Rollback evidence after recovery attempts (Phase 4A)
+
+Every Production Rollback now attempts a public Web/API identity capture **before** target resolution and keeps the
+result as either an exact managed SHA/version or the sanitized state `unproven`. Failure to prove the pre-state
+does not invent an identity.
+
+At the end of the rollback graph, including failures and partial deploys, the read-only
+`production-rollback-evidence` job uploads `production-rollback-evidence/context.json` for 90 days. Use it for
+incident review before any fix-forward/re-entry decision. In particular:
+
+- `api/web = unknown_after_attempt` means a failed/cancelled deployment may have changed production.
+- `after_runtime.state = verified_target` means final rollback smoke proved both Web and API at the exact known-good tag/SHA.
+- `restored_quarantine_unproven` means production was restored but the automated circuit-breaker proof failed; keep re-entry manual.
+- `database = not_mutated_by_workflow` records the rollback design contract: compatibility is read-only and no reverse migration/history repair ran.
+
+The evidence job itself has no production Environment or credentials and cannot deploy, migrate, tag, release or
+dispatch another workflow.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
 
 - Automatic requests are declined when the live production identity (public `/health` + web meta) differs from the newest managed Release, e.g. after you roll back by hand, or when `Deploy Health Check` has since succeeded on the same commit. Either way a human decides.
 - To stop automatic requests immediately: set `PRODUCTION_AUTO_RELEASE_ENABLED` to anything other than `true` (or delete it). Manual releases are unaffected.
-- If a release fails or partially deploys, nothing retries and nothing rolls back automatically. Decide deliberately: fix forward through a normal PR and manual release, or run Production Rollback by hand (see above).
+- If a release fails or partially deploys, automatic rollback occurs only for the narrow Phase 3C/3D zero-migration, low-risk, exact-identity case. Every other failure stays manual: fix forward through a normal PR and deliberate release, or run Production Rollback by hand.
 - `release version: ... exists without a completed production GitHub Release` means a `vX.Y.Z` tag exists with no completed GitHub Release (an interrupted or manually created tag). The workflow never skips or deletes tags: find out why the tag exists, then fix it deliberately (e.g. complete or remove the orphan tag by hand) before releasing again.
 - The very first managed release is `v1.8.0` and must be dispatched manually; automated requests stay ineligible until a completed `vX.Y.Z` GitHub Release exists.
 
