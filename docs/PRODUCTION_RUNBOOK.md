@@ -225,6 +225,32 @@ Current scenario names:
 `partial_release_quarantine`, `runtime_drift_is_detected_and_notified`,
 `stale_reentry_authorization_is_refused`, and `active_production_operation_defers_audit`.
 
+## Production Recovery Readiness (Phase 5B)
+
+**Production Recovery Readiness** is the live read-only recovery drill. It does not roll production back; it proves
+whether the evidence and control plane needed for a safe recovery are currently available.
+
+A result of `ready` means the current production identity is healthy, the managed Release baseline is exact, the
+current rollback workflow still carries the trusted Phase 3D execution contract, and the immediately previous
+managed Release/tag is an exact reachable rollback target.
+
+A valid `ready_quarantined_*` result means a real automated rollback incident is already open and its existing
+Phase 3D quarantine/target was re-proven. Follow the Phase 4B re-entry process; do not attempt another automatic
+promotion around it.
+
+`limited_bootstrap_no_previous_release` is expected while v1.8.0 remains the only managed production Release.
+There is no safe earlier managed version for `Production Rollback` to select. Do not substitute old milestone
+tags or an arbitrary SHA. Once a later managed production Release is created, the live drill will require its
+previous managed Release to resolve exactly and sit on the `main` lineage.
+
+`deferred_*` states are non-failures: an active production mutation or a moving `main` made the snapshot
+transient. A later push/scheduled run re-evaluates the state.
+
+Any `failed` result means recovery readiness is not proven. Inspect the
+`production-recovery-readiness/context.json` artifact and repair the broken invariant through the normal PR
+path. The drill never uses production DB credentials; database compatibility remains an execution-time rollback
+gate, not a read-only drill claim.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
