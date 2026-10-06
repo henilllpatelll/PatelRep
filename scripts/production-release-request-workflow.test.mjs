@@ -161,7 +161,7 @@ test('no other workflow dispatches Production Release or Rollback and nothing el
 
 // ---- Production Release: authority preserved, automated provenance independently verified -----------------------------
 
-test('every production job keeps the human `production` Environment gate and the shared non-cancelling lock', () => {
+test('every production job keeps the `production` Environment (secret scoping) and the shared non-cancelling lock', () => {
   assert.match(release, /concurrency:\n {2}# [^\n]*\n {2}# [^\n]*\n {2}group: production-deploy\n {2}cancel-in-progress: false/)
   const gated = ['resolve-and-verify-eligibility', 'production-db-preflight', 'production-db-migrate', 'deploy-api', 'deploy-web', 'verify-production-release']
   for (const job of gated) assert.match(jobSection(release, job), /environment:/, `${job} keeps its production environment`)
@@ -174,7 +174,7 @@ test('every production job keeps the human `production` Environment gate and the
   assert.equal(release.match(/gh release create/g).length, 1)
 })
 
-test('Production Release automated mode: optional input, provenance verified in the approved job before anything else', () => {
+test('Production Release automated mode: optional input, provenance verified in the first production job before anything else', () => {
   assert.match(release, /automation_source_run_id:\n {8}description: [^\n]*\n {8}required: false\n {8}type: string/)
   assert.match(release, /run-name: Production Release \$\{\{ inputs\.release_sha \|\| 'main-tip' \}\}/)
   const job = jobSection(release, 'resolve-and-verify-eligibility')
@@ -252,10 +252,44 @@ test('Production Release and Rollback set Railway release variables with --skip-
 })
 
 test('Production Rollback is pinned and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), 'c2f3d592d3cc694758c5fe491ea3ddfa328c2632b5bebb5936efc2135b116751')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '58f02294d4ae24d0d614bd4cc994364f5de05d2e489b6c0e1b37c584484300d8')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
+})
+
+// ---- no human Environment approval is assumed or impersonated; the trusted gates are the safety boundary -----------------
+
+test('no workflow impersonates a human deployment approval and no production file claims a required reviewer', () => {
+  for (const file of readdirSync('.github/workflows')) {
+    const source = code(read(`.github/workflows/${file}`))
+    assert.doesNotMatch(source, /pending_deployments|deployment_protection_rule|environments\/[^\n]*(reviewers|protection)|\/approve\b/i, `${file} never calls the deployment-approval API`)
+  }
+  for (const [name, text] of [['production-release', release], ['production-rollback', rollback], ['production-request', request]]) {
+    assert.doesNotMatch(text, /human (production )?environment approval|awaits? (a )?human|required reviewer|Approve and deploy|Review deployments/i, `${name} asserts no human Environment approval`)
+  }
+})
+
+test('Production Release keeps every fail-closed gate now that no Environment approval pauses it', () => {
+  for (const gate of [
+    /main\.data\.commit\.sha/, // resolves the exact requested SHA
+    /CI Gate/, /Staging Gate/, // trusted status contexts
+    /tree/i, // merged tree identity vs the staging-verified tree
+    /production-target-guard|Refuse a non-production/i, // production DB / Railway target guards
+    /check-db-drift\.mjs --environment production --allow-pending/, // migration-history/drift verification
+    /git checkout --detach/, // exact detached checkout
+    /needs: \[[^\]]*deploy-api[^\]]*\]/, // web only after the API deploy
+    /verify-production-release/, // final verification before tag/release
+  ]) assert.match(releaseCode, gate, `production-release.yml keeps ${gate}`)
+  assert.doesNotMatch(releaseCode, /continue-on-error/, 'no soft failure on production-critical jobs')
+  // No job-level always(): the only always() is the context-artifact upload STEP. Every job-level !cancelled() condition demands explicit upstream success.
+  assert.equal(releaseCode.match(/always\(\)/g).length, 1)
+  assert.doesNotMatch(releaseCode, /^ {4}if: (\$\{\{ )?always\(\)/m)
+  const cancelGuards = releaseCode.match(/^ {4}if: \$\{\{ !cancelled\(\).*$/gm)
+  assert.ok(cancelGuards.length >= 1)
+  for (const guard of cancelGuards) assert.match(guard, /\.result == 'success'/, `${guard} requires explicit upstream success`)
+  assert.match(releaseCode, /test "\$GITHUB_REF" = refs\/heads\/main/, 'automated provenance verification still pins main')
+  assert.match(releaseCode, /node scripts\/production-release-request\.mjs release/)
 })
 
 // ---- documentation -------------------------------------------------------------------------------------------------

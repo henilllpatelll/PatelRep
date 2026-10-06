@@ -6,7 +6,7 @@ Concise operational procedures for releasing, recovering, and verifying PatelRep
 
 1. Confirm the target PR shows a green **CI Gate** and a green **Staging Gate**, and has been merged to `main`.
 2. Dispatch **Production Release** (`.github/workflows/production-release.yml`) from the Actions tab. Leave `release_sha` blank to release current `main`, or pin an explicit commit if `main` has moved on since the PR you intend to ship. Choose `version_bump` (`patch` for the common case).
-3. Approve the `production` Environment's reviewer gate when prompted.
+3. There is no manual Environment approval: the run proceeds on its own trusted gates and fails closed if any refuse.
 4. Watch the job summary for the release content report (PRs, migrations, feature keys).
 5. If any job fails, the workflow stops — no tag or GitHub Release is created. See the failure sections below for the specific stage that failed.
 6. On success, confirm the new `vX.Y.Z` tag and GitHub Release exist, and that the release content summary matches what you expected to ship.
@@ -26,7 +26,7 @@ Concise operational procedures for releasing, recovering, and verifying PatelRep
 
 1. Identify the last known-good `vX.Y.Z` tag (the GitHub Release immediately before the current one).
 2. Dispatch **Production Rollback** (`.github/workflows/production-rollback.yml`) with that `target_version`.
-3. Approve the `production` Environment's reviewer gate.
+3. There is no manual Environment approval, so confirm schema compatibility (see "Database failure" below) BEFORE dispatching.
 4. The workflow redeploys both API and web at the known-good commit and re-verifies release identity — it does not reverse any database migration.
 5. Once stable, investigate the regression on a branch and ship the fix through the normal path.
 
@@ -39,18 +39,18 @@ Concise operational procedures for releasing, recovering, and verifying PatelRep
 
 - **Pre-flight found unexpected ("unknown") migrations on production:** STOP. Do not run `production-db-migrate`. This means production has drifted from the repository's migration history in a way the tooling cannot explain — investigate manually before any further release action. The only permitted historical reconciliation is an explicitly evidenced entry in `supabase/production-migration-aliases.json`; never infer an alias, run `supabase migration repair`, or otherwise rewrite production migration bookkeeping.
 - **A migration failed to apply:** the release workflow does not continue to `deploy-api`. Investigate the failure in Supabase directly; most schema changes are additive (expand-only) and safe to leave half-applied while you fix the migration file (as a *new* forward migration — never edit an already-released one, see [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md)).
-- **General rule:** database rollback is **not** the default recovery path. Prefer, in order: (1) disable the related feature flag, (2) redeploy a previous compatible application version, (3) forward-fix the schema with a new migration. Reverse a migration only when it was explicitly designed and tested for reversal, data loss is impossible or accepted, and production approval exists. A migration's `-- ROLLBACK` SQL comment is guidance for a human, never something a workflow executes automatically.
+- **General rule:** database rollback is **not** the default recovery path. Prefer, in order: (1) disable the related feature flag, (2) redeploy a previous compatible application version, (3) forward-fix the schema with a new migration. Reverse a migration only when it was explicitly designed and tested for reversal, data loss is impossible or accepted, and the operator has explicitly accepted it. A migration's `-- ROLLBACK` SQL comment is guidance for a human, never something a workflow executes automatically.
 
 ## Full outage
 
 1. Identify the last-known-good release: the GitHub Release immediately preceding the one that broke production, or confirmed-stable runtime identity from before the incident.
 2. Confirm that version's migrations are still compatible with the current production schema (an expand-only gap is normal and safe; a destructive/contract change since then needs a deliberate decision, not an automatic rollback).
-3. Dispatch **Production Rollback** with that version, approve it, and verify health completes successfully.
+3. Dispatch **Production Rollback** with that version and verify health completes successfully.
 4. Once stable, write up what happened and fix forward through the normal PR path before attempting to re-release the version that caused the outage.
 
 ## Automated Production Release request (Phase 2D)
 
-A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **It does not deploy by itself: it waits for the `production` Environment approval.** Review the recovery PR and the release content summary before approving; rejecting the approval leaves production untouched. After approval the run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
+A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
 
 - Automatic requests are declined when the live production identity (public `/health` + web meta) differs from the newest managed Release, e.g. after you roll back by hand, or when `Deploy Health Check` has since succeeded on the same commit. Either way a human decides.
 - To stop automatic requests immediately: set `PRODUCTION_AUTO_RELEASE_ENABLED` to anything other than `true` (or delete it). Manual releases are unaffected.

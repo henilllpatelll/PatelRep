@@ -127,7 +127,7 @@ The manual **Staging Database Migrate** workflow can run only from `main`, uses 
 
 For pull-request release candidates, the **Staging Candidate** workflow uses the stronger disposable-shared strategy: serialized execution, exact staging database/API hostname assertions, remote reset from the candidate SHA’s repository migrations, deterministic synthetic seed, schema contracts, then identifier-level drift verification. The reset is refused when either target host differs from the configured staging allowlist, matches the configured production host, or the staging/production allowlists overlap. This avoids leaving a rejected migration-bearing PR permanently ahead of `main` in staging.
 
-There is intentionally no feature-PR production migration workflow. A future production workflow must be restricted to `main`, protected by a GitHub `production` environment requiring approval, pinned to an exact commit, and perform drift/readiness checks before and after the migration.
+There is intentionally no feature-PR production migration workflow. A future production workflow must be restricted to `main`, scoped to the GitHub `production` environment (secrets only; no Required Reviewer), pinned to an exact commit, and perform drift/readiness checks before and after the migration.
 
 ## Failure-mode coverage
 

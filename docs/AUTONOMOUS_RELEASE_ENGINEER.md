@@ -8,7 +8,8 @@ recovery lineage (at most 3 automatic Claude attempts per recovery root), safely
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
 request (Phase 2D)"). Claude itself never merges and never dispatches anything; the Phase 2D request
-workflow can only dispatch the existing Production Release, which still needs human approval.
+workflow can only dispatch the existing Production Release, which independently re-verifies provenance and
+fails closed (there is no separate human Environment approval step).
 
 ## Separated authority
 
@@ -110,15 +111,19 @@ token cannot read ruleset bypass actors, auto-merge also stays ineligible (it ne
 ## Controlled production release request (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** Phase 2D may only *request* a Production
-Release. Production does not run until a human approves the `production` GitHub Environment on the
-dispatched run. Nothing here holds production credentials, uses that Environment, approves a
-deployment or changes Environment protection, and Production Rollback stays human-only.
+Release. The `production` GitHub Environment no longer has a Required Reviewer (removed outside this
+repository), so there is no manual "Review deployments → Approve and deploy" click: the `production`
+Environment only scopes production secrets and variables, and the Production Release workflow itself
+enforces eligibility and fails closed. The request path holds no production credentials, never uses that
+Environment, never approves a deployment (never call GitHub's pending-deployment approval API) or changes
+Environment protection, and Production Rollback stays human-dispatched. The request itself is gated by the
+`PRODUCTION_AUTO_RELEASE_ENABLED` variable and the trusted checks below.
 
 Final authority chain:
 
 Deploy Health failure → Claude diagnosis → trusted publisher → recovery PR → CI → Staging → Phase 2C
-merge → Phase 2D Production Release request → **HUMAN production Environment approval** → DB
-preflight/migration if applicable → API → exact API verification → Web → strict production
+merge → Phase 2D Production Release request → **Production Release provenance re-verification (fails
+closed)** → DB preflight/migration if applicable → API → exact API verification → Web → strict production
 verification → tag/GitHub Release → ongoing Deploy Health monitoring.
 
 ### The `auto-merge-result` artifact (Phase 2C output)
@@ -154,8 +159,9 @@ to exactly that). It never receives `contents` or any production secret.
 
 0. Activation: repository variable `PRODUCTION_AUTO_RELEASE_ENABLED` equals exactly `true`; otherwise the
    workflow is a clean no-op. Workflows never create or change it. The owner enables it manually only
-   after Phase 2D is merged, the first managed production release was done manually, and the
-   `production` Environment still requires human approval.
+   after Phase 2D is merged and the first managed production release was done manually. With no Environment
+   approval pause, enabling it means an eligible recovery merge proceeds to production without a human click;
+   this variable is the activation switch (set it to anything other than `true` to stop automatic requests).
 1. Source run is the exact successful `Claude Release Engineer Auto-Merge` run of this repository. A missing
    artifact is a clean no-op; a malformed, duplicate, expired or unreadable one is a hard failure.
 2. The merged PR is re-fetched: merged, base `main`, created by `patelrep-release-engineer[bot]` (id
@@ -206,14 +212,14 @@ nothing automatically retries or rolls back a production release.
 
 A rerun does nothing if the baseline release already is the target commit. Production Release shares the
 non-cancelling `production-deploy` concurrency group and a newer pending run *replaces* an older pending one,
-so the request never dispatches while any Production Release or Rollback run is queued, running or awaiting
-approval: if the active run is this exact request (the run name carries the target SHA and source run) it is a
+so the request never dispatches while any Production Release or Rollback run is queued, running or waiting:
+if the active run is this exact request (the run name carries the target SHA and source run) it is a
 clean no-op, otherwise the request is declined and a human releases manually. If duplicate state cannot be
 proven, the request fails closed.
 
 All of rules 0-8 (including the runtime identity and health-recovery checks) run at all three stages: the
-resolver, the request job right before the App token exists, and Production Release after the human approval and
-before any production step. A rollback or recovery that happens between dispatch and approval therefore fails
+resolver, the request job right before the App token exists, and Production Release before any production
+step. A rollback or recovery that happens between dispatch and the release run therefore fails
 the release with production untouched.
 
 ### Production Release in automated mode
@@ -222,11 +228,11 @@ Production Release stays the only path to production and keeps every guard (SHA/
 Gate, tree identity, target guards, migration preflight and unknown-migration blocking, API before Web, exact
 identity, `/health`, `/ready`, drift, tag and Release only after verification, shared concurrency). When
 `automation_source_run_id` is blank it behaves exactly as a manual release. When present it additionally runs
-`scripts/production-release-request.mjs release` as the first step of the Environment-gated first job, i.e.
-after the human approval and before any production step. It requires the dispatch actor to be the trusted
+`scripts/production-release-request.mjs release` as the first provenance step of the first `production` Environment job, i.e.
+before any production step. It requires the dispatch actor to be the trusted
 publisher bot (`patelrep-release-engineer[bot]`, id 337493489), `refs/heads/main`, `release_sha` equal to the
 merge commit and to the workflow commit, `version_bump=patch`, and re-derives every eligibility rule above
-(including the activation variable). If anything changed between request and approval the release fails
+(including the activation variable). If anything changed between request and release the release fails
 before production is touched.
 
 ### Versioning and the first release
@@ -366,8 +372,8 @@ evidence is resolved with more investigation or code that gathers evidence — n
 This workflow holds no production credentials: no `PRODUCTION_SUPABASE_DB_URL`, no Railway
 production tokens, no Supabase service-role keys, no Stripe keys. It never runs production SQL
 or Railway commands itself. The only dispatch automation performs is the Phase 2D request of the existing
-`Production Release` (patch, narrow recovery case only, behind the human `production` Environment
-approval and its own independent re-verification). `Production Rollback` and the Evidence Audit are never
+`Production Release` (patch, narrow recovery case only, with its own independent re-verification and no separate Environment
+approval). `Production Rollback` and the Evidence Audit are never
 dispatched by automation. Automated repairs must not change `production-release.yml` eligibility, target
 guards, versioning, or rollback semantics (all control-plane paths are high-risk and need a human merge).
 

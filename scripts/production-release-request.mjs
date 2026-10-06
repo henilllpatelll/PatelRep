@@ -3,8 +3,8 @@
 //   resolve - unprivileged resolver of the request workflow: clean no-op unless eligible
 //   request - re-validation inside the request job immediately before the App token is created and the
 //             existing Production Release is dispatched; also proves no duplicate/active release run exists
-//   release - automated-mode verification inside Production Release itself, AFTER the human production
-//             Environment approval and BEFORE any production step; every refusal fails the release
+//   release - automated-mode verification inside Production Release itself, BEFORE any production step;
+//             every refusal fails the release
 // Holds no credentials beyond the read-only workflow token. It never dispatches, approves or deploys anything.
 import { appendFileSync } from 'node:fs'
 import path from 'node:path'
@@ -68,7 +68,7 @@ async function main() {
   summarize(
     env,
     result.eligible
-      ? `Production release request eligible: ${result.mergeCommitSha} (recovery PR #${result.prNumber}, root ${result.root}, baseline ${result.baselineTag}). This is a request only; production still requires human Environment approval.`
+      ? `Production release request eligible: ${result.mergeCommitSha} (recovery PR #${result.prNumber}, root ${result.root}, baseline ${result.baselineTag}). This is a request only; Production Release re-verifies all provenance before any production step.`
       : result.reason,
   )
 }

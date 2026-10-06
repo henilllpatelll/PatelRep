@@ -62,7 +62,7 @@ The two production Railway services (`noble-cooperation` / API, `PatelRep` / web
 
 ## `production` GitHub Environment (Phase 6)
 
-Required reviewer: repository owner. Shared by `feature-rollout.yml` (environment input `production`) and both `production-release.yml`/`production-rollback.yml`. Variables (non-secret):
+No Required Reviewer (removed deliberately; the Production Release workflow's trusted gates enforce eligibility and fail closed). The Environment scopes production secrets/variables. Shared by `feature-rollout.yml` (environment input `production`) and both `production-release.yml`/`production-rollback.yml`. Variables (non-secret):
 
 `SUPABASE_URL`, `EXPECTED_SUPABASE_HOST`, `OTHER_ENV_SUPABASE_HOST`, `API_URL`, `WEB_URL` (feature-rollout's own vars — see [FEATURE_FLAGS.md](FEATURE_FLAGS.md)), plus `PRODUCTION_SUPABASE_URL`, `PRODUCTION_SUPABASE_HOST`, `PRODUCTION_EXPECTED_DATABASE_HOST`, `PRODUCTION_API_URL`, `PRODUCTION_WEB_URL`, `PRODUCTION_RAILWAY_PROJECT_ID`, `PRODUCTION_RAILWAY_ENVIRONMENT`, `PRODUCTION_RAILWAY_API_SERVICE_ID`, `PRODUCTION_RAILWAY_WEB_SERVICE_ID`, `STAGING_DATABASE_HOST`, `STAGING_SUPABASE_HOST` (deny-list pair, mirroring the existing staging-side pattern).
 

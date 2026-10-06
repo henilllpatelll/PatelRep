@@ -66,15 +66,16 @@ test('production-release.yml changes only deliberately (release-context handoff,
   const digest = createHash('sha256').update(productionRelease).digest('hex')
   // Phase 1: identifier-only production-release-context handoff. Phase 2D: optional automation_source_run_id
   // provenance verification, run-name, actions: read, and release-based versioning (production-release-request-workflow.test.mjs
-  // asserts the human Environment gates and concurrency lock are intact). Migration apply: production-migration-apply-workspace.test.mjs
+  // asserts the production Environment scoping, safety gates and concurrency lock are intact; no human Environment approval is assumed). Migration apply: production-migration-apply-workspace.test.mjs
   // pins the ephemeral-workspace apply contract.
   // Railway account-token auth: `variables set` is preceded by an explicit `railway link` (account tokens have no project scope).
   // Railway deploy: `railway up --ci` uploads the repo root with no path argument; the service Root Directory (apps/api|apps/web) selects the app.
   // Railway variables: `variables set` passes --skip-deploys so only `railway up` deploys (no racing redeploy).
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
   // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
+  // Comment-only: the Required Reviewer on the production Environment was removed outside the repo, so the human-approval wording was rewritten (no functional change).
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '630f365f4381426b1b326b7b1d875d0bf5a1827b1004196df328a17be5370697')
+  assert.equal(digest, '154c5dd4628a7f218c69b1a0f38f730f95352642c792c8ad17c398023a9191d8')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
