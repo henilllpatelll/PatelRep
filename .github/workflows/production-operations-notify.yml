@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.sha }}
           sparse-checkout: scripts
           persist-credentials: false
       - uses: actions/setup-node@v7
