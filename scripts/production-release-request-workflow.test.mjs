@@ -147,6 +147,9 @@ test('automation scripts and workflows classify as human-merge only', () => {
     'scripts/production-auto-rollback-request.mjs',
     'scripts/production-auto-rollback-policy.mjs',
     'scripts/production-auto-rollback-deps.mjs',
+    '.github/workflows/production-incident-reentry.yml',
+    'scripts/production-incident-reentry.mjs',
+    'scripts/production-incident-reentry-deps.mjs',
     'scripts/production-release-request-policy.mjs',
     'scripts/production-release-request-deps.mjs',
     'scripts/release-version.mjs',
@@ -312,7 +315,7 @@ test('Production Release keeps every fail-closed gate now that no Environment ap
 
 test('Phase 3A ledger is evidence-only, always runs, and has no production authority', () => {
   const ledger = jobSection(release, 'production-release-evidence')
-  for (const dep of ['resolve-and-verify-eligibility', 'compute-version', 'release-content-summary', 'production-db-preflight', 'production-db-migrate', 'deploy-api', 'deploy-web', 'verify-production-release', 'tag-and-release']) {
+  for (const dep of ['verify-production-reentry', 'resolve-and-verify-eligibility', 'compute-version', 'release-content-summary', 'production-db-preflight', 'production-db-migrate', 'deploy-api', 'deploy-web', 'verify-production-release', 'tag-and-release']) {
     assert.ok(ledger.includes(`- ${dep}`), `ledger waits for ${dep}`)
   }
   assert.match(ledger, /if: \$\{\{ always\(\) \}\}/)
@@ -323,6 +326,7 @@ test('Phase 3A ledger is evidence-only, always runs, and has no production autho
   assert.match(ledger, /retention-days: 90/)
   assert.match(ledger, /if-no-files-found: error/)
   assert.match(ledger, /CONTROL_PLANE_SHA: \$\{\{ github\.sha \}\}/)
+  assert.match(ledger, /REENTRY_PREFLIGHT_RESULT: \$\{\{ needs\.verify-production-reentry\.result \}\}/)
   assert.match(ledger, /DB_MIGRATE_RESULT: \$\{\{ needs\.production-db-migrate\.result \}\}/)
   assert.match(ledger, /API_RESULT: \$\{\{ needs\.deploy-api\.result \}\}/)
   assert.match(ledger, /WEB_RESULT: \$\{\{ needs\.deploy-web\.result \}\}/)
