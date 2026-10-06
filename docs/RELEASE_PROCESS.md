@@ -378,6 +378,47 @@ Every drill writes `release-resilience-drill/context.json` using schema
 fails the run. A drill failure does not automatically dispatch release/rollback or grant Claude any new authority;
 it is evidence that the control-plane composition needs human review/fix through the normal PR gates.
 
+### Live read-only recovery readiness drill (Phase 5B)
+
+Phase 5B asks a different question from the Phase 4D integrity audit: **could the trusted recovery path be used
+safely right now, based only on live read-only evidence?**
+
+`.github/workflows/production-recovery-readiness.yml` runs on `main` pushes, daily, and by manual dispatch. It
+has only `contents: read` + `actions: read`, no `production` Environment, no secrets, no database/Railway
+credentials, no GitHub write permission, and no workflow-dispatch/deployment authority.
+
+The drill reuses the real Phase 4D production audit and Phase 3/4 policy helpers. When no production mutation is
+active it re-proves:
+
+- exact public Web/API runtime identity and the newest completed managed GitHub Release baseline;
+- strict public production smoke at that exact SHA/version;
+- the Phase 3D automated rollback execution contract from the exact trusted control-plane SHA;
+- current open automated rollback/quarantine state and exact incident rollback target when one exists;
+- otherwise, the immediately previous completed managed Release/tag as the recoverable rollback target;
+- exact tag → commit resolution and ancestry of the rollback target on `main`.
+
+Database rollback compatibility is intentionally recorded as
+`not_exercised_read_only_no_secret`; Phase 5B does not borrow production DB credentials just to make a drill
+look stronger.
+
+The readiness state is one of:
+
+- `ready` — current runtime/baseline is healthy and a prior managed rollback target is exactly proven;
+- `ready_quarantined_post_release_regression` or `ready_quarantined_partial_release_failure` — the already
+  active trusted quarantine and its exact rollback target are re-proven;
+- `limited_bootstrap_no_previous_release` — production is healthy but this is still the first managed Release,
+  so there is no earlier managed version the rollback workflow is allowed to target;
+- `deferred_active_production_operation` or `deferred_main_moved_during_drill` — transient state was not judged;
+- `failed` — one or more recovery invariants could not be proven.
+
+Every run uploads `production-recovery-readiness/context.json` with schema
+`patelrep.production-recovery-readiness.v1` before an intentional failure. The artifact contains categorical
+proof state and exact trusted identifiers only.
+
+The current v1.8.0 production baseline is expected to report
+`limited_bootstrap_no_previous_release` until a later managed Release exists. That limitation is real: historical
+two-segment milestone tags are deliberately not treated as production rollback targets.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
