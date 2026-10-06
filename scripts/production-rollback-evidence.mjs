@@ -6,6 +6,8 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export const ROLLBACK_EVIDENCE_ARTIFACT = 'production-rollback-evidence'
+
 const SHA = /^[0-9a-f]{40}$/
 const RUN_ID = /^[1-9][0-9]{0,19}$/
 const ATTEMPT = /^[1-9][0-9]{0,8}$/
