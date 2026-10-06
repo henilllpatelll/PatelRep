@@ -178,6 +178,35 @@ probe error text is left in human-readable Actions logs and is never put in the 
 Phase 3B still **does not dispatch Production Rollback**. It only proves and classifies incident state for a later
 separately reviewed Phase 3 decision/request layer.
 
+### Trusted automatic rollback decision/request (Phase 3C)
+
+Phase 3C adds a **request layer only**. `.github/workflows/production-auto-rollback-request.yml` listens for a
+successful `Production Release Stabilization` run, reads the trusted Phase 3B incident artifact, and decides
+whether a rollback request is safe enough to consider. It has two separated jobs: a read-only resolver and a
+request job that revalidates everything before it can create the PatelRep App token. That App token is scoped to
+`actions: write` only and may only dispatch the existing `Production Rollback` workflow.
+
+The owner-controlled activation switch is `PRODUCTION_AUTO_ROLLBACK_ENABLED=true`. No workflow creates or
+changes it. Eligibility is deliberately narrow and fail-closed: the incident must still be current, the live
+runtime must still be the exact failing SHA/version, a fresh strict production smoke must still fail, the
+candidate PR must be low-risk under the existing Phase 2C classifier, the previous completed release/tag must be
+exact and reachable, there must be no active Production Release/Rollback, and the failing release's database
+mutation state must be **exactly `no_change`**. `verified_applied`, `unknown_after_attempt`, or
+`not_proven` are all human-only.
+
+Phase 3C independently re-reads the original Production Release evidence and cross-checks it against the Phase 3B
+incident; the incident artifact alone is not treated as sufficient authority. Partial-release incidents are only
+eligible when Web/API public identity can still prove the exact failing candidate. Ambiguous partial identity is
+human-only.
+
+**Phase 3C is intentionally inert until Phase 3D lands.** Before dispatching, the policy reads the trusted
+`production-rollback.yml` from the exact current control-plane SHA and requires an
+`automation_source_run_id` input plus a call to
+`scripts/production-auto-rollback-request.mjs rollback` inside Production Rollback. The current human-only
+rollback workflow has neither, so the resolver cleanly refuses with “Phase 3D must land before auto-rollback
+requests can dispatch.” This prevents enabling the switch early from bypassing rollback-side provenance
+re-verification.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.
