@@ -50,6 +50,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        if: inputs.automation_source_run_id != ''
         with:
           ref: ${{ github.sha }}
           sparse-checkout: scripts
