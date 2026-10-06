@@ -8,6 +8,7 @@ const read = (file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
 const code = (source) => source.split('\n').filter((line) => !/^\s*#/.test(line)).join('\n')
 const request = read('.github/workflows/claude-release-engineer-production-request.yml')
 const requestCode = code(request)
+const rollbackRequest = read('.github/workflows/production-auto-rollback-request.yml')
 const release = read('.github/workflows/production-release.yml')
 const releaseCode = code(release)
 const rollback = read('.github/workflows/production-rollback.yml')
@@ -140,8 +141,12 @@ test('request scripts only read GitHub and never mutate, dispatch, approve or to
 test('automation scripts and workflows classify as human-merge only', () => {
   for (const file of [
     '.github/workflows/claude-release-engineer-production-request.yml',
+    '.github/workflows/production-auto-rollback-request.yml',
     '.github/workflows/production-release.yml',
     'scripts/production-release-request.mjs',
+    'scripts/production-auto-rollback-request.mjs',
+    'scripts/production-auto-rollback-policy.mjs',
+    'scripts/production-auto-rollback-deps.mjs',
     'scripts/production-release-request-policy.mjs',
     'scripts/production-release-request-deps.mjs',
     'scripts/release-version.mjs',
@@ -151,12 +156,17 @@ test('automation scripts and workflows classify as human-merge only', () => {
   }
 })
 
-test('no other workflow dispatches Production Release or Rollback and nothing else holds the App token for it', () => {
+test('only the two dedicated request workflows can dispatch Production Release or Rollback', () => {
   for (const file of readdirSync('.github/workflows')) {
-    if (file === 'claude-release-engineer-production-request.yml') continue
+    if (['claude-release-engineer-production-request.yml', 'production-auto-rollback-request.yml'].includes(file)) continue
     const source = code(read(`.github/workflows/${file}`)).split('\n').filter((line) => !/disallowedTools/.test(line)).join('\n')
     assert.doesNotMatch(source, /gh workflow run production-(release|rollback)|workflows\/production-(release|rollback)\.yml\/dispatches/, file)
   }
+  assert.match(requestCode, /gh workflow run production-release\.yml/)
+  assert.doesNotMatch(requestCode, /gh workflow run production-rollback\.yml/)
+  const rollbackRequestCode = code(rollbackRequest)
+  assert.match(rollbackRequestCode, /gh workflow run production-rollback\.yml/)
+  assert.doesNotMatch(rollbackRequestCode, /gh workflow run production-release\.yml/)
 })
 
 // ---- Production Release: authority preserved, automated provenance independently verified -----------------------------
