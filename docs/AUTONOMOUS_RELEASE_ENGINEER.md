@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 5A):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 5B):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -430,6 +430,25 @@ unexpected runtime drift, stale re-entry rejection, and audit deferral during ac
 
 Drill failures retain a sanitized `patelrep.release-resilience-drill.v1` artifact and fail the workflow after
 upload. They do not trigger a production action or create a new repair authority.
+
+## Live read-only recovery readiness (Phase 5B)
+
+Phase 5B validates the real production recovery prerequisites without creating a recovery action. The
+`Production Recovery Readiness` workflow reads only public production identity plus trusted GitHub Releases,
+tags, Actions evidence and workflow source. It has no production Environment, secrets, DB/Railway credentials,
+write token, or dispatch authority.
+
+The drill composes the canonical Phase 4D audit, Phase 4B open-incident resolver, Phase 3D rollback execution
+contract validator, managed Release resolver, strict public smoke, and exact tag/lineage checks. It intentionally
+does not execute the production database compatibility check because doing so would require production DB
+credentials and would convert an observational drill into a privileged production operation.
+
+A first-managed-release deployment can therefore be healthy while still reporting
+`limited_bootstrap_no_previous_release`. That state is preserved as an explicit limitation rather than quietly
+treating legacy milestone tags or arbitrary SHAs as rollback authority.
+
+The Phase 4D summary rendering is also hardened here to use shell-safe `printf`; Markdown backticks around state
+values no longer trigger accidental shell command substitution in the Actions summary step.
 
 ## Bounded recovery lineage
 
