@@ -70,6 +70,7 @@ export async function buildProductionReleaseEvidence(input, deps = {}) {
   if (!['patch', 'minor', 'major'].includes(versionBump)) throw new Error('production release evidence: invalid version bump')
 
   const jobs = Object.freeze({
+    incident_reentry: jobResult('incident re-entry', input.incidentReentryResult),
     eligibility: jobResult('eligibility', input.resolveResult),
     version: jobResult('version', input.computeVersionResult),
     content_summary: jobResult('content summary', input.contentSummaryResult),
@@ -147,6 +148,7 @@ async function main() {
       versionBump: env.VERSION_BUMP,
       automationSourceRunId: env.AUTOMATION_SOURCE_RUN_ID,
       incidentCloseoutRunId: env.INCIDENT_CLOSEOUT_RUN_ID,
+      incidentReentryResult: env.INCIDENT_REENTRY_RESULT,
       resolveResult: env.RESOLVE_RESULT,
       computeVersionResult: env.COMPUTE_VERSION_RESULT,
       contentSummaryResult: env.CONTENT_SUMMARY_RESULT,
