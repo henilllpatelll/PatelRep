@@ -154,6 +154,30 @@ runtime==managed-release alone.
 If the required 90-day evidence artifacts expired before closeout, or the gate cannot independently re-prove
 quarantine, stop and investigate manually. Do not recreate or guess the missing incident provenance.
 
+## Production notification issues (Phase 4C)
+
+Production release/incident alerts now appear as GitHub Issues created by **Production Operations Notify**.
+These issues are operational evidence and coordination threads; they do not grant deployment authority.
+
+Use the issue state as follows:
+
+- **Open critical incident** — production regression, partial release, failed rollback, missing rollback evidence,
+  or unproven rollback quarantine. Investigate immediately and do not infer production state.
+- **Open warning after successful automatic rollback** — production was restored, but the incident is still open.
+  Fix forward through PR → CI Gate → Staging Gate, then follow the Phase 4B re-entry procedure.
+- **Open re-entry update** — the exact fix-forward SHA and bump were authorized. Manually run Production Release
+  with that exact `release_sha`, bump, and `reentry_source_run_id`.
+- **Closed incident** — only the trusted Phase 4B stabilization closeout closes the automatic-rollback incident.
+- **Closed manual rollback notification** — manual rollback completed and final exact runtime verification passed.
+
+Normal stable releases do not create issues, and transient-unconfirmed stabilization does not alert by itself, to
+avoid alert fatigue. A failed/refused release before a rollback-class incident still opens a separate
+release-attention issue so it is not silently lost.
+
+Every issue update links back to the trusted Actions run. If the notification workflow itself fails, inspect its
+Actions run; never work around it by weakening production gates. The notifier has only `issues: write` and cannot
+release or roll back production.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
