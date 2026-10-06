@@ -1,0 +1,58 @@
+name: Release Resilience Drill
+
+# Phase 5A: synthetic-only validation of release/recovery policy composition.
+# No production Environment, external runtime calls, secrets, deployment credentials, write tokens, or dispatch authority.
+
+on:
+  schedule:
+    - cron: '43 10 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: release-resilience-drill
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Synthetic release/recovery failure drills
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Require trusted main control plane
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: run
+        name: Exercise synthetic failure scenarios
+        shell: bash
+        run: |
+          set +e
+          node scripts/release-resilience-drill.mjs
+          code=$?
+          set -e
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+        env:
+          RESULT_DIR: ${{ runner.temp }}/release-resilience-drill
+      - name: Upload resilience drill evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-resilience-drill
+          path: ${{ runner.temp }}/release-resilience-drill/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Fail if any resilience scenario failed
+        if: steps.run.outputs.exit_code != '0'
+        run: |
+          echo "::error::One or more synthetic release/recovery resilience scenarios failed."
+          exit 1

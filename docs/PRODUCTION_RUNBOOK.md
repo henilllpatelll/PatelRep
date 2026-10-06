@@ -206,6 +206,25 @@ notifier has only `issues: write`.
 A later fully proven healthy/quarantined audit closes an existing production-integrity issue. A deferred audit
 does not close it because transient state was not evaluated.
 
+## Release Resilience Drill (Phase 5A)
+
+**Release Resilience Drill** is a synthetic control-plane exercise. It never injects faults into live production.
+It runs weekly and can be manually dispatched from `main`.
+
+A green drill means all currently encoded scenarios still agree across the real Phase 3/4 policy functions:
+stabilization classification, auto-rollback eligibility, rollback quarantine, re-entry authorization, release
+re-entry verification, closeout, production audit, and notification classification.
+
+A red drill means at least one cross-phase invariant no longer composes correctly. Inspect the
+`release-resilience-drill` artifact and the named failed scenario. Fix the policy/contract through a normal PR;
+do **not** bypass CI/Staging, mutate production to make the drill green, or dispatch a real rollback/release as a
+test.
+
+Current scenario names:
+`post_release_regression_full_cycle`, `database_change_blocks_auto_rollback`,
+`partial_release_quarantine`, `runtime_drift_is_detected_and_notified`,
+`stale_reentry_authorization_is_refused`, and `active_production_operation_defers_audit`.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).

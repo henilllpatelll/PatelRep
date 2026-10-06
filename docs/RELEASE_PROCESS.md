@@ -353,6 +353,31 @@ Phase 4C now consumes Production Release Audit completions. Inconsistency update
 exists; healthy audits do not create a new issue. Deferred audits do not close a prior integrity alert because
 they did not re-prove steady state.
 
+### Synthetic end-to-end resilience drills (Phase 5A)
+
+Phase 5A begins final production-readiness validation without adding authority. The
+`.github/workflows/release-resilience-drill.yml` workflow runs synthetic-only failure scenarios every Monday
+and by manual dispatch from `main`. It has only `contents: read`, no `production` Environment, no secrets,
+no GitHub write token, no network/runtime access, and no deployment/database/workflow-dispatch capability.
+
+The drill composes the same exported policy functions used by the live control plane rather than duplicating their
+rules. Its current scenarios prove:
+
+- successful release → two-failure stabilization → `post_release_regression` → eligible zero-migration
+  automatic rollback → verified rollback quarantine → exact human re-entry authorization → release-time re-entry
+  verification → stable closeout → healthy managed-baseline audit;
+- any proven production DB migration blocks automatic rollback;
+- partial-release failure restores the managed baseline while the failed candidate remains unmanaged;
+- runtime/managed-Release drift with no trusted rollback is detected by Phase 4D and classified as a critical
+  Phase 4C audit notification intent;
+- moving `main` after re-entry authorization invalidates that authorization;
+- an active Production Release/Rollback makes the audit defer instead of producing false drift.
+
+Every drill writes `release-resilience-drill/context.json` using schema
+`patelrep.release-resilience-drill.v1`. The workflow captures scenario failures, uploads the artifact, then
+fails the run. A drill failure does not automatically dispatch release/rollback or grant Claude any new authority;
+it is evidence that the control-plane composition needs human review/fix through the normal PR gates.
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.

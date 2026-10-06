@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 4D):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 5A):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -414,6 +414,22 @@ Phase 4C listens to audit completion. The audit itself remains unable to write I
 notification publisher opens/updates one `audit:production-integrity` issue on inconsistency and closes an
 existing issue only after a later non-deferred audit fully proves a valid steady/quarantined state. Mutable Issue
 state is never used as release authority.
+
+## Synthetic release/recovery resilience drills (Phase 5A)
+
+Phase 5A does not extend Claude or production authority. `Release Resilience Drill` executes only in-memory
+fixtures through the actual trusted Phase 3/4 policy exports. The workflow has `contents: read` only and cannot
+read production credentials, call live production endpoints, write GitHub state, dispatch workflows, deploy,
+migrate, tag, release, merge, or roll back.
+
+The purpose is composition testing: unit tests prove individual policies, while the resilience drill proves that
+the outputs of one phase still satisfy the inputs/invariants of later phases. In particular, the full-cycle drill
+chains stabilization → auto-rollback decision → circuit breaker → human re-entry → release re-entry → closeout →
+audit recovery, and separate negative drills prove database-mutation blocking, partial-release quarantine,
+unexpected runtime drift, stale re-entry rejection, and audit deferral during active production mutation.
+
+Drill failures retain a sanitized `patelrep.release-resilience-drill.v1` artifact and fail the workflow after
+upload. They do not trigger a production action or create a new repair authority.
 
 ## Bounded recovery lineage
 
