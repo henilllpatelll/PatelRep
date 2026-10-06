@@ -3,7 +3,7 @@
 Operating contract for the Claude agent run by `.github/workflows/claude-release-engineer.yml`.
 `CLAUDE.md` remains the canonical project context; read it first, then this document.
 
-**Current scope (Phase 4A):** diagnose failed workflows and publish repair PRs with a bounded
+**Current scope (Phase 4B):** diagnose failed workflows and publish repair PRs with a bounded
 recovery lineage (at most 3 automatic Claude attempts per recovery root), safely auto-merge a
 narrow class of those PRs after CI and Staging pass (see "Safe autonomous merge (Phase 2C)"), and
 for one narrower case further REQUEST a production release (see "Controlled production release
@@ -341,6 +341,33 @@ Both the pre-runtime capture and terminal ledger run without the `production` En
 write tokens, Supabase/Railway authority or workflow-dispatch capability. The ledger cannot initiate or retry a
 rollback. Database evidence is permanently categorical as `not_mutated_by_workflow`: rollback may read migration
 history for compatibility but never reverses or repairs it.
+
+## Incident closeout and production re-entry gate (Phase 4B)
+
+Phase 4B adds governance, not production authority. `Production Incident Re-entry` is manual and read-only. It
+consumes the Phase 4A rollback ledger plus the original Phase 3 incident, re-runs the Phase 3D quarantine proof,
+and authorizes exactly one current-main fix-forward SHA and version bump only after CI + Staging/tree identity are
+already proven. It cannot deploy, migrate, tag, create a Release, roll back, dispatch another workflow, or create a
+write-capable token.
+
+Production Release now has a first, unprivileged `verify-production-reentry` job. It runs before the first
+`production` Environment job on **every** release. When no automated rollback incident is open it is a no-op.
+When one is open it refuses Phase 2D automated release requests and requires a successful
+`production-incident-reentry` authorization matching the exact rollback run, incident, release SHA and bump.
+The live rollback quarantine is re-proven at release time and a moved `main` invalidates the authorization.
+
+The policy tracks the latest restored automated rollback from the trusted Phase 4A evidence rather than merely
+comparing runtime to the newest GitHub Release. That preserves the gate for `partial_release_failure`, where
+rollback correctly restores the same managed baseline and a simple runtime/baseline comparison would look normal.
+
+The incident closes only after the authorized release itself succeeds **and** Production Release Stabilization
+emits `patelrep.production-incident-closeout.v1` with a non-incident stabilization result. The closeout is tied
+to the exact re-entry authorization, rollback run and released candidate. Before that artifact exists, a second
+release still sees the prior rollback as open. A newly confirmed regression produces no closeout and may create a
+new rollback incident instead.
+
+The re-entry and closeout artifacts follow the existing 90-day trusted-evidence retention. Missing/expired
+provenance fails closed and requires human investigation; no workflow reconstructs or guesses missing evidence.
 
 ## Bounded recovery lineage
 
