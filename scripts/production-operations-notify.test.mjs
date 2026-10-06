@@ -16,6 +16,7 @@ const RELEASE = '37590000001'
 const ROLLBACK = '37610000001'
 const REENTRY = '37620000001'
 const NOTIFY = '37630000001'
+const AUDIT = '37640000001'
 
 const runBase = ({ id, name, path, event, conclusion = 'success', sha = C, createdAt = '2026-10-06T08:00:00Z' }) => ({
   id: Number(id),
@@ -61,6 +62,33 @@ const reentryRun = (overrides = {}) => ({
     event: 'workflow_dispatch',
     createdAt: '2026-10-06T08:20:00Z',
   }),
+  ...overrides,
+})
+
+const auditRun = (overrides = {}) => ({
+  ...runBase({
+    id: AUDIT,
+    name: 'Production Release Audit',
+    path: '.github/workflows/production-release-audit.yml',
+    event: 'schedule',
+    createdAt: '2026-10-06T08:25:00Z',
+  }),
+  ...overrides,
+})
+
+const auditArtifact = (overrides = {}) => ({
+  schema: 'patelrep.production-release-audit.v1',
+  workflow: 'Production Release Audit',
+  run: { id: AUDIT, attempt: 1, control_plane_sha: C },
+  state: 'consistent_managed_release',
+  consistent: true,
+  reason_code: null,
+  runtime: { proven: true, version: 'v1.8.1', sha: B },
+  managed_release: { proven: true, tag: 'v1.8.1', sha: B },
+  ledger: { unmanaged_strict_tags: [] },
+  active_production_operations: 0,
+  incident: { open: false, rollback_run_id: null, incident_run_id: null, quarantine_mode: null },
+  reentry: { state: 'not_required', authorization_run_id: null, release_sha: null, version_bump: null },
   ...overrides,
 })
 
@@ -142,6 +170,72 @@ function deps({ sourceRun = stabilizationRun(), artifacts = {}, extraRuns = {}, 
     readNotificationResult: async (runId) => notificationResults[String(runId)] ?? null,
   }
 }
+
+test('Phase 4D audit inconsistency opens one critical production-integrity thread', async () => {
+  const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: AUDIT }, deps({
+    sourceRun: auditRun({ conclusion: 'failure' }),
+    artifacts: {
+      [`${AUDIT}:production-release-audit`]: auditArtifact({
+        state: 'inconsistent',
+        consistent: false,
+        reason_code: 'runtime_managed_release_mismatch',
+        runtime: { proven: true, version: 'v1.8.0', sha: A },
+      }),
+    },
+  }))
+  assert.equal(intent.key, 'audit:production-integrity')
+  assert.equal(intent.kind, 'audit_inconsistent')
+  assert.equal(intent.operation, 'open_update')
+  assert.equal(intent.severity, 'critical')
+  assert.match(intent.title, /runtime_managed_release_mismatch/)
+})
+
+test('healthy audit closes an existing audit thread without creating healthy-noise issues', async () => {
+  const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: AUDIT }, deps({
+    sourceRun: auditRun(),
+    artifacts: { [`${AUDIT}:production-release-audit`]: auditArtifact() },
+  }))
+  assert.equal(intent.key, 'audit:production-integrity')
+  assert.equal(intent.kind, 'audit_recovered')
+  assert.equal(intent.operation, 'close_existing')
+
+  const writes = []
+  const result = await publishIntent({ repo: REPO, owner: 'henilllpatelll', intent, expectedDigest: digestIntent(intent) }, {
+    ...deps(),
+    createIssue: async () => { writes.push('create'); return { number: 99 } },
+    getIssue: async () => { writes.push('get'); return { number: 99, state: 'open' } },
+    commentIssue: async () => { writes.push('comment') },
+    setIssueState: async () => { writes.push('state') },
+  })
+  assert.deepEqual(result, { issue_number: null, action: 'no_existing_issue' })
+  assert.deepEqual(writes, [])
+})
+
+test('deferred audit during active production operation is notification no-op', async () => {
+  const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: AUDIT }, deps({
+    sourceRun: auditRun(),
+    artifacts: {
+      [`${AUDIT}:production-release-audit`]: auditArtifact({
+        state: 'deferred_active_production_operation',
+        consistent: true,
+        active_production_operations: 1,
+        runtime: { proven: false, version: null, sha: null },
+        managed_release: { proven: false, tag: null, sha: null },
+      }),
+    },
+  }))
+  assert.equal(intent.kind, 'audit_deferred')
+  assert.equal(intent.operation, 'none')
+})
+
+test('missing audit evidence is critical and never treats a workflow conclusion as production truth', async () => {
+  const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: AUDIT }, deps({
+    sourceRun: auditRun({ conclusion: 'failure' }),
+  }))
+  assert.equal(intent.key, 'audit:production-integrity')
+  assert.equal(intent.kind, 'audit_evidence_missing')
+  assert.equal(intent.severity, 'critical')
+})
 
 test('stable and transient-unconfirmed releases do not create GitHub issue noise', async () => {
   for (const classification of ['stable', 'transient_unconfirmed']) {
@@ -317,7 +411,7 @@ const notificationResult = ({ runId = NOTIFY, eventId, key, issueNumber = 42, ac
   event_id: eventId,
   key,
   source: {},
-  issue_number: String(issueNumber),
+  issue_number: issueNumber === null ? null : String(issueNumber),
   action,
 })
 
