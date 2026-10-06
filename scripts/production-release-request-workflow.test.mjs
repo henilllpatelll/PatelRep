@@ -224,22 +224,20 @@ test('Production Release and Rollback authenticate Railway with the account toke
         assert.doesNotMatch(step.replace(link?.[0] ?? '', ''), /--project/, `${name}: variables set stays free of --project`)
         assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       } else {
-        assert.match(step, /railway\/cli@[\d.]+ up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
+        assert.match(step, /railway\/cli@[\d.]+ up (apps\/web )?--ci (--path-as-root )?--project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       }
     }
   }
 })
 
-test('Production Release and Rollback upload the repository root (no path argument, no --path-as-root) so the service Root Directory selects apps/api or apps/web', () => {
+test('Production Release and Rollback upload the repo root for the API (service Root Directory apps/api) but apps/web as the archive root for web (the web service has no Root Directory; a root upload made Railway fall back to Railpack and fail)', () => {
   for (const wf of [releaseCode, code(rollback)]) {
     const ups = wf.match(/railway\/cli@[\d.]+ up\b[^\r\n]*/g) ?? []
     assert.equal(ups.length, 2, 'expected API and web railway up calls')
-    for (const up of ups) {
-      assert.match(up, /^railway\/cli@[\d.]+ up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"$/)
-      assert.doesNotMatch(up, /apps\/(api|web)/)
-      assert.doesNotMatch(up, /--path-as-root/)
-    }
-    assert.doesNotMatch(wf, /--path-as-root/)
+    const [api, web] = ups
+    assert.match(api, /^railway\/cli@[\d.]+ up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_API_SERVICE_ID"$/)
+    assert.match(web, /^railway\/cli@[\d.]+ up apps\/web --ci --path-as-root --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_WEB_SERVICE_ID"$/)
+    assert.equal((wf.match(/--path-as-root/g) ?? []).length, 1, 'only the web upload uses --path-as-root')
   }
 })
 
@@ -252,7 +250,7 @@ test('Production Release and Rollback set Railway release variables with --skip-
 })
 
 test('Production Rollback is pinned and remains human-only', () => {
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), 'c2f3d592d3cc694758c5fe491ea3ddfa328c2632b5bebb5936efc2135b116751')
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), '17a34d5b32972e3c56d884de3033d4b32e93734f93b155d172caf02eaeab862d')
   assert.match(rollback, /on:\n {2}workflow_dispatch:/)
   assert.doesNotMatch(rollback, /automation_source_run_id/)
   assert.match(rollback, /group: production-deploy/)
