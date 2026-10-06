@@ -80,6 +80,27 @@ artifact to roll back production in Phase 3B.** Production Rollback remains manu
 migration remains prohibited. If the evidence says `unknown_after_attempt`, keep treating the mutation as
 possibly applied until proven otherwise.
 
+## Automatic rollback request decision (Phase 3C)
+
+Phase 3C adds an owner-controlled rollback **request** path, not rollback execution authority. The repository
+variable `PRODUCTION_AUTO_ROLLBACK_ENABLED` must equal exactly `true`; otherwise confirmed incidents are only
+recorded. Even when the variable is true, Phase 3C refuses to dispatch unless Production Rollback contains the
+Phase 3D automated provenance revalidation hook. Therefore **merging Phase 3C alone does not make rollback
+automatic**.
+
+The automatic request is limited to confirmed Phase 3B incidents where all of the following remain provable:
+the failing release applied **zero production migrations** (`database = no_change`), the live Web/API identity is
+still the exact failing release, a fresh strict production smoke still fails, the candidate change set is
+low-risk, the previous completed GitHub Release/tag resolves to the exact recorded known-good commit, and no
+Production Release or Rollback is already active. Any migration apply/attempt/unknown state, high-risk change,
+stale incident, recovered runtime, partial/unprovable identity, changed tag, or active production operation stays
+manual.
+
+The request workflow also re-reads the original Production Release evidence rather than trusting the incident
+artifact by itself. If it ever dispatches after Phase 3D is installed, it passes only the previous
+`target_version` plus the Phase 3B `automation_source_run_id`. Production Rollback must independently re-run
+the same policy before production access.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
