@@ -489,7 +489,7 @@ function renderComment(intent, repo) {
     `**Severity:** ${intent.severity}`,
     renderDetails(intent),
     `Actions run: https://github.com/${repo}/actions/runs/${intent.source.run_id}`,
-    `Event: `${intent.event_id}``,
+    `Event: ${intent.event_id}`,
   ].join('\n\n')
 }
 
