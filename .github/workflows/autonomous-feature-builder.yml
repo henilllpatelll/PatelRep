@@ -1,0 +1,201 @@
+name: Autonomous Feature Builder
+
+# Human-requested product development automation.
+# Claude edits/tests only in a read-only checkout. A separate deterministic publisher is the only job
+# with write authority, and it can only create one feature branch + PR. It cannot merge or deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      feature_name:
+        description: Short feature name used for the branch, commit and PR title
+        required: true
+        type: string
+      requirements:
+        description: Detailed implementation requirements and acceptance criteria
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: autonomous-feature-builder-\${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve exact feature base
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      base_sha: \${{ steps.context.outputs.base_sha }}
+      branch: \${{ steps.context.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: \${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove human dispatched from exact main
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: context
+        name: Resolve deterministic feature context
+        run: node scripts/feature-builder-context.mjs
+        env:
+          REPO: \${{ github.repository }}
+          RUN_ID: \${{ github.run_id }}
+          BASE_SHA: \${{ github.sha }}
+          FEATURE_NAME: \${{ inputs.feature_name }}
+          FEATURE_REQUIREMENTS: \${{ inputs.requirements }}
+
+  build:
+    name: Build feature (read-only publisher authority)
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      has_changes: \${{ steps.capture.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: \${{ needs.resolve.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Prove exact feature base
+        env:
+          BASE_SHA: \${{ needs.resolve.outputs.base_sha }}
+        run: test "$(git rev-parse HEAD)" = "$BASE_SHA"
+
+      - name: Run autonomous feature builder
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: \${{ github.token }}
+        with:
+          claude_code_oauth_token: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: \${{ github.token }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            You are the PatelRep autonomous feature builder for \${{ github.repository }}.
+            Read CLAUDE.md, .wolf/OPENWOLF.md, .wolf/cerebrum.md and .wolf/anatomy.md before changing code.
+            Follow all repository architecture, tenancy, RBAC, migration and safety rules.
+
+            Feature name:
+            \${{ inputs.feature_name }}
+
+            Requirements and acceptance criteria:
+            \${{ inputs.requirements }}
+
+            Exact base SHA:
+            \${{ needs.resolve.outputs.base_sha }}
+
+            Build the requested product feature from this exact checkout. Inspect the existing implementation before
+            choosing an approach. Make the smallest coherent change that fully implements the request. Add or update
+            regression tests. Run targeted tests plus relevant lint/type-check/build commands for the surfaces you touch.
+            If a database change is legitimately required, add a new forward-only migration; never edit, delete, rename,
+            fake or repair existing migration history.
+
+            You work locally only. Do NOT commit, push, create/edit/comment on/close/merge PRs, create branches/tags,
+            dispatch/rerun/cancel workflows, create releases, deploy, or access production. Do not weaken or bypass CI,
+            Staging, exact-SHA/tree provenance, database guards, tests, or production gates. Do not modify GitHub
+            workflow files or the release/recovery/staging control plane.
+
+            When finished, write .feature-builder-report/summary.md containing:
+            - What was built
+            - Files/areas changed
+            - Tests and validation run
+            - Any review notes or limitations
+          claude_args: >-
+            --max-turns 80
+            --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git grep:*),Bash(git merge-base:*),Bash(git cat-file:*),Bash(git rev-list:*),Bash(git restore:*),Bash(gh run view:*),Bash(gh run list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr list:*),Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python:*),Bash(python3:*),Bash(pip:*),Bash(pytest:*),Bash(cd:*),Bash(ls:*),Bash(cat:*),Bash(mkdir:*)"
+            --disallowedTools "Bash(git push:*),Bash(git commit:*),Bash(git reset:*),Bash(git rebase:*),Bash(git merge:*),Bash(git checkout:*),Bash(git switch:*),Bash(git branch:*),Bash(git tag:*),Bash(git remote:*),Bash(git config:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh pr merge:*),Bash(gh pr comment:*),Bash(gh pr close:*),Bash(gh pr review:*),Bash(gh issue:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh run rerun:*),Bash(gh run cancel:*),Bash(gh api:*),Bash(railway:*),Bash(supabase:*),Bash(psql:*)"
+
+      - name: Capture feature patch
+        id: capture
+        env:
+          BASE_SHA: \${{ needs.resolve.outputs.base_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          mkdir -p "$RUNNER_TEMP/feature-builder-out"
+          if [ -f .feature-builder-report/summary.md ]; then cp .feature-builder-report/summary.md "$RUNNER_TEMP/feature-builder-out/summary.md"; fi
+          rm -rf .feature-builder-report
+          git add -A
+          git diff --cached --binary "$BASE_SHA" > "$RUNNER_TEMP/feature-builder-out/feature.patch"
+          size=$(wc -c < "$RUNNER_TEMP/feature-builder-out/feature.patch")
+          if [ "$size" -gt 5242880 ]; then echo "::error::Feature patch is too large ($size bytes)"; exit 1; fi
+          if [ "$size" -gt 0 ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Feature builder produced no changes."
+            exit 1
+          fi
+
+      - name: Upload feature builder output
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-builder-output
+          path: \${{ runner.temp }}/feature-builder-out
+          retention-days: 3
+          if-no-files-found: error
+
+  publish:
+    name: Publish feature branch and PR (trusted)
+    needs: [resolve, build]
+    if: needs.build.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Create PatelRep GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: \${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: \${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7
+        with:
+          token: \${{ steps.app-token.outputs.token }}
+          ref: \${{ needs.resolve.outputs.base_sha }}
+          fetch-depth: 0
+          path: feature-worktree
+
+      - uses: actions/checkout@v7
+        with:
+          ref: \${{ needs.resolve.outputs.base_sha }}
+          path: trusted-publisher
+          sparse-checkout: scripts
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: feature-builder-output
+          path: \${{ runner.temp }}/feature-builder-out
+
+      - name: Publish exact feature patch and PR
+        env:
+          GH_TOKEN: \${{ steps.app-token.outputs.token }}
+          REPO: \${{ github.repository }}
+          BASE_SHA: \${{ needs.resolve.outputs.base_sha }}
+          FEATURE_BRANCH: \${{ needs.resolve.outputs.branch }}
+          FEATURE_RUN_ID: \${{ github.run_id }}
+          FEATURE_NAME: \${{ inputs.feature_name }}
+          PATCH_FILE: \${{ runner.temp }}/feature-builder-out/feature.patch
+          SUMMARY_FILE: \${{ runner.temp }}/feature-builder-out/summary.md
+        working-directory: feature-worktree
+        run: node "$GITHUB_WORKSPACE/trusted-publisher/scripts/publish-feature-builder-change.mjs"
