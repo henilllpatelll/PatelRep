@@ -22,7 +22,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: autonomous-feature-builder-\${{ github.run_id }}
+  group: autonomous-feature-builder-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -31,12 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      base_sha: \${{ steps.context.outputs.base_sha }}
-      branch: \${{ steps.context.outputs.branch }}
+      base_sha: ${{ steps.context.outputs.base_sha }}
+      branch: ${{ steps.context.outputs.branch }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           sparse-checkout: scripts
           persist-credentials: false
       - uses: actions/setup-node@v7
@@ -50,11 +50,11 @@ jobs:
         name: Resolve deterministic feature context
         run: node scripts/feature-builder-context.mjs
         env:
-          REPO: \${{ github.repository }}
-          RUN_ID: \${{ github.run_id }}
-          BASE_SHA: \${{ github.sha }}
-          FEATURE_NAME: \${{ inputs.feature_name }}
-          FEATURE_REQUIREMENTS: \${{ inputs.requirements }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          BASE_SHA: ${{ github.sha }}
+          FEATURE_NAME: ${{ inputs.feature_name }}
+          FEATURE_REQUIREMENTS: ${{ inputs.requirements }}
 
   build:
     name: Build feature (read-only publisher authority)
@@ -62,11 +62,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:
-      has_changes: \${{ steps.capture.outputs.has_changes }}
+      has_changes: ${{ steps.capture.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: \${{ needs.resolve.outputs.base_sha }}
+          ref: ${{ needs.resolve.outputs.base_sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v7
@@ -78,31 +78,31 @@ jobs:
 
       - name: Prove exact feature base
         env:
-          BASE_SHA: \${{ needs.resolve.outputs.base_sha }}
+          BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
         run: test "$(git rev-parse HEAD)" = "$BASE_SHA"
 
       - name: Run autonomous feature builder
         uses: anthropics/claude-code-action@v1
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         with:
-          claude_code_oauth_token: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: \${{ github.token }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
           additional_permissions: |
             actions: read
           prompt: |
-            You are the PatelRep autonomous feature builder for \${{ github.repository }}.
+            You are the PatelRep autonomous feature builder for ${{ github.repository }}.
             Read CLAUDE.md, .wolf/OPENWOLF.md, .wolf/cerebrum.md and .wolf/anatomy.md before changing code.
             Follow all repository architecture, tenancy, RBAC, migration and safety rules.
 
             Feature name:
-            \${{ inputs.feature_name }}
+            ${{ inputs.feature_name }}
 
             Requirements and acceptance criteria:
-            \${{ inputs.requirements }}
+            ${{ inputs.requirements }}
 
             Exact base SHA:
-            \${{ needs.resolve.outputs.base_sha }}
+            ${{ needs.resolve.outputs.base_sha }}
 
             Build the requested product feature from this exact checkout. Inspect the existing implementation before
             choosing an approach. Make the smallest coherent change that fully implements the request. Add or update
@@ -128,7 +128,7 @@ jobs:
       - name: Capture feature patch
         id: capture
         env:
-          BASE_SHA: \${{ needs.resolve.outputs.base_sha }}
+          BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
         run: |
           test "$(git rev-parse HEAD)" = "$BASE_SHA"
           mkdir -p "$RUNNER_TEMP/feature-builder-out"
@@ -150,7 +150,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: feature-builder-output
-          path: \${{ runner.temp }}/feature-builder-out
+          path: ${{ runner.temp }}/feature-builder-out
           retention-days: 3
           if-no-files-found: error
 
@@ -165,19 +165,19 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: \${{ vars.PATELREP_APP_CLIENT_ID }}
-          private-key: \${{ secrets.PATELREP_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.PATELREP_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PATELREP_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@v7
         with:
-          token: \${{ steps.app-token.outputs.token }}
-          ref: \${{ needs.resolve.outputs.base_sha }}
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ needs.resolve.outputs.base_sha }}
           fetch-depth: 0
           path: feature-worktree
 
       - uses: actions/checkout@v7
         with:
-          ref: \${{ needs.resolve.outputs.base_sha }}
+          ref: ${{ needs.resolve.outputs.base_sha }}
           path: trusted-publisher
           sparse-checkout: scripts
           persist-credentials: false
@@ -185,17 +185,17 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: feature-builder-output
-          path: \${{ runner.temp }}/feature-builder-out
+          path: ${{ runner.temp }}/feature-builder-out
 
       - name: Publish exact feature patch and PR
         env:
-          GH_TOKEN: \${{ steps.app-token.outputs.token }}
-          REPO: \${{ github.repository }}
-          BASE_SHA: \${{ needs.resolve.outputs.base_sha }}
-          FEATURE_BRANCH: \${{ needs.resolve.outputs.branch }}
-          FEATURE_RUN_ID: \${{ github.run_id }}
-          FEATURE_NAME: \${{ inputs.feature_name }}
-          PATCH_FILE: \${{ runner.temp }}/feature-builder-out/feature.patch
-          SUMMARY_FILE: \${{ runner.temp }}/feature-builder-out/summary.md
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
+          FEATURE_BRANCH: ${{ needs.resolve.outputs.branch }}
+          FEATURE_RUN_ID: ${{ github.run_id }}
+          FEATURE_NAME: ${{ inputs.feature_name }}
+          PATCH_FILE: ${{ runner.temp }}/feature-builder-out/feature.patch
+          SUMMARY_FILE: ${{ runner.temp }}/feature-builder-out/summary.md
         working-directory: feature-worktree
         run: node "$GITHUB_WORKSPACE/trusted-publisher/scripts/publish-feature-builder-change.mjs"
