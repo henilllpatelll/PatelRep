@@ -25,7 +25,7 @@ test('coding agent has read-only repository authority and cannot publish or depl
   const build = jobSection('build')
   assert.match(workflow, /permissions:\n  contents: read\n  actions: read\n  pull-requests: read/)
   assert.match(build, /github_token: \$\{\{ github\.token \}\}/)
-  for (const denied of ['git push', 'git commit', 'gh pr create', 'gh pr merge', 'gh workflow', 'railway:', 'supabase:', 'psql;']) {
+  for (const denied of ['git push', 'git commit', 'gh pr create', 'gh pr merge', 'gh workflow', 'railway:', 'supabase:', 'psql:']) {
     assert.match(build, new RegExp(denied.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
   assert.doesNotMatch(build, /PATELREP_APP_PRIVATE_KEY/)
