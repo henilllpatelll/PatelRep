@@ -13,8 +13,8 @@ const MAX_SUMMARY_CHARS = 7000
 
 const BLOCKED_PATHS = [
   /^\.github\/workflows\//,
-  /^scripts\/(?:production-|release-|claude-release-engineer|resolve-release-engineer|publish-release-engineer|recovery-lineage|staging-)/,
-  /^docs\/(?:PRODUCTION_RUNBOOK|RELEASE_PROCESS|AUTONOMOUS_RELEASE_ENGINEER)\.md$/,
+  /^scripts\/(?:production-|release-|claude-release-engineer|resolve-release-engineer|publish-release-engineer|recovery-lineage|staging-|feature-builder|publish-feature-builder|feature-orchestrator|dispatch-feature-builder|resolve-feature-orchestrator)/,
+  /^docs\/(?:PRODUCTION_RUNBOOK|RELEASE_PROCESS|AUTONOMOUS_RELEASE_ENGINEER|AUTONOMOUS_FEATURE_BUILDER|CLAUDE_FEATURE_ORCHESTRATOR)\.md$/,
 ]
 
 function fail(message) {
