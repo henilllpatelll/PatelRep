@@ -1,0 +1,61 @@
+name: Claude Feature Orchestrator
+
+# The single, narrow front door for Claude-initiated feature requests.
+# It can do exactly one thing: dispatch the Autonomous Feature Builder on exact current main and record the
+# resulting builder run. It cannot merge, push, deploy, or dispatch any other workflow, and it has no secrets,
+# no GitHub App token, and no production Environment.
+
+on:
+  workflow_dispatch:
+    inputs:
+      feature_name:
+        description: Short feature name (becomes the branch slug and PR title)
+        required: true
+        type: string
+      requirements:
+        description: Detailed implementation requirements and acceptance criteria
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: claude-feature-orchestrator-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch Autonomous Feature Builder (trusted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove dispatch from exact main
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Dispatch the trusted Autonomous Feature Builder workflow
+        run: node scripts/dispatch-feature-builder.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          FEATURE_NAME: ${{ inputs.feature_name }}
+          FEATURE_REQUIREMENTS: ${{ inputs.requirements }}
+          DISPATCH_OUTPUT_DIR: ${{ runner.temp }}/feature-orchestrator-dispatch
+      - name: Upload dispatch provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-orchestrator-dispatch
+          path: ${{ runner.temp }}/feature-orchestrator-dispatch/context.json
+          retention-days: 30
+          if-no-files-found: error

@@ -47,6 +47,12 @@ test('publisher blocks release control plane edits', () => {
     'scripts/claude-release-engineer-workflow.test.mjs',
     'scripts/staging-target-guard.mjs',
     'docs/PRODUCTION_RUNBOOK.md',
+    'scripts/feature-orchestrator-policy.mjs',
+    'scripts/dispatch-feature-builder.mjs',
+    'scripts/resolve-feature-orchestrator-status.mjs',
+    'scripts/publish-feature-builder-change.mjs',
+    'scripts/feature-orchestrator-workflow.test.mjs',
+    'docs/CLAUDE_FEATURE_ORCHESTRATOR.md',
   ]) {
     assert.throws(() => validateChangedPaths(`M\t${file}`), /protected control-plane path/)
   }

@@ -43,3 +43,7 @@ Every initial commit records:
 - `PatelRep-Feature-Base-SHA`
 
 The publisher requires the remote `main` SHA to still equal the captured base immediately before publication.
+
+## Claude orchestration
+
+Claude can start this builder through the narrowly scoped `Claude Feature Orchestrator` workflow and report CI/Staging status; see [CLAUDE_FEATURE_ORCHESTRATOR.md](CLAUDE_FEATURE_ORCHESTRATOR.md). It adds no merge or production authority.
