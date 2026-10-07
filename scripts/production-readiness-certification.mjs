@@ -35,7 +35,6 @@ export const POLICY = Object.freeze({
   resilience_drill_minutes: 8 * 24 * 60,
   watchdog_minutes: 30,
   // staging-candidate-context is uploaded with retention-days: 3; after that only the gate check can bind staging.
-  staging_context_retention_minutes: 3 * 24 * 60,
   staging_artifact_window_minutes: 10,
   max_future_skew_minutes: 5,
   artifact_candidate_limit: 10,
@@ -54,7 +53,6 @@ export const DRILL_SCENARIOS = Object.freeze([
 export const DEPLOY_HEALTH_JOBS = Object.freeze(['API health', 'Web health', 'Deployment API-URL drift check', 'Public smoke verification'])
 export const STAGING_STAGES = Object.freeze(['Database', 'API deploy', 'Web deploy', 'Release identity + smoke'])
 export const BOOTSTRAP_LIMITATION = 'no_previous_managed_release'
-export const STAGING_EXPIRED_LIMITATION = 'staging_context_artifact_expired'
 
 const SHA = /^[0-9a-f]{40}$/
 const RUN_ID = /^[1-9][0-9]{0,19}$/
@@ -214,7 +212,7 @@ function parseStagingSummary(summary, prNumber, sha) {
   return stages.size === STAGING_STAGES.length && STAGING_STAGES.every((stage) => stages.get(stage) === '✅ success')
 }
 
-async function loadStagingContext({ repo, provenance, ciRunId, gate, nowMs, deps }) {
+async function loadStagingContext({ repo, provenance, ciRunId, gate, deps }) {
   const startedMs = parseTimestamp(gate.started_at, 'staging_gate_timing_unproven')
   const completedMs = parseTimestamp(gate.completed_at, 'staging_gate_timing_unproven')
   const slack = POLICY.staging_artifact_window_minutes * MS_PER_MINUTE
@@ -257,17 +255,15 @@ async function loadStagingContext({ repo, provenance, ciRunId, gate, nowMs, deps
     return { run_id: identity.id, run_attempt: identity.attempt, binding: 'staging_candidate_context' }
   }
 
-  // The context artifact only lives 3 days. Once the gate itself is older than that, absence is expiry, not tampering.
-  if (nowMs - completedMs > POLICY.staging_context_retention_minutes * MS_PER_MINUTE) {
-    return { run_id: null, run_attempt: null, binding: 'staging_gate_check_summary' }
-  }
+  // The trusted context artifact is mandatory. Absence (including expiry) is never inferred from the gate's age and a
+  // mutable gate summary can never replace it: staging provenance that cannot be proven is `unproven`.
   throw unproven('staging_candidate_context_missing')
 }
 
-async function proveStaging({ repo, provenance, ciRunId, nowMs, deps }) {
+async function proveStaging({ repo, provenance, ciRunId, deps }) {
   const gate = latestGate(await step('staging_gate_unproven', () => deps.listCheckRuns(provenance.candidateSha, 'Staging Gate')), 'Staging Gate', 'staging_gate')
   if (!parseStagingSummary(gate.output?.summary, provenance.sourcePr, provenance.candidateSha)) throw notCertified('staging_gate_summary_mismatch')
-  const bound = await loadStagingContext({ repo, provenance, ciRunId, gate, nowMs, deps })
+  const bound = await loadStagingContext({ repo, provenance, ciRunId, gate, deps })
   return { ...bound, gate: 'success', stages: [...STAGING_STAGES] }
 }
 
@@ -440,6 +436,17 @@ async function proveDeployHealth({ repo, sha, deps, nowMs }) {
 
 // ---- orchestration -------------------------------------------------------------------------------------------
 
+/**
+ * Explicit final invariant: exactly [] -> certified and exactly [no_previous_managed_release] -> certified_with_limitations.
+ * Any other limitation set can never certify, regardless of how it was accumulated.
+ */
+export function finalSuccessState(limitations) {
+  if (!Array.isArray(limitations)) throw unproven('limitations_malformed')
+  if (limitations.length === 0) return 'certified'
+  if (limitations.length === 1 && limitations[0] === BOOTSTRAP_LIMITATION) return 'certified_with_limitations'
+  throw notCertified('unsupported_limitations')
+}
+
 function emptyResult(controlPlaneSha) {
   return {
     schema: CERT_SCHEMA,
@@ -484,8 +491,7 @@ export async function evaluateProductionReadinessCertification({ repo, controlPl
     }
 
     result.gates.candidate_ci = await proveCiGate({ repo, sha: provenance.candidateSha, deps, label: 'candidate', event: 'pull_request', branch: provenance.candidateBranch })
-    result.gates.staging = await proveStaging({ repo, provenance, ciRunId: result.gates.candidate_ci.run_id, nowMs, deps })
-    if (result.gates.staging.binding === 'staging_gate_check_summary') limitations.push(STAGING_EXPIRED_LIMITATION)
+    result.gates.staging = await proveStaging({ repo, provenance, ciRunId: result.gates.candidate_ci.run_id, deps })
     result.gates.main_ci = await proveCiGate({ repo, sha: controlPlaneSha, deps, label: 'main', event: 'push', branch: 'main' })
 
     const deployHealth = await proveDeployHealth({ repo, sha: controlPlaneSha, deps, nowMs })
@@ -533,7 +539,7 @@ export async function evaluateProductionReadinessCertification({ repo, controlPl
     await proveMainIdentity(controlPlaneSha, deps)
 
     result.limitations = [...new Set(limitations)].sort()
-    result.state = result.limitations.length === 0 ? 'certified' : 'certified_with_limitations'
+    result.state = finalSuccessState(result.limitations)
     result.certified = true
   } catch (error) {
     const verdict = error instanceof Verdict ? error : unproven('certification_evaluation_failed')

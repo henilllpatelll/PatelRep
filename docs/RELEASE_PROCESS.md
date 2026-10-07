@@ -525,9 +525,15 @@ monitoring.
 `certified_with_limitations` and records the limitation; it is neither failure nor hidden. Do **not** cut a second
 production release merely to remove it: it disappears when a real previous managed Release exists. The readiness
 limitation list must be *exactly* that one entry; any other limitation is `not_certified`.
-`staging-candidate-context` is retained only 3 days; if the Staging Gate check is older than that and the artifact has
-expired, staging is bound by the gate check alone and the additional limitation `staging_context_artifact_expired` is
-declared. Before that window an absent or mismatched context fails closed.
+The only successful limitation sets are exactly `[]` (`certified`) and `["no_previous_managed_release"]`
+(`certified_with_limitations`); this is an explicit final invariant, and any other limitation set can never certify.
+
+**Staging context is mandatory trusted provenance.** `staging-candidate-context` is retained only 3 days. If it has
+expired or is otherwise absent, Phase 5D **cannot** reconstruct staging provenance from the Staging Gate check summary
+alone, regardless of how old the gate is: the result is `unproven` / `staging_candidate_context_missing`. The Staging
+Gate summary is supporting evidence only, never a substitute for the context artifact; check titles, workflow names, PR
+bodies, commit messages and Issue content are not substitutes either. A merge that is certified more than 3 days after
+staging therefore fails closed rather than certifying with a weaker proof.
 
 **Control-plane SHA is not the production runtime SHA.** Certification explicitly separates the current `main`
 (control-plane) SHA from the managed production Release SHA. Production may legitimately remain on `v1.8.0` while

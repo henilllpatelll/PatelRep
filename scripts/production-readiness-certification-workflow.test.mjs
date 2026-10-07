@@ -148,3 +148,11 @@ test('Release Workflow Contract permanently runs all Phase 5D tests', () => {
   }
   assert.equal(new Set(files).size, files.length, 'no duplicate Release Workflow Contract tests')
 })
+
+test('there is no staging-context expiry fallback and certification limitations are an explicit closed set', () => {
+  const s = executable(script)
+  assert.doesNotMatch(s, /staging_context_artifact_expired|staging_gate_check_summary|staging_context_retention|STAGING_EXPIRED/)
+  assert.match(s, /export function finalSuccessState/)
+  assert.match(s, /unsupported_limitations/)
+  assert.match(s, /result\.state = finalSuccessState\(result\.limitations\)/)
+})

@@ -318,6 +318,10 @@ Read the `production-readiness-certification/context.json` artifact (or the step
   automation is unhealthy. Resolve through the Watchdog runbook above; certification only passes while quiescent.
 - **not_certified / `release_audit_*`, `recovery_readiness_*`** - follow the Phase 4D audit / Phase 5B readiness
   procedures; a quarantine, open incident, or required re-entry must be resolved by the existing human procedures.
+- **unproven / `staging_candidate_context_missing`** - the trusted `staging-candidate-context` artifact for this exact
+  candidate is absent or expired (3-day retention). It is mandatory and cannot be reconstructed from the Staging Gate
+  summary, so certification fails closed; it cannot be fixed by re-dispatching. Only `[]` and
+  `["no_previous_managed_release"]` can ever certify.
 - **not_certified / `candidate_tree_mismatch`** - current main's content is not exactly what was staged. Treat as a
   release-integrity problem and investigate how main was changed; never override.
 

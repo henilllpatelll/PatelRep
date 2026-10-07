@@ -8,7 +8,7 @@ import {
   DEPLOY_HEALTH_JOBS,
   DRILL_SCENARIOS,
   POLICY,
-  STAGING_EXPIRED_LIMITATION,
+  finalSuccessState,
   WORKFLOW_PATHS,
   evaluateProductionReadinessCertification,
 } from './production-readiness-certification.mjs'
@@ -346,19 +346,39 @@ test('the Staging Gate itself must be an exact successful all-stages GitHub Acti
   await expectOutcome((w) => set(w, { output: { summary: null } }), NC, 'staging_gate_summary_mismatch', 'no summary')
 })
 
-test('after the 3-day context retention the gate check alone binds staging and the limitation is declared, not hidden', async () => {
-  const w = makeWorld()
-  w.checks[`${CAND}:Staging Gate`] = [gate('Staging Gate', 2005, {
-    started_at: minutesAgo(POLICY.staging_context_retention_minutes + 120),
-    completed_at: minutesAgo(POLICY.staging_context_retention_minutes + 60),
-    output: { summary: STAGING_SUMMARY },
-  })]
-  w.artifacts = w.artifacts.filter((artifact) => artifact.name !== 'staging-candidate-context')
-  const result = await certify(w)
+test('staging-candidate-context is mandatory: an expired, missing or old-gate context never certifies, and a check summary cannot replace it', async () => {
+  const old = (w) => {
+    w.checks[`${CAND}:Staging Gate`] = [gate('Staging Gate', 2005, {
+      started_at: minutesAgo(5 * 24 * 60),
+      completed_at: minutesAgo(5 * 24 * 60 - 10),
+      output: { summary: STAGING_SUMMARY },
+    })]
+  }
+  const noContext = (w) => { w.artifacts = w.artifacts.filter((artifact) => artifact.name !== 'staging-candidate-context') }
+  await expectOutcome(noContext, UP, 'staging_candidate_context_missing', 'missing context, correct gate summary')
+  await expectOutcome((w) => { w.artifacts.find((a) => a.name === 'staging-candidate-context').expired = true }, UP, 'staging_candidate_context_missing', 'expired context')
+  await expectOutcome((w) => { old(w); noContext(w) }, UP, 'staging_candidate_context_missing', 'gate older than 3 days and no context')
+  await expectOutcome((w) => { old(w); w.artifacts.find((a) => a.name === 'staging-candidate-context').expired = true }, UP, 'staging_candidate_context_missing', 'old gate and expired context')
+  const present = makeWorld()
+  const result = await certify(present)
   assert.equal(result.state, 'certified_with_limitations')
-  assert.deepEqual(result.limitations, [BOOTSTRAP_LIMITATION, STAGING_EXPIRED_LIMITATION].sort(), 'limitations are sorted for a deterministic artifact')
-  assert.equal(result.gates.staging.binding, 'staging_gate_check_summary')
-  assert.equal(result.gates.staging.run_id, null)
+  assert.deepEqual(result.limitations, [BOOTSTRAP_LIMITATION])
+  assert.equal(result.gates.staging.binding, 'staging_candidate_context')
+})
+
+test('only [] and [no_previous_managed_release] can produce a successful certification', () => {
+  assert.equal(finalSuccessState([]), 'certified')
+  assert.equal(finalSuccessState([BOOTSTRAP_LIMITATION]), 'certified_with_limitations')
+  for (const limitations of [
+    ['staging_context_artifact_expired'],
+    ['some_unknown_limitation'],
+    [BOOTSTRAP_LIMITATION, 'staging_context_artifact_expired'],
+    [BOOTSTRAP_LIMITATION, BOOTSTRAP_LIMITATION],
+    ['b', 'a'],
+  ]) {
+    assert.throws(() => finalSuccessState(limitations), (error) => error.state === 'not_certified' && error.reason === 'unsupported_limitations', JSON.stringify(limitations))
+  }
+  assert.throws(() => finalSuccessState(null), (error) => error.state === 'unproven')
 })
 
 test('current-main CI must be a successful push run on main for the exact certification SHA', async () => {

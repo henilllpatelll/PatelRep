@@ -473,6 +473,10 @@ quiescent Watchdog) into one sanitized `production-readiness-certification` arti
 no dispatch, cancel, rerun, approval, deployment, rollback, tag, Release, or merge path, no Environment, no secrets,
 no write permission.
 
+`staging-candidate-context` is mandatory trusted provenance: if it is missing or expired, certification is `unproven`
+and must never be rebuilt from the Staging Gate summary. The only successful limitation is
+`no_previous_managed_release`.
+
 Claude must not treat a certification as authorization for anything, must not run, dispatch, or re-run production
 workflows to improve a certification result, and must not create a second production release to remove the truthful
 `no_previous_managed_release` bootstrap limitation. Control-plane (main) SHA and managed production Release SHA are
