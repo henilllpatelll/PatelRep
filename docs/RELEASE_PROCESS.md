@@ -471,6 +471,78 @@ unchanged.
 The watchdog does not cancel, rerun, dispatch, approve, merge, push, tag, or touch migration history, and it cannot
 self-heal. The Phase 5A drill gains `stuck_production_operation_is_detected_without_mutation` (in-memory only).
 
+### Production readiness certification (Phase 5D)
+
+Phase 5D is the final, **read-only** attestation that the release/recovery control plane built in Phases 1-5C is
+ready. It adds **zero production authority**: it composes evidence that already exists and never deploys, rolls
+back, migrates, tags, creates a Release, approves an Environment, cancels/reruns/dispatches a workflow, merges a PR,
+or repairs anything. `.github/workflows/production-readiness-certification.yml` is `workflow_dispatch` only (an
+explicit, human-requested attestation; it never runs on push or a schedule), has only `contents: read` +
+`actions: read`, no `production` Environment, no secrets, and its own non-cancelling
+`production-readiness-certification` concurrency group. Policy is deterministic code in
+`scripts/production-readiness-certification.mjs` (read-only GETs in `production-readiness-certification-deps.mjs`)
+with an injected `now`.
+
+**Current-main provenance: merge SHA vs. candidate tree.** A GitHub merge commit has a different SHA than the staged PR
+head even when the resulting content is identical, so the certification does not compare SHAs. The merge commit SHA
+proves *which commit main is*; exact **tree SHA equality** between current `main` and the merged PR's candidate head
+proves the merged content is byte-for-byte what CI and Staging verified. The PR is resolved from GitHub's own
+commit-to-PR association (never commit-message parsing) and must be the single merged, same-repository PR targeting
+`main` whose `merge_commit_sha` is main. Ancestry, changed-file comparison, or "close enough" never substitute.
+
+| Evidence | Requirement |
+| --- | --- |
+| Current main | equals the workflow's exact checked-out SHA at the start **and again immediately before finalizing**; a move is `unproven` / `main_moved_during_certification` |
+| Candidate CI | successful `ci.yml` `pull_request` run for the exact candidate SHA, bound through the `CI Gate` check |
+| Staging | `Staging Gate` check (GitHub Actions) successful for the exact PR + candidate SHA with all four stages green, **and** a refetched successful `staging-candidate.yml` run whose `staging-candidate-context` names the exact PR, candidate SHA, branch and CI run id |
+| Current-main CI | successful `ci.yml` `push` run on `main` for the exact SHA, `CI Gate` green |
+| Deploy Health | successful `deploy-check.yml` run on main for the exact SHA, <= 45 min old, API health / Web health / Deployment API-URL drift check / Public smoke verification jobs all green |
+| Production Release Audit | `consistent_managed_release`, no active operation, no open incident or quarantine, no unmanaged strict tag, re-entry `not_required`, runtime == managed Release; <= 7 h |
+| Production Recovery Readiness | only `ready` or `limited_bootstrap_no_previous_release`; <= 26 h; see below |
+| Release Resilience Drill | exactly the seven expected scenarios, in order, all passed, `synthetic_only`, `authority_added == false`; <= 8 days |
+| Production Automation Watchdog | exactly `healthy`, severity `none`, zero findings, zero active operations; <= 30 min |
+
+Every evidence run is refetched and validated by exact workflow **file path**, repository/head repository, `main`,
+the exact certification SHA and completed/success; embedded run id/attempt/SHA must match the source run (the drill
+artifact embeds no run block, so it is bound through its source run alone). Display names, `run.name`, and Issue
+contents are never authority. Artifact evidence is looked up artifact-first (one bounded, name-filtered page, at most
+10 same-SHA candidates, newest completed run wins), never by enumerating history; a run still in progress is skipped,
+but a newer completed *failure* is not hidden. Run-only evidence (Deploy Health) uses the workflow id resolved from the
+exact path and one unfiltered newest-first page, because GitHub's status/branch filtered listings were observed
+returning stale snapshots.
+
+**States.** `certified` (no limitations), `certified_with_limitations`, `not_certified` (evidence is known-bad: stale,
+failed, inconsistent, wrong state), `unproven` (evidence is missing, malformed, mismatched, or unreadable; main moved).
+Only the first two succeed the workflow. The `production-readiness-certification/context.json` artifact (schema
+`patelrep.production-readiness-certification.v1`, 90 days) is uploaded **before** a non-certified result fails the
+run, carries a stable `reason_code`, and contains no URLs, remote error bodies, secrets, or Issue content. Final
+certification is a **quiescent-system** attestation: `active_within_budget` watchdogs, deferred readiness states,
+quarantine states, and an active production operation are never certifiable even though they are healthy for
+monitoring.
+
+**Bootstrap limitation.** While only one managed Release exists, recovery readiness truthfully reports
+`limited_bootstrap_no_previous_release` with limitation `no_previous_managed_release`. The certification maps that to
+`certified_with_limitations` and records the limitation; it is neither failure nor hidden. Do **not** cut a second
+production release merely to remove it: it disappears when a real previous managed Release exists. The readiness
+limitation list must be *exactly* that one entry; any other limitation is `not_certified`.
+`staging-candidate-context` is retained only 3 days; if the Staging Gate check is older than that and the artifact has
+expired, staging is bound by the gate check alone and the additional limitation `staging_context_artifact_expired` is
+declared. Before that window an absent or mismatched context fails closed.
+
+**Control-plane SHA is not the production runtime SHA.** Certification explicitly separates the current `main`
+(control-plane) SHA from the managed production Release SHA. Production may legitimately remain on `v1.8.0` while
+release-engineering code on main is newer; the runtime SHA is required to equal the managed Release, never main.
+
+**What certification does NOT prove:** production database compatibility with the next release (readiness
+is `not_exercised_read_only_no_secret`), that a rollback would succeed (only that the execution contract and, when one
+exists, a rollback target are proven), the correctness of application behavior, or anything about a later main
+commit. It never authorizes deployment, rollback, re-entry, or any production action.
+
+**Re-certifying.** Any new `main` commit invalidates the certification. After it lands, let push-triggered CI, Deploy
+Health, Production Release Audit, Production Recovery Readiness and the Watchdog finish on the new main, manually run
+`Release Resilience Drill` on it (it is not push-triggered), require 7/7, then dispatch `Production Readiness
+Certification` on `main`. Re-dispatch if it reports a stale heartbeat (> 45 min Deploy Health, > 30 min Watchdog).
+
 ### Automated release requests (Phase 2D)
 
 **Automatic request ≠ automatic production approval.** For one narrow case the Claude Release Engineer may *request* a release: a low-risk Phase 2C recovery PR that repaired a failed `Deploy Health Check` of the exact current production baseline, merged as the only commit after the last release. The `Claude Release Engineer Production Request` workflow then dispatches this workflow with `version_bump=patch` and `automation_source_run_id=<auto-merge run id>`. The `production` Environment has no Required Reviewer, so there is no manual approval pause; the workflow re-verifies the whole provenance (trusted dispatcher, exact merge commit still `main`, baseline unchanged, failed Deploy Health root, low-risk files, rulesets, activation switch) before touching production. If anything changed, the release fails with production untouched. Manual dispatches leave `automation_source_run_id` blank and are unchanged.

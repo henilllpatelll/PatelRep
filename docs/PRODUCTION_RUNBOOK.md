@@ -295,6 +295,36 @@ the watchdog is what tells you when that deferral has lasted too long. Evidence 
 `production-automation-watchdog/context.json` artifact (schema `patelrep.production-automation-watchdog.v1`,
 90-day retention), uploaded before an unhealthy run is failed.
 
+## Production Readiness Certification (Phase 5D)
+
+**Production Readiness Certification** is a read-only, manually dispatched attestation. It holds no production
+credentials and adds no authority: it cannot deploy, roll back, tag, release, approve, cancel, rerun, dispatch, or merge,
+and its result never authorizes any of those. Run it from `main` after a control-plane merge once Deploy Health, Release
+Audit, Recovery Readiness and the Watchdog have completed on the new main and the Release Resilience Drill has been
+dispatched on it (7/7).
+
+Read the `production-readiness-certification/context.json` artifact (or the step summary) for the state and `reason_code`:
+
+- **certified / certified_with_limitations** - workflow succeeds. For the current single-release bootstrap the only
+  expected limitation is `no_previous_managed_release`: there is no previous managed Release to roll back to yet. This is
+  real, not an error. Do not manufacture a release to remove it.
+- **unproven / main_moved_during_certification** - a new commit landed mid-run. Wait for the new main's checks and
+  re-dispatch; the old SHA is never certified.
+- **unproven / `*_evidence_missing`, `*_evidence_incomplete`, `*_artifact_unavailable`** - the named workflow has not
+  completed on this exact main SHA yet (or its artifact expired). Wait for/dispatch that workflow, then re-dispatch.
+- **not_certified / `*_evidence_stale`** - Deploy Health > 45 min, Watchdog > 30 min, Audit > 7 h, Readiness > 26 h,
+  or Drill > 8 days. Let the scheduled/push run refresh (or dispatch the drill), then re-dispatch.
+- **not_certified / `watchdog_not_healthy`, `watchdog_active_operations_present`** - a production operation is active or
+  automation is unhealthy. Resolve through the Watchdog runbook above; certification only passes while quiescent.
+- **not_certified / `release_audit_*`, `recovery_readiness_*`** - follow the Phase 4D audit / Phase 5B readiness
+  procedures; a quarantine, open incident, or required re-entry must be resolved by the existing human procedures.
+- **not_certified / `candidate_tree_mismatch`** - current main's content is not exactly what was staged. Treat as a
+  release-integrity problem and investigate how main was changed; never override.
+
+A failed certification is not an incident by itself and creates no Issue. Never use `supabase migration repair`, edit
+migration history, cancel or rerun a production run, or dispatch Production Release/Rollback/Re-entry to "fix" a
+certification result.
+
 ## Automated Production Release request (Phase 2D)
 
 A Production Release run may appear that was *requested by automation* (run name `Production Release <sha> (automated request from run <id>)`, dispatched by `patelrep-release-engineer[bot]`). It only exists for a low-risk recovery fix of a failed `Deploy Health Check` of the current production baseline, and only while the owner has set `PRODUCTION_AUTO_RELEASE_ENABLED=true`. **There is no separate Environment approval: once requested, the run proceeds on its own trusted gates.** To stop automatic requests, unset `PRODUCTION_AUTO_RELEASE_ENABLED`; review the recovery PR and release content summary afterwards. The run re-verifies its provenance and fails before touching production if anything changed (main moved, baseline changed, ruleset weakened, switch turned off).
