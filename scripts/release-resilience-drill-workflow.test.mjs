@@ -56,6 +56,18 @@ test('drill composes the real Phase 3/4 policy functions rather than duplicate l
   assert.match(drill, /runtime_drift_is_detected_and_notified/)
   assert.match(drill, /stale_reentry_authorization_is_refused/)
   assert.match(drill, /active_production_operation_defers_audit/)
+  assert.match(drill, /stuck_production_operation_is_detected_without_mutation/)
+  assert.match(drill, /evaluateWatchdog/)
+})
+
+test('every drill function is registered in BOTH the catalog and the executed registry', () => {
+  const functions = [...drill.matchAll(/^async function (drill[A-Za-z]+)\(/gm)].map((match) => match[1])
+  const registry = drill.slice(drill.indexOf('const drillFunctions = Object.freeze({'), drill.indexOf('export async function runReleaseResilienceDrills'))
+  const catalog = drill.slice(drill.indexOf('export const DRILL_CASES'), drill.indexOf('const REPO'))
+  assert.equal(functions.length, 7)
+  for (const name of functions) assert.match(registry, new RegExp(`: ${name},`), `${name} must be in drillFunctions`)
+  assert.equal((registry.match(/^ {2}[a-z_]+: drill/gm) ?? []).length, functions.length)
+  assert.equal((catalog.match(/^ {2}'[a-z_]+',$/gm) ?? []).length, functions.length)
 })
 
 test('Phase 5A control-plane files remain human-merge only', () => {

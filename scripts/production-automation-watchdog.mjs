@@ -104,9 +104,10 @@ function ageMinutes(thenMs, nowMs, label) {
 }
 
 /** Provenance gate shared by every run this watchdog reads. Throws Unproven; never trusts display names. */
-function validateRun(run, { repo, workflowPath }) {
+function validateRun(run, { repo, workflowPath, workflowId }) {
   if (!run || typeof run !== 'object') throw unproven('run is malformed')
   if (run.path !== workflowPath) throw unproven('run workflow path does not match the monitored workflow file')
+  if (Number(run.workflow_id) !== workflowId) throw unproven('run workflow id does not match the resolved workflow record')
   if (run.repository?.full_name !== repo || run.head_repository?.full_name !== repo) throw unproven('run repository provenance mismatch')
   const id = clean(run.id)
   if (!RUN_ID.test(id)) throw unproven('run id is malformed')
@@ -117,8 +118,7 @@ function validateRun(run, { repo, workflowPath }) {
   return { id, attempt, headSha }
 }
 
-function activeOperation({ run, spec, kind, nowMs, repo }) {
-  const identity = validateRun(run, { repo, workflowPath: spec.path })
+function activeOperation({ run, identity, spec, kind, nowMs, repo }) {
   const status = clean(run.status)
   if (!ACTIVE_RUN_STATUSES.includes(status)) throw unproven('run is not in an active status')
   const createdMs = parseTimestamp(run.created_at, 'created_at')
@@ -213,13 +213,43 @@ export function fingerprintFindings(findings) {
   return createHash('sha256').update(JSON.stringify(canonical)).digest('hex').slice(0, 16)
 }
 
-async function listRuns(deps, spec, query) {
-  const runs = await deps.listWorkflowRuns(spec.file, query)
+// Exactly one CURRENT (active) workflow record must exist for a monitored path; its numeric id is then used for run
+// queries. Inactive or duplicate records can never silently win, and display names are never consulted.
+function resolveWorkflowId(records, spec) {
+  if (!Array.isArray(records)) throw unproven('workflow metadata is malformed')
+  const current = records.filter((record) => record && record.path === spec.path && record.state === 'active')
+  if (current.length === 0) throw unproven('no current workflow record for the monitored path')
+  if (current.length > 1) throw unproven('ambiguous current workflow records for the monitored path')
+  const id = Number(current[0].id)
+  if (!Number.isInteger(id) || id < 1) throw unproven('workflow id is malformed')
+  return id
+}
+
+const asRunList = (runs) => {
   if (!Array.isArray(runs)) throw unproven('workflow run list is malformed')
   return runs
 }
 
-/** Pure given deps and an injected `now`; the only I/O is deps.listWorkflowRuns (GET). */
+/** Newest completed run on main, with full provenance validation of every returned run. */
+function newestCompletedMainRun(runs, { repo, spec, workflowId }) {
+  let newest = null
+  for (const run of runs) {
+    const identity = validateRun(run, { repo, workflowPath: spec.path, workflowId })
+    if (clean(run.status) !== 'completed' || run.head_branch !== 'main') continue
+    const completedMs = parseTimestamp(run.updated_at, 'updated_at')
+    if (!newest || completedMs > newest.completedMs) newest = { identity, completedMs, completedAt: clean(run.updated_at) }
+  }
+  return newest
+}
+
+/**
+ * Pure given deps and an injected `now`; the only I/O is read-only GETs through deps.
+ *
+ * Why unfiltered reads: GitHub's filtered run listings (status/branch) were observed returning stale snapshots
+ * (older total_count and runs from days or weeks earlier) while the unfiltered newest-first listing was current.
+ * Stale reads can only HIDE runs, never invent recent ones, so heartbeat staleness is corroborated with a second
+ * created-window read before it is reported, and active runs are filtered locally from one bounded newest-first page.
+ */
 export async function evaluateWatchdog({ repo, now }, deps) {
   if (!repo) throw new Error('production automation watchdog: repository is required')
   const nowMs = now instanceof Date ? now.getTime() : Number.NaN
@@ -228,32 +258,58 @@ export async function evaluateWatchdog({ repo, now }, deps) {
   const findings = []
   const activeOperations = []
   const seenRuns = new Set()
+  const seenUnproven = new Set()
+  const addUnproven = (workflowPath, error, fallback) => {
+    const reason = error instanceof Unproven ? error.message : fallback
+    if (seenUnproven.has(`${workflowPath}:${reason}`)) return
+    seenUnproven.add(`${workflowPath}:${reason}`)
+    findings.push(unprovenFinding(workflowPath, reason))
+  }
+
+  let records = null
+  try {
+    records = asRunList(await deps.listWorkflows())
+  } catch {
+    records = null
+  }
+
+  const recentByPath = new Map()
+  const recent = (spec) => {
+    if (!recentByPath.has(spec.path)) {
+      recentByPath.set(spec.path, (async () => {
+        if (records === null) throw unproven('workflow metadata could not be read')
+        const workflowId = resolveWorkflowId(records, spec)
+        return { workflowId, runs: asRunList(await deps.listWorkflowRuns(workflowId, { recent: true })) }
+      })())
+    }
+    return recentByPath.get(spec.path)
+  }
 
   const groups = [
     ...PRODUCTION_MUTATION_WORKFLOWS.map((spec) => ({ spec, kind: 'production_mutation' })),
     ...CONTROL_PLANE_WORKFLOWS.map((spec) => ({ spec, kind: 'control_plane' })),
   ]
   for (const { spec, kind } of groups) {
-    for (const status of ACTIVE_RUN_STATUSES) {
-      let runs
+    let listing
+    try {
+      listing = await recent(spec)
+    } catch (error) {
+      addUnproven(spec.path, error, 'workflow runs could not be read')
+      continue
+    }
+    for (const run of listing.runs) {
       try {
-        runs = await listRuns(deps, spec, { status })
+        const identity = validateRun(run, { repo, workflowPath: spec.path, workflowId: listing.workflowId })
+        if (!ACTIVE_RUN_STATUSES.includes(clean(run.status))) continue
+        const op = activeOperation({ run, identity, spec, kind, nowMs, repo })
+        const dedupeKey = `${op.workflow_path}:${op.run_id}:${op.run_attempt}`
+        if (seenRuns.has(dedupeKey)) continue
+        seenRuns.add(dedupeKey)
+        activeOperations.push(op)
+        const finding = findingForOperation(op)
+        if (finding) findings.push(finding)
       } catch (error) {
-        findings.push(unprovenFinding(spec.path, error instanceof Unproven ? error.message : 'workflow runs could not be read'))
-        continue
-      }
-      for (const run of runs) {
-        try {
-          const op = activeOperation({ run, spec, kind, nowMs, repo })
-          const dedupeKey = `${op.workflow_path}:${op.run_id}:${op.run_attempt}`
-          if (seenRuns.has(dedupeKey)) continue
-          seenRuns.add(dedupeKey)
-          activeOperations.push(op)
-          const finding = findingForOperation(op)
-          if (finding) findings.push(finding)
-        } catch (error) {
-          findings.push(unprovenFinding(spec.path, error instanceof Unproven ? error.message : 'active run could not be validated'))
-        }
+        addUnproven(spec.path, error, 'active run could not be validated')
       }
     }
   }
@@ -263,16 +319,14 @@ export async function evaluateWatchdog({ repo, now }, deps) {
     const budget = POLICY.heartbeat_minutes[spec.key]
     const entry = { workflow_path: spec.path, state: 'unproven', latest_run_id: null, latest_completed_at: null, age_minutes: null, budget_minutes: budget }
     try {
-      const runs = await listRuns(deps, spec, { status: 'completed', branch: 'main' })
-      if (runs.length === 0) throw unproven('no completed run exists')
-      let newest = null
-      for (const run of runs) {
-        const identity = validateRun(run, { repo, workflowPath: spec.path })
-        if (run.head_branch !== 'main') throw unproven('heartbeat run is not from main')
-        if (clean(run.status) !== 'completed') throw unproven('heartbeat run is not completed')
-        const completedMs = parseTimestamp(run.updated_at, 'updated_at')
-        if (!newest || completedMs > newest.completedMs) newest = { identity, completedMs, completedAt: clean(run.updated_at) }
+      const { workflowId, runs } = await recent(spec)
+      let newest = newestCompletedMainRun(runs, { repo, spec, workflowId })
+      if (!newest || (nowMs - newest.completedMs) / MS_PER_MINUTE > budget) {
+        const since = new Date(nowMs - budget * MS_PER_MINUTE).toISOString().replace(/\.\d{3}Z$/, 'Z')
+        const windowed = newestCompletedMainRun(asRunList(await deps.listWorkflowRuns(workflowId, { since })), { repo, spec, workflowId })
+        if (windowed && (!newest || windowed.completedMs > newest.completedMs)) newest = windowed
       }
+      if (!newest) throw unproven('no completed run exists')
       const age = ageMinutes(newest.completedMs, nowMs, 'heartbeat run')
       entry.latest_run_id = newest.identity.id
       entry.latest_completed_at = newest.completedAt
@@ -291,7 +345,7 @@ export async function evaluateWatchdog({ repo, now }, deps) {
       }
     } catch (error) {
       entry.state = 'unproven'
-      findings.push(unprovenFinding(spec.path, error instanceof Unproven ? error.message : 'heartbeat runs could not be read'))
+      addUnproven(spec.path, error, 'heartbeat runs could not be read')
     }
     heartbeats[spec.key] = entry
   }

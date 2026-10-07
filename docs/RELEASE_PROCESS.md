@@ -444,6 +444,13 @@ Boundaries are exclusive (exactly at the budget is still within budget). Workflo
 file path plus repository, run id, attempt and head SHA; `run.name` / display title is never read or stored.
 Malformed timestamps, wrong repository/path, or unreadable GitHub state yield `unproven`, never healthy.
 
+Run lookup is by workflow identity, not by filtered listing: the watchdog reads current workflow metadata, requires
+exactly one *active* record for each monitored exact path (zero, inactive-only, or ambiguous records are `unproven`),
+then reads one bounded unfiltered newest-first page per workflow id and filters locally, re-validating every run's
+path, workflow id, repository, head repository, run id, attempt and SHA. GitHub's `status`/`branch` filtered listings
+were observed returning stale snapshots (an older `total_count` and runs weeks old), so they are not used. Because a
+stale read can only hide runs, a stale-looking heartbeat is corroborated by a created-window read before it is reported.
+
 States: `healthy`, `active_within_budget`, `degraded`, `critical`, `unproven`. Findings use stable codes:
 `production_operation_stuck`, `production_operation_waiting_too_long`, `control_plane_run_stuck`,
 `deploy_health_heartbeat_stale`, `release_audit_heartbeat_stale`, `recovery_readiness_heartbeat_stale`,

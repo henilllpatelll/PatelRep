@@ -21,9 +21,18 @@ const ROLLBACK = PRODUCTION_MUTATION_WORKFLOWS[1]
 const STABILIZATION = CONTROL_PLANE_WORKFLOWS[0]
 const beat = Object.fromEntries(HEARTBEAT_WORKFLOWS.map((spec) => [spec.key, spec]))
 
+const ALL_FILES = [...new Set([
+  ...PRODUCTION_MUTATION_WORKFLOWS.map((spec) => spec.file),
+  ...CONTROL_PLANE_WORKFLOWS.map((spec) => spec.file),
+  ...HEARTBEAT_WORKFLOWS.map((spec) => spec.file),
+])]
+const idOf = (file) => 100 + ALL_FILES.indexOf(file)
+const records = () => ALL_FILES.map((file) => ({ id: idOf(file), path: `.github/workflows/${file}`, state: 'active', name: 'Decoy Display Name' }))
+
 let nextId = 38_000_000_000
 const run = (spec, overrides = {}) => ({
   id: ++nextId,
+  workflow_id: idOf(spec.file),
   run_attempt: 1,
   path: spec.path,
   event: 'workflow_dispatch',
@@ -44,16 +53,26 @@ const freshBeats = (overrides = {}) => Object.fromEntries(HEARTBEAT_WORKFLOWS.ma
   [run(spec, { status: 'completed', conclusion: 'success', updated_at: minutesAgo(1), ...(overrides[spec.key] ?? {}) })],
 ]))
 
-// active: { 'file.yml': { status: [runs] } }, completed: { 'file.yml': [runs] }
-function fakeDeps({ active = {}, heartbeats = freshBeats(), throwFor = {} } = {}) {
+// active: { 'file.yml': { status: [runs] } }, heartbeats: { 'file.yml': [completed runs] }.
+// recent: optional per-file override of the newest-first listing (to model a stale snapshot);
+// windowRuns: optional per-file override of the created-window read.
+function fakeDeps({ active = {}, heartbeats = freshBeats(), throwFor = {}, workflows = records(), recent = {}, windowRuns = {} } = {}) {
   const calls = []
+  const metadataCalls = []
   return {
     calls,
-    listWorkflowRuns: async (file, query) => {
+    metadataCalls,
+    listWorkflows: async () => {
+      metadataCalls.push('listWorkflows')
+      return workflows
+    },
+    listWorkflowRuns: async (workflowId, query) => {
+      const file = ALL_FILES[workflowId - 100]
       calls.push([file, query])
       if (throwFor[file]) throw new Error('boom')
-      if (query.status === 'completed') return heartbeats[file] ?? []
-      return active[file]?.[query.status] ?? []
+      if (query.recent) return recent[file] ?? [...Object.values(active[file] ?? {}).flat(), ...(heartbeats[file] ?? [])]
+      if (query.since) return windowRuns[file] ?? heartbeats[file] ?? []
+      throw new Error('unexpected query shape')
     },
   }
 }
@@ -233,8 +252,12 @@ test('missing, malformed, or unreadable heartbeat state is unproven, never silen
   assert.equal(apiDown.state, 'unproven')
   assert.ok(codes(apiDown).every((code) => code === 'github_actions_state_unproven'))
 
-  const notArray = await evaluate({ listWorkflowRuns: async () => ({ workflow_runs: [] }) })
+  const notArray = await evaluate({ listWorkflows: async () => records(), listWorkflowRuns: async () => ({ workflow_runs: [] }) })
   assert.equal(notArray.state, 'unproven')
+
+  const noMetadata = await evaluate({ listWorkflows: async () => { throw new Error('boom') }, listWorkflowRuns: async () => [] })
+  assert.equal(noMetadata.state, 'unproven')
+  assert.ok(codes(noMetadata).every((code) => code === 'github_actions_state_unproven'))
 })
 
 test('multiple simultaneous findings are preserved in deterministic order and unproven does not hide known-bad state', async () => {
@@ -280,12 +303,105 @@ test('the watchdog only issues read-style run listings and never persists displa
   const deps = fakeDeps({ active: { [RELEASE.file]: { in_progress: [run(RELEASE)] } } })
   await evaluate(deps)
   assert.ok(deps.calls.length > 0)
-  assert.ok(deps.calls.every(([file, query]) => /^[a-z-]+\.yml$/.test(file) && typeof query.status === 'string'))
-  assert.equal(Object.keys(deps).sort().join(), 'calls,listWorkflowRuns')
+  assert.ok(deps.calls.every(([file, query]) => /^[a-z-]+\.yml$/.test(file) && query.recent === true && Object.keys(query).join() === 'recent'))
+  assert.equal(Object.keys(deps).sort().join(), 'calls,listWorkflowRuns,listWorkflows,metadataCalls')
   assert.ok(POLICY.production_in_progress_minutes === 45 && POLICY.production_waiting_minutes === 30 && POLICY.control_plane_active_minutes === 20)
 })
 
 test('a missing or invalid injected now is rejected instead of silently using the wall clock', async () => {
   await assert.rejects(evaluateWatchdog({ repo: REPO }, fakeDeps()), /now must be a valid Date/)
   await assert.rejects(evaluateWatchdog({ repo: REPO, now: new Date('nope') }, fakeDeps()), /now must be a valid Date/)
+})
+
+test('REGRESSION: an old completed Deploy Health run plus a newer one selects the newer and is fresh', async () => {
+  const deploy = beat.deploy_health
+  const old = run(deploy, { id: 33_999_759_732, status: 'completed', conclusion: 'success', created_at: minutesAgo(44_700), updated_at: minutesAgo(44_661) })
+  const newer = run(deploy, { id: 37_550_188_323, status: 'completed', conclusion: 'success', created_at: minutesAgo(8), updated_at: minutesAgo(6) })
+  for (const order of [[old, newer], [newer, old]]) {
+    const result = await evaluate(fakeDeps({ heartbeats: { ...freshBeats(), [deploy.file]: order } }))
+    assert.equal(result.state, 'healthy')
+    assert.deepEqual(result.findings, [])
+    assert.equal(result.heartbeats.deploy_health.state, 'fresh')
+    assert.equal(result.heartbeats.deploy_health.latest_run_id, '37550188323')
+  }
+})
+
+test('REGRESSION: a stale filtered/cached listing cannot produce a false stale heartbeat when a recent run is corroborated', async () => {
+  const deploy = beat.deploy_health
+  const stale = run(deploy, { id: 33_999_759_732, status: 'completed', conclusion: 'success', updated_at: minutesAgo(44_661) })
+  const real = run(deploy, { id: 37_550_188_323, status: 'completed', conclusion: 'success', updated_at: minutesAgo(6) })
+  const corroborated = await evaluate(fakeDeps({ recent: { [deploy.file]: [stale] }, windowRuns: { [deploy.file]: [real] } }))
+  assert.equal(corroborated.state, 'healthy')
+  assert.equal(corroborated.heartbeats.deploy_health.latest_run_id, '37550188323')
+
+  // Genuinely stale: neither read shows a run inside the 45 minute budget, so the finding is still reported.
+  const genuine = await evaluate(fakeDeps({ recent: { [deploy.file]: [stale] }, windowRuns: { [deploy.file]: [] } }))
+  assert.equal(genuine.state, 'degraded')
+  assert.deepEqual(codes(genuine), ['deploy_health_heartbeat_stale'])
+  assert.equal(genuine.findings[0].budget_minutes, 45)
+
+  // A corroborating run that fails provenance is never trusted.
+  const forged = run(deploy, { id: 1, status: 'completed', updated_at: minutesAgo(1), repository: { full_name: 'evil/PatelRep' } })
+  const rejected = await evaluate(fakeDeps({ recent: { [deploy.file]: [stale] }, windowRuns: { [deploy.file]: [forged] } }))
+  assert.equal(rejected.state, 'unproven')
+})
+
+test('workflow identity is the exact current path record; display names, inactive and duplicate records never win', async () => {
+  const withInactiveDuplicate = [
+    { id: 9999, path: '.github/workflows/deploy-check.yml', state: 'disabled_manually', name: 'Deploy Health Check' },
+    ...records().map((record) => ({ ...record, name: 'Production Release' })),
+  ]
+  const ok = await evaluate(fakeDeps({ workflows: withInactiveDuplicate }))
+  assert.equal(ok.state, 'healthy')
+
+  // The inactive duplicate id is never queried; a listing for it would not match the run's workflow_id anyway.
+  const deps = fakeDeps({ workflows: withInactiveDuplicate })
+  await evaluate(deps)
+  assert.ok(deps.calls.every(([file]) => ALL_FILES.includes(file)))
+
+  const onlyInactive = records().map((record) => record.path.endsWith('/deploy-check.yml') ? { ...record, state: 'disabled_manually' } : record)
+  const disabled = await evaluate(fakeDeps({ workflows: onlyInactive }))
+  assert.equal(disabled.state, 'unproven')
+  assert.ok(disabled.findings.some((finding) => finding.subject.workflow_path.endsWith('/deploy-check.yml') && /no current workflow record/.test(finding.reason)))
+})
+
+test('zero or ambiguous current workflow records are unproven; name-only matches are ignored', async () => {
+  const none = await evaluate(fakeDeps({ workflows: records().filter((record) => !record.path.endsWith('/production-release.yml')) }))
+  assert.equal(none.state, 'unproven')
+  assert.ok(none.findings.some((finding) => /no current workflow record/.test(finding.reason)))
+
+  const ambiguous = await evaluate(fakeDeps({ workflows: [...records(), { id: 4242, path: '.github/workflows/production-release.yml', state: 'active' }] }))
+  assert.equal(ambiguous.state, 'unproven')
+  assert.ok(ambiguous.findings.some((finding) => /ambiguous/.test(finding.reason)))
+
+  const nameOnly = records().map((record) => record.path.endsWith('/deploy-check.yml') ? { ...record, path: '.github/workflows/other.yml', name: 'Deploy Health Check' } : record)
+  assert.equal((await evaluate(fakeDeps({ workflows: nameOnly }))).state, 'unproven')
+
+  const badId = records().map((record) => record.path.endsWith('/deploy-check.yml') ? { ...record, id: 'abc' } : record)
+  assert.equal((await evaluate(fakeDeps({ workflows: badId }))).state, 'unproven')
+})
+
+test('a returned run with the wrong path, repository, head SHA, or workflow id is unproven', async () => {
+  const deploy = beat.deploy_health
+  for (const patch of [
+    { path: '.github/workflows/ci.yml' },
+    { repository: { full_name: 'evil/PatelRep' } },
+    { head_repository: { full_name: 'evil/PatelRep' } },
+    { head_sha: 'not-a-sha' },
+    { workflow_id: 424242 },
+  ]) {
+    const result = await evaluate(fakeDeps({ heartbeats: freshBeats({ deploy_health: patch }) }))
+    assert.equal(result.state, 'unproven', JSON.stringify(patch))
+    assert.equal(result.heartbeats.deploy_health.state, 'unproven')
+  }
+  assert.equal(deploy.key, 'deploy_health')
+})
+
+test('run reads are bounded: one metadata read, one newest-first read per distinct workflow, no filtered or repository-wide history scans', async () => {
+  const deps = fakeDeps()
+  await evaluate(deps)
+  assert.equal(deps.metadataCalls.length, 1)
+  assert.equal(deps.calls.length, ALL_FILES.length)
+  assert.equal(new Set(deps.calls.map(([file]) => file)).size, ALL_FILES.length)
+  assert.ok(deps.calls.every(([, query]) => query.recent === true))
 })

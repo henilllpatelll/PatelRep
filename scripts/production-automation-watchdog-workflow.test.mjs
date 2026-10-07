@@ -101,6 +101,16 @@ test('notification history lookup is artifact-first and never enumerates every n
   assert.doesNotMatch(executable(notifyDeps), /writeApi\('(PUT|DELETE)'|actions\/artifacts\/[^`]*method/)
 })
 
+test('run lookup resolves exact workflow identity and never uses stale-prone filtered listings', () => {
+  const executableDeps = executable(deps)
+  assert.match(executableDeps, /actions\/workflows\?per_page=100/)
+  assert.match(executableDeps, /actions\/workflows\/\$\{workflowId\}\/runs\?per_page=\$\{RUNS_PER_PAGE\}/)
+  assert.doesNotMatch(executableDeps, /status=|branch=|actions\/runs\?|workflows\/\$\{file\}/)
+  assert.match(script, /no current workflow record for the monitored path/)
+  assert.match(script, /ambiguous current workflow records for the monitored path/)
+  assert.match(script, /run workflow id does not match the resolved workflow record/)
+})
+
 test('Phase 5C control-plane files remain human-merge only', () => {
   for (const file of [
     '.github/workflows/production-automation-watchdog.yml',
