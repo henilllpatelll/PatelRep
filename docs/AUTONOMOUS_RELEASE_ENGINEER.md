@@ -464,6 +464,27 @@ id + SHA/attempt provenance remain authoritative (see PR #116). Claude must not 
 cancelling or retrying a production run: first determine whether production mutation began, and leave database
 mutation ambiguity to a human. See `docs/PRODUCTION_RUNBOOK.md` (Production Automation Watchdog).
 
+## Production readiness certification (Phase 5D)
+
+Phase 5D adds a manual, read-only `Production Readiness Certification` workflow that composes existing trusted
+evidence (exact current-main provenance via merge-commit SHA plus exact candidate-tree equality, candidate CI + Staging,
+current-main CI, Deploy Health, Release Audit, Recovery Readiness, the seven-scenario Resilience Drill, and a healthy,
+quiescent Watchdog) into one sanitized `production-readiness-certification` artifact. It adds zero production authority:
+no dispatch, cancel, rerun, approval, deployment, rollback, tag, Release, or merge path, no Environment, no secrets,
+no write permission.
+
+`staging-candidate-context` is mandatory trusted provenance: if it is missing or expired, certification is `unproven`
+and must never be rebuilt from the Staging Gate summary. The only successful limitation is
+`no_previous_managed_release`.
+
+Claude must not treat a certification as authorization for anything, must not run, dispatch, or re-run production
+workflows to improve a certification result, and must not create a second production release to remove the truthful
+`no_previous_managed_release` bootstrap limitation. Control-plane (main) SHA and managed production Release SHA are
+different facts; production staying on an older managed release is expected. Invariants carried forward: exact
+workflow path + repository + run id/attempt/SHA is identity (never `run.name`, display titles, or Issue contents), and
+artifact discovery is artifact-first and bounded. See `docs/RELEASE_PROCESS.md` (Production readiness certification)
+and `docs/PRODUCTION_RUNBOOK.md`.
+
 ## Bounded recovery lineage
 
 `MAX_AUTOMATIC_REPAIR_ATTEMPTS = 3` (`scripts/recovery-lineage.mjs`): attempt 1 is the initial

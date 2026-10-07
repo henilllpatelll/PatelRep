@@ -1,0 +1,70 @@
+name: Production Readiness Certification
+
+# Phase 5D: explicit, human-requested, read-only attestation that the production release/recovery control plane is ready.
+# Evidence composition only. No production Environment, secrets, deployment credentials, DB access, or write token.
+# It never deploys, rolls back, migrates, tags, creates a Release, approves, cancels, reruns, dispatches, or merges anything.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-readiness-certification
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  certify:
+    name: Certify production readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove trusted main certification context
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: certify
+        name: Evaluate production readiness evidence
+        run: node scripts/production-readiness-certification.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_PLANE_SHA: ${{ github.sha }}
+          RESULT_DIR: ${{ runner.temp }}/production-readiness-certification
+      - name: Upload production readiness certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-readiness-certification
+          path: ${{ runner.temp }}/production-readiness-certification/context.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Summarize production readiness certification
+        if: always()
+        env:
+          STATE: ${{ steps.certify.outputs.state }}
+          REASON: ${{ steps.certify.outputs.reason_code }}
+        run: |
+          printf '%s\n' '## Production Readiness Certification' >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- State: `%s`\n' "$STATE" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Reason: `%s`\n' "$REASON" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail when production is not certified
+        if: steps.certify.outputs.certified != 'true'
+        env:
+          STATE: ${{ steps.certify.outputs.state }}
+          REASON: ${{ steps.certify.outputs.reason_code }}
+        run: |
+          echo "::error::Production readiness is not certified: state=$STATE reason=$REASON"
+          exit 1
