@@ -63,3 +63,9 @@ test('publisher receives exact provenance and only a captured patch artifact', (
   assert.match(publish, /actions\/download-artifact@v4/)
   assert.match(publish, /name: feature-builder-output/)
 })
+
+test('builder allows exactly the orchestrator bot actor, never a wildcard', () => {
+  const build = jobSection('build')
+  assert.match(build, /allowed_bots: github-actions\[bot\]$/m)
+  assert.doesNotMatch(workflow, /allowed_bots:.*\*/)
+})
