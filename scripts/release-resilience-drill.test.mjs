@@ -15,6 +15,7 @@ test('all Phase 5A synthetic resilience scenarios pass end to end', async () => 
 })
 
 test('drill catalog covers rollback eligibility, quarantine, re-entry, audit drift, stale auth, active-operation deferral, and stuck-operation detection', () => {
+  assert.equal(DRILL_CASES.length, 7)
   assert.deepEqual([...DRILL_CASES], [
     'post_release_regression_full_cycle',
     'database_change_blocks_auto_rollback',
@@ -22,5 +23,18 @@ test('drill catalog covers rollback eligibility, quarantine, re-entry, audit dri
     'runtime_drift_is_detected_and_notified',
     'stale_reentry_authorization_is_refused',
     'active_production_operation_defers_audit',
+    'stuck_production_operation_is_detected_without_mutation',
   ])
+})
+
+test('the stuck-operation scenario is registered and actually executes and passes in the live catalog', async () => {
+  const result = await runReleaseResilienceDrills()
+  assert.equal(result.total, 7)
+  assert.equal(result.passed, 7)
+  const stuck = result.cases.find((item) => item.name === 'stuck_production_operation_is_detected_without_mutation')
+  assert.ok(stuck, 'scenario must be in the executed catalog')
+  assert.equal(stuck.passed, true)
+  assert.equal(stuck.evidence.watchdog_state, 'critical')
+  assert.equal(stuck.evidence.notification_kind, 'watchdog_critical')
+  assert.equal(stuck.evidence.mutation_functions_available, 0)
 })

@@ -6,6 +6,7 @@ import {
   WATCHDOG_WORKFLOW_PATH,
   evaluateWatchdog,
   PRODUCTION_MUTATION_WORKFLOWS,
+  CONTROL_PLANE_WORKFLOWS,
   HEARTBEAT_WORKFLOWS,
 } from './production-automation-watchdog.mjs'
 import { buildNotificationIntent, digestIntent, publishIntent } from './production-operations-notify.mjs'
@@ -31,8 +32,10 @@ const sourceRun = (id, overrides = {}) => ({
   ...overrides,
 })
 
+const workflowId = (file) => 100 + [...PRODUCTION_MUTATION_WORKFLOWS, ...CONTROL_PLANE_WORKFLOWS, ...HEARTBEAT_WORKFLOWS].map((spec) => spec.file).filter((name, index, all) => all.indexOf(name) === index).indexOf(file)
 const apiRun = (spec, overrides = {}) => ({
   id: 39_000_000_000 + Math.floor(Math.random() * 1e6),
+  workflow_id: workflowId(spec.file),
   run_attempt: 1,
   path: spec.path,
   event: 'workflow_dispatch',
@@ -47,14 +50,20 @@ const apiRun = (spec, overrides = {}) => ({
   ...overrides,
 })
 
+const MONITORED_FILES = [...new Set([
+  ...PRODUCTION_MUTATION_WORKFLOWS.map((spec) => spec.file),
+  ...CONTROL_PLANE_WORKFLOWS.map((spec) => spec.file),
+  ...HEARTBEAT_WORKFLOWS.map((spec) => spec.file),
+])]
+
 async function artifactFor({ id, stuckRuns = [], heartbeatAge = 1 }) {
   const result = await evaluateWatchdog({ repo: REPO, now: NOW }, {
-    listWorkflowRuns: async (file, { status }) => {
-      if (status === 'completed') {
-        const spec = HEARTBEAT_WORKFLOWS.find((item) => item.file === file)
-        return spec ? [apiRun(spec, { status: 'completed', updated_at: minutesAgo(heartbeatAge) })] : []
-      }
-      return file === RELEASE.file && status === 'in_progress' ? stuckRuns : []
+    listWorkflows: async () => MONITORED_FILES.map((file) => ({ id: workflowId(file), path: `.github/workflows/${file}`, state: 'active' })),
+    listWorkflowRuns: async (id) => {
+      const file = MONITORED_FILES.find((candidate) => workflowId(candidate) === id)
+      const spec = HEARTBEAT_WORKFLOWS.find((item) => item.file === file)
+      const heartbeat = spec ? [apiRun(spec, { status: 'completed', updated_at: minutesAgo(heartbeatAge) })] : []
+      return file === RELEASE.file ? stuckRuns : heartbeat
     },
   })
   return { ...result, run: { id: String(id), attempt: 1, control_plane_sha: SHA } }

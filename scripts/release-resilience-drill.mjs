@@ -14,6 +14,7 @@ import {
 } from './production-incident-reentry.mjs'
 import { auditProductionReleaseState } from './production-release-audit.mjs'
 import { buildNotificationIntent } from './production-operations-notify.mjs'
+import { evaluateWatchdog } from './production-automation-watchdog.mjs'
 
 export const DRILL_SCHEMA = 'patelrep.release-resilience-drill.v1'
 export const DRILL_CASES = Object.freeze([
@@ -23,6 +24,7 @@ export const DRILL_CASES = Object.freeze([
   'runtime_drift_is_detected_and_notified',
   'stale_reentry_authorization_is_refused',
   'active_production_operation_defers_audit',
+  'stuck_production_operation_is_detected_without_mutation',
 ])
 
 const REPO = 'henilllpatelll/PatelRep'
@@ -590,8 +592,11 @@ async function drillStuckProductionOperationIsDetectedWithoutMutation() {
   const now = new Date('2026-10-06T12:00:00Z')
   const minutesAgo = (minutes) => new Date(now.getTime() - minutes * 60_000).toISOString().replace('.000Z', 'Z')
   const watchdogRunId = '37850000001'
+  const workflowIds = { 'production-release.yml': 1001 }
+  const idFor = (file) => workflowIds[file] ?? 2000 + [...file].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
   const stuckRun = {
     id: Number(RELEASE_RUN),
+    workflow_id: 1001,
     run_attempt: 1,
     path: '.github/workflows/production-release.yml',
     status: 'in_progress',
@@ -603,6 +608,7 @@ async function drillStuckProductionOperationIsDetectedWithoutMutation() {
   }
   const heartbeat = (file) => ({
     id: 37860000001,
+    workflow_id: idFor(file),
     run_attempt: 1,
     path: `.github/workflows/${file}`,
     status: 'completed',
@@ -612,13 +618,19 @@ async function drillStuckProductionOperationIsDetectedWithoutMutation() {
     repository: { full_name: REPO },
     head_repository: { full_name: REPO },
   })
+  const files = [
+    'production-release.yml', 'production-rollback.yml', 'production-release-stabilization.yml',
+    'production-auto-rollback-request.yml', 'production-incident-reentry.yml', 'production-operations-notify.yml',
+    'production-release-audit.yml', 'production-recovery-readiness.yml', 'deploy-check.yml', 'release-resilience-drill.yml',
+  ]
   const reads = []
   const result = await evaluateWatchdog({ repo: REPO, now }, {
-    // The only dependency is a read-only run listing; there is no cancel, rerun, dispatch, or write function to call.
-    listWorkflowRuns: async (file, query) => {
-      reads.push(file)
-      if (query.status === 'completed') return [heartbeat(file)]
-      return file === 'production-release.yml' && query.status === 'in_progress' ? [stuckRun] : []
+    // Only read-only metadata and run listings exist here; there is no cancel, rerun, dispatch, or write function to call.
+    listWorkflows: async () => files.map((file) => ({ id: idFor(file), path: `.github/workflows/${file}`, state: 'active' })),
+    listWorkflowRuns: async (workflowId) => {
+      reads.push(workflowId)
+      const file = files.find((candidate) => idFor(candidate) === workflowId)
+      return file === 'production-release.yml' ? [stuckRun] : [heartbeat(file)]
     },
   })
   assert.equal(result.state, 'critical')
@@ -657,6 +669,7 @@ const drillFunctions = Object.freeze({
   runtime_drift_is_detected_and_notified: drillRuntimeDriftDetectedAndNotified,
   stale_reentry_authorization_is_refused: drillStaleReentryAuthorizationIsRefused,
   active_production_operation_defers_audit: drillActiveProductionOperationDefersAudit,
+  stuck_production_operation_is_detected_without_mutation: drillStuckProductionOperationIsDetectedWithoutMutation,
 })
 
 export async function runReleaseResilienceDrills() {
