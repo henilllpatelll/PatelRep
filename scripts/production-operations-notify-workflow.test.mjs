@@ -17,8 +17,8 @@ const jobSection = (source, name) => {
   return next < 0 ? source.slice(start) : source.slice(start, start + 1 + next)
 }
 
-test('Phase 4C/4D notifier triggers only on completed trusted production lifecycle workflows', () => {
-  assert.match(workflow, /on:\n {2}workflow_run:\n {4}workflows:\n {6}- Production Release Stabilization\n {6}- Production Rollback\n {6}- Production Incident Re-entry\n {6}- Production Release Audit\n {4}types: \[completed\]/)
+test('Phase 4C/4D/5C notifier triggers only on completed trusted production lifecycle workflows', () => {
+  assert.match(workflow, /on:\n {2}workflow_run:\n {4}workflows:\n {6}- Production Release Stabilization\n {6}- Production Rollback\n {6}- Production Incident Re-entry\n {6}- Production Release Audit\n {6}- Production Automation Watchdog\n {4}types: \[completed\]/)
   assert.doesNotMatch(workflowCode, /workflow_dispatch|schedule:|cron:|pull_request|push:/)
   assert.match(jobSection(workflow, 'resolve'), /if: github\.event\.workflow_run\.head_repository\.full_name == github\.repository/)
   assert.match(workflow, /SOURCE_RUN_ID: \$\{\{ github\.event\.workflow_run\.id \}\}/)

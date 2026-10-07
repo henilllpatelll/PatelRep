@@ -586,6 +586,70 @@ async function drillActiveProductionOperationDefersAudit() {
   return { audit_state: audit.state, false_positive_avoided: true }
 }
 
+async function drillStuckProductionOperationIsDetectedWithoutMutation() {
+  const now = new Date('2026-10-06T12:00:00Z')
+  const minutesAgo = (minutes) => new Date(now.getTime() - minutes * 60_000).toISOString().replace('.000Z', 'Z')
+  const watchdogRunId = '37850000001'
+  const stuckRun = {
+    id: Number(RELEASE_RUN),
+    run_attempt: 1,
+    path: '.github/workflows/production-release.yml',
+    status: 'in_progress',
+    head_sha: C,
+    created_at: minutesAgo(80),
+    run_started_at: minutesAgo(75),
+    repository: { full_name: REPO },
+    head_repository: { full_name: REPO },
+  }
+  const heartbeat = (file) => ({
+    id: 37860000001,
+    run_attempt: 1,
+    path: `.github/workflows/${file}`,
+    status: 'completed',
+    head_branch: 'main',
+    head_sha: C,
+    updated_at: minutesAgo(1),
+    repository: { full_name: REPO },
+    head_repository: { full_name: REPO },
+  })
+  const reads = []
+  const result = await evaluateWatchdog({ repo: REPO, now }, {
+    // The only dependency is a read-only run listing; there is no cancel, rerun, dispatch, or write function to call.
+    listWorkflowRuns: async (file, query) => {
+      reads.push(file)
+      if (query.status === 'completed') return [heartbeat(file)]
+      return file === 'production-release.yml' && query.status === 'in_progress' ? [stuckRun] : []
+    },
+  })
+  assert.equal(result.state, 'critical')
+  assert.deepEqual(result.findings.map((finding) => finding.code), ['production_operation_stuck'])
+  assert.ok(reads.length > 0)
+
+  const intent = await buildNotificationIntent({ repo: REPO, sourceRunId: watchdogRunId }, {
+    getRun: async () => ({
+      id: Number(watchdogRunId),
+      run_attempt: 1,
+      path: '.github/workflows/production-automation-watchdog.yml',
+      event: 'schedule',
+      status: 'completed',
+      conclusion: 'failure',
+      head_branch: 'main',
+      head_sha: C,
+      repository: { full_name: REPO },
+      head_repository: { full_name: REPO },
+    }),
+    readNamedContext: async (runId, name) =>
+      String(runId) === watchdogRunId && name === 'production-automation-watchdog'
+        ? { ...result, run: { id: watchdogRunId, attempt: 1, control_plane_sha: C } }
+        : null,
+    listNotificationArtifacts: async () => [],
+    readNotificationResult: async () => null,
+  })
+  assert.equal(intent.key, 'watchdog:production-automation')
+  assert.equal(intent.severity, 'critical')
+  return { watchdog_state: result.state, notification_kind: intent.kind, mutation_functions_available: 0 }
+}
+
 const drillFunctions = Object.freeze({
   post_release_regression_full_cycle: drillPostReleaseRegressionFullCycle,
   database_change_blocks_auto_rollback: drillDatabaseChangeBlocksAutoRollback,

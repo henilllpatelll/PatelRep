@@ -450,6 +450,20 @@ treating legacy milestone tags or arbitrary SHAs as rollback authority.
 The Phase 4D summary rendering is also hardened here to use shell-safe `printf`; Markdown backticks around state
 values no longer trigger accidental shell command substitution in the Actions summary step.
 
+## Production automation watchdog (Phase 5C)
+
+Phase 5C adds a read-only `Production Automation Watchdog` that detects Production Release/Rollback runs that are
+stuck (45 min in progress / 30 min waiting), stuck control-plane runs (20 min), and stale scheduled heartbeats
+(Deploy Health 45 min, Release Audit 7 h, Recovery Readiness 26 h, Resilience Drill 8 days). It has no production
+Environment, secrets, write permission, or dispatch authority, and it never cancels, reruns, or dispatches
+anything; alerts flow only through the existing Phase 4C `issues: write` publisher on the lifecycle key
+`watchdog:production-automation`.
+
+Invariant: `run.name` / display title is never security authority. Exact workflow path + repository + event + run
+id + SHA/attempt provenance remain authoritative (see PR #116). Claude must not respond to a watchdog alert by
+cancelling or retrying a production run: first determine whether production mutation began, and leave database
+mutation ambiguity to a human. See `docs/PRODUCTION_RUNBOOK.md` (Production Automation Watchdog).
+
 ## Bounded recovery lineage
 
 `MAX_AUTOMATIC_REPAIR_ATTEMPTS = 3` (`scripts/recovery-lineage.mjs`): attempt 1 is the initial
