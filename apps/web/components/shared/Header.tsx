@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Settings, UserCog, ChevronDown, Menu, Bell, CheckCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
@@ -83,6 +84,8 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
 
   const initials = getInitials(fullName)
   const avatarBg = getAvatarColor(fullName)
+  // The auth store holds the role resolved from /auth/me; Supabase metadata alone can be empty.
+  const baseRole = useAuthStore((st) => st.role)
   const roleLabel = role ? t(`roles.${role}`) : null
   const environmentLabel = visibleEnvironmentLabel()
   const release = releaseMetadata()
@@ -342,7 +345,7 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
                 {t('header.myPreferences')}
               </button>
               {/* Property Settings is GM-only (route guard + API); don't offer a link that only bounces. */}
-              {canAccessSettings(role) && (
+              {canAccessSettings(baseRole ?? role) && (
                 <button
                   data-user-menu-item
                   onClick={() => { setDropdownOpen(false); router.push('/settings') }}
