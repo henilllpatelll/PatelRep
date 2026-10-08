@@ -1488,7 +1488,7 @@ class AddStaffDirectRequest(SanitizedBaseModel):
 
 
 # --- Staff profile / invitation reissue (People Phase 1) ---
-class UpdateStaffProfileRequest(SanitizedBaseModel):
+class UpdateStaffMemberProfileRequest(SanitizedBaseModel):
     """GM-editable profile fields. `email` is deliberately absent (extra=forbid -> 422):
     changing a sign-in address must go through Supabase Auth, not a profile edit."""
 

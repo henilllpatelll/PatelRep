@@ -15,7 +15,7 @@ from models.requests import (
     CreateCustomRoleRequest,
     UpdateCustomRoleRequest,
     UpdatePushTokenRequest,
-    UpdateStaffProfileRequest,
+    UpdateStaffMemberProfileRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -533,7 +533,7 @@ async def get_staff_member(
 @router.patch("/{user_id}/profile")
 async def update_staff_profile(
     user_id: str,
-    body: UpdateStaffProfileRequest,
+    body: UpdateStaffMemberProfileRequest,
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     """Edit name, preferred name, phone or avatar. Email is intentionally not editable here."""

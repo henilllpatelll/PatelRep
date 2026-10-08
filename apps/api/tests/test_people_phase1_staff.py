@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from middleware.auth import CurrentUser
-from models.requests import UpdateStaffProfileRequest
+from models.requests import UpdateStaffMemberProfileRequest
 from routers import staff as staff_router
 from routers import staff_invitations as inv_router
 from routers import staff_schedules as sched_router
@@ -151,7 +151,7 @@ async def test_cross_tenant_mutations_are_404_and_do_not_change_data(db):
         lambda: staff_router.update_staff("foreign-1", {"role": "front_desk"}, GM),
         lambda: staff_router.update_staff("foreign-1", {"is_active": False}, GM),
         lambda: staff_router.get_staff_member("foreign-1", GM),
-        lambda: staff_router.update_staff_profile("foreign-1", UpdateStaffProfileRequest(full_name="Hacked"), GM),
+        lambda: staff_router.update_staff_profile("foreign-1", UpdateStaffMemberProfileRequest(full_name="Hacked"), GM),
         lambda: sched_router.get_role_schedules("foreign-1", GM),
     ):
         with pytest.raises(HTTPException) as exc:
@@ -271,7 +271,7 @@ async def test_add_direct_cannot_take_over_an_account_that_belongs_to_a_hotel(db
 @pytest.mark.asyncio
 async def test_profile_update_persists_and_detail_reflects_it(db):
     res = await staff_router.update_staff_profile(
-        "hk-1", UpdateStaffProfileRequest(preferred_name="Hector H", phone="5125550123", avatar_url="https://cdn.x/a.png"), GM)
+        "hk-1", UpdateStaffMemberProfileRequest(preferred_name="Hector H", phone="5125550123", avatar_url="https://cdn.x/a.png"), GM)
     assert res["data"]["preferred_name"] == "Hector H"
     detail = (await staff_router.get_staff_member("hk-1", GM))["data"]
     assert detail["preferred_name"] == "Hector H" and detail["phone"] == "5125550123"
@@ -282,17 +282,17 @@ async def test_profile_update_persists_and_detail_reflects_it(db):
 async def test_profile_update_cannot_change_email_or_unknown_fields(db):
     for payload in ({"email": "attacker@x.com"}, {"hourly_rate": 1}, {"tenant_id": H2}, {"id": "gm-1"}):
         with pytest.raises(ValidationError):
-            UpdateStaffProfileRequest(**payload)
+            UpdateStaffMemberProfileRequest(**payload)
 
 
 @pytest.mark.asyncio
 async def test_profile_update_validation(db):
-    for body in (UpdateStaffProfileRequest(), UpdateStaffProfileRequest(avatar_url="javascript:alert(1)")):
+    for body in (UpdateStaffMemberProfileRequest(), UpdateStaffMemberProfileRequest(avatar_url="javascript:alert(1)")):
         with pytest.raises(HTTPException) as exc:
             await staff_router.update_staff_profile("hk-1", body, GM)
         assert exc.value.status_code == 422
     with pytest.raises(ValidationError):
-        UpdateStaffProfileRequest(phone="not a phone!!")
+        UpdateStaffMemberProfileRequest(phone="not a phone!!")
 
 
 @pytest.mark.asyncio
@@ -310,5 +310,5 @@ async def test_hourly_rate_and_phone_only_in_gm_responses(db):
     gm_view = (await staff_router.list_staff(GM))["data"]["staff"]
     assert next(s for s in gm_view if s["user_id"] == "hk-1")["hourly_rate"] == 15.5
     assert "hourly_rate" not in (await staff_router.update_staff_profile(
-        "hk-1", UpdateStaffProfileRequest(preferred_name="x"), GM))["data"]
+        "hk-1", UpdateStaffMemberProfileRequest(preferred_name="x"), GM))["data"]
     await _denied(staff_router, "/staff/{staff_id}", "PATCH", ENGINEER)  # setting the rate stays GM-only
