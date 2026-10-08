@@ -73,15 +73,17 @@ test('presents People as one workspace and removes engineering sub-navigation', 
   assert.equal(engineering?.subNav, undefined)
 })
 
-test('places Programs and SOP Library in Settings instead of the primary sidebar', () => {
+test('keeps Programs and SOP Library out of the primary sidebar and the Settings workspace nav', () => {
   assert.equal(PRIMARY_NAV_HREFS.includes('/programs'), false)
+  assert.equal(SETTINGS_NAV_ITEM.subNav?.some((item) => item.href === '/settings/programs'), false)
+  assert.equal(SETTINGS_NAV_ITEM.subNav?.some((item) => item.href === '/settings/sop'), false)
+})
+
+test('Settings sidebar sub-navigation follows the workspace destinations', () => {
   assert.deepEqual(
-    SETTINGS_NAV_ITEM.subNav?.find((item) => item.href === '/settings/programs'),
-    { href: '/settings/programs', label: 'Programs' },
-  )
-  assert.deepEqual(
-    SETTINGS_NAV_ITEM.subNav?.find((item) => item.href === '/settings/sop'),
-    { href: '/settings/sop', label: 'SOP Library' },
+    SETTINGS_NAV_ITEM.subNav?.map((item) => item.label),
+    ['Property Profile', 'Rooms & Accessibility', 'Housekeeping', 'Inspections', 'Service SLAs',
+      'Roles & Access', 'Integrations', 'Billing', 'Staff Feedback'],
   )
 })
 
