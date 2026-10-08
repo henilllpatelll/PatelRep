@@ -35,6 +35,7 @@ from routers import (
     guest_requests,
     logbook,
     management_roi,
+    report_views,
     reports,
     onboarding,
     staff,
@@ -336,6 +337,7 @@ app.include_router(guest_requests.router, prefix=PREFIX)
 app.include_router(logbook.router, prefix=PREFIX)
 app.include_router(management_roi.router, prefix=PREFIX)
 app.include_router(reports.router, prefix=PREFIX)
+app.include_router(report_views.router, prefix=PREFIX)
 app.include_router(onboarding.router, prefix=PREFIX)
 app.include_router(staff.router, prefix=PREFIX)
 app.include_router(lost_found.router, prefix=PREFIX)

@@ -185,8 +185,9 @@ def build_buckets(period: ReportPeriod, tz: ZoneInfo, granularity: Optional[str]
     while cursor <= period.end:
         if gran == "day":
             nxt = cursor
-        elif gran == "week":  # ISO weeks start Monday
-            nxt = min(cursor + timedelta(days=6 - cursor.weekday()), period.end)
+        elif gran == "week":  # 7-day blocks anchored at the period start so a comparison
+            # window of equal length yields the same number of buckets (exact index alignment).
+            nxt = min(cursor + timedelta(days=6), period.end)
         else:  # month
             first_next = (cursor.replace(day=1) + timedelta(days=32)).replace(day=1)
             nxt = min(first_next - timedelta(days=1), period.end)

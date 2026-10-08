@@ -30,6 +30,13 @@ CATEGORY_DEPARTMENT = {"housekeeping": "housekeeping", "maintenance": "engineeri
 DEPARTMENT_CATEGORIES = {"housekeeping": ("housekeeping",), "engineering": ("maintenance",)}
 
 
+def categories_for(departments: Optional[tuple[str, ...]]) -> Optional[list[str]]:
+    """Guest-request categories visible for a department scope (None = no restriction)."""
+    if departments is None or set(departments) >= {"housekeeping", "engineering"}:
+        return None
+    return [c for d in departments for c in DEPARTMENT_CATEGORIES.get(d, ())]
+
+
 def fetch_all(make_query: Callable[[], object], *, max_rows: int = MAX_ROWS) -> tuple[list[dict], bool]:
     """Page through a query. ``make_query`` must return a fresh builder each call."""
     rows: list[dict] = []
@@ -75,9 +82,7 @@ def guest_requests_created(
     departments: Optional[tuple[str, ...]] = None,
     columns: str = GUEST_REQUEST_COLUMNS,
 ) -> tuple[list[dict], bool]:
-    categories: Optional[list[str]] = None
-    if departments is not None and set(departments) != {"housekeeping", "engineering"}:
-        categories = [c for d in departments for c in DEPARTMENT_CATEGORIES.get(d, ())]
+    categories = categories_for(departments)
 
     def make():
         query = (

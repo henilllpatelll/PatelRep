@@ -87,7 +87,7 @@ def test_buckets_cover_period_exactly_with_clipped_edges():
     assert buckets[0].start == period.start and buckets[-1].end == period.end
     for a, b in zip(buckets, buckets[1:]):
         assert b.start == a.end + timedelta(days=1)
-    assert buckets[0].end.weekday() == 6  # clipped first bucket ends Sunday
+    assert (buckets[0].end - buckets[0].start).days == 6  # 7-day blocks anchored at period start
 
 
 # ── SLA / metrics ────────────────────────────────────────────────────────────
