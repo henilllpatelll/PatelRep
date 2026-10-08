@@ -84,9 +84,9 @@ export function buildDirectory(
 // ── Today ───────────────────────────────────────────────────────────────────
 
 export type TodayState =
-  | { kind: 'clocked_in'; start: string | null; end: string | null }
-  | { kind: 'scheduled'; start: string | null; end: string | null }
-  | { kind: 'finished'; start: string | null; end: string | null }
+  | { kind: 'clocked_in'; start: string | null; end: string | null; shiftName: string | null }
+  | { kind: 'scheduled'; start: string | null; end: string | null; shiftName: string | null }
+  | { kind: 'finished'; start: string | null; end: string | null; shiftName: string | null }
   | { kind: 'not_scheduled' }
 
 const RANK: Record<string, number> = { clocked_in: 3, scheduled: 2, finished: 1 }
@@ -97,7 +97,7 @@ export function buildTodayMap(assignments: ShiftAssignment[]): Map<string, Today
   for (const a of assignments) {
     const kind = a.clocked_in_at && !a.clocked_out_at ? 'clocked_in' : a.clocked_out_at ? 'finished' : 'scheduled'
     const state: Exclude<TodayState, { kind: 'not_scheduled' }> = {
-      kind, start: a.shifts?.start_time ?? null, end: a.shifts?.end_time ?? null,
+      kind, start: a.shifts?.start_time ?? null, end: a.shifts?.end_time ?? null, shiftName: a.shifts?.name ?? null,
     }
     const prev = map.get(a.user_id)
     const prevStart = prev && prev.kind !== 'not_scheduled' ? prev.start ?? '' : ''

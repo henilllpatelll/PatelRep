@@ -53,7 +53,8 @@ def db(monkeypatch):
             {"id": DEPT_H2, "tenant_id": H2, "name": "Other Hotel Dept", "code": "OD", "color": "#222"},
         ],
         "custom_roles": [
-            {"id": "cr-h1", "hotel_id": H1, "name": "Lead", "is_active": True},
+            {"id": "cr-h1", "hotel_id": H1, "name": "Lead", "base_role": "housekeeper", "is_active": True},
+            {"id": "cr-eng", "hotel_id": H1, "name": "Eng Lead", "base_role": "engineer", "is_active": True},
             {"id": "cr-h2", "hotel_id": H2, "name": "Foreign Lead", "is_active": True},
         ],
         "staff_role_schedules": [],
@@ -312,3 +313,50 @@ async def test_hourly_rate_and_phone_only_in_gm_responses(db):
     assert "hourly_rate" not in (await staff_router.update_staff_profile(
         "hk-1", UpdateStaffMemberProfileRequest(preferred_name="x"), GM))["data"]
     await _denied(staff_router, "/staff/{staff_id}", "PATCH", ENGINEER)  # setting the rate stays GM-only
+
+
+# 6 — People Phase 3: custom access must match the base role; manual create carries the new fields ----------
+@pytest.mark.asyncio
+async def test_custom_access_must_match_the_base_role(db):
+    with pytest.raises(HTTPException) as exc:
+        await staff_router.update_staff("hk-1", {"custom_role_id": "cr-eng"}, GM)
+    assert exc.value.status_code == 422
+    # changing the base role while an incompatible custom policy would remain is also refused
+    await staff_router.update_staff("hk-1", {"custom_role_id": "cr-h1"}, GM)
+    with pytest.raises(HTTPException) as exc:
+        await staff_router.update_staff("hk-1", {"role": "front_desk"}, GM)
+    assert exc.value.status_code == 422
+    # ...unless the same request clears it
+    await staff_router.update_staff("hk-1", {"role": "front_desk", "custom_role_id": None}, GM)
+    row = next(r for r in db.rows["user_roles"] if r["user_id"] == "hk-1")
+    assert row["role"] == "front_desk" and row["custom_role_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_add_direct_persists_preferred_name_and_custom_role(db):
+    from models.requests import AddStaffDirectRequest
+    body = AddStaffDirectRequest(full_name="New Person", preferred_name="Nia", email="nia@x.com", role="housekeeper",
+                                 custom_role_id="11111111-aaaa-4aaa-8aaa-111111111111")
+    with pytest.raises(HTTPException) as exc:  # unknown / foreign id never reaches auth
+        await staff_router.add_staff_direct(body, GM)
+    assert exc.value.status_code == 422 and db.auth.admin.created == []
+
+    db.rows["custom_roles"].append({"id": "11111111-aaaa-4aaa-8aaa-111111111111", "hotel_id": H1, "name": "HK Lead",
+                                    "base_role": "housekeeper", "is_active": True})
+    res = await staff_router.add_staff_direct(body, GM)
+    uid = res["data"]["user_id"]
+    assert next(r for r in db.rows["user_roles"] if r["user_id"] == uid)["custom_role_id"] == "11111111-aaaa-4aaa-8aaa-111111111111"
+    assert next(p for p in db.rows["user_profiles"] if p["id"] == uid)["preferred_name"] == "Nia"
+    assert res["data"]["temp_password"]  # generated server-side when the GM does not choose one
+
+
+@pytest.mark.asyncio
+async def test_add_direct_refuses_custom_access_for_another_base_role(db):
+    from models.requests import AddStaffDirectRequest
+    body = AddStaffDirectRequest(full_name="New Person", email="e2@x.com", role="front_desk",
+                                 custom_role_id="11111111-bbbb-4bbb-8bbb-111111111111")
+    db.rows["custom_roles"].append({"id": "11111111-bbbb-4bbb-8bbb-111111111111", "hotel_id": H1, "name": "HK Lead",
+                                    "base_role": "housekeeper", "is_active": True})
+    with pytest.raises(HTTPException) as exc:
+        await staff_router.add_staff_direct(body, GM)
+    assert exc.value.status_code == 422 and db.auth.admin.created == []

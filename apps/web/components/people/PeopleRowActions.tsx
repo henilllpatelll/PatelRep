@@ -3,14 +3,24 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { MoreVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { StaffMember } from '@/lib/api/staff'
 import type { DirectoryEntry, InvitationEntry, StaffEntry } from '@/lib/people/peopleDirectory'
+import { actionsFor } from '@/lib/people/peopleDrawers'
 import { usePeopleLabels } from './usePeopleLabels'
 
 export interface RowActionHandlers {
+  /** Needed to hide actions that would lock the GM out (own account, last GM). */
+  context: { selfUserId: string | null; staff: StaffMember[] }
+  onProfile: (entry: StaffEntry) => void
   onEdit: (entry: StaffEntry) => void
+  onAccess: (entry: StaffEntry) => void
+  onSchedule: (entry: StaffEntry) => void
   onDeactivate: (entry: StaffEntry) => void
   onReactivate: (entry: StaffEntry) => void
+  onInvitation: (entry: InvitationEntry) => void
   onResend: (entry: InvitationEntry) => void
+  onEditInvitation: (entry: InvitationEntry) => void
+  onReissue: (entry: InvitationEntry) => void
   onRevoke: (entry: InvitationEntry) => void
 }
 
@@ -21,22 +31,24 @@ interface MenuItem {
   run: () => void
 }
 
-/** Only actions that really work today. Phase 3 drawers add profile/access/coverage entries here. */
+/** Which actions exist comes from `actionsFor`; nothing is listed that would be a dead end for that record. */
 function useRowMenuItems(entry: DirectoryEntry, h: RowActionHandlers): MenuItem[] {
   const { t } = usePeopleLabels()
-  if (entry.kind === 'staff') {
-    if (entry.status === 'active') {
-      return [
-        { id: 'edit', label: t('people.actions.edit'), run: () => h.onEdit(entry) },
-        { id: 'deactivate', label: t('people.actions.deactivate'), destructive: true, run: () => h.onDeactivate(entry) },
-      ]
+  return actionsFor(entry, h.context).map((id): MenuItem => {
+    const label = t(`people.actions.${id}`)
+    if (entry.kind === 'staff') {
+      const run = {
+        profile: () => h.onProfile(entry), edit: () => h.onEdit(entry), access: () => h.onAccess(entry),
+        schedule: () => h.onSchedule(entry), deactivate: () => h.onDeactivate(entry), reactivate: () => h.onReactivate(entry),
+      }[id as 'profile']
+      return { id, label, destructive: id === 'deactivate', run: run ?? (() => undefined) }
     }
-    return [{ id: 'reactivate', label: t('people.actions.reactivate'), run: () => h.onReactivate(entry) }]
-  }
-  return [
-    { id: 'resend', label: t('people.actions.resend'), run: () => h.onResend(entry) },
-    { id: 'revoke', label: t('people.actions.revoke'), destructive: true, run: () => h.onRevoke(entry) },
-  ]
+    const run = {
+      invitation: () => h.onInvitation(entry), resend: () => h.onResend(entry), editInvitation: () => h.onEditInvitation(entry),
+      reissue: () => h.onReissue(entry), revoke: () => h.onRevoke(entry),
+    }[id as 'invitation']
+    return { id, label, destructive: id === 'revoke', run: run ?? (() => undefined) }
+  })
 }
 
 export function PeopleRowActions({
@@ -123,7 +135,7 @@ export function PeopleRowActions({
               key={item.id}
               type="button"
               role="menuitem"
-              onClick={() => { close(false); item.run() }}
+              onClick={() => { close(true); item.run() }}
               className={cn(
                 'flex min-h-[40px] w-full items-center rounded-lg px-3 text-left text-[13px] font-medium hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none',
                 item.destructive ? 'text-[var(--alert)]' : 'text-ink-2',

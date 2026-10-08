@@ -22,7 +22,7 @@ const STATUS_STYLE: Record<DirectoryStatus, { text: string; dot: string }> = {
 }
 
 /** Text is always shown next to the dot, so colour is never the only signal. */
-function StatusBadge({ status }: { status: DirectoryStatus }) {
+export function StatusBadge({ status }: { status: DirectoryStatus }) {
   const { statusLabel } = usePeopleLabels()
   const s = STATUS_STYLE[status]
   return (
@@ -33,7 +33,7 @@ function StatusBadge({ status }: { status: DirectoryStatus }) {
   )
 }
 
-function PersonAvatar({ entry, name, size }: { entry: DirectoryEntry; name: string; size: number }) {
+export function PersonAvatar({ entry, name, size }: { entry: DirectoryEntry; name: string; size: number }) {
   const [broken, setBroken] = useState(false)
   if (entry.avatarUrl && !broken) {
     return (
@@ -82,7 +82,7 @@ interface DirectoryProps {
   onSort: (key: SortKey) => void
   handlers: RowActionHandlers
   busyKey: string | null
-  /** Phase 3 integration point: opening a person's profile drawer. Rows are inert while this is unset. */
+  /** Opens a person's profile (or an invitation's details). Rows are inert while this is unset. */
   onOpenEntry?: (entry: DirectoryEntry) => void
 }
 
@@ -167,7 +167,17 @@ export function PeopleDirectoryTable(props: DirectoryProps) {
                 <div className="flex items-center gap-3">
                   <PersonAvatar entry={entry} name={m.name} size={36} />
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-ink">{m.name}</p>
+                    {interactive ? (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); props.onOpenEntry?.(entry) }}
+                        className="block max-w-full truncate rounded text-left text-[13px] font-medium text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                      >
+                        {m.name}
+                      </button>
+                    ) : (
+                      <p className="truncate text-[13px] font-medium text-ink">{m.name}</p>
+                    )}
                     {entry.email && entry.email !== m.name && <p className="truncate text-[11px] text-ink-3">{entry.email}</p>}
                     {entry.phone && <p className="hidden truncate text-[11px] text-ink-3 xl:block">{entry.phone}</p>}
                   </div>
@@ -208,7 +218,17 @@ export function PeopleMobileCards(props: DirectoryProps) {
           >
             <PersonAvatar entry={entry} name={m.name} size={40} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] font-medium text-ink">{m.name}</p>
+              {interactive ? (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); props.onOpenEntry?.(entry) }}
+                  className="block min-h-[24px] max-w-full truncate rounded text-left text-[14px] font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                >
+                  {m.name}
+                </button>
+              ) : (
+                <p className="truncate text-[14px] font-medium text-ink">{m.name}</p>
+              )}
               <p className="truncate text-[12px] text-ink-2">
                 {[entry.departmentName ?? t('people.filters.unassigned'), m.role].join(' · ')}
               </p>

@@ -53,6 +53,17 @@ def validate_custom_role(custom_role_id, hotel_id: str) -> str:
     return str(custom_role_id)
 
 
+def assert_custom_role_fits(custom_role_id, roles, hotel_id: str) -> None:
+    """A custom access policy is a variant of one base role; it can only sit on someone who holds that role."""
+    result = supabase.table("custom_roles")        .select("id, base_role")        .eq("id", str(custom_role_id))        .eq("hotel_id", hotel_id)        .execute()
+    base_role = (result.data or [{}])[0].get("base_role")
+    held = set(roles)
+    if "chief_engineer" in held:
+        held.add("engineer")  # the Roles screen saves chief-engineer policies against the engineer base role
+    if base_role and base_role not in held:
+        raise HTTPException(status_code=422, detail="This custom access policy does not match the person's base role")
+
+
 def tenant_role_rows(user_id: str, hotel_id: str) -> list:
     """Every user_roles row (active or not) this person has in this hotel."""
     result = supabase.table("user_roles")\
@@ -344,6 +355,10 @@ async def add_staff_direct(
 ):
     """Create a staff member directly without sending an invite email."""
     department_id = validate_department(body.department_id, current_user.hotel_id) if body.department_id else None
+    custom_role_id = None
+    if body.custom_role_id:
+        custom_role_id = validate_custom_role(body.custom_role_id, current_user.hotel_id)
+        assert_custom_role_fits(custom_role_id, [body.role], current_user.hotel_id)
     temp_password = body.password if body.password else secrets.token_urlsafe(12)
     created_auth_user = False
 
@@ -404,7 +419,7 @@ async def add_staff_direct(
             "id": user_id,
             "tenant_id": current_user.hotel_id,
             "full_name": body.full_name,
-            "preferred_name": body.full_name.split()[0] if body.full_name else body.full_name,
+            "preferred_name": body.preferred_name or (body.full_name.split()[0] if body.full_name else body.full_name),
         }
         if body.phone:
             profile_row["phone"] = body.phone
@@ -418,6 +433,8 @@ async def add_staff_direct(
         }
         if department_id:
             role_data["department_id"] = department_id
+        if custom_role_id:
+            role_data["custom_role_id"] = custom_role_id
         supabase.table("user_roles").upsert(role_data, on_conflict="user_id,tenant_id,role").execute()
     except Exception:
         if created_auth_user:
@@ -615,6 +632,11 @@ async def update_staff(
             update_data["department_id"] = validate_department(update_data["department_id"], current_user.hotel_id)
         if update_data.get("custom_role_id") is not None:
             update_data["custom_role_id"] = validate_custom_role(update_data["custom_role_id"], current_user.hotel_id)
+        if "role" in update_data or update_data.get("custom_role_id") is not None:
+            resulting_roles = [update_data["role"]] if "role" in update_data else [r["role"] for r in rows if r.get("is_active")]
+            effective_custom = update_data["custom_role_id"] if "custom_role_id" in update_data else rows[0].get("custom_role_id")
+            if effective_custom:
+                assert_custom_role_fits(effective_custom, resulting_roles, current_user.hotel_id)
 
     result = supabase.table("user_roles")\
         .update(update_data)\
