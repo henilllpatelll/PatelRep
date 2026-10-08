@@ -81,6 +81,7 @@ export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, clas
             <button
               key={i}
               onClick={tab.onClick}
+              aria-current={tab.active ? 'page' : undefined}
               className={cn(
                 'flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2.5 text-[13px] border-b-2 transition-colors',
                 tab.active
