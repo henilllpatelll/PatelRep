@@ -102,8 +102,23 @@ const regressionIncident = (overrides = {}) => ({
   ...overrides,
 })
 
+const stableResult = (overrides = {}) => ({
+  schema: 'patelrep.production-release-stabilization.v1',
+  workflow: 'Production Release Stabilization',
+  classifier: { run_id: STAB_RUN, run_attempt: 1, control_plane_sha: C },
+  source_release: { run_id: RELEASE_RUN, run_attempt: 1, control_plane_sha: C, conclusion: 'success' },
+  candidate,
+  previous_release: previous,
+  release_state: { disposition: 'released', production_verified: true, mutations: releasedEvidence().mutations },
+  reentry: null,
+  classification: 'stable',
+  stabilization: { outcome: 'stable', probes: [{ attempt: 1, ok: true }, { attempt: 2, ok: true }, { attempt: 3, ok: true }] },
+  ...overrides,
+})
+
 function world(overrides = {}) {
   const state = {
+    stabResult: stableResult(),
     stabRun: stabilizationRun(),
     releaseRun: releaseRun(),
     incident: regressionIncident(),
@@ -134,6 +149,7 @@ function world(overrides = {}) {
     deps: {
       getRun: async (id) => String(id) === STAB_RUN ? state.stabRun : String(id) === RELEASE_RUN ? state.releaseRun : null,
       readIncident: async () => state.incident,
+      readStabilizationResult: async () => state.stabResult,
       readReleaseEvidence: async () => state.evidence,
       isAncestorOfMain: async (sha) => [A, B, C].includes(sha),
       listReleases: async () => state.releases,
@@ -333,4 +349,58 @@ test('automated rollback dispatch identity is exact and trusted', async () => {
       ...bad,
     }, result))
   }
+})
+
+test('a stable release has no incident artifact and is cleanly ineligible, not a workflow failure', async () => {
+  for (const [classification, outcome] of [['stable', 'stable'], ['transient_unconfirmed', 'transient_unconfirmed']]) {
+    const { deps } = world({ incident: null, stabResult: stableResult({ classification, stabilization: { outcome, probes: [{ attempt: 1, ok: true }] } }) })
+    for (const mode of ['resolve', 'request', 'rollback']) {
+      const result = await evaluateAutoRollbackRequest(input(mode), deps)
+      assert.equal(result.eligible, false, `${classification}/${mode}`)
+      assert.match(result.reason, new RegExp(`classified this release as ${classification}`))
+    }
+  }
+  for (const classification of ['refused_no_incident', 'release_record_failure_no_runtime_incident', 'pre_production_failure_no_incident']) {
+    const { deps } = world({ incident: null, stabResult: stableResult({ classification, stabilization: null }) })
+    assert.equal((await evaluateAutoRollbackRequest(input(), deps)).eligible, false, classification)
+  }
+})
+
+test('missing incident artifact is only tolerated with positive non-incident proof; otherwise fail closed', async () => {
+  const bad = [
+    ['no stabilization result either', null, /could not be proven/],
+    ['wrong schema', stableResult({ schema: 'patelrep.production-incident.v1' }), /could not be proven/],
+    ['wrong workflow', stableResult({ workflow: 'Other' }), /could not be proven/],
+    ['other classifier run', stableResult({ classifier: { run_id: '1', run_attempt: 1, control_plane_sha: C } }), /run id mismatch/],
+    ['other classifier attempt', stableResult({ classifier: { run_id: STAB_RUN, run_attempt: 2, control_plane_sha: C } }), /run attempt mismatch/],
+    ['other control-plane SHA', stableResult({ classifier: { run_id: STAB_RUN, run_attempt: 1, control_plane_sha: A } }), /control-plane SHA mismatch/],
+    ['rollback-class result but incident artifact missing', stableResult({ classification: 'post_release_regression' }), /not a proven non-incident/],
+    ['partial failure result but incident artifact missing', stableResult({ classification: 'partial_release_failure' }), /not a proven non-incident/],
+    ['unknown classification', stableResult({ classification: 'whatever' }), /not a proven non-incident/],
+  ]
+  for (const [label, stabResult, pattern] of bad) {
+    const { deps } = world({ incident: null, stabResult })
+    await assert.rejects(evaluateAutoRollbackRequest(input(), deps), pattern, label)
+  }
+})
+
+test('a present but malformed incident artifact still fails closed', async () => {
+  for (const incident of [{}, { ...regressionIncident(), schema: 'x' }, { ...regressionIncident(), workflow: 'x' }]) {
+    const { deps } = world({ incident })
+    await assert.rejects(evaluateAutoRollbackRequest(input(), deps), /malformed production incident artifact/)
+  }
+})
+
+test('a rollback-class incident is still eligible when the stabilization result also exists', async () => {
+  const { deps } = world({ stabResult: stableResult({ classification: 'post_release_regression' }) })
+  assert.equal((await evaluateAutoRollbackRequest(input(), deps)).eligible, true)
+})
+
+test('real dependencies read the stabilization result from the artifact the producer actually uploads', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { STABILIZATION_RESULT_ARTIFACT } = await import('./production-release-stabilization.mjs')
+  const producer = readFileSync(new URL('../.github/workflows/production-release-stabilization.yml', import.meta.url), 'utf8')
+  assert.match(producer, new RegExp(`name: ${STABILIZATION_RESULT_ARTIFACT}\r?\n`))
+  const deps = readFileSync(new URL('./production-auto-rollback-deps.mjs', import.meta.url), 'utf8')
+  assert.match(deps, /readStabilizationResult: \(runId\) => base\.readNamedContext\(runId, STABILIZATION_RESULT_ARTIFACT\)/)
 })

@@ -3,13 +3,14 @@
 import { runPublicSmoke } from './public-smoke.mjs'
 import { PRODUCTION_API_URL, PRODUCTION_WEB_URL } from './production-runtime-identity.mjs'
 import { realProductionRequestDeps } from './production-release-request-deps.mjs'
-import { INCIDENT_ARTIFACT, RELEASE_EVIDENCE_ARTIFACT } from './production-release-stabilization.mjs'
+import { INCIDENT_ARTIFACT, RELEASE_EVIDENCE_ARTIFACT, STABILIZATION_RESULT_ARTIFACT } from './production-release-stabilization.mjs'
 
 export function realAutoRollbackRequestDeps({ repo, readToken }) {
   const base = realProductionRequestDeps({ repo, readToken })
   return {
     ...base,
     readIncident: (runId) => base.readNamedContext(runId, INCIDENT_ARTIFACT),
+    readStabilizationResult: (runId) => base.readNamedContext(runId, STABILIZATION_RESULT_ARTIFACT),
     readReleaseEvidence: (runId) => base.readNamedContext(runId, RELEASE_EVIDENCE_ARTIFACT),
     readRollbackWorkflowAt: async (sha) => {
       const response = base.api(`repos/${repo}/contents/.github/workflows/production-rollback.yml?ref=${encodeURIComponent(sha)}`)

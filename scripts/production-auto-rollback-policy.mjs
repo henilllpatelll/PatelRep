@@ -52,6 +52,30 @@ function requireSourceRun(run, { repo, sourceRunId }) {
   return run
 }
 
+// Phase 3B only uploads production-release-incident for rollback-class outcomes. Every other outcome
+// leaves just the stabilization result, so an absent incident artifact is the NORMAL case for a healthy
+// release and must resolve to "ineligible" - but only when the result artifact positively proves it.
+const NON_INCIDENT_CLASSIFICATIONS = Object.freeze([
+  'stable',
+  'transient_unconfirmed',
+  'refused_no_incident',
+  'release_record_failure_no_runtime_incident',
+  'pre_production_failure_no_incident',
+])
+
+function requireNoIncidentProof(result, sourceRun) {
+  if (!result || result.schema !== 'patelrep.production-release-stabilization.v1' || result.workflow !== SOURCE_WORKFLOW_NAME) {
+    fail('production incident artifact is missing and stabilization result could not be proven')
+  }
+  if (String(result.classifier?.run_id ?? '') !== String(sourceRun.id)) fail('stabilization result classifier run id mismatch')
+  if (Number(result.classifier?.run_attempt) !== Number(sourceRun.run_attempt)) fail('stabilization result classifier run attempt mismatch')
+  if (result.classifier?.control_plane_sha !== sourceRun.head_sha) fail('stabilization result classifier control-plane SHA mismatch')
+  if (!NON_INCIDENT_CLASSIFICATIONS.includes(result.classification)) {
+    fail('stabilization result is not a proven non-incident but no production incident artifact exists')
+  }
+  refuse(`stabilization classified this release as ${result.classification}; no rollback-class production incident to act on`)
+}
+
 function requireIncident(incident, sourceRun) {
   if (!incident || incident.schema !== 'patelrep.production-incident.v1' || incident.workflow !== SOURCE_WORKFLOW_NAME) {
     fail('malformed production incident artifact')
@@ -154,7 +178,11 @@ export async function validateAutoRollbackRequest({ repo, sourceRunId, enabled, 
   const sourceRun = requireSourceRun(await deps.getRun(sourceRunId), { repo, sourceRunId })
   if ((await deps.isAncestorOfMain(sourceRun.head_sha)) !== true) refuse('stabilization control-plane SHA is no longer an ancestor of main')
 
-  const incident = requireIncident(await deps.readIncident(sourceRunId), sourceRun)
+  const rawIncident = await deps.readIncident(sourceRunId)
+  if (rawIncident === null || rawIncident === undefined) {
+    requireNoIncidentProof(await deps.readStabilizationResult(sourceRunId), sourceRun)
+  }
+  const incident = requireIncident(rawIncident, sourceRun)
 
   const releaseRun = requireReleaseRun(await deps.getRun(String(incident.source_release.run_id)), { repo, incident })
   const evidence = await deps.readReleaseEvidence(String(releaseRun.id))
