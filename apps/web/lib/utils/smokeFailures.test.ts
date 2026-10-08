@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { RATE_LIMITED_CONSOLE_ERROR as E, filterTransientRateLimits } from './smokeFailures'
+import {
+  RATE_LIMITED_CONSOLE_ERROR as E,
+  UNAUTHORIZED_CONSOLE_ERROR as U,
+  filterExpectedUnauthorized,
+  filterTransientRateLimits,
+} from './smokeFailures'
+
+test('drops console 401s only as many as observed 401 responses', () => {
+  assert.deepEqual(filterExpectedUnauthorized([U], 1), [])
+  assert.deepEqual(filterExpectedUnauthorized([U, U, '500 https://x/y'], 1), [U, '500 https://x/y'])
+  assert.deepEqual(filterExpectedUnauthorized([U], 0), [U])
+})
 
 test('drops a console 429 matched by an observed GET 429', () => {
   assert.deepEqual(filterTransientRateLimits([E], [{ method: 'GET' }]), [])
