@@ -14,8 +14,22 @@ function resolveUrl(baseUrl, path) {
   return new URL(path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString()
 }
 
-async function fetchOk(fetchImpl, label, url) {
-  const response = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(15_000) })
+const FETCH_ATTEMPTS = 3
+const FETCH_RETRY_DELAY_MS = 5_000
+
+// A timeout or network error (cold start, slow edge) is retried a bounded number of times; a response
+// with any HTTP status is a real answer and is never retried, so a genuinely down deployment still fails.
+async function fetchOk(fetchImpl, label, url, retryDelayMs = FETCH_RETRY_DELAY_MS) {
+  let response
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      response = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(15_000) })
+      break
+    } catch (error) {
+      if (attempt >= FETCH_ATTEMPTS) throw new Error(`${label} did not respond after ${FETCH_ATTEMPTS} attempts: ${error?.message ?? error}`)
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+    }
+  }
   if (!response.ok) throw new Error(`${label} returned HTTP ${response.status}.`)
   return response
 }
@@ -47,12 +61,12 @@ function verifyHealthy(health) {
   }
 }
 
-export async function runProductionMonitorSmoke({ webUrl, apiUrl, fetchImpl = fetch, log = console.log }) {
+export async function runProductionMonitorSmoke({ webUrl, apiUrl, fetchImpl = fetch, log = console.log, retryDelayMs }) {
   if (!webUrl || !apiUrl) throw new Error('PUBLIC_WEB_URL and PUBLIC_API_URL are required.')
 
-  const webResponse = await fetchOk(fetchImpl, 'Web login', resolveUrl(webUrl, 'login'))
+  const webResponse = await fetchOk(fetchImpl, 'Web login', resolveUrl(webUrl, 'login'), retryDelayMs)
   const webHtml = await webResponse.text()
-  const healthResponse = await fetchOk(fetchImpl, 'API health', resolveUrl(apiUrl, 'health'))
+  const healthResponse = await fetchOk(fetchImpl, 'API health', resolveUrl(apiUrl, 'health'), retryDelayMs)
   const health = await healthResponse.json()
 
   const contract = classifyProductionContract(health)
@@ -73,7 +87,7 @@ export async function runProductionMonitorSmoke({ webUrl, apiUrl, fetchImpl = fe
     throw new Error('API health release version is missing.')
   }
 
-  const readinessResponse = await fetchOk(fetchImpl, 'API readiness', resolveUrl(apiUrl, 'ready'))
+  const readinessResponse = await fetchOk(fetchImpl, 'API readiness', resolveUrl(apiUrl, 'ready'), retryDelayMs)
   const readiness = await readinessResponse.json()
   if (readiness.status !== 'ready' || readiness.database !== 'compatible') {
     throw new Error('API readiness did not confirm a compatible database schema.')

@@ -75,6 +75,20 @@ test('a failing web login fails the monitor', async () => {
   await assert.rejects(run(mockFetch({ health: legacyHealth(), webStatus: 503 })), /Web login returned HTTP 503/)
 })
 
+test('a transient timeout is retried, but a persistent one still fails the monitor', async () => {
+  const inner = mockFetch({ health: legacyHealth() }).fetchImpl
+  let loginCalls = 0
+  const flaky = async (url, init) => {
+    if (new URL(url).pathname === '/login' && (loginCalls += 1) < 3) throw new DOMException('timeout', 'TimeoutError')
+    return inner(url, init)
+  }
+  const opts = { webUrl: WEB, apiUrl: API, log: () => {}, retryDelayMs: 0 }
+  assert.deepEqual(await runProductionMonitorSmoke({ ...opts, fetchImpl: flaky }), { contract: 'legacy' })
+  assert.equal(loginCalls, 3)
+  const dead = async () => { throw new DOMException('timeout', 'TimeoutError') }
+  await assert.rejects(runProductionMonitorSmoke({ ...opts, fetchImpl: dead }), /Web login did not respond after 3 attempts/)
+})
+
 test('public-smoke.mjs stays strict: it still requires /ready and has no legacy fallback', () => {
   const strict = readFileSync('scripts/public-smoke.mjs', 'utf8')
   assert.match(strict, /resolveUrl\(apiUrl, 'ready'\)/)
