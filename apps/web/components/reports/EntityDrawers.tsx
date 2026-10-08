@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Avatar, Pill } from '@/components/ui/primitives'
+import { Avatar } from '@/components/ui/primitives'
 import { reportsV2Api } from '@/lib/reports/api'
 import { describeRange } from '@/lib/reports/filters'
 import { formatDateTime, formatValue, titleCase } from '@/lib/reports/format'
@@ -10,7 +10,7 @@ import { assetHref, assignedWorkHref, recordHref, roomHref } from '@/lib/reports
 import type { TrendPoint, TrendSeries } from '@/lib/reports/types'
 import { ReportBreakdownBars, ReportTrendChart } from './ReportCharts'
 import { ReportDrawer, drawerButton, drawerPrimaryButton } from './ReportDrawer'
-import { AvailabilityNotice, EmptyBlock, ErrorBlock, LowSampleBadge, SectionSkeleton } from './ReportPrimitives'
+import { AvailabilityNotice, EmptyBlock, ErrorBlock, LowSampleBadge, ReportPill, SectionSkeleton } from './ReportPrimitives'
 import { ReportMetricCard } from './ReportMetricCard'
 import { useReports } from './ReportsContext'
 
@@ -167,8 +167,8 @@ export function RoomAssetDrawer({ entity, id }: { entity: 'room' | 'asset'; id: 
                       <p className="text-[12px] text-ink3">{formatDateTime(event.at)} · {titleCase(event.type)}</p>
                       <p className="text-ink">{href ? <Link href={href} className="underline-offset-2 hover:underline">{event.title ?? 'Work order'}</Link> : event.title ?? '—'}</p>
                       <p className="flex flex-wrap gap-1 text-[12px] text-ink3">
-                        {event.category && <Pill tone="neutral" size="sm">{titleCase(event.category)}</Pill>}
-                        {event.status && <Pill tone="info" size="sm">{titleCase(event.status)}</Pill>}
+                        {event.category && <ReportPill tone="neutral" size="sm">{titleCase(event.category)}</ReportPill>}
+                        {event.status && <ReportPill tone="info" size="sm">{titleCase(event.status)}</ReportPill>}
                       </p>
                     </li>
                   )

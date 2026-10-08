@@ -76,7 +76,10 @@ export interface ViewBase {
   period: PeriodInfo
   comparison_period: PeriodInfo | null
   kpis: Kpi[]
+  /** True when a source cohort hit the reporting record limit; affected KPIs arrive withheld (value null). */
   truncated?: boolean
+  truncated_sources?: string[]
+  truncation_notice?: string | null
 }
 
 export interface OverviewData extends ViewBase {
@@ -87,8 +90,9 @@ export interface OverviewData extends ViewBase {
     scope: 'live'
     as_of_date: string
     tasks_completed_today: number
-    open_work_orders: number
-    room_status: Record<string, number>
+    /** null = outside the caller's role / selected department scope (not zero). */
+    open_work_orders: number | null
+    room_status: Record<string, number> | null
   }
 }
 
@@ -175,9 +179,9 @@ export interface MaintenanceData extends ViewBase {
   totals: { total_work_orders: number; completed: number; labor_hours: number | null }
   active_breaches: {
     scope: 'live'
-    overdue_count: number
-    urgent_overdue_count: number
-    open_work_orders: number
+    overdue_count: number | null
+    urgent_overdue_count: number | null
+    open_work_orders: number | null
     oldest: null | { id: string; title: string | null; due_at: string; room: string | null }
   }
   by_category: RankedRow[]

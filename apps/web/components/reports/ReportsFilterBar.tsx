@@ -15,14 +15,14 @@ import {
 import { field } from './ReportModal'
 import { useReports } from './ReportsContext'
 
-const DEPARTMENT_AWARE = ['overview', 'guest-experience']
+// Views whose server endpoint accepts a department (the others are fixed to one department).
+const DEPARTMENT_AWARE = ['overview', 'guest-experience', 'team']
 
 /** Global filters shared by every report: date range, comparison and (where applicable) department. */
 export function ReportsFilterBar() {
   const { filters, setFilters, today, capabilities, view } = useReports()
   const [from, setFrom] = useState(filters.start)
   const [to, setTo] = useState(filters.end)
-  const customInvalid = filters.preset === 'custom' ? false : false
   const draftValid = isValidCustomRange(from, to, today)
   const showDepartment = (capabilities?.departments.length ?? 0) > 1 && !!view && DEPARTMENT_AWARE.includes(view)
 
@@ -90,7 +90,7 @@ export function ReportsFilterBar() {
         </label>
       )}
       <p className="ml-auto pb-1.5 text-[12px] text-ink3" aria-live="polite">
-        {filters.start === filters.end ? filters.start : `${filters.start} – ${filters.end}`} · hotel time{customInvalid ? '' : ''}
+        {filters.start === filters.end ? filters.start : `${filters.start} – ${filters.end}`} · hotel time
       </p>
     </form>
   )

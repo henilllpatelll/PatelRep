@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 MISSED_GRACE = timedelta(hours=12)
 MAX_ATTEMPTS = 3
+STALE_AFTER = timedelta(minutes=30)  # a worker that died mid-attempt leaves a row stuck in queued/sending
 RETRY_BACKOFF = (timedelta(minutes=10), timedelta(hours=1), timedelta(hours=4))
 BATCH_LIMIT = 100
 
@@ -78,15 +79,17 @@ def resolve_emails(supabase, user_ids: list[str]) -> dict[str, str]:
     emails: dict[str, str] = {}
     if not user_ids:
         return emails
-    wanted = set(user_ids)
-    try:
-        listing = supabase.auth.admin.list_users()
-        for user in listing if isinstance(listing, list) else getattr(listing, "users", []):
-            uid = str(getattr(user, "id", ""))
-            if uid in wanted and getattr(user, "email", None):
-                emails[uid] = user.email
-    except Exception:  # provider/auth API hiccup -> treated as "no email", surfaced in the delivery row
-        logger.warning("auth admin list_users failed while resolving report recipients")
+    # One lookup per recipient (at most 25): list_users() returns a single page, so a hotel with
+    # more auth users than that page would silently lose recipients.
+    for uid in dict.fromkeys(user_ids):
+        try:
+            found = supabase.auth.admin.get_user_by_id(uid)
+            user = getattr(found, "user", found)
+            email = getattr(user, "email", None)
+            if email:
+                emails[uid] = email
+        except Exception:  # auth API hiccup -> this recipient is treated as "no email", surfaced in the delivery row
+            logger.warning("auth admin lookup failed while resolving a report recipient")
     return emails
 
 
@@ -129,9 +132,13 @@ async def attempt_delivery(supabase, delivery: dict, now: Optional[datetime] = N
     now = now or _now()
     did = delivery["id"]
     attempts = (delivery.get("attempts") or 0) + 1
-    supabase.table("report_deliveries").update(
+    # Compare-and-swap on the status we read: of two workers (or a worker and a manual retry) holding the
+    # same row, only one flips it to "sending" and sends.
+    claimed = supabase.table("report_deliveries").update(
         {"status": "sending", "attempts": attempts, "started_at": now.isoformat(), "next_retry_at": None, "error_summary": None}
-    ).eq("id", did).execute()
+    ).eq("id", did).eq("status", delivery.get("status") or "queued").execute()
+    if not claimed.data:
+        return {"status": "claimed_elsewhere"}
 
     row = supabase.table("report_schedules").select("*").eq("id", delivery["schedule_id"]).eq("tenant_id", delivery["tenant_id"]).maybe_single().execute()
     schedule = row.data if row else None
@@ -238,11 +245,35 @@ async def run_due(supabase, now: Optional[datetime] = None) -> dict:
         outcome = await attempt_delivery(supabase, created[0], now)
         summary[outcome.get("status", "failed")] = summary.get(outcome.get("status", "failed"), 0) + 1
 
+    await _recover_stuck(supabase, now, summary)
+
     retry = supabase.table("report_deliveries").select("*").eq("status", "failed").lte("next_retry_at", now.isoformat()).limit(BATCH_LIMIT).execute().data or []
     for delivery in retry:
         if (delivery.get("attempts") or 0) >= MAX_ATTEMPTS:
             continue
-        summary["retried"] += 1
-        await attempt_delivery(supabase, delivery, now)
+        outcome = await attempt_delivery(supabase, delivery, now)
+        if outcome.get("status") != "claimed_elsewhere":
+            summary["retried"] += 1
     return summary
+
+
+async def _recover_stuck(supabase, now: datetime, summary: dict) -> None:
+    """Rows orphaned by a crash. ``queued`` never started -> run it; ``sending`` is of unknown outcome ->
+    mark failed so the normal bounded retry applies (the provider idempotency key prevents a double send)."""
+    cutoff = (now - STALE_AFTER).isoformat()
+    queued = supabase.table("report_deliveries").select("*").eq("status", "queued").lte("created_at", cutoff).limit(BATCH_LIMIT).execute().data or []
+    for delivery in queued:
+        outcome = await attempt_delivery(supabase, delivery, now)
+        if outcome.get("status") != "claimed_elsewhere":
+            summary["recovered"] = summary.get("recovered", 0) + 1
+    sending = supabase.table("report_deliveries").select("*").eq("status", "sending").lte("started_at", cutoff).limit(BATCH_LIMIT).execute().data or []
+    for delivery in sending:
+        attempts = delivery.get("attempts") or 0
+        retry_at = now.isoformat() if attempts < MAX_ATTEMPTS else None
+        reset = supabase.table("report_deliveries").update({
+            "status": "failed", "completed_at": now.isoformat(), "next_retry_at": retry_at,
+            "error_summary": "The delivery was interrupted before it finished" + ("; it will be retried." if retry_at else "."),
+        }).eq("id", delivery["id"]).eq("status", "sending").execute()
+        if reset.data:
+            summary["recovered"] = summary.get("recovered", 0) + 1
 

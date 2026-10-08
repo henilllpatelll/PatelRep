@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { History, Pause, Pencil, Play, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { Pill } from '@/components/ui/primitives'
 import { reportsV2Api } from '@/lib/reports/api'
 import { VIEW_LABELS, type ReportView } from '@/lib/reports/filters'
 import { formatDateTime, titleCase } from '@/lib/reports/format'
 import type { DeliveryRow, ReportSchedule } from '@/lib/reports/types'
-import { AvailabilityNotice, EmptyBlock, ErrorBlock, SectionSkeleton } from './ReportPrimitives'
+import { AvailabilityNotice, EmptyBlock, ErrorBlock, ReportPill, SectionSkeleton } from './ReportPrimitives'
 import { ReportModal, primaryButton, secondaryButton } from './ReportModal'
 import { ScheduleModal } from './ScheduleModal'
 import { useReports } from './ReportsContext'
@@ -49,7 +48,7 @@ function DeliveryHistory({ schedule }: { schedule: ReportSchedule }) {
               <td className="pr-3">{formatDateTime(d.started_at, schedule.timezone)}</td>
               <td className="pr-3">{formatDateTime(d.completed_at, schedule.timezone)}</td>
               <td className="pr-3">
-                <Pill tone={DELIVERY_TONE[d.status]} size="sm">{DELIVERY_TEXT[d.status]}</Pill>
+                <ReportPill tone={DELIVERY_TONE[d.status]} size="sm">{DELIVERY_TEXT[d.status]}</ReportPill>
                 {d.error_summary && <span className="mt-0.5 block text-ink3">{d.error_summary}</span>}
                 {d.next_retry_at && d.status === 'failed' && <span className="block text-ink3">Retry scheduled {formatDateTime(d.next_retry_at, schedule.timezone)}</span>}
               </td>
@@ -116,7 +115,7 @@ export function ScheduledReportsPanel({ onClose }: { onClose: () => void }) {
               <li key={s.id} className="rounded-[var(--r-lg)] border border-line bg-surface p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[14px] font-medium text-ink">{s.name} <Pill tone={s.enabled ? 'ready' : 'neutral'} size="sm">{s.enabled ? 'Active' : 'Paused'}</Pill></p>
+                    <p className="text-[14px] font-medium text-ink">{s.name} <ReportPill tone={s.enabled ? 'ready' : 'neutral'} size="sm">{s.enabled ? 'Active' : 'Paused'}</ReportPill></p>
                     <p className="text-[12.5px] text-ink3">{VIEW_LABELS[s.report_type as ReportView] ?? titleCase(s.report_type)} · {s.output_format.toUpperCase()} · {s.description}</p>
                     <p className="text-[12.5px] text-ink3">Recipients: {s.recipients.map((r) => r.name).join(', ') || 'none'}</p>
                     <p className="text-[12.5px] text-ink3">

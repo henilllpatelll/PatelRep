@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 
 from core.database import supabase
 from middleware.auth import CurrentUser, require_role
+from services.reporting.data import fetch_all
 from services.reporting.periods import (
     hotel_timezone,
     local_midnight_utc,
@@ -199,11 +200,14 @@ def _prior_state_by_room(hotel_id: str, window_start: datetime) -> dict[str, dic
     PRIOR_STATE_LOOKBACK_DAYS so this stays a small, indexed scan.
     """
     lookback_start = window_start - timedelta(days=PRIOR_STATE_LOOKBACK_DAYS)
-    prior = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", hotel_id).gte(
-        "created_at", lookback_start.isoformat()
-    ).lt("created_at", window_start.isoformat()).order("created_at", desc=True).execute().data or []
+    prior, _ = fetch_all(  # paged: a bare .execute() silently stops at PostgREST's 1,000-row limit
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", hotel_id).gte(
+            "created_at", lookback_start.isoformat()
+        ).lt("created_at", window_start.isoformat()).order("created_at", desc=True),
+        source="room_status_history",
+    )
     state: dict[str, dict] = {}
     for row in prior:
         room_id = row["room_id"]
@@ -222,11 +226,14 @@ async def get_repeat_failures(
     """D-08: same asset or room, 2+ work orders inside a trailing 90-day window."""
     start, end = _window(start_date, end_date, hotel_id=current_user.hotel_id)
     window_start, window_end = _bounds(start, end, current_user.hotel_id)
-    work_orders = supabase.table("work_orders").select(
-        "id, asset_id, room_id, category, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).execute().data or []
+    work_orders, _ = fetch_all(
+        lambda: supabase.table("work_orders").select(
+            "id, asset_id, room_id, category, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="work_orders",
+    )
     metrics = calculate_repeat_failures(
         work_orders, window_start=window_start, window_end=window_end,
         window_days=(end - start).days or DEFAULT_WINDOW_DAYS,
@@ -243,11 +250,14 @@ async def get_downtime_revenue(
     """D-07: room downtime hours x (GM-configured ADR / 24). No external PMS dependency."""
     start, end = _window(start_date, end_date, days=30, hotel_id=current_user.hotel_id)
     window_start, window_end = _bounds(start, end, current_user.hotel_id)
-    history = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    history, _ = fetch_all(
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="room_status_history",
+    )
     prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
     # Seed each room's boundary status clamped to window_start so an interval opened
     # before the window (and closed inside it, or still open) counts from the window
@@ -280,11 +290,14 @@ async def get_housekeeping_efficiency(
         "tenant_id", current_user.hotel_id
     ).execute().data or []
     room_type_by_room = {row["id"]: row["room_type_id"] for row in rooms}
-    history = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    history, _ = fetch_all(
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="room_status_history",
+    )
     prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
     # Keep the real prior timestamp so a clean that opened before the window and
     # closed inside it reports its true duration rather than being dropped (WR-03).
@@ -313,19 +326,25 @@ async def get_inspection_trends(
     """Pass rate and repeat-defect ranking for inspections completed in the window."""
     start, end = _window(start_date, end_date, days=30, hotel_id=current_user.hotel_id)
     window_start, window_end = _bounds(start, end, current_user.hotel_id)
-    inspections = supabase.table("inspections").select(
-        "id, room_id, overall_result, completed_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "completed_at", window_start.isoformat()
-    ).lte("completed_at", window_end.isoformat()).execute().data or []
+    inspections, _ = fetch_all(
+        lambda: supabase.table("inspections").select(
+            "id, room_id, overall_result, completed_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "completed_at", window_start.isoformat()
+        ).lte("completed_at", window_end.isoformat()).order("completed_at"),
+        source="inspections",
+    )
     inspection_ids = [row["id"] for row in inspections]
-    results = []
-    if inspection_ids:
-        results = supabase.table("inspection_results").select(
-            "inspection_id, template_item_id, result"
-        ).eq("tenant_id", current_user.hotel_id).in_(
-            "inspection_id", inspection_ids
-        ).execute().data or []
+    results: list[dict] = []
+    for i in range(0, len(inspection_ids), 150):  # short in.() URLs; each chunk paged past the 1,000-row limit
+        chunk = inspection_ids[i:i + 150]
+        part, _ = fetch_all(
+            lambda: supabase.table("inspection_results").select(
+                "inspection_id, template_item_id, result"
+            ).eq("tenant_id", current_user.hotel_id).in_("inspection_id", chunk).order("inspection_id"),
+            source="inspection_results",
+        )
+        results += part
     metrics = calculate_inspection_trends(inspections, results)
     return {"data": {"period": _period(start, end), **metrics}}
 
@@ -342,16 +361,22 @@ async def get_pm_compliance(
     schedules = supabase.table("pm_schedules").select("id, asset_id, name, next_due_at").eq(
         "tenant_id", current_user.hotel_id
     ).eq("is_active", True).execute().data or []
-    completions = supabase.table("pm_completion_records").select(
-        "pm_schedule_id, labor_minutes, completed_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "completed_at", window_start.isoformat()
-    ).lte("completed_at", window_end.isoformat()).execute().data or []
-    deferrals = supabase.table("pm_deferrals").select(
-        "pm_schedule_id, deferred_until, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).execute().data or []
+    completions, _ = fetch_all(
+        lambda: supabase.table("pm_completion_records").select(
+            "pm_schedule_id, labor_minutes, completed_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "completed_at", window_start.isoformat()
+        ).lte("completed_at", window_end.isoformat()).order("completed_at"),
+        source="pm_records",
+    )
+    deferrals, _ = fetch_all(
+        lambda: supabase.table("pm_deferrals").select(
+            "pm_schedule_id, deferred_until, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="pm_records",
+    )
     metrics = calculate_pm_compliance(schedules, completions, deferrals)
     return {"data": {"period": _period(start, end), **metrics}}
 
@@ -390,11 +415,14 @@ async def get_seven_day_forecast(
     ).execute().data or []
     room_type_by_room = {row["id"]: row["room_type_id"] for row in rooms}
 
-    history = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    history, _ = fetch_all(
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="room_status_history",
+    )
     prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
     # Seed clean sessions opened before the lookback window so cross-boundary cleans
     # are counted in the trailing average rather than dropped (WR-03).

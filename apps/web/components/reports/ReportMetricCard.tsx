@@ -39,18 +39,28 @@ export function ReportMetricCard({
   return (
     <Card
       hover={false}
-      className={cn('report-avoid-break flex min-h-[116px] flex-col justify-between p-4', interactive && 'cursor-pointer transition-shadow hover:shadow-card-hover', className)}
-      onClick={interactive ? onOpen : undefined}
-      aria-label={interactive ? `${kpi.label}: ${formatValue(kpi.value, kpi.unit)}. Open details` : undefined}
+      className={cn('report-avoid-break relative flex min-h-[116px] flex-col justify-between p-4', interactive && 'transition-shadow hover:shadow-card-hover', className)}
     >
+      {/* A real button stretched over the card (not a role=button wrapper), so the definition tooltip
+          button inside the card is never a nested interactive control. */}
+      {interactive && (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`${kpi.label}: ${formatValue(kpi.value, kpi.unit)}. Open details`}
+          className="absolute inset-0 z-0 rounded-[var(--r-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1 print:hidden"
+        />
+      )}
       <div>
         <div className="flex items-start justify-between gap-2">
           <p className="text-[12.5px] font-medium leading-snug text-ink2">{kpi.label}</p>
           {definition && (
-            <InfoTip label={`About ${kpi.label}`}>
-              <strong className="block text-ink">{definition.label}</strong>
-              {definition.definition}
-            </InfoTip>
+            <span className="relative z-10">
+              <InfoTip label={`About ${kpi.label}`}>
+                <strong className="block text-ink">{definition.label}</strong>
+                {definition.definition}
+              </InfoTip>
+            </span>
           )}
         </div>
         <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">

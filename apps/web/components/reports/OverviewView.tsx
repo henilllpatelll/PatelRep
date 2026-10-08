@@ -21,6 +21,7 @@ export function OverviewView() {
 
           <div className="grid gap-4 xl:grid-cols-5">
             <ReportSection
+              printPart="exceptions"
               className="xl:col-span-3"
               title="Needs attention"
               description="Ranked by urgency. Counts reflect live records for your departments."
@@ -40,24 +41,30 @@ export function OverviewView() {
                     <dt className="text-ink3">Tasks completed today</dt>
                     <dd className="mt-1 font-display text-[24px] text-ink">{data.daily_brief.tasks_completed_today}</dd>
                   </div>
-                  <div className="rounded-[var(--r-md)] bg-surface-2 p-3">
-                    <dt className="text-ink3">Open work orders</dt>
-                    <dd className="mt-1 font-display text-[24px] text-ink">{data.daily_brief.open_work_orders}</dd>
-                  </div>
+                  {data.daily_brief.open_work_orders !== null && (
+                    <div className="rounded-[var(--r-md)] bg-surface-2 p-3">
+                      <dt className="text-ink3">Open work orders</dt>
+                      <dd className="mt-1 font-display text-[24px] text-ink">{data.daily_brief.open_work_orders}</dd>
+                    </div>
+                  )}
                 </dl>
-                <h3 className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wide text-ink3">Room status now</h3>
-                {Object.keys(data.daily_brief.room_status).length ? (
-                  <ul className="flex flex-wrap gap-1.5">
-                    {Object.entries(data.daily_brief.room_status)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([status, count]) => (
-                        <li key={status}>
-                          <Pill tone="neutral">{titleCase(status)}: {count}</Pill>
-                        </li>
-                      ))}
-                  </ul>
-                ) : (
-                  <p className="text-[12.5px] text-ink3">No room status data.</p>
+                {data.daily_brief.room_status !== null && (
+                  <>
+                    <h3 className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wide text-ink3">Room status now</h3>
+                    {Object.keys(data.daily_brief.room_status).length ? (
+                      <ul className="flex flex-wrap gap-1.5">
+                        {Object.entries(data.daily_brief.room_status)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([status, count]) => (
+                            <li key={status}>
+                              <Pill tone="neutral">{titleCase(status)}: {count}</Pill>
+                            </li>
+                          ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[12.5px] text-ink3">No room status data.</p>
+                    )}
+                  </>
                 )}
               </ReportSection>
             )}

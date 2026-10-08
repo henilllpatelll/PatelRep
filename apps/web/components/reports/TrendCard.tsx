@@ -3,6 +3,7 @@
 import { GitCompare } from 'lucide-react'
 import { formatShortDate } from '@/lib/reports/format'
 import { recordsForTrend } from '@/lib/reports/metricMeta'
+import { printHides } from '@/lib/reports/printOptions'
 import type { TrendSeries } from '@/lib/reports/types'
 import { ReportTrendChart } from './ReportCharts'
 import { EmptyBlock, ReportSection } from './ReportPrimitives'
@@ -22,12 +23,13 @@ export function TrendCard({
   kind?: 'line' | 'bar' | 'area'
   actions?: React.ReactNode
 }) {
-  const { openDrawer } = useReports()
+  const { openDrawer, printOptions } = useReports()
   const records = recordsForTrend(series.metric)
   const hasData = series.points.some((p) => p.value !== null)
 
   return (
     <ReportSection
+      printPart="charts"
       title={title ?? series.label}
       description={description ?? `${series.granularity === 'day' ? 'Daily' : series.granularity === 'week' ? 'Weekly' : 'Monthly'} · hotel-local dates${records ? ' · select a point to see its records' : ''}`}
       actions={
@@ -47,7 +49,7 @@ export function TrendCard({
     >
       {hasData ? (
         <ReportTrendChart
-          series={series}
+          series={printHides(printOptions, 'comparison') ? { ...series, comparison: null } : series}
           kind={kind}
           onPointClick={
             records

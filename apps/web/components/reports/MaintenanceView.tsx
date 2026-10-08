@@ -114,16 +114,16 @@ export function MaintenanceView() {
               actions={<LiveBadge />}
             >
               <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <Stat label="Overdue open work orders" value={breach.overdue_count} />
-                <Stat label="Urgent overdue" value={breach.urgent_overdue_count} />
-                <Stat label="Open work orders" value={breach.open_work_orders} />
+                <Stat label="Overdue open work orders" value={breach.overdue_count ?? '—'} />
+                <Stat label="Urgent overdue" value={breach.urgent_overdue_count ?? '—'} />
+                <Stat label="Open work orders" value={breach.open_work_orders ?? '—'} />
                 <Stat
                   label="Oldest overdue"
                   value={breach.oldest ? <span className="text-[15px]">{breach.oldest.title ?? 'Work order'}</span> : '—'}
                   hint={breach.oldest ? `${breach.oldest.room ? `Room ${breach.oldest.room} · ` : ''}due ${formatDateTime(breach.oldest.due_at)}` : 'Nothing overdue'}
                 />
               </dl>
-              {breach.overdue_count > 0 && (
+              {(breach.overdue_count ?? 0) > 0 && (
                 <button type="button" className="mt-3 text-[12.5px] font-medium text-[var(--accent)] underline-offset-2 hover:underline print:hidden" onClick={() => openDrawer({ kind: 'filtered-records', recordKind: 'work_orders', filter: 'overdue_live', extra: {}, title: 'Overdue work orders' })}>
                   View overdue work orders
                 </button>
@@ -133,10 +133,10 @@ export function MaintenanceView() {
             <MaintenanceTrends />
 
             <div className="grid gap-4 xl:grid-cols-2">
-              <ReportSection title="Work orders by category" description="Select a category to see its work orders.">
+              <ReportSection printPart="charts" title="Work orders by category" description="Select a category to see its work orders.">
                 <ReportBreakdownBars rows={data.by_category} onSelect={(category) => openDrawer({ kind: 'filtered-records', recordKind: 'work_orders', filter: 'all', extra: { category }, title: `${titleCase(category)} work orders` })} />
               </ReportSection>
-              <ReportSection title="Work orders by priority">
+              <ReportSection printPart="charts" title="Work orders by priority">
                 <ReportBreakdownBars rows={data.by_priority} onSelect={(priority) => openDrawer({ kind: 'filtered-records', recordKind: 'work_orders', filter: 'all', extra: { priority }, title: `${titleCase(priority)} priority work orders` })} />
               </ReportSection>
             </div>
@@ -192,7 +192,6 @@ export function MaintenanceView() {
               )}
               <AvailabilityNotice className="mt-3" availability="unavailable" reason={`Return-to-service performance: ${dt.return_to_service.reason}`} />
             </ReportSection>
-            {data.truncated && <AvailabilityNotice availability="unavailable" reason="Some source data exceeded the reporting row limit; figures may be understated." />}
           </>
         )
       }}

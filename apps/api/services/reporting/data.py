@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
+from services.reporting import truncation
 from services.reporting.periods import ReportPeriod
 
 PAGE_SIZE = 1000  # PostgREST default max rows per request
@@ -37,16 +38,26 @@ def categories_for(departments: Optional[tuple[str, ...]]) -> Optional[list[str]
     return [c for d in departments for c in DEPARTMENT_CATEGORIES.get(d, ())]
 
 
-def fetch_all(make_query: Callable[[], object], *, max_rows: int = MAX_ROWS) -> tuple[list[dict], bool]:
-    """Page through a query. ``make_query`` must return a fresh builder each call."""
+def fetch_all(
+    make_query: Callable[[], object], *, max_rows: Optional[int] = None, source: Optional[str] = None
+) -> tuple[list[dict], bool]:
+    """Page through a query. ``make_query`` must return a fresh builder each call.
+
+    A cohort that hits ``max_rows`` is reported as truncated AND recorded under ``source`` so the
+    view builders can withhold every figure derived from it (see ``truncation``). Every query that
+    can exceed PostgREST's per-request row limit must come through here, never a bare ``.execute()``.
+    """
+    limit = MAX_ROWS if max_rows is None else max_rows  # read at call time so the cap is testable
     rows: list[dict] = []
     offset = 0
-    while offset < max_rows:
+    while offset < limit:
         page = make_query().range(offset, offset + PAGE_SIZE - 1).execute().data or []
         rows.extend(page)
         if len(page) < PAGE_SIZE:
             return rows, False
         offset += PAGE_SIZE
+    if source:
+        truncation.record(source)
     return rows, True
 
 
@@ -59,7 +70,8 @@ def work_orders_created(
         .eq("tenant_id", hotel_id)
         .gte("created_at", period.start_iso)
         .lt("created_at", period.end_iso)
-        .order("created_at")
+        .order("created_at"),
+        source="work_orders",
     )
 
 
@@ -70,7 +82,8 @@ def work_orders_open(supabase, hotel_id: str, *, columns: str = WORK_ORDER_COLUM
         .select(columns)
         .eq("tenant_id", hotel_id)
         .in_("status", ["open", "in_progress", "on_hold"])
-        .order("created_at")
+        .order("created_at"),
+        source="open_work_orders",
     )
 
 
@@ -96,7 +109,7 @@ def guest_requests_created(
             query = query.in_("category", categories or ["__none__"])
         return query.order("created_at")
 
-    return fetch_all(make)
+    return fetch_all(make, source="guest_requests")
 
 
 def inspections_completed(supabase, hotel_id: str, period: ReportPeriod) -> tuple[list[dict], bool]:
@@ -106,7 +119,8 @@ def inspections_completed(supabase, hotel_id: str, period: ReportPeriod) -> tupl
         .eq("tenant_id", hotel_id)
         .gte("completed_at", period.start_iso)
         .lt("completed_at", period.end_iso)
-        .order("completed_at")
+        .order("completed_at"),
+        source="inspections",
     )
 
 
@@ -117,7 +131,8 @@ def tasks_created(supabase, hotel_id: str, period: ReportPeriod, *, columns: str
         .eq("tenant_id", hotel_id)
         .gte("created_at", period.start_iso)
         .lt("created_at", period.end_iso)
-        .order("created_at")
+        .order("created_at"),
+        source="tasks",
     )
 
 
@@ -151,7 +166,7 @@ def room_lookup(supabase, hotel_id: str) -> dict[str, dict]:
 
 
 def current_room_status_counts(supabase, hotel_id: str) -> dict[str, int]:
-    rows, _ = fetch_all(lambda: supabase.table("room_status").select("status").eq("tenant_id", hotel_id))
+    rows, _ = fetch_all(lambda: supabase.table("room_status").select("status").eq("tenant_id", hotel_id), source="room_status")
     counts: dict[str, int] = {}
     for row in rows:
         status = row.get("status") or "UNKNOWN"

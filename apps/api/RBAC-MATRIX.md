@@ -264,13 +264,13 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1320]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1320] |
 | lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1386]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1386] |
 | lost_found.py | /v1/lost-found/{item_id} | DELETE | none |  |
-| management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L220] |
-| management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L241] |
-| management_roi.py | /v1/reports/roi/housekeeping-efficiency | GET | gm | require_role('gm') [L274] |
-| management_roi.py | /v1/reports/roi/inspection-trends | GET | gm | require_role('gm') [L311] |
-| management_roi.py | /v1/reports/roi/pm-compliance | GET | gm | require_role('gm') [L337] |
-| management_roi.py | /v1/reports/roi/training-readiness | GET | gm | require_role('gm') [L361] |
-| management_roi.py | /v1/reports/roi/forecast-7day | GET | gm | require_role('gm') [L375] |
+| management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L224] |
+| management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L248] |
+| management_roi.py | /v1/reports/roi/housekeeping-efficiency | GET | gm | require_role('gm') [L284] |
+| management_roi.py | /v1/reports/roi/inspection-trends | GET | gm | require_role('gm') [L324] |
+| management_roi.py | /v1/reports/roi/pm-compliance | GET | gm | require_role('gm') [L356] |
+| management_roi.py | /v1/reports/roi/training-readiness | GET | gm | require_role('gm') [L386] |
+| management_roi.py | /v1/reports/roi/forecast-7day | GET | gm | require_role('gm') [L400] |
 | notifications.py | /v1/notifications | GET | none |  |
 | notifications.py | /v1/notifications/{notification_id}/read | PATCH | none |  |
 | notifications.py | /v1/notifications/mark-all-read | POST | none |  |
@@ -296,9 +296,9 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | programs.py | /v1/programs/deep-clean-schedules | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L421] |
 | programs.py | /v1/programs/public-areas | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L433] |
 | report_exports.py | /v1/reports/export | GET | none |  |
-| report_exports.py | /v1/reports/delivery-status | GET | none | inline: current_user.role not in GM_ONLY_ROLES [L153] |
+| report_exports.py | /v1/reports/delivery-status | GET | none | inline: current_user.role not in GM_ONLY_ROLES [L197] |
 | report_exports.py | /v1/reports/schedules/recipients | GET | none |  |
-| report_exports.py | /v1/reports/schedules | GET | none | inline: current_user.role not in GM_ONLY_ROLES [L180] |
+| report_exports.py | /v1/reports/schedules | GET | none | inline: current_user.role not in GM_ONLY_ROLES [L224] |
 | report_exports.py | /v1/reports/schedules/preview | POST | none |  |
 | report_exports.py | /v1/reports/schedules | POST | none |  |
 | report_exports.py | /v1/reports/schedules/{schedule_id} | PATCH | none |  |

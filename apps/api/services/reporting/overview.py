@@ -9,6 +9,7 @@ from services.guest_recovery.contracts import calculate_repeat_failures
 from services.reporting import data as report_data
 from services.reporting.access import OVERVIEW_REQUIRES, can_view
 from services.reporting.kpi import ReportContext, exception, kpi, rank_exceptions
+from services.reporting.truncation import is_truncated, tracked
 from services.reporting.metrics import guest_stats, maintenance_stats, work_order_is_active_breach
 from services.reporting.periods import build_period, parse_timestamp, previous_period
 from services.reporting.trends import trend_series
@@ -33,7 +34,9 @@ def _guest_exceptions(ctx: ReportContext) -> list[dict]:
         )
         return query.in_("category", categories or ["__none__"]) if categories is not None else query
 
-    rows, _ = report_data.fetch_all(make)
+    rows, capped = report_data.fetch_all(make, source="live_guest_requests")
+    if capped:  # counts from a capped list would understate the backlog; show none rather than wrong numbers
+        return []
     breached = near = unverified = 0
     for r in rows:
         if r.get("status") == "resolved":
@@ -57,10 +60,10 @@ def _guest_exceptions(ctx: ReportContext) -> list[dict]:
 
 
 def _maintenance_exceptions(ctx: ReportContext, period_orders: list[dict]) -> list[dict]:
-    open_orders, _ = report_data.work_orders_open(ctx.supabase, ctx.hotel_id)
+    open_orders, open_capped = report_data.work_orders_open(ctx.supabase, ctx.hotel_id)
     overdue = [w for w in open_orders if work_order_is_active_breach(w, ctx.now)]
     urgent = [w for w in overdue if w.get("priority") == "urgent"]
-    items = [
+    items = [] if open_capped else [
         exception("wo_overdue_urgent", "critical", "Urgent work orders overdue", "Urgent open work orders past their due time.", len(urgent),
                   department="engineering", target={"type": "records", "kind": "work_orders", "filter": "overdue_live", "priority": "urgent"}),
         # Disjoint from the urgent row (non-urgent only) so one work order is never counted twice.
@@ -71,12 +74,14 @@ def _maintenance_exceptions(ctx: ReportContext, period_orders: list[dict]) -> li
         period_orders, window_start=ctx.period.start_utc, window_end=ctx.period.end_utc, window_days=ctx.period.days
     )
     n = repeats["repeat_asset_count"] + repeats["repeat_room_count"]
-    items.append(exception("repeat_failures", "medium", "Repeat room or asset failures",
+    if not is_truncated("work_orders"):
+        items.append(exception("repeat_failures", "medium", "Repeat room or asset failures",
                            "Rooms/assets with 2+ work orders in the selected period.", n, department="engineering",
                            target={"type": "view", "view": "maintenance"}))
     deferrals, _ = report_data.fetch_all(
         lambda: ctx.supabase.table("pm_deferrals").select("pm_schedule_id, created_at").eq("tenant_id", ctx.hotel_id)
-        .gte("created_at", ctx.period.start_iso).lt("created_at", ctx.period.end_iso)
+        .gte("created_at", ctx.period.start_iso).lt("created_at", ctx.period.end_iso),
+        source="pm_records",
     )
     counts: dict[str, int] = {}
     for d in deferrals:
@@ -100,7 +105,7 @@ def _inspection_exception(ctx: ReportContext, quality: dict) -> list[dict]:
 
 
 def _staffing_exception(forecast: Optional[dict]) -> list[dict]:
-    if not forecast:
+    if not forecast or forecast.get("truncated"):
         return []
     days = (forecast.get("data", forecast)).get("days", [])
     short = [d for d in days if (d.get("staffing_gap") or 0) > 0]
@@ -109,6 +114,7 @@ def _staffing_exception(forecast: Optional[dict]) -> list[dict]:
                       department="housekeeping", target={"type": "route", "href": "/scheduling"})]
 
 
+@tracked
 def overview_view(ctx: ReportContext, forecast: Optional[dict] = None) -> dict:
     kpis: list[dict] = []
     exceptions: list[dict] = []
@@ -153,7 +159,7 @@ def overview_view(ctx: ReportContext, forecast: Optional[dict] = None) -> dict:
         exceptions += _staffing_exception(forecast) if ctx.role == "gm" else []
 
     status_counts: Optional[dict] = None
-    if _allowed(ctx, "out_of_order"):
+    if _allowed(ctx, "out_of_order") and ctx.has_department("housekeeping"):
         status_counts = report_data.current_room_status_counts(ctx.supabase, ctx.hotel_id)
         kpis.append(kpi("out_of_order", status_counts.get("OOO", 0),
                         note="Live status right now. Historical out-of-order counts are not stored, so there is no period comparison."))
@@ -171,18 +177,22 @@ def overview_view(ctx: ReportContext, forecast: Optional[dict] = None) -> dict:
             ]})
 
     brief = None
-    if any(can_view(ctx.role, v) for v in ("housekeeping", "maintenance")):
+    # Each live figure belongs to a department; it shows only when the caller's role AND the selected
+    # department scope cover it (a supervisor never receives work-order counts, an engineer no room board).
+    show_wo = can_view(ctx.role, "maintenance") and ctx.has_department("engineering")
+    show_rooms = can_view(ctx.role, "housekeeping") and ctx.has_department("housekeeping")
+    if show_wo or show_rooms:
         today = build_period(ctx.now.astimezone(ctx.tz).date(), ctx.now.astimezone(ctx.tz).date(), ctx.tz)
         done = ctx.supabase.table("tasks").select("id", count="exact").eq("tenant_id", ctx.hotel_id).eq("status", "completed") \
             .gte("completed_at", today.start_iso).lt("completed_at", today.end_iso).execute()
         open_wo = ctx.supabase.table("work_orders").select("id", count="exact").eq("tenant_id", ctx.hotel_id) \
-            .in_("status", ["open", "in_progress"]).execute()
+            .in_("status", ["open", "in_progress"]).execute() if show_wo else None
         brief = {
             "scope": "live",
             "as_of_date": today.start.isoformat(),
             "tasks_completed_today": done.count or 0,
-            "open_work_orders": open_wo.count or 0,
-            "room_status": status_counts if status_counts is not None else report_data.current_room_status_counts(ctx.supabase, ctx.hotel_id),
+            "open_work_orders": (open_wo.count or 0) if show_wo else None,
+            "room_status": (status_counts if status_counts is not None else report_data.current_room_status_counts(ctx.supabase, ctx.hotel_id)) if show_rooms else None,
         }
 
     return {

@@ -4,6 +4,11 @@
  * refresh restore / browser Back), real PDF + CSV downloads, narrow-viewport overflow and the
  * /management-roi compatibility redirect. Scheduling persistence needs migration 206 and is
  * covered by API tests; this spec only opens the modals.
+ *
+ * Audit additions: "All authorized reports" ZIP export, print options that really change the
+ * printed page, department-filter visibility, accessibility structure (no nested interactive
+ * controls, labelled dialogs, focus trap, landmarks) and a responsive matrix. Everything here is
+ * read-only (GETs + downloads). Keep reloads modest: the API rate-limits /auth/* at 10/min per IP.
  */
 import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
@@ -28,6 +33,15 @@ const VIEWS: Array<[string, string]> = [
   ['team', 'Team Performance'],
   ['management', 'Management Intelligence'],
 ]
+
+const TAB_LABELS: Record<string, string> = {
+  overview: 'Overview',
+  'guest-experience': 'Guest Experience',
+  housekeeping: 'Housekeeping',
+  maintenance: 'Maintenance',
+  team: 'Team',
+  management: 'Management',
+}
 
 test.describe('Reports redesign', () => {
   test.setTimeout(120_000)
@@ -104,6 +118,103 @@ test.describe('Reports redesign', () => {
       await page.getByRole('tab').first().waitFor({ timeout: 60000 })
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
       expect(overflow).toBe(0)
+    }
+  })
+
+  test('"All authorized reports" downloads one ZIP with a file per report', async ({ page }) => {
+    await page.goto('/reports?view=overview')
+    await page.getByRole('heading', { name: 'Operations Overview', level: 2 }).waitFor({ timeout: 90000 })
+    await page.getByRole('button', { name: 'Export', exact: true }).click()
+    await page.getByRole('dialog').getByRole('combobox').selectOption('all')
+    await page.getByRole('radio', { name: 'CSV' }).check()
+    await expect(page.getByRole('dialog')).toContainText('ZIP')
+    const [download] = await Promise.all([page.waitForEvent('download', { timeout: 180000 }), page.getByRole('button', { name: 'Export Report' }).click()])
+    expect(download.suggestedFilename()).toMatch(/^patelrep-all-reports-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.zip$/)
+    const bytes = fs.readFileSync((await download.path())!)
+    expect(bytes.subarray(0, 2).toString('latin1')).toBe('PK')
+    const names = [...bytes.toString('latin1').matchAll(/PK\x01\x02[\s\S]{42}([\w.\-]+\.csv)/g)].map((m) => m[1].split('-20')[0])
+    expect(names.sort()).toEqual(['guest-experience', 'housekeeping', 'maintenance', 'management', 'overview', 'team'])
+  })
+
+  test('print options change what is printed, and screen state resets afterwards', async ({ page }) => {
+    // window.print() is stubbed to snapshot the DOM at the moment the browser would print.
+    await page.addInitScript(() => {
+      ;(window as any).__prints = []
+      window.print = () => {
+        ;(window as any).__prints.push({
+          charts: document.querySelectorAll('.recharts-wrapper').length,
+          definitions: !!document.getElementById('print-definitions'),
+          needsAttention: [...document.querySelectorAll('h2')].some((h) => h.textContent?.trim() === 'Needs attention'),
+        })
+      }
+    })
+    const print = async (uncheck?: RegExp | string) => {
+      await page.goto('/reports?view=overview')
+      await page.getByRole('heading', { name: 'Operations Overview', level: 2 }).waitFor({ timeout: 90000 })
+      await page.waitForTimeout(1500)
+      await page.getByRole('button', { name: 'Export', exact: true }).click()
+      await page.getByRole('radio', { name: 'Print-friendly' }).check()
+      if (uncheck) await page.getByLabel(uncheck).uncheck()
+      await page.getByRole('button', { name: 'Print', exact: true }).click()
+      await page.waitForFunction(() => (window as any).__prints.length > 0)
+      return page.evaluate(() => (window as any).__prints[0])
+    }
+    const all = await print()
+    expect(all.definitions).toBe(true)
+    expect(all.needsAttention).toBe(true)
+    expect(all.charts).toBeGreaterThan(0)
+    expect((await print(/Include charts/)).charts).toBe(0)
+    expect((await print('Include exception summaries')).needsAttention).toBe(false)
+    expect((await print('Include metric definitions')).definitions).toBe(false)
+    await expect(page.locator('#print-definitions')).toHaveCount(0)
+  })
+
+  test('department filter appears only where the endpoint supports it', async ({ page }) => {
+    const filters = page.getByRole('search', { name: 'Report filters' })
+    for (const [view, expected] of [['overview', true], ['guest-experience', true], ['team', true], ['housekeeping', false], ['maintenance', false], ['management', false]] as const) {
+      await page.goto(`/reports?view=${view}`)
+      await page.getByRole('tab').first().waitFor({ timeout: 60000 })
+      await expect(filters.getByLabel('Department')).toHaveCount(expected ? 1 : 0)
+    }
+  })
+
+  test('accessibility structure: no nested interactive controls, labelled dialogs, focus trap', async ({ page }) => {
+    for (const [view, title] of [['guest-experience', 'Guest Experience'], ['maintenance', 'Maintenance Performance']] as const) {
+      await page.goto(`/reports?view=${view}`)
+      await page.getByRole('heading', { name: title, level: 2 }).waitFor({ timeout: 90000 })
+      await page.waitForTimeout(2500)
+      const nested = await page.evaluate(() =>
+        [...document.querySelectorAll('[role="button"], button, a[href]')].filter((el) => el.querySelector('button, a[href], [role="button"]')).length,
+      )
+      expect(nested, `nested interactive controls on ${view}`).toBe(0)
+      expect(await page.getByRole('tablist', { name: 'Report views' }).count()).toBe(1)
+      expect(await page.getByRole('tabpanel').count()).toBe(1)
+      expect(await page.getByRole('heading', { level: 1 }).count()).toBeLessThanOrEqual(1)
+    }
+    await page.getByRole('button', { name: 'Export', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Export Report' })
+    await expect(dialog).toBeVisible()
+    for (let i = 0; i < 25; i++) await page.keyboard.press('Tab')
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true) // focus stays trapped
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+  })
+
+  test('responsive: no horizontal overflow at phone, tablet and desktop widths on every view', async ({ page }, testInfo) => {
+    for (const width of [390, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      // One page load per width; views are switched through the tabs (client-side) so the run stays
+      // well under the API's /auth/* rate limit.
+      await page.goto('/reports?view=overview')
+      for (const [view, title] of VIEWS) {
+        await page.getByRole('tab', { name: TAB_LABELS[view], exact: true }).click()
+        await expect(page).toHaveURL(new RegExp(`view=${view}`))
+        await page.getByRole('heading', { name: title, level: 2 }).waitFor({ timeout: 90000 })
+        await page.waitForTimeout(800)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${view} @${width}`).toBe(0)
+      }
+      // Visual record for reviewers (not a pixel baseline: this tenant's live data is not deterministic).
+      await testInfo.attach(`reports-overview-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
     }
   })
 

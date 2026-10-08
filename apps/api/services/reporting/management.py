@@ -6,13 +6,14 @@ from __future__ import annotations
 from services.reporting import data as report_data
 from services.reporting import housekeeping as hk
 from services.reporting.kpi import ReportContext, kpi
+from services.reporting.truncation import is_truncated, track, tracked
 from services.reporting.trends import trend_series
 from services.reporting.views import guest_view, pm_section
 from services.reporting.views_hk import staffing_outlook
 
 
 def ai_usage_summary(supabase, hotel_id: str, period) -> dict:
-    interactions, truncated = report_data.fetch_all(
+    interactions, truncated = report_data.fetch_all(  # reported through ``truncated`` below; not a KPI input
         lambda: supabase.table("ai_interactions")
         .select("interaction_type, credits_charged, model_used, success")
         .eq("tenant_id", hotel_id)
@@ -38,11 +39,16 @@ async def load_forecast(ctx: ReportContext):
     from routers import management_roi as roi
 
     try:
-        return await roi.get_seven_day_forecast(lookback_weeks=4, current_user=ctx.user)
+        with track() as seen:  # own scope: the caller may not be inside a tracked view
+            forecast = await roi.get_seven_day_forecast(lookback_weeks=4, current_user=ctx.user)
+        if "room_status_history" in seen:  # built from capped history -> partial, so not a forecast
+            return {**forecast, "truncated": True}
+        return forecast
     except Exception:  # forecast is optional; its section degrades to "unavailable"
         return None
 
 
+@tracked
 async def management_view(ctx: ReportContext) -> dict:
     from routers import management_roi as roi
 
@@ -69,6 +75,9 @@ async def management_view(ctx: ReportContext) -> dict:
     pm = pm_section(ctx)
     revenue = down["revenue"]
     exposure_cents = revenue["revenue_impact_cents"] if revenue["configured"] else None
+    downtime_capped = is_truncated("room_status_history")  # capped history understates downtime
+    if downtime_capped:
+        exposure_cents = None
 
     return {
         "view": "management",
@@ -83,7 +92,7 @@ async def management_view(ctx: ReportContext) -> dict:
                 for r in eff.get("by_room_type", [])
             ],
             "trend": trend_series(ctx, "cleaning_minutes"),
-            "forecast_labor_hours": None if not forecast else [
+            "forecast_labor_hours": None if not forecast or forecast.get("truncated") else [
                 {"date": d["date"], "projected_labor_hours": d.get("projected_labor_hours")} for d in forecast["data"].get("days", [])
             ],
         },
@@ -102,13 +111,13 @@ async def management_view(ctx: ReportContext) -> dict:
         "guest_response": {"kpis": [k for k in guest["kpis"] if k["key"] != "guest_requests_total"]},
         "maintenance_pm": {
             "preventive_maintenance": pm,
-            "high_downtime_rooms": [
+            "high_downtime_rooms": [] if downtime_capped else [
                 {**r, "room": (rooms.get(r["room_id"]) or {}).get("room_number")} for r in down["downtime"]["rooms"][:10]
             ],
         },
         "downtime_exposure": {
-            "total_downtime_hours": down["downtime"]["total_downtime_hours"] if down["downtime"]["rooms"] else None,
-            "rooms_affected": down["downtime"]["rooms_affected"],
+            "total_downtime_hours": None if downtime_capped or not down["downtime"]["rooms"] else down["downtime"]["total_downtime_hours"],
+            "rooms_affected": None if downtime_capped else down["downtime"]["rooms_affected"],
             "estimate_cents": exposure_cents,
             "adr_configured": revenue["configured"],
             "is_estimate": True,

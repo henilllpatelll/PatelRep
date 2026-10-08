@@ -58,9 +58,9 @@ def _tables_of(view: str, data: dict) -> list[dict]:
         brief = data.get("daily_brief")
         if brief:
             t.append(_table("Daily brief (live, as of generation)", _col(("metric", "Metric"), ("value", "Value")),
-                            [{"metric": "Tasks completed today", "value": brief["tasks_completed_today"]},
-                             {"metric": "Open work orders", "value": brief["open_work_orders"]}]
-                            + [{"metric": f"Rooms {k}", "value": v} for k, v in sorted(brief["room_status"].items())]))
+                            [{"metric": "Tasks completed today", "value": brief["tasks_completed_today"]}]
+                            + ([{"metric": "Open work orders", "value": brief["open_work_orders"]}] if brief["open_work_orders"] is not None else [])
+                            + [{"metric": f"Rooms {k}", "value": v} for k, v in sorted((brief["room_status"] or {}).items())]))
     elif view == "guest-experience":
         t.append(_table("Request categories", _col(("key", "Category"), ("count", "Requests"), ("share_pct", "Share (%)")), data["categories"]))
         t.append(_table("Department comparison", _col(("label", "Department"), ("total_requests", "Requests"), ("sla_compliance_pct", "SLA (%)"), ("avg_acknowledgement_minutes", "Avg ack (min)")), data["departments"]))
@@ -106,22 +106,24 @@ async def build_document(
     elif view == "maintenance":
         data = maintenance_view(ctx)
     elif view == "team":
-        data = team_view(ctx, per_page=100)
+        department = ctx.departments[0] if len(ctx.departments) == 1 else None  # honour the department filter
+        data = team_view(ctx, per_page=100, department=department)
         page = 1
         while data["meta"]["total"] > page * 100:  # export the whole (bounded) team, not just page 1
             page += 1
-            more = team_view(ctx, page=page, per_page=100)
+            more = team_view(ctx, page=page, per_page=100, department=department)
             data["staff"] += more["staff"]
         notes += data.get("notes", [])
     else:
         data = await management_view(ctx)
         notes.append(data["downtime_exposure"]["caveat"])
     if data.get("truncated"):
-        notes.append("Some source data exceeded the reporting row limit and was truncated.")
+        notes.append(data.get("truncation_notice") or "Some source data exceeded the reporting record limit; affected figures are hidden.")
 
     kpis = _kpis_of(view, data)
+    capped = bool(data.get("truncated"))
     charts = []
-    if include_charts:
+    if include_charts and not capped:  # a trend over a capped cohort is a partial series, not a result
         for metric in CHART_METRICS[view]:
             try:
                 series = trend_series(ctx, metric)
@@ -136,7 +138,7 @@ async def build_document(
             if k["key"] in DEFINITIONS and k["key"] not in seen:
                 seen.append(k["key"])
         definitions = [DEFINITIONS[key] for key in seen]
-    exceptions = data.get("needs_attention", []) if include_exceptions else []
+    exceptions = data.get("needs_attention", []) if include_exceptions and not capped else []
     if ctx.compare_period:
         notes.append("Comparison values are shown only where the same metric definition is available for both periods.")
     if any(k["scope"] == "live" for k in kpis) or view in ("overview", "maintenance"):
@@ -155,7 +157,7 @@ async def build_document(
         "kpis": kpis,
         "charts": charts,
         "exceptions": exceptions,
-        "tables": _tables_of(view, data),
+        "tables": [] if capped else _tables_of(view, data),  # breakdowns of a capped cohort would read as complete
         "definitions": definitions,
         "notes": notes,
         "summary": [k for k in kpis if k["availability"] == "available"][:5],

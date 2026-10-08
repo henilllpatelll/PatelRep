@@ -4,7 +4,9 @@
 * Schedules are validated server-side; success is only returned after the row is persisted.
 * A user manages their own schedules; the GM manages every schedule in the hotel.
 """
+import io
 import re
+import zipfile
 from datetime import date, datetime, timezone
 from typing import Optional
 
@@ -19,8 +21,9 @@ from routers.report_views import build_context
 from services import email_delivery
 from services.reporting import delivery as delivery_service
 from services.reporting import schedule as sched
-from services.reporting.access import STAFF_ROLE_DEPARTMENT, can_view, effective_departments, require_report_view, views_for_role
+from services.reporting.access import STAFF_ROLE_DEPARTMENT, VIEWS, can_view, effective_departments, require_report_view, views_for_role
 from services.reporting.documents import build_document, export_options, render_document
+from services.reporting.exports import safe_filename
 from services.reporting.periods import hotel_timezone
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -28,6 +31,20 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 MAX_RECIPIENTS = 25
 MAX_SCHEDULES_PER_HOTEL = 50
 _TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+ALL_REPORTS = "all"
+# Views that belong to exactly one department ignore the global department filter, exactly like their screens.
+_FIXED_DEPARTMENT = {"housekeeping": "housekeeping", "maintenance": "engineering", "management": None}
+
+
+def view_department(view: str, department: Optional[str]) -> Optional[str]:
+    return _FIXED_DEPARTMENT[view] if view in _FIXED_DEPARTMENT else department
+
+
+async def _build(view: str, user: CurrentUser, start_date, end_date, compare, department, options: dict) -> dict:
+    ctx = build_context(user, start_date, end_date, compare, view_department(view, department))
+    return await build_document(view, ctx, **options)
 
 
 @router.get("/export")
@@ -39,15 +56,42 @@ async def export_report(
     include_charts: bool = Query(True), include_definitions: bool = Query(True), include_exceptions: bool = Query(True),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    require_report_view(view, current_user)
-    ctx = build_context(current_user, start_date, end_date, compare, department)
-    doc = await build_document(view, ctx, **export_options({
+    options = export_options({
         "include_charts": include_charts and format == "pdf",
         "include_definitions": include_definitions, "include_exceptions": include_exceptions,
-    }))
+    })
+    if view == ALL_REPORTS:
+        return await _export_all(format, start_date, end_date, compare, department, options, current_user)
+    require_report_view(view, current_user)
+    doc = await _build(view, current_user, start_date, end_date, compare, department, options)
     body, media_type, filename = render_document(doc, format)
     return Response(content=body, media_type=media_type, headers={
         "Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store",
+    })
+
+
+async def _export_all(format, start_date, end_date, compare, department, options, user: CurrentUser) -> Response:
+    """One archive with a file per report the caller may open. Authorised per view (never a superset of what the
+    screens show) and all-or-nothing: a report that cannot be built fails the export instead of vanishing from it."""
+    views = [v for v in VIEWS if can_view(user.role, v)]
+    if not views:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    buffer = io.BytesIO()
+    period = None
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for view in views:
+            try:
+                doc = await _build(view, user, start_date, end_date, compare, department, options)
+                body, _media, filename = render_document(doc, format)
+            except HTTPException:
+                raise
+            except Exception:
+                raise HTTPException(status_code=500, detail=f"The {view} report could not be built; nothing was exported")
+            period = period or doc["period"]
+            archive.writestr(filename, body)
+    name = safe_filename("patelrep-all-reports", period["start"], "to", period["end"]) if period else "patelrep-all-reports"
+    return Response(content=buffer.getvalue(), media_type="application/zip", headers={
+        "Content-Disposition": f'attachment; filename="{name}.zip"', "Cache-Control": "no-store",
     })
 
 
@@ -299,5 +343,7 @@ async def retry_delivery(schedule_id: str, delivery_id: str, current_user: Curre
     if delivery["status"] not in ("failed", "not_configured"):
         raise HTTPException(status_code=409, detail="Only failed or not-configured deliveries can be retried")
     outcome = await delivery_service.attempt_delivery(supabase, delivery)
+    if outcome.get("status") == "claimed_elsewhere":
+        raise HTTPException(status_code=409, detail="This delivery is already being processed")
     return {"data": {"status": outcome.get("status"), "error_summary": outcome.get("error_summary")}}
 

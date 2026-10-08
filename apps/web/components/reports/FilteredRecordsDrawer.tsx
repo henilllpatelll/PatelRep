@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { Pill } from '@/components/ui/primitives'
 import { reportsV2Api } from '@/lib/reports/api'
 import type { DrawerState, RecordKind } from '@/lib/reports/drawerState'
 import { describeRange } from '@/lib/reports/filters'
 import { formatDateTime, titleCase } from '@/lib/reports/format'
 import { recordHref } from '@/lib/reports/links'
 import { ReportDrawer, drawerButton } from './ReportDrawer'
-import { EmptyBlock, ErrorBlock, LiveBadge, SectionSkeleton } from './ReportPrimitives'
+import { EmptyBlock, ErrorBlock, LiveBadge, ReportPill, SectionSkeleton } from './ReportPrimitives'
 import { useReports } from './ReportsContext'
 
 type RecordsState = Extract<DrawerState, { kind: 'filtered-records' }>
@@ -68,7 +67,7 @@ function RecordRow({ kind, row }: { kind: RecordKind; row: Record<string, any> }
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <RecordLink kind={kind} row={row}>{row.title ?? 'Work order'}</RecordLink>
-            <Pill tone={SLA_TONE[row.sla_state] ?? 'neutral'} size="sm">{SLA_TEXT[row.sla_state] ?? titleCase(row.sla_state)}</Pill>
+            <ReportPill tone={SLA_TONE[row.sla_state] ?? 'neutral'} size="sm">{SLA_TEXT[row.sla_state] ?? titleCase(row.sla_state)}</ReportPill>
           </div>
           <p className="text-[12.5px] text-ink3">
             {[roomButton, titleCase(row.category), titleCase(row.priority), titleCase(row.status), row.assigned_to ? `Assigned: ${row.assigned_to}` : 'Unassigned'].filter(Boolean).map((part, i) => <span key={i}>{i ? ' · ' : ''}{part}</span>)}
@@ -84,7 +83,7 @@ function RecordRow({ kind, row }: { kind: RecordKind; row: Record<string, any> }
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <RecordLink kind={kind} row={row}>{row.request_number ? `#${row.request_number} ` : ''}{row.summary ?? 'Request'}</RecordLink>
-            <Pill tone={row.sla_state === 'met' ? 'ready' : row.sla_state === 'missed' ? 'alert' : 'neutral'} size="sm">{row.sla_state === 'not_eligible' ? 'No SLA deadline' : titleCase(row.sla_state)}</Pill>
+            <ReportPill tone={row.sla_state === 'met' ? 'ready' : row.sla_state === 'missed' ? 'alert' : 'neutral'} size="sm">{row.sla_state === 'not_eligible' ? 'No SLA deadline' : titleCase(row.sla_state)}</ReportPill>
           </div>
           <p className="text-[12.5px] text-ink3">{[roomButton, titleCase(row.category), titleCase(row.status), row.department ? titleCase(row.department) : 'Unattributed'].filter(Boolean).map((part, i) => <span key={i}>{i ? ' · ' : ''}{part}</span>)}</p>
           <p className="text-[12px] text-ink3">Created {formatDateTime(row.created_at)} · Due {formatDateTime(row.due_at)}</p>
@@ -95,7 +94,7 @@ function RecordRow({ kind, row }: { kind: RecordKind; row: Record<string, any> }
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium text-ink">{roomButton ?? 'Room'}</span>
-            <Pill tone={row.result === 'passed' ? 'ready' : row.result === 'failed' ? 'alert' : 'caution'} size="sm">{titleCase(row.result)}</Pill>
+            <ReportPill tone={row.result === 'passed' ? 'ready' : row.result === 'failed' ? 'alert' : 'caution'} size="sm">{titleCase(row.result)}</ReportPill>
           </div>
           <p className="text-[12px] text-ink3">Completed {formatDateTime(row.completed_at)}</p>
         </div>

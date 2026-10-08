@@ -7,6 +7,7 @@ from services.reporting import data as report_data
 from services.reporting import housekeeping as hk
 from services.reporting.kpi import ReportContext, kpi
 from services.reporting.metrics import pct
+from services.reporting.truncation import tracked
 
 _IN_CHUNK = 150  # keep PostgREST in.() URLs short
 
@@ -14,9 +15,14 @@ _IN_CHUNK = 150  # keep PostgREST in.() URLs short
 def _inspection_results(ctx: ReportContext, inspection_ids: list[str]) -> list[dict]:
     rows: list[dict] = []
     for i in range(0, len(inspection_ids), _IN_CHUNK):
-        rows += ctx.supabase.table("inspection_results").select("inspection_id, template_item_id, result").eq(
-            "tenant_id", ctx.hotel_id
-        ).in_("inspection_id", inspection_ids[i:i + _IN_CHUNK]).execute().data or []
+        chunk = inspection_ids[i:i + _IN_CHUNK]
+        # Paged: one chunk of inspections holds far more than PostgREST's 1,000-row response limit.
+        part, _ = report_data.fetch_all(
+            lambda: ctx.supabase.table("inspection_results").select("inspection_id, template_item_id, result")
+            .eq("tenant_id", ctx.hotel_id).in_("inspection_id", chunk).order("inspection_id"),
+            source="inspection_results",
+        )
+        rows += part
     return rows
 
 
@@ -52,6 +58,8 @@ def staffing_outlook(forecast: Optional[dict], role: str) -> dict:
         return {"availability": "unavailable", "reason": "The 7-day staffing forecast is available to the General Manager."}
     if not forecast:
         return {"availability": "unavailable", "reason": "Forecast could not be loaded."}
+    if forecast.get("truncated"):
+        return {"availability": "unavailable", "reason": "The history behind the forecast exceeded the reporting record limit, so it is not shown."}
     data = forecast.get("data", forecast)
     days = [
         {
@@ -72,6 +80,7 @@ def staffing_outlook(forecast: Optional[dict], role: str) -> dict:
     }
 
 
+@tracked
 def housekeeping_view(ctx: ReportContext, forecast: Optional[dict] = None) -> dict:
     cur = period_numbers(ctx, ctx.period)
     prev = period_numbers(ctx, ctx.compare_period) if ctx.compare_period else None

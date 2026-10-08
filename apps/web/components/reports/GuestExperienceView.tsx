@@ -2,13 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Pill } from '@/components/ui/primitives'
 import { formatDateTime, formatValue, titleCase } from '@/lib/reports/format'
 import { recordHref } from '@/lib/reports/links'
 import type { GuestData } from '@/lib/reports/types'
 import { ReportBreakdownBars } from './ReportCharts'
 import { ReportDataTable, type Column } from './ReportDataTable'
-import { EmptyBlock, LowSampleBadge, ReportSection, SectionSkeleton, ErrorBlock } from './ReportPrimitives'
+import { EmptyBlock, LowSampleBadge, ReportPill, ReportSection, SectionSkeleton, ErrorBlock } from './ReportPrimitives'
 import { useReports } from './ReportsContext'
 import { KpiGrid, QueryBoundary, ViewHeader } from './ReportViewParts'
 import { TrendCard } from './TrendCard'
@@ -74,7 +73,7 @@ export function GuestExperienceView() {
     },
     { key: 'created_at', label: 'Created', sortable: true, sortValue: (r) => r.created_at, render: (r) => formatDateTime(r.created_at) },
     { key: 'department', label: 'Department', render: (r) => (r.department ? titleCase(r.department) : 'Unattributed') },
-    { key: 'sla_state', label: 'SLA state', render: (r) => <Pill tone={REVIEW_TONE[r.sla_state]} size="sm">{REVIEW_TEXT[r.sla_state]}</Pill> },
+    { key: 'sla_state', label: 'SLA state', render: (r) => <ReportPill tone={REVIEW_TONE[r.sla_state]} size="sm">{REVIEW_TEXT[r.sla_state]}</ReportPill> },
     { key: 'status', label: 'Status', render: (r) => titleCase(r.status) },
   ]
 
@@ -87,7 +86,7 @@ export function GuestExperienceView() {
           <TrendSwitcher />
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <ReportSection title="Request categories" description="Share of guest requests by category. Select a category to see its requests.">
+            <ReportSection printPart="charts" title="Request categories" description="Share of guest requests by category. Select a category to see its requests.">
               <ReportBreakdownBars
                 rows={data.categories}
                 onSelect={(category) =>

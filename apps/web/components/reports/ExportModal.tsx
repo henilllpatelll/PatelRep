@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Download, Printer } from 'lucide-react'
 import { reportsV2Api } from '@/lib/reports/api'
-import { COMPARISON_LABELS, VIEW_LABELS, describeRange, type ReportView } from '@/lib/reports/filters'
+import { COMPARISON_LABELS, VIEW_LABELS, describeRange } from '@/lib/reports/filters'
+import { exportFilename, exportOptionState, type ExportTarget } from '@/lib/reports/exportOptions'
 import { FieldLabel, ReportModal, field, primaryButton, secondaryButton } from './ReportModal'
 import { useReports } from './ReportsContext'
 
@@ -21,8 +23,8 @@ function saveBlob(blob: Blob, filename: string) {
 }
 
 export function ExportModal({ onClose }: { onClose: () => void }) {
-  const { view, allowedViews, filters } = useReports()
-  const [report, setReport] = useState<ReportView>(view ?? allowedViews[0])
+  const { view, allowedViews, filters, setPrintOptions } = useReports()
+  const [report, setReport] = useState<ExportTarget>(view ?? allowedViews[0])
   const [format, setFormat] = useState<Format>('pdf')
   const [includeCharts, setIncludeCharts] = useState(true)
   const [includeDefinitions, setIncludeDefinitions] = useState(true)
@@ -31,39 +33,59 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const chartsApply = format !== 'csv'
-  const effectiveFilters = includeComparison ? filters : { ...filters, compare: 'none' as const }
-  const reportLocked = format === 'print'
-  const selectedReport = reportLocked && view ? view : report
+  const state = exportOptionState({ format, report, currentView: view, compare: filters.compare })
+  const selectedReport = state.report
+  const comparisonOn = includeComparison && state.comparisonAvailable
+  const effectiveFilters = comparisonOn ? filters : { ...filters, compare: 'none' as const }
+  const canExportAll = allowedViews.length > 1
+  const reportLabel = selectedReport === 'all' ? 'All authorized reports' : VIEW_LABELS[selectedReport]
+
+  const chosen = {
+    charts: state.chartsApply && includeCharts,
+    comparison: comparisonOn,
+    exceptions: includeExceptions,
+    definitions: includeDefinitions,
+  }
 
   const summary = [
-    VIEW_LABELS[selectedReport],
+    reportLabel,
     format === 'print' ? 'Print-friendly' : format.toUpperCase(),
+    selectedReport === 'all' ? `ZIP · ${allowedViews.length} reports` : null,
     describeRange(filters),
-    includeComparison && filters.compare !== 'none' ? `compared with: ${COMPARISON_LABELS[filters.compare].toLowerCase()}` : 'no comparison',
-    [chartsApply && includeCharts && 'charts', includeDefinitions && 'metric definitions', includeExceptions && 'exceptions'].filter(Boolean).join(', ') || 'data only',
-  ].join(' · ')
+    comparisonOn ? `compared with: ${COMPARISON_LABELS[filters.compare].toLowerCase()}` : 'no comparison',
+    [chosen.charts && 'charts', chosen.definitions && 'metric definitions', chosen.exceptions && 'exceptions'].filter(Boolean).join(', ') || 'data only',
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   async function submit() {
     setError(null)
     if (format === 'print') {
       onClose()
-      // Let the modal unmount before the browser snapshots the page for printing.
-      setTimeout(() => window.print(), 150)
+      // The options are applied by the components themselves (state, not CSS), then the browser prints the page.
+      setTimeout(() => {
+        flushSync(() => setPrintOptions(chosen))
+        window.addEventListener('afterprint', () => setPrintOptions(null), { once: true })
+        window.print()
+      }, 150)
       return
     }
     setBusy(true)
     try {
       const path = reportsV2Api.exportPath(selectedReport, format, effectiveFilters, {
-        include_charts: chartsApply && includeCharts,
+        include_charts: chosen.charts,
         include_definitions: includeDefinitions,
         include_exceptions: includeExceptions,
       })
       const blob = await reportsV2Api.download(path)
-      saveBlob(blob, `patelrep-${selectedReport}-${filters.start}-to-${filters.end}.${format}`)
+      saveBlob(blob, exportFilename(selectedReport, format, filters))
       onClose()
     } catch {
-      setError('The export could not be created. Check that you still have access to this report and try again.')
+      setError(
+        selectedReport === 'all'
+          ? 'The reports could not be exported. Nothing was downloaded; check your access and try again.'
+          : 'The export could not be created. Check that you still have access to this report and try again.',
+      )
     } finally {
       setBusy(false)
     }
@@ -84,11 +106,21 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <FieldLabel label="Report" hint={reportLocked ? 'Printing uses the report currently on screen.' : undefined}>
-        <select className={field} value={selectedReport} disabled={reportLocked} onChange={(e) => setReport(e.target.value as ReportView)}>
+      <FieldLabel
+        label="Report"
+        hint={
+          state.reportLocked
+            ? 'Printing uses the report currently on screen.'
+            : selectedReport === 'all'
+              ? `One ${format.toUpperCase()} file per report you can access, delivered as a ZIP archive.`
+              : undefined
+        }
+      >
+        <select className={field} value={selectedReport} disabled={state.reportLocked} onChange={(e) => setReport(e.target.value as ExportTarget)}>
           {allowedViews.map((v) => (
             <option key={v} value={v}>{VIEW_LABELS[v]}{v === view ? ' (current)' : ''}</option>
           ))}
+          {canExportAll && <option value="all">All authorized reports ({allowedViews.length})</option>}
         </select>
       </FieldLabel>
 
@@ -107,14 +139,14 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
       <fieldset>
         <legend className="text-[12.5px] font-medium text-ink2">Options</legend>
         <div className="mt-1 space-y-1.5 text-[13px] text-ink2">
-          <label className={`flex items-center gap-2 ${chartsApply ? '' : 'opacity-50'}`}>
-            <input type="checkbox" checked={chartsApply && includeCharts} disabled={!chartsApply} onChange={(e) => setIncludeCharts(e.target.checked)} className="accent-[var(--accent)]" />
+          <label className={`flex items-center gap-2 ${state.chartsApply ? '' : 'opacity-50'}`}>
+            <input type="checkbox" checked={state.chartsApply && includeCharts} disabled={!state.chartsApply} onChange={(e) => setIncludeCharts(e.target.checked)} className="accent-[var(--accent)]" />
             Include charts <span className="text-ink3">(PDF and print only)</span>
           </label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeDefinitions} onChange={(e) => setIncludeDefinitions(e.target.checked)} className="accent-[var(--accent)]" /> Include metric definitions</label>
-          <label className={`flex items-center gap-2 ${filters.compare === 'none' ? 'opacity-50' : ''}`}>
-            <input type="checkbox" checked={includeComparison && filters.compare !== 'none'} disabled={filters.compare === 'none'} onChange={(e) => setIncludeComparison(e.target.checked)} className="accent-[var(--accent)]" />
-            Include comparison period {filters.compare === 'none' && <span className="text-ink3">(turn on a comparison in the filters)</span>}
+          <label className={`flex items-center gap-2 ${state.comparisonAvailable ? '' : 'opacity-50'}`}>
+            <input type="checkbox" checked={comparisonOn} disabled={!state.comparisonAvailable} onChange={(e) => setIncludeComparison(e.target.checked)} className="accent-[var(--accent)]" />
+            Include comparison period {!state.comparisonAvailable && <span className="text-ink3">(turn on a comparison in the filters)</span>}
           </label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={includeExceptions} onChange={(e) => setIncludeExceptions(e.target.checked)} className="accent-[var(--accent)]" /> Include exception summaries</label>
         </div>

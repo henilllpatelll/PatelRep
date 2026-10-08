@@ -1,12 +1,22 @@
 'use client'
 
-import { useId, useState, type ReactNode } from 'react'
+import { useId, useState, type ComponentProps, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, Info, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/primitives'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { AVAILABILITY_TEXT, type Availability } from '@/lib/reports/format'
+import { printHides, type PrintPart } from '@/lib/reports/printOptions'
+import { useReports } from './ReportsContext'
+
+/**
+ * Pill for Reports. The shared caution tone (amber text on a pale amber fill) measures 4.08:1, below WCAG AA
+ * for small text, so Reports renders caution pills with ink text on the same fill.
+ */
+export function ReportPill({ className, ...props }: ComponentProps<typeof Pill>) {
+  return <Pill {...props} className={cn(props.tone === 'caution' && '!text-ink', className)} />
+}
 
 /** Section card with a heading, optional description/actions. Uses real heading semantics. */
 export function ReportSection({
@@ -16,6 +26,7 @@ export function ReportSection({
   children,
   className,
   headingLevel = 2,
+  printPart,
 }: {
   title: string
   description?: ReactNode
@@ -23,7 +34,11 @@ export function ReportSection({
   children: ReactNode
   className?: string
   headingLevel?: 2 | 3
+  /** Which print option controls this section; it is not rendered while printing with that option off. */
+  printPart?: PrintPart
 }) {
+  const { printOptions } = useReports()
+  if (printPart && printHides(printOptions, printPart)) return null
   const Heading = headingLevel === 2 ? 'h2' : 'h3'
   return (
     <Card hover={false} className={cn('report-avoid-break p-4 sm:p-5', className)}>
@@ -79,9 +94,9 @@ export function LiveBadge() {
 
 export function LowSampleBadge({ n }: { n?: number | null }) {
   return (
-    <Pill tone="caution" size="sm">
+    <ReportPill tone="caution" size="sm">
       {n !== null && n !== undefined ? `Low sample (n=${n})` : 'Low sample'}
-    </Pill>
+    </ReportPill>
   )
 }
 

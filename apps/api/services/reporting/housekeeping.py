@@ -26,19 +26,18 @@ def _transitions(supabase, hotel_id: str, period: ReportPeriod) -> list[dict]:
         .eq("tenant_id", hotel_id)
         .gte("created_at", period.start_iso)
         .lt("created_at", period.end_iso)
-        .order("created_at")
+        .order("created_at"),
+        source="room_status_history",
     )
     lookback_start = period.start_utc - timedelta(days=PRIOR_STATE_LOOKBACK_DAYS)
-    prior_rows = (
-        supabase.table("room_status_history")
+    prior_rows, _ = report_data.fetch_all(  # paged: a bare .execute() silently stops at 1,000 rows
+        lambda: supabase.table("room_status_history")
         .select("room_id, to_status, created_at")
         .eq("tenant_id", hotel_id)
         .gte("created_at", lookback_start.isoformat())
         .lt("created_at", period.start_iso)
-        .order("created_at", desc=True)
-        .execute()
-        .data
-        or []
+        .order("created_at", desc=True),
+        source="room_status_history",
     )
     prior: dict[str, dict] = {}
     for row in prior_rows:
@@ -110,19 +109,18 @@ def downtime(supabase, hotel_id: str, period: ReportPeriod) -> dict:
         .eq("tenant_id", hotel_id)
         .gte("created_at", period.start_iso)
         .lt("created_at", period.end_iso)
-        .order("created_at")
+        .order("created_at"),
+        source="room_status_history",
     )
     lookback_start = period.start_utc - timedelta(days=PRIOR_STATE_LOOKBACK_DAYS)
-    prior_rows = (
-        supabase.table("room_status_history")
+    prior_rows, _ = report_data.fetch_all(  # paged: a bare .execute() silently stops at 1,000 rows
+        lambda: supabase.table("room_status_history")
         .select("room_id, to_status, created_at")
         .eq("tenant_id", hotel_id)
         .gte("created_at", lookback_start.isoformat())
         .lt("created_at", period.start_iso)
-        .order("created_at", desc=True)
-        .execute()
-        .data
-        or []
+        .order("created_at", desc=True),
+        source="room_status_history",
     )
     prior: dict[str, dict] = {}
     for row in prior_rows:

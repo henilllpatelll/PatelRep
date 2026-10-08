@@ -147,8 +147,6 @@ export function HousekeepingView() {
 
             <InspectionTrend />
             <StaffingOutlookSection outlook={data.staffing_outlook} />
-            {data.truncated && <AvailabilityNotice availability="unavailable" reason="Some source data exceeded the reporting row limit; figures may be understated." />}
-            
           </>
         )
       }}

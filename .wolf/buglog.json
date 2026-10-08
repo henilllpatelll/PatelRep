@@ -2,6 +2,146 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-1970",
+      "timestamp": "2026-10-03T16:37:00-05:00",
+      "error_message": "A tracking-only bug-log patch failed because several fix fields had changed from the expected text.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The aggregate patch used stale context from prior records; product source and tests were unaffected.",
+      "fix": "Read the current records and apply exact-context updates.",
+      "tags": [
+        "tooling",
+        "openwolf",
+        "patch"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:37:00-05:00"
+    },
+    {
+      "id": "bug-1969",
+      "timestamp": "2026-10-03T16:33:00-05:00",
+      "error_message": "The literal-pattern test tried to read duplicate migration 110 from PENDING_MIGRATION_EFFECTS, producing an undefined-map TypeError.",
+      "file": "scripts/audit-production-migration-evidence.test.mjs",
+      "root_cause": "Migration 110 is evaluated by the separate duplicate structural evidence query, not the pending-migration collection.",
+      "fix": "Exported and tested the duplicate structural query separately while keeping the pending collection test limited to its 14 entries; focused and full suites pass.",
+      "tags": [
+        "tests",
+        "migration-evidence",
+        "scope"
+      ],
+      "related_bugs": [
+        "bug-1968"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:33:00-05:00"
+    },
+    {
+      "id": "bug-1968",
+      "timestamp": "2026-10-03T16:27:00-05:00",
+      "error_message": "An existing catalog-predicate test failed after literal LIKE escaping because it expected raw housekeeper_shift_recap text rather than the correctly escaped pattern.",
+      "file": "scripts/audit-production-migration-evidence.test.mjs",
+      "root_cause": "The test encoded the old wildcard-prone rendering rather than the intended literal substring contract.",
+      "fix": "Updated the assertion to require housekeeper!_shift!_recap; the focused suite now passes.",
+      "tags": [
+        "tests",
+        "sql-escaping",
+        "regression"
+      ],
+      "related_bugs": [
+        "bug-1967"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:27:00-05:00"
+    },
+    {
+      "id": "bug-1967",
+      "timestamp": "2026-10-03T16:26:00-05:00",
+      "error_message": "New LIKE-literal regression tests initially failed because escapeLikePattern and sqlContainsLiteral had not yet been implemented/exported.",
+      "file": "scripts/audit-production-migration-evidence.mjs",
+      "root_cause": "Tests were intentionally added before the new literal-LIKE escaping implementation.",
+      "fix": "Implemented and exported the dedicated !-based pattern escaper and SQL literal builder, then reran the focused and full suites successfully.",
+      "tags": [
+        "tests",
+        "tdd",
+        "sql-escaping"
+      ],
+      "related_bugs": [
+        "bug-1964"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:26:00-05:00"
+    },
+    {
+      "id": "bug-1966",
+      "timestamp": "2026-10-03T16:24:00-05:00",
+      "error_message": "The initial LIKE-escaping regression test patch did not apply because its expected import ordering did not match the current file.",
+      "file": "scripts/audit-production-migration-evidence.test.mjs",
+      "root_cause": "The patch context assumed a different ordering for the existing imports; no source content was changed.",
+      "fix": "Read the exact current block and apply a narrower patch against its actual order.",
+      "tags": [
+        "tooling",
+        "patch",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:24:00-05:00"
+    },
+    {
+      "id": "bug-1965",
+      "timestamp": "2026-10-03T16:16:00-05:00",
+      "error_message": "A supplementary ripgrep audit command failed because its hand-written regex escaped the literal interpolation marker incorrectly.",
+      "file": "scripts/audit-production-migration-evidence.mjs",
+      "root_cause": "The diagnostic command used an invalid regex quantifier while searching for direct SQL-literal interpolation; source code and tests were unaffected.",
+      "fix": "Use a simple fixed-string or properly escaped literal search for this audit; the subsequent project verification remains the source of truth.",
+      "tags": [
+        "tooling",
+        "ripgrep",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:16:00-05:00"
+    },
+    {
+      "id": "bug-1964",
+      "timestamp": "2026-10-03T16:11:00-05:00",
+      "error_message": "Production Migration Evidence Audit run 37153656049 reached the first pending assertion but failed with QUERY_SYNTAX_FAILED for 050_work_order_photos_bucket.sql.",
+      "file": "scripts/audit-production-migration-evidence.mjs",
+      "root_cause": "Catalog helper functions directly interpolated trusted fragments containing single quotes into PostgreSQL ILIKE literals, generating malformed SQL such as ILIKE '%bucket_id = 'work-order-photos'%'.",
+      "fix": "Added sqlStringLiteral and routed every interpolated catalog-helper value, assertion name, unresolved migration identifier, and static substring predicate through it. Combined with literal LIKE escaping, exact quoted policy predicates remain intact and wildcard characters cannot create false-positive evidence. Focused and full database safety suites pass.",
+      "tags": [
+        "ci",
+        "production",
+        "migration-evidence",
+        "postgres",
+        "sql-escaping"
+      ],
+      "related_bugs": [
+        "bug-1963"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T16:11:00-05:00"
+    },
+    {
+      "id": "bug-1963",
+      "timestamp": "2026-10-03T15:37:00-05:00",
+      "error_message": "Production Migration Evidence Audit run 37151696081 failed on its first production query before producing a report, although the target guard and PostgreSQL client setup succeeded.",
+      "file": "scripts/audit-production-migration-evidence.mjs",
+      "root_cause": "The audit passed the full production URI as PGDATABASE and relied on PGOPTIONS to request read-only mode, which is not a portable connection contract for the production Supabase connection or pooler.",
+      "fix": "Decomposed validated PostgreSQL URIs into child-only libpq variables, removed PGOPTIONS, wrapped every approved query in BEGIN TRANSACTION READ ONLY/COMMIT, verified transaction_read_only before evidence work, made migration-history statements optional with explicit indeterminate evidence, and retained only allowlisted stderr categories. Focused and full database safety suites pass.",
+      "tags": [
+        "ci",
+        "production",
+        "migration-evidence",
+        "postgres",
+        "read-only"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T15:37:00-05:00"
+    },
+    {
       "id": "bug-1236",
       "timestamp": "2026-10-01T13:30:00.000Z",
       "error_message": "CI job \"Room-Board Pixel-Diff Regression\" failed once on commit 01b54e7f: TimeoutError waiting for getByText(101) on /housekeeping — 1 of 8 tests failed, 7 passed, no pixel-diff mismatch involved.",
@@ -30726,6 +30866,60 @@
       "last_seen": "2026-10-01T09:34:51.578Z"
     },
     {
+      "id": "bug-1869",
+      "timestamp": "2026-10-01T13:56:00-05:00",
+      "error_message": "RTK run attempted to execute Unix printf through the Windows command interpreter",
+      "file": ".githooks/pre-push",
+      "root_cause": "RTK's run wrapper uses the platform command shell in this environment, where printf is not a command.",
+      "fix": "Use cmd.exe's echo when piping a simulated Git pre-push ref update to bash.",
+      "tags": [
+        "tooling",
+        "rtk",
+        "windows",
+        "pre-push"
+      ],
+      "related_bugs": [
+        "bug-1866",
+        "bug-1867"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T13:56:00-05:00"
+    },
+    {
+      "id": "bug-1868",
+      "timestamp": "2026-10-01T13:50:00-05:00",
+      "error_message": "API lint command failed because ruff is not installed on the global PATH",
+      "file": "apps/api",
+      "root_cause": "The project pins ruff in its API environment, but the current shell does not expose a global ruff executable.",
+      "fix": "Run the CI-equivalent check through apps/api/.venv/Scripts/python.exe -m ruff rather than relying on a global installation.",
+      "tags": [
+        "tooling",
+        "ruff",
+        "python-environment"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T13:50:00-05:00"
+    },
+    {
+      "id": "bug-1867",
+      "timestamp": "2026-10-01T13:42:00-05:00",
+      "error_message": "PowerShell content-range command failed while inspecting OpenWolf learning sections",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The nested PowerShell command was quoted in a way that the outer shell expanded its variables before PowerShell received them.",
+      "fix": "Use RTK native file reads or shell commands that do not depend on nested PowerShell variables.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "openwolf"
+      ],
+      "related_bugs": [
+        "bug-1866"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T13:42:00-05:00"
+    },
+    {
       "id": "bug-1866",
       "timestamp": "2026-10-01T13:30:00-05:00",
       "error_message": "RTK command wrapper cannot invoke the PowerShell Get-Content builtin directly",
@@ -30758,6 +30952,1955 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-01T09:20:00.000Z"
+    },
+    {
+      "id": "bug-1870",
+      "timestamp": "2026-10-01T14:15:00-05:00",
+      "error_message": "Computer Use dashboard inventory timed out and reset before returning a state snapshot",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The UI-automation runtime did not complete its initial dashboard state request within the tool timeout.",
+      "fix": "Do not use the unavailable browser session for provisioning; use authenticated Railway CLI where safe and prepare Supabase manual setup steps.",
+      "tags": [
+        "tooling",
+        "computer-use",
+        "staging"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T14:15:00-05:00"
+    },
+    {
+      "id": "bug-1871",
+      "timestamp": "2026-10-01T14:28:00-05:00",
+      "error_message": "Initial Railway staging service names contained literal backslashes because Windows cmd quoting was passed through to Railway",
+      "file": "Railway staging environment",
+      "root_cause": "Unix-style escaped quotes were used with cmd.exe.",
+      "fix": "Deleted the two empty staging-only services and recreated the intended hyphenated service names with explicit IDs and the staging environment selector.",
+      "tags": [
+        "tooling",
+        "railway",
+        "windows",
+        "staging"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T14:28:00-05:00"
+    },
+    {
+      "id": "bug-1872",
+      "timestamp": "2026-10-01T14:35:00-05:00",
+      "error_message": "Environment guard patch initially failed because integrations.py did not yet import settings",
+      "file": "apps/api/routers/integrations.py",
+      "root_cause": "The patch assumed a pre-existing config import instead of adding it explicitly.",
+      "fix": "Re-read the targeted import block and applied the narrow import plus staging guard patch.",
+      "tags": [
+        "tooling",
+        "patch",
+        "staging"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T14:35:00-05:00"
+    },
+    {
+      "id": "bug-1873",
+      "timestamp": "2026-10-01T14:55:00-05:00",
+      "error_message": "Windows tasklist filter command failed while checking whether verification processes were still running",
+      "file": ".wolf/buglog.json",
+      "root_cause": "cmd.exe consumed the nested filter quotes before tasklist parsed them.",
+      "fix": "Do not use tasklist filter syntax through the RTK cmd proxy; rely on bounded command execution and explicit test results.",
+      "tags": [
+        "tooling",
+        "rtk",
+        "windows"
+      ],
+      "related_bugs": [
+        "bug-1866",
+        "bug-1867"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T14:55:00-05:00"
+    },
+    {
+      "id": "bug-1874",
+      "timestamp": "2026-10-01T15:22:00-05:00",
+      "error_message": "Supabase clean-rebuild verification could not start because Docker Desktop's Linux engine pipe was unavailable.",
+      "file": "supabase/config.toml",
+      "root_cause": "The local Windows development environment has no reachable Docker Desktop Linux engine, which the Supabase CLI requires for its isolated local stack.",
+      "fix": "Keep the CI workflow responsible for the authoritative Docker-backed rebuild; document Docker Desktop as the local prerequisite and verify static migration gates locally.",
+      "tags": [
+        "tooling",
+        "supabase",
+        "docker",
+        "migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T15:22:00-05:00"
+    },
+    {
+      "id": "bug-1875",
+      "timestamp": "2026-10-01T15:45:00-05:00",
+      "error_message": "Migration integrity gate rejected the new readiness migration as backdated (130 <= historical identifier 0201 parsed as 201).",
+      "file": "supabase/migrations/202_schema_readiness_contract.sql",
+      "root_cause": "The historical 0201 workaround is a numeric Supabase migration identifier, so the next safe identifier must be greater than 201 rather than the visible 129 sequence maximum.",
+      "fix": "Renamed only the new, unreleased readiness migration from 130 to 202; historical migrations remain unchanged. The checker and documentation now enforce and explain this ordering.",
+      "tags": [
+        "migration",
+        "supabase",
+        "ordering",
+        "release-safety"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T15:45:00-05:00"
+    },
+    {
+      "id": "bug-1876",
+      "timestamp": "2026-10-01T16:10:00-05:00",
+      "error_message": "Initial generated-inventory comparison falsely reported stale output.",
+      "file": "docs/MIGRATION_INVENTORY.md",
+      "root_cause": "PowerShell captured command output as an array, so comparing its element count/implicit representation with a raw file string was invalid.",
+      "fix": "Joined the command-output lines before comparing; the committed inventory exactly matches the generator output.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "documentation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:10:00-05:00"
+    },
+    {
+      "id": "bug-1877",
+      "timestamp": "2026-10-01T16:16:00-05:00",
+      "error_message": "Full API smoke suite fails because apps/api/RBAC-MATRIX.md is stale relative to routers and core/roles.py.",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "The existing dirty Phase 1/2 work changed router/role metadata without regenerating the generated RBAC matrix; Phase 3's readiness route is outside the versioned API router matrix.",
+      "fix": "Not changed in this database-release task to avoid overwriting unrelated in-progress work. Regenerate deliberately with python apps/api/scripts/generate_rbac_matrix.py in the owning change.",
+      "tags": [
+        "test",
+        "rbac",
+        "generated-artifact",
+        "preexisting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:16:00-05:00"
+    },
+    {
+      "id": "bug-1878",
+      "timestamp": "2026-10-01T16:30:00-05:00",
+      "error_message": "Targeted staging test discovery attempted to read apps/web/playwright.config.ts, which does not exist.",
+      "file": "apps/web/playwright.config.ts",
+      "root_cause": "This repository uses purpose-specific Playwright configuration files rather than a shared playwright.config.ts.",
+      "fix": "Use the existing purpose-specific configs as the base for the new staging configuration.",
+      "tags": [
+        "tooling",
+        "playwright",
+        "staging"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:30:00-05:00"
+    },
+    {
+      "id": "bug-1879",
+      "timestamp": "2026-10-01T16:35:00-05:00",
+      "error_message": "Release metadata unit test failed with Cannot find module './release'.",
+      "file": "apps/web/lib/utils/release.test.ts",
+      "root_cause": "The test was added before its release-metadata implementation as part of the release candidate TDD increment.",
+      "fix": "Add the narrowly scoped release metadata utility, then rerun the focused test.",
+      "tags": [
+        "test",
+        "tdd",
+        "release-metadata"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:35:00-05:00"
+    },
+    {
+      "id": "bug-1880",
+      "timestamp": "2026-10-01T16:40:00-05:00",
+      "error_message": "Staging target-guard unit test failed with ERR_MODULE_NOT_FOUND before the guard was implemented.",
+      "file": "scripts/staging-target-guard.test.mjs",
+      "root_cause": "The target safety test intentionally precedes its implementation in the database-reset TDD increment.",
+      "fix": "Add the exact-host guard before wiring destructive remote reset to the workflow.",
+      "tags": [
+        "test",
+        "tdd",
+        "staging",
+        "database-safety"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:40:00-05:00"
+    },
+    {
+      "id": "bug-1881",
+      "timestamp": "2026-10-01T16:48:00-05:00",
+      "error_message": "Staging workflow structural test failed because staging-candidate.yml did not exist.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The test was intentionally added before the trusted candidate workflow implementation.",
+      "fix": "Create the workflow with security, concurrency, database, deployment, and smoke-test gates, then rerun the structural test.",
+      "tags": [
+        "test",
+        "tdd",
+        "github-actions",
+        "staging"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:48:00-05:00"
+    },
+    {
+      "id": "bug-1882",
+      "timestamp": "2026-10-01T16:55:00-05:00",
+      "error_message": "Staging workflow structural test did not match the quoted JavaScript check-run name.",
+      "file": "scripts/staging-candidate-workflow.test.mjs",
+      "root_cause": "The assertion expected unquoted YAML-style text while the trusted workflow creates the check through JavaScript with a quoted string.",
+      "fix": "Match the stable quoted check name instead of a formatting-specific YAML fragment.",
+      "tags": [
+        "test",
+        "github-actions"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:55:00-05:00"
+    },
+    {
+      "id": "bug-1883",
+      "timestamp": "2026-10-01T16:55:00-05:00",
+      "error_message": "PowerShell ConvertFrom-Yaml was unavailable during workflow syntax validation.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The active PowerShell environment does not include a YAML parsing module.",
+      "fix": "Use the repository's structural workflow test and a Node YAML parser if one is available; GitHub Actions remains the authoritative parser.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:55:00-05:00"
+    },
+    {
+      "id": "bug-1884",
+      "timestamp": "2026-10-01T17:10:00-05:00",
+      "error_message": "Full API smoke suite failed only at test_rbac_matrix_matches_generated_output; 345 tests passed.",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "Existing Phase 1–3 router/role changes have not regenerated the derived RBAC matrix (same underlying condition as bug-1877).",
+      "fix": "Preserved the unrelated dirty generated artifact; its owning change should deliberately run apps/api/scripts/generate_rbac_matrix.py and review the result.",
+      "tags": [
+        "test",
+        "rbac",
+        "preexisting"
+      ],
+      "related_bugs": [
+        "bug-1877"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:10:00-05:00"
+    },
+    {
+      "id": "bug-1885",
+      "timestamp": "2026-10-01T17:18:00-05:00",
+      "error_message": "Background Next.js build attempt was rejected by the command-execution policy.",
+      "file": "apps/web",
+      "root_cause": "The normal command executor ends long builds at its 30-second cap, while the attempted hidden background-process workaround is blocked by policy.",
+      "fix": "Record the successful compile/type-check progress and leave final static-page generation for CI, which has no local executor cap.",
+      "tags": [
+        "tooling",
+        "build",
+        "nextjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:18:00-05:00"
+    },
+    {
+      "id": "bug-1888",
+      "timestamp": "2026-10-01T15:51:58.439Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/utils/featureFlag.test.ts",
+      "root_cause": "Had './featureFlag.ts'",
+      "fix": "Changed to './featureFlag'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T15:51:58.439Z"
+    },
+    {
+      "id": "bug-1889",
+      "timestamp": "2026-10-01T16:01:45.873Z",
+      "error_message": "Incorrect value in code",
+      "file": "package.json",
+      "root_cause": "Had \"node --test scripts/check-migrations.test.mjs scr",
+      "fix": "Changed to \"node --test scripts/check-migrations.test.mjs scr",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:01:45.873Z"
+    },
+    {
+      "id": "bug-1890",
+      "timestamp": "2026-10-01T16:02:21.869Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:02:21.869Z"
+    },
+    {
+      "id": "bug-1891",
+      "timestamp": "2026-10-01T16:03:58.114Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Had '| Frozen-file guard | ✅ |'",
+      "fix": "Changed to '| Feature flag registry gate | ✅ |'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:03:58.114Z"
+    },
+    {
+      "id": "bug-1892",
+      "timestamp": "2026-10-01T16:05:49.904Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/RELEASE_PROCESS.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:05:49.904Z"
+    },
+    {
+      "id": "bug-1893",
+      "timestamp": "2026-10-01T16:05:53.849Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/RELEASE_PROCESS.md",
+      "root_cause": "Had `Frozen-File Guard`",
+      "fix": "Changed to `Feature Flag Registry Gate`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:05:53.849Z"
+    },
+    {
+      "id": "bug-1894",
+      "timestamp": "2026-10-01T16:41:02.381Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/utils/release.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 13→21 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:41:02.381Z"
+    },
+    {
+      "id": "bug-1895",
+      "timestamp": "2026-10-01T16:41:08.358Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/utils/release.test.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 13→23 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:41:08.358Z"
+    },
+    {
+      "id": "bug-1896",
+      "timestamp": "2026-10-01T16:41:15.017Z",
+      "error_message": "Wrong reference: STAGING_EXPECTED_API_HOST should be NEXT_PUBLIC_RELEASE_VERSION",
+      "file": "apps/web/Dockerfile",
+      "root_cause": "Used \"STAGING_EXPECTED_API_HOST\" instead of \"NEXT_PUBLIC_RELEASE_VERSION\"",
+      "fix": "Changed STAGING_EXPECTED_API_HOST → NEXT_PUBLIC_RELEASE_VERSION",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "unknown"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:41:15.017Z"
+    },
+    {
+      "id": "bug-1897",
+      "timestamp": "2026-10-01T16:42:29.003Z",
+      "error_message": "Incorrect value in code",
+      "file": "package.json",
+      "root_cause": "Had \"node --test scripts/check-migrations.test.mjs scr",
+      "fix": "Changed to \"node --test scripts/check-migrations.test.mjs scr",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:42:29.003Z"
+    },
+    {
+      "id": "bug-1898",
+      "timestamp": "2026-10-01T16:47:41.817Z",
+      "error_message": "Incorrect value in code",
+      "file": "package.json",
+      "root_cause": "Had \"node --test scripts/check-migrations.test.mjs scr",
+      "fix": "Changed to \"node --test scripts/check-migrations.test.mjs scr",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:47:41.817Z"
+    },
+    {
+      "id": "bug-1899",
+      "timestamp": "2026-10-01T16:49:31.021Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/production-release.yml",
+      "root_cause": "Had \"||h.release_sha!==process.env.TARGET_SHA||h.supab",
+      "fix": "Changed to \"||h.release_sha!==process.env.TARGET_SHA||h.relea",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:49:31.021Z"
+    },
+    {
+      "id": "bug-1900",
+      "timestamp": "2026-10-01T16:50:07.914Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/production-release.yml",
+      "root_cause": "20 lines replaced/restructured",
+      "fix": "Rewrote 41→27 lines (20 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:50:07.914Z"
+    },
+    {
+      "id": "bug-1901",
+      "timestamp": "2026-10-01T16:53:02.871Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/RELEASE_PROCESS.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→9 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T16:53:02.871Z"
+    },
+    {
+      "id": "bug-1902",
+      "timestamp": "2026-10-01T17:07:55.573Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/RELEASE_PROCESS.md",
+      "root_cause": "Had `main`",
+      "fix": "Changed to `CI Gate`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:07:55.573Z"
+    },
+    {
+      "id": "bug-1903",
+      "timestamp": "2026-10-01T17:44:18.540Z",
+      "error_message": "Incorrect value in code",
+      "file": "supabase/migrations/202_schema_readiness_contract.sql",
+      "root_cause": "Had 'assets'",
+      "fix": "Changed to 'cron_health'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "sql"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:44:18.540Z"
+    },
+    {
+      "id": "bug-1904",
+      "timestamp": "2026-10-01T17:46:02.880Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→12 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:46:02.880Z"
+    },
+    {
+      "id": "bug-1905",
+      "timestamp": "2026-10-01T17:46:15.000Z",
+      "error_message": "Significant refactor of ",
+      "file": "scripts/db-rebuild.mjs",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→24 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:46:15.000Z"
+    },
+    {
+      "id": "bug-1906",
+      "timestamp": "2026-10-01T17:46:25.246Z",
+      "error_message": "Incorrect value in code",
+      "file": "package.json",
+      "root_cause": "Had \"node --test scripts/check-migrations.test.mjs scr",
+      "fix": "Changed to \"node --test scripts/check-migrations.test.mjs scr",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:46:25.246Z"
+    },
+    {
+      "id": "bug-1907",
+      "timestamp": "2026-10-01T17:47:20.695Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/DATABASE_MIGRATIONS.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:47:20.695Z"
+    },
+    {
+      "id": "bug-1908",
+      "timestamp": "2026-10-01T17:47:36.699Z",
+      "error_message": "Missing await",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:47:36.699Z"
+    },
+    {
+      "id": "bug-1909",
+      "timestamp": "2026-10-01T17:57:04.356Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Had \"http://...454321\"",
+      "fix": "Changed to \"http://127.0.0.1:54321\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:57:04.356Z"
+    },
+    {
+      "id": "bug-1910",
+      "timestamp": "2026-10-01T19:40:10.111Z",
+      "error_message": "Incorrect value in code",
+      "file": "package.json",
+      "root_cause": "Had \"node --test scripts/check-migrations.test.mjs scr",
+      "fix": "Changed to \"node --test scripts/check-migrations.test.mjs scr",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T19:40:10.111Z"
+    },
+    {
+      "id": "bug-1911",
+      "timestamp": "2026-10-01T21:02:13.870Z",
+      "error_message": "Staging Candidate drift check fails with SyntaxError: Unexpected token 'L' because Supabase CLI migration list output is a human-readable table, not JSON.",
+      "file": "scripts/check-db-drift.mjs",
+      "root_cause": "remoteVersionsFromCliJson assumes --output json is honored by Supabase CLI 2.76.8, then JSON.parse receives the Local | Remote | Time table.",
+      "fix": "Replace CLI-table parsing with a read-only psql query of supabase_migrations.schema_migrations and newline-delimited version parsing.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "migration-drift",
+        "supabase-cli"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:02:13.870Z"
+    },
+    {
+      "id": "bug-1912",
+      "timestamp": "2026-10-01T21:08:00.000Z",
+      "error_message": "Focused drift-check test failed because the newly specified pure parser/config exports were not yet implemented.",
+      "file": "scripts/check-db-drift.test.mjs",
+      "root_cause": "Tests were added before the replacement implementation, as required by the test-first release-hardening workflow.",
+      "fix": "Implement the psql parser, environment configuration selector, and pending-drift predicate, then rerun the focused suite.",
+      "tags": [
+        "release-hardening",
+        "test-first",
+        "migration-drift"
+      ],
+      "related_bugs": [
+        "bug-1911"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:08:00.000Z"
+    },
+    {
+      "id": "bug-1913",
+      "timestamp": "2026-10-01T21:10:00.000Z",
+      "error_message": "Staging workflow structural test still expected the superseded direct supabase db reset invocation.",
+      "file": "scripts/staging-candidate-workflow.test.mjs",
+      "root_cause": "The collision-safe remote rebuild replaced the workflow-level reset command with remote-migration-apply.mjs, but its safety-order assertion was not updated.",
+      "fix": "Assert the staging target guard precedes remote-migration-apply.mjs and psql installation precedes the drift checker.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "workflow-test"
+      ],
+      "related_bugs": [
+        "bug-1911"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:10:00.000Z"
+    },
+    {
+      "id": "bug-1914",
+      "timestamp": "2026-10-01T21:12:00.000Z",
+      "error_message": "Staging Candidate could not verify remote migration drift because its checker parsed Supabase CLI table output as JSON.",
+      "file": "scripts/check-db-drift.mjs",
+      "root_cause": "The pinned CLI did not provide a stable JSON payload for migration list despite the requested output flag.",
+      "fix": "Use a read-only psql query of supabase_migrations.schema_migrations, parse newline-delimited version strings, and install postgresql-client before every staging/production drift call.",
+      "tags": [
+        "release-hardening",
+        "fixed",
+        "migration-drift",
+        "psql"
+      ],
+      "related_bugs": [
+        "bug-1911",
+        "bug-1912",
+        "bug-1913"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:12:00.000Z"
+    },
+    {
+      "id": "bug-1915",
+      "timestamp": "2026-10-01T21:17:00.000Z",
+      "error_message": "npm run db:check falsely reported released migrations modified on Windows while the Git index remained clean.",
+      "file": "scripts/check-migrations.mjs",
+      "root_cause": "The immutable manifest stores LF bytes while the Windows working tree reads CRLF-translated SQL, and sha256 hashed those platform line endings literally.",
+      "fix": "Canonicalize CRLF to LF only before computing the migration checksum; content changes remain detectable.",
+      "tags": [
+        "release-hardening",
+        "windows",
+        "migration-integrity"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:17:00.000Z"
+    },
+    {
+      "id": "bug-1916",
+      "timestamp": "2026-10-01T21:17:00.000Z",
+      "error_message": "release-safety pre-push tests exited 127 on Windows because bash resolved to the unavailable WSL launcher instead of Git Bash.",
+      "file": "scripts/release-safety.test.mjs",
+      "root_cause": "spawnSync('bash') followed PATH to C:\\Windows\\System32\\bash.exe rather than the Git installation that executes repository hooks.",
+      "fix": "Resolve Git Bash from Program Files on Windows while retaining bash lookup on POSIX runners.",
+      "tags": [
+        "release-hardening",
+        "windows",
+        "pre-push",
+        "test-harness"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:17:00.000Z"
+    },
+    {
+      "id": "bug-1917",
+      "timestamp": "2026-10-01T21:26:45.814Z",
+      "error_message": "Staging Candidate synthetic fixture seed failed: permission denied for table tenants.",
+      "file": "apps/web/e2e/fixtures/seed-staging-tenant.mjs",
+      "root_cause": "The clean rebuilt staging database retained RLS bypass for service_role but lacked the PostgreSQL table and sequence privileges required by its REST client.",
+      "fix": "After exact staging-target and drift checks, grant service_role schema, table, and sequence access in the disposable staging candidate workflow before synthetic seeding.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "fixture",
+        "service-role"
+      ],
+      "related_bugs": [
+        "bug-1911"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:26:45.814Z"
+    },
+    {
+      "id": "bug-1918",
+      "timestamp": "2026-10-01T21:33:31.546Z",
+      "error_message": "Room-Board Pixel-Diff Regression failed only the GM dark screenshot because 12% of pixels shifted horizontally.",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "The Sidebar uses hover state for desktop width; Playwright's initial pointer could remain over the sidebar, leaving it expanded while the approved baseline used the collapsed shell.",
+      "fix": "Move the pointer into stable page content and assert the 64px collapsed sidebar width before every themed baseline capture.",
+      "tags": [
+        "release-hardening",
+        "visual-regression",
+        "playwright",
+        "flaky-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:33:31.546Z"
+    },
+    {
+      "id": "bug-1919",
+      "timestamp": "2026-10-01T21:37:00.000Z",
+      "error_message": "Temporary artifact cleanup command failed because its PowerShell $target variable was stripped before rtk proxy execution.",
+      "file": ".wolf/tmp-room-board-diff-36929017105",
+      "root_cause": "An outer PowerShell layer expanded the unescaped variable in the proxy command string.",
+      "fix": "Resolve the exact literal path first, verify it is inside the workspace, then remove it in a separate literal-path command.",
+      "tags": [
+        "windows",
+        "powershell",
+        "cleanup"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:37:00.000Z"
+    },
+    {
+      "id": "bug-1920",
+      "timestamp": "2026-10-01T21:40:42.962Z",
+      "error_message": "The first Room Board regression capture timed out after 15 seconds waiting for the real fixture room, while the following seven captures passed.",
+      "file": "apps/web/e2e/room-board-baseline.spec.ts",
+      "root_cause": "The first remote fixture-data request can encounter a cold backend; the test's 15-second local readiness timeout was shorter than its 45-second overall budget.",
+      "fix": "Keep the exact room-visible assertion and increase only its readiness window to 30 seconds, still within the existing test budget.",
+      "tags": [
+        "release-hardening",
+        "visual-regression",
+        "cold-start",
+        "playwright"
+      ],
+      "related_bugs": [
+        "bug-1918"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:40:42.962Z"
+    },
+    {
+      "id": "bug-1921",
+      "timestamp": "2026-10-01T21:49:25.253Z",
+      "error_message": "Staging API identity injection failed because Railway CLI rejected --project on variables set.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "@railway/cli@4.30.0 rejects --project on variable mutation, and the configured staging project token is deployment-scoped so it cannot mutate service variables even after explicit linking.",
+      "fix": "Keep the deployment-scoped token. Embed only the validated public candidate SHA in temporary API/web build-artifact identity files, upload with --no-gitignore, and restore the checked-in placeholders afterward.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "ci"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T21:49:25.253Z"
+    },
+    {
+      "id": "bug-1922",
+      "timestamp": "2026-10-01T22:14:53.732Z",
+      "error_message": "Railway rejected the staging API upload with Unauthorized after the target guard and candidate identity artifact succeeded.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The Railway project token accepted an explicit `link` to the staging service but Railway rejected the subsequent cross-project `up --project` invocation.",
+      "fix": "Keep the project-scoped token and deploy only through the already explicit linked staging target: `railway link --project ... --environment staging --service ...`, then `railway up` without cross-project flags. Do not add production credentials or bypass the staging gate.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "credentials"
+      ],
+      "related_bugs": [
+        "bug-1921"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T22:14:53.732Z"
+    },
+    {
+      "id": "bug-1923",
+      "timestamp": "2026-10-01T22:51:31.347Z",
+      "error_message": "Railway rejected a linked staging API upload as Unauthorized after STAGING_RAILWAY_TOKEN was rotated.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The updated token is recognized enough for `railway link` but lacks the deployment capability required by `railway up` for the linked staging API service.",
+      "fix": "Replace STAGING_RAILWAY_TOKEN in the GitHub staging environment with a Railway project token created for the staging project that has deploy access to the API and web services; do not use a read-only or unrelated-project token.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "credentials"
+      ],
+      "related_bugs": [
+        "bug-1922"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T22:51:31.347Z"
+    },
+    {
+      "id": "bug-1924",
+      "timestamp": "2026-10-01T17:04:00-05:00",
+      "error_message": "Staging Railway API deployment returned Unauthorized while the workflow passed a Railway Account Settings token as RAILWAY_TOKEN.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "Railway CLI distinguishes project-token authentication (RAILWAY_TOKEN) from account-token authentication (RAILWAY_API_TOKEN); the staging workflow used the project-token variable for the available account credential.",
+      "fix": "Pass only RAILWAY_API_TOKEN from the staging-environment STAGING_RAILWAY_API_TOKEN secret to the explicitly linked, target-guarded API and web deployment steps.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "credentials"
+      ],
+      "related_bugs": [
+        "bug-1922",
+        "bug-1923"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:04:00-05:00"
+    },
+    {
+      "id": "bug-1925",
+      "timestamp": "2026-10-01T17:06:00-05:00",
+      "error_message": "The new staging Railway target-guard test incorrectly required a production project ID even though the safety contract requires comparison only when that variable is available.",
+      "file": "scripts/staging-candidate-workflow.test.mjs",
+      "root_cause": "The assertion treated the optional production-project identifier as mandatory instead of checking the guarded conditional comparison.",
+      "fix": "Assert the workflow's explicit `if [ -n \"$PRODUCTION_RAILWAY_PROJECT_ID\" ]` guard and the nested distinct-project test, while retaining mandatory non-empty production service-ID checks.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-1924"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:06:00-05:00"
+    },
+    {
+      "id": "bug-1926",
+      "timestamp": "2026-10-01T23:24:23Z",
+      "error_message": "Staging API deploy returned 'Unauthorized. Please check that your RAILWAY_API_TOKEN is valid and has access to the resource you're trying to use.' after STAGING_RAILWAY_API_TOKEN was configured.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The workflow receives the new Account Token under the correct RAILWAY_API_TOKEN name and successfully passes all local target guards, but Railway rejects authentication or authorization for the configured staging project/service. GitHub secrets are write-only, so its value/scope cannot be inspected from the workflow.",
+      "fix": "Regenerate or select an Account Settings token owned by a Railway account with access to staging project 8df4a541-5d84-4b2a-b180-049e3fbe2ed1, replace only the staging-environment STAGING_RAILWAY_API_TOKEN secret, then rerun the candidate; do not print or commit the token.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "credentials"
+      ],
+      "related_bugs": [
+        "bug-1924"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-10-01T23:39:00Z"
+    },
+    {
+      "id": "bug-1927",
+      "timestamp": "2026-10-01T17:50:00-05:00",
+      "error_message": "Staging Candidate API deployment reached Railway upload but failed during Indexing with 'prefix not found'.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The linked Railway deploy invoked `up apps/api` (and the matching web step invoked `up apps/web`) without `--path-as-root`, so the monorepo subdirectory was not packaged as the upload root.",
+      "fix": "Add `--path-as-root` to both exact candidate staging deploy commands and assert the complete commands in the focused structural workflow test.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "monorepo",
+        "packaging"
+      ],
+      "related_bugs": [
+        "bug-1921",
+        "bug-1922",
+        "bug-1924"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T17:50:00-05:00"
+    },
+    {
+      "id": "bug-1928",
+      "timestamp": "2026-10-01T18:15:00-05:00",
+      "error_message": "CI API smoke test `test_roster_returns_latest_session_per_housekeeper` failed just after midnight UTC because it expected a session seeded eight hours earlier to be on the current roster date.",
+      "file": "apps/api/tests/smoke/test_shifts.py",
+      "root_cause": "The test derived both fixture timestamps and the implicit route date from `datetime.now(timezone.utc)`. Near 00:00 UTC, the old same-day fixture becomes yesterday while the endpoint correctly scopes its query to today, yielding no rows.",
+      "fix": "Anchor the fixture at noon UTC and pass its date explicitly to the route, so both latest-session and tenant-isolation assertions remain deterministic across the UTC day boundary.",
+      "tags": [
+        "ci",
+        "api",
+        "shifts",
+        "flaky-test",
+        "timezone"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T18:15:00-05:00"
+    },
+    {
+      "id": "bug-1929",
+      "timestamp": "2026-10-01T18:35:00-05:00",
+      "error_message": "After the corrected subdirectory upload completed, the staging API returned Railway 502 'Application failed to respond' for every health/readiness attempt.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "GitHub Actions received only Railway's edge 502 fallback and the deployment upload/build log, not the service's runtime traceback. The local CLI is unauthenticated, so it cannot read the protected staging service logs.",
+      "fix": "Add a failure-only diagnostic workflow step that relinks the already guarded staging API target with the existing masked account token and fetches only the latest 100 error-level Railway log lines. The next candidate will identify the startup cause without changing secrets or the success path.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "runtime",
+        "diagnostics"
+      ],
+      "related_bugs": [
+        "bug-1927"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T18:35:00-05:00"
+    },
+    {
+      "id": "bug-1930",
+      "timestamp": "2026-10-01T18:50:00-05:00",
+      "error_message": "A GitHub Actions status probe used an invalid repository slug and failed before querying the staging deployment job.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The command passed only the owner (`henilllpatelll`) to `--repo`, which requires the `OWNER/REPO` format.",
+      "fix": "Use the explicit repository slug `henilllpatelll/PatelRep` for GitHub CLI run inspection commands.",
+      "tags": [
+        "operations",
+        "github-cli",
+        "release-monitoring"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T18:50:00-05:00"
+    },
+    {
+      "id": "bug-1931",
+      "timestamp": "2026-10-01T18:51:00-05:00",
+      "error_message": "A delayed API deployment status probe passed a malformed jq filter and failed before querying GitHub.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "PowerShell escaping altered the jq string inside the delayed command.",
+      "fix": "Use the direct GitHub CLI invocation with a single-quoted jq expression instead of nesting it in PowerShell quoting.",
+      "tags": [
+        "operations",
+        "github-cli",
+        "release-monitoring",
+        "quoting"
+      ],
+      "related_bugs": [
+        "bug-1930"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T18:51:00-05:00"
+    },
+    {
+      "id": "bug-1932",
+      "timestamp": "2026-10-01T19:02:00-05:00",
+      "error_message": "Staging Candidate run 36962026597 deployed the API image successfully but every readiness request returned Railway 502.",
+      "file": ".github/workflows/staging-candidate.yml",
+      "root_cause": "The protected Railway runtime diagnostics for the correctly linked `PatelRep-API-Staging` service show Pydantic Settings started with no application configuration: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, and `CRON_SECRET` are all missing. Railway documents that service variables are injected into running deployments; the exact `railway up apps/api --ci --no-gitignore --path-as-root` command and staging target link succeeded, so the failure is missing staging-service configuration rather than repository packaging.",
+      "fix": "Do not weaken Settings validation or modify secrets from CI. Restore the four required variables (and any existing required staging configuration) on the `PatelRep-API-Staging` service in the `staging` environment through an authorized Railway configuration change, then rerun the candidate.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "runtime",
+        "configuration"
+      ],
+      "related_bugs": [
+        "bug-1927",
+        "bug-1929"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-01T19:02:00-05:00"
+    },
+    {
+      "id": "bug-1933",
+      "timestamp": "2026-10-02T08:18:00-05:00",
+      "error_message": "Staging Candidate run 37011051513 uploaded the Web archive successfully but Railway failed its Docker build after staging selected apps/web as the upload root.",
+      "file": "apps/web/Dockerfile",
+      "root_cause": "The Dockerfile copied apps/web/package.json and apps/web/ even though the staging Railway command used up apps/web --path-as-root, making the archive root already apps/web and leaving those nested paths absent.",
+      "fix": "Use Web-root-relative Docker COPY instructions and make staging, production release, and production rollback explicitly use the same apps/web --path-as-root convention; cover the contract with a CI workflow assertion.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "railway",
+        "web",
+        "docker",
+        "build-context"
+      ],
+      "related_bugs": [
+        "bug-1927"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T08:18:00-05:00"
+    },
+    {
+      "id": "bug-1934",
+      "timestamp": "2026-10-02T08:30:00-05:00",
+      "error_message": "A local Next build was initially blocked by an active apps/web/.next/lock, and the subsequent local Docker build client did not return a completion result after several minutes.",
+      "file": "apps/web/.next/lock",
+      "root_cause": "The first local verification process was still completing Next static generation when the second started; Docker's client process then remained active without yielding a final local result through the command wrapper.",
+      "fix": "Waited for the Next build to finish and its lock to clear before rerunning it. Stopped only the exact locally-started Docker client after it remained hung; retain the focused workflow contract test and the successful local Next build as verification.",
+      "tags": [
+        "tooling",
+        "local-verification",
+        "nextjs",
+        "docker"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T08:30:00-05:00"
+    },
+    {
+      "id": "bug-1935",
+      "timestamp": "2026-10-02T08:55:00-05:00",
+      "error_message": "Staging Candidate 37014794801 deployed the exact Web release but all six-role workflow queries stayed on skeletons because the browser called unversioned API routes such as /auth/me and received 404.",
+      "file": "apps/web/lib/api/client.ts",
+      "root_cause": "The deployed staging NEXT_PUBLIC_API_URL is host-only while the frontend client expects the versioned FastAPI base path. The client concatenated /auth/me directly and the staging API exposes that route under /v1/auth/me. The smoke test also used a strict locator union that always matched both body and main.",
+      "fix": "Normalize a configured host-only public API URL to /v1 without touching variables, cover that contract in apiUrl.test.ts, use a non-ambiguous main locator, and allow the synthetic data assertions time to complete after the release deploy.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "web",
+        "api-version",
+        "playwright"
+      ],
+      "related_bugs": [
+        "bug-1933"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T08:55:00-05:00"
+    },
+    {
+      "id": "bug-1936",
+      "timestamp": "2026-10-02T09:15:00-05:00",
+      "error_message": "Staging Candidate 37017165482 reached versioned API routes but each synthetic role's /v1/auth/me request returned 403 because its authenticated JWT lacked hotel_id.",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "The disposable staging database includes the JWT-hook SQL function, but Supabase Auth did not emit the hook's top-level hotel_id/role claims for fixture sign-ins. The fixture had no equivalent service-managed app metadata fallback.",
+      "fix": "Seed app_metadata with the synthetic tenant and role, and read signed app_metadata only when the primary top-level claims are absent. Tests prove the fallback and that primary claims win when both exist.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "jwt",
+        "fixtures",
+        "auth"
+      ],
+      "related_bugs": [
+        "bug-1935"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T09:15:00-05:00"
+    },
+    {
+      "id": "bug-1937",
+      "timestamp": "2026-10-02T00:00:00-05:00",
+      "error_message": "Staging Candidate run 37019227018 authenticated the synthetic GM but rendered “You don't have access to this section.” on /housekeeping, leaving the required Staging Gate failed.",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "Role resolution treated Supabase's standard top-level role=authenticated claim as a PatelRep application role, taking precedence over signed app_metadata.role=gm.",
+      "fix": "Resolve only allowlisted PatelRep roles from user_role, top-level role, then app_metadata.role; add API regression coverage and correct the staging role-policy smoke contract for mobile-only roles.",
+      "tags": [
+        "release-hardening",
+        "staging",
+        "jwt",
+        "rbac",
+        "playwright"
+      ],
+      "related_bugs": [
+        "bug-1936"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:00:00-05:00"
+    },
+    {
+      "id": "bug-1938",
+      "timestamp": "2026-10-02T00:01:00-05:00",
+      "error_message": "New auth role-precedence regression tests failed: standard JWT role=authenticated was returned instead of app_metadata.role=gm or the safe none fallback.",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "The resolver accepted any truthy top-level role rather than validating it against PatelRep's application-role allowlist.",
+      "fix": "Introduce a shared allowlisted resolver before rerunning the focused auth tests.",
+      "tags": [
+        "test-failure",
+        "jwt",
+        "rbac"
+      ],
+      "related_bugs": [
+        "bug-1937"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:01:00-05:00"
+    },
+    {
+      "id": "bug-1939",
+      "timestamp": "2026-10-02T00:02:00-05:00",
+      "error_message": "A local validation command used the apps/api working directory while targeting root-relative .wolf and apps/web paths, producing file-not-found errors.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The command mixed repository-relative paths with an API-subdirectory working directory.",
+      "fix": "Run cross-project diagnostics from the repository root and use API-relative paths only when the working directory is apps/api.",
+      "tags": [
+        "tooling",
+        "test-failure",
+        "paths"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:02:00-05:00"
+    },
+    {
+      "id": "bug-1940",
+      "timestamp": "2026-10-02T00:03:00-05:00",
+      "error_message": "The first combined patch for the new route-guard unit test did not apply because package.json's long test command differed from the copied context.",
+      "file": "apps/web/package.json",
+      "root_cause": "A brittle full-line patch context did not match the current package test command.",
+      "fix": "Apply the new test, package-script insertion, and anatomy entry as smaller targeted patches.",
+      "tags": [
+        "tooling",
+        "patch",
+        "test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:03:00-05:00"
+    },
+    {
+      "id": "bug-1941",
+      "timestamp": "2026-10-02T00:04:00-05:00",
+      "error_message": "A second targeted package.json patch failed because apply_patch matches complete JSON lines, not substrings inside the long test command.",
+      "file": "apps/web/package.json",
+      "root_cause": "The command is stored as one unbroken JSON line, preventing a safe small-context insertion.",
+      "fix": "Keep the in-scope deployed Playwright contract test and its successful lint/typecheck; do not expand the PR with a separately registered duplicate route-guard unit test.",
+      "tags": [
+        "tooling",
+        "patch",
+        "test"
+      ],
+      "related_bugs": [
+        "bug-1940"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:04:00-05:00"
+    },
+    {
+      "id": "bug-1942",
+      "timestamp": "2026-10-02T00:05:00-05:00",
+      "error_message": "A PowerShell process diagnostic lost the $_ pipeline variable through command wrapping and produced repeated '.ProcessId' command-not-found errors.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "Nested shell interpolation altered the PowerShell pipeline variable before execution.",
+      "fix": "Avoid nested PowerShell pipeline diagnostics through the command wrapper; do not terminate unrelated workspace processes.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "quoting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:05:00-05:00"
+    },
+    {
+      "id": "bug-1943",
+      "timestamp": "2026-10-02T00:06:00-05:00",
+      "error_message": "GitHub Actions API polling returned 401 Bad credentials while the branch push succeeded through Git credentials.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The diagnostic parser split credential values on every '=' character, truncating a credential value that may contain '='.",
+      "fix": "Parse each credential line at its first '=' only, then retry the read-only Actions query without exposing the token.",
+      "tags": [
+        "tooling",
+        "github",
+        "credentials"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:06:00-05:00"
+    },
+    {
+      "id": "bug-1944",
+      "timestamp": "2026-10-02T00:07:00-05:00",
+      "error_message": "The GitHub Actions job-log download could not be unpacked as an archive.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The REST log endpoint response format was assumed to be a tar-compatible archive without first inspecting its redirected payload metadata.",
+      "fix": "Inspect only response status, content type, redirect target, and byte signature before selecting a log decoder.",
+      "tags": [
+        "tooling",
+        "github-actions",
+        "logs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:07:00-05:00"
+    },
+    {
+      "id": "bug-1945",
+      "timestamp": "2026-10-02T00:08:00-05:00",
+      "error_message": "CI run 37022827431 failed only Build / Web: Next's Turbopack font resolver could not resolve @vercel/turbopack-next/internal/font/google/font from app/layout.tsx.",
+      "file": "apps/web/app/layout.tsx",
+      "root_cause": "Undetermined: the immediately preceding CI run with the same declared Next/dependency setup built successfully, so the first occurrence may be runner/toolchain resolution instability rather than this PR's auth or E2E changes.",
+      "fix": "Rerun CI on the exact immutable commit before changing production build configuration; if reproducible, diagnose and repair the build toolchain separately.",
+      "tags": [
+        "ci",
+        "nextjs",
+        "turbopack",
+        "build"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:08:00-05:00"
+    },
+    {
+      "id": "bug-1946",
+      "timestamp": "2026-10-02T00:09:00-05:00",
+      "error_message": "Staging Candidate run 37046542907 passed database, API, web deployment, release identity, and health but failed its six-role operational Playwright smoke.",
+      "file": "apps/web/e2e/staging-release-smoke.spec.ts",
+      "root_cause": "Pending inspection of the failed Playwright job log and artifact; do not weaken the role-policy or room-101 operational assertions.",
+      "fix": "Retrieve the exact failing assertion, then repair the product or contract and repeat CI plus the full Staging Candidate.",
+      "tags": [
+        "staging",
+        "playwright",
+        "release-gate"
+      ],
+      "related_bugs": [
+        "bug-1937"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:09:00-05:00"
+    },
+    {
+      "id": "bug-1947",
+      "timestamp": "2026-10-02T00:10:00-05:00",
+      "error_message": "The staging GM Engineering screen showed Queue 0 despite a seeded work order because its queries were disabled without a top-level JWT hotel_id.",
+      "file": "apps/web/app/(dashboard)/engineering/page.tsx",
+      "root_cause": "Engineering derived hotelId only from the top-level JWT custom claim. Staging correctly relies on app_metadata plus /auth/me fallback, so the authenticated hotel store had the tenant but Engineering never consumed it.",
+      "fix": "Use the loaded hotel-store id when the top-level JWT claim is absent, preserving top-level claims as the primary source. Also scope the mobile-policy Playwright assertion to its visible alert, excluding Next's empty route-announcer alert.",
+      "tags": [
+        "staging",
+        "jwt",
+        "engineering",
+        "playwright"
+      ],
+      "related_bugs": [
+        "bug-1936",
+        "bug-1937",
+        "bug-1946"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:10:00-05:00"
+    },
+    {
+      "id": "bug-1948",
+      "timestamp": "2026-10-02T00:11:00-05:00",
+      "error_message": "The follow-up commit command did not stage the Engineering page because PowerShell interpreted its unquoted parenthesized path.",
+      "file": "apps/web/app/(dashboard)/engineering/page.tsx",
+      "root_cause": "The Git path containing '(dashboard)' was passed unquoted through PowerShell.",
+      "fix": "Quote the parenthesized Git path for diff and add; stage only the two intended follow-up files.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "git"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T00:11:00-05:00"
+    },
+    {
+      "id": "bug-1949",
+      "timestamp": "2026-10-02T18:49:00Z",
+      "error_message": "Staging Candidate run 37048923977 failed its six-role operational smoke after deployment, identity, API, and database checks succeeded.",
+      "file": "apps/web/e2e/staging-release-smoke.spec.ts",
+      "root_cause": "The logbook mutation test targeted only an obsolete 'Add Entry' label while the current drawer submits through 'Add Handoff'; the mobile-role test incorrectly expected a signed-out floor user to retain the mobileOnly query after requesting a protected route.",
+      "fix": "Use the current semantic submit label and assert the protected-route redirectTo login outcome after first verifying the mobile-only explanation.",
+      "tags": [
+        "staging",
+        "playwright",
+        "logbook",
+        "mobile-policy"
+      ],
+      "related_bugs": [
+        "bug-1946",
+        "bug-1947"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T18:49:00Z"
+    },
+    {
+      "id": "bug-1950",
+      "timestamp": "2026-10-02T18:50:00Z",
+      "error_message": "A PowerShell diagnostic command failed because the wrapper expanded the $_ pipeline variable before PowerShell received it.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The nested command used an unescaped PowerShell automatic variable inside a double-quoted wrapper argument.",
+      "fix": "Read known artifact files directly or escape automatic variables before passing them through the wrapper.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "quoting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T18:50:00Z"
+    },
+    {
+      "id": "bug-1951",
+      "timestamp": "2026-10-02T19:06:00Z",
+      "error_message": "Staging Candidate 37051075371 again timed out in the logbook POST assertion and floor-user protected-route assertion.",
+      "file": "apps/web/e2e/staging-release-smoke.spec.ts",
+      "root_cause": "The generic textarea selector filled a different hidden form, leaving the visible Add Handoff submit button disabled. The mobile-only sign-out is intentionally asynchronous, so an immediate protected route can settle on either the policy page or the ordinary redirectTo login page.",
+      "fix": "Target #handoff-content and assert that both allowed post-sign-out outcomes stay on the login surface after the mobile explanation has been verified.",
+      "tags": [
+        "staging",
+        "playwright",
+        "logbook",
+        "mobile-policy"
+      ],
+      "related_bugs": [
+        "bug-1949"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T19:06:00Z"
+    },
+    {
+      "id": "bug-1952",
+      "timestamp": "2026-10-02T19:07:00Z",
+      "error_message": "A diagnostic read targeted apps/web/middleware.ts, which does not exist.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The route guard location was assumed instead of confirmed before inspection.",
+      "fix": "Use the existing search result location or rg --files before reading a route guard file.",
+      "tags": [
+        "tooling",
+        "diagnostic"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T19:07:00Z"
+    },
+    {
+      "id": "bug-1953",
+      "timestamp": "2026-10-02T19:31:00Z",
+      "error_message": "Staging Candidate 37053793250 completed the six-role policy checks but timed out creating the GM logbook handoff.",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Logbook fetched departments only when a top-level JWT hotel_id existed. The staging token correctly relies on application metadata and the hydrated hotel store, leaving the handoff drawer with no department and preventing mutation submission.",
+      "fix": "Fall back to the authenticated hotel-store id for the Logbook department lookup, matching the Engineering context repair.",
+      "tags": [
+        "staging",
+        "jwt",
+        "logbook",
+        "tenant-context"
+      ],
+      "related_bugs": [
+        "bug-1947",
+        "bug-1951"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T19:31:00Z"
+    },
+    {
+      "id": "bug-1954",
+      "timestamp": "2026-10-02T19:51:00Z",
+      "error_message": "Staging Candidate 37055669484 still timed out waiting for the GM logbook POST after departments loaded successfully.",
+      "file": "apps/web/e2e/staging-release-smoke.spec.ts",
+      "root_cause": "The smoke used a broad Add Handoff/Add Entry locator while Logbook initially rendered its legacy Add Entry branch before feature configuration hydration selected the redesigned Add Handoff workspace. The trace shows the modal being swapped during interaction, so no POST was emitted.",
+      "fix": "Wait for and click the exact Add Handoff control before filling or submitting the redesigned drawer.",
+      "tags": [
+        "staging",
+        "playwright",
+        "logbook",
+        "hydration"
+      ],
+      "related_bugs": [
+        "bug-1951",
+        "bug-1953"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T19:51:00Z"
+    },
+    {
+      "id": "bug-1955",
+      "timestamp": "2026-10-02T19:54:00Z",
+      "error_message": "A read-only GitHub Actions polling script ended with a Node syntax error.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The compressed https callback omitted one closing parenthesis.",
+      "fix": "Reuse the previously validated polling expression with both the response callback and request error callback closed.",
+      "tags": [
+        "tooling",
+        "github-actions",
+        "node"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T19:54:00Z"
+    },
+    {
+      "id": "bug-1956",
+      "timestamp": "2026-10-02T20:06:00Z",
+      "error_message": "Staging Candidate 37057683978 opened the correct handoff drawer but emitted no POST after its content was entered.",
+      "file": "apps/web/components/logbook/AddHandoffDrawer.tsx",
+      "root_cause": "The drawer reset every form field whenever defaultDepartmentId changed. If departments finished loading after opening, the new default cleared the operator's just-entered content before submit.",
+      "fix": "Reset fields only when the drawer opens, and separately fill a late default department only while no department has been selected.",
+      "tags": [
+        "staging",
+        "logbook",
+        "form-state",
+        "race-condition"
+      ],
+      "related_bugs": [
+        "bug-1953",
+        "bug-1954"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T20:06:00Z"
+    },
+    {
+      "id": "bug-1957",
+      "timestamp": "2026-10-02T20:07:00Z",
+      "error_message": "The first patch for AddHandoffDrawer could not match its source context.",
+      "file": "apps/web/components/logbook/AddHandoffDrawer.tsx",
+      "root_cause": "The patch used a different dash character than the source comment.",
+      "fix": "Read the exact narrow context and apply the patch with the source's Unicode punctuation.",
+      "tags": [
+        "tooling",
+        "patching"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T20:07:00Z"
+    },
+    {
+      "id": "bug-1958",
+      "timestamp": "2026-10-02T22:21:26-05:00",
+      "error_message": "The production migration preflight could not reconcile timestamp-style remote migration IDs with deterministic repository IDs, so releases failed closed despite known historical deployment tooling drift.",
+      "file": "scripts/check-db-drift.mjs",
+      "root_cause": "The drift checker compared raw identifiers only; the repository documented broad timestamp-versioned historical application but had no validated, per-ID reconciliation mechanism.",
+      "fix": "Added a production-only, evidence-required alias registry and fail-closed validation. No current aliases were added because repository history does not prove individual timestamp-to-canonical mappings.",
+      "tags": [
+        "release-hardening",
+        "production",
+        "migration-drift",
+        "fail-closed"
+      ],
+      "related_bugs": [
+        "bug-1911",
+        "bug-1912",
+        "bug-1914"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T22:21:26-05:00"
+    },
+    {
+      "id": "bug-1959",
+      "timestamp": "2026-10-02T22:23:00-05:00",
+      "error_message": "The normal web build failed before compilation because `next` was not recognized in apps/web.",
+      "file": "apps/web/package.json",
+      "root_cause": "The local checkout does not currently have the locked web dependencies installed.",
+      "fix": "No application-code change. Install the existing lockfile dependencies with npm ci, then rerun the production build.",
+      "tags": [
+        "verification",
+        "web",
+        "dependencies",
+        "environment"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T22:23:00-05:00"
+    },
+    {
+      "id": "bug-1960",
+      "timestamp": "2026-10-02T22:29:00-05:00",
+      "error_message": "A local evidence-count diagnostic failed because shell interpolation transformed Markdown code-fence backticks before Node evaluated the regular expression.",
+      "file": "docs/PRODUCTION_MIGRATION_ALIAS_EVIDENCE.md",
+      "root_cause": "The diagnostic used a backtick-containing literal inside a PowerShell command string.",
+      "fix": "Count IDs from the Unresolved section boundary without embedding Markdown backticks in the command.",
+      "tags": [
+        "tooling",
+        "verification",
+        "powershell-escaping"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T22:29:00-05:00"
+    },
+    {
+      "id": "bug-1961",
+      "timestamp": "2026-10-02T23:42:13-05:00",
+      "error_message": "The test-first runs for file-aware production migration reconciliation exposed three version-only gaps: no local migration inventory, no exact-filename match, and no duplicate remote-timestamp rejection.",
+      "file": "scripts/check-db-drift.mjs",
+      "root_cause": "The previous implementation modeled remote history as version strings and could not express exact repository-file proof from Supabase's stored migration name.",
+      "fix": "Introduce structured version/name remote rows, a local filename/version/stem inventory, exact matching against a unique stem or filename, and duplicate timestamp rejection; retain fail-closed unknown-history behavior.",
+      "tags": [
+        "production",
+        "migration-drift",
+        "test-failure",
+        "release-hardening"
+      ],
+      "related_bugs": [
+        "bug-1958"
+      ],
+      "occurrences": 3,
+      "last_seen": "2026-10-02T23:42:13-05:00"
+    },
+    {
+      "id": "bug-1962",
+      "timestamp": "2026-10-02T23:55:00-05:00",
+      "error_message": "Production migration preflight could treat a duplicate numeric identifier as reconciled when only one exact repository file in its 039, 042, or 110 collision group was proven.",
+      "file": "scripts/check-db-drift.mjs",
+      "root_cause": "The final version-set comparison collapses duplicate local filenames into one canonical numeric identifier after file-level alias resolution.",
+      "fix": "Add a production-only duplicate-file coverage check that requires every repository filename in a collision group to occur in exact-name or checked-in manual-alias proof; block both CLEAN and --allow-pending outcomes when coverage is incomplete.",
+      "tags": [
+        "production",
+        "migration-drift",
+        "duplicate-version",
+        "release-hardening"
+      ],
+      "related_bugs": [
+        "bug-1961"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-02T23:55:00-05:00"
+    },
+    {
+      "id": "bug-1971",
+      "timestamp": "2026-10-03T23:56:59.778Z",
+      "error_message": "Wrong reference: npm should be assert",
+      "file": "scripts/claude-release-engineer-workflow.test.mjs",
+      "root_cause": "Used \"npm\" instead of \"assert\"",
+      "fix": "Changed npm → assert",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-03T23:56:59.778Z"
+    },
+    {
+      "id": "bug-1972",
+      "timestamp": "2026-10-04T02:19:53.309Z",
+      "error_message": "Incorrect value in code",
+      "file": "scripts/claude-release-engineer-workflow.test.mjs",
+      "root_cause": "Had ').filter((line) => !/disallowedTools/.test(line))",
+      "fix": "Changed to '\\n'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-04T02:19:53.309Z"
+    },
+    {
+      "id": "bug-1973",
+      "timestamp": "2026-10-04T04:47:20.740Z",
+      "error_message": "Incorrect value in code",
+      "file": "../PatelRep-wt-2c/scripts/release-engineer-auto-merge-workflow.test.mjs",
+      "root_cause": "Had ').filter((line) => !/disallowedTools/.test(line))",
+      "fix": "Changed to '\\n'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-04T04:48:19.438Z"
+    },
+    {
+      "id": "bug-1974",
+      "timestamp": "2026-10-04T04:47:23.195Z",
+      "error_message": "Significant refactor of ",
+      "file": "../PatelRep-wt-2c/docs/AUTONOMOUS_RELEASE_ENGINEER.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-04T04:47:23.195Z"
+    },
+    {
+      "id": "bug-1975",
+      "timestamp": "2026-10-04T05:36:31.119Z",
+      "error_message": "Incorrect value in code",
+      "file": "../PatelRep-wt-2c/scripts/release-engineer-auto-merge-policy.mjs",
+      "root_cause": "Had ')[0].slice(0, 120)})`",
+      "fix": "Changed to '\\n'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-04T05:36:31.119Z"
+    },
+    {
+      "id": "bug-1976",
+      "timestamp": "2026-10-04T08:02:08.936Z",
+      "error_message": "Incorrect value in code",
+      "file": "../PatelRep-2d/scripts/release-engineer-auto-merge-deps.mjs",
+      "root_cause": "Had ')[0].slice(0, 120)}`",
+      "fix": "Changed to '\\n'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-04T08:02:08.936Z"
+    },
+    {
+      "id": "bug-1977",
+      "timestamp": "2026-10-04T08:02:27.517Z",
+      "error_message": "Incorrect value in code",
+      "file": "../PatelRep-2d/scripts/merge-release-engineer-repair.mjs",
+      "root_cause": "Had `${JSON.stringify(content)}\n`",
+      "fix": "Changed to `${JSON.stringify(content)}\\n`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-04T08:02:27.517Z"
+    },
+    {
+      "id": "bug-1978",
+      "timestamp": "2026-10-04T15:30:28.638Z",
+      "error_message": "Incorrect value in code",
+      "file": "../PatelRep-mig/scripts/production-migration-reconciliation.test.mjs",
+      "root_cause": "Had '038'",
+      "fix": "Changed to '38'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-04T15:30:30.362Z"
+    },
+    {
+      "id": "bug-1979",
+      "timestamp": "2026-10-04T15:49:33.559Z",
+      "error_message": "Significant refactor of ",
+      "file": "../PatelRep-mig/scripts/check-db-drift.mjs",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 23→39 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-04T15:49:33.559Z"
+    },
+    {
+      "id": "bug-1980",
+      "timestamp": "2026-10-06T00:40:49.090Z",
+      "error_message": "Significant refactor of ",
+      "file": ".github/workflows/claude-release-engineer-production-request.yml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T00:40:49.090Z"
+    },
+    {
+      "id": "bug-1981",
+      "timestamp": "2026-10-06T00:41:09.334Z",
+      "error_message": "Wrong reference: awaiting should be queued",
+      "file": "scripts/production-release-request-policy.mjs",
+      "root_cause": "Used \"awaiting\" instead of \"queued\"",
+      "fix": "Changed awaiting → queued",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T00:41:09.334Z"
+    },
+    {
+      "id": "bug-1982",
+      "timestamp": "2026-10-06T00:41:16.788Z",
+      "error_message": "Wrong reference: awaiting should be queued",
+      "file": "scripts/production-release-request-policy.test.mjs",
+      "root_cause": "Used \"awaiting\" instead of \"queued\"",
+      "fix": "Changed awaiting → queued",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-06T00:41:24.314Z"
+    },
+    {
+      "id": "bug-1983",
+      "timestamp": "2026-10-06T00:41:35.655Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/AUTONOMOUS_RELEASE_ENGINEER.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T00:41:35.655Z"
+    },
+    {
+      "id": "bug-1984",
+      "timestamp": "2026-10-06T00:41:37.069Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/AUTONOMOUS_RELEASE_ENGINEER.md",
+      "root_cause": "Had `production`",
+      "fix": "Changed to `true`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T00:41:37.069Z"
+    },
+    {
+      "id": "bug-1985",
+      "timestamp": "2026-10-06T00:41:44.828Z",
+      "error_message": "Wrong reference: approval should be release",
+      "file": "docs/AUTONOMOUS_RELEASE_ENGINEER.md",
+      "root_cause": "Used \"approval\" instead of \"release\"",
+      "fix": "Changed approval → release",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T00:41:44.828Z"
+    },
+    {
+      "id": "bug-1986",
+      "timestamp": "2026-10-06T23:22:09.342Z",
+      "error_message": "Wrong condition in logic",
+      "file": "scripts/production-operations-notify.mjs",
+      "root_cause": "Condition was: if (!/^(incident|release|rollback|reentry|workflow|aud)",
+      "fix": "Changed to: if (!/^(incident|release|rollback|reentry|workflow|aud)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T23:22:09.342Z"
+    },
+    {
+      "id": "bug-1987",
+      "timestamp": "2026-10-06T23:22:11.178Z",
+      "error_message": "Null/undefined access in ",
+      "file": "scripts/production-operations-notify.mjs",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const WATCHDOG_RUN_STATUSES = new Set(['queued', 'in_progres; const UNEVALUATED_CONCLUSIONS = new Set(['cancelled', 'skipp | Also: // Validated prior notification results, newest first.; async function listPriorNotifications({ repo, deps }) {",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-10-06T23:22:32.334Z"
+    },
+    {
+      "id": "bug-1988",
+      "timestamp": "2026-10-06T23:22:27.778Z",
+      "error_message": "Missing guard clause",
+      "file": "scripts/production-operations-notify.mjs",
+      "root_cause": "No early return/throw for edge case: run.workflow === WATCHDOG_WORKFLOW_NAME",
+      "fix": "Added guard clause: if (run.workflow === WATCHDOG_WORKFLOW_NAME)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T23:22:27.778Z"
+    },
+    {
+      "id": "bug-1989",
+      "timestamp": "2026-10-06T23:22:33.424Z",
+      "error_message": "Wrong reference: types should be Production",
+      "file": ".github/workflows/production-operations-notify.yml",
+      "root_cause": "Used \"types\" instead of \"Production\"",
+      "fix": "Changed types → Production",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-06T23:22:33.424Z"
+    },
+    {
+      "id": "bug-1990",
+      "timestamp": "2026-10-08T03:18:09.219765+00:00",
+      "error_message": "Reports KPIs/breakdowns computed from row-capped cohorts were shown as complete (and PostgREST's 1,000-row limit cut Management/ROI, status-history lookback and inspection_results silently)",
+      "file": "apps/api/services/reporting/data.py",
+      "root_cause": "Bare .execute() queries and discarded truncated flags",
+      "fix": "Paged all window queries through fetch_all; added truncation tracker, @tracked view builders, withheld KPIs, web notice; exports drop tables/charts when capped",
+      "tags": [
+        "reports",
+        "truncation",
+        "postgrest",
+        "1000-rows"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T03:18:09.219765+00:00"
+    },
+    {
+      "id": "bug-1991",
+      "timestamp": "2026-10-08T03:18:09.219765+00:00",
+      "error_message": "Scheduled report recipients missed when the hotel had more auth users than one list_users page; stuck sending/queued deliveries never recovered; two replicas could both send a retry",
+      "file": "apps/api/services/reporting/delivery.py",
+      "root_cause": "list_users() single page; no CAS on attempt claim; no stale-row recovery",
+      "fix": "Per-user get_user_by_id lookup; compare-and-swap claim on status; _recover_stuck for queued/sending older than 30 min",
+      "tags": [
+        "reports",
+        "delivery",
+        "scheduling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T03:18:09.219765+00:00"
+    },
+    {
+      "id": "bug-1992",
+      "timestamp": "2026-10-08T03:18:09.219765+00:00",
+      "error_message": "Team export/schedule ignored the department filter; Overview live brief leaked work-order counts to housekeeping supervisor and ignored department",
+      "file": "apps/api/services/reporting/documents.py",
+      "root_cause": "department not passed to team_view; brief not scoped by role+department",
+      "fix": "Pass department through; scope brief/OOO KPI by role and department",
+      "tags": [
+        "reports",
+        "rbac",
+        "department"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T03:18:09.219765+00:00"
+    },
+    {
+      "id": "bug-1993",
+      "timestamp": "2026-10-08T03:18:09.219765+00:00",
+      "error_message": "Print-friendly options (charts, comparison, exceptions, definitions) did nothing; no all-reports export; nested interactive KPI cards; low-contrast caution pill",
+      "file": "apps/web/components/reports/ExportModal.tsx",
+      "root_cause": "window.print() only printed the screen; Card role=button wrapped InfoTip button",
+      "fix": "State-driven print options via ReportsContext; ZIP 'All authorized reports'; stretched-button KPI card; ReportPill",
+      "tags": [
+        "reports",
+        "a11y",
+        "print",
+        "export"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T03:18:09.219765+00:00"
     }
   ]
 }

@@ -1,11 +1,10 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-10-01T13:18:05.151Z
-> Files: 19 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-10-08T03:18:08.137Z
+> Files: 72 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
-- `CLAUDE.md` — Claude Code Configuration (~1168 tok)
 
 ## ../../.claude/plans/
 
@@ -13,16 +12,78 @@
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
 
+## ../../AppData/Local/Temp/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/1f67a91d-8bd8-496b-9bb6-2044366250bf/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/2ff5d8f2-aaa4-4418-bb14-e38c60acb570/scratchpad/
+
+
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/39c736e1-55ed-4565-ac9d-f932f6779ed7/scratchpad/
 
 
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/454f31cc-9b43-41b4-afd0-b7f198a687cc/scratchpad/
+
+- `pr_body.md` — Reports redesign: all four phases in one PR (~1522 tok)
+- `verify1.mjs` — Declares require (~668 tok)
+- `verify2.mjs` — require: settled (~1565 tok)
+- `verify3.mjs` — Declares require (~879 tok)
+
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/63138cbe-e234-4fad-be18-dce02afda023/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/80549d9f-04d2-4963-892f-58a22fe1dd42/scratchpad/
 
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ae73ab6a-b528-4d24-b835-6bcb549e68a2/scratchpad/
 
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/bd745818-2fb9-4365-9bc8-26a15138c068/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/c19df836-79f5-425d-93fd-b52ceee4aa90/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/f5180e8a-3428-41f7-892d-97dd0003c02d/scratchpad/
+
+- `fixctl.py` (~106 tok)
+- `patchlib.py` — Exact-match patch helper that preserves each file's dominant line-ending style. (~140 tok)
+- `verify-reports.cjs` — Read-only localhost verification of the Reports redesign (GM). Run from apps/web so playwright resol (~2621 tok)
+- `wolf.py` (~1430 tok)
+
+## ../PatelRep-2d-fix/scripts/
+
+
+## ../PatelRep-2d/.github/workflows/
+
+
+## ../PatelRep-2d/scripts/
+
+
+## ../PatelRep-mig/scripts/
+
+
+## ../PatelRep-pr88/scripts/
+
+
+## ../PatelRep-railwayfix/scripts/
+
+
+## ../PatelRep-wt-2c/.github/workflows/
+
+
+## ../PatelRep-wt-2c/docs/
+
+
+## ../PatelRep-wt-2c/scripts/
+
+
+## ../PatelRep-wt-2c3/scripts/
+
+
+## ../PatelRep-wt-bot/scripts/
 
 
 ## ./
@@ -412,6 +473,9 @@
 ## .agents/skills/web-video-presentation/themes/warm-keynote/
 
 
+## .githooks/
+
+
 ## .github/workflows/
 
 
@@ -427,6 +491,9 @@
 ## Phase 2 housekeeping additions (2026-09-30)
 
 
+## Phase 2 staging environment (2026-10-01)
+
+
 ## Phase 8 Logbook secure attachments + retention (2026-09-29)
 
 
@@ -438,18 +505,21 @@
 
 ## apps/api/
 
-- `rbac_bare_comparison_allowlist.json` (~2709 tok)
 
 ## apps/api/core/
 
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~22980 tok)
 
 ## apps/api/routers/
 
-- `lost_found.py` — rank_lost_found_matches (~19422 tok)
+- `report_exports.py` — Report export (CSV/PDF) and scheduled-report management (redesign Phase 4). (~4996 tok)
+- `report_views.py` — Report view, trend and drill-down endpoints (redesign Phases 2-3). (~2645 tok)
+- `reports.py` — Legacy report endpoints (kept, additive-only) + report capabilities/definitions. (~4391 tok)
+
+## apps/api/scripts/
+
 
 ## apps/api/services/
 
@@ -460,13 +530,36 @@
 ## apps/api/services/programs/
 
 
+## apps/api/services/reporting/
+
+- `access.py` — Single source of truth for who may see which report view and whose data. (~1244 tok)
+- `data.py` — Tenant-scoped data access for reports. Every query filters ``tenant_id``. (~1952 tok)
+- `definitions.py` — Metric definition registry — the ONE place business definitions are written down. (~3913 tok)
+- `delivery.py` — Durable, idempotent scheduled-report delivery. (~3748 tok)
+- `documents.py` — Turns a report view into a render-ready ``ReportDocument`` (dict) for CSV/PDF/print and (~2922 tok)
+- `drilldown.py` — Filtered record lists behind KPIs, charts and exceptions. (~3878 tok)
+- `entities.py` — Entity drill-downs (employee, room/asset) and metric segment breakdowns. (~3318 tok)
+- `exports.py` — CSV / PDF renderers for a ``ReportDocument`` (plain dict, see ``documents.py``). (~3263 tok)
+- `housekeeping.py` — Housekeeping report data: clean sessions, inspections quality, room downtime. (~1617 tok)
+- `kpi.py` — Standard KPI payload + shared ReportContext used by every view builder. (~1069 tok)
+- `metrics.py` — Pure, fixture-testable report calculators. No I/O. (~2753 tok)
+- `overview.py` — Operations Overview (Phase 2): headline KPIs, needs-attention list, trends, department (~3336 tok)
+- `periods.py` — Reporting date semantics shared by every report endpoint. (~2266 tok)
+- `schedule.py` — Recurrence math for scheduled reports, evaluated in the hotel-local wall clock. (~1247 tok)
+- `trends.py` — Hotel-local bucketed trend series over the SAME cohorts as the KPIs. (~1839 tok)
+- `truncation.py` — Row-cap awareness for report aggregates. (~1681 tok)
+- `views_hk.py` — Housekeeping Performance view (Phase 2). (~1983 tok)
+- `views.py` — Guest Experience, Maintenance and Team report views (Phase 2). (~5063 tok)
+
 ## apps/api/tests/
 
-- `test_lost_found_phase4.py` — Lost & Found Phase 4: returns (pickup/shipping), disposition eligibility, and Void Record. (~5218 tok)
+- `test_reports_export_schedule.py` — Phase 4: exports, schedule recurrence (DST), schedule API authorization, durable delivery. (~7225 tok)
+- `test_reports_phase1.py` — Phase 1 reporting correctness: date boundaries, SLA eligibility, RBAC, tenant isolation. (~4584 tok)
+- `test_reports_truncation_and_hardening.py` — Reports audit fixes: row-cap truncation never reads as a complete result, paged queries, (~4285 tok)
+- `test_reports_views.py` — Phase 2/3 report views, trends and drill-down: RBAC, tenant isolation, reconciliation. (~5882 tok)
 
 ## apps/api/tests/smoke/
 
-- `test_input_validation.py` — test_string_inputs_are_trimmed_normalized_and_control_chars_stripped, test_ampersand_round_trips_wit (~769 tok)
 
 ## apps/web/
 
@@ -474,7 +567,13 @@
 ## apps/web/.tmp-qa/
 
 
+## apps/web/app/
+
+
 ## apps/web/app/(dashboard)/housekeeping/
+
+
+## apps/web/app/(dashboard)/internal-flag-demo/
 
 
 ## apps/web/app/(dashboard)/logbook/
@@ -482,7 +581,6 @@
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` — DEFAULT_CAPABILITIES (~4943 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
@@ -498,14 +596,36 @@
 
 ## apps/web/components/lost-found/
 
-- `CustodyTimeline.tsx` — Shared across the Item Detail Drawer and the Return Detail Drawer's Custody/Activity (~931 tok)
-- `DispositionReviewDrawer.tsx` — D-32/D-70: shared review state used from both the Disposition workspace and the (~1728 tok)
-- `DispositionWorkspace.tsx` — retentionLabel — renders table (~2020 tok)
-- `GuestClaimsWorkspace.tsx` — ClaimReturnSection (~5568 tok)
-- `LostFoundItemDrawer.tsx` — DetailSection — renders modal (~6826 tok)
-- `LostFoundReturnDrawer.tsx` — CARRIERS — renders form (~6451 tok)
-- `ReturnsWorkspace.tsx` — STATUS_TABS — renders table (~1924 tok)
-- `VoidRecordDialog.tsx` — D-38/D-40: the safe correction path replacing routine permanent delete. Preserves the (~1135 tok)
+
+## apps/web/components/reports/
+
+- `EntityDrawers.tsx` — syntheticSeries (~2970 tok)
+- `ExportModal.tsx` — saveBlob — renders form (~2278 tok)
+- `FilteredRecordsDrawer.tsx` — KIND_TITLES — renders modal (~3635 tok)
+- `GuestExperienceView.tsx` — REVIEW_TONE (~2381 tok)
+- `HousekeepingView.tsx` — Forward-looking: explicitly NOT tied to the selected historical dates. (~2604 tok)
+- `KpiDetailDrawer.tsx` — findKpi (~2410 tok)
+- `MaintenanceView.tsx` — Stat (~3300 tok)
+- `ManagementView.tsx` — Stat (~2932 tok)
+- `OverviewView.tsx` — OverviewView (~1162 tok)
+- `ReportCharts.tsx` — Real, bucketed trend. Missing buckets render as gaps (never zero). Optional comparison line. (~2375 tok)
+- `ReportDataTable.tsx` — Value used for sorting (null sorts last in both directions so "unknown" is never best/worst). (~2320 tok)
+- `ReportDrawer.tsx` — Shared right-hand drawer shell for all five Reports drawers. (~966 tok)
+- `ReportDrawerHost.tsx` — Renders the single active drawer from URL state and returns focus to the control that opened it. (~523 tok)
+- `ReportExceptionList.tsx` — Prioritised "needs attention" rows. Each row is only actionable if its target is real. (~1134 tok)
+- `ReportMetricCard.tsx` — One KPI. Carries label, value, unit, comparison (with direction as TEXT, not colour alone), (~1030 tok)
+- `ReportModal.tsx` — Accessible centered modal (focus trap, Escape, labelled) used by Export, Schedule and Scheduled Repo (~970 tok)
+- `ReportPrimitives.tsx` — Section card with a heading, optional description/actions. Uses real heading semantics. (~1924 tok)
+- `ReportsContext.tsx` — Prefix for every React Query key: tenant + role scoped so caches can never cross tenants. (~1696 tok)
+- `ReportsFilterBar.tsx` — Global filters shared by every report: date range, comparison and (where applicable) department. (~1215 tok)
+- `ReportsShell.tsx` — VIEW_COMPONENTS (~2230 tok)
+- `ReportViewParts.tsx` — Title + one-line purpose at the top of each screen (the page <h1> is "Reports"). (~746 tok)
+- `ScheduledReportsPanel.tsx` — DELIVERY_TONE — renders table (~3076 tok)
+- `ScheduleModal.tsx` — WEEKDAYS (~3578 tok)
+- `TeamView.tsx` — PAGE_SIZE — renders table (~2920 tok)
+- `TrendCard.tsx` — A trend with its real data, click-through to the records behind a point, and the comparison drawer. (~749 tok)
+- `TrendComparisonDrawer.tsx` — DEPARTMENT_CATEGORY (~2472 tok)
+- `useReportData.ts` — Fetch exactly one view. Keys are tenant + role + filters scoped, so views never share a cache across (~397 tok)
 
 ## apps/web/components/shared/
 
@@ -519,9 +639,11 @@
 ## apps/web/i18n/locales/
 
 
+## apps/web/lib/
+
+
 ## apps/web/lib/api/
 
-- `lost_found.ts` — D-44: the single, centrally-derived, business-facing lifecycle status. Never (~4308 tok)
 
 ## apps/web/lib/hooks/
 
@@ -529,20 +651,44 @@
 ## apps/web/lib/housekeeping/
 
 
+## apps/web/lib/reports/
+
+- `api.ts` — Typed client for the Reports API. Unwraps the {data} envelope. (~1306 tok)
+- `drawerState.test.ts` — API routes: GET (3 endpoints) (~1289 tok)
+- `drawerState.ts` — Typed drawer state for Reports. One discriminated union instead of many booleans, and a strict (~1312 tok)
+- `exportOptions.test.ts` — Declares base (~572 tok)
+- `exportOptions.ts` — One report, or every report the caller is authorised to open (delivered as a ZIP). (~438 tok)
+- `filters.test.ts` — API routes: GET (1 endpoints) (~1542 tok)
+- `filters.ts` — Hotel-local calendar date (YYYY-MM-DD) for `now` in an IANA timezone. (~1980 tok)
+- `metricMeta.ts` — Trend series metric id (see apps/api/services/reporting/trends.py) (~1838 tok)
+- `printOptions.test.ts` — Declares kpi (~604 tok)
+- `printOptions.ts` — `printOptions` is null whenever the page is not being printed. (~757 tok)
+- `types.ts` — Payload types for the Reports API (apps/api/routers/report_views.py, report_exports.py). (~3106 tok)
+
 ## apps/web/lib/utils/
 
-- `lostFoundInventory.test.ts` — Declares item (~574 tok)
-- `lostFoundInventory.ts` — D-43/D-44/D-70: the single, centralized presentation layer for the derived lifecycle (~1900 tok)
+
+## apps/web/scripts/
+
 
 ## apps/web/stores/
 
 
+## docs/
+
+
 ## e2e/golden-paths/
 
-- `lost-found-phase4.spec.ts` — Golden path: Lost & Found Phase 4 — returns, disposition, void. (~3643 tok)
+
+## scripts/
+
 
 ## spec/
 
 
+## supabase/
+
+
 ## supabase/migrations/
 
+- `206_report_schedules.sql` — Reports redesign Phase 4: scheduled report delivery. (~1208 tok)

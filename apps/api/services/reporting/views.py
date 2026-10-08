@@ -20,6 +20,7 @@ from services.reporting.metrics import (
 )
 from services.reporting.periods import parse_timestamp
 from services.reporting.team import build_staff_metrics
+from services.reporting.truncation import is_truncated, tracked
 
 NEAR_DEADLINE = timedelta(minutes=60)
 FINAL_GUEST_STATUSES = ("verified", "cancelled")
@@ -59,6 +60,7 @@ def guest_review_state(request: dict, ctx_now) -> Optional[str]:
     return None
 
 
+@tracked
 def guest_view(ctx: ReportContext) -> dict:
     requests, truncated = report_data.guest_requests_created(ctx.supabase, ctx.hotel_id, ctx.period, departments=ctx.departments)
     stats = guest_stats(requests, ctx.now)
@@ -183,8 +185,8 @@ def pm_section(ctx: ReportContext) -> dict:
     """PM compliance, deferrals, top deferred schedules (period records; schedules are live)."""
     sb = ctx.supabase
     schedules = sb.table("pm_schedules").select("id, asset_id, name, next_due_at").eq("tenant_id", ctx.hotel_id).eq("is_active", True).execute().data or []
-    completions, _ = report_data.fetch_all(lambda: sb.table("pm_completion_records").select("pm_schedule_id, completed_at").eq("tenant_id", ctx.hotel_id).gte("completed_at", ctx.period.start_iso).lt("completed_at", ctx.period.end_iso))
-    deferrals, _ = report_data.fetch_all(lambda: sb.table("pm_deferrals").select("id, pm_schedule_id, deferred_until, reason, created_at").eq("tenant_id", ctx.hotel_id).gte("created_at", ctx.period.start_iso).lt("created_at", ctx.period.end_iso))
+    completions, _ = report_data.fetch_all(lambda: sb.table("pm_completion_records").select("pm_schedule_id, completed_at").eq("tenant_id", ctx.hotel_id).gte("completed_at", ctx.period.start_iso).lt("completed_at", ctx.period.end_iso), source="pm_records")
+    deferrals, _ = report_data.fetch_all(lambda: sb.table("pm_deferrals").select("id, pm_schedule_id, deferred_until, reason, created_at").eq("tenant_id", ctx.hotel_id).gte("created_at", ctx.period.start_iso).lt("created_at", ctx.period.end_iso), source="pm_records")
     metrics = calculate_pm_compliance(schedules, completions, deferrals)
     names = {s["id"]: s for s in schedules}
     counts: dict[str, list[dict]] = {}
@@ -212,6 +214,7 @@ def pm_section(ctx: ReportContext) -> dict:
     }
 
 
+@tracked
 def maintenance_view(ctx: ReportContext) -> dict:
     work_orders, truncated = report_data.work_orders_created(ctx.supabase, ctx.hotel_id, ctx.period)
     stats = maintenance_stats(work_orders)
@@ -236,12 +239,13 @@ def maintenance_view(ctx: ReportContext) -> dict:
     overdue = [w for w in open_orders if work_order_is_active_breach(w, ctx.now)]
     oldest = min(overdue, key=lambda w: parse_timestamp(w["due_at"]), default=None)
     rooms = report_data.room_lookup(ctx.supabase, ctx.hotel_id)
+    open_capped = is_truncated("open_work_orders")  # a capped inventory must not read as the real backlog
     active = {
         "scope": "live",
-        "overdue_count": len(overdue),
-        "urgent_overdue_count": sum(1 for w in overdue if w.get("priority") == "urgent"),
-        "open_work_orders": len(open_orders),
-        "oldest": None if oldest is None else {
+        "overdue_count": None if open_capped else len(overdue),
+        "urgent_overdue_count": None if open_capped else sum(1 for w in overdue if w.get("priority") == "urgent"),
+        "open_work_orders": None if open_capped else len(open_orders),
+        "oldest": None if (oldest is None or open_capped) else {
             "id": oldest["id"], "title": oldest.get("title"), "due_at": oldest["due_at"],
             "room": (rooms.get(oldest.get("room_id")) or {}).get("room_number"),
         },
@@ -294,6 +298,7 @@ def maintenance_view(ctx: ReportContext) -> dict:
 TEAM_SORTS = {"name", "role", "tasks_completed", "wo_completed", "sla_compliance_pct", "total_labor_hours"}
 
 
+@tracked
 def team_view(
     ctx: ReportContext,
     *,

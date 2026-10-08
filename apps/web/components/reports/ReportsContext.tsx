@@ -18,6 +18,7 @@ import {
   type ReportView,
 } from '@/lib/reports/filters'
 import { CLOSED, drawerToParams, parseDrawer, sameDrawer, type DrawerState } from '@/lib/reports/drawerState'
+import type { PrintOptions } from '@/lib/reports/printOptions'
 import type { Capabilities, MetricDefinition } from '@/lib/reports/types'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -43,6 +44,9 @@ interface ReportsContextValue {
   canGoBack: boolean
   /** Prefix for every React Query key: tenant + role scoped so caches can never cross tenants. */
   queryScope: readonly unknown[]
+  /** Non-null only while the browser print dialog is being prepared/open; components honour it. */
+  printOptions: PrintOptions | null
+  setPrintOptions: (options: PrintOptions | null) => void
 }
 
 const ReportsContext = createContext<ReportsContextValue | null>(null)
@@ -64,6 +68,7 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
   const today = hotelToday(timezone)
   // Drawers we drilled through (in-memory only); the browser history still drives back/forward.
   const [stack, setStack] = useState<DrawerState[]>([])
+  const [printOptions, setPrintOptions] = useState<PrintOptions | null>(null)
 
   const capabilitiesQuery = useQuery({
     queryKey: ['reports', hotelId, role, 'capabilities'],
@@ -172,6 +177,8 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     goBack,
     canGoBack: stack.length > 0 && drawer.kind !== 'closed',
     queryScope,
+    printOptions,
+    setPrintOptions,
   }
   return <ReportsContext.Provider value={value}>{children}</ReportsContext.Provider>
 }

@@ -1,6 +1,7 @@
 // Typed client for the Reports API. Unwraps the {data} envelope.
 import { apiClient } from '@/lib/api/client'
 import { filterQuery, type ReportFilters, type ReportView } from './filters'
+import type { ExportTarget } from './exportOptions'
 import type {
   AnyViewData,
   Capabilities,
@@ -69,7 +70,7 @@ export const reportsV2Api = {
 
   // ── Export ──
   exportPath: (
-    view: ReportView,
+    view: ExportTarget,
     format: 'csv' | 'pdf',
     filters: ReportFilters,
     options: { include_charts: boolean; include_definitions: boolean; include_exceptions: boolean },
@@ -78,7 +79,8 @@ export const reportsV2Api = {
     const query: Record<string, string | boolean | undefined> = {
       view,
       format,
-      ...filterQuery(filters, DEPARTMENT_AWARE_VIEWS.includes(view)),
+      // "all" sends the department too: the server applies it only to the views that support it.
+      ...filterQuery(filters, view === 'all' || DEPARTMENT_AWARE_VIEWS.includes(view)),
       ...options,
     }
     Object.entries(query).forEach(([key, value]) => {
