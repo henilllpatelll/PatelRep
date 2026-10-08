@@ -2,7 +2,8 @@ import { apiClient } from '@/lib/api/client'
 
 export interface Subscription {
   stripe_customer_id?: string
-  plan_status: 'trialing' | 'active' | 'past_due' | 'cancelled' | 'paused'
+  /** Known values are listed for autocomplete; any other string must be shown as-is, never as "active". */
+  plan_status: 'trialing' | 'active' | 'past_due' | 'cancelled' | 'paused' | (string & {})
   trial_end?: string
   current_period_start?: string
   current_period_end?: string
@@ -12,6 +13,8 @@ export interface Subscription {
 
 export interface CreditUsage {
   period?: string          // e.g. "2026-03"
+  period_start?: string    // current billing cycle, ISO date
+  period_end?: string
   credits_included?: number
   credits_used?: number
   credits_remaining?: number
@@ -32,6 +35,9 @@ export interface Invoice {
   hosted_invoice_url?: string
   period_start?: number
   period_end?: number
+  currency?: string | null
+  number?: string | null
+  invoice_pdf?: string | null
 }
 
 export const billingApi = {

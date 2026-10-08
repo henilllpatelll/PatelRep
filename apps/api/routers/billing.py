@@ -66,6 +66,8 @@ async def get_credits(current_user: CurrentUser = Depends(require_role("gm"))):
     return {
         "data": {
             "period": f"{ledger['period_start'][:7]}",
+            "period_start": ledger["period_start"],
+            "period_end": ledger["period_end"],
             "credits_included": included,
             "credits_used": used,
             "credits_remaining": max(0, included - used),
@@ -182,6 +184,9 @@ async def list_invoices(current_user: CurrentUser = Depends(require_role("gm")))
             "hosted_invoice_url": inv.hosted_invoice_url,
             "period_start": inv.period_start,
             "period_end": inv.period_end,
+            "currency": getattr(inv, "currency", None),
+            "number": getattr(inv, "number", None),
+            "invoice_pdf": getattr(inv, "invoice_pdf", None),
         }
         for inv in (invoices.data or [])
     ]

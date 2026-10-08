@@ -304,3 +304,70 @@ async def test_get_credits_does_not_flag_approaching_cap_when_no_cap_set(monkeyp
     assert data["approaching_cap"] is False
     assert data["cap_remaining_cents"] is None
     assert db.rows["notifications"] == []
+
+
+# ---------------------------------------------------------------------------
+# Settings redesign Phase 5: billing-cycle dates + invoice display fields
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_get_credits_exposes_current_cycle_dates(monkeypatch):
+    period_start = date.today() - timedelta(days=3)
+    period_end = date.today() + timedelta(days=26)
+    db = BillingFakeDB({
+        "credit_ledger": [{
+            "id": "ledger-1",
+            "tenant_id": GM.hotel_id,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "credits_included": 5000,
+            "credits_used": 10,
+            "overage_cost_cents": 0,
+        }],
+        "subscriptions": [{"id": "sub-1", "tenant_id": GM.hotel_id, "cap_cents": None, "base_fee_cents": 9900}],
+    })
+    monkeypatch.setattr(credits, "supabase", db)
+    monkeypatch.setattr(billing_router, "supabase", db)
+
+    data = (await billing_router.get_credits(current_user=GM))["data"]
+
+    assert data["period_start"] == period_start.isoformat()
+    assert data["period_end"] == period_end.isoformat()
+    assert data["period"] == period_start.isoformat()[:7]
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_uses_only_this_hotels_stripe_customer(monkeypatch):
+    other = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    db = BillingFakeDB({
+        "subscriptions": [
+            {"tenant_id": GM.hotel_id, "stripe_customer_id": "cus_mine"},
+            {"tenant_id": other, "stripe_customer_id": "cus_other"},
+        ],
+    })
+    monkeypatch.setattr(billing_router, "supabase", db)
+    seen = {}
+
+    def fake_list(customer, limit):
+        seen["customer"] = customer
+        return SimpleNamespace(data=[SimpleNamespace(
+            id="in_1", amount_due=9900, status="paid", created=1_700_000_000,
+            hosted_invoice_url="https://invoice.stripe.com/i/x", period_start=1, period_end=2,
+            currency="usd", number="ABC-0001", invoice_pdf="https://pay.stripe.com/invoice/x/pdf",
+        )])
+
+    monkeypatch.setattr(billing_router.stripe.Invoice, "list", staticmethod(fake_list))
+
+    data = (await billing_router.list_invoices(current_user=GM))["data"]
+
+    assert seen["customer"] == "cus_mine"
+    assert data[0]["currency"] == "usd"
+    assert data[0]["invoice_pdf"] == "https://pay.stripe.com/invoice/x/pdf"
+    assert data[0]["number"] == "ABC-0001"
+
+
+@pytest.mark.asyncio
+async def test_list_invoices_without_stripe_customer_returns_empty(monkeypatch):
+    db = BillingFakeDB({"subscriptions": []})
+    monkeypatch.setattr(billing_router, "supabase", db)
+    assert (await billing_router.list_invoices(current_user=GM))["data"] == []

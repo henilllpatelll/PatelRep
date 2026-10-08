@@ -223,3 +223,66 @@ async def test_opera_conflicts_resolve_tenant_isolation_raises_404_and_leaves_da
     assert hotel_a_conflict["status"] == "open"
     assert db.updates == []
     assert not [i for i in db.inserts if i[0] == "integration_sync_conflict_events"]
+
+
+# ---------------------------------------------------------------------------
+# Settings redesign Phase 5: record-level conflict-resolution semantics
+# ---------------------------------------------------------------------------
+
+def _conflict_db(status: str = "open") -> FakeDB:
+    return _pilot_enabled_db(
+        "hotel-a",
+        room_status=[{"tenant_id": "hotel-a", "room_id": "room-1", "guest_name": "Local Guest", "vip_flag": False}],
+        integration_sync_conflicts=[{
+            "id": "c-1", "tenant_id": "hotel-a", "provider": "opera", "status": status,
+            "external_id": "R100", "local_entity_id": "room-1",
+            "remote_snapshot": {"guest_name": "Opera Guest", "vip_flag": True, "checkin_time": "15:00", "checkout_time": "11:00"},
+        }],
+    )
+
+
+@pytest.mark.asyncio
+async def test_resolve_remote_wins_overwrites_only_the_four_reservation_fields_and_audits(monkeypatch):
+    db = _conflict_db()
+    monkeypatch.setattr(integrations_router, "supabase", db)
+
+    await integrations_router.resolve_opera_sync_conflict(
+        "c-1", ResolveOperaSyncConflictRequest(resolution="remote_wins"), current_user=_user("hotel-a", "gm"),
+    )
+
+    room_updates = [u for u in db.updates if u[0] == "room_status"]
+    assert len(room_updates) == 1
+    written = set(room_updates[0][1]) - {"tenant_id", "room_id"}  # the fake merges .eq() filters into the record
+    assert written == {"guest_name", "vip_flag", "checkin_time", "checkout_time", "actual_checkout_at"}
+    assert room_updates[0][1]["guest_name"] == "Opera Guest"
+    events = [i for i in db.inserts if i[0] == "integration_sync_conflict_events"]
+    assert events and events[0][1]["event_type"] == "resolved_remote_wins"
+    assert events[0][1]["actor_id"] == "u-1"
+
+
+@pytest.mark.asyncio
+async def test_resolve_local_wins_leaves_room_status_untouched_but_closes_and_audits(monkeypatch):
+    db = _conflict_db()
+    monkeypatch.setattr(integrations_router, "supabase", db)
+
+    await integrations_router.resolve_opera_sync_conflict(
+        "c-1", ResolveOperaSyncConflictRequest(resolution="local_wins"), current_user=_user("hotel-a", "gm"),
+    )
+
+    assert not [u for u in db.updates if u[0] == "room_status"]
+    assert db.rows["room_status"][0]["guest_name"] == "Local Guest"
+    assert [i for i in db.inserts if i[0] == "integration_sync_conflict_events"][0][1]["event_type"] == "resolved_local_wins"
+
+
+@pytest.mark.asyncio
+async def test_resolve_already_resolved_conflict_is_404_and_changes_nothing(monkeypatch):
+    db = _conflict_db(status="resolved_local_wins")
+    monkeypatch.setattr(integrations_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await integrations_router.resolve_opera_sync_conflict(
+            "c-1", ResolveOperaSyncConflictRequest(resolution="remote_wins"), current_user=_user("hotel-a", "gm"),
+        )
+
+    assert exc.value.status_code == 404
+    assert db.updates == []

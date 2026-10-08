@@ -66,9 +66,9 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | auth.py | /v1/auth/hotel-context | POST | none |  |
 | billing.py | /v1/billing/subscription | GET | gm | require_role('gm') [L17] |
 | billing.py | /v1/billing/credits | GET | gm | require_role('gm') [L29] |
-| billing.py | /v1/billing/portal | POST | gm | require_role('gm') [L111] |
-| billing.py | /v1/billing/checkout | POST | gm | require_role('gm') [L131] |
-| billing.py | /v1/billing/invoices | GET | gm | require_role('gm') [L163] |
+| billing.py | /v1/billing/portal | POST | gm | require_role('gm') [L113] |
+| billing.py | /v1/billing/checkout | POST | gm | require_role('gm') [L133] |
+| billing.py | /v1/billing/invoices | GET | gm | require_role('gm') [L165] |
 | clean_sessions.py | /v1/clean-sessions | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L114] |
 | clean_sessions.py | /v1/clean-sessions | GET | none |  |
 | clean_sessions.py | /v1/clean-sessions/active | GET | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L273] |
