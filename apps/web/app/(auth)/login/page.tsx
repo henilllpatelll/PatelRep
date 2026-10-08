@@ -98,8 +98,8 @@ function LoginContent() {
     const userRole = (claims.user_role ?? claims.role) as UserRole | undefined
     if (userRole && MOBILE_ONLY_ROLES.has(userRole)) {
       await supabase.auth.signOut()
-      setError('Web portal access is restricted to Front Desk, GM, and Supervisor staff. Housekeepers and engineers should use the PatelRep mobile app.')
-      setLoading(false)
+      // Same destination as proxy.ts and the auth callback, which show the mobile-only notice
+      window.location.assign('/login?mobileOnly=1')
       return
     }
 

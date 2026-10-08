@@ -27,7 +27,6 @@ export function realProductionIncidentReentryDeps({ repo, readToken }) {
       base.api(`repos/${repo}/commits/${encodeURIComponent(sha)}/pulls`),
     getCommitTree: async (sha) =>
       base.api(`repos/${repo}/git/commits/${encodeURIComponent(sha)}`).tree?.sha ?? '',
-    isAncestor: async (baseSha, headSha) =>
-      ['identical', 'ahead'].includes(base.api(`repos/${repo}/compare/${baseSha}...${headSha}`).status),
+    isAncestor: async (baseSha, headSha) => base.isAncestorViaCompare(baseSha, headSha),
   }
 }
