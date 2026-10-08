@@ -1482,7 +1482,9 @@ class AddStaffDirectRequest(SanitizedBaseModel):
         "chief_engineer",
         "front_desk",
     ]
+    preferred_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     department_id: Optional[UUID4] = None
+    custom_role_id: Optional[UUID4] = None
     phone: Optional[str] = Field(default=None, max_length=32)
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 

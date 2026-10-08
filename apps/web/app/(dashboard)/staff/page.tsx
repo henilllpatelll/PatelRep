@@ -1,707 +1,39 @@
-﻿'use client'
+'use client'
 
 import { Suspense, useState, useMemo, useEffect, useRef } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import {
-  UserPlus,
-  X,
-  Mail,
-  AlertTriangle,
-  Calendar,
-  Plus,
-  Trash2,
-} from 'lucide-react'
-import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule, type CustomRole } from '@/lib/api/staff'
-import { getDisplayName } from '@/lib/utils/avatar'
+import { UserPlus, X, Mail, AlertTriangle } from 'lucide-react'
+import { staffApi, type StaffMember } from '@/lib/api/staff'
+import { useRefreshPeople } from '@/components/people/usePeopleData'
 import { useRole } from '@/lib/hooks/useRole'
-import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
-import { Button, IconButton } from '@/components/ui/Button'
+import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Avatar, SectionLabel } from '@/components/ui/primitives'
+import { SectionLabel } from '@/components/ui/primitives'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useHotelStore } from '@/stores/hotelStore'
-import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 import { schedulingApi } from '@/lib/api/scheduling'
 import { useAuthStore } from '@/stores/authStore'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import {
   DEFAULT_FILTERS, buildDirectory, buildTodayMap, decodeFilters, encodeFilters, filterDirectory, hasActiveFilters,
-  hotelToday, sortDirectory, summarize, type DirectoryFilters, type InvitationEntry, type SortKey, type StaffEntry,
+  hotelToday, sortDirectory, summarize, type DirectoryEntry, type DirectoryFilters, type InvitationEntry, type SortKey,
 } from '@/lib/people/peopleDirectory'
+import type { DrawerView } from '@/lib/people/peopleDrawers'
 import { PeopleDirectorySkeleton, PeopleDirectoryTable, PeopleMobileCards } from '@/components/people/PeopleDirectory'
 import { PeopleFilters } from '@/components/people/PeopleFilters'
 import { PeopleInviteMenu } from '@/components/people/PeopleInviteMenu'
 import { PeopleSummary } from '@/components/people/PeopleSummary'
+import { PeopleDrawerHost } from '@/components/people/PeopleDrawerHost'
+import { PeopleConfirmDialog } from '@/components/people/PeopleDrawerShell'
 import type { RowActionHandlers } from '@/components/people/PeopleRowActions'
 import { usePeopleLabels, type TodaySource } from '@/components/people/usePeopleLabels'
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-  { value: 'gm', label: 'General Manager' },
-  { value: 'housekeeping_supervisor', label: 'Housekeeping Supervisor' },
-  { value: 'housekeeper', label: 'Housekeeper' },
-  { value: 'chief_engineer', label: 'Chief Engineer' },
-  { value: 'engineer', label: 'Engineer' },
-  { value: 'front_desk', label: 'Front Desk' },
-]
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  gm: 'General Manager',
-  housekeeping_supervisor: 'Housekeeping Supervisor',
-  engineer: 'Engineer',
-  chief_engineer: 'Chief Engineer',
-  housekeeper: 'Housekeeper',
-  front_desk: 'Front Desk',
-}
-
-// â”€â”€â”€ Invite form schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const inviteSchema = z.object({
-  full_name: z.string().min(2, 'Full name is required'),
-  email: z.string().email('Enter a valid email address'),
-  role: z.enum(['gm', 'housekeeping_supervisor', 'housekeeper', 'engineer', 'chief_engineer', 'front_desk'], {
-    error: 'Select a role',
-  }),
-  department_id: z.string().optional(),
-})
-
-type InviteFormValues = z.infer<typeof inviteSchema>
-
-const directSchema = inviteSchema.extend({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
-
-type DirectFormValues = z.infer<typeof directSchema>
-
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-// â”€â”€â”€ Confirm Deactivate Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function ConfirmDeactivateDialog({
-  staff,
-  onConfirm,
-  onCancel,
-  loading,
-}: {
-  staff: StaffMember
-  onConfirm: () => void
-  onCancel: () => void
-  loading: boolean
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useModalFocusTrap(dialogRef, true, onCancel)
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm"
-        onClick={onCancel}
-      />
-      {/* Dialog */}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="deactivate-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl p-6 w-full max-w-sm space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[var(--alert-soft)] flex items-center justify-center shrink-0">
-            <AlertTriangle size={18} className="text-[var(--alert)]" />
-          </div>
-          <div>
-            <h3 id="deactivate-staff-title" className="text-base font-semibold text-gray-900">Deactivate Staff Member</h3>
-            <p className="text-sm text-gray-500">This will revoke their access immediately.</p>
-          </div>
-        </div>
-
-        <p className="text-sm text-gray-700">
-          Are you sure you want to deactivate{' '}
-          <span className="font-medium">{getDisplayName(staff.full_name)}</span>? They will lose access to PatelRep.
-        </p>
-
-        <div className="flex gap-3 pt-1">
-          <Button
-            variant="ghost"
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? 'Deactivating…' : 'Deactivate'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// â”€â”€â”€ Add Direct Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const queryClient = useQueryClient()
-  const successDialogRef = useRef<HTMLDivElement>(null)
-  const addDialogRef = useRef<HTMLDivElement>(null)
-  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; name: string } | null>(null)
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<DirectFormValues>({
-    resolver: zodResolver(directSchema),
-    defaultValues: { role: 'housekeeper' },
-  })
-
-  const mutation = useMutation({
-    mutationFn: (data: DirectFormValues) =>
-      staffApi.addDirect({ full_name: data.full_name, email: data.email, role: data.role, department_id: data.department_id, password: data.password }),
-    onSuccess: (res, data) => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] })
-      setCreatedCredentials({ email: data.email, password: data.password, name: data.full_name })
-    },
-    onError: (err: any) => setError('root', { message: err.message || 'Failed to add staff member.' }),
-  })
-  useModalFocusTrap(successDialogRef, !!createdCredentials, onClose)
-  useModalFocusTrap(addDialogRef, !createdCredentials, onClose)
-
-  if (createdCredentials) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-        <div ref={successDialogRef} role="dialog" aria-modal="true" aria-labelledby="staff-added-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-            <h2 id="staff-added-title" className="text-lg font-semibold text-gray-900">Staff Member Added</h2>
-            <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 hover:bg-surface/60"><X size={18} /></IconButton>
-          </div>
-          <div className="px-6 py-5 space-y-4">
-            <p className="text-sm text-gray-600"><span className="font-medium">{createdCredentials.name}</span> has been added. Share these login credentials with them:</p>
-            <div className="bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-xl p-4 space-y-2 font-mono text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Email</span><span className="font-medium text-gray-900">{createdCredentials.email}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Password</span><span className="font-medium text-gray-900">{createdCredentials.password}</span></div>
-            </div>
-            <p className="text-xs text-gray-400">They can change their password after logging in.</p>
-            <Button variant="primary" onClick={() => { onSuccess(); onClose() }} className="w-full justify-center">Done</Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={addDialogRef} role="dialog" aria-modal="true" aria-labelledby="add-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 id="add-staff-title" className="text-lg font-semibold text-gray-900">Add Staff Manually</h2>
-          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 hover:bg-surface/60"><X size={18} /></IconButton>
-        </div>
-        <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="px-6 py-5 space-y-4">
-          <p className="text-xs text-gray-500">Creates an account immediately — no email sent. You set the initial password to share with the staff member.</p>
-          {errors.root && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
-              <AlertTriangle size={15} className="shrink-0" />{errors.root.message}
-            </div>
-          )}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Full Name</label>
-            <input {...register('full_name')} placeholder="Maria Garcia" className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.full_name ? 'border-red-300' : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'}`} />
-            {errors.full_name && <p className="text-xs text-[var(--alert)]">{errors.full_name.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input {...register('email')} type="email" placeholder="maria@sunriseinn.com" className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.email ? 'border-red-300' : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'}`} />
-            {errors.email && <p className="text-xs text-[var(--alert)]">{errors.email.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input {...register('password')} type="password" placeholder="Min. 8 characters" className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.password ? 'border-red-300' : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'}`} />
-            {errors.password && <p className="text-xs text-[var(--alert)]">{errors.password.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Role</label>
-            <select {...register('role')} className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50">
-              {ROLE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="flex-1">Cancel</Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting} className="flex-1">
-              <UserPlus size={15} />{isSubmitting ? 'Adding…' : 'Add Staff'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// â”€â”€â”€ Invite Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function InviteModal({
-  onClose,
-  onSuccess,
-}: {
-  onClose: () => void
-  onSuccess: (invitation: StaffInvitation) => void
-}) {
-  const queryClient = useQueryClient()
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setError,
-  } = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: { role: 'housekeeper' },
-  })
-
-  const inviteMutation = useMutation({
-    mutationFn: (data: InviteFormValues) =>
-      staffApi.invite({
-        full_name: data.full_name,
-        email: data.email,
-        role: data.role,
-        department_id: data.department_id || undefined,
-      }),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] })
-      queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
-      onSuccess(res.data)
-    },
-    onError: (err: any) => {
-      setError('root', {
-        message: err.message || 'Failed to send invitation. Please try again.',
-      })
-    },
-  })
-
-  const onSubmit = (data: InviteFormValues) => inviteMutation.mutate(data)
-  useModalFocusTrap(dialogRef, true, onClose)
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal */}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 id="modal-title" className="text-lg font-semibold text-gray-900">Invite Staff Member</h2>
-          <IconButton
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 hover:bg-surface/60"
-          >
-            <X size={18} />
-          </IconButton>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
-          {errors.root && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
-              <AlertTriangle size={15} className="shrink-0" />
-              {errors.root.message}
-            </div>
-          )}
-
-          {/* Full Name */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Full Name</label>
-            <input
-              {...register('full_name')}
-              placeholder="Maria Garcia"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors ${
-                errors.full_name
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'
-              }`}
-            />
-            {errors.full_name && (
-              <p className="text-xs text-[var(--alert)]">{errors.full_name.message}</p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input
-              {...register('email')}
-              type="email"
-              placeholder="maria@sunriseinn.com"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors ${
-                errors.email
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'
-              }`}
-            />
-            {errors.email && (
-              <p className="text-xs text-[var(--alert)]">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Role */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Role</label>
-            <select
-              {...register('role')}
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors ${
-                errors.role
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'
-              }`}
-            >
-              {ROLE_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            {errors.role && (
-              <p className="text-xs text-[var(--alert)]">{errors.role.message}</p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-              className="flex-1"
-            >
-              <Mail size={15} />
-              {isSubmitting ? 'Sending…' : 'Send Invite'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// â”€â”€â”€ Schedule helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'engineer'>> = {
-  housekeeper: 'housekeeping_supervisor',
-  engineer: 'engineer',
-}
-
-const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-
-function formatScheduleDays(days: number[]): string {
-  return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(' · ')
-}
-
-// â”€â”€â”€ Edit Staff Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function EditStaffModal({
-  staff,
-  onClose,
-  onSuccess,
-  v2,
-}: {
-  staff: StaffMember
-  onClose: () => void
-  onSuccess: () => void
-  v2: boolean
-}) {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const [role, setRole] = useState<UserRole>(staff.role)
-  const [customRoleId, setCustomRoleId] = useState<string | null>(staff.custom_role_id ?? null)
-  const [hourlyRate, setHourlyRate] = useState<string>(staff.hourly_rate != null ? String(staff.hourly_rate) : '')
-  const [error, setError] = useState<string | null>(null)
-  const [selectedDays, setSelectedDays] = useState<number[]>([])
-
-  const overrideRole = SCHEDULE_OVERRIDE[staff.role]
-
-  const schedulesQuery = useQuery({
-    queryKey: ['role-schedules', staff.user_id],
-    queryFn: () => staffApi.getRoleSchedules(staff.user_id),
-    enabled: !!overrideRole,
-    select: (res) => res.data,
-  })
-
-  const customRolesQuery = useQuery({
-    queryKey: ['custom-roles'],
-    queryFn: () => staffApi.listCustomRoles(),
-    select: (res) => res.data,
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: () => staffApi.update(staff.user_id, {
-      role,
-      custom_role_id: customRoleId,
-      hourly_rate: hourlyRate === '' ? undefined : Number(hourlyRate),
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] })
-      onSuccess()
-    },
-    onError: (err: any) => setError(err.message || 'Failed to update staff member.'),
-  })
-
-  const createScheduleMutation = useMutation({
-    mutationFn: () =>
-      staffApi.createRoleSchedule(staff.user_id, {
-        override_role: overrideRole!,
-        days_of_week: selectedDays,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['role-schedules', staff.user_id] })
-      setSelectedDays([])
-    },
-    onError: (err: any) => setError(err.message || 'Failed to create schedule.'),
-  })
-
-  const deleteScheduleMutation = useMutation({
-    mutationFn: (scheduleId: string) => staffApi.deleteRoleSchedule(staff.user_id, scheduleId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['role-schedules', staff.user_id] }),
-    onError: (err: any) => setError(err.message || 'Failed to remove schedule.'),
-  })
-
-  const toggleDay = (day: number) =>
-    setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    )
-  useModalFocusTrap(dialogRef, true, onClose)
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
-
-        {/* Sticky header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60 sticky top-0 bg-surface/80 backdrop-blur-xl z-10">
-          <h2 id="edit-staff-title" className="text-lg font-semibold text-gray-900">Edit Staff Member</h2>
-          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 hover:bg-surface/60">
-            <X size={18} />
-          </IconButton>
-        </div>
-
-        <div className="px-6 py-5 space-y-5">
-          {/* Identity */}
-          <div className="flex items-center gap-3">
-            <Avatar name={getDisplayName(staff.full_name)} size={32} />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{getDisplayName(staff.full_name)}</p>
-              <p className="text-xs text-gray-500 truncate">{staff.email}</p>
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
-              <AlertTriangle size={15} className="shrink-0" />{error}
-            </div>
-          )}
-
-          {/* Base role */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-            >
-              {ROLE_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Hourly rate — GM-only field, this whole page is already GM-gated */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">{t('staff.editModal.hourlyRateLabel')}</label>
-            <input
-              type="number"
-              min={0}
-              max={500}
-              step="0.01"
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
-              placeholder={t('staff.editModal.hourlyRatePlaceholder')}
-              className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-            />
-            <p className="text-xs text-gray-500">{t('staff.editModal.hourlyRateHint')}</p>
-          </div>
-
-          {/* Custom Role */}
-          {v2 && customRolesQuery.isLoading ? (
-            <div className="space-y-1.5 border-t border-white/60 pt-4">
-              <Skeleton className="h-3.5 w-24 rounded-md" />
-              <Skeleton className="h-9 w-full rounded-lg" />
-            </div>
-          ) : v2 && customRolesQuery.isError ? (
-            <div className="border-t border-white/60 pt-4">
-              <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg">
-                <span className="flex items-center gap-1.5 text-xs text-[var(--alert)]">
-                  <AlertTriangle size={13} className="shrink-0" />
-                  {t('staff.editModal.rolesLoadError')}
-                </span>
-                <Button variant="ghost" size="sm" onClick={() => customRolesQuery.refetch()} className="h-7 px-2 text-xs shrink-0">
-                  Retry
-                </Button>
-              </div>
-            </div>
-          ) : (customRolesQuery.data ?? []).length > 0 && (
-            <div className="space-y-1.5 border-t border-white/60 pt-4">
-              <label className="block text-sm font-medium text-gray-700">Custom Role</label>
-              <p className="text-xs text-gray-500">Override this staff member's sidebar with a custom permission set.</p>
-              <select
-                value={customRoleId ?? ''}
-                onChange={(e) => setCustomRoleId(e.target.value || null)}
-                className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-              >
-                <option value="">— None (use base role) —</option>
-                {(customRolesQuery.data ?? []).map((cr: CustomRole) => (
-                  <option key={cr.id} value={cr.id}>{cr.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Role Schedule — only for housekeeper / engineer */}
-          {overrideRole && (
-            <div className="space-y-3 border-t border-white/60 pt-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                <Calendar size={14} className="text-[var(--caution)]" />
-                Role Schedule
-              </div>
-              <p className="text-xs text-gray-500">
-                On scheduled days,{' '}
-                <span className="font-medium">{getDisplayName(staff.full_name).split(' ')[0]}</span> acts as{' '}
-                <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> — full dashboard
-                and feature access for that role.
-              </p>
-
-              {/* Existing schedules */}
-              {v2 && schedulesQuery.isLoading ? (
-                <div className="space-y-1.5">
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                </div>
-              ) : v2 && schedulesQuery.isError ? (
-                <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg">
-                  <span className="flex items-center gap-1.5 text-xs text-[var(--alert)]">
-                    <AlertTriangle size={13} className="shrink-0" />
-                    {t('staff.editModal.schedulesLoadError')}
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={() => schedulesQuery.refetch()} className="h-7 px-2 text-xs shrink-0">
-                    Retry
-                  </Button>
-                </div>
-              ) : schedulesQuery.isLoading ? (
-                <p className="text-xs text-gray-400">Loading…</p>
-              ) : (schedulesQuery.data ?? []).length === 0 ? (
-                <p className="text-xs text-gray-400 italic">No schedule overrides set.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {(schedulesQuery.data ?? []).map((s: RoleSchedule) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between px-3 py-2 bg-[var(--caution-soft)]/70 border border-amber-100 rounded-lg"
-                    >
-                      <span className="text-xs font-medium text-gray-800">
-                        {formatScheduleDays(s.days_of_week)}
-                        <span className="text-gray-400 font-normal ml-2">
-                          → {ROLE_LABELS[overrideRole]}
-                        </span>
-                      </span>
-                      <IconButton
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteScheduleMutation.mutate(s.id)}
-                        disabled={deleteScheduleMutation.isPending}
-                        aria-label="Remove schedule"
-                        className="text-gray-400 hover:text-[var(--alert)]"
-                      >
-                        <Trash2 size={13} />
-                      </IconButton>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Day picker */}
-              <div className="space-y-2 pt-1">
-                <p className="text-xs font-medium text-gray-600">Select days to add:</p>
-                <div className="flex gap-1.5">
-                  {DAY_LABELS.map((label, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => toggleDay(idx)}
-                      className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs font-semibold transition-colors ${
-                        selectedDays.includes(idx)
-                          ? 'bg-amber-400 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => createScheduleMutation.mutate()}
-                  disabled={selectedDays.length === 0 || createScheduleMutation.isPending}
-                  className="text-xs h-8"
-                >
-                  <Plus size={13} />
-                  {createScheduleMutation.isPending ? 'Adding…' : 'Add Schedule'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2 border-t border-white/60">
-            <Button variant="ghost" onClick={onClose} disabled={updateMutation.isPending} className="flex-1">
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => updateMutation.mutate()}
-              disabled={updateMutation.isPending || (role === staff.role && customRoleId === (staff.custom_role_id ?? null) && hourlyRate === (staff.hourly_rate != null ? String(staff.hourly_rate) : ''))}
-              className="flex-1"
-            >
-              {updateMutation.isPending ? 'Saving…' : 'Save Role'}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// â”€â”€â”€ Staff Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Person profile, onboarding, access, coverage and invitation management all live in the one People drawer
+// (components/people/PeopleDrawerHost.tsx); this page owns the directory, its filters and the lifecycle confirmations.
 
 function StaffPageContent() {
   const router = useRouter()
@@ -709,17 +41,16 @@ function StaffPageContent() {
   const searchParams = useSearchParams()
   const { isGM } = useRole()
   const authLoading = useAuthStore((s) => s.isLoading)
-  const queryClient = useQueryClient()
+  const refreshPeople = useRefreshPeople()
   const { t, roleLabel } = usePeopleLabels()
   const hotel = useHotelStore((s) => s.hotel)
   const hotelId = hotel?.id ?? null
-  const v2 = isSectionRedesigned('staff', hotel)
+  const selfUserId = useAuthStore((s) => s.user?.id ?? null)
 
-  const [showInviteModal, setShowInviteModal] = useState(false)
-  const [showAddDirectModal, setShowAddDirectModal] = useState(false)
+  const [drawerView, setDrawerView] = useState<DrawerView | null>(null)
   const [confirmDeactivate, setConfirmDeactivate] = useState<StaffMember | null>(null)
+  const [confirmReactivate, setConfirmReactivate] = useState<StaffMember | null>(null)
   const [confirmRevoke, setConfirmRevoke] = useState<InvitationEntry | null>(null)
-  const [editStaff, setEditStaff] = useState<StaffMember | null>(null)
   const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; text: string } | null>(null)
   const [busyKey, setBusyKey] = useState<string | null>(null)
 
@@ -745,6 +76,10 @@ function StaffPageContent() {
       lastHotel.current = hotelId
       setFilters((f) => (f.department ? { ...f, department: '' } : f))
       setNotice(null)
+      setDrawerView(null)
+      setConfirmDeactivate(null)
+      setConfirmReactivate(null)
+      setConfirmRevoke(null)
     }
   }, [hotelId])
 
@@ -785,6 +120,7 @@ function StaffPageContent() {
   })
 
   const departments = departmentsQuery.data
+  const personName = (s: StaffMember) => s.preferred_name || s.full_name || s.email
   const departmentNames = useMemo(
     () => Object.fromEntries((departments ?? []).map((d) => [d.id, d.name])),
     [departments],
@@ -825,28 +161,28 @@ function StaffPageContent() {
     setNotice({ tone: 'error', text: (err as Error)?.message || t('people.feedback.actionFailed') })
 
   const deactivateMutation = useMutation({
-    mutationFn: (staffId: string) => staffApi.deactivate(staffId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] })
+    mutationFn: (staff: StaffMember) => staffApi.deactivate(staff.user_id),
+    onSuccess: async (_res, staff) => {
+      await refreshPeople()
+      setNotice({ tone: 'success', text: t('people.feedback.deactivated', { name: personName(staff) }) })
       setConfirmDeactivate(null)
     },
-    onError: (err) => { setConfirmDeactivate(null); fail(err) },
+    onError: async () => { await refreshPeople() },
   })
   const reactivateMutation = useMutation({
-    mutationFn: (entry: StaffEntry) => staffApi.reactivate(entry.staff.user_id),
-    onMutate: (entry) => setBusyKey(entry.key),
-    onSuccess: (_res, entry) => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] })
-      setNotice({ tone: 'success', text: t('people.feedback.reactivated', { name: entry.name || entry.email }) })
+    mutationFn: (staff: StaffMember) => staffApi.reactivate(staff.user_id),
+    onSuccess: async (_res, staff) => {
+      await refreshPeople()
+      setNotice({ tone: 'success', text: t('people.feedback.reactivated', { name: personName(staff) }) })
+      setConfirmReactivate(null)
     },
-    onError: fail,
-    onSettled: () => setBusyKey(null),
+    onError: async () => { await refreshPeople() },
   })
   const resendMutation = useMutation({
     mutationFn: (entry: InvitationEntry) => staffApi.resendInvitation(entry.invitation.id),
     onMutate: (entry) => setBusyKey(entry.key),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
+    onSuccess: async (res) => {
+      await refreshPeople()
       setNotice(deliveryNotice(res.data.email, res.data.delivery.status))
     },
     onError: fail,
@@ -854,12 +190,14 @@ function StaffPageContent() {
   })
   const revokeMutation = useMutation({
     mutationFn: (entry: InvitationEntry) => staffApi.revokeInvitation(entry.invitation.id),
-    onSuccess: (_res, entry) => {
-      queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
+    onSuccess: async (_res, entry) => {
+      await refreshPeople()
       setNotice({ tone: 'success', text: t('people.feedback.revoked', { email: entry.email }) })
       setConfirmRevoke(null)
+      setDrawerView((v) => (v && 'key' in v && v.key === entry.key ? null : v))
     },
-    onError: (err) => { setConfirmRevoke(null); fail(err) },
+    // A race (already accepted or revoked elsewhere) is reported by the API; refresh so the directory tells the truth.
+    onError: async () => { await refreshPeople() },
   })
 
   // Wording follows what the email provider actually reported - never assume delivery.
@@ -869,13 +207,22 @@ function StaffPageContent() {
     return { tone: 'success' as const, text: t('people.feedback.emailRequested', { email }) }
   }
 
+  const open = (view: DrawerView) => setDrawerView(view)
   const handlers: RowActionHandlers = {
-    onEdit: (e) => setEditStaff(e.staff),
-    onDeactivate: (e) => setConfirmDeactivate(e.staff),
-    onReactivate: (e) => reactivateMutation.mutate(e),
+    context: { selfUserId, staff: staffQuery.data ?? [] },
+    onProfile: (e) => open({ view: 'profile', key: e.key }),
+    onEdit: (e) => open({ view: 'edit', key: e.key }),
+    onAccess: (e) => open({ view: 'access', key: e.key }),
+    onSchedule: () => router.push('/scheduling'),
+    onDeactivate: (e) => { deactivateMutation.reset(); setConfirmDeactivate(e.staff) },
+    onReactivate: (e) => { reactivateMutation.reset(); setConfirmReactivate(e.staff) },
+    onInvitation: (e) => open({ view: 'invitation', key: e.key }),
     onResend: (e) => resendMutation.mutate(e),
-    onRevoke: (e) => setConfirmRevoke(e),
+    onEditInvitation: (e) => open({ view: 'editInvitation', key: e.key }),
+    onReissue: (e) => open({ view: 'invitation', key: e.key }),
+    onRevoke: (e) => { revokeMutation.reset(); setConfirmRevoke(e) },
   }
+  const openEntry = (e: DirectoryEntry) => open({ view: e.kind === 'staff' ? 'profile' : 'invitation', key: e.key })
 
   // ── Access: wait for auth to resolve before deciding anything ──
   if (authLoading || (isGM && !hotelId)) {
@@ -901,7 +248,7 @@ function StaffPageContent() {
 
   const noPeopleAtAll = !!staffQuery.data && directory.length === 0
   const filtersActive = hasActiveFilters(filters)
-  const openInvite = () => setShowInviteModal(true)
+  const openInvite = () => open({ view: 'invite' })
 
   return (
     <div className="space-y-5" data-i18n-skip="true">
@@ -913,7 +260,7 @@ function StaffPageContent() {
           { label: t('people.tabs.team'), active: true, dataI18nSkip: true },
           { label: t('people.tabs.schedule'), active: false, onClick: () => router.push('/scheduling'), dataI18nSkip: true },
         ]}
-        actions={<PeopleInviteMenu onInvite={openInvite} onCreateManually={() => setShowAddDirectModal(true)} />}
+        actions={<PeopleInviteMenu onInvite={openInvite} onCreateManually={() => open({ view: 'create' })} />}
       />
 
       <PeopleSummary
@@ -984,66 +331,87 @@ function StaffPageContent() {
             <div className="hidden lg:block">
               <PeopleDirectoryTable
                 entries={visible} today={todayMap} todaySource={sources.today} sort={filters.sort} dir={filters.dir}
-                onSort={onSort} handlers={handlers} busyKey={busyKey}
+                onSort={onSort} handlers={handlers} busyKey={busyKey} onOpenEntry={openEntry}
               />
             </div>
             <div className="lg:hidden">
               <PeopleMobileCards
                 entries={visible} today={todayMap} todaySource={sources.today} sort={filters.sort} dir={filters.dir}
-                onSort={onSort} handlers={handlers} busyKey={busyKey}
+                onSort={onSort} handlers={handlers} busyKey={busyKey} onOpenEntry={openEntry}
               />
             </div>
           </>
         )}
       </Card>
 
-      {showInviteModal && (
-        <InviteModal
-          onClose={() => setShowInviteModal(false)}
-          onSuccess={(invitation) => {
-            setShowInviteModal(false)
-            setNotice(deliveryNotice(invitation.email, invitation.delivery?.status ?? null))
-          }}
-        />
-      )}
-
-      {showAddDirectModal && (
-        <AddDirectModal
-          onClose={() => setShowAddDirectModal(false)}
-          onSuccess={() => {
-            setShowAddDirectModal(false)
-            setNotice({ tone: 'success', text: t('people.feedback.accountCreated') })
-          }}
-        />
-      )}
-
-      {editStaff && (
-        <EditStaffModal
-          staff={editStaff}
-          onClose={() => setEditStaff(null)}
-          onSuccess={() => setEditStaff(null)}
-          v2={v2}
-        />
-      )}
+      <PeopleDrawerHost
+        view={drawerView}
+        setView={setDrawerView}
+        directory={directory}
+        directoryLoaded={!!staffQuery.data}
+        staffList={staffQuery.data ?? []}
+        departments={departments ?? []}
+        today={todayMap}
+        todaySource={sources.today}
+        selfUserId={selfUserId}
+        isGM={isGM}
+        notify={setNotice}
+        onDeactivate={(s) => { deactivateMutation.reset(); setConfirmDeactivate(s) }}
+        onReactivate={(s) => { reactivateMutation.reset(); setConfirmReactivate(s) }}
+        onRevoke={(e) => { revokeMutation.reset(); setConfirmRevoke(e) }}
+      />
 
       {confirmDeactivate && (
-        <ConfirmDeactivateDialog
-          staff={confirmDeactivate}
-          loading={deactivateMutation.isPending}
+        <PeopleConfirmDialog
+          title={t('people.deactivate.title', { name: personName(confirmDeactivate) })}
+          body={(
+            <>
+              <p>{t('people.deactivate.access')}</p>
+              <p>{t('people.deactivate.history')}</p>
+              <p>{t('people.deactivate.assignments')}</p>
+            </>
+          )}
+          confirmLabel={t('people.actions.deactivate')}
+          busyLabel={t('people.deactivate.busy')}
+          tone="destructive"
+          busy={deactivateMutation.isPending}
+          error={deactivateMutation.isError ? (deactivateMutation.error as Error)?.message || t('people.feedback.actionFailed') : null}
           onCancel={() => setConfirmDeactivate(null)}
-          onConfirm={() => deactivateMutation.mutate(confirmDeactivate.user_id)}
+          onConfirm={() => deactivateMutation.mutate(confirmDeactivate)}
         />
       )}
 
-      <DeleteConfirmDialog
-        open={!!confirmRevoke}
-        title={t('people.revoke.title')}
-        description={confirmRevoke ? t('people.revoke.body', { email: confirmRevoke.email }) : undefined}
-        confirmLabel={t('people.revoke.confirm')}
-        loading={revokeMutation.isPending}
-        onCancel={() => setConfirmRevoke(null)}
-        onConfirm={() => confirmRevoke && revokeMutation.mutate(confirmRevoke)}
-      />
+      {confirmReactivate && (
+        <PeopleConfirmDialog
+          title={t('people.reactivate.title', { name: personName(confirmReactivate) })}
+          body={(
+            <>
+              <p>{t('people.reactivate.access', { role: roleLabel(confirmReactivate.role) })}</p>
+              <p>{t('people.reactivate.nothingElse')}</p>
+            </>
+          )}
+          confirmLabel={t('people.actions.reactivate')}
+          busyLabel={t('people.reactivate.busy')}
+          busy={reactivateMutation.isPending}
+          error={reactivateMutation.isError ? (reactivateMutation.error as Error)?.message || t('people.feedback.actionFailed') : null}
+          onCancel={() => setConfirmReactivate(null)}
+          onConfirm={() => reactivateMutation.mutate(confirmReactivate)}
+        />
+      )}
+
+      {confirmRevoke && (
+        <PeopleConfirmDialog
+          title={t('people.revoke.title')}
+          body={<p>{t('people.revoke.body', { email: confirmRevoke.email })}</p>}
+          confirmLabel={t('people.revoke.confirm')}
+          busyLabel={t('people.revoke.busy')}
+          tone="destructive"
+          busy={revokeMutation.isPending}
+          error={revokeMutation.isError ? (revokeMutation.error as Error)?.message || t('people.feedback.actionFailed') : null}
+          onCancel={() => setConfirmRevoke(null)}
+          onConfirm={() => revokeMutation.mutate(confirmRevoke)}
+        />
+      )}
     </div>
   )
 }

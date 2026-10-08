@@ -100,6 +100,26 @@ export interface ReissueInvitationData {
   phone?: string
 }
 
+export interface AddDirectData {
+  full_name: string
+  preferred_name?: string
+  email: string
+  role: UserRole
+  department_id?: string
+  custom_role_id?: string
+  phone?: string
+  /** Omit to have the server generate a one-time password. */
+  password?: string
+}
+
+export interface AddDirectResult {
+  success: boolean
+  user_id: string
+  full_name: string
+  /** Returned once by the create call; never persist or log it. */
+  temp_password: string
+}
+
 export interface UpdateStaffData {
   role?: UserRole
   department_id?: string | null
@@ -226,7 +246,7 @@ export const staffApi = {
   acceptInvitation: (): Promise<AcceptInvitationResponse> =>
     apiClient.post('/staff/invitations/accept'),
 
-  addDirect: (data: { full_name: string; email: string; role: UserRole; department_id?: string; password?: string }): Promise<{ data: { success: boolean; user_id: string; full_name: string; temp_password: string } }> =>
+  addDirect: (data: AddDirectData): Promise<{ data: AddDirectResult }> =>
     apiClient.post('/staff/add-direct', data),
 
   getEffectiveRole: (): Promise<{ data: { base_role: string; effective_role: string; schedule_id: string | null; is_overridden: boolean; custom_role: { id: string; name: string; allowed_modules: string[] } | null } }> =>
