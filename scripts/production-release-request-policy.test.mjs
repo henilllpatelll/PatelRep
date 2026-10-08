@@ -659,7 +659,7 @@ test('release mode still FAILS on every policy refusal and unknown modes always 
 })
 
 test('relay-dispatched health runs (github-actions[bot] on main) count as root and recovery evidence; any human or off-main dispatch does not', async () => {
-  const relay = { event: 'workflow_dispatch', head_branch: 'main', actor: { login: 'github-actions[bot]' }, triggering_actor: { login: 'github-actions[bot]' } }
+  const relay = { event: 'workflow_dispatch', head_branch: 'main', path: '.github/workflows/deploy-check.yml', actor: { login: 'github-actions[bot]' }, triggering_actor: { login: 'github-actions[bot]' } }
   assert.equal(isTrustedHealthEvent(relay), true)
   for (const bad of [
     { ...relay, actor: { login: 'henilllpatelll' } },
@@ -686,4 +686,19 @@ test('relay-dispatched health runs (github-actions[bot] on main) count as root a
   // As recovery proof: a newer successful relay run clears the root, a human's manual run does not.
   assert.equal(await eligibleWith([healthRun('37100000050', relay)]), false, 'a newer successful relay run is recovery proof')
   assert.equal(await eligibleWith([healthRun('37100000050', { ...relay, actor: { login: 'human' }, triggering_actor: { login: 'human' } })]), true)
+})
+
+test('an unrelated bot-dispatched workflow that merely NAMES itself Deploy Health Check is never root or recovery evidence', async () => {
+  const bot = { event: 'workflow_dispatch', head_branch: 'main', actor: { login: 'github-actions[bot]' }, triggering_actor: { login: 'github-actions[bot]' } }
+  const relay = { ...bot, path: '.github/workflows/deploy-check.yml' }
+  assert.equal(isTrustedHealthEvent(relay), true)
+  assert.equal(isTrustedHealthEvent({ ...bot, path: '.github/workflows/deploy-check.yml@refs/heads/main' }), true)
+  for (const path of ['.github/workflows/evil.yml', '.github/workflows/deploy-check.yml.evil', 'x/.github/workflows/deploy-check.yml', '', undefined, null]) {
+    assert.equal(isTrustedHealthEvent({ ...bot, path }), false, String(path))
+  }
+  const impostor = { ...bot, path: '.github/workflows/other.yml' }
+  await assertIneligible((s) => { Object.assign(s.runs[ROOT], impostor) }, /workflow_dispatch run/)
+  const { state, deps } = world()
+  state.healthRuns = [healthRun('37100000050', impostor)]
+  assert.equal((await evaluateProductionRequest(request, deps)).eligible, true, 'an impostor success must not even suppress/influence the decision')
 })

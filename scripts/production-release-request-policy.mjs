@@ -30,15 +30,20 @@ export const ROOT_WORKFLOW_NAME = 'Deploy Health Check'
 // A health failure may come from the schedule or a push to main; a manual dispatch is never an automatic root.
 export const ROOT_EVENTS = Object.freeze(['schedule', 'push'])
 const WORKFLOW_BOT = 'github-actions[bot]'
+const HEALTH_WORKFLOW_PATH = '.github/workflows/deploy-check.yml'
 
 // Deploy Health Check keeps its cadence through a relay (see deploy-check.yml): a run the workflow itself
 // dispatched with GITHUB_TOKEN on main is the same trusted monitor as a scheduled run. A human's manual
 // workflow_dispatch (any other actor, or any other branch) is still NOT root or recovery evidence.
+// The run `name` alone is NOT identity (a run-name can be anything), so the exact workflow file is required too:
+// an unrelated bot-dispatched workflow that merely calls itself "Deploy Health Check" must never qualify.
 export function isTrustedHealthEvent(run) {
   if (ROOT_EVENTS.includes(run?.event)) return true
   return (
     run?.event === 'workflow_dispatch' &&
     run.head_branch === 'main' &&
+    typeof run.path === 'string' &&
+    run.path.split('@')[0] === HEALTH_WORKFLOW_PATH &&
     run.actor?.login === WORKFLOW_BOT &&
     run.triggering_actor?.login === WORKFLOW_BOT
   )
