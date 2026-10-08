@@ -1,7 +1,7 @@
 ﻿'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useMemo, useEffect, useRef } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,31 +10,39 @@ import { useTranslation } from 'react-i18next'
 import {
   UserPlus,
   X,
-  Search,
-  ChevronDown,
   Mail,
   AlertTriangle,
-  RefreshCw,
-  Pencil,
-  UserX,
-  Clock,
   Calendar,
   Plus,
   Trash2,
 } from 'lucide-react'
 import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule, type CustomRole } from '@/lib/api/staff'
-import { getInitials, getDisplayName } from '@/lib/utils/avatar'
+import { getDisplayName } from '@/lib/utils/avatar'
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Pill, SectionLabel } from '@/components/ui/primitives'
+import { Avatar, SectionLabel } from '@/components/ui/primitives'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { schedulingApi } from '@/lib/api/scheduling'
+import { useAuthStore } from '@/stores/authStore'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
+import {
+  DEFAULT_FILTERS, buildDirectory, buildTodayMap, decodeFilters, encodeFilters, filterDirectory, hasActiveFilters,
+  hotelToday, sortDirectory, summarize, type DirectoryFilters, type InvitationEntry, type SortKey, type StaffEntry,
+} from '@/lib/people/peopleDirectory'
+import { PeopleDirectorySkeleton, PeopleDirectoryTable, PeopleMobileCards } from '@/components/people/PeopleDirectory'
+import { PeopleFilters } from '@/components/people/PeopleFilters'
+import { PeopleInviteMenu } from '@/components/people/PeopleInviteMenu'
+import { PeopleSummary } from '@/components/people/PeopleSummary'
+import type { RowActionHandlers } from '@/components/people/PeopleRowActions'
+import { usePeopleLabels, type TodaySource } from '@/components/people/usePeopleLabels'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -54,24 +62,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
   chief_engineer: 'Chief Engineer',
   housekeeper: 'Housekeeper',
   front_desk: 'Front Desk',
-}
-
-const ROLE_TONE: Record<UserRole, 'caution' | 'ready' | 'neutral' | 'ai'> = {
-  gm: 'caution',
-  housekeeping_supervisor: 'ready',
-  housekeeper: 'neutral',
-  engineer: 'ai',
-  chief_engineer: 'ai',
-  front_desk: 'ai',
-}
-
-const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
-  gm: 'bg-violet-600',
-  housekeeping_supervisor: 'bg-green-600',
-  housekeeper: 'bg-teal-600',
-  engineer: 'bg-sky-600',
-  chief_engineer: 'bg-sky-700',
-  front_desk: 'bg-amber-600',
 }
 
 // â”€â”€â”€ Invite form schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -95,32 +85,7 @@ type DirectFormValues = z.infer<typeof directSchema>
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const minutes = Math.floor(diff / 60_000)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-  if (days > 0) return `${days} day${days === 1 ? '' : 's'} ago`
-  if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`
-  if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
-  return 'just now'
-}
-
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function RoleBadge({ role }: { role: UserRole }) {
-  return <Pill tone={ROLE_TONE[role]}>{ROLE_LABELS[role]}</Pill>
-}
-
-function Avatar({ name, role }: { name: string; role: UserRole }) {
-  return (
-    <div
-      className={`w-8 h-8 rounded-full ${ROLE_AVATAR_COLORS[role]} flex items-center justify-center text-white text-xs font-semibold shrink-0`}
-    >
-      {getInitials(name)}
-    </div>
-  )
-}
 
 // â”€â”€â”€ Confirm Deactivate Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -287,7 +252,7 @@ function InviteModal({
   onSuccess,
 }: {
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (invitation: StaffInvitation) => void
 }) {
   const queryClient = useQueryClient()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -310,10 +275,10 @@ function InviteModal({
         role: data.role,
         department_id: data.department_id || undefined,
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
-      onSuccess()
+      onSuccess(res.data)
     },
     onError: (err: any) => {
       setError('root', {
@@ -543,7 +508,7 @@ function EditStaffModal({
         <div className="px-6 py-5 space-y-5">
           {/* Identity */}
           <div className="flex items-center gap-3">
-            <Avatar name={getDisplayName(staff.full_name)} role={staff.role} />
+            <Avatar name={getDisplayName(staff.full_name)} size={32} />
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{getDisplayName(staff.full_name)}</p>
               <p className="text-xs text-gray-500 truncate">{staff.email}</p>
@@ -738,50 +703,126 @@ function EditStaffModal({
 
 // â”€â”€â”€ Staff Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export default function StaffPage() {
+function StaffPageContent() {
   const router = useRouter()
-  const { canManageStaff, isGM } = useRole()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { isGM } = useRole()
+  const authLoading = useAuthStore((s) => s.isLoading)
   const queryClient = useQueryClient()
-  const { t } = useTranslation()
+  const { t, roleLabel } = usePeopleLabels()
   const hotel = useHotelStore((s) => s.hotel)
+  const hotelId = hotel?.id ?? null
   const v2 = isSectionRedesigned('staff', hotel)
-
-  // â”€â”€ All hooks must be called unconditionally before any early returns â”€â”€â”€â”€â”€â”€â”€
 
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showAddDirectModal, setShowAddDirectModal] = useState(false)
-  const [inviteSuccess, setInviteSuccess] = useState(false)
-  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
-  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active')
-  const [searchQuery, setSearchQuery] = useState('')
   const [confirmDeactivate, setConfirmDeactivate] = useState<StaffMember | null>(null)
+  const [confirmRevoke, setConfirmRevoke] = useState<InvitationEntry | null>(null)
   const [editStaff, setEditStaff] = useState<StaffMember | null>(null)
-  const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; text: string } | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
 
-  // Auto-dismiss invite success banner
+  // ── Filter state: initialised from, and written back to, the URL (defaults omitted) ──
+  const [filters, setFilters] = useState<DirectoryFilters>(() => decodeFilters(new URLSearchParams(searchParams.toString())))
+  const [searchInput, setSearchInput] = useState(filters.q)
+  const patchFilters = (patch: Partial<DirectoryFilters>) => setFilters((f) => ({ ...f, ...patch }))
+
   useEffect(() => {
-    if (!inviteSuccess) return
-    const t = setTimeout(() => setInviteSuccess(false), 4000)
-    return () => clearTimeout(t)
-  }, [inviteSuccess])
+    const id = setTimeout(() => setFilters((f) => (f.q === searchInput ? f : { ...f, q: searchInput })), 200)
+    return () => clearTimeout(id)
+  }, [searchInput])
 
-  // â”€â”€ Data fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    const qs = encodeFilters(filters)
+    if (qs !== window.location.search.replace(/^\?/, '')) router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [filters, pathname, router])
 
+  // A department id from another hotel must not survive a hotel switch.
+  const lastHotel = useRef(hotelId)
+  useEffect(() => {
+    if (lastHotel.current !== hotelId) {
+      lastHotel.current = hotelId
+      setFilters((f) => (f.department ? { ...f, department: '' } : f))
+      setNotice(null)
+    }
+  }, [hotelId])
+
+  useEffect(() => {
+    if (notice?.tone !== 'success') return
+    const id = setTimeout(() => setNotice(null), 6000)
+    return () => clearTimeout(id)
+  }, [notice])
+
+  // ── Data: every key is scoped to the active hotel; no per-person requests ──
+  const enabled = isGM && !!hotelId
   const staffQuery = useQuery({
-    queryKey: ['staff'],
-    queryFn: () => staffApi.list(),
+    queryKey: ['staff', 'directory', hotelId],
+    queryFn: () => staffApi.list({ status: 'all' }),
     select: (res) => res.data.staff,
-    enabled: isGM,
+    enabled,
   })
-
   const invitationsQuery = useQuery({
-    queryKey: ['staff-invitations'],
-    queryFn: () => staffApi.listInvitations(),
+    queryKey: ['staff-invitations', 'open', hotelId],
+    queryFn: () => staffApi.listInvitations('open'),
     select: (res) => res.data.invitations,
-    enabled: isGM,
+    enabled,
+  })
+  const departmentsQuery = useQuery({
+    queryKey: ['people-departments', hotelId],
+    queryFn: () => staffApi.listDepartments(),
+    select: (res) => res.data,
+    enabled,
+    staleTime: 300_000,
+  })
+  const todayDate = hotelToday(hotel?.timezone)
+  const todayQuery = useQuery({
+    queryKey: ['people-today', hotelId, todayDate],
+    queryFn: () => schedulingApi.listAssignments({ work_date: todayDate as string }),
+    select: (res) => res.data,
+    enabled: enabled && !!todayDate,
+    staleTime: 60_000,
   })
 
-  // â”€â”€ Mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const departments = departmentsQuery.data
+  const departmentNames = useMemo(
+    () => Object.fromEntries((departments ?? []).map((d) => [d.id, d.name])),
+    [departments],
+  )
+  const directory = useMemo(
+    () => (staffQuery.data ? buildDirectory(staffQuery.data, invitationsQuery.data ?? [], departmentNames) : []),
+    [staffQuery.data, invitationsQuery.data, departmentNames],
+  )
+  const todayMap = useMemo(() => (todayQuery.data ? buildTodayMap(todayQuery.data) : undefined), [todayQuery.data])
+
+  const source = (q: { isLoading: boolean; isError: boolean }, missing = false): TodaySource =>
+    q.isError || missing ? 'error' : q.isLoading ? 'loading' : 'ready'
+  const sources = {
+    staff: source(staffQuery),
+    invitations: source(invitationsQuery),
+    // Without a valid hotel timezone we cannot say what "today" is, so the schedule is unavailable.
+    today: source(todayQuery, !todayDate),
+  }
+  const summary = summarize(staffQuery.data, invitationsQuery.data, todayMap)
+
+  const departmentOptions = useMemo(() => {
+    const byId = new Map<string, string>((departments ?? []).map((d) => [d.id, d.name]))
+    for (const e of directory) if (e.departmentId && e.departmentName && !byId.has(e.departmentId)) byId.set(e.departmentId, e.departmentName)
+    return [...byId].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [departments, directory])
+
+  const visible = useMemo(
+    () => sortDirectory(filterDirectory(directory, filters, roleLabel), filters, roleLabel),
+    [directory, filters, roleLabel],
+  )
+
+  const clearFilters = () => { setSearchInput(''); setFilters({ ...DEFAULT_FILTERS, sort: filters.sort, dir: filters.dir }) }
+  const onSort = (key: SortKey) =>
+    setFilters((f) => ({ ...f, sort: key, dir: f.sort === key && f.dir === 'asc' ? 'desc' : 'asc' }))
+
+  // ── Mutations ──
+  const fail = (err: unknown) =>
+    setNotice({ tone: 'error', text: (err as Error)?.message || t('people.feedback.actionFailed') })
 
   const deactivateMutation = useMutation({
     mutationFn: (staffId: string) => staffApi.deactivate(staffId),
@@ -789,328 +830,179 @@ export default function StaffPage() {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setConfirmDeactivate(null)
     },
+    onError: (err) => { setConfirmDeactivate(null); fail(err) },
   })
-
-  const resendMutation = useMutation({
-    mutationFn: (invitationId: string) => staffApi.resendInvitation(invitationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
+  const reactivateMutation = useMutation({
+    mutationFn: (entry: StaffEntry) => staffApi.reactivate(entry.staff.user_id),
+    onMutate: (entry) => setBusyKey(entry.key),
+    onSuccess: (_res, entry) => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] })
+      setNotice({ tone: 'success', text: t('people.feedback.reactivated', { name: entry.name || entry.email }) })
     },
+    onError: fail,
+    onSettled: () => setBusyKey(null),
+  })
+  const resendMutation = useMutation({
+    mutationFn: (entry: InvitationEntry) => staffApi.resendInvitation(entry.invitation.id),
+    onMutate: (entry) => setBusyKey(entry.key),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
+      setNotice(deliveryNotice(res.data.email, res.data.delivery.status))
+    },
+    onError: fail,
+    onSettled: () => setBusyKey(null),
+  })
+  const revokeMutation = useMutation({
+    mutationFn: (entry: InvitationEntry) => staffApi.revokeInvitation(entry.invitation.id),
+    onSuccess: (_res, entry) => {
+      queryClient.invalidateQueries({ queryKey: ['staff-invitations'] })
+      setNotice({ tone: 'success', text: t('people.feedback.revoked', { email: entry.email }) })
+      setConfirmRevoke(null)
+    },
+    onError: (err) => { setConfirmRevoke(null); fail(err) },
   })
 
-  // â”€â”€ Filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Wording follows what the email provider actually reported - never assume delivery.
+  function deliveryNotice(email: string, status: string | null) {
+    if (status === 'failed') return { tone: 'warning' as const, text: t('people.feedback.emailFailed', { email }) }
+    if (status === 'existing_account') return { tone: 'warning' as const, text: t('people.feedback.existingAccount', { email }) }
+    return { tone: 'success' as const, text: t('people.feedback.emailRequested', { email }) }
+  }
 
-  const filteredStaff = useMemo(() => {
-    const staff = staffQuery.data ?? []
-    return staff.filter((member) => {
-      if (roleFilter !== 'all' && member.role !== roleFilter) return false
-      if (statusFilter !== 'all' && member.status !== statusFilter) return false
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
-        return (
-          getDisplayName(member.full_name).toLowerCase().includes(q) ||
-          member.email.toLowerCase().includes(q)
-        )
-      }
-      return true
-    })
-  }, [staffQuery.data, roleFilter, statusFilter, searchQuery])
+  const handlers: RowActionHandlers = {
+    onEdit: (e) => setEditStaff(e.staff),
+    onDeactivate: (e) => setConfirmDeactivate(e.staff),
+    onReactivate: (e) => reactivateMutation.mutate(e),
+    onResend: (e) => resendMutation.mutate(e),
+    onRevoke: (e) => setConfirmRevoke(e),
+  }
 
-  const invitations = invitationsQuery.data ?? []
-
-  // â”€â”€ Guard: non-GM sees access restricted â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+  // ── Access: wait for auth to resolve before deciding anything ──
+  if (authLoading || (isGM && !hotelId)) {
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-14 w-full" />
+        <Card className="p-0"><PeopleDirectorySkeleton /></Card>
+      </div>
+    )
+  }
   if (!isGM) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <AlertTriangle className="w-6 h-6 text-gray-400" />
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-3">
+          <AlertTriangle className="h-6 w-6 text-ink-3" />
         </div>
-        <p className="text-sm font-medium text-gray-700">Access restricted</p>
-        <p className="text-xs text-gray-400 mt-1">Staff management is only available to managers.</p>
+        <p className="text-sm font-medium text-ink-2">{t('people.restricted.title')}</p>
+        <p className="mt-1 text-xs text-ink-3">{t('people.restricted.body')}</p>
       </div>
     )
   }
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const noPeopleAtAll = !!staffQuery.data && directory.length === 0
+  const filtersActive = hasActiveFilters(filters)
+  const openInvite = () => setShowInviteModal(true)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5" data-i18n-skip="true">
       <PageHeader
-        eyebrow="Organization"
-        title="People"
-        subtitle={`${staffQuery.data?.length ?? 0} team member${staffQuery.data?.length !== 1 ? 's' : ''}`}
+        dataI18nSkip
+        title={t('people.title')}
+        subtitle={t('people.subtitle')}
         tabs={[
-          { label: 'Team', active: true, onClick: () => undefined },
-          { label: 'Schedule', active: false, onClick: () => router.push('/scheduling') },
+          { label: t('people.tabs.team'), active: true, dataI18nSkip: true },
+          { label: t('people.tabs.schedule'), active: false, onClick: () => router.push('/scheduling'), dataI18nSkip: true },
         ]}
-        actions={canManageStaff && (
-          <>
-          <div className="relative sm:hidden">
-            <Button
-              variant="primary"
-              onClick={() => setAddMenuOpen((open) => !open)}
-              className="w-full"
-              aria-expanded={addMenuOpen}
-              aria-haspopup="menu"
-            >
-              <UserPlus size={16} />
-              Add Staff
-              <ChevronDown size={14} className={`ml-auto transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
-            </Button>
-            {addMenuOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-full rounded-xl border border-line bg-surface p-1 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => { setAddMenuOpen(false); setShowInviteModal(true) }}
-                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-ink-2 hover:bg-surface-2"
-                  role="menuitem"
-                >
-                  <Mail size={16} />
-                  Invite by Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAddMenuOpen(false); setShowAddDirectModal(true) }}
-                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-ink-2 hover:bg-surface-3"
-                  role="menuitem"
-                >
-                  <UserPlus size={16} />
-                  Add Manually
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="hidden gap-2 sm:flex">
-            <Button variant="ghost" onClick={() => setShowAddDirectModal(true)}>
-              <UserPlus size={16} />
-              Add Manually
-            </Button>
-            <Button variant="primary" onClick={() => setShowInviteModal(true)}>
-              <Mail size={16} />
-              Invite
-            </Button>
-          </div>
-          </>
-        )}
+        actions={<PeopleInviteMenu onInvite={openInvite} onCreateManually={() => setShowAddDirectModal(true)} />}
       />
 
-      {/* Invite success banner */}
-      {inviteSuccess && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg text-sm text-green-800 font-medium">
-          Invitation sent successfully.
+      <PeopleSummary
+        summary={summary}
+        sources={sources}
+        onShowPending={() => { setSearchInput(''); setFilters({ ...DEFAULT_FILTERS, status: 'invited' }) }}
+      />
+
+      {notice && (
+        <div
+          role={notice.tone === 'error' ? 'alert' : 'status'}
+          className={`flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-medium ${
+            notice.tone === 'success'
+              ? 'border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)]'
+              : notice.tone === 'warning'
+                ? 'border-[var(--caution-line)] bg-[var(--caution-soft)] text-[var(--caution)]'
+                : 'border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)]'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button type="button" onClick={() => setNotice(null)} aria-label={t('people.feedback.dismiss')} className="shrink-0 rounded p-0.5 hover:opacity-70">
+            <X size={14} aria-hidden="true" />
+          </button>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Role filter */}
-        <div className="relative">
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
-            className={`appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'}`}
-          >
-            <option value="all">All Roles</option>
-            {ROLE_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={14}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
-        </div>
+      {/* Partial failures: keep the directory usable and say exactly what is missing. */}
+      {staffQuery.data && invitationsQuery.isError && (
+        <PartialWarning text={t('people.errors.invitations')} onRetry={() => invitationsQuery.refetch()} />
+      )}
+      {staffQuery.data && todayQuery.isError && (
+        <PartialWarning text={t('people.errors.today')} onRetry={() => todayQuery.refetch()} />
+      )}
 
-        {/* Status filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
-            }
-            className={`appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'}`}
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <ChevronDown
-            size={14}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
-        </div>
+      <PeopleFilters
+        search={searchInput}
+        onSearch={setSearchInput}
+        filters={filters}
+        onChange={patchFilters}
+        onClear={clearFilters}
+        departments={departmentOptions}
+        showUnassigned={directory.some((e) => !e.departmentId)}
+      />
 
-        {/* Search */}
-        <div className="relative ml-auto">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+      <SectionLabel hint={staffQuery.data ? t('people.list.count', { count: visible.length }) : undefined}>
+        {t('people.list.heading')}
+      </SectionLabel>
+      <Card className="p-0">
+        {staffQuery.isLoading ? (
+          <div role="status" aria-label={t('people.list.loading')}><PeopleDirectorySkeleton /></div>
+        ) : staffQuery.isError ? (
+          <StateBlock status="error" error={{ message: t('people.errors.load'), onRetry: () => staffQuery.refetch() }} />
+        ) : noPeopleAtAll ? (
+          <EmptyState
+            icon={<UserPlus size={20} aria-hidden="true" />}
+            title={t('people.empty.noneTitle')}
+            body={t('people.empty.noneBody')}
+            action={<Button variant="primary" onClick={openInvite}><Mail size={16} aria-hidden="true" />{t('people.invite.primary')}</Button>}
           />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or email…"
-            className={`pl-9 pr-4 py-2 text-sm border border-line rounded-lg bg-surface w-64 focus:outline-none hover:border-[var(--caution-line)] transition-colors ${v2 ? 'duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]' : 'focus:ring-2 focus:ring-amber-400'}`}
+        ) : visible.length === 0 ? (
+          <EmptyState
+            title={t('people.empty.filteredTitle')}
+            body={t('people.empty.filteredBody')}
+            action={filtersActive ? <Button variant="outline" onClick={clearFilters}>{t('people.filters.clear')}</Button> : undefined}
           />
-        </div>
-      </div>
-
-      {/* Staff table */}
-      <SectionLabel hint={filteredStaff.length > 0 ? String(filteredStaff.length) : undefined}>{t('staff.table.sectionLabel')}</SectionLabel>
-      <Card className="overflow-hidden p-0">
-        <StateBlock
-          status={staffQuery.isLoading ? 'loading' : staffQuery.isError ? 'error' : filteredStaff.length === 0 ? 'empty' : null}
-          loadingLabel={t('staff.table.loading')}
-          error={{ message: t('staff.table.loadError'), onRetry: () => staffQuery.refetch() }}
-          empty={{
-            title: searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
-              ? t('staff.table.emptyFiltered')
-              : t('staff.table.emptyDefault'),
-          }}
-        >
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-line bg-surface-2">
-                <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Person</th>
-                <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Role</th>
-                <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Status</th>
-                {canManageStaff && (
-                  <th className="text-right text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line-2">
-              {filteredStaff.map((member) => (
-                <tr key={member.id} className={`hover:bg-surface-2 transition-colors ${v2 ? 'duration-fast ease-standard' : ''}`}>
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={getDisplayName(member.full_name)} role={member.role} />
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-ink truncate">{getDisplayName(member.full_name)}</p>
-                        <p className="text-[11px] text-ink-3 truncate">{member.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <RoleBadge role={member.role} />
-                      {member.custom_role_name && (
-                        <Pill tone="ai">{member.custom_role_name}</Pill>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${member.status === 'active' ? 'text-[var(--ready)]' : 'text-ink-4'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${member.status === 'active' ? 'bg-[var(--ready)]' : 'bg-ink-4'}`} />
-                      {member.status === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  {canManageStaff && (
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setEditStaff(member)} className="gap-1.5 bg-surface-2 border border-line hover:bg-surface-3">
-                          <Pencil size={11} />Edit
-                        </Button>
-                        {member.status === 'active' && (
-                          <Button variant="secondary" size="sm" onClick={() => setConfirmDeactivate(member)} className="gap-1.5 border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:opacity-80">
-                            <UserX size={11} />Deactivate
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </StateBlock>
+        ) : (
+          <>
+            <div className="hidden lg:block">
+              <PeopleDirectoryTable
+                entries={visible} today={todayMap} todaySource={sources.today} sort={filters.sort} dir={filters.dir}
+                onSort={onSort} handlers={handlers} busyKey={busyKey}
+              />
+            </div>
+            <div className="lg:hidden">
+              <PeopleMobileCards
+                entries={visible} today={todayMap} todaySource={sources.today} sort={filters.sort} dir={filters.dir}
+                onSort={onSort} handlers={handlers} busyKey={busyKey}
+              />
+            </div>
+          </>
+        )}
       </Card>
 
-      {/* Pending Invitations */}
-      {(invitations.length > 0 || invitationsQuery.isLoading) && (
-        <div className="space-y-3">
-          <h2 className="text-[13px] font-semibold text-ink-2">{t('staff.invitations.heading')}</h2>
-
-          <Card className="overflow-hidden p-0">
-            <StateBlock
-              status={invitationsQuery.isLoading ? 'loading' : invitationsQuery.isError ? 'error' : null}
-              loadingLabel={t('staff.invitations.loading')}
-              error={{ message: t('staff.invitations.loadError'), onRetry: () => invitationsQuery.refetch() }}
-            >
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-line bg-surface-2">
-                    <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
-                      Email
-                    </th>
-                    <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
-                      Role
-                    </th>
-                    <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
-                      Invited
-                    </th>
-                    {canManageStaff && (
-                      <th className="text-right text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {invitations.map((inv: StaffInvitation) => (
-                    <tr key={inv.id} className={`hover:bg-surface-2 transition-colors group ${v2 ? 'duration-fast ease-standard' : ''}`}>
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-surface-3 border border-line flex items-center justify-center">
-                            <Mail size={14} className="text-ink-3" />
-                          </div>
-                          <p className="text-[13px] text-ink font-medium">{inv.email}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <RoleBadge role={inv.role} />
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-1.5 text-[12px] text-ink-3">
-                          <Clock size={13} />
-                          {relativeTime(inv.invited_at)}
-                        </div>
-                      </td>
-                      {canManageStaff && (
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center justify-end gap-2 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              loading={resendMutation.isPending}
-                              onClick={() => resendMutation.mutate(inv.id)}
-                              className="gap-1.5 bg-surface-2 border border-line hover:bg-surface-3"
-                            >
-                              <RefreshCw size={12} />
-                              Resend
-                            </Button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </StateBlock>
-          </Card>
-        </div>
-      )}
-
-      {/* Invite Modal */}
       {showInviteModal && (
         <InviteModal
           onClose={() => setShowInviteModal(false)}
-          onSuccess={() => {
+          onSuccess={(invitation) => {
             setShowInviteModal(false)
-            setInviteSuccess(true)
+            setNotice(deliveryNotice(invitation.email, invitation.delivery?.status ?? null))
           }}
         />
       )}
@@ -1120,12 +1012,11 @@ export default function StaffPage() {
           onClose={() => setShowAddDirectModal(false)}
           onSuccess={() => {
             setShowAddDirectModal(false)
-            setInviteSuccess(true)
+            setNotice({ tone: 'success', text: t('people.feedback.accountCreated') })
           }}
         />
       )}
 
-      {/* Edit Staff Modal */}
       {editStaff && (
         <EditStaffModal
           staff={editStaff}
@@ -1135,7 +1026,6 @@ export default function StaffPage() {
         />
       )}
 
-      {/* Confirm Deactivate Dialog */}
       {confirmDeactivate && (
         <ConfirmDeactivateDialog
           staff={confirmDeactivate}
@@ -1144,6 +1034,35 @@ export default function StaffPage() {
           onConfirm={() => deactivateMutation.mutate(confirmDeactivate.user_id)}
         />
       )}
+
+      <DeleteConfirmDialog
+        open={!!confirmRevoke}
+        title={t('people.revoke.title')}
+        description={confirmRevoke ? t('people.revoke.body', { email: confirmRevoke.email }) : undefined}
+        confirmLabel={t('people.revoke.confirm')}
+        loading={revokeMutation.isPending}
+        onCancel={() => setConfirmRevoke(null)}
+        onConfirm={() => confirmRevoke && revokeMutation.mutate(confirmRevoke)}
+      />
     </div>
+  )
+}
+
+function PartialWarning({ text, onRetry }: { text: string; onRetry: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--caution-line)] bg-[var(--caution-soft)] px-4 py-2.5 text-[13px] text-[var(--caution)]">
+      <span className="flex items-center gap-2"><AlertTriangle size={14} aria-hidden="true" />{text}</span>
+      <button type="button" onClick={onRetry} className="font-semibold underline underline-offset-2">{t('common.retry')}</button>
+    </div>
+  )
+}
+
+export default function StaffPage() {
+  // useSearchParams requires a Suspense boundary for static rendering.
+  return (
+    <Suspense fallback={null}>
+      <StaffPageContent />
+    </Suspense>
   )
 }
