@@ -29,6 +29,25 @@ export const SOURCE_WORKFLOW_NAME = 'Claude Release Engineer Auto-Merge'
 export const ROOT_WORKFLOW_NAME = 'Deploy Health Check'
 // A health failure may come from the schedule or a push to main; a manual dispatch is never an automatic root.
 export const ROOT_EVENTS = Object.freeze(['schedule', 'push'])
+const WORKFLOW_BOT = 'github-actions[bot]'
+const HEALTH_WORKFLOW_PATH = '.github/workflows/deploy-check.yml'
+
+// Deploy Health Check keeps its cadence through a relay (see deploy-check.yml): a run the workflow itself
+// dispatched with GITHUB_TOKEN on main is the same trusted monitor as a scheduled run. A human's manual
+// workflow_dispatch (any other actor, or any other branch) is still NOT root or recovery evidence.
+// The run `name` alone is NOT identity (a run-name can be anything), so the exact workflow file is required too:
+// an unrelated bot-dispatched workflow that merely calls itself "Deploy Health Check" must never qualify.
+export function isTrustedHealthEvent(run) {
+  if (ROOT_EVENTS.includes(run?.event)) return true
+  return (
+    run?.event === 'workflow_dispatch' &&
+    run.head_branch === 'main' &&
+    typeof run.path === 'string' &&
+    run.path.split('@')[0] === HEALTH_WORKFLOW_PATH &&
+    run.actor?.login === WORKFLOW_BOT &&
+    run.triggering_actor?.login === WORKFLOW_BOT
+  )
+}
 // resolve: read-only first look; request: fresh revalidation right before dispatch (same security eligibility);
 // release: re-verification inside Production Release before any production step (refusals FAIL the release).
 export const VALIDATION_MODES = Object.freeze(['resolve', 'request', 'release'])
@@ -161,7 +180,7 @@ export async function validateProductionRequest({ repo, sourceRunId, enabled, mo
   if (rootRun.name !== ROOT_WORKFLOW_NAME) refuse(`recovery root ${result.root_run_id} is ${rootRun.name}, not ${ROOT_WORKFLOW_NAME}`)
   if (rootRun.repository?.full_name !== repo || rootRun.head_repository?.full_name !== repo) refuse('recovery root run is not from this repository')
   if (rootRun.status !== 'completed' || rootRun.conclusion !== 'failure') refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} is ${rootRun.status}/${rootRun.conclusion}, not a failure`)
-  if (!ROOT_EVENTS.includes(rootRun.event)) refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} was a ${rootRun.event} run`)
+  if (!isTrustedHealthEvent(rootRun)) refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} was a ${rootRun.event} run`)
   if (rootRun.head_sha !== result.base_main_sha) refuse(`${ROOT_WORKFLOW_NAME} root ${result.root_run_id} ran at ${rootRun.head_sha}, not the released baseline`)
 
   // A newer successful Deploy Health Check of the SAME baseline commit means production recovered after the
@@ -175,7 +194,7 @@ export async function validateProductionRequest({ repo, sourceRunId, enabled, mo
       fail('Deploy Health Check history contains a malformed run')
     }
     if (health.repository?.full_name !== repo || health.head_repository?.full_name !== repo) fail('Deploy Health Check history contains a foreign run')
-    if (!ROOT_EVENTS.includes(health.event) || health.status !== 'completed' || health.conclusion !== 'success') continue
+    if (!isTrustedHealthEvent(health) || health.status !== 'completed' || health.conclusion !== 'success') continue
     const created = Date.parse(health.created_at)
     if (created > rootCreated || (created === rootCreated && Number(health.id) > Number(result.root_run_id))) {
       refuse(`Production health recovered after root failure ${result.root_run_id} (run ${health.id} succeeded); automatic production release is no longer warranted`)

@@ -59,7 +59,7 @@ export function realProductionRequestDeps({ repo, readToken }) {
     listHealthRuns: async (headSha) =>
       releaseDeps.paged(
         `repos/${repo}/actions/workflows/deploy-check.yml/runs?head_sha=${headSha}&status=success&per_page=100`,
-        '.workflow_runs[] | {id, name, event, status, conclusion, head_sha, created_at, repository: {full_name: .repository.full_name}, head_repository: {full_name: .head_repository.full_name}} | @json',
+        '.workflow_runs[] | {id, name, event, status, conclusion, head_sha, head_branch, path, actor: {login: .actor.login}, triggering_actor: {login: .triggering_actor.login}, created_at, repository: {full_name: .repository.full_name}, head_repository: {full_name: .head_repository.full_name}} | @json',
       ),
     readAutoMergeResult: (runId) => base.readNamedContext(runId, AUTO_MERGE_RESULT_ARTIFACT),
     // Queued, running or awaiting-approval Production Release / Rollback runs. run-name carries the target SHA.
