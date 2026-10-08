@@ -4,6 +4,7 @@ import {
   HOME_SECTIONS,
   SETTINGS_DESTINATIONS,
   SETTINGS_GROUPS,
+  SETTINGS_ROUTE_MAP,
   SETTINGS_SEARCH_ENTRIES,
   canAccessSettings,
   getDestination,
@@ -31,7 +32,7 @@ test('groups destinations in the agreed information architecture', () => {
     { group: 'People & Access', items: ['Roles & Access'] },
     { group: 'Connected Systems', items: ['Integrations'] },
     { group: 'Account', items: ['Billing'] },
-    { group: 'Advanced', items: ['Staff Feedback', 'Activity & Audit'] },
+    { group: 'Advanced', items: ['Activity & Audit'] },
   ])
 })
 
@@ -71,7 +72,8 @@ test('highlights the active destination, including legacy and related pages', ()
   assert.equal(resolveActiveDestination('/settings/guest-requests')?.id, 'sla')
   assert.equal(resolveActiveDestination('/settings/roles')?.id, 'roles')
   assert.equal(resolveActiveDestination('/settings/front-desk')?.id, 'roles')
-  assert.equal(resolveActiveDestination('/settings/departments')?.id, 'roles')
+  assert.equal(resolveActiveDestination('/settings/departments'), undefined)
+  assert.equal(resolveActiveDestination('/settings/feedback'), undefined)
   assert.equal(resolveActiveDestination('/settings/rooms/anything')?.id, 'rooms')
   assert.equal(resolveActiveDestination('/settings/unknown'), undefined)
 })
@@ -80,7 +82,56 @@ test('legacy bookmarks that moved to top-level routes are redirected, not droppe
   assert.equal(getLegacySettingsRedirect('/settings/programs'), '/programs')
   assert.equal(getLegacySettingsRedirect('/settings/sop'), '/sop')
   assert.equal(getLegacySettingsRedirect('/settings/sop/'), '/sop')
+  assert.equal(getLegacySettingsRedirect('/settings/departments'), '/staff')
+  assert.equal(getLegacySettingsRedirect('/settings/front-desk'), '/settings/roles?access=front-desk')
   assert.equal(getLegacySettingsRedirect('/settings/general'), null)
+  assert.equal(getLegacySettingsRedirect('/settings/feedback'), null)
+})
+
+test('the final Settings navigation is exactly the ten agreed destinations', () => {
+  assert.deepEqual(SETTINGS_DESTINATIONS.map((d) => d.label), [
+    'Settings Home', 'Property Profile', 'Rooms & Accessibility', 'Housekeeping', 'Inspections', 'Service SLAs',
+    'Roles & Access', 'Integrations', 'Billing', 'Activity & Audit',
+  ])
+  for (const retired of ['programs', 'sop', 'departments', 'feedback']) {
+    assert.equal(SETTINGS_DESTINATIONS.some((d) => d.id === retired || d.href.endsWith('/' + retired)), false, retired)
+  }
+})
+
+test('the route map covers every pre-redesign Settings URL with no loops or dangling targets', () => {
+  const expected = [
+    '/settings', '/settings/general', '/settings/rooms', '/settings/front-desk', '/settings/guest-requests',
+    '/settings/housekeeping', '/settings/inspections', '/settings/programs', '/settings/sop', '/settings/departments',
+    '/settings/roles', '/settings/integrations', '/settings/billing', '/settings/feedback', '/settings/activity',
+  ]
+  assert.deepEqual(Object.keys(SETTINGS_ROUTE_MAP).sort(), [...expected].sort())
+  for (const [path, entry] of Object.entries(SETTINGS_ROUTE_MAP)) {
+    if (entry.kind === 'canonical') {
+      assert.equal(getDestination(entry.destinationId)?.href, path, `${path} canonical target`)
+    } else if (entry.kind === 'redirect') {
+      const target = entry.to.split('?')[0]
+      assert.notEqual(target, path, `${path} redirects to itself`)
+      assert.equal(SETTINGS_ROUTE_MAP[target]?.kind === 'redirect', false, `${path} -> ${target} chains into another redirect`)
+      if (target.startsWith('/settings')) assert.ok(SETTINGS_ROUTE_MAP[target]?.kind === 'canonical', `${path} dangling ${target}`)
+    }
+  }
+})
+
+test('redirects out of Settings never open a route to a role that the Settings guard already excludes', () => {
+  for (const [path, entry] of Object.entries(SETTINGS_ROUTE_MAP)) {
+    if (entry.kind !== 'redirect' || entry.to.startsWith('/settings')) continue
+    for (const role of ROLES) {
+      if (role === 'housekeeper' || role === 'engineer') continue
+      // Non-GM roles are stopped at the old /settings URL before any redirect runs.
+      const old = getRouteAccessDecision({ pathname: path, isAuthenticated: true, hasHotel: true, role })
+      if (role !== 'gm') assert.equal(old.type, 'redirect', `${role} ${path}`)
+      // A GM that follows the redirect must still be allowed by the target's own guard.
+      if (role === 'gm') {
+        const target = getRouteAccessDecision({ pathname: entry.to, isAuthenticated: true, hasHotel: true, role })
+        assert.equal(target.type, 'allow', `gm ${entry.to}`)
+      }
+    }
+  }
 })
 
 test('every pre-redesign settings route still resolves somewhere', () => {
@@ -90,7 +141,7 @@ test('every pre-redesign settings route still resolves somewhere', () => {
     '/settings/departments', '/settings/roles', '/settings/integrations', '/settings/billing', '/settings/feedback',
   ]
   for (const path of legacy) {
-    assert.ok(getLegacySettingsRedirect(path) || resolveActiveDestination(path), `${path} is orphaned`)
+    assert.ok(getLegacySettingsRedirect(path) || resolveActiveDestination(path) || SETTINGS_ROUTE_MAP[path]?.kind === 'compat', `${path} is orphaned`)
   }
 })
 
@@ -105,6 +156,25 @@ test('search maps common terms to the right destination', () => {
   assert.equal(top('inspection checklist')?.destinationId, 'inspections')
   assert.equal(top('billing')?.destinationId, 'billing')
   assert.equal(top('ADA')?.destinationId, 'rooms')
+})
+
+test('search recognises the terms staff use across the final information architecture', () => {
+  const top = (q: string) => searchSettings(q, 'gm')[0]
+  assert.equal(top('room number')?.destinationId, 'rooms')
+  assert.equal(top('timezone')?.destinationId, 'general')
+  assert.equal(top('cleaning checklist')?.id, 'housekeeping-cleaning')
+  assert.equal(top('inspection')?.destinationId, 'inspections')
+  assert.equal(top('response time')?.destinationId, 'sla')
+  assert.equal(top('front desk permissions')?.destinationId, 'roles')
+  assert.equal(top('custom roles')?.destinationId, 'roles')
+  assert.equal(top('invoice')?.destinationId, 'billing')
+  assert.equal(top('audit')?.destinationId, 'activity')
+})
+
+test('retired destinations are no longer searchable', () => {
+  for (const q of ['feedback', 'departments', 'sop library', 'programs']) {
+    assert.deepEqual(searchSettings(q, 'gm'), [], q)
+  }
 })
 
 test('search is forgiving about case, punctuation and spacing', () => {

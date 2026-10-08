@@ -3,22 +3,24 @@
  * search, legacy-route compatibility and role access. Pure data + functions (no React, no icons) so
  * it can be imported by the route guard, the sidebar model, components and unit tests alike.
  *
- * Route map (Phase 1) — existing routes are kept as the destinations; later phases replace page
- * content, not URLs:
+ * Final route map (Phase 7) - see SETTINGS_ROUTE_MAP for the machine-readable version tests enforce:
  *
- *   /settings                  Settings Home (new; previously redirected to /settings/general)
+ *   /settings                  Settings Home
  *   /settings/general          Property Profile
  *   /settings/rooms            Rooms & Accessibility
  *   /settings/housekeeping     Housekeeping            (?tab=cleaning|workload|assignment)
  *   /settings/inspections      Inspections
  *   /settings/guest-requests   Service SLAs
- *   /settings/roles            Roles & Access          (+ /settings/departments; /settings/front-desk redirects in)
+ *   /settings/roles            Roles & Access          (/settings/front-desk redirects in)
  *   /settings/integrations     Integrations
  *   /settings/billing          Billing
- *   /settings/feedback         Staff Feedback          (retained under Advanced)
  *   /settings/activity         Activity & Audit
- *   /settings/programs         → redirects to /programs   (same page, top-level route)
- *   /settings/sop              → redirects to /sop        (same page, top-level route)
+ *   /settings/programs         -> /programs     (operational page, own route + own authorization)
+ *   /settings/sop              -> /sop          (operational page, own route + own authorization)
+ *   /settings/departments      -> /staff        (informational only; real department data lives in People)
+ *   /settings/feedback         retained restricted compat route, not a Settings category (inbox, not configuration)
+ *
+ * Personal preferences are NOT part of this list: they live at /preferences (see preferences.ts).
  */
 
 import type { UserRole } from '@/lib/utils/routeGuard'
@@ -41,7 +43,7 @@ export type SettingsGroupId =
 
 export type SettingsIconKey =
   | 'home' | 'building' | 'hotel' | 'brush' | 'clipboard' | 'clock' | 'shield'
-  | 'link' | 'card' | 'history' | 'message'
+  | 'link' | 'card' | 'history'
 
 export interface SettingsRelatedPage { href: string; label: string }
 
@@ -82,17 +84,11 @@ export const SETTINGS_DESTINATIONS: readonly SettingsDestination[] = [
   { id: 'sla', href: '/settings/guest-requests', label: 'Service SLAs', group: 'operations', icon: 'clock',
     description: 'Response-time targets for guest requests by category and priority.' },
   { id: 'roles', href: '/settings/roles', label: 'Roles & Access', group: 'people', icon: 'shield',
-    description: 'Custom roles, module access, front desk access and departments.',
-    relatedPages: [
-      { href: '/settings/roles', label: 'Roles' },
-      { href: '/settings/departments', label: 'Departments' },
-    ] },
+    description: 'Custom roles, module access and front desk access.' },
   { id: 'integrations', href: '/settings/integrations', label: 'Integrations', group: 'systems', icon: 'link',
     description: 'Connect and manage Oracle OPERA Cloud and sync conflicts.' },
   { id: 'billing', href: '/settings/billing', label: 'Billing', group: 'account', icon: 'card',
     description: 'Subscription, AI credit usage and invoices.' },
-  { id: 'feedback', href: '/settings/feedback', label: 'Staff Feedback', group: 'advanced', icon: 'message',
-    description: 'Problems and ideas submitted by staff from the feedback button.' },
   { id: 'activity', href: '/settings/activity', label: 'Activity & Audit', group: 'advanced', icon: 'history',
     description: 'Review important property and configuration changes.' },
 ]
@@ -120,15 +116,43 @@ export function getSettingsHref(destination: SettingsDestination): string | null
 
 // ─── Route matching & legacy compatibility ────────────────────────────────────
 
-/** Old Settings URLs that now live at a top-level route. Bookmarks and deep links keep working. */
-export const LEGACY_SETTINGS_REDIRECTS: Readonly<Record<string, string>> = {
-  '/settings/programs': '/programs',
-  '/settings/sop': '/sop',
+export type SettingsRouteDisposition =
+  | { kind: 'canonical'; destinationId: string }
+  /** Old URL that forwards to `to`. Authorization is re-checked at the target (and /settings is GM-only to begin with). */
+  | { kind: 'redirect'; to: string }
+  /** Still served, reachable only by direct link / Settings Home footer; not a Settings category. */
+  | { kind: 'compat' }
+
+/** Every route that has ever lived under /settings and what happens to it now. */
+export const SETTINGS_ROUTE_MAP: Readonly<Record<string, SettingsRouteDisposition>> = {
+  '/settings': { kind: 'canonical', destinationId: 'home' },
+  '/settings/general': { kind: 'canonical', destinationId: 'general' },
+  '/settings/rooms': { kind: 'canonical', destinationId: 'rooms' },
+  '/settings/housekeeping': { kind: 'canonical', destinationId: 'housekeeping' },
+  '/settings/inspections': { kind: 'canonical', destinationId: 'inspections' },
+  '/settings/guest-requests': { kind: 'canonical', destinationId: 'sla' },
+  '/settings/roles': { kind: 'canonical', destinationId: 'roles' },
+  '/settings/integrations': { kind: 'canonical', destinationId: 'integrations' },
+  '/settings/billing': { kind: 'canonical', destinationId: 'billing' },
+  '/settings/activity': { kind: 'canonical', destinationId: 'activity' },
+  '/settings/front-desk': { kind: 'redirect', to: '/settings/roles?access=front-desk' },
+  '/settings/programs': { kind: 'redirect', to: '/programs' },
+  '/settings/sop': { kind: 'redirect', to: '/sop' },
+  '/settings/departments': { kind: 'redirect', to: '/staff' },
+  '/settings/feedback': { kind: 'compat' },
 }
 
+/** Path of the staff feedback inbox: kept reachable, but linked from the Settings Home footer, not a category. */
+export const FEEDBACK_INBOX_HREF = '/settings/feedback'
+
+function stripTrailingSlash(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+}
+
+/** Where an old Settings URL forwards to, or null when the URL is current / unknown. */
 export function getLegacySettingsRedirect(pathname: string): string | null {
-  const clean = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-  return LEGACY_SETTINGS_REDIRECTS[clean] ?? null
+  const entry = SETTINGS_ROUTE_MAP[stripTrailingSlash(pathname)]
+  return entry?.kind === 'redirect' ? entry.to : null
 }
 
 function pathMatches(pathname: string, href: string): boolean {
@@ -136,13 +160,12 @@ function pathMatches(pathname: string, href: string): boolean {
 }
 
 /** The destination that owns `pathname` (longest matching href wins; Home only matches exactly). */
-/** Retired Settings pages that now live inside another destination (their route redirects there). */
-export const LEGACY_SETTINGS_PATHS: Record<string, string> = { '/settings/front-desk': '/settings/roles?access=front-desk' }
-
 export function resolveActiveDestination(pathname: string): SettingsDestination | undefined {
-  const clean = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  const clean = stripTrailingSlash(pathname)
   if (clean === '/settings') return getDestination('home')
-  if (LEGACY_SETTINGS_PATHS[clean]) return getDestination('roles')
+  // A retired page that forwards into another Settings destination keeps that destination highlighted.
+  const forward = getLegacySettingsRedirect(clean)
+  if (forward?.startsWith('/settings/')) return resolveActiveDestination(forward.split('?')[0])
   let best: SettingsDestination | undefined
   let bestLen = -1
   for (const d of SETTINGS_DESTINATIONS) {
@@ -171,7 +194,7 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
   { id: 'general', destinationId: 'general', href: '/settings/general',
     keywords: ['hotel profile', 'hotel name', 'address', 'phone', 'timezone', 'time zone', 'room count', 'average daily rate', 'adr', 'property'] },
   { id: 'rooms', destinationId: 'rooms', href: '/settings/rooms',
-    keywords: ['room inventory', 'room types', 'floors', 'import rooms'] },
+    keywords: ['room inventory', 'room number', 'room numbers', 'room types', 'floors', 'import rooms'] },
   { id: 'rooms-accessibility', destinationId: 'rooms', section: 'Accessibility features', href: '/settings/rooms',
     keywords: ['ada', 'accessible rooms', 'accessibility features'] },
   { id: 'housekeeping', destinationId: 'housekeeping', href: '/settings/housekeeping',
@@ -187,19 +210,15 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
   { id: 'sla', destinationId: 'sla', href: '/settings/guest-requests',
     keywords: ['sla policies', 'response time', 'guest requests', 'service level', 'escalation', 'service recovery'] },
   { id: 'roles', destinationId: 'roles', href: '/settings/roles',
-    keywords: ['custom roles', 'permissions', 'modules', 'staff access'] },
+    keywords: ['custom roles', 'permissions', 'modules', 'staff access', 'front desk permissions'] },
   { id: 'roles-front-desk', destinationId: 'roles', section: 'Front desk access', href: '/settings/roles?access=front-desk',
-    keywords: ['front desk access', 'front desk modules', 'front desk'] },
-  { id: 'roles-departments', destinationId: 'roles', section: 'Departments', href: '/settings/departments',
-    keywords: ['departments', 'teams'] },
+    keywords: ['front desk access', 'front desk modules', 'front desk', 'front desk permissions'] },
   { id: 'integrations', destinationId: 'integrations', href: '/settings/integrations',
     keywords: ['opera', 'opera cloud', 'pms', 'sync', 'reservations', 'connect', 'conflicts', 'disconnect', 'ohip'] },
   { id: 'billing', destinationId: 'billing', href: '/settings/billing',
     keywords: ['invoices', 'subscription', 'plan', 'payment', 'usage', 'overage', 'ai credit', 'stripe', 'billing portal'] },
   { id: 'activity', destinationId: 'activity', href: '/settings/activity',
     keywords: ['audit', 'activity', 'audit log', 'history', 'who changed', 'change log', 'changes', 'export activity'] },
-  { id: 'feedback', destinationId: 'feedback', href: '/settings/feedback',
-    keywords: ['feedback', 'bug reports', 'staff reports', 'ideas'] },
 ]
 
 export interface SettingsSearchResult {

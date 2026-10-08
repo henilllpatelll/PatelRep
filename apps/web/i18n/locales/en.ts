@@ -69,6 +69,8 @@ const en = {
     notificationsUnread: "Unread",
     notificationsAll: "All",
     notificationsLoadError: "Couldn't load notifications.",
+    myAccount: "My Account",
+    myPreferences: "My Preferences",
     userMenuFor: "User menu for {{name}}",
     settings: "Settings",
     signOut: "Sign Out",

@@ -6,7 +6,7 @@ import { ArrowRight } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi } from '@/lib/api/hotels'
 import {
-  HOME_SECTIONS, getDestination, getSettingsHref, type SettingsDestination,
+  FEEDBACK_INBOX_HREF, HOME_SECTIONS, getDestination, getSettingsHref, type SettingsDestination,
 } from '@/lib/settings/navigation'
 import { SettingsCard } from '@/components/settings/workspace/SettingsCard'
 import { SettingsSectionHeader } from '@/components/settings/workspace/SettingsSectionHeader'
@@ -124,6 +124,16 @@ export default function SettingsHomePage() {
           </ul>
         </section>
       ))}
+      {/* The feedback inbox is a support queue, not property configuration, so it stays out of the nav. */}
+      <p className="text-sm text-ink-3">
+        Looking for problems and ideas submitted by staff?{' '}
+        <Link
+          href={FEEDBACK_INBOX_HREF}
+          className="font-semibold text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+        >
+          Open the staff feedback inbox
+        </Link>
+      </p>
     </div>
   )
 }
