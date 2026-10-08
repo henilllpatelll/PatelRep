@@ -30,6 +30,12 @@ const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/settings', roles: [...SETTINGS_ROLES] },
 ]
 
+/** Whether `role` may open `pathname` according to the route rules above (the enforced access). */
+export function canRoleOpenRoute(role: UserRole, pathname: string): boolean {
+  const roles = getRouteRoles(pathname)
+  return roles ? roles.includes(role) : true
+}
+
 export type RouteAccessDecision =
   | { type: 'allow' }
   | { type: 'redirect'; pathname: string; redirectTo?: string; unauthorized?: string; mobileOnly?: boolean }

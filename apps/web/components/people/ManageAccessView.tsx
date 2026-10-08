@@ -10,7 +10,7 @@ import { ROLE_VALUES } from '@/lib/people/peopleDirectory'
 import {
   accessGuards, buildAccessUpdate, compatibleCustomRoles, customRoleAfterRoleChange,
 } from '@/lib/people/peopleDrawers'
-import { ALL_MODULES } from '@/components/settings/RoleForm'
+import { MODULES as ALL_MODULES } from '@/lib/settings/rolesAccess'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Banner, DetailRow, Field, FormFooter, Section, SelectControl } from './PeopleFormFields'
 import { FooterPortal, type ViewCommon } from './peopleView'

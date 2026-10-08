@@ -591,6 +591,15 @@ async def list_guest_request_sla_policies(
     return {"data": policies}
 
 
+def _assert_sla_rule_can_match(category, priority) -> None:
+    # create_guest_request rejects non-urgent accessibility requests, so such a rule could never apply.
+    if category == "accessibility" and priority == "normal":
+        raise HTTPException(
+            status_code=422,
+            detail="Accessibility requests are always urgent, so a Normal-priority accessibility rule would never apply",
+        )
+
+
 @router.post("/sla-policies")
 async def create_guest_request_sla_policy(
     request: CreateGuestRequestSlaPolicyRequest,
@@ -603,6 +612,7 @@ async def create_guest_request_sla_policy(
             status_code=422,
             detail="An SLA rule must set at least one of category, priority, or guest impact",
         )
+    _assert_sla_rule_can_match(request.category, request.priority)
     # The table has no unique constraint on the triple; enforce it here so the settings UI
     # cannot silently create two rules that the specificity resolver would tie-break arbitrarily.
     duplicates = supabase.table("guest_request_sla_policies").select(
@@ -621,6 +631,41 @@ async def create_guest_request_sla_policy(
         "created_by": current_user.user_id,
     }).execute().data[0]
     return {"data": record}
+
+
+@router.patch("/sla-policies/{policy_id}")
+async def update_guest_request_sla_policy(
+    policy_id: str,
+    request: CreateGuestRequestSlaPolicyRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Edit a rule in place. Its identity is kept; only future requests resolve against the new values
+    (each request stores the minutes it was given when it was created)."""
+    if current_user.role not in MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
+    if request.category is None and request.priority is None and request.guest_impact is None:
+        raise HTTPException(
+            status_code=422,
+            detail="An SLA rule must set at least one of category, priority, or guest impact",
+        )
+    _assert_sla_rule_can_match(request.category, request.priority)
+    rules = supabase.table("guest_request_sla_policies").select(
+        "id, category, priority, guest_impact"
+    ).eq("tenant_id", current_user.hotel_id).execute().data or []
+    if not any(rule["id"] == policy_id for rule in rules):
+        raise HTTPException(status_code=404, detail="SLA rule not found")
+    for rule in rules:
+        if (
+            rule["id"] != policy_id
+            and rule.get("category") == request.category
+            and rule.get("priority") == request.priority
+            and rule.get("guest_impact") == request.guest_impact
+        ):
+            raise HTTPException(status_code=409, detail="An SLA rule already exists for this combination")
+    updated = supabase.table("guest_request_sla_policies").update(request.model_dump()).eq(
+        "id", policy_id
+    ).eq("tenant_id", current_user.hotel_id).execute().data
+    return {"data": updated[0] if updated else None}
 
 
 @router.delete("/sla-policies/{policy_id}", status_code=204)

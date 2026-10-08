@@ -31,3 +31,37 @@ DISCREPANCY_RESOLVER_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
 # Availability is broadly visible, but repair detail is deliberately withheld
 # from roles that only need guest-facing room availability.
 LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES = ("front_desk", "housekeeper")
+
+
+# ---------------------------------------------------------------------------
+# Web module access
+# ---------------------------------------------------------------------------
+# Which base roles may reach each sidebar module. Mirrors ROLE_ROUTE_RULES in
+# apps/web/lib/utils/routeGuard.ts (enforced by apps/web/proxy.ts); tests/test_role_module_access.py
+# fails if the two drift. Custom roles and Front Desk module settings only choose a subset of
+# these: they narrow the sidebar, they can never grant a route the base role cannot open.
+MODULE_ROLE_ACCESS: dict[str, tuple[str, ...]] = {
+    "housekeeping": ("gm", "housekeeping_supervisor", "housekeeper", "front_desk"),
+    "engineering": ("gm", "engineer", "chief_engineer", "housekeeping_supervisor"),
+    "lost-found": ("gm", "housekeeping_supervisor", "front_desk"),
+    "tasks": ALL_ROLES,
+    "staff": ("gm",),
+    "scheduling": ("gm", "housekeeping_supervisor", "engineer", "chief_engineer"),
+    "logbook": ("housekeeping_supervisor", "engineer", "chief_engineer", "front_desk", "gm"),
+    "sop": ("gm", "housekeeping_supervisor", "engineer", "chief_engineer"),
+    "reports": ("gm", "housekeeping_supervisor", "engineer", "chief_engineer"),
+    "ai": ("gm", "housekeeping_supervisor", "engineer", "chief_engineer", "front_desk"),
+}
+
+# Saved before Guest Requests merged into Tasks; still tolerated on read and normalised on save.
+LEGACY_MODULE_ALIASES = {"guest-requests": "tasks"}
+
+
+def modules_for_role(role: str) -> set[str]:
+    return {module for module, roles in MODULE_ROLE_ACCESS.items() if role in roles}
+
+
+def unsupported_modules(modules: list[str], role: str) -> list[str]:
+    """Modules the given base role cannot open (unknown slugs included). Legacy aliases count as their target."""
+    allowed = modules_for_role(role)
+    return sorted({m for m in modules if LEGACY_MODULE_ALIASES.get(m, m) not in allowed})

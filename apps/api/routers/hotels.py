@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from middleware.auth import get_current_user, get_current_user_no_hotel, require_role, CurrentUser
 from models.requests import CreateHotelRequest, UpdateHotelRequest, UpdateHousekeepingSettingsRequest
 from core.database import supabase
-from core.roles import ALL_STAFF_ROLES
+from core.roles import ALL_STAFF_ROLES, LEGACY_MODULE_ALIASES, unsupported_modules
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
 
@@ -177,6 +177,13 @@ async def update_hotel(
         update_data["average_daily_rate_cents"] = None
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
+    if "front_desk_modules" in update_data:
+        # Front Desk can only be given modules its role can actually open; the rest would show in the
+        # sidebar and then bounce at the route guard.
+        bad = unsupported_modules(update_data["front_desk_modules"], "front_desk")
+        if bad:
+            raise HTTPException(status_code=422, detail=f"These modules are not available to Front Desk: {', '.join(bad)}")
+        update_data["front_desk_modules"] = sorted({LEGACY_MODULE_ALIASES.get(m, m) for m in update_data["front_desk_modules"]})
 
     result = supabase.table("tenants").update(update_data).eq("id", hotel_id).execute()
 

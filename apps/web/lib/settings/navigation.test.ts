@@ -100,7 +100,7 @@ test('search maps common terms to the right destination', () => {
   assert.equal(top('credits')?.href, '/settings/housekeeping?tab=workload')
   assert.equal(top('room')?.destinationId, 'rooms')
   assert.equal(top('front desk access')?.destinationId, 'roles')
-  assert.equal(top('front desk access')?.href, '/settings/front-desk')
+  assert.equal(top('front desk access')?.href, '/settings/roles?access=front-desk')
   assert.equal(top('opera')?.destinationId, 'integrations')
   assert.equal(top('inspection checklist')?.destinationId, 'inspections')
   assert.equal(top('billing')?.destinationId, 'billing')

@@ -118,20 +118,21 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | guest_requests.py | /v1/guest-requests/metrics/summary | GET | none |  |
 | guest_requests.py | /v1/guest-requests/accessibility/features | GET | none |  |
 | guest_requests.py | /v1/guest-requests/sla-policies | GET | none |  |
-| guest_requests.py | /v1/guest-requests/sla-policies | POST | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L599]; inline: current_user.role not in MANAGER_ROLES [L599] |
-| guest_requests.py | /v1/guest-requests/sla-policies/{policy_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L631]; inline: current_user.role not in MANAGER_ROLES [L631] |
-| guest_requests.py | /v1/guest-requests/accessibility/features | PUT | role-restricted (inline, see source) | gate: if current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'}: raise HTTPException(...) [L648]; inline: current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'} [L648] |
+| guest_requests.py | /v1/guest-requests/sla-policies | POST | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L608]; inline: current_user.role not in MANAGER_ROLES [L608] |
+| guest_requests.py | /v1/guest-requests/sla-policies/{policy_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L644]; inline: current_user.role not in MANAGER_ROLES [L644] |
+| guest_requests.py | /v1/guest-requests/sla-policies/{policy_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L676]; inline: current_user.role not in MANAGER_ROLES [L676] |
+| guest_requests.py | /v1/guest-requests/accessibility/features | PUT | role-restricted (inline, see source) | gate: if current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'}: raise HTTPException(...) [L693]; inline: current_user.role not in {'gm', 'housekeeping_supervisor', 'engineer'} [L693] |
 | guest_requests.py | /v1/guest-requests | GET | none |  |
 | guest_requests.py | /v1/guest-requests/{request_id} | PATCH | none |  |
-| guest_requests.py | /v1/guest-requests/{request_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L748]; inline: current_user.role not in MANAGER_ROLES [L748] |
+| guest_requests.py | /v1/guest-requests/{request_id} | DELETE | role-restricted (inline, see source) | gate: if current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L793]; inline: current_user.role not in MANAGER_ROLES [L793] |
 | hotels.py | /v1/hotels | POST | none |  |
 | hotels.py | /v1/hotels/{hotel_id} | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_STAFF_ROLES) [L150] |
 | hotels.py | /v1/hotels/{hotel_id} | PATCH | gm | require_role('gm') [L167] |
-| hotels.py | /v1/hotels/{hotel_id}/housekeeping-settings | GET | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L192] |
-| hotels.py | /v1/hotels/{hotel_id}/housekeeping-settings | PUT | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L208] |
-| hotels.py | /v1/hotels/{hotel_id}/layout | GET | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L231] |
-| hotels.py | /v1/hotels/{hotel_id}/layout | PUT | gm | require_role('gm') [L245] |
-| hotels.py | /v1/hotels/{hotel_id}/stats | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_STAFF_ROLES) [L265] |
+| hotels.py | /v1/hotels/{hotel_id}/housekeeping-settings | GET | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L199] |
+| hotels.py | /v1/hotels/{hotel_id}/housekeeping-settings | PUT | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L215] |
+| hotels.py | /v1/hotels/{hotel_id}/layout | GET | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L238] |
+| hotels.py | /v1/hotels/{hotel_id}/layout | PUT | gm | require_role('gm') [L252] |
+| hotels.py | /v1/hotels/{hotel_id}/stats | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_STAFF_ROLES) [L272] |
 | hotels.py | /v1/hotels/{hotel_id}/departments | GET | none |  |
 | housekeeping.py | /v1/housekeeping/board | GET | none |  |
 | housekeeping.py | /v1/housekeeping/my-rooms | GET | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L797] |
@@ -405,15 +406,15 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L281]; inline: current_user.role in GM_ONLY_ROLES [L333]; inline: current_user.role not in GM_ONLY_ROLES [L294] |
 | staff.py | /v1/staff/departments | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L347] |
 | staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L361] |
-| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L461] |
-| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L476] |
-| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L495] |
-| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L512] |
-| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L529] |
-| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L561] |
-| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L590] |
-| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L601] |
-| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L665] |
+| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L496] |
+| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L514] |
+| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L538] |
+| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L595] |
+| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L631] |
+| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L663] |
+| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L692] |
+| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L703] |
+| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L767] |
 | staff_invitations.py | /v1/staff/invite | POST | gm | require_role('gm') [L193] |
 | staff_invitations.py | /v1/staff/onboarding-invite | POST | none |  |
 | staff_invitations.py | /v1/staff/invitations | GET | gm | require_role('gm') [L229] |
@@ -478,4 +479,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
 
-**39 routers, 467 routes.**
+**39 routers, 468 routes.**

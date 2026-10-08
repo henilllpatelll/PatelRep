@@ -172,6 +172,13 @@ export const guestRequestsApi = {
     sla_minutes: number
   }) => apiClient.post('/guest-requests/sla-policies', payload) as Promise<{ data: SlaPolicy }>,
 
+  updateSlaPolicy: (id: string, payload: {
+    category: SlaPolicy['category']
+    priority: SlaPolicy['priority']
+    guest_impact: SlaPolicy['guest_impact']
+    sla_minutes: number
+  }) => apiClient.patch(`/guest-requests/sla-policies/${id}`, payload) as Promise<{ data: SlaPolicy }>,
+
   deleteSlaPolicy: (id: string) => apiClient.delete(`/guest-requests/sla-policies/${id}`),
 
   listAccessibleRoomFeatures: (params?: { feature_code?: string; operational_status?: string }) =>

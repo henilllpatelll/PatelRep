@@ -1549,7 +1549,7 @@ class CreateCustomRoleRequest(SanitizedBaseModel):
         "housekeeper",
         "engineer",
         "housekeeping_supervisor",
-        "engineer",
+        "chief_engineer",
         "front_desk",
         "gm",
     ]
@@ -1564,7 +1564,7 @@ class UpdateCustomRoleRequest(SanitizedBaseModel):
             "housekeeper",
             "engineer",
             "housekeeping_supervisor",
-            "engineer",
+            "chief_engineer",
             "front_desk",
             "gm",
         ]

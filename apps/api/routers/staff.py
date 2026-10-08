@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from core.config import settings
 from core.database import supabase
-from core.roles import ALL_ROLES, GM_ONLY_ROLES
+from core.roles import ALL_ROLES, GM_ONLY_ROLES, LEGACY_MODULE_ALIASES, unsupported_modules
 from middleware.auth import CurrentUser, get_current_user, require_role
 from models.requests import (
     AddStaffDirectRequest,
@@ -456,18 +456,56 @@ async def add_staff_direct(
 # ---------------------------------------------------------------------------
 # Custom roles
 # ---------------------------------------------------------------------------
+def _assigned_staff_counts(hotel_id: str) -> dict[str, int]:
+    """Active staff per custom role in this hotel."""
+    rows = (
+        supabase.table("user_roles")
+        .select("custom_role_id")
+        .eq("tenant_id", hotel_id)
+        .eq("is_active", True)
+        .execute().data or []
+    )
+    counts: dict[str, int] = {}
+    for row in rows:
+        role_id = row.get("custom_role_id")
+        if role_id:
+            counts[role_id] = counts.get(role_id, 0) + 1
+    return counts
+
+
+def _assert_custom_role_valid(hotel_id: str, *, name: str, base_role: str, modules: list[str], exclude_id: Optional[str] = None) -> list[str]:
+    """Shared create/update rules. Returns the module list normalised (legacy aliases resolved, de-duplicated)."""
+    if not name.strip():
+        raise HTTPException(status_code=422, detail="Role name is required")
+    bad = unsupported_modules(modules, base_role)
+    if bad:
+        raise HTTPException(
+            status_code=422,
+            detail=f"These modules are not available to the {base_role.replace('_', ' ')} base role: {', '.join(bad)}",
+        )
+    # UNIQUE (hotel_id, name) also covers soft-deleted roles, so check every row, not just active ones.
+    existing = supabase.table("custom_roles").select("id, name").eq("hotel_id", hotel_id).execute().data or []
+    for row in existing:
+        if row["id"] != exclude_id and (row.get("name") or "").strip().lower() == name.strip().lower():
+            raise HTTPException(status_code=409, detail="A role with this name already exists")
+    return sorted({LEGACY_MODULE_ALIASES.get(m, m) for m in modules})
+
+
 @router.get("/custom-roles")
 async def list_custom_roles(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
-    """List all active custom roles for the hotel."""
-    result = supabase.table("custom_roles")\
-        .select("id, name, description, base_role, allowed_modules, created_at")\
-        .eq("hotel_id", current_user.hotel_id)\
-        .eq("is_active", True)\
-        .order("created_at")\
+    """List all active custom roles for the hotel, with how many active staff hold each."""
+    result = (
+        supabase.table("custom_roles")
+        .select("id, name, description, base_role, allowed_modules, created_at")
+        .eq("hotel_id", current_user.hotel_id)
+        .eq("is_active", True)
+        .order("created_at")
         .execute()
-    return {"data": result.data or []}
+    )
+    counts = _assigned_staff_counts(current_user.hotel_id)
+    return {"data": [{**row, "assigned_staff_count": counts.get(row["id"], 0)} for row in (result.data or [])]}
 
 
 @router.post("/custom-roles")
@@ -476,12 +514,17 @@ async def create_custom_role(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
     """Create a named custom role with a module permission set."""
+    if body.base_role == "gm":
+        raise HTTPException(status_code=422, detail="Custom roles cannot be based on the General Manager role")
+    modules = _assert_custom_role_valid(
+        current_user.hotel_id, name=body.name, base_role=body.base_role, modules=body.allowed_modules,
+    )
     result = supabase.table("custom_roles").insert({
         "hotel_id": current_user.hotel_id,
-        "name": body.name,
+        "name": body.name.strip(),
         "description": body.description,
         "base_role": body.base_role,
-        "allowed_modules": body.allowed_modules,
+        "allowed_modules": modules,
     }).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create custom role")
@@ -498,11 +541,51 @@ async def update_custom_role(
     update_data = {k: v for k, v in body.model_dump(exclude_none=True).items()}
     if not update_data:
         raise HTTPException(status_code=422, detail="No fields to update")
-    result = supabase.table("custom_roles")\
-        .update(update_data)\
-        .eq("id", role_id)\
-        .eq("hotel_id", current_user.hotel_id)\
+    rows = (
+        supabase.table("custom_roles")
+        .select("id, name, base_role, allowed_modules")
+        .eq("id", role_id)
+        .eq("hotel_id", current_user.hotel_id)
+        .eq("is_active", True)
+        .execute().data or []
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Custom role not found")
+    current = rows[0]
+    base_role = update_data.get("base_role", current["base_role"])
+    if base_role != current["base_role"]:
+        if base_role == "gm":
+            raise HTTPException(status_code=422, detail="Custom roles cannot be based on the General Manager role")
+        assigned = _assigned_staff_counts(current_user.hotel_id).get(role_id, 0)
+        if assigned:
+            raise HTTPException(
+                status_code=409,
+                detail=f"{assigned} active staff hold this role, so its base role can't change. Move them to another role first.",
+            )
+    # Modules are re-checked whenever the base role or module list changes, so an old role can't keep
+    # modules its (new) base role can't open.
+    if "allowed_modules" in update_data or base_role != current["base_role"]:
+        update_data["allowed_modules"] = _assert_custom_role_valid(
+            current_user.hotel_id,
+            name=update_data.get("name", current["name"]),
+            base_role=base_role,
+            modules=update_data.get("allowed_modules", current.get("allowed_modules") or []),
+            exclude_id=role_id,
+        )
+    elif "name" in update_data:
+        _assert_custom_role_valid(
+            current_user.hotel_id, name=update_data["name"], base_role=base_role,
+            modules=[], exclude_id=role_id,
+        )
+    if "name" in update_data:
+        update_data["name"] = update_data["name"].strip()
+    result = (
+        supabase.table("custom_roles")
+        .update(update_data)
+        .eq("id", role_id)
+        .eq("hotel_id", current_user.hotel_id)
         .execute()
+    )
     return {"data": result.data[0] if result.data else None}
 
 
@@ -511,12 +594,31 @@ async def delete_custom_role(
     role_id: str,
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
-    """Soft-delete a custom role (sets is_active=false)."""
-    supabase.table("custom_roles")\
-        .update({"is_active": False})\
-        .eq("id", role_id)\
-        .eq("hotel_id", current_user.hotel_id)\
+    """Soft-delete a custom role (sets is_active=false). Refused while active staff hold it:
+    removing it would silently change their access, so the GM must move them first."""
+    rows = (
+        supabase.table("custom_roles")
+        .select("id")
+        .eq("id", role_id)
+        .eq("hotel_id", current_user.hotel_id)
+        .eq("is_active", True)
+        .execute().data or []
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Custom role not found")
+    assigned = _assigned_staff_counts(current_user.hotel_id).get(role_id, 0)
+    if assigned:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{assigned} active staff hold this role. Move them to another role before deleting it.",
+        )
+    (
+        supabase.table("custom_roles")
+        .update({"is_active": False})
+        .eq("id", role_id)
+        .eq("hotel_id", current_user.hotel_id)
         .execute()
+    )
     return {"data": {"success": True}}
 
 

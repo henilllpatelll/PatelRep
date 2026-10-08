@@ -12,7 +12,7 @@
  *   /settings/housekeeping     Housekeeping            (?tab=cleaning|workload|assignment)
  *   /settings/inspections      Inspections
  *   /settings/guest-requests   Service SLAs
- *   /settings/roles            Roles & Access          (+ /settings/front-desk, /settings/departments)
+ *   /settings/roles            Roles & Access          (+ /settings/departments; /settings/front-desk redirects in)
  *   /settings/integrations     Integrations
  *   /settings/billing          Billing
  *   /settings/feedback         Staff Feedback          (retained under Advanced)
@@ -85,7 +85,6 @@ export const SETTINGS_DESTINATIONS: readonly SettingsDestination[] = [
     description: 'Custom roles, module access, front desk access and departments.',
     relatedPages: [
       { href: '/settings/roles', label: 'Roles' },
-      { href: '/settings/front-desk', label: 'Front Desk Access' },
       { href: '/settings/departments', label: 'Departments' },
     ] },
   { id: 'integrations', href: '/settings/integrations', label: 'Integrations', group: 'systems', icon: 'link',
@@ -137,9 +136,13 @@ function pathMatches(pathname: string, href: string): boolean {
 }
 
 /** The destination that owns `pathname` (longest matching href wins; Home only matches exactly). */
+/** Retired Settings pages that now live inside another destination (their route redirects there). */
+export const LEGACY_SETTINGS_PATHS: Record<string, string> = { '/settings/front-desk': '/settings/roles?access=front-desk' }
+
 export function resolveActiveDestination(pathname: string): SettingsDestination | undefined {
   const clean = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (clean === '/settings') return getDestination('home')
+  if (LEGACY_SETTINGS_PATHS[clean]) return getDestination('roles')
   let best: SettingsDestination | undefined
   let bestLen = -1
   for (const d of SETTINGS_DESTINATIONS) {
@@ -185,7 +188,7 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
     keywords: ['sla policies', 'response time', 'guest requests', 'service level', 'escalation', 'service recovery'] },
   { id: 'roles', destinationId: 'roles', href: '/settings/roles',
     keywords: ['custom roles', 'permissions', 'modules', 'staff access'] },
-  { id: 'roles-front-desk', destinationId: 'roles', section: 'Front desk access', href: '/settings/front-desk',
+  { id: 'roles-front-desk', destinationId: 'roles', section: 'Front desk access', href: '/settings/roles?access=front-desk',
     keywords: ['front desk access', 'front desk modules', 'front desk'] },
   { id: 'roles-departments', destinationId: 'roles', section: 'Departments', href: '/settings/departments',
     keywords: ['departments', 'teams'] },
