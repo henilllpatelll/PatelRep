@@ -27,6 +27,8 @@ CRON_SCHEDULE: dict[str, dict] = {
     "opera.sync-reservations": {"minute": "*/30"},
     "opera.sftp-sync-reports": {"minute": "*/30"},
     "escalations.check": {"minute": "*/30"},
+    # Scheduled report delivery (durable + idempotent; claims due rows in the database).
+    "reports.run-schedules": {"minute": "*/15"},
     "predictions.escalation-check": {"minute": "*/30"},
     # Daily 06:00.
     "pm.check-due": {"hour": 6, "minute": 0},
@@ -73,6 +75,7 @@ def _job_handlers() -> dict[str, Callable[..., Awaitable]]:
         "pm.check-due": internal.check_due_pm,
         "tasks.generate-recurring": internal.check_due_task_schedules,
         "reports.daily-summary-email": internal.send_daily_summary_emails,
+        "reports.run-schedules": internal.run_report_schedules,
         "evidence.reminders": internal.send_evidence_reminders,
         "safety.training-assignments": internal.schedule_safety_training_assignments,
         "safety.drill-follow-up": internal.escalate_missing_drill_follow_up,

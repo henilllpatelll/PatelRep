@@ -1,7 +1,10 @@
 import logging
+from html import escape
 from fastapi import APIRouter, Header, HTTPException
 from core.config import settings
 from core.database import supabase
+from services import email_delivery
+from services.reporting.delivery import resolve_emails as resolve_report_emails
 from routers.evidence import run_evidence_reminders
 from services.safety.contracts import calculate_next_training_due_date, should_schedule_training_assignment
 from datetime import date, datetime, timedelta, timezone
@@ -384,6 +387,7 @@ async def send_daily_summary_emails(x_cron_secret: str = Header(None)):
         .execute()
 
     emails_sent = 0
+    emails_not_configured = 0
     errors = 0
 
     for hotel in (hotels.data or []):
@@ -468,9 +472,22 @@ Have a great day!
 — PatelRep AI
 """
 
-            # Log email body to server log until Resend/SendGrid is integrated.
-            # logbook_entries requires department_id NOT NULL, so no stub insert.
-            logger.info("Daily summary for hotel=%s gm=%s:\n%s", hotel_id, gm_id, email_body)
+            # Deliver through the configured provider. A logged body is NOT a delivery:
+            # without credentials nothing is sent and the run says so.
+            if not email_delivery.is_configured():
+                emails_not_configured += 1
+                logger.warning("Daily summary NOT delivered for hotel=%s: email delivery is not configured", hotel_id)
+                continue
+            gm_email = resolve_report_emails(supabase, [gm_id]).get(gm_id)
+            if not gm_email:
+                errors += 1
+                logger.warning("Daily summary NOT delivered for hotel=%s: GM has no email address", hotel_id)
+                continue
+            email_delivery.send_email(
+                to=[gm_email], subject=f"[{hotel_name}] — Daily operations summary",
+                html="<pre style='font-family:Arial,sans-serif'>" + escape(email_body) + "</pre>", text=email_body,
+                idempotency_key=f"daily-summary:{hotel_id}:{today}",
+            )
             emails_sent += 1
 
         except Exception as e:
@@ -478,7 +495,24 @@ Have a great day!
             errors += 1
 
     _record_cron_run("reports.daily-summary-email")
-    return {"status": "ok", "emails_queued": emails_sent, "errors": errors}
+    return {
+        "status": "ok",
+        "emails_sent": emails_sent,
+        "emails_queued": emails_sent,  # legacy key; now means accepted by the email provider
+        "emails_not_configured": emails_not_configured,
+        "errors": errors,
+    }
+
+
+@router.post("/reports/run-schedules")
+async def run_report_schedules(x_cron_secret: str = Header(None)):
+    """Cron (every 15 min): claim due report schedules and deliver them (idempotent, multi-replica safe)."""
+    verify_cron(x_cron_secret)
+    from services.reporting.delivery import run_due
+
+    summary = await run_due(supabase)
+    _record_cron_run("reports.run-schedules")
+    return {"status": "ok", **summary}
 
 
 @router.post("/opera/sync-reservations")

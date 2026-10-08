@@ -159,7 +159,7 @@ export function TrendChartsRow() {
                 </div>
                 <div className="bg-surface-3 rounded-lg p-2">
                   <p className="text-ink3">Avg Resolution</p>
-                  <p className="font-semibold text-ink">{maint.avg_resolution_hours.toFixed(1)}h</p>
+                  <p className="font-semibold text-ink">{maint.avg_resolution_hours === null ? '—' : `${maint.avg_resolution_hours.toFixed(1)}h`}</p>
                 </div>
                 <div className="bg-surface-3 rounded-lg p-2">
                   <p className="text-ink3">SLA Breaches</p>

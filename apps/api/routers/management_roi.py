@@ -1,13 +1,21 @@
 """Phase 5 management ROI aggregation. GM-only (D-06). Math lives in contracts.py."""
 
 import logging
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
 from core.database import supabase
 from middleware.auth import CurrentUser, require_role
+from services.reporting.data import fetch_all
+from services.reporting.periods import (
+    hotel_timezone,
+    local_midnight_utc,
+    local_today,
+    resolve_period,
+    resolve_timezone,
+)
 from services.guest_recovery.contracts import (
     calculate_downtime_revenue_impact,
     calculate_housekeeping_efficiency,
@@ -94,18 +102,32 @@ DEFAULT_WINDOW_DAYS = 90  # D-08
 PRIOR_STATE_LOOKBACK_DAYS = 90  # WR-03: how far before the window to seek an open interval
 
 
-def _window(start_date: Optional[date], end_date: Optional[date], *, days: int = DEFAULT_WINDOW_DAYS):
-    today = date.today()
-    start = start_date or (today - timedelta(days=days))
-    end = end_date or today
-    return start, end
+def _window(
+    start_date: Optional[date],
+    end_date: Optional[date],
+    *,
+    days: int = DEFAULT_WINDOW_DAYS,
+    hotel_id: Optional[str] = None,
+):
+    """Hotel-local window (shared reporting date contract). Default start = end - ``days``.
+
+    Raises 422 for start > end, a future end date, or ranges over the shared maximum.
+    """
+    tz = hotel_timezone(supabase, hotel_id) if hotel_id else resolve_timezone(None)
+    period = resolve_period(start_date, end_date, tz, default_days=days + 1)
+    return period.start, period.end
 
 
-def _bounds(start: date, end: date) -> tuple[datetime, datetime]:
-    """Inclusive end-of-day upper bound, in UTC."""
+def _bounds(start: date, end: date, hotel_id: Optional[str] = None) -> tuple[datetime, datetime]:
+    """UTC bounds for hotel-local days: ``start`` 00:00 .. end of ``end`` (inclusive instant).
+
+    Equivalent to the shared half-open ``[start, end + 1 day)`` interval; the upper bound is
+    expressed as the last microsecond so existing ``.lte`` callers keep exact semantics.
+    """
+    tz = hotel_timezone(supabase, hotel_id) if hotel_id else resolve_timezone(None)
     return (
-        datetime.combine(start, time.min, tzinfo=timezone.utc),
-        datetime.combine(end, time.max, tzinfo=timezone.utc),
+        local_midnight_utc(start, tz),
+        local_midnight_utc(end + timedelta(days=1), tz) - timedelta(microseconds=1),
     )
 
 
@@ -178,11 +200,14 @@ def _prior_state_by_room(hotel_id: str, window_start: datetime) -> dict[str, dic
     PRIOR_STATE_LOOKBACK_DAYS so this stays a small, indexed scan.
     """
     lookback_start = window_start - timedelta(days=PRIOR_STATE_LOOKBACK_DAYS)
-    prior = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", hotel_id).gte(
-        "created_at", lookback_start.isoformat()
-    ).lt("created_at", window_start.isoformat()).order("created_at", desc=True).execute().data or []
+    prior, _ = fetch_all(  # paged: a bare .execute() silently stops at PostgREST's 1,000-row limit
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", hotel_id).gte(
+            "created_at", lookback_start.isoformat()
+        ).lt("created_at", window_start.isoformat()).order("created_at", desc=True),
+        source="room_status_history",
+    )
     state: dict[str, dict] = {}
     for row in prior:
         room_id = row["room_id"]
@@ -199,13 +224,16 @@ async def get_repeat_failures(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     """D-08: same asset or room, 2+ work orders inside a trailing 90-day window."""
-    start, end = _window(start_date, end_date)
-    window_start, window_end = _bounds(start, end)
-    work_orders = supabase.table("work_orders").select(
-        "id, asset_id, room_id, category, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).execute().data or []
+    start, end = _window(start_date, end_date, hotel_id=current_user.hotel_id)
+    window_start, window_end = _bounds(start, end, current_user.hotel_id)
+    work_orders, _ = fetch_all(
+        lambda: supabase.table("work_orders").select(
+            "id, asset_id, room_id, category, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="work_orders",
+    )
     metrics = calculate_repeat_failures(
         work_orders, window_start=window_start, window_end=window_end,
         window_days=(end - start).days or DEFAULT_WINDOW_DAYS,
@@ -220,13 +248,16 @@ async def get_downtime_revenue(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     """D-07: room downtime hours x (GM-configured ADR / 24). No external PMS dependency."""
-    start, end = _window(start_date, end_date, days=30)
-    window_start, window_end = _bounds(start, end)
-    history = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    start, end = _window(start_date, end_date, days=30, hotel_id=current_user.hotel_id)
+    window_start, window_end = _bounds(start, end, current_user.hotel_id)
+    history, _ = fetch_all(
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="room_status_history",
+    )
     prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
     # Seed each room's boundary status clamped to window_start so an interval opened
     # before the window (and closed inside it, or still open) counts from the window
@@ -253,17 +284,20 @@ async def get_housekeeping_efficiency(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     """Minutes per occupied room and per-room-type variance vs. base_clean_minutes."""
-    start, end = _window(start_date, end_date, days=30)
-    window_start, window_end = _bounds(start, end)
+    start, end = _window(start_date, end_date, days=30, hotel_id=current_user.hotel_id)
+    window_start, window_end = _bounds(start, end, current_user.hotel_id)
     rooms = supabase.table("rooms").select("id, room_type_id").eq(
         "tenant_id", current_user.hotel_id
     ).execute().data or []
     room_type_by_room = {row["id"]: row["room_type_id"] for row in rooms}
-    history = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    history, _ = fetch_all(
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="room_status_history",
+    )
     prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
     # Keep the real prior timestamp so a clean that opened before the window and
     # closed inside it reports its true duration rather than being dropped (WR-03).
@@ -290,21 +324,27 @@ async def get_inspection_trends(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     """Pass rate and repeat-defect ranking for inspections completed in the window."""
-    start, end = _window(start_date, end_date, days=30)
-    window_start, window_end = _bounds(start, end)
-    inspections = supabase.table("inspections").select(
-        "id, room_id, overall_result, completed_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "completed_at", window_start.isoformat()
-    ).lte("completed_at", window_end.isoformat()).execute().data or []
+    start, end = _window(start_date, end_date, days=30, hotel_id=current_user.hotel_id)
+    window_start, window_end = _bounds(start, end, current_user.hotel_id)
+    inspections, _ = fetch_all(
+        lambda: supabase.table("inspections").select(
+            "id, room_id, overall_result, completed_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "completed_at", window_start.isoformat()
+        ).lte("completed_at", window_end.isoformat()).order("completed_at"),
+        source="inspections",
+    )
     inspection_ids = [row["id"] for row in inspections]
-    results = []
-    if inspection_ids:
-        results = supabase.table("inspection_results").select(
-            "inspection_id, template_item_id, result"
-        ).eq("tenant_id", current_user.hotel_id).in_(
-            "inspection_id", inspection_ids
-        ).execute().data or []
+    results: list[dict] = []
+    for i in range(0, len(inspection_ids), 150):  # short in.() URLs; each chunk paged past the 1,000-row limit
+        chunk = inspection_ids[i:i + 150]
+        part, _ = fetch_all(
+            lambda: supabase.table("inspection_results").select(
+                "inspection_id, template_item_id, result"
+            ).eq("tenant_id", current_user.hotel_id).in_("inspection_id", chunk).order("inspection_id"),
+            source="inspection_results",
+        )
+        results += part
     metrics = calculate_inspection_trends(inspections, results)
     return {"data": {"period": _period(start, end), **metrics}}
 
@@ -316,21 +356,27 @@ async def get_pm_compliance(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     """Completion/deferral rates sourced from the real completion and deferral record tables."""
-    start, end = _window(start_date, end_date, days=30)
-    window_start, window_end = _bounds(start, end)
+    start, end = _window(start_date, end_date, days=30, hotel_id=current_user.hotel_id)
+    window_start, window_end = _bounds(start, end, current_user.hotel_id)
     schedules = supabase.table("pm_schedules").select("id, asset_id, name, next_due_at").eq(
         "tenant_id", current_user.hotel_id
     ).eq("is_active", True).execute().data or []
-    completions = supabase.table("pm_completion_records").select(
-        "pm_schedule_id, labor_minutes, completed_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "completed_at", window_start.isoformat()
-    ).lte("completed_at", window_end.isoformat()).execute().data or []
-    deferrals = supabase.table("pm_deferrals").select(
-        "pm_schedule_id, deferred_until, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).execute().data or []
+    completions, _ = fetch_all(
+        lambda: supabase.table("pm_completion_records").select(
+            "pm_schedule_id, labor_minutes, completed_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "completed_at", window_start.isoformat()
+        ).lte("completed_at", window_end.isoformat()).order("completed_at"),
+        source="pm_records",
+    )
+    deferrals, _ = fetch_all(
+        lambda: supabase.table("pm_deferrals").select(
+            "pm_schedule_id, deferred_until, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="pm_records",
+    )
     metrics = calculate_pm_compliance(schedules, completions, deferrals)
     return {"data": {"period": _period(start, end), **metrics}}
 
@@ -343,8 +389,9 @@ async def get_training_readiness(
     assignments = supabase.table("safety_training_assignments").select(
         "id, course_id, employee_id, due_date, completed_at"
     ).eq("tenant_id", current_user.hotel_id).execute().data or []
-    metrics = calculate_training_readiness(assignments, as_of=date.today())
-    return {"data": {"generated_for": date.today().isoformat(), **metrics}}
+    today = local_today(hotel_timezone(supabase, current_user.hotel_id))
+    metrics = calculate_training_readiness(assignments, as_of=today)
+    return {"data": {"generated_for": today.isoformat(), **metrics}}
 
 
 @router.get("/forecast-7day")
@@ -359,20 +406,23 @@ async def get_seven_day_forecast(
     sync, so stretching it to 7 days would read as near-zero for every
     standalone hotel. This projects turnover capacity from observed history.
     """
-    today = date.today()
+    today = local_today(hotel_timezone(supabase, current_user.hotel_id))
     history_start = today - timedelta(days=lookback_weeks * 7)
-    window_start, window_end = _bounds(history_start, today)
+    window_start, window_end = _bounds(history_start, today, current_user.hotel_id)
 
     rooms = supabase.table("rooms").select("id, room_type_id").eq(
         "tenant_id", current_user.hotel_id
     ).execute().data or []
     room_type_by_room = {row["id"]: row["room_type_id"] for row in rooms}
 
-    history = supabase.table("room_status_history").select(
-        "room_id, to_status, created_at"
-    ).eq("tenant_id", current_user.hotel_id).gte(
-        "created_at", window_start.isoformat()
-    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    history, _ = fetch_all(
+        lambda: supabase.table("room_status_history").select(
+            "room_id, to_status, created_at"
+        ).eq("tenant_id", current_user.hotel_id).gte(
+            "created_at", window_start.isoformat()
+        ).lte("created_at", window_end.isoformat()).order("created_at"),
+        source="room_status_history",
+    )
     prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
     # Seed clean sessions opened before the lookback window so cross-boundary cleans
     # are counted in the trailing average rather than dropped (WR-03).
