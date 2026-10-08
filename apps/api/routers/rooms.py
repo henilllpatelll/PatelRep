@@ -12,6 +12,8 @@ from models.requests import (
     UpdateRoomStatusRequest,
     UndoRoomStatusRequest,
     ImportRoomsRequest,
+    CreateRoomRequest,
+    UpdateRoomDetailsRequest,
     SetRoomPriorityRequest,
     RecordServiceAttemptRequest,
     ServiceDeclinedRequest,
@@ -224,6 +226,176 @@ async def list_rooms(
         rows = [r for r in rows if r.get("assigned_to") == assigned_to]
 
     return {"data": rows}
+
+
+# ---------------------------------------------------------------------------
+# Room master data (Settings > Rooms & Accessibility)
+# ---------------------------------------------------------------------------
+
+# Records that make a room unsafe to delete: deleting the room would cascade-delete
+# (or orphan via SET NULL) operational history. Label -> table; all keyed by room_id.
+_ROOM_HISTORY_TABLES: tuple[tuple[str, str], ...] = (
+    ("status history", "room_status_history"),
+    ("room assignments", "room_assignments"),
+    ("clean sessions", "room_clean_sessions"),
+    ("work orders", "work_orders"),
+    ("tasks", "tasks"),
+    ("guest requests", "guest_requests"),
+    ("out-of-order / out-of-service periods", "room_unavailability_periods"),
+    ("inspections", "inspections"),
+    ("late checkout requests", "late_checkout_requests"),
+    ("service attempts", "room_service_attempts"),
+    ("occupancy discrepancies", "room_occupancy_discrepancies"),
+    ("lost & found items", "lost_found_items"),
+)
+
+
+def _blocking_room_records(room_id: str) -> list[str]:
+    """Labels of operational records tied to this room (room is tenant-verified by the caller)."""
+    found: list[str] = []
+    for label, table in _ROOM_HISTORY_TABLES:
+        rows = supabase.table(table).select("id").eq("room_id", room_id).limit(1).execute()
+        if rows.data:
+            found.append(label)
+    return found
+
+
+def _room_number_taken(hotel_id: str, room_number: str, exclude_room_id: str | None = None) -> bool:
+    rows = (
+        supabase.table("rooms")
+        .select("id")
+        .eq("tenant_id", hotel_id)
+        .eq("room_number", room_number)
+        .execute()
+    ).data or []
+    return any(r["id"] != exclude_room_id for r in rows)
+
+
+def _tenant_room_type(hotel_id: str, room_type_id: str) -> dict | None:
+    result = (
+        supabase.table("room_types")
+        .select("id, code, name")
+        .eq("id", room_type_id)
+        .eq("tenant_id", hotel_id)
+        .limit(1)
+        .execute()
+    )
+    return (result.data or [None])[0]
+
+
+@router.get("/types")
+async def list_room_types(current_user: CurrentUser = Depends(get_current_user)):
+    result = (
+        supabase.table("room_types")
+        .select("id, code, name")
+        .eq("tenant_id", current_user.hotel_id)
+        .order("code")
+        .execute()
+    )
+    return {"data": result.data or []}
+
+
+@router.post("", status_code=201)
+async def create_room(
+    request: CreateRoomRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Create ONE room. Unlike /rooms/import this never touches an existing room's status."""
+    room_number = request.room_number.strip()
+    if not room_number:
+        raise HTTPException(status_code=422, detail="room_number is required")
+    if not _tenant_room_type(current_user.hotel_id, request.room_type_id):
+        raise HTTPException(status_code=422, detail="Unknown room type")
+    if _room_number_taken(current_user.hotel_id, room_number):
+        raise HTTPException(status_code=409, detail=f"Room {room_number} already exists")
+
+    payload: dict = {
+        "tenant_id": current_user.hotel_id,
+        "room_number": room_number,
+        "floor": request.floor,
+        "room_type_id": request.room_type_id,
+    }
+    building = (request.building or "").strip()
+    if building:
+        payload["building"] = building
+    created = supabase.table("rooms").insert(payload).execute()
+    if not created.data:
+        raise HTTPException(status_code=500, detail="Failed to create room")
+    room = created.data[0]
+    supabase.table("room_status").insert({
+        "room_id": room["id"],
+        "tenant_id": current_user.hotel_id,
+        "status": "DIRTY",
+    }).execute()
+    return {"data": room}
+
+
+@router.patch("/{room_id}/details")
+async def update_room_details(
+    room_id: str,
+    request: UpdateRoomDetailsRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Edit room master data only (number, floor, building, type). Status is never changed here."""
+    existing = (
+        supabase.table("rooms")
+        .select("id")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .limit(1)
+        .execute()
+    ).data
+    if not existing:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    fields = request.model_dump(exclude_unset=True)
+    update: dict = {}
+    if fields.get("room_number") is not None:
+        number = fields["room_number"].strip()
+        if not number:
+            raise HTTPException(status_code=422, detail="room_number cannot be blank")
+        if _room_number_taken(current_user.hotel_id, number, exclude_room_id=room_id):
+            raise HTTPException(status_code=409, detail=f"Room {number} already exists")
+        update["room_number"] = number
+    if fields.get("floor") is not None:
+        update["floor"] = fields["floor"]
+    if fields.get("room_type_id") is not None:
+        if not _tenant_room_type(current_user.hotel_id, fields["room_type_id"]):
+            raise HTTPException(status_code=422, detail="Unknown room type")
+        update["room_type_id"] = fields["room_type_id"]
+    if "building" in fields:
+        update["building"] = (fields["building"] or "").strip() or None
+    if not update:
+        raise HTTPException(status_code=422, detail="No valid fields to update")
+
+    result = (
+        supabase.table("rooms")
+        .update(update)
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+    return {"data": (result.data or [{}])[0]}
+
+
+@router.get("/{room_id}/deletion-check")
+async def room_deletion_check(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Tell the UI whether a room can be deleted and, if not, which records block it."""
+    existing = (
+        supabase.table("rooms")
+        .select("id, room_number")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .limit(1)
+        .execute()
+    ).data
+    if not existing:
+        raise HTTPException(status_code=404, detail="Room not found")
+    blockers = _blocking_room_records(room_id)
+    return {"data": {"room_number": existing[0]["room_number"], "can_delete": not blockers, "blocked_by": blockers}}
 
 
 # ---------------------------------------------------------------------------
@@ -1608,6 +1780,19 @@ async def delete_room(
     )
     if not existing or not existing.data:
         raise HTTPException(status_code=404, detail="Room not found")
+
+    # Deleting a room cascades into status history, assignments, sessions and more, and
+    # detaches work orders / tasks / guest requests. Refuse rather than silently erase history.
+    blockers = _blocking_room_records(room_id)
+    if blockers:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This room has operational history and cannot be deleted: "
+                + ", ".join(blockers)
+                + "."
+            ),
+        )
 
     supabase.table("rooms").delete().eq("id", room_id).eq("tenant_id", current_user.hotel_id).execute()
     return {"data": {"ok": True}}

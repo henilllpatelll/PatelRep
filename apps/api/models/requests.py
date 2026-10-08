@@ -179,6 +179,22 @@ class UpdateRoomStatusRequest(SanitizedBaseModel):
     force: bool = False
 
 
+class CreateRoomRequest(SanitizedBaseModel):
+    """Single-room creation for Settings > Rooms (the bulk path is /rooms/import)."""
+    room_number: str = Field(min_length=1, max_length=20)
+    floor: int = Field(ge=-5, le=200)
+    room_type_id: str = Field(min_length=1, max_length=64)
+    building: Optional[str] = Field(default=None, max_length=50)
+
+
+class UpdateRoomDetailsRequest(SanitizedBaseModel):
+    """Room master-data edit. Operational status is deliberately NOT editable here."""
+    room_number: Optional[str] = Field(default=None, min_length=1, max_length=20)
+    floor: Optional[int] = Field(default=None, ge=-5, le=200)
+    room_type_id: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    building: Optional[str] = Field(default=None, max_length=50)
+
+
 class CreateRoomUnavailabilityRequest(SanitizedBaseModel):
     room_id: UUID4
     type: Literal["OUT_OF_ORDER", "OUT_OF_SERVICE"] = "OUT_OF_ORDER"

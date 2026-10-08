@@ -25,7 +25,8 @@ export function SettingsDrawer({
   onClose: () => void
   /** True while the drawer holds unsaved edits. */
   dirty?: boolean
-  footer?: ReactNode
+  /** Static footer, or a function receiving the dirty-protected `requestClose` for a Cancel button. */
+  footer?: ReactNode | ((api: { requestClose: () => void }) => ReactNode)
   children: ReactNode
   width?: 'md' | 'lg'
 }) {
@@ -80,7 +81,7 @@ export function SettingsDrawer({
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">{children}</div>
         {footer && (
-          <footer className="shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">{footer}</footer>
+          <footer className="shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">{typeof footer === 'function' ? footer({ requestClose }) : footer}</footer>
         )}
       </div>
       {confirming && (

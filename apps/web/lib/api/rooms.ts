@@ -56,11 +56,25 @@ export interface ImportRoomPayload {
   building?: string
 }
 
+/** Shape returned by POST /rooms/import (inside `data`). `reset_count` = existing rooms whose status was reset. */
 export interface ImportResult {
-  imported: number
-  skipped: number
-  errors?: { room_number: string; reason: string }[]
+  imported_count: number
+  reset_count: number
+  errors: { room_number: string | null; reason: string }[]
 }
+
+export interface RoomType { id: string; code: string; name: string }
+
+export interface CreateRoomPayload {
+  room_number: string
+  floor: number
+  room_type_id: string
+  building?: string
+}
+
+export type UpdateRoomDetailsPayload = Partial<CreateRoomPayload>
+
+export interface RoomDeletionCheck { room_number: string; can_delete: boolean; blocked_by: string[] }
 
 export interface RoomUnavailabilityPeriod {
   id: string
@@ -123,60 +137,18 @@ export const roomsApi = {
   deleteRoom: (roomId: string) =>
     apiClient.delete(`/rooms/${roomId}`),
 
-  importRooms: (rooms: ImportRoomPayload[]) =>
-    apiClient.post('/rooms/import', { source: 'manual', rooms }),
+  importRooms: (rooms: ImportRoomPayload[], source: 'csv' | 'manual' = 'manual') =>
+    apiClient.post('/rooms/import', { source, rooms }) as Promise<{ data: ImportResult }>,
 
-  importFromCSV: (csvContent: string): Promise<ImportResult> => {
-    // Parse CSV lines into room objects and call importRooms
-    // Expected CSV format: room_number,floor,room_type_code,room_type_name
-    const lines = csvContent.trim().split('\n')
-    if (lines.length < 2) {
-      return Promise.reject(new Error('CSV must have a header row and at least one data row'))
-    }
-    const headers = lines[0].toLowerCase().split(',').map((h) => h.trim())
-    const rooms: ImportRoomPayload[] = lines
-      .slice(1)
-      .map((line) => {
-        const values = line.split(',').map((v) => v.trim())
-        const obj: Record<string, string> = {}
-        headers.forEach((h, i) => {
-          obj[h] = values[i] ?? ''
-        })
-        return {
-          room_number: obj['room_number'] || obj['room number'] || '',
-          floor: parseInt(obj['floor'] || '1', 10),
-          room_type_code: (obj['room_type_code'] || obj['type'] || 'SD').toUpperCase(),
-          room_type_name: obj['room_type_name'] || obj['type_name'] || undefined,
-          building: obj['building'] || undefined,
-        }
-      })
-      .filter((r) => Boolean(r.room_number))
-    return apiClient.post('/rooms/import', { source: 'csv', rooms })
-  },
+  listTypes: () => apiClient.get('/rooms/types') as Promise<{ data: RoomType[] }>,
 
-  /** Parse CSV text into a preview array — no network call — for pre-submit previews */
-  parseCSVPreview: (csvContent: string): ImportRoomPayload[] => {
-    const lines = csvContent.trim().split('\n')
-    if (lines.length < 2) return []
-    const headers = lines[0].toLowerCase().split(',').map((h) => h.trim())
-    return lines
-      .slice(1)
-      .map((line) => {
-        const values = line.split(',').map((v) => v.trim())
-        const obj: Record<string, string> = {}
-        headers.forEach((h, i) => {
-          obj[h] = values[i] ?? ''
-        })
-        return {
-          room_number: obj['room_number'] || obj['room number'] || '',
-          floor: parseInt(obj['floor'] || '1', 10),
-          room_type_code: (obj['room_type_code'] || obj['type'] || 'SD').toUpperCase(),
-          room_type_name: obj['room_type_name'] || obj['type_name'] || undefined,
-          building: obj['building'] || undefined,
-        }
-      })
-      .filter((r) => Boolean(r.room_number))
-  },
+  createRoom: (payload: CreateRoomPayload) => apiClient.post('/rooms', payload),
+
+  updateRoomDetails: (roomId: string, payload: UpdateRoomDetailsPayload) =>
+    apiClient.patch(`/rooms/${roomId}/details`, payload),
+
+  checkDeletion: (roomId: string) =>
+    apiClient.get(`/rooms/${roomId}/deletion-check`) as Promise<{ data: RoomDeletionCheck }>,
 }
 
 export const roomUnavailabilityApi = {
