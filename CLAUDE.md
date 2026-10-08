@@ -263,7 +263,8 @@ account.
 | `escalations.check` | `*/30 * * * *` | WO/task SLA escalation ladder + DND welfare |
 | `pm.check-due` | `0 6 * * *` | PM schedule due check |
 | `tasks.generate-recurring` | `0 6 * * *` | Recurring Internal Task generation |
-| `reports.daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
+| `reports.daily-summary-email` | `0 6 * * *` | Daily GM summary (sent via Resend only when `RESEND_API_KEY` + `REPORT_EMAIL_FROM` are set; otherwise reports `emails_not_configured`) |
+| `reports.run-schedules` | `*/15 * * * *` | Scheduled report delivery (durable `report_schedules`/`report_deliveries`, idempotent, multi-replica safe) |
 | `evidence.reminders` | `0 6 * * *` | Controlled-doc acknowledgement reminders |
 | `safety.training-assignments` | `0 6 * * *` | Safety training assignment/reminders |
 | `safety.drill-follow-up` | `0 6 * * *` | Drill follow-up evidence escalation |

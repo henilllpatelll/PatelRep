@@ -1,7 +1,7 @@
 """Phase 5 management ROI aggregation. GM-only (D-06). Math lives in contracts.py."""
 
 import logging
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query

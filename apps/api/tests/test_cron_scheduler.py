@@ -18,6 +18,7 @@ EXPECTED_JOBS = {
     "pm.check-due",
     "tasks.generate-recurring",
     "reports.daily-summary-email",
+    "reports.run-schedules",
     "evidence.reminders",
     "safety.training-assignments",
     "safety.drill-follow-up",

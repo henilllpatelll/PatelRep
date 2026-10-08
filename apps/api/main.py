@@ -35,6 +35,7 @@ from routers import (
     guest_requests,
     logbook,
     management_roi,
+    report_exports,
     report_views,
     reports,
     onboarding,
@@ -191,6 +192,8 @@ CRON_TOLERANCE_MINUTES = {
     # Daily jobs (0 6 / 0 0 / 0 3) — 24h cadence + generous delivery slack.
     "pm.check-due": 1560,
     "reports.daily-summary-email": 1560,
+    # Scheduled report delivery runs every 15 minutes.
+    "reports.run-schedules": 45,
     "evidence.reminders": 1560,
     "safety.training-assignments": 1560,
     "safety.drill-follow-up": 1560,
@@ -338,6 +341,7 @@ app.include_router(logbook.router, prefix=PREFIX)
 app.include_router(management_roi.router, prefix=PREFIX)
 app.include_router(reports.router, prefix=PREFIX)
 app.include_router(report_views.router, prefix=PREFIX)
+app.include_router(report_exports.router, prefix=PREFIX)
 app.include_router(onboarding.router, prefix=PREFIX)
 app.include_router(staff.router, prefix=PREFIX)
 app.include_router(lost_found.router, prefix=PREFIX)

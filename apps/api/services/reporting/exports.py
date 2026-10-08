@@ -201,9 +201,9 @@ def render_pdf(doc: dict) -> bytes:
         story.append(KeepTogether([para(chart.get("title", ""), h2), drawing,
                                    para("Missing buckets are plotted as empty; they are not zero values.", muted)]))
 
+    if doc.get("exceptions"):
+        story.append(para("Needs attention", h2))
     for exc in doc.get("exceptions") or []:
-        if exc is (doc.get("exceptions") or [None])[0]:
-            story.append(para("Needs attention", h2))
         story.append(para(f"[{exc.get('severity', '')}] {exc.get('title', '')} — {exc.get('detail', '')}", body))
 
     for table in doc.get("tables") or []:

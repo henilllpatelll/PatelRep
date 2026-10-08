@@ -173,22 +173,23 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | integrations.py | /v1/integrations/opera/sftp/files | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L281] |
 | integrations.py | /v1/integrations/opera/test | POST | gm | require_role('gm') [L296] |
 | integrations.py | /v1/integrations/opera/disconnect | DELETE | gm | require_role('gm') [L313] |
-| internal.py | /v1/internal/safety/training-assignments | POST | N/A (not role-based) | verify_cron(...) [L99] |
-| internal.py | /v1/internal/safety/drill-follow-up | POST | N/A (not role-based) | verify_cron(...) [L130] |
-| internal.py | /v1/internal/evidence/reminders | POST | N/A (not role-based) | verify_cron(...) [L144] |
-| internal.py | /v1/internal/predictions/run | POST | N/A (not role-based) | verify_cron(...) [L158] |
-| internal.py | /v1/internal/pm/check-due | POST | N/A (not role-based) | verify_cron(...) [L190] |
-| internal.py | /v1/internal/tasks/generate-recurring | POST | N/A (not role-based) | verify_cron(...) [L247] |
-| internal.py | /v1/internal/ai/failure-predictions | POST | N/A (not role-based) | verify_cron(...) [L280] |
-| internal.py | /v1/internal/billing/monthly-trueup | POST | N/A (not role-based) | verify_cron(...) [L328] |
-| internal.py | /v1/internal/logbook/shift-summary | POST | N/A (not role-based) | verify_cron(...) [L344] |
-| internal.py | /v1/internal/reports/daily-summary-email | POST | N/A (not role-based) | verify_cron(...) [L378] |
-| internal.py | /v1/internal/opera/sync-reservations | POST | N/A (not role-based) | verify_cron(...) [L487] |
-| internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L512] |
-| internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L591] |
-| internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L776] |
-| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L840] |
-| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L882] |
+| internal.py | /v1/internal/safety/training-assignments | POST | N/A (not role-based) | verify_cron(...) [L102] |
+| internal.py | /v1/internal/safety/drill-follow-up | POST | N/A (not role-based) | verify_cron(...) [L133] |
+| internal.py | /v1/internal/evidence/reminders | POST | N/A (not role-based) | verify_cron(...) [L147] |
+| internal.py | /v1/internal/predictions/run | POST | N/A (not role-based) | verify_cron(...) [L161] |
+| internal.py | /v1/internal/pm/check-due | POST | N/A (not role-based) | verify_cron(...) [L193] |
+| internal.py | /v1/internal/tasks/generate-recurring | POST | N/A (not role-based) | verify_cron(...) [L250] |
+| internal.py | /v1/internal/ai/failure-predictions | POST | N/A (not role-based) | verify_cron(...) [L283] |
+| internal.py | /v1/internal/billing/monthly-trueup | POST | N/A (not role-based) | verify_cron(...) [L331] |
+| internal.py | /v1/internal/logbook/shift-summary | POST | N/A (not role-based) | verify_cron(...) [L347] |
+| internal.py | /v1/internal/reports/daily-summary-email | POST | N/A (not role-based) | verify_cron(...) [L381] |
+| internal.py | /v1/internal/reports/run-schedules | POST | N/A (not role-based) | verify_cron(...) [L510] |
+| internal.py | /v1/internal/opera/sync-reservations | POST | N/A (not role-based) | verify_cron(...) [L521] |
+| internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L546] |
+| internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L625] |
+| internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L810] |
+| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L874] |
+| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L916] |
 | inventory.py | /v1/inventory/locations | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L79] |
 | inventory.py | /v1/inventory/locations | GET | none |  |
 | inventory.py | /v1/inventory/parts | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L109] |
@@ -263,13 +264,13 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1320]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1320] |
 | lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1386]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1386] |
 | lost_found.py | /v1/lost-found/{item_id} | DELETE | none |  |
-| management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L199] |
-| management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L220] |
-| management_roi.py | /v1/reports/roi/housekeeping-efficiency | GET | gm | require_role('gm') [L253] |
-| management_roi.py | /v1/reports/roi/inspection-trends | GET | gm | require_role('gm') [L290] |
-| management_roi.py | /v1/reports/roi/pm-compliance | GET | gm | require_role('gm') [L316] |
-| management_roi.py | /v1/reports/roi/training-readiness | GET | gm | require_role('gm') [L340] |
-| management_roi.py | /v1/reports/roi/forecast-7day | GET | gm | require_role('gm') [L353] |
+| management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L220] |
+| management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L241] |
+| management_roi.py | /v1/reports/roi/housekeeping-efficiency | GET | gm | require_role('gm') [L274] |
+| management_roi.py | /v1/reports/roi/inspection-trends | GET | gm | require_role('gm') [L311] |
+| management_roi.py | /v1/reports/roi/pm-compliance | GET | gm | require_role('gm') [L337] |
+| management_roi.py | /v1/reports/roi/training-readiness | GET | gm | require_role('gm') [L361] |
+| management_roi.py | /v1/reports/roi/forecast-7day | GET | gm | require_role('gm') [L375] |
 | notifications.py | /v1/notifications | GET | none |  |
 | notifications.py | /v1/notifications/{notification_id}/read | PATCH | none |  |
 | notifications.py | /v1/notifications/mark-all-read | POST | none |  |
@@ -294,11 +295,34 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | programs.py | /v1/programs/inspection-quality | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L407] |
 | programs.py | /v1/programs/deep-clean-schedules | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L421] |
 | programs.py | /v1/programs/public-areas | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L433] |
-| reports.py | /v1/reports/guest-recovery | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L16] |
-| reports.py | /v1/reports/daily-summary | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L41] |
-| reports.py | /v1/reports/staff-performance | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L88] |
-| reports.py | /v1/reports/maintenance | GET | chief_engineer, engineer, gm | require_role('gm', 'engineer', 'chief_engineer') [L241] |
-| reports.py | /v1/reports/ai-usage | GET | gm | require_role('gm') [L357] |
+| report_exports.py | /v1/reports/export | GET | none |  |
+| report_exports.py | /v1/reports/delivery-status | GET | none | inline: current_user.role not in GM_ONLY_ROLES [L153] |
+| report_exports.py | /v1/reports/schedules/recipients | GET | none |  |
+| report_exports.py | /v1/reports/schedules | GET | none | inline: current_user.role not in GM_ONLY_ROLES [L180] |
+| report_exports.py | /v1/reports/schedules/preview | POST | none |  |
+| report_exports.py | /v1/reports/schedules | POST | none |  |
+| report_exports.py | /v1/reports/schedules/{schedule_id} | PATCH | none |  |
+| report_exports.py | /v1/reports/schedules/{schedule_id} | DELETE | none |  |
+| report_exports.py | /v1/reports/schedules/{schedule_id}/deliveries | GET | none |  |
+| report_exports.py | /v1/reports/schedules/{schedule_id}/deliveries/{delivery_id}/retry | POST | none |  |
+| report_views.py | /v1/reports/views/overview | GET | none |  |
+| report_views.py | /v1/reports/views/guest-experience | GET | none |  |
+| report_views.py | /v1/reports/views/housekeeping | GET | none |  |
+| report_views.py | /v1/reports/views/maintenance | GET | none |  |
+| report_views.py | /v1/reports/views/team | GET | none |  |
+| report_views.py | /v1/reports/views/management | GET | none |  |
+| report_views.py | /v1/reports/trends | GET | none |  |
+| report_views.py | /v1/reports/segments | GET | none |  |
+| report_views.py | /v1/reports/records | GET | none |  |
+| report_views.py | /v1/reports/employee/{user_id} | GET | none |  |
+| report_views.py | /v1/reports/room-asset/{kind}/{entity_id} | GET | none |  |
+| reports.py | /v1/reports/capabilities | GET | none |  |
+| reports.py | /v1/reports/definitions | GET | UNVERIFIED (no auth dependency detected) |  |
+| reports.py | /v1/reports/guest-recovery | GET | UNVERIFIED (no auth dependency detected) |  |
+| reports.py | /v1/reports/daily-summary | GET | UNVERIFIED (no auth dependency detected) |  |
+| reports.py | /v1/reports/staff-performance | GET | UNVERIFIED (no auth dependency detected) |  |
+| reports.py | /v1/reports/maintenance | GET | UNVERIFIED (no auth dependency detected) |  |
+| reports.py | /v1/reports/ai-usage | GET | gm | require_role('gm') [L238] |
 | room_unavailability.py | /v1/room-unavailability/reasons | GET | none |  |
 | room_unavailability.py | /v1/room-unavailability | GET | none | inline: current_user.role in LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES [L76] |
 | room_unavailability.py | /v1/room-unavailability/summary | GET | none |  |
@@ -442,4 +466,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
 
-**35 routers, 431 routes.**
+**37 routers, 455 routes.**

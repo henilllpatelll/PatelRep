@@ -19,6 +19,7 @@ from services.reporting.periods import (
     same_period_last_year,
 )
 from tests.smoke.fake_supabase import FakeDB
+from tests.test_reports_views import _fresh_rate_limits  # noqa: F401  (autouse: clears the rate limiter)
 
 CHI = ZoneInfo("America/Chicago")
 NOW = datetime(2026, 10, 7, 18, 0, tzinfo=timezone.utc)  # 13:00 in Chicago (CDT)
@@ -227,7 +228,9 @@ def test_invalid_range_and_future_dates_return_422(monkeypatch):
 
 def test_maintenance_report_is_tenant_scoped_and_sla_eligible(monkeypatch):
     today = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
-    iso = lambda dt: dt.isoformat()
+    def iso(dt):
+        return dt.isoformat()
+
     created = today - timedelta(days=2)
     db = _db(work_orders=[
         {"id": "a1", "tenant_id": "hotel-a", "status": "completed", "category": "hvac", "priority": "urgent",
@@ -280,7 +283,9 @@ def test_staff_performance_scopes_staff_by_viewer_department(monkeypatch):
     )
     monkeypatch.setattr(reports_router, "supabase", db)
     client = TestClient(app)
-    names = lambda role: [m["name"] for m in client.get("/v1/reports/staff-performance", headers=_auth(role)).json()["data"]["metrics"]]
+    def names(role):
+        return [m["name"] for m in client.get("/v1/reports/staff-performance", headers=_auth(role)).json()["data"]["metrics"]]
+
     assert names("housekeeping_supervisor") == ["Hana Housekeeper"]
     assert names("chief_engineer") == ["Eli Engineer"]
     assert sorted(names("gm")) == ["Eli Engineer", "Hana Housekeeper"]

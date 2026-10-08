@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     twilio_phone_number: str = ""
     twilio_status_callback_url: str = ""
 
+    # Transactional email for scheduled reports (Resend). Both must be set for delivery;
+    # otherwise scheduled sends are recorded as 'not_configured' (never simulated).
+    resend_api_key: str = ""
+    report_email_from: str = ""  # e.g. "PatelRep Reports <reports@your-verified-domain.com>"
+
     # Billing
     base_plan_price_cents: int = 9900  # $99.00/month base fee
 

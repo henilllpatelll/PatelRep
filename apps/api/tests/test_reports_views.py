@@ -16,6 +16,25 @@ NOW = datetime.now(timezone.utc)
 DAY = timedelta(days=1)
 
 
+def reset_rate_limits() -> None:
+    """Clear the in-process limiter so bursty report tests don't throttle unrelated suites."""
+    from main import app as _app
+
+    node = getattr(_app, "middleware_stack", None)
+    while node is not None:
+        if hasattr(node, "_requests") and hasattr(node, "per_ip_authenticated_rule"):
+            node._requests.clear()
+            return
+        node = getattr(node, "app", None)
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    reset_rate_limits()
+    yield
+    reset_rate_limits()
+
+
 def iso(dt: datetime) -> str:
     return dt.isoformat()
 
