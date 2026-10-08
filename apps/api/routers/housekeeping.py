@@ -16,6 +16,7 @@ from models.requests import (
     BatchRoomReadinessRequest,
 )
 from core.database import supabase
+from services.settings_audit import record_settings_event
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 from services.opera_pdf import parse_hk_details, parse_task_sheet
 from services.ai.predictions import count_rooms_ahead, notify_supervisors_high_risk
@@ -2551,6 +2552,7 @@ async def create_inspection_template(
     template_id = tmpl.data[0]["id"]
     if tmpl.data[0].get("is_default"):
         _clear_other_default_templates(current_user.hotel_id, template_id)
+    created_items = items or []
 
     if items:
         items_data = [
@@ -2567,6 +2569,15 @@ async def create_inspection_template(
         ]
         supabase.table("inspection_template_items").insert(items_data).execute()
 
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.inspection_template.created",
+        resource_type="inspection_template", resource_id=template_id,
+        new_state={
+            "name": tmpl.data[0].get("name"), "is_default": bool(tmpl.data[0].get("is_default")), "is_active": True,
+            **_template_shape(created_items),
+        },
+        only_changes=False,
+    )
     return {"data": tmpl.data[0]}
 
 
@@ -2582,12 +2593,20 @@ async def update_inspection_template(
 ):
     """Update an inspection template name/default flag and replace its items."""
     existing = supabase.table("inspection_templates") \
-        .select("id") \
+        .select("id, name, is_default, is_active") \
         .eq("id", template_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .maybe_single().execute()
     if not (existing and existing.data):
         raise HTTPException(status_code=404, detail="Template not found")
+    before_template = dict(existing.data)  # snapshot for the audit trail
+    previous_items = None
+    if "items" in body:
+        previous_items = supabase.table("inspection_template_items") \
+            .select("section") \
+            .eq("template_id", template_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .execute().data or []
 
     update_data: dict = {}
     if "name" in body:
@@ -2644,6 +2663,16 @@ async def update_inspection_template(
         .order("sort_order") \
         .execute()
 
+    old_audit = {k: before_template.get(k) for k in ("name", "is_default", "is_active")}
+    new_audit = {k: tmpl.data.get(k) for k in ("name", "is_default", "is_active")}
+    if previous_items is not None:
+        old_audit.update(_template_shape(previous_items))
+        new_audit.update(_template_shape(item_result.data or []))
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.inspection_template.updated",
+        resource_type="inspection_template", resource_id=template_id,
+        old_state=old_audit, new_state=new_audit,
+    )
     return {"data": {**tmpl.data, "items": item_result.data or []}}
 
 
@@ -2795,13 +2824,14 @@ async def delete_inspection_template(
       items, so history stays intact; an unused template is deleted outright.
     """
     tmpl = supabase.table("inspection_templates") \
-        .select("id, is_default") \
+        .select("id, name, is_default, is_active") \
         .eq("id", template_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .maybe_single().execute()
     if not (tmpl and tmpl.data):
         raise HTTPException(status_code=404, detail="Template not found")
 
+    before_template = dict(tmpl.data)  # snapshot for the audit trail
     if tmpl.data.get("is_default"):
         others = supabase.table("inspection_templates") \
             .select("id") \
@@ -2826,6 +2856,13 @@ async def delete_inspection_template(
             .eq("id", template_id) \
             .eq("tenant_id", current_user.hotel_id) \
             .execute()
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.inspection_template.archived",
+            resource_type="inspection_template", resource_id=template_id,
+            old_state={k: before_template.get(k) for k in ("name", "is_default", "is_active")},
+            new_state={"name": before_template.get("name"), "is_default": False, "is_active": False},
+            only_changes=False,
+        )
         return
 
     supabase.table("inspection_template_items") \
@@ -2838,6 +2875,19 @@ async def delete_inspection_template(
         .eq("id", template_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .execute()
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.inspection_template.deleted",
+        resource_type="inspection_template", resource_id=template_id,
+        old_state={k: before_template.get(k) for k in ("name", "is_default", "is_active")}, only_changes=False,
+    )
+
+
+def _template_shape(items: list) -> dict:
+    """Section and check counts for the audit summary (item text itself is not recorded)."""
+    return {
+        "section_count": len({(i.get("section") or "General") for i in items}),
+        "check_count": len(items),
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ from middleware.auth import get_current_user, get_current_user_no_hotel, require
 from models.requests import CreateHotelRequest, UpdateHotelRequest, UpdateHousekeepingSettingsRequest
 from core.database import supabase
 from core.roles import ALL_STAFF_ROLES, LEGACY_MODULE_ALIASES, unsupported_modules
+from services.settings_audit import record_settings_event
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
 
@@ -185,12 +186,39 @@ async def update_hotel(
             raise HTTPException(status_code=422, detail=f"These modules are not available to Front Desk: {', '.join(bad)}")
         update_data["front_desk_modules"] = sorted({LEGACY_MODULE_ALIASES.get(m, m) for m in update_data["front_desk_modules"]})
 
+    before = _tenant_snapshot(hotel_id, list(update_data))
     result = supabase.table("tenants").update(update_data).eq("id", hotel_id).execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Hotel not found")
 
-    return {"data": result.data[0]}
+    after = result.data[0]
+    profile_keys = [k for k in update_data if k != "front_desk_modules"]
+    if profile_keys:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.property.updated",
+            resource_type="property_profile", resource_id=hotel_id,
+            old_state={k: before[k] for k in profile_keys if k in before},
+            new_state={k: after.get(k) for k in profile_keys},
+        )
+    if "front_desk_modules" in update_data:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.front_desk_access.updated",
+            resource_type="front_desk_access", resource_id=hotel_id,
+            old_state={"modules": before["front_desk_modules"]} if "front_desk_modules" in before else {},
+            new_state={"modules": after.get("front_desk_modules")},
+        )
+
+    return {"data": after}
+
+
+def _tenant_snapshot(hotel_id: str, columns: list[str]) -> dict:
+    """Current values of ``columns`` for the audit 'before' state. Empty when it can't be read (then 'before' is simply not recorded)."""
+    try:
+        res = supabase.table("tenants").select(", ".join(columns)).eq("id", hotel_id).maybe_single().execute()
+        return dict(res.data) if res and res.data else {}
+    except Exception:  # noqa: BLE001 - never block the mutation on an audit read
+        return {}
 
 
 @router.get("/{hotel_id}/housekeeping-settings")
@@ -226,10 +254,41 @@ async def update_housekeeping_settings(
         "assignment_preferences": "housekeeping_assignment_preferences",
     }
     update_data = {column_map[key]: value for key, value in fields.items()}
+    before = _tenant_snapshot(hotel_id, list(update_data))
     result = supabase.table("tenants").update(update_data).eq("id", hotel_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Hotel not found")
-    return {"data": _housekeeping_settings_payload(result.data[0])}
+    after = result.data[0]
+
+    workload_old: dict = {}
+    workload_new: dict = {}
+    if "housekeeping_target_credits" in update_data:
+        if "housekeeping_target_credits" in before:
+            workload_old["default_target_credits"] = before["housekeeping_target_credits"]
+        workload_new["default_target_credits"] = after.get("housekeeping_target_credits")
+    if "housekeeping_credit_weights" in update_data:
+        if "housekeeping_credit_weights" in before:
+            workload_old["credit_weights"] = before["housekeeping_credit_weights"]
+        workload_new["credit_weights"] = after.get("housekeeping_credit_weights")
+    if "housekeeping_capacity_overrides" in update_data:
+        # Only the number of overrides is recorded (not per-staff values) to keep this log free of staff-level detail.
+        if "housekeeping_capacity_overrides" in before:
+            workload_old["capacity_override_count"] = len(before["housekeeping_capacity_overrides"] or {})
+        workload_new["capacity_override_count"] = len(after.get("housekeeping_capacity_overrides") or {})
+    if workload_new:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.housekeeping_workload.updated",
+            resource_type="housekeeping_workload", resource_id=hotel_id,
+            old_state=workload_old, new_state=workload_new,
+        )
+    if "housekeeping_assignment_preferences" in update_data:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.housekeeping_assignment.updated",
+            resource_type="housekeeping_assignment", resource_id=hotel_id,
+            old_state={"preferences": before["housekeeping_assignment_preferences"] or {}} if "housekeeping_assignment_preferences" in before else {},
+            new_state={"preferences": after.get("housekeeping_assignment_preferences") or {}},
+        )
+    return {"data": _housekeeping_settings_payload(after)}
 
 
 @router.get("/{hotel_id}/layout")
@@ -263,6 +322,11 @@ async def set_hotel_layout(
     result = supabase.table("tenants").update({"layout": layout}).eq("id", hotel_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Hotel not found")
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.property.layout_updated",
+        resource_type="property_layout", resource_id=hotel_id,
+        new_state={"section_count": len(layout)}, only_changes=False,
+    )
     return {"data": {"updated": True}}
 
 

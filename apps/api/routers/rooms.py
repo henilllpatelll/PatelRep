@@ -21,6 +21,7 @@ from models.requests import (
     ResolveOccupancyDiscrepancyRequest,
 )
 from core.database import supabase
+from services.settings_audit import record_settings_event
 from core.roles import HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
 from services.room_status_transitions import (
     close_active_sessions_for_room,
@@ -327,6 +328,10 @@ async def create_room(
         "tenant_id": current_user.hotel_id,
         "status": "DIRTY",
     }).execute()
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.room.created",
+        resource_type="room", resource_id=room["id"], new_state=payload, only_changes=False,
+    )
     return {"data": room}
 
 
@@ -339,7 +344,7 @@ async def update_room_details(
     """Edit room master data only (number, floor, building, type). Status is never changed here."""
     existing = (
         supabase.table("rooms")
-        .select("id")
+        .select("id, room_number, floor, building, room_type_id")
         .eq("id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .limit(1)
@@ -348,6 +353,7 @@ async def update_room_details(
     if not existing:
         raise HTTPException(status_code=404, detail="Room not found")
 
+    before = dict(existing[0])  # snapshot for the audit trail
     fields = request.model_dump(exclude_unset=True)
     update: dict = {}
     if fields.get("room_number") is not None:
@@ -374,6 +380,13 @@ async def update_room_details(
         .eq("id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.room.updated",
+        resource_type="room", resource_id=room_id,
+        old_state={"room_number": before.get("room_number"), **{k: before.get(k) for k in update}},
+        new_state={"room_number": update.get("room_number", before.get("room_number")), **update},
+        only_changes=False,
     )
     return {"data": (result.data or [{}])[0]}
 
@@ -1772,7 +1785,7 @@ async def delete_room(
 ):
     existing = (
         supabase.table("rooms")
-        .select("id")
+        .select("id, room_number, floor, building, room_type_id")
         .eq("id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -1795,6 +1808,10 @@ async def delete_room(
         )
 
     supabase.table("rooms").delete().eq("id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.room.deleted",
+        resource_type="room", resource_id=room_id, old_state=existing.data, only_changes=False,
+    )
     return {"data": {"ok": True}}
 
 
@@ -1944,6 +1961,19 @@ async def import_rooms(
 
         imported_count += 1
 
+    if imported_count or reset_count:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.rooms.imported",
+            resource_type="rooms_import", resource_id=current_user.hotel_id,
+            new_state={
+                "source": request.source,
+                "submitted": len(request.rooms or []),
+                "created": imported_count,
+                "updated": reset_count,
+                "skipped": len(errors),
+            },
+            only_changes=False,
+        )
     return {
         "data": {
             "imported_count": imported_count,

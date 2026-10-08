@@ -40,6 +40,7 @@ from routers import (
     reports,
     onboarding,
     staff,
+    settings_activity,
     staff_invitations,
     staff_schedules,
     lost_found,
@@ -322,6 +323,7 @@ PREFIX = "/v1"
 
 app.include_router(auth.router, prefix=PREFIX)
 app.include_router(hotels.router, prefix=PREFIX)
+app.include_router(settings_activity.router, prefix=PREFIX)
 app.include_router(rooms.router, prefix=PREFIX)
 app.include_router(housekeeping.router, prefix=PREFIX)
 app.include_router(cleaning_checklists.router, prefix=PREFIX)

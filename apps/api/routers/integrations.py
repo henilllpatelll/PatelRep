@@ -1,4 +1,5 @@
 import httpx
+from urllib.parse import urlsplit
 import logging
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,10 +11,43 @@ from services.opera import sync_reservations, bootstrap_opera_data, sync_report_
 from services.opera.auth import acquire_new_token, get_opera_credentials, get_valid_access_token
 from services.opera.crypto import encrypt_opera_secrets
 from services.opera.sftp_client import SftpConnectionError, test_connection as sftp_test_connection
+from services.settings_audit import record_settings_event
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+
+
+def _safe_endpoint(raw: str | None) -> str | None:
+    """Scheme, host and path only - never user-info, query string or fragment (which could carry secrets)."""
+    if not raw:
+        return None
+    try:
+        parts = urlsplit(raw)
+    except ValueError:
+        return None
+    if not parts.hostname:
+        return None
+    return f"{parts.scheme}://{parts.hostname}{':' + str(parts.port) if parts.port else ''}{parts.path.rstrip('/')}"
+
+
+def _opera_snapshot(hotel_id: str) -> dict:
+    """Non-secret 'before' values for the audit trail; empty when not readable (then 'before' is just not recorded)."""
+    try:
+        res = supabase.table("opera_credentials").select(
+            "hotel_id_opera, ohip_base_url, connection_mode, sftp_host, is_connected"
+        ).eq("tenant_id", hotel_id).maybe_single().execute()
+        row = res.data if res else None
+    except Exception:  # noqa: BLE001
+        return {}
+    if not row or not row.get("is_connected"):
+        return {}
+    mode = row.get("connection_mode") or "api"
+    return {
+        "property_code": row.get("hotel_id_opera"),
+        "endpoint": row.get("sftp_host") if mode == "sftp_report" else _safe_endpoint(row.get("ohip_base_url")),
+        "connection_mode": mode,
+    }
 
 
 def _require_opera_pilot(current_user: CurrentUser) -> None:
@@ -54,6 +88,7 @@ async def opera_connect(
 
     expires_in = tokens.get("expires_in", 3600)
     now_utc = datetime.now(timezone.utc)
+    previous = _opera_snapshot(current_user.hotel_id)
 
     supabase.table("opera_credentials").upsert(encrypt_opera_secrets({
         "tenant_id": current_user.hotel_id,
@@ -67,6 +102,17 @@ async def opera_connect(
         "is_connected": True,
         "updated_at": now_utc.isoformat(),
     }), on_conflict="tenant_id").execute()
+    # Credentials are recorded only as "authentication details updated" - never their values.
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.integration.opera_connected",
+        resource_type="integration", resource_id=current_user.hotel_id,
+        old_state=previous,
+        new_state={
+            "property_code": body.hotel_id_opera, "endpoint": _safe_endpoint(ohip_base),
+            "connection_mode": "api", "auth_updated": True,
+        },
+        only_changes=False,
+    )
 
     try:
         bootstrap_opera_data(current_user.hotel_id)
@@ -186,6 +232,15 @@ async def resolve_opera_sync_conflict(
         "actor_id": current_user.user_id,
         "metadata": {"resolution": body.resolution},
     }).execute()
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.integration.opera_conflict_resolved",
+        resource_type="integration_conflict", resource_id=conflict_id,
+        new_state={
+            "resolution": body.resolution, "entity_type": conflict.get("entity_type"),
+            "external_id": conflict.get("external_id"),
+        },
+        only_changes=False,
+    )
     return {"data": (result.data or [None])[0]}
 
 
@@ -215,6 +270,7 @@ async def opera_sftp_connect(
         raise HTTPException(status_code=400, detail=f"SFTP connection failed: {e}")
 
     now_utc = datetime.now(timezone.utc)
+    previous = _opera_snapshot(current_user.hotel_id)
     supabase.table("opera_credentials").upsert(encrypt_opera_secrets({
         "tenant_id": current_user.hotel_id,
         "connection_mode": "sftp_report",
@@ -231,6 +287,13 @@ async def opera_sftp_connect(
         "is_connected": True,
         "updated_at": now_utc.isoformat(),
     }), on_conflict="tenant_id").execute()
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.integration.opera_sftp_connected",
+        resource_type="integration", resource_id=current_user.hotel_id,
+        old_state=previous,
+        new_state={"endpoint": body.sftp_host, "connection_mode": "sftp_report", "auth_updated": True},
+        only_changes=False,
+    )
 
     try:
         sync_report_files(current_user.hotel_id)
@@ -314,6 +377,7 @@ async def opera_disconnect(
 ):
     """Disconnect Opera Cloud integration and clear stored tokens."""
     _require_opera_pilot(current_user)
+    previous = _opera_snapshot(current_user.hotel_id)
     supabase.table("opera_credentials")\
         .update({
             "is_connected": False,
@@ -327,4 +391,9 @@ async def opera_disconnect(
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
 
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.integration.opera_disconnected",
+        resource_type="integration", resource_id=current_user.hotel_id,
+        old_state=previous, new_state={}, only_changes=False,
+    )
     return {"data": {"connected": False, "message": "Opera Cloud disconnected"}}

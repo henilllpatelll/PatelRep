@@ -83,7 +83,7 @@ test('Settings sidebar sub-navigation follows the workspace destinations', () =>
   assert.deepEqual(
     SETTINGS_NAV_ITEM.subNav?.map((item) => item.label),
     ['Property Profile', 'Rooms & Accessibility', 'Housekeeping', 'Inspections', 'Service SLAs',
-      'Roles & Access', 'Integrations', 'Billing', 'Staff Feedback'],
+      'Roles & Access', 'Integrations', 'Billing', 'Staff Feedback', 'Activity & Audit'],
   )
 })
 

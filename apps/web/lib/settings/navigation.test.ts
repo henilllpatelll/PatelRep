@@ -46,11 +46,11 @@ test('Settings Home lists every configuration area from the brief', () => {
   ])
 })
 
-test('every destination has a unique id and href; only the planned one has no link', () => {
+test('every destination has a unique id and href and is linkable', () => {
   assert.equal(new Set(SETTINGS_DESTINATIONS.map((d) => d.id)).size, SETTINGS_DESTINATIONS.length)
   assert.equal(new Set(SETTINGS_DESTINATIONS.map((d) => d.href)).size, SETTINGS_DESTINATIONS.length)
   const unlinked = SETTINGS_DESTINATIONS.filter((d) => getSettingsHref(d) === null).map((d) => d.id)
-  assert.deepEqual(unlinked, ['activity'])
+  assert.deepEqual(unlinked, [])
 })
 
 test('every search entry points at a real, linkable destination', () => {
@@ -118,9 +118,11 @@ test('search returns nothing for empty and unmatched queries', () => {
   assert.deepEqual(searchSettings('zzzxqv', 'gm'), [])
 })
 
-test('search never surfaces the planned Activity & Audit destination or invents results', () => {
-  assert.deepEqual(searchSettings('audit', 'gm'), [])
-  assert.equal(searchSettings('activity', 'gm').some((r) => r.destinationId === 'activity'), false)
+test('Activity & Audit is a real, searchable destination for GMs only', () => {
+  assert.equal(searchSettings('audit', 'gm')[0]?.destinationId, 'activity')
+  assert.equal(searchSettings('who changed', 'gm').some((r) => r.destinationId === 'activity'), true)
+  assert.deepEqual(searchSettings('audit', 'housekeeper'), [])
+  assert.equal(getSettingsHref(getDestination('activity')!), '/settings/activity')
 })
 
 test('search requires every word to match', () => {

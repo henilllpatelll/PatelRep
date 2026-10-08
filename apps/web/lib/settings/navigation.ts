@@ -16,7 +16,7 @@
  *   /settings/integrations     Integrations
  *   /settings/billing          Billing
  *   /settings/feedback         Staff Feedback          (retained under Advanced)
- *   /settings/activity         Activity & Audit        (planned for Phase 6 — not linkable yet)
+ *   /settings/activity         Activity & Audit
  *   /settings/programs         → redirects to /programs   (same page, top-level route)
  *   /settings/sop              → redirects to /sop        (same page, top-level route)
  */
@@ -94,7 +94,7 @@ export const SETTINGS_DESTINATIONS: readonly SettingsDestination[] = [
   { id: 'feedback', href: '/settings/feedback', label: 'Staff Feedback', group: 'advanced', icon: 'message',
     description: 'Problems and ideas submitted by staff from the feedback button.' },
   { id: 'activity', href: '/settings/activity', label: 'Activity & Audit', group: 'advanced', icon: 'history',
-    description: 'A record of configuration changes — planned, not available yet.', planned: true },
+    description: 'Review important property and configuration changes.' },
 ]
 
 /** Cards on Settings Home, in display order. */
@@ -196,6 +196,8 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
     keywords: ['opera', 'opera cloud', 'pms', 'sync', 'reservations', 'connect', 'conflicts', 'disconnect', 'ohip'] },
   { id: 'billing', destinationId: 'billing', href: '/settings/billing',
     keywords: ['invoices', 'subscription', 'plan', 'payment', 'usage', 'overage', 'ai credit', 'stripe', 'billing portal'] },
+  { id: 'activity', destinationId: 'activity', href: '/settings/activity',
+    keywords: ['audit', 'activity', 'audit log', 'history', 'who changed', 'change log', 'changes', 'export activity'] },
   { id: 'feedback', destinationId: 'feedback', href: '/settings/feedback',
     keywords: ['feedback', 'bug reports', 'staff reports', 'ideas'] },
 ]

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from core.config import settings
 from core.database import supabase
+from services.settings_audit import record_settings_event
 from core.roles import ALL_ROLES, GM_ONLY_ROLES, LEGACY_MODULE_ALIASES, unsupported_modules
 from middleware.auth import CurrentUser, get_current_user, require_role
 from models.requests import (
@@ -528,7 +529,13 @@ async def create_custom_role(
     }).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create custom role")
-    return {"data": result.data[0]}
+    created = result.data[0]
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.custom_role.created",
+        resource_type="custom_role", resource_id=created["id"],
+        new_state={k: created.get(k) for k in ("name", "description", "base_role", "allowed_modules")}, only_changes=False,
+    )
+    return {"data": created}
 
 
 @router.patch("/custom-roles/{role_id}")
@@ -543,7 +550,7 @@ async def update_custom_role(
         raise HTTPException(status_code=422, detail="No fields to update")
     rows = (
         supabase.table("custom_roles")
-        .select("id, name, base_role, allowed_modules")
+        .select("id, name, description, base_role, allowed_modules")
         .eq("id", role_id)
         .eq("hotel_id", current_user.hotel_id)
         .eq("is_active", True)
@@ -551,7 +558,7 @@ async def update_custom_role(
     )
     if not rows:
         raise HTTPException(status_code=404, detail="Custom role not found")
-    current = rows[0]
+    current = dict(rows[0])  # snapshot: this is the audit "before" state
     base_role = update_data.get("base_role", current["base_role"])
     if base_role != current["base_role"]:
         if base_role == "gm":
@@ -586,6 +593,13 @@ async def update_custom_role(
         .eq("hotel_id", current_user.hotel_id)
         .execute()
     )
+    if result.data:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.custom_role.updated",
+            resource_type="custom_role", resource_id=role_id,
+            old_state={k: current.get(k) for k in update_data},
+            new_state={k: result.data[0].get(k) for k in update_data},
+        )
     return {"data": result.data[0] if result.data else None}
 
 
@@ -598,7 +612,7 @@ async def delete_custom_role(
     removing it would silently change their access, so the GM must move them first."""
     rows = (
         supabase.table("custom_roles")
-        .select("id")
+        .select("id, name, description, base_role, allowed_modules")
         .eq("id", role_id)
         .eq("hotel_id", current_user.hotel_id)
         .eq("is_active", True)
@@ -618,6 +632,11 @@ async def delete_custom_role(
         .eq("id", role_id)
         .eq("hotel_id", current_user.hotel_id)
         .execute()
+    )
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.custom_role.deleted",
+        resource_type="custom_role", resource_id=role_id,
+        old_state={k: rows[0].get(k) for k in ("name", "description", "base_role", "allowed_modules")}, only_changes=False,
     )
     return {"data": {"success": True}}
 

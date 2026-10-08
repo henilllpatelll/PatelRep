@@ -1,6 +1,12 @@
-import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import { ActivitySettings } from '@/components/settings/activity/ActivitySettings'
+import { SettingsLoading } from '@/components/settings/workspace/SettingsStates'
 
-// Activity & Audit is planned (Settings Phase 6). Until it exists, send direct visits to Settings Home.
-export default function SettingsActivityPage() {
-  redirect('/settings')
+// useSearchParams() (filters live in the URL) must sit under a Suspense boundary for `next build`.
+export default function ActivityAuditPage() {
+  return (
+    <Suspense fallback={<SettingsLoading />}>
+      <ActivitySettings />
+    </Suspense>
+  )
 }
