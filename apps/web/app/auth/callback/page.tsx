@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { MOBILE_ONLY_ROLES, type UserRole } from '@/lib/utils/routeGuard'
+import { staffApi } from '@/lib/api/staff'
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
@@ -13,6 +14,21 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
     const padded = norm.padEnd(norm.length + ((4 - (norm.length % 4)) % 4), '=')
     return JSON.parse(atob(padded)) as Record<string, unknown>
   } catch { return {} }
+}
+
+// A freshly invited user has no hotel/role claims until their invitation is accepted server-side
+// (email-bound; revoked/expired invitations are refused). Best effort: on any failure the user
+// simply lands where they did before, with the usual "invitation pending" message.
+async function acceptPendingInvitation(supabase: ReturnType<typeof createClient>): Promise<void> {
+  try {
+    const { data } = await supabase.auth.getSession()
+    const claims = decodeJwtPayload(data.session?.access_token ?? '')
+    if (claims.pending_invite !== true) return
+    const res = await staffApi.acceptInvitation()
+    if (res.data.accepted || res.data.already_member) await supabase.auth.refreshSession()
+  } catch {
+    // Not fatal: no invitation for this address, or it was revoked/expired.
+  }
 }
 
 async function checkMobileOnly(supabase: ReturnType<typeof createClient>): Promise<boolean> {
@@ -47,6 +63,7 @@ function AuthCallbackContent() {
       if (tokenHash && type) {
         const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
         if (verifyError) { setError(verifyError.message); return }
+        await acceptPendingInvitation(supabase)
         if (await checkMobileOnly(supabase)) {
           await supabase.auth.signOut()
           router.replace('/login?mobileOnly=1')
@@ -59,6 +76,7 @@ function AuthCallbackContent() {
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
         if (exchangeError) { setError(exchangeError.message); return }
+        await acceptPendingInvitation(supabase)
         if (await checkMobileOnly(supabase)) {
           await supabase.auth.signOut()
           router.replace('/login?mobileOnly=1')

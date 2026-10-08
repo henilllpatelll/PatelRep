@@ -40,6 +40,7 @@ from routers import rooms as rooms_router
 from routers import tasks as tasks_router
 from routers import work_orders as wo_router
 from routers import staff as staff_router
+from routers import staff_invitations as staff_invitations_router
 from routers import guest_requests as gr_router
 from routers import lost_found as lf_router
 from routers import logbook as logbook_router
@@ -757,6 +758,7 @@ def test_staff_invite_rejects_non_gm_before_insert(monkeypatch):
 def test_staff_invite_uses_jwt_hotel_not_body_hotel(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(staff_router, "supabase", db)
+    monkeypatch.setattr(staff_invitations_router, "supabase", db)
     client = TestClient(app)
 
     response = client.post(
@@ -778,6 +780,7 @@ def test_staff_invite_uses_jwt_hotel_not_body_hotel(monkeypatch):
 def test_onboarding_invite_requires_active_gm_ownership(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(staff_router, "supabase", db)
+    monkeypatch.setattr(staff_invitations_router, "supabase", db)
     client = TestClient(app)
 
     response = client.post(
@@ -808,6 +811,7 @@ def test_onboarding_invite_allows_new_hotel_owner(monkeypatch):
         "created_at": "2026-01-01T00:00:00+00:00",
     })
     monkeypatch.setattr(staff_router, "supabase", db)
+    monkeypatch.setattr(staff_invitations_router, "supabase", db)
     client = TestClient(app)
 
     response = client.post(

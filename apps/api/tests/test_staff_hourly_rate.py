@@ -84,7 +84,7 @@ class FakeDB:
         # list_staff calls supabase.auth.admin.list_users() for email lookup;
         # email resolution is unrelated to these assertions, so return no users.
         self.auth = SimpleNamespace(
-            admin=SimpleNamespace(list_users=lambda: SimpleNamespace(users=[]))
+            admin=SimpleNamespace(list_users=lambda **_kw: SimpleNamespace(users=[]))
         )
 
     def table(self, name):

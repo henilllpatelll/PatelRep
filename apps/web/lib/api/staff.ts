@@ -6,41 +6,108 @@ export interface StaffMember {
   user_id: string
   hotel_id: string
   full_name: string
+  preferred_name?: string | null
   email: string
   role: UserRole
-  department_id?: string
-  department_name?: string
+  department_id?: string | null
+  department_name?: string | null
   status: 'active' | 'inactive'
-  avatar_url?: string
+  avatar_url?: string | null
   created_at: string
-  custom_role_id?: string
-  custom_role_name?: string
-  hourly_rate?: number
+  custom_role_id?: string | null
+  custom_role_name?: string | null
+  /** GM-only: omitted from every non-GM response. */
+  phone?: string | null
+  /** GM-only internal labor-costing rate: omitted from every non-GM response. */
+  hourly_rate?: number | null
+}
+
+/** `active` (default, operational pickers) | `inactive` / `all` (GM-only management views). */
+export type StaffStatusFilter = 'active' | 'inactive' | 'all'
+
+export interface StaffListParams {
+  status?: StaffStatusFilter
+  department_id?: string
+}
+
+export interface Department {
+  id: string
+  name: string
+  code: string
+  color: string
+}
+
+export interface UpdateStaffProfileData {
+  full_name?: string
+  preferred_name?: string | null
+  phone?: string | null
+  avatar_url?: string | null
+}
+
+export interface StaffProfile {
+  id: string
+  full_name: string
+  preferred_name: string | null
+  phone: string | null
+  avatar_url: string | null
+}
+
+export type InvitationStatus = 'pending' | 'expired' | 'revoked' | 'accepted'
+/** Outcome of our request to the email provider: `requested` is NOT proof the email reached an inbox. */
+export type InvitationDeliveryStatus = 'requested' | 'failed' | 'existing_account'
+
+export interface InvitationDelivery {
+  status: InvitationDeliveryStatus | null
+  error: string | null
+  note: string
 }
 
 export interface StaffInvitation {
   id: string
   hotel_id: string
   email: string
+  full_name?: string | null
+  phone?: string | null
   role: UserRole
-  department_id?: string
+  department_id?: string | null
+  department_name?: string | null
+  status: InvitationStatus
   invited_at: string
+  created_at: string
   expires_at: string
+  accepted_at?: string | null
+  revoked_at?: string | null
+  last_sent_at?: string | null
+  send_count?: number | null
+  delivery: InvitationDelivery
 }
+
+/** `open` (default) = pending + expired. */
+export type InvitationStatusFilter = 'open' | InvitationStatus | 'all'
 
 export interface InviteStaffData {
   full_name: string
   email: string
   role: UserRole
   department_id?: string
+  phone?: string
+}
+
+export interface ReissueInvitationData {
+  role?: UserRole
+  department_id?: string
+  full_name?: string
+  phone?: string
 }
 
 export interface UpdateStaffData {
   role?: UserRole
-  department_id?: string
+  department_id?: string | null
+  /** Legacy field; the API reads `is_active`. Prefer deactivate()/reactivate(). */
   status?: 'active' | 'inactive'
+  is_active?: boolean
   custom_role_id?: string | null
-  hourly_rate?: number
+  hourly_rate?: number | null
 }
 
 export interface RoleSchedule {
@@ -74,9 +141,15 @@ export interface StaffInvitationsResponse {
 }
 
 export interface InviteStaffResponse {
-  data: {
-    invitation: StaffInvitation
-  }
+  data: StaffInvitation
+}
+
+export interface InvitationResponse {
+  data: StaffInvitation
+}
+
+export interface AcceptInvitationResponse {
+  data: { accepted: boolean; already_member: boolean; hotel_id: string; role?: string }
 }
 
 export interface UpdateStaffResponse {
@@ -110,8 +183,21 @@ export interface UpdateCustomRoleData {
 }
 
 export const staffApi = {
-  list: (): Promise<StaffListResponse> =>
-    apiClient.get('/staff'),
+  /** No args = active staff only (operational pickers). `status: 'inactive' | 'all'` is GM-only. */
+  list: (params?: StaffListParams): Promise<StaffListResponse> =>
+    apiClient.get('/staff', params && Object.keys(params).length ? { params } : undefined),
+
+  get: (userId: string): Promise<{ data: StaffMember }> =>
+    apiClient.get(`/staff/${userId}`),
+
+  updateProfile: (userId: string, data: UpdateStaffProfileData): Promise<{ data: StaffProfile }> =>
+    apiClient.patch(`/staff/${userId}/profile`, data),
+
+  reactivate: (userId: string): Promise<{ data: { success: boolean; reactivated_user_id: string; status: 'active' } }> =>
+    apiClient.post(`/staff/${userId}/reactivate`),
+
+  listDepartments: (): Promise<{ data: Department[] }> =>
+    apiClient.get('/staff/departments'),
 
   invite: (data: InviteStaffData): Promise<InviteStaffResponse> =>
     apiClient.post('/staff/invite', data),
@@ -122,11 +208,23 @@ export const staffApi = {
   deactivate: (staffId: string): Promise<void> =>
     apiClient.delete(`/staff/${staffId}`),
 
-  listInvitations: (): Promise<StaffInvitationsResponse> =>
-    apiClient.get('/staff/invitations'),
+  listInvitations: (status?: InvitationStatusFilter): Promise<StaffInvitationsResponse> =>
+    apiClient.get('/staff/invitations', status ? { params: { status } } : undefined),
 
-  resendInvitation: (invitationId: string): Promise<void> =>
+  /** Resolves with the refreshed invitation, including the new email-request outcome. */
+  resendInvitation: (invitationId: string): Promise<InvitationResponse> =>
     apiClient.post(`/staff/invitations/${invitationId}/resend`),
+
+  revokeInvitation: (invitationId: string): Promise<InvitationResponse> =>
+    apiClient.delete(`/staff/invitations/${invitationId}`),
+
+  /** Revoke-and-reissue: the way to change an outstanding invitation's role/department/name/phone. */
+  reissueInvitation: (invitationId: string, data: ReissueInvitationData): Promise<InvitationResponse> =>
+    apiClient.post(`/staff/invitations/${invitationId}/reissue`, data),
+
+  /** Called by the signed-in invitee (email-bound); refresh the session afterwards for new claims. */
+  acceptInvitation: (): Promise<AcceptInvitationResponse> =>
+    apiClient.post('/staff/invitations/accept'),
 
   addDirect: (data: { full_name: string; email: string; role: UserRole; department_id?: string; password?: string }): Promise<{ data: { success: boolean; user_id: string; full_name: string; temp_password: string } }> =>
     apiClient.post('/staff/add-direct', data),
