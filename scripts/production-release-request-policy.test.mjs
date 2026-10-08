@@ -12,6 +12,7 @@ import {
   Ineligible,
   NO_BASELINE_MESSAGE,
   evaluateProductionRequest,
+  isTrustedHealthEvent,
   requireAutomatedDispatch,
   validateProductionRequest,
 } from './production-release-request-policy.mjs'
@@ -655,4 +656,34 @@ test('release mode still FAILS on every policy refusal and unknown modes always 
   for (const mode of [undefined, '', 'dispatch', 'Resolve', 'REQUEST', 'resolve ']) {
     await assert.rejects(evaluateProductionRequest({ ...request, mode }, deps), (error) => !(error instanceof Ineligible) && /unknown validation mode/.test(error.message), String(mode))
   }
+})
+
+test('relay-dispatched health runs (github-actions[bot] on main) count as root and recovery evidence; any human or off-main dispatch does not', async () => {
+  const relay = { event: 'workflow_dispatch', head_branch: 'main', actor: { login: 'github-actions[bot]' }, triggering_actor: { login: 'github-actions[bot]' } }
+  assert.equal(isTrustedHealthEvent(relay), true)
+  for (const bad of [
+    { ...relay, actor: { login: 'henilllpatelll' } },
+    { ...relay, triggering_actor: { login: 'henilllpatelll' } },
+    { ...relay, head_branch: 'feature/x' },
+    { ...relay, actor: undefined },
+    { ...relay, triggering_actor: undefined },
+    { event: 'workflow_dispatch' },
+    { ...relay, event: 'pull_request' },
+    null,
+  ]) assert.equal(isTrustedHealthEvent(bad), false, JSON.stringify(bad))
+  assert.equal(isTrustedHealthEvent({ event: 'schedule' }), true)
+  assert.equal(isTrustedHealthEvent({ event: 'push' }), true)
+
+  const eligibleWith = async (healthRuns, rootOverrides = {}) => {
+    const { state, deps } = world()
+    state.healthRuns = healthRuns
+    Object.assign(state.runs[ROOT], rootOverrides)
+    return (await evaluateProductionRequest(request, deps)).eligible
+  }
+  // As the failing root: a relay run is accepted by the event gate; a human dispatch is still refused.
+  assert.equal(await eligibleWith([], relay), true, 'relay-detected failure can root an automated recovery')
+  await assertIneligible((s) => { Object.assign(s.runs[ROOT], { ...relay, actor: { login: 'someone' }, triggering_actor: { login: 'someone' } }) }, /workflow_dispatch run/)
+  // As recovery proof: a newer successful relay run clears the root, a human's manual run does not.
+  assert.equal(await eligibleWith([healthRun('37100000050', relay)]), false, 'a newer successful relay run is recovery proof')
+  assert.equal(await eligibleWith([healthRun('37100000050', { ...relay, actor: { login: 'human' }, triggering_actor: { login: 'human' } })]), true)
 })

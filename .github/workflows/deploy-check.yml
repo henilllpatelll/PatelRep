@@ -1,16 +1,55 @@
 name: Deploy Health Check
 
+# Heartbeat reliability: GitHub delivers `schedule` events best-effort (observed ~3-7h gaps against this
+# */15 cron, while the Production Automation Watchdog requires a run at least every 45 minutes). The cron
+# is therefore only a revival trigger (offset off the congested :00/:15 marks); the steady cadence comes
+# from a relay: after every run, `relay` dispatches the next one, which waits `pace_seconds` at its start
+# (so completion time stays an honest "checks finished" time). Dispatching uses GITHUB_TOKEN, adds no
+# secret, service or cost, and only the relay job holds write access to Actions. One run at a time (concurrency);
+# push/cron/relay triggers merge into a single pending slot instead of piling up.
+# The relay never fails a health run and never affects its conclusion.
+
 on:
   push:
     branches: [main]
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
+    inputs:
+      pace_seconds:
+        description: 'Relay use: seconds to wait (max 900) before checking, to keep a steady cadence. Leave 0 for an immediate manual run.'
+        required: false
+        default: '0'
+        type: string
+
+concurrency:
+  group: deploy-health-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
+  pace:
+    name: Relay pacing
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/deploy-check-relay.mjs
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: node scripts/deploy-check-relay.mjs pace
+        env:
+          PACE_SECONDS: ${{ inputs.pace_seconds }}
+
   public-smoke:
     name: Public smoke verification
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [check-api, check-web]
     steps:
       - uses: actions/checkout@v7
@@ -28,6 +67,8 @@ jobs:
   check-api:
     name: API health
     runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: [pace]
     steps:
       - name: Poll API /health (up to 5 min)
         run: |
@@ -46,6 +87,8 @@ jobs:
   check-web:
     name: Web health
     runs-on: ubuntu-latest
+    timeout-minutes: 6
+    needs: [pace]
     steps:
       - name: Poll web app (up to 3 min)
         run: |
@@ -69,6 +112,7 @@ jobs:
     # check-web), so it previously raced a same-push Railway redeploy and hit the still-live
     # OLD container (stale CSP/API-URL) before the swap completed.
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [check-api, check-web]
     steps:
       - uses: actions/checkout@v7
@@ -96,3 +140,28 @@ jobs:
           # reference_vercel_deployment memory.
           DEPLOYMENT_TARGETS: >-
             https://patelrep-production-6f35.up.railway.app
+
+  relay:
+    name: Schedule next health check
+    # Runs after every outcome (a failing production still needs the next check) except cancellation.
+    # Its own failure is swallowed by the script: it must not change the health result.
+    if: ${{ !cancelled() }}
+    needs: [pace, check-api, check-web, public-smoke, deployment-drift-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          sparse-checkout: scripts/deploy-check-relay.mjs
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: node scripts/deploy-check-relay.mjs relay
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
