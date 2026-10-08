@@ -565,7 +565,7 @@ def test_roi_repeat_failures_defaults_to_ninety_day_window(monkeypatch):
 
 def test_roi_downtime_revenue_uses_tenant_adr(monkeypatch):
     db = FakeDB({
-        "tenants": [{"id": "hotel-a", "average_daily_rate_cents": 12000}],
+        "tenants": [{"id": "hotel-a", "average_daily_rate_cents": 12000, "timezone": "UTC"}],
         "room_status_history": [
             {"room_id": "room-201", "tenant_id": "hotel-a", "to_status": "OOO", "created_at": "2026-07-01T00:00:00+00:00"},
             {"room_id": "room-201", "tenant_id": "hotel-a", "to_status": "CLEAN", "created_at": "2026-07-03T00:00:00+00:00"},
