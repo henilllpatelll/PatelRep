@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
  * whether anything is unsaved. `sticky` pins it to the bottom of the scrolling content.
  */
 export function SettingsActionFooter({
-  dirty, saving = false, onSave, onDiscard, saveLabel = 'Save changes', discardLabel = 'Discard', error, sticky = false, className,
+  dirty, saving = false, onSave, onDiscard, saveLabel = 'Save changes', discardLabel = 'Discard', dirtyMessage = 'You have unsaved changes.', error, sticky = false, className,
 }: {
   dirty: boolean
   saving?: boolean
@@ -16,6 +16,8 @@ export function SettingsActionFooter({
   onDiscard: () => void
   saveLabel?: string
   discardLabel?: string
+  /** Shown while dirty and not erroring; say what is pending when the edit is not obvious. */
+  dirtyMessage?: string
   error?: string | null
   sticky?: boolean
   className?: string
@@ -29,7 +31,7 @@ export function SettingsActionFooter({
       )}
     >
       <p role={error ? 'alert' : 'status'} className={cn('mr-auto text-[13px]', error ? 'text-[var(--alert)]' : 'text-ink-3')}>
-        {error ?? (dirty ? 'You have unsaved changes.' : '')}
+        {error ?? (dirty ? dirtyMessage : '')}
       </p>
       <Button variant="ghost" onClick={onDiscard} disabled={!dirty || saving}>{discardLabel}</Button>
       <Button onClick={onSave} disabled={!dirty} loading={saving}>{saveLabel}</Button>

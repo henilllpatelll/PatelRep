@@ -2521,6 +2521,16 @@ async def list_inspection_templates(
 # POST /housekeeping/inspections/templates
 # ---------------------------------------------------------------------------
 
+def _clear_other_default_templates(tenant_id: str, keep_template_id: str) -> None:
+    """Exactly one inspection template per tenant may be the default."""
+    supabase.table("inspection_templates") \
+        .update({"is_default": False}) \
+        .eq("tenant_id", tenant_id) \
+        .eq("is_default", True) \
+        .neq("id", keep_template_id) \
+        .execute()
+
+
 @router.post("/inspections/templates")
 async def create_inspection_template(
     body: dict,
@@ -2539,6 +2549,8 @@ async def create_inspection_template(
     }).execute()
 
     template_id = tmpl.data[0]["id"]
+    if tmpl.data[0].get("is_default"):
+        _clear_other_default_templates(current_user.hotel_id, template_id)
 
     if items:
         items_data = [
@@ -2569,6 +2581,14 @@ async def update_inspection_template(
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
     """Update an inspection template name/default flag and replace its items."""
+    existing = supabase.table("inspection_templates") \
+        .select("id") \
+        .eq("id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .maybe_single().execute()
+    if not (existing and existing.data):
+        raise HTTPException(status_code=404, detail="Template not found")
+
     update_data: dict = {}
     if "name" in body:
         update_data["name"] = body["name"]
@@ -2583,6 +2603,8 @@ async def update_inspection_template(
             .eq("id", template_id) \
             .eq("tenant_id", current_user.hotel_id) \
             .execute()
+        if update_data.get("is_default") is True:
+            _clear_other_default_templates(current_user.hotel_id, template_id)
 
     if "items" in body:
         supabase.table("inspection_template_items") \
@@ -2766,7 +2788,46 @@ async def delete_inspection_template(
     template_id: str,
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
-    """Delete an inspection template and all its items."""
+    """Remove an inspection template without ever touching completed inspections.
+
+    - The default template cannot be removed while other templates exist (409): pick a new default first.
+    - A template already used by a completed inspection is archived (is_active = false) and keeps its
+      items, so history stays intact; an unused template is deleted outright.
+    """
+    tmpl = supabase.table("inspection_templates") \
+        .select("id, is_default") \
+        .eq("id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .maybe_single().execute()
+    if not (tmpl and tmpl.data):
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    if tmpl.data.get("is_default"):
+        others = supabase.table("inspection_templates") \
+            .select("id") \
+            .eq("tenant_id", current_user.hotel_id) \
+            .eq("is_active", True) \
+            .neq("id", template_id) \
+            .limit(1).execute()
+        if others.data:
+            raise HTTPException(
+                status_code=409,
+                detail="This is the default template. Set another template as the default before removing it.",
+            )
+
+    used = supabase.table("inspections") \
+        .select("id") \
+        .eq("template_id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .limit(1).execute()
+    if used.data:
+        supabase.table("inspection_templates") \
+            .update({"is_active": False, "is_default": False}) \
+            .eq("id", template_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .execute()
+        return
+
     supabase.table("inspection_template_items") \
         .delete() \
         .eq("template_id", template_id) \
@@ -2779,6 +2840,7 @@ async def delete_inspection_template(
         .execute()
 
 
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # POST /housekeeping/import/hk-details
 # ---------------------------------------------------------------------------
