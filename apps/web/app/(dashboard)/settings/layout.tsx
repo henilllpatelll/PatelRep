@@ -1,173 +1,122 @@
 'use client'
 
+import { useEffect, useId, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Building2, Layers, Sliders, ShieldCheck,
-  BookOpen, ClipboardList, Hotel, CreditCard, Link2, MessageSquare, Brush,
-} from 'lucide-react'
+import { ArrowLeft, ChevronDown, ShieldAlert } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
-
-// ─── Nav config ───────────────────────────────────────────────────────────────
-
-interface NavItem {
-  href: string
-  label: string
-  icon: React.ElementType
-  roles?: string[]
-}
-
-interface NavGroup {
-  label?: string
-  items: NavItem[]
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Property',
-    items: [
-      { href: '/settings/general', label: 'General', icon: Building2 },
-      { href: '/settings/rooms', label: 'Rooms', icon: Hotel, roles: ['gm'] },
-    ],
-  },
-  {
-    label: 'Workflow',
-    items: [
-      { href: '/settings/front-desk', label: 'Front Desk', icon: Sliders, roles: ['gm'] },
-      {
-        href: '/settings/inspections', label: 'Inspections', icon: ClipboardList,
-        roles: ['gm', 'housekeeping_supervisor'],
-      },
-      {
-        href: '/settings/guest-requests', label: 'Guest Requests', icon: MessageSquare,
-        roles: ['gm', 'housekeeping_supervisor'],
-      },
-      {
-        href: '/settings/housekeeping', label: 'Housekeeping', icon: Brush,
-        roles: ['gm', 'housekeeping_supervisor'],
-      },
-      {
-        href: '/settings/programs', label: 'Programs', icon: ClipboardList,
-        roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'],
-      },
-      {
-        href: '/settings/sop', label: 'SOP Library', icon: BookOpen,
-        roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'],
-      },
-    ],
-  },
-  {
-    label: 'Team',
-    items: [
-      { href: '/settings/departments', label: 'Departments', icon: Layers },
-      { href: '/settings/roles', label: 'Roles', icon: ShieldCheck, roles: ['gm'] },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { href: '/settings/billing', label: 'Billing', icon: CreditCard, roles: ['gm'] },
-      { href: '/settings/integrations', label: 'Integrations', icon: Link2, roles: ['gm'] },
-    ],
-  },
-]
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(href + '/')
-}
-
-// ─── Layout ───────────────────────────────────────────────────────────────────
+import {
+  canAccessSettings, getVisibleDestinations, resolveActiveDestination,
+} from '@/lib/settings/navigation'
+import { SettingsNav } from '@/components/settings/workspace/SettingsNav'
+import { SETTINGS_ICONS } from '@/components/settings/workspace/settingsIcons'
+import { SettingsLoading } from '@/components/settings/workspace/SettingsStates'
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { role, isGM } = useRole()
+  const { role } = useRole()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuId = useId()
 
-  function canSee(item: NavItem): boolean {
-    if (!item.roles) return true
-    if (isGM) return true
-    return item.roles.includes(role ?? '')
+  // Collapse the small-screen menu whenever the route changes.
+  useEffect(() => { setMenuOpen(false) }, [pathname])
+
+  const active = resolveActiveDestination(pathname)
+  const destinations = getVisibleDestinations(role)
+  const onHome = active?.id === 'home'
+  const ActiveIcon = active ? SETTINGS_ICONS[active.icon] : null
+
+  // Defense in depth: the route guard and API already enforce this; never rely on hidden navigation alone.
+  if (!role) return <SettingsLoading />
+  if (!canAccessSettings(role)) {
+    return (
+      <div role="alert" className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+        <ShieldAlert className="h-8 w-8 text-ink-3" aria-hidden="true" />
+        <h1 className="text-lg font-semibold text-ink">Settings are limited to General Managers</h1>
+        <p className="text-sm text-ink-3">Ask your GM if you need a configuration changed.</p>
+        <Link href="/dashboard" className="mt-1 inline-flex min-h-[44px] items-center text-sm font-semibold text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
+          Back to dashboard
+        </Link>
+      </div>
+    )
   }
-
-  const flatItems = NAV_GROUPS.flatMap(g => g.items).filter(canSee)
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Settings</h1>
-        <p className="text-sm text-stone-500 mt-1">Manage your hotel profile and configuration.</p>
-      </div>
+      <header>
+        <h1 className="font-display text-2xl font-normal tracking-tight text-ink">Settings</h1>
+        <p className="mt-1 text-sm text-ink-3">Configure your property, operations, people and connected systems.</p>
+      </header>
 
-      {/* Mobile nav — horizontal scrollable row */}
-      <nav
-        className="flex overflow-x-auto gap-0.5 pb-2 border-b border-line sm:hidden"
-        aria-label="Settings navigation"
-      >
-        {flatItems.map(item => {
-          const active = isActive(pathname, item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors',
-                active
-                  ? 'bg-[var(--caution-soft)] text-[var(--caution)] font-medium'
-                  : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100/70',
-              )}
+      <div className="grid gap-5 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:gap-8">
+        <aside className="min-w-0" aria-label="Settings sidebar">
+          {/* Below lg: route context + a disclosure that reveals the same grouped navigation. */}
+          <div className="space-y-2 lg:hidden">
+            {!onHome && (
+              <Link
+                href="/settings"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md text-sm font-medium text-ink-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+              >
+                <ArrowLeft size={15} aria-hidden="true" /> Settings home
+              </Link>
+            )}
+            <button
+              type="button"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              onClick={() => setMenuOpen((open) => !open)}
+              className="flex min-h-[48px] w-full items-center gap-3 rounded-[var(--r-lg)] border border-line bg-surface px-4 text-left shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
             >
-              <item.icon size={14} />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+              {ActiveIcon && <ActiveIcon size={18} className="shrink-0 text-ink-3" aria-hidden="true" />}
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-3">Settings menu</span>
+                <span className="block truncate text-sm font-medium text-ink">{active?.label ?? 'Settings'}</span>
+              </span>
+              <ChevronDown size={18} className={cn('shrink-0 text-ink-3 transition-transform motion-reduce:transition-none', menuOpen && 'rotate-180')} aria-hidden="true" />
+            </button>
+          </div>
 
-      {/* Desktop two-panel layout */}
-      <div className="hidden sm:flex gap-8 items-start">
-        {/* Sidebar */}
-        <nav className="w-48 shrink-0 space-y-5" aria-label="Settings navigation">
-          {NAV_GROUPS.map((group, gi) => {
-            const visible = group.items.filter(canSee)
-            if (visible.length === 0) return null
-            return (
-              <div key={gi} className="space-y-0.5">
-                {group.label && (
-                  <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-                    {group.label}
-                  </p>
-                )}
-                {visible.map(item => {
-                  const active = isActive(pathname, item.href)
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        'flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors',
-                        active
-                          ? 'bg-[var(--caution-soft)] text-[var(--caution)] font-medium'
-                          : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100/70',
-                      )}
-                    >
-                      <item.icon size={15} />
-                      {item.label}
-                    </Link>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </nav>
+          <div
+            id={menuId}
+            className={cn(
+              'mt-2 rounded-[var(--r-lg)] border border-line bg-surface p-3 shadow-card lg:mt-0 lg:block lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none',
+              menuOpen ? 'block' : 'hidden',
+            )}
+          >
+            <SettingsNav
+              destinations={destinations}
+              activeId={active?.id}
+              role={role}
+              onNavigate={() => setMenuOpen(false)}
+            />
+          </div>
+        </aside>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">{children}</div>
+        <div role="region" className="min-w-0 space-y-4" aria-label={active?.label ?? 'Settings'}>
+          {active?.relatedPages && (
+            <nav aria-label={`${active.label} pages`} className="flex flex-wrap gap-1 border-b border-line">
+              {active.relatedPages.map((page) => {
+                const current = pathname === page.href || pathname.startsWith(page.href + '/')
+                return (
+                  <Link
+                    key={page.href}
+                    href={page.href}
+                    aria-current={current ? 'page' : undefined}
+                    className={cn(
+                      '-mb-px inline-flex min-h-[44px] items-center border-b-2 px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] lg:min-h-[40px]',
+                      current ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-ink-3 hover:text-ink',
+                    )}
+                  >
+                    {page.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          )}
+          {children}
+        </div>
       </div>
-
-      {/* Mobile content (below nav) */}
-      <div className="sm:hidden">{children}</div>
     </div>
   )
 }

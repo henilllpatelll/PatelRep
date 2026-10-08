@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Settings, ChevronDown, Menu, Bell, CheckCheck } from 'lucide-react'
+import { LogOut, Settings, UserCog, ChevronDown, Menu, Bell, CheckCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
@@ -16,6 +17,8 @@ import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { visibleEnvironmentLabel } from '@/lib/utils/environment'
 import { releaseMetadata } from '@/lib/utils/release'
+import { canAccessSettings } from '@/lib/settings/navigation'
+import { PREFERENCES_HREF } from '@/lib/settings/preferences'
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -81,6 +84,8 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
 
   const initials = getInitials(fullName)
   const avatarBg = getAvatarColor(fullName)
+  // The auth store holds the role resolved from /auth/me; Supabase metadata alone can be empty.
+  const baseRole = useAuthStore((st) => st.role)
   const roleLabel = role ? t(`roles.${role}`) : null
   const environmentLabel = visibleEnvironmentLabel()
   const release = releaseMetadata()
@@ -327,15 +332,29 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
               <p className="text-[13px] font-medium text-ink truncate">{fullName}</p>
               {roleLabel && <p className="text-[11px] text-ink3 mt-0.5 truncate">{roleLabel}</p>}
             </div>
-            <div className="py-1">
+            <div className="py-1" role="group" aria-labelledby="user-menu-account-label">
+              <p id="user-menu-account-label" className="px-4 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink3">
+                {t('header.myAccount')}
+              </p>
               <button
                 data-user-menu-item
-                onClick={() => { setDropdownOpen(false); router.push('/settings') }}
+                onClick={() => { setDropdownOpen(false); router.push(PREFERENCES_HREF) }}
                 className="w-full min-h-[38px] flex items-center gap-2.5 px-4 py-2 text-[13px] text-ink2 hover:bg-surface-2 hover:text-ink transition-colors"
               >
-                <Settings size={13} className="text-ink3 shrink-0" />
-                {t('header.settings')}
+                <UserCog size={13} className="text-ink3 shrink-0" />
+                {t('header.myPreferences')}
               </button>
+              {/* Property Settings is GM-only (route guard + API); don't offer a link that only bounces. */}
+              {canAccessSettings(baseRole ?? role) && (
+                <button
+                  data-user-menu-item
+                  onClick={() => { setDropdownOpen(false); router.push('/settings') }}
+                  className="w-full min-h-[38px] flex items-center gap-2.5 px-4 py-2 text-[13px] text-ink2 hover:bg-surface-2 hover:text-ink transition-colors"
+                >
+                  <Settings size={13} className="text-ink3 shrink-0" />
+                  {t('header.settings')}
+                </button>
+              )}
             </div>
             <div className="border-t border-line-2 py-1">
               <button

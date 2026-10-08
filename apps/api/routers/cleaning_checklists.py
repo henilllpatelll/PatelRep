@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import require_role, get_current_user, CurrentUser
 from models.requests import UpdateChecklistTemplateRequest
 from core.database import supabase
+from services.settings_audit import record_settings_event
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +165,12 @@ async def update_checklist(
         raise HTTPException(status_code=500, detail="Failed to resolve checklist template")
 
     template_id = template["id"]
+    prior_name = template.get("name")
+    prior_items = (
+        supabase.table("cleaning_checklist_items").select("id")
+        .eq("template_id", template_id).eq("tenant_id", current_user.hotel_id).execute().data
+    )
+    prior_item_count = len(prior_items) if prior_items is not None else None
     update_payload: dict = {"updated_at": "now()"}
     if request.name:
         update_payload["name"] = request.name
@@ -187,6 +194,15 @@ async def update_checklist(
 
     templates = _fetch_templates_with_items(current_user.hotel_id)
     updated = next((t for t in templates if t["clean_type"] == clean_type), None)
+    new_name = request.name or prior_name
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.cleaning_checklist.updated",
+        resource_type="cleaning_checklist", resource_id=template_id,
+        old_state={"name": prior_name, "clean_type": clean_type,
+                   **({"item_count": prior_item_count} if prior_item_count is not None else {})},
+        new_state={"name": new_name, "clean_type": clean_type, "item_count": len(request.items)},
+        only_changes=False,
+    )
     return {"data": updated}
 
 
@@ -203,10 +219,19 @@ async def reset_checklist(
     if clean_type not in CLEAN_TYPES:
         raise HTTPException(status_code=400, detail=f"Unknown clean type: {clean_type}")
 
+    before = next((t for t in _fetch_templates_with_items(current_user.hotel_id) if t["clean_type"] == clean_type), None)
     supabase.table("cleaning_checklist_templates").delete()\
         .eq("tenant_id", current_user.hotel_id).eq("clean_type", clean_type).execute()
     _seed_template(current_user.hotel_id, clean_type)
 
     templates = _fetch_templates_with_items(current_user.hotel_id)
     restored = next((t for t in templates if t["clean_type"] == clean_type), None)
+    if restored:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.cleaning_checklist.reset",
+            resource_type="cleaning_checklist", resource_id=restored.get("id") or current_user.hotel_id,
+            old_state={"name": before.get("name"), "clean_type": clean_type, "item_count": len(before.get("items") or [])} if before else {},
+            new_state={"name": restored.get("name"), "clean_type": clean_type, "item_count": len(restored.get("items") or [])},
+            only_changes=False,
+        )
     return {"data": restored}

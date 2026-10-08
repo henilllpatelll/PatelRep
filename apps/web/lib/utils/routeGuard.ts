@@ -1,3 +1,5 @@
+import { SETTINGS_ROLES } from '@/lib/settings/navigation'
+
 export const PUBLIC_ROUTES = ['/', '/login', '/auth/callback', '/auth/reset-password'] as const
 export const ALL_ROLES = ['housekeeper', 'engineer', 'chief_engineer', 'housekeeping_supervisor', 'front_desk', 'gm'] as const
 
@@ -25,8 +27,14 @@ const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
   { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },
   { prefix: '/billing', roles: ['gm'] },
-  { prefix: '/settings', roles: ['gm'] },
+  { prefix: '/settings', roles: [...SETTINGS_ROLES] },
 ]
+
+/** Whether `role` may open `pathname` according to the route rules above (the enforced access). */
+export function canRoleOpenRoute(role: UserRole, pathname: string): boolean {
+  const roles = getRouteRoles(pathname)
+  return roles ? roles.includes(role) : true
+}
 
 export type RouteAccessDecision =
   | { type: 'allow' }

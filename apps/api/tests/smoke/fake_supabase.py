@@ -4,6 +4,7 @@ Extends the FakeDB pattern used in test_inspection_templates.py with update,
 delete, maybe_single, neq, gte, in_ and limit support.
 """
 
+import re
 from types import SimpleNamespace
 
 
@@ -75,6 +76,7 @@ class FakeQuery:
         self.or_filters = []
         self.order_column = None
         self.order_desc = False
+        self.orders = []  # every .order() call in call order, like PostgREST (first = primary key)
         self.limit_count = None
         self.range_start = None
         self.range_end = None
@@ -135,7 +137,7 @@ class FakeQuery:
 
     def or_(self, expression):
         parsed = []
-        for clause in expression.split(","):
+        for clause in re.split(r",(?![^()]*\))", expression):  # commas inside (...) belong to in-lists
             column, operator, value = clause.split(".", 2)
             parsed.append((column, operator, value))
         self.or_filters.append(parsed)
@@ -156,6 +158,7 @@ class FakeQuery:
     def order(self, column, desc=False, **_kwargs):
         self.order_column = column
         self.order_desc = desc
+        self.orders.append((column, desc))
         return self
 
     def limit(self, count):
@@ -210,6 +213,7 @@ class FakeQuery:
                 or (operator == "gt" and row.get(column) is not None and str(row[column]) > value)
                 or (operator == "ilike" and isinstance(row.get(column), str) and value.strip("%*").lower() in row[column].lower())
                 or (operator == "in" and str(row.get(column)) in value.strip("()").split(","))
+                or (operator == "eq" and str(row.get(column)) == value)
                 for column, operator, value in alternatives
             ):
                 return False
@@ -219,7 +223,11 @@ class FakeQuery:
         rows = self.db.rows.setdefault(self.table_name, [])
         matched = [row for row in rows if self._matches(row)]
         total_count = len(matched)
-        if self.order_column:
+        if len(self.orders) > 1:
+            # Stable sorts applied from the least significant key to the primary one.
+            for column, desc in reversed(self.orders):
+                matched = sorted(matched, key=lambda row, c=column: str(row.get(c) or ""), reverse=desc)
+        elif self.order_column:
             matched = sorted(
                 matched,
                 key=lambda row: str(row.get(self.order_column) or ""),

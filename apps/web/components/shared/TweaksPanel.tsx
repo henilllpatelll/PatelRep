@@ -4,22 +4,7 @@ import { useState } from 'react'
 import { Settings2, Sun, Moon, X } from 'lucide-react'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { cn } from '@/lib/utils'
-
-type Density = 'comfortable' | 'balanced' | 'dense'
-type Accent = 'terracotta' | 'teal' | 'blue' | 'rose'
-
-const DENSITY_OPTIONS: { value: Density; label: string }[] = [
-  { value: 'comfortable', label: 'Comfortable' },
-  { value: 'balanced', label: 'Balanced' },
-  { value: 'dense', label: 'Dense' },
-]
-
-const ACCENT_OPTIONS: { value: Accent; label: string; swatch: string }[] = [
-  { value: 'terracotta', label: 'Terracotta', swatch: '#b8431c' },
-  { value: 'teal', label: 'Teal', swatch: '#0c6e63' },
-  { value: 'blue', label: 'Blue', swatch: '#265d8a' },
-  { value: 'rose', label: 'Rose', swatch: '#a6263c' },
-]
+import { ACCENT_OPTIONS, DENSITY_OPTIONS } from '@/lib/settings/preferences'
 
 export function TweaksPanel() {
   const [open, setOpen] = useState(false)

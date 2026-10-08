@@ -13,6 +13,7 @@ from models.requests import (
     UpsertAccessibleRoomFeatureRequest,
 )
 from core.database import supabase
+from services.settings_audit import record_settings_event
 from core.roles import MANAGER_ROLES
 from datetime import datetime, timedelta, timezone
 from services.guest_recovery.contracts import (
@@ -591,6 +592,15 @@ async def list_guest_request_sla_policies(
     return {"data": policies}
 
 
+def _assert_sla_rule_can_match(category, priority) -> None:
+    # create_guest_request rejects non-urgent accessibility requests, so such a rule could never apply.
+    if category == "accessibility" and priority == "normal":
+        raise HTTPException(
+            status_code=422,
+            detail="Accessibility requests are always urgent, so a Normal-priority accessibility rule would never apply",
+        )
+
+
 @router.post("/sla-policies")
 async def create_guest_request_sla_policy(
     request: CreateGuestRequestSlaPolicyRequest,
@@ -603,6 +613,7 @@ async def create_guest_request_sla_policy(
             status_code=422,
             detail="An SLA rule must set at least one of category, priority, or guest impact",
         )
+    _assert_sla_rule_can_match(request.category, request.priority)
     # The table has no unique constraint on the triple; enforce it here so the settings UI
     # cannot silently create two rules that the specificity resolver would tie-break arbitrarily.
     duplicates = supabase.table("guest_request_sla_policies").select(
@@ -620,7 +631,56 @@ async def create_guest_request_sla_policy(
         **request.model_dump(),
         "created_by": current_user.user_id,
     }).execute().data[0]
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.sla_policy.created",
+        resource_type="sla_policy", resource_id=record["id"],
+        new_state={k: record.get(k) for k in ("category", "priority", "guest_impact", "sla_minutes")},
+        only_changes=False,
+    )
     return {"data": record}
+
+
+@router.patch("/sla-policies/{policy_id}")
+async def update_guest_request_sla_policy(
+    policy_id: str,
+    request: CreateGuestRequestSlaPolicyRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Edit a rule in place. Its identity is kept; only future requests resolve against the new values
+    (each request stores the minutes it was given when it was created)."""
+    if current_user.role not in MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
+    if request.category is None and request.priority is None and request.guest_impact is None:
+        raise HTTPException(
+            status_code=422,
+            detail="An SLA rule must set at least one of category, priority, or guest impact",
+        )
+    _assert_sla_rule_can_match(request.category, request.priority)
+    rules = supabase.table("guest_request_sla_policies").select(
+        "id, category, priority, guest_impact, sla_minutes"
+    ).eq("tenant_id", current_user.hotel_id).execute().data or []
+    if not any(rule["id"] == policy_id for rule in rules):
+        raise HTTPException(status_code=404, detail="SLA rule not found")
+    previous = dict(next(rule for rule in rules if rule["id"] == policy_id))
+    for rule in rules:
+        if (
+            rule["id"] != policy_id
+            and rule.get("category") == request.category
+            and rule.get("priority") == request.priority
+            and rule.get("guest_impact") == request.guest_impact
+        ):
+            raise HTTPException(status_code=409, detail="An SLA rule already exists for this combination")
+    updated = supabase.table("guest_request_sla_policies").update(request.model_dump()).eq(
+        "id", policy_id
+    ).eq("tenant_id", current_user.hotel_id).execute().data
+    if updated:
+        record_settings_event(
+            db=supabase, current_user=current_user, action="settings.sla_policy.updated",
+            resource_type="sla_policy", resource_id=policy_id,
+            old_state={k: previous.get(k) for k in ("category", "priority", "guest_impact", "sla_minutes")},
+            new_state={k: updated[0].get(k) for k in ("category", "priority", "guest_impact", "sla_minutes")},
+        )
+    return {"data": updated[0] if updated else None}
 
 
 @router.delete("/sla-policies/{policy_id}", status_code=204)
@@ -630,14 +690,18 @@ async def delete_guest_request_sla_policy(
 ):
     if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
-    existing = supabase.table("guest_request_sla_policies").select("id").eq(
-        "id", policy_id
-    ).eq("tenant_id", current_user.hotel_id).maybe_single().execute().data
+    existing = supabase.table("guest_request_sla_policies").select(
+        "id, category, priority, guest_impact, sla_minutes"
+    ).eq("id", policy_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute().data
     if not existing:
         raise HTTPException(status_code=404, detail="SLA rule not found")
     supabase.table("guest_request_sla_policies").delete().eq("id", policy_id).eq(
         "tenant_id", current_user.hotel_id
     ).execute()
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.sla_policy.deleted",
+        resource_type="sla_policy", resource_id=policy_id, old_state=existing, only_changes=False,
+    )
 
 
 @router.put("/accessibility/features")
@@ -647,16 +711,29 @@ async def upsert_accessible_room_feature(
 ):
     if current_user.role not in {"gm", "housekeeping_supervisor", "engineer"}:
         raise HTTPException(status_code=403, detail="Not authorized to manage accessible-room features")
-    room = supabase.table("rooms").select("id").eq("id", str(request.room_id)).eq(
+    room = supabase.table("rooms").select("id, room_number").eq("id", str(request.room_id)).eq(
         "tenant_id", current_user.hotel_id
     ).maybe_single().execute().data
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
+    previous = (supabase.table("accessible_room_features").select(
+        "operational_status, description, guidance"
+    ).eq("tenant_id", current_user.hotel_id).eq("room_id", str(request.room_id)).eq(
+        "feature_code", request.feature_code
+    ).limit(1).execute().data or [None])[0]
     record = supabase.table("accessible_room_features").upsert({
         "tenant_id": current_user.hotel_id,
         **request.model_dump(mode="json"),
         "last_verified_at": datetime.now(timezone.utc).isoformat(),
     }, on_conflict="tenant_id,room_id,feature_code").execute().data[0]
+    identity = {"room_number": room.get("room_number"), "feature_code": request.feature_code}
+    record_settings_event(
+        db=supabase, current_user=current_user, action="settings.accessibility_feature.updated",
+        resource_type="accessibility_feature", resource_id=record.get("id") or str(request.room_id),
+        old_state={**identity, **previous} if previous else {},
+        new_state={**identity, **{k: record.get(k) for k in ("operational_status", "description", "guidance")}},
+        only_changes=previous is not None,
+    )
     return {"data": record}
 
 

@@ -4,6 +4,7 @@ import {
   Package, Sparkles, TrendingUp, ListChecks,
 } from 'lucide-react'
 import type { UserRole } from '@/stores/authStore'
+import { SETTINGS_DESTINATIONS } from '@/lib/settings/navigation'
 
 export interface SubNavItem { href: string; label: string }
 export interface NavItem { href: string; label: string; icon: React.ElementType; subNav?: SubNavItem[]; count?: number; tag?: string }
@@ -26,23 +27,13 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/scheduling',     label: 'Schedule',       icon: Calendar },
 ]
 
+// Sidebar sub-navigation mirrors the Settings workspace IA (lib/settings/navigation.ts) so the two
+// can never drift; planned destinations (no page yet) are not linkable and are left out.
 export const SETTINGS_NAV_ITEM: NavItem = {
   href: '/settings', label: 'Settings', icon: Settings,
-  subNav: [
-    { href: '/settings/general',        label: 'General' },
-    { href: '/settings/departments',    label: 'Departments' },
-    { href: '/settings/front-desk',     label: 'Front Desk' },
-    { href: '/settings/roles',          label: 'Roles' },
-    { href: '/settings/inspections',    label: 'Inspections' },
-    { href: '/settings/guest-requests', label: 'Guest Requests' },
-    { href: '/settings/housekeeping',   label: 'Housekeeping' },
-    { href: '/settings/programs',       label: 'Programs' },
-    { href: '/settings/sop',            label: 'SOP Library' },
-    { href: '/settings/rooms',          label: 'Rooms' },
-    { href: '/settings/billing',        label: 'Billing' },
-    { href: '/settings/integrations',   label: 'Integrations' },
-    { href: '/settings/feedback',       label: 'Feedback' },
-  ],
+  subNav: SETTINGS_DESTINATIONS
+    .filter((d) => !d.planned && d.id !== 'home')
+    .map((d) => ({ href: d.href, label: d.label })),
 }
 
 export const NAV_BY_ROLE: Record<UserRole, string[]> = {

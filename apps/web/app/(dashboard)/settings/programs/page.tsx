@@ -1,3 +1,6 @@
-import ProgramsPage from '../../programs/page'
+import { redirect } from 'next/navigation'
 
-export default ProgramsPage
+// Programs lives at its own top-level route; keep old /settings/programs bookmarks working.
+export default function LegacySettingsProgramsPage() {
+  redirect('/programs')
+}
