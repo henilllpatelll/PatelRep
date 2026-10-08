@@ -1,5 +1,22 @@
 export const RATE_LIMITED_CONSOLE_ERROR = 'Failed to load resource: the server responded with a status of 429 ()'
 
+export const UNAUTHORIZED_CONSOLE_ERROR = 'Failed to load resource: the server responded with a status of 401 ()'
+
+/**
+ * A restricted (mobile-only) role is signed out right after password sign-in, so requests the page
+ * makes around that moment may legitimately answer 401. The browser logs each as a URL-less generic
+ * console error (not necessarily the Supabase logout endpoint). Drop one console message per observed
+ * 401 response; unmatched 401 messages and every other error stay fatal.
+ */
+export function filterExpectedUnauthorized(failures: string[], unauthorizedCount: number): string[] {
+  let tolerated = unauthorizedCount
+  return failures.filter((failure) => {
+    if (failure !== UNAUTHORIZED_CONSOLE_ERROR || tolerated <= 0) return true
+    tolerated -= 1
+    return false
+  })
+}
+
 export type ObservedRateLimit = { method: string }
 
 /**

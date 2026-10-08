@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { filterTransientRateLimits, type ObservedRateLimit } from '../lib/utils/smokeFailures'
+import { filterExpectedUnauthorized, filterTransientRateLimits, type ObservedRateLimit } from '../lib/utils/smokeFailures'
 
 const password = process.env.STAGING_FIXTURE_PASSWORD
 const webRoles = [
@@ -43,14 +43,11 @@ for (const [role, email, landing] of webRoles) {
 
 for (const [role, email] of mobileOnlyRoles) {
   test(`${role} is authenticated but restricted to the mobile app`, async ({ page }) => {
-    // The restricted-role flow signs the session out (supabase.auth.signOut on /login?mobileOnly=1).
-    // Supabase may answer that logout with 401 when the session is already invalid, and the browser
-    // logs it as a generic console error. That is expected here, so exclude it only when a 401 on the
-    // auth logout endpoint was actually observed.
-    let logoutUnauthorized = false
-    page.on('response', (response) => {
-      if (response.status() === 401 && new URL(response.url()).pathname.endsWith('/auth/v1/logout')) logoutUnauthorized = true
-    })
+    // The restricted-role flow signs the session out right after sign-in, so requests the page makes
+    // around that moment may answer 401. The browser logs each as a URL-less generic console error and
+    // it is not always the Supabase logout endpoint, so tolerate one console 401 per observed 401 response.
+    let unauthorizedResponses = 0
+    page.on('response', (response) => { if (response.status() === 401) unauthorizedResponses += 1 })
     const allFailures = await submitLogin(page, email)
     // Password sign-in of a floor role is rejected in place on /login (inline alert, session signed out).
     // The ?mobileOnly=1 redirect only comes from the route guard / auth callback, so accept either alert.
@@ -61,9 +58,7 @@ for (const [role, email] of mobileOnlyRoles) {
     await page.goto('/dashboard')
     await expect(page).toHaveURL(/\/login\?(?:mobileOnly=1|redirectTo=%2Fdashboard)/)
     await expect(page.getByRole('heading', { name: /welcome back to your hotel/i })).toBeVisible()
-    const failures = logoutUnauthorized
-      ? allFailures.filter((failure) => failure !== 'Failed to load resource: the server responded with a status of 401 ()')
-      : allFailures
+    const failures = filterExpectedUnauthorized(allFailures, unauthorizedResponses)
     expect(failures, `fatal browser failures for ${role}`).toEqual([])
   })
 }
