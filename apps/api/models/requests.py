@@ -1487,6 +1487,37 @@ class AddStaffDirectRequest(SanitizedBaseModel):
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
 
+# --- Staff profile / invitation reissue (People Phase 1) ---
+class UpdateStaffProfileRequest(SanitizedBaseModel):
+    """GM-editable profile fields. `email` is deliberately absent (extra=forbid -> 422):
+    changing a sign-in address must go through Supabase Auth, not a profile edit."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    full_name: Optional[str] = Field(default=None, min_length=1, max_length=SHORT_TEXT_MAX)
+    preferred_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    phone: Optional[str] = Field(default=None, max_length=32)
+    avatar_url: Optional[str] = Field(default=None, max_length=2048)
+
+
+class ReissueInvitationRequest(SanitizedBaseModel):
+    """Revoke-and-reissue: any omitted field is carried over from the old invitation."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    role: Optional[Literal[
+        "gm",
+        "housekeeping_supervisor",
+        "housekeeper",
+        "engineer",
+        "chief_engineer",
+        "front_desk",
+    ]] = None
+    department_id: Optional[UUID4] = None
+    full_name: Optional[str] = Field(default=None, min_length=1, max_length=SHORT_TEXT_MAX)
+    phone: Optional[str] = Field(default=None, max_length=32)
+
+
 # --- Push Token ---
 class UpdatePushTokenRequest(SanitizedBaseModel):
     token: str = Field(min_length=1, max_length=512)

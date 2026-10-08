@@ -40,6 +40,8 @@ from routers import (
     reports,
     onboarding,
     staff,
+    staff_invitations,
+    staff_schedules,
     lost_found,
     feedback,
     late_checkout,
@@ -343,6 +345,9 @@ app.include_router(reports.router, prefix=PREFIX)
 app.include_router(report_views.router, prefix=PREFIX)
 app.include_router(report_exports.router, prefix=PREFIX)
 app.include_router(onboarding.router, prefix=PREFIX)
+# staff_invitations / staff_schedules own static /staff/invitations* paths and must precede staff.router's /staff/{user_id}
+app.include_router(staff_invitations.router, prefix=PREFIX)
+app.include_router(staff_schedules.router, prefix=PREFIX)
 app.include_router(staff.router, prefix=PREFIX)
 app.include_router(lost_found.router, prefix=PREFIX)
 app.include_router(feedback.router, prefix=PREFIX)

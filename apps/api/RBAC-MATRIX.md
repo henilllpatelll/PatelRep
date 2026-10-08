@@ -398,20 +398,28 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | sop.py | /v1/sop/query | POST | none |  |
 | staff.py | /v1/staff/me/push-token | PATCH | none |  |
 | staff.py | /v1/staff/me/effective-role | GET | none |  |
-| staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk') [L85]; inline: current_user.role == 'gm' [L146] |
-| staff.py | /v1/staff/invitations | GET | gm | require_role('gm') [L155] |
-| staff.py | /v1/staff/invite | POST | gm | require_role('gm') [L208] |
-| staff.py | /v1/staff/onboarding-invite | POST | none |  |
-| staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L251] |
-| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L325] |
-| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L340] |
-| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L359] |
-| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L376] |
-| staff.py | /v1/staff/{user_id}/role-schedules | GET | gm | require_role('gm') [L390] |
-| staff.py | /v1/staff/{user_id}/role-schedules | POST | gm | require_role('gm') [L407] |
-| staff.py | /v1/staff/{user_id}/role-schedules/{schedule_id} | DELETE | gm | require_role('gm') [L440] |
-| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L456] |
-| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L489] |
+| staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L263]; inline: current_user.role in GM_ONLY_ROLES [L315]; inline: current_user.role not in GM_ONLY_ROLES [L276] |
+| staff.py | /v1/staff/departments | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L329] |
+| staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L343] |
+| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L437] |
+| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L452] |
+| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L471] |
+| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L488] |
+| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L505] |
+| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L537] |
+| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L566] |
+| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L577] |
+| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L634] |
+| staff_invitations.py | /v1/staff/invite | POST | gm | require_role('gm') [L193] |
+| staff_invitations.py | /v1/staff/onboarding-invite | POST | none |  |
+| staff_invitations.py | /v1/staff/invitations | GET | gm | require_role('gm') [L229] |
+| staff_invitations.py | /v1/staff/invitations/accept | POST | none |  |
+| staff_invitations.py | /v1/staff/invitations/{invitation_id}/resend | POST | gm | require_role('gm') [L347] |
+| staff_invitations.py | /v1/staff/invitations/{invitation_id} | DELETE | gm | require_role('gm') [L394] |
+| staff_invitations.py | /v1/staff/invitations/{invitation_id}/reissue | POST | gm | require_role('gm') [L418] |
+| staff_schedules.py | /v1/staff/{user_id}/role-schedules | GET | gm | require_role('gm') [L36] |
+| staff_schedules.py | /v1/staff/{user_id}/role-schedules | POST | gm | require_role('gm') [L55] |
+| staff_schedules.py | /v1/staff/{user_id}/role-schedules/{schedule_id} | DELETE | gm | require_role('gm') [L108] |
 | tasks.py | /v1/tasks | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L190] |
 | tasks.py | /v1/tasks/schedules | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L231] |
 | tasks.py | /v1/tasks/schedules/{schedule_id} | PATCH | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L278] |
@@ -466,4 +474,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
 
-**37 routers, 455 routes.**
+**39 routers, 463 routes.**
