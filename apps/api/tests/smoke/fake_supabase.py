@@ -1,10 +1,10 @@
-import re
 """Richer in-memory Supabase fake for clean-sessions / checklists / shifts tests.
 
 Extends the FakeDB pattern used in test_inspection_templates.py with update,
 delete, maybe_single, neq, gte, in_ and limit support.
 """
 
+import re
 from types import SimpleNamespace
 
 

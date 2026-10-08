@@ -290,7 +290,6 @@ async def test_keyset_pagination_is_complete_unique_and_deterministic_with_equal
 
 @pytest.mark.asyncio
 async def test_page_size_is_capped():
-    from fastapi.params import Query as Q
     route = next(r for r in api.router.routes if r.path == "/settings/activity")
     limit = next(p for p in route.dependant.query_params if p.name == "limit")
     assert limit.field_info.metadata  # ge/le constraints are declared
@@ -301,7 +300,8 @@ async def test_page_size_is_capped():
 
 @pytest.mark.asyncio
 async def test_export_is_scoped_escaped_and_bounded(use):
-    import csv, io
+    import csv
+    import io
     use([
         ev(1, action="settings.property.updated", rtype="property_profile", new={"name": "=cmd|' /C calc'!A0"}),
         ev(2, action="settings.room.created", rtype="room", new={"room_number": "9999"}, tenant=B, actor=GM_B.user_id),
@@ -328,7 +328,7 @@ async def test_export_row_cap_truncates_and_says_so(use, monkeypatch):
     monkeypatch.setattr(api, "MAX_EXPORT_ROWS", 5)
     monkeypatch.setattr(api, "EXPORT_PAGE", 2)
     res = await api.export_activity(q=None, category=None, resource_type=None, actor_id=None, date_from=None, date_to=None, current_user=GM_A)
-    lines = [l for l in res.body.decode("utf-8-sig").splitlines() if l]
+    lines = [line for line in res.body.decode("utf-8-sig").splitlines() if line]
     assert len(lines) == 1 + 5 + 1 and res.headers["x-export-truncated"] == "true"
     assert "Export limited to the newest 5 events" in lines[-1]
 
