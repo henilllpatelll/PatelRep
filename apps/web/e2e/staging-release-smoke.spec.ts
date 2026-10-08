@@ -52,9 +52,11 @@ for (const [role, email] of mobileOnlyRoles) {
       if (response.status() === 401 && new URL(response.url()).pathname.endsWith('/auth/v1/logout')) logoutUnauthorized = true
     })
     const allFailures = await submitLogin(page, email)
-    await page.waitForURL((url) => url.pathname === '/login' && url.searchParams.get('mobileOnly') === '1')
-    const mobileOnlyAlert = page.getByRole('alert').filter({ hasText: 'Web portal is for management staff only' })
-    await expect(mobileOnlyAlert).toContainText(/mobile app/i)
+    // Password sign-in of a floor role is rejected in place on /login (inline alert, session signed out).
+    // The ?mobileOnly=1 redirect only comes from the route guard / auth callback, so accept either alert.
+    const mobileOnlyAlert = page.getByRole('alert').filter({ hasText: /restricted to Front Desk, GM, and Supervisor staff|Web portal is for management staff only/ })
+    await expect(mobileOnlyAlert).toContainText(/mobile app/i, { timeout: 30_000 })
+    expect(new URL(page.url()).pathname).toBe('/login')
 
     await page.goto('/dashboard')
     await expect(page).toHaveURL(/\/login\?(?:mobileOnly=1|redirectTo=%2Fdashboard)/)
