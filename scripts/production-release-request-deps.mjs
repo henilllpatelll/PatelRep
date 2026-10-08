@@ -16,6 +16,14 @@ function readGh(args, token) {
   return execFileSync('gh', args, { encoding: 'utf8', env: { ...process.env, GH_TOKEN: token }, stdio: ['ignore', 'pipe', 'inherit'] })
 }
 
+/**
+ * Ancestry via the compare endpoint. Only `.status` is extracted server-side (`--jq`): the full compare body grows
+ * with the diff (over 1 MiB once a large PR lands) and overflows execFileSync's default maxBuffer (ENOBUFS), which
+ * the baseline/audit/recovery checks must not mistake for "unproven".
+ */
+export const isAncestorViaCompare = (read, repo, baseRef, headRef) =>
+  ['identical', 'ahead'].includes(read(['api', `repos/${repo}/compare/${baseRef}...${headRef}`, '--jq', '.status']).trim())
+
 /** Release and tag listing only: all the release-version CLI needs. */
 export function realReleaseDeps({ repo, readToken }) {
   if (!repo || !readToken) throw new Error('release deps: repo and read token are required')
@@ -32,7 +40,8 @@ export function realReleaseDeps({ repo, readToken }) {
       if (object?.type !== 'commit') throw new Error(`production baseline: tag ${tag} does not point at a commit`)
       return object.sha
     },
-    isAncestorOfMain: async (sha) => ['identical', 'ahead'].includes(api(`repos/${repo}/compare/${sha}...main`).status),
+    isAncestorOfMain: async (sha) => isAncestorViaCompare(read, repo, sha, 'main'),
+    isAncestorViaCompare: (baseRef, headRef) => isAncestorViaCompare(read, repo, baseRef, headRef),
     api,
     paged,
   }
