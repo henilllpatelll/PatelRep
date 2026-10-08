@@ -43,5 +43,6 @@ export function useRefreshPeople() {
     qc.invalidateQueries({ queryKey: ['staff'] }),
     qc.invalidateQueries({ queryKey: ['staff-invitations'] }),
     qc.invalidateQueries({ queryKey: ['people-today'] }),
+    qc.invalidateQueries({ queryKey: ['role-schedules'] }),
   ])
 }

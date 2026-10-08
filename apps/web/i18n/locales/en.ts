@@ -3651,29 +3651,6 @@ const en = {
       maintenance: "maintenance",
     },
   },
-  staff: {
-    invitations: {
-      heading: "Pending Invitations",
-      loading: "Loading invitations…",
-      loadError: "Couldn't load pending invitations.",
-    },
-    editModal: {
-      schedulesLoadError: "Couldn't load schedule overrides.",
-      rolesLoadError: "Couldn't load custom roles.",
-      hourlyRateLabel: "Hourly rate",
-      hourlyRatePlaceholder: "e.g. 18.50",
-      hourlyRateHint:
-        "Used to compute labor cost when this person completes work orders. Leave blank if unknown.",
-    },
-    table: {
-      sectionLabel: "Team Members",
-      loading: "Loading staff…",
-      loadError: "Failed to load staff.",
-      emptyFiltered: "No staff match the current filters.",
-      emptyDefault:
-        "No staff members yet. Invite your first team member above.",
-    },
-  },
   settings: {
     pageTitle: "Hotel Profile",
     loadError: "Couldn't load your hotel's profile.",

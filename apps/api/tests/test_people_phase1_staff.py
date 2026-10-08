@@ -360,3 +360,29 @@ async def test_add_direct_refuses_custom_access_for_another_base_role(db):
     with pytest.raises(HTTPException) as exc:
         await staff_router.add_staff_direct(body, GM)
     assert exc.value.status_code == 422 and db.auth.admin.created == []
+
+
+# 7 — People Phase 4: deactivation ends temporary coverage ---------------------------------------------------
+@pytest.mark.asyncio
+async def test_deactivation_ends_coverage_and_reactivation_does_not_revive_it(db):
+    db.rows["staff_role_schedules"] = [
+        {"id": "s1", "hotel_id": H1, "user_id": "hk-1", "override_role": "housekeeping_supervisor",
+         "days_of_week": [1], "is_active": True},
+        {"id": "s2", "hotel_id": H2, "user_id": "hk-1", "override_role": "housekeeping_supervisor",
+         "days_of_week": [1], "is_active": True},  # same user id, other hotel: must be untouched
+    ]
+    await staff_router.deactivate_staff("hk-1", GM)
+    state = {r["id"]: r["is_active"] for r in db.rows["staff_role_schedules"]}
+    assert state == {"s1": False, "s2": True}
+    await staff_router.reactivate_staff("hk-1", GM)
+    assert next(r for r in db.rows["staff_role_schedules"] if r["id"] == "s1")["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_legacy_is_active_patch_also_ends_coverage(db):
+    db.rows["staff_role_schedules"] = [
+        {"id": "s1", "hotel_id": H1, "user_id": "hk-1", "override_role": "housekeeping_supervisor",
+         "days_of_week": [2], "is_active": True},
+    ]
+    await staff_router.update_staff("hk-1", {"is_active": False}, GM)
+    assert db.rows["staff_role_schedules"][0]["is_active"] is False

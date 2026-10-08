@@ -3709,30 +3709,6 @@ const es = {
       maintenance: "el mantenimiento",
     },
   },
-  staff: {
-    invitations: {
-      heading: "Invitaciones Pendientes",
-      loading: "Cargando invitaciones…",
-      loadError: "No se pudieron cargar las invitaciones pendientes.",
-    },
-    editModal: {
-      schedulesLoadError: "No se pudieron cargar las anulaciones de horario.",
-      rolesLoadError: "No se pudieron cargar los roles personalizados.",
-      hourlyRateLabel: "Tarifa por hora",
-      hourlyRatePlaceholder: "p. ej. 18.50",
-      hourlyRateHint:
-        "Se usa para calcular el costo de mano de obra al completar órdenes de trabajo. Déjelo en blanco si no se conoce.",
-    },
-    table: {
-      sectionLabel: "Miembros del Equipo",
-      loading: "Cargando personal…",
-      loadError: "No se pudo cargar el personal.",
-      emptyFiltered:
-        "Ningún miembro del personal coincide con los filtros actuales.",
-      emptyDefault:
-        "Aún no hay miembros del personal. Invite a su primer miembro del equipo arriba.",
-    },
-  },
   settings: {
     pageTitle: "Perfil del Hotel",
     loadError: "No se pudo cargar el perfil de su hotel.",

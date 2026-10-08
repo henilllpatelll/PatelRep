@@ -398,18 +398,18 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | sop.py | /v1/sop/query | POST | none |  |
 | staff.py | /v1/staff/me/push-token | PATCH | none |  |
 | staff.py | /v1/staff/me/effective-role | GET | none |  |
-| staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L274]; inline: current_user.role in GM_ONLY_ROLES [L326]; inline: current_user.role not in GM_ONLY_ROLES [L287] |
-| staff.py | /v1/staff/departments | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L340] |
-| staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L354] |
-| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L454] |
-| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L469] |
-| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L488] |
-| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L505] |
-| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L522] |
-| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L554] |
-| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L583] |
-| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L594] |
-| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L656] |
+| staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L281]; inline: current_user.role in GM_ONLY_ROLES [L333]; inline: current_user.role not in GM_ONLY_ROLES [L294] |
+| staff.py | /v1/staff/departments | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L347] |
+| staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L361] |
+| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L461] |
+| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L476] |
+| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L495] |
+| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L512] |
+| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L529] |
+| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L561] |
+| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L590] |
+| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L601] |
+| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L665] |
 | staff_invitations.py | /v1/staff/invite | POST | gm | require_role('gm') [L193] |
 | staff_invitations.py | /v1/staff/onboarding-invite | POST | none |  |
 | staff_invitations.py | /v1/staff/invitations | GET | gm | require_role('gm') [L229] |

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { BarChart3, CalendarDays, ChevronDown, Mail, Phone, UserCheck, UserX } from 'lucide-react'
+import { BarChart3, ChevronDown, Mail, Phone, UserCheck, UserX } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
@@ -198,11 +198,6 @@ export function PersonProfileView({ entry, staffList, selfUserId, isGM, today, t
           {report && (
             <Link href={report} className="inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] sm:min-h-[36px]">
               <BarChart3 size={16} aria-hidden="true" />{t('people.profile.teamReport')} →
-            </Link>
-          )}
-          {active && (
-            <Link href="/scheduling" className="inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-[var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] sm:min-h-[36px]">
-              <CalendarDays size={16} aria-hidden="true" />{t('people.profile.openSchedule')} →
             </Link>
           )}
         </div>

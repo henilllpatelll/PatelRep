@@ -136,6 +136,11 @@ def _assert_not_active_elsewhere(user_id: str, hotel_id: str):
         raise HTTPException(status_code=409, detail="This person has an active account at another hotel")
 
 
+def _disable_coverage(user_id: str, hotel_id: str) -> None:
+    """Deactivation ends temporary coverage, so reactivating someone can never silently revive old supervisory access."""
+    supabase.table("staff_role_schedules")        .update({"is_active": False})        .eq("hotel_id", hotel_id)        .eq("user_id", user_id)        .eq("is_active", True)        .execute()
+
+
 def _set_active(current_user: CurrentUser, user_id: str, active: bool) -> list:
     rows = tenant_role_rows(user_id, current_user.hotel_id)
     if not rows:
@@ -151,6 +156,8 @@ def _set_active(current_user: CurrentUser, user_id: str, active: bool) -> list:
         .execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Staff member not found")
+    if not active:
+        _disable_coverage(user_id, current_user.hotel_id)
     return result.data
 
 
@@ -646,6 +653,8 @@ async def update_staff(
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Staff member not found")
+    if update_data.get("is_active") is False:
+        _disable_coverage(staff_id, current_user.hotel_id)
 
     return {"data": result.data[0] if result.data else None}
 
