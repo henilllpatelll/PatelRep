@@ -834,3 +834,62 @@ describe("completion with an unknown outcome", () => {
     expect(completeCalls()).toHaveLength(1);
   });
 });
+
+describe("rapid and repeated actions", () => {
+  const startCalls = () => server.calls.filter((c) => c.method === "POST" && c.path === "/clean-sessions");
+  const checklistCalls = () => server.calls.filter((c) => c.method === "PATCH");
+
+  it("double-tapping Start creates one session and one server request", async () => {
+    const [a, b] = await Promise.all([
+      store().startSession(ROOM, { entryAcknowledged: true }),
+      store().startSession(ROOM, { entryAcknowledged: true }),
+    ]);
+    expect([a.outcome, b.outcome]).toEqual(["confirmed", "confirmed"]);
+    expect(server.sessions.size).toBe(1);
+    expect(startCalls()).toHaveLength(1);
+  });
+
+  it("repeated taps on one item settle on the last value and the server agrees", async () => {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    for (const checked of [true, false, true, false, true]) store().toggleItem(ROOM.id, "id:t1", checked);
+    await store().flush();
+    const stored = server.sessions.get(record().sessionId) as { checklist: ChecklistItem[] };
+    expect(stored.checklist.find((c) => c.item_id === "t1")?.checked).toBe(true);
+    expect(record().checklist.find((c) => c.item_id === "t1")?.checked).toBe(true);
+    expect(Object.keys(record().pendingItems)).toHaveLength(0);
+  });
+
+  it("two syncs triggered at once do not replay the same checklist change twice", async () => {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    mockApp.isOnline = false;
+    store().toggleItem(ROOM.id, "id:t1", true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    mockApp.isOnline = true;
+    server.calls.length = 0;
+    await Promise.all([store().flush(), store().flush()]);
+    expect(checklistCalls()).toHaveLength(1);
+    expect(Object.keys(record().pendingItems)).toHaveLength(0);
+  });
+
+  it("a room reassigned while the device was offline keeps the queued work as a conflict", async () => {
+    await AsyncStorage.setItem(
+      "@patelrep/checklist_templates/v1/hotel-1",
+      JSON.stringify([
+        {
+          id: "tpl-dep", clean_type: "DEP", name: "Departure",
+          items: [{ id: "t1", section: "Bedroom", label: "Strip beds", is_required: true, sort_order: 1 }],
+        },
+      ]),
+    );
+    mockApp.isOnline = false;
+    const queued = await store().startSession(ROOM, { entryAcknowledged: true });
+    expect(queued.outcome).toBe("queued");
+    store().toggleItem(ROOM.id, "id:t1", true);
+    mockApp.isOnline = true;
+    server.failNext.push(new MockApiError("Room is assigned to someone else", 403, "NOT_ASSIGNED"));
+    await store().flush();
+    expect(record().conflict).toMatchObject({ code: "NOT_ASSIGNED" });
+    expect(record().checklist.find((c) => c.item_id === "t1")?.checked).toBe(true);
+    expect(server.sessions.size).toBe(0);
+  });
+});

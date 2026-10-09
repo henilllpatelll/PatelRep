@@ -401,7 +401,10 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
       if (existing && !existing.completionConfirmed && !existing.conflict) {
         // Resume: the same session id keeps the server call idempotent.
         const synced = await exclusive(() => syncRoom(room.id, true));
-        return synced ?? { outcome: existing.startConfirmed ? "confirmed" : "queued", session: get().sessions[room.id] ?? existing };
+        if (synced) return synced;
+        // Judge the record as it is after the sync: a concurrent start may have confirmed it.
+        const fresh = get().sessions[room.id] ?? existing;
+        return { outcome: fresh.startConfirmed ? "confirmed" : "queued", session: fresh };
       }
 
       const user = useAppStore.getState().user!;

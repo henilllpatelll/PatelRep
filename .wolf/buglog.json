@@ -33111,6 +33111,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2007",
+      "timestamp": "2026-10-09T21:00:00.000Z",
+      "error_message": "Concurrent double-tap Start returned outcome 'queued' to the second caller although the session was already confirmed",
+      "file": "apps/mobile/stores/cleanSessionStore.ts",
+      "root_cause": "startSession judged the pre-sync snapshot of the record (startConfirmed=false) after awaiting the exclusive sync.",
+      "fix": "Read the record again after syncRoom before choosing confirmed vs queued; added rapid-action tests.",
+      "tags": [
+        "mobile",
+        "clean-session",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T21:00:00.000Z"
     }
   ]
 }
