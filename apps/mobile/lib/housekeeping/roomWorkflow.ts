@@ -69,7 +69,7 @@ function formatTime(value: string | null | undefined): string | null {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-function hasOpenWorkOrder(room: Room): boolean {
+export function hasOpenWorkOrder(room: Room): boolean {
   return Boolean(room.open_work_order_id || room.open_work_order_number || room.open_work_order_title);
 }
 
@@ -77,13 +77,13 @@ function hasLatestNote(room: Room): boolean {
   return Boolean(room.latest_note?.trim());
 }
 
-function hasBlockingNote(room: Room): boolean {
+export function hasBlockingNote(room: Room): boolean {
   const note = room.latest_note?.trim();
   if (!note) return false;
   return !note.startsWith("FLAG: ");
 }
 
-function isDepartureClean(room: Room): boolean {
+export function isDepartureClean(room: Room): boolean {
   return room.clean_type === "DEP" || room.clean_type_label?.toLowerCase().includes("departure") === true;
 }
 

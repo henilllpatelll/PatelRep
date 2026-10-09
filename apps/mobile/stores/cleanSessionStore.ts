@@ -26,6 +26,8 @@ import { registerSessionFlush, setManagedRooms } from "@/lib/housekeeping/sessio
 const STORAGE_PREFIX = "@patelrep/clean_sessions/v1/";
 const COMPLETED_RETENTION_MS = 24 * 60 * 60 * 1000;
 
+export type RestoreActiveResult = "restored" | "none" | "offline" | "failed";
+
 export type ActionResult =
   | { outcome: "confirmed"; session: LocalCleanSession }
   /** Saved on this device, not yet confirmed by the server. */
@@ -44,6 +46,12 @@ interface CleanSessionState {
   flush: () => Promise<void>;
   /** Online refresh of one room's session against the server (restart / reopen). */
   restoreForRoom: (room: Pick<Room, "id" | "status">) => Promise<void>;
+  /**
+   * Read-only: ask the server for this user's active session and adopt it when
+   * the device has no record (restart, data loss, started elsewhere). Never
+   * starts a session — unlike restoreForRoom, safe to call from a list screen.
+   */
+  restoreActive: () => Promise<RestoreActiveResult>;
   /** Clear a conflict and try the queued work again. */
   retry: (roomId: string) => Promise<void>;
   /** Drop local session state for a room (conflict resolution / room undone). */
@@ -469,6 +477,49 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
           await persist();
         } catch (err) {
           console.warn("[clean-session] restore failed", err);
+        }
+      });
+    },
+
+    restoreActive: async () => {
+      if (!(await ensureScope())) return "failed";
+      registerSessionFlush(() => get().flush());
+      if (!useAppStore.getState().isOnline) return "offline";
+      return exclusive(async (): Promise<RestoreActiveResult> => {
+        try {
+          const server = await apiGetActiveSession();
+          if (!server) return "none";
+          const local = get().sessions[server.room_id];
+          if (local && !local.completionConfirmed) return "restored";
+          const now = new Date().toISOString();
+          set((state) => ({
+            sessions: {
+              ...state.sessions,
+              [server.room_id]: {
+                roomId: server.room_id,
+                sessionId: server.id,
+                cleanType: server.clean_type,
+                startedAt: server.started_at,
+                entryAcknowledged: true,
+                checklist: server.checklist ?? [],
+                provisional: false,
+                startConfirmed: true,
+                pendingItems: {},
+                completeRequestedAt: null,
+                completionConfirmed: false,
+                endedAt: null,
+                durationSeconds: null,
+                conflict: null,
+                lastError: null,
+                updatedAt: now,
+              },
+            },
+          }));
+          await persist();
+          return "restored";
+        } catch (err) {
+          console.warn("[clean-session] restore active failed", err);
+          return "failed";
         }
       });
     },

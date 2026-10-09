@@ -836,7 +836,7 @@ async def get_my_rooms(
         "dnd_started_at, dnd_retry_at, dnd_attempt_count, dnd_last_attempt_at, "
         "service_declined_reason, service_declined_note, service_declined_at, "
         "reclean_requested_at, "
-        "rooms!inner(id, room_number, floor, room_types(name, code, base_clean_minutes))"
+        "rooms!inner(id, room_number, floor, building, room_types(name, code, base_clean_minutes))"
     )
     try:
         result = (
@@ -869,6 +869,7 @@ async def get_my_rooms(
             "id": room_id,  # mobile app uses room.id for navigation / API calls
             "room_number": nested_room.get("room_number"),
             "floor": nested_room.get("floor"),
+            "building": (nested_room.get("building") or None) if isinstance(nested_room, dict) else None,
             "room_type_code": nested_room_types.get("code"),
             "room_type_name": nested_room_types.get("name"),
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),

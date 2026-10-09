@@ -543,6 +543,141 @@
         "view": "View",
         "dnd": "DND"
       }
+    },
+    "dash": {
+      "progressTitle": "Today's progress",
+      "progressOf": "{{completed}} of {{total}} completed",
+      "progressNone": "No serviceable rooms today",
+      "progressA11y": "{{completed}} of {{total}} rooms completed, {{percent}} percent",
+      "chips": {
+        "toClean": "To clean",
+        "attention": "Attention",
+        "completed": "Completed",
+        "unavailable": "Unavailable"
+      },
+      "tabs": {
+        "route": "Route",
+        "floors": "Floors",
+        "done": "Done",
+        "label": "My Rooms views"
+      },
+      "sync": {
+        "online": "Online",
+        "offline": "Offline · saved rooms",
+        "pending": "{{count}} waiting to sync",
+        "updated": "Updated {{time}}",
+        "refreshFailed": "Couldn't refresh · showing saved rooms"
+      },
+      "route": {
+        "currentTitle": "Current room",
+        "upNextTitle": "Up next — suggested route",
+        "attentionTitle": "Needs attention",
+        "emptyTitle": "Nothing left to clean",
+        "emptyBody": "Every assigned room is submitted, inspected or unavailable.",
+        "onlyAttention": "No rooms are ready to clean right now. Rooms needing attention are listed below."
+      },
+      "current": {
+        "title": "Room {{room}} — In Progress",
+        "elapsed": "{{minutes}} min elapsed",
+        "checklist": "Checklist: {{done}} / {{total}}",
+        "resume": "Resume Room {{room}}",
+        "starting": "Waiting to sync the start",
+        "completing": "Finished on this device — waiting to sync",
+        "conflict": "Sync problem — open the room to resolve it",
+        "recoveryTitle": "Room {{room}} is marked in progress",
+        "recoveryBody": "Its cleaning session isn't loaded on this device.",
+        "recoveryOffline": "Reconnect to load the session, or open the room.",
+        "recoveryRetry": "Reload session",
+        "recoveryOpen": "Open room",
+        "a11y": "Current room {{room}}, in progress, {{minutes}} minutes elapsed, checklist {{done}} of {{total}}, resume"
+      },
+      "card": {
+        "review": "Review",
+        "rush": "RUSH",
+        "neededBy": "Needed by {{time}}",
+        "estimate": "~{{minutes}} min",
+        "reclean": "Reclean · {{count}} corrections",
+        "position": "Stop {{position}}",
+        "open": "open room",
+        "room": "Room {{room}}",
+        "rushA11y": "rush priority",
+        "floor": "Floor {{floor}}",
+        "building": "Building {{name}}"
+      },
+      "access": {
+        "dnd": "Do not disturb",
+        "doNotService": "Service declined",
+        "checkoutVerified": "Checked out {{time}}",
+        "checkoutVerifiedNoTime": "Checked out",
+        "scheduledCheckout": "Scheduled to check out {{time}}",
+        "checkoutNotVerified": "Checkout not verified",
+        "occupied": "Occupied"
+      },
+      "attention": {
+        "dnd": {
+          "title": "DND",
+          "detail": "Do not enter"
+        },
+        "declined": {
+          "title": "Declined",
+          "detail": "Guest declined service"
+        },
+        "checkout_unverified": {
+          "title": "Not checked out",
+          "detail": "Confirm the guest has left before entering"
+        },
+        "blocker": {
+          "title": "Entry blocked",
+          "detail": "Entry is blocked"
+        },
+        "reclean": {
+          "title": "Reclean",
+          "detail": "Fix the inspection corrections"
+        },
+        "work_order": {
+          "title": "Work order",
+          "detail": "Open work order"
+        },
+        "risk": {
+          "title": "High risk",
+          "detail": "Review room context first"
+        },
+        "note": {
+          "title": "Note",
+          "detail": "Read the latest note first"
+        },
+        "retryAt": "Retry at {{time}}",
+        "attempts": "Attempts recorded: {{count}}",
+        "corrections": "{{count}} corrections to fix"
+      },
+      "floors": {
+        "searchPlaceholder": "Search room number",
+        "searchLabel": "Search rooms by number",
+        "clearSearch": "Clear search",
+        "noMatches": "No rooms match “{{query}}”",
+        "floorUnknown": "Floor not set",
+        "noBuilding": "No building",
+        "count": "{{completed}} / {{total}}",
+        "floorA11y": "{{floor}}, {{completed}} of {{total}} completed",
+        "current": "Current",
+        "emptyTitle": "No rooms assigned",
+        "unavailableCount": "{{count}} unavailable"
+      },
+      "done": {
+        "awaitingTitle": "Awaiting inspection",
+        "readyTitle": "Ready / inspected",
+        "unavailableTitle": "Unavailable",
+        "unavailableNote": "Not counted as completed",
+        "none": "None yet",
+        "emptyTitle": "Nothing finished yet",
+        "emptyBody": "Rooms show here once they're submitted, inspected or unavailable."
+      },
+      "state": {
+        "errorTitle": "Couldn't load your rooms",
+        "errorBody": "Check your connection and try again.",
+        "offlineEmpty": "You're offline and no saved rooms are available on this device yet.",
+        "retry": "Try again"
+      }
     }
   },
   "workOrders": {

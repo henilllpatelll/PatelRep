@@ -692,3 +692,13 @@
 ## supabase/migrations/
 
 - `206_report_schedules.sql` — Reports redesign Phase 4: scheduled report delivery. (~1208 tok)
+
+## apps/mobile (My Rooms Phase 2)
+
+- `lib/housekeeping/myRoomsDashboard.ts` — single source for My Rooms classification, progress counts, Up Next ordering, floor grouping, list-state resolution. (~4.5k tok)
+- `lib/housekeeping/myRoomsItems.ts` — pure flat list rows for the Route/Floors/Done FlatList. (~1.4k tok)
+- `lib/housekeeping/myRoomsText.ts` — access/attention copy, location and a11y labels (pure, i18n via t). (~1.5k tok)
+- `lib/housekeeping/useMyRoomsData.ts` — fetch/cache/poll hook + read-only active-session restore hook. (~1.6k tok)
+- `components/housekeeping/MyRoomCards.tsx` — MyRoomCard, CompactRoomRow, CurrentRoomCard (+ recovery state). (~3k tok)
+- `components/housekeeping/MyRoomsHeader.tsx` — title/date/sync indicators/progress summary/segmented control. (~1.8k tok)
+- `app/(app)/my-rooms/index.tsx` — My Rooms screen: one FlatList serving Route | Floors | Done. (~3.5k tok)

@@ -543,6 +543,141 @@
         "view": "Ver",
         "dnd": "No Molestar"
       }
+    },
+    "dash": {
+      "progressTitle": "Progreso de hoy",
+      "progressOf": "{{completed}} de {{total}} completadas",
+      "progressNone": "Hoy no hay habitaciones por atender",
+      "progressA11y": "{{completed}} de {{total}} habitaciones completadas, {{percent}} por ciento",
+      "chips": {
+        "toClean": "Por limpiar",
+        "attention": "Atención",
+        "completed": "Completadas",
+        "unavailable": "No disponibles"
+      },
+      "tabs": {
+        "route": "Ruta",
+        "floors": "Pisos",
+        "done": "Listas",
+        "label": "Vistas de Mis habitaciones"
+      },
+      "sync": {
+        "online": "En línea",
+        "offline": "Sin conexión · habitaciones guardadas",
+        "pending": "{{count}} por sincronizar",
+        "updated": "Actualizado {{time}}",
+        "refreshFailed": "No se pudo actualizar · mostrando habitaciones guardadas"
+      },
+      "route": {
+        "currentTitle": "Habitación actual",
+        "upNextTitle": "Siguientes — ruta sugerida",
+        "attentionTitle": "Requieren atención",
+        "emptyTitle": "No queda nada por limpiar",
+        "emptyBody": "Todas las habitaciones asignadas están enviadas, inspeccionadas o no disponibles.",
+        "onlyAttention": "Ahora no hay habitaciones listas para limpiar. Las que requieren atención aparecen abajo."
+      },
+      "current": {
+        "title": "Habitación {{room}} — En curso",
+        "elapsed": "{{minutes}} min transcurridos",
+        "checklist": "Lista: {{done}} / {{total}}",
+        "resume": "Continuar habitación {{room}}",
+        "starting": "Esperando sincronizar el inicio",
+        "completing": "Terminada en este dispositivo — esperando sincronizar",
+        "conflict": "Problema de sincronización — abre la habitación para resolverlo",
+        "recoveryTitle": "La habitación {{room}} figura en curso",
+        "recoveryBody": "Su sesión de limpieza no está cargada en este dispositivo.",
+        "recoveryOffline": "Reconéctate para cargar la sesión, o abre la habitación.",
+        "recoveryRetry": "Recargar sesión",
+        "recoveryOpen": "Abrir habitación",
+        "a11y": "Habitación actual {{room}}, en curso, {{minutes}} minutos transcurridos, lista {{done}} de {{total}}, continuar"
+      },
+      "card": {
+        "review": "Revisar",
+        "rush": "URGENTE",
+        "neededBy": "Necesaria a las {{time}}",
+        "estimate": "~{{minutes}} min",
+        "reclean": "Relimpieza · {{count}} correcciones",
+        "position": "Parada {{position}}",
+        "open": "abrir habitación",
+        "room": "Habitación {{room}}",
+        "rushA11y": "prioridad urgente",
+        "floor": "Piso {{floor}}",
+        "building": "Edificio {{name}}"
+      },
+      "access": {
+        "dnd": "No molestar",
+        "doNotService": "Servicio rechazado",
+        "checkoutVerified": "Salida a las {{time}}",
+        "checkoutVerifiedNoTime": "Salida confirmada",
+        "scheduledCheckout": "Salida programada a las {{time}}",
+        "checkoutNotVerified": "Salida no verificada",
+        "occupied": "Ocupada"
+      },
+      "attention": {
+        "dnd": {
+          "title": "NM",
+          "detail": "No entrar"
+        },
+        "declined": {
+          "title": "Rechazado",
+          "detail": "El huésped rechazó el servicio"
+        },
+        "checkout_unverified": {
+          "title": "Sin salida",
+          "detail": "Confirma que el huésped salió antes de entrar"
+        },
+        "blocker": {
+          "title": "Entrada bloqueada",
+          "detail": "La entrada está bloqueada"
+        },
+        "reclean": {
+          "title": "Relimpieza",
+          "detail": "Corrige lo señalado en la inspección"
+        },
+        "work_order": {
+          "title": "Orden de trabajo",
+          "detail": "Orden de trabajo abierta"
+        },
+        "risk": {
+          "title": "Riesgo alto",
+          "detail": "Revisa primero el contexto de la habitación"
+        },
+        "note": {
+          "title": "Nota",
+          "detail": "Lee primero la última nota"
+        },
+        "retryAt": "Reintentar a las {{time}}",
+        "attempts": "Intentos registrados: {{count}}",
+        "corrections": "{{count}} correcciones por hacer"
+      },
+      "floors": {
+        "searchPlaceholder": "Buscar número de habitación",
+        "searchLabel": "Buscar habitaciones por número",
+        "clearSearch": "Borrar búsqueda",
+        "noMatches": "Ninguna habitación coincide con “{{query}}”",
+        "floorUnknown": "Piso sin definir",
+        "noBuilding": "Sin edificio",
+        "count": "{{completed}} / {{total}}",
+        "floorA11y": "{{floor}}, {{completed}} de {{total}} completadas",
+        "current": "Actual",
+        "emptyTitle": "No hay habitaciones asignadas",
+        "unavailableCount": "{{count}} no disponibles"
+      },
+      "done": {
+        "awaitingTitle": "Esperando inspección",
+        "readyTitle": "Lista / inspeccionada",
+        "unavailableTitle": "No disponibles",
+        "unavailableNote": "No cuentan como completadas",
+        "none": "Todavía ninguna",
+        "emptyTitle": "Aún no hay nada terminado",
+        "emptyBody": "Las habitaciones aparecen aquí cuando se envían, se inspeccionan o no están disponibles."
+      },
+      "state": {
+        "errorTitle": "No se pudieron cargar tus habitaciones",
+        "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
+        "offlineEmpty": "Estás sin conexión y este dispositivo aún no tiene habitaciones guardadas.",
+        "retry": "Reintentar"
+      }
     }
   },
   "workOrders": {

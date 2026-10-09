@@ -83,6 +83,10 @@ class FakeServer {
       this.sessions.set(body!.id, session);
       return { data: session };
     }
+    if (method === "GET" && path === "/clean-sessions/active") {
+      const active = [...this.sessions.values()].find((candidate) => candidate.status === "active");
+      return { data: active ?? null };
+    }
     const id = path.split("/")[2];
     const session = this.sessions.get(id) as any;
     if (!session) throw new MockApiError("Clean session not found", 404);
@@ -482,5 +486,68 @@ describe("isolation", () => {
     expect(isRoomManagedBySession(ROOM.id)).toBe(true);
     store().discard(ROOM.id);
     expect(isRoomManagedBySession(ROOM.id)).toBe(false);
+  });
+});
+
+describe("restoreActive (read-only dashboard restore)", () => {
+  function seedServerSession(): Record<string, unknown> {
+    const session = {
+      id: "srv-1",
+      room_id: "room-9",
+      housekeeper_id: "user-1",
+      clean_type: "DEP",
+      status: "active",
+      started_at: "2026-10-08T14:00:00.000Z",
+      ended_at: null,
+      duration_seconds: null,
+      checklist: server.template.map((i) => ({ ...i })),
+      checklist_done: 0,
+      checklist_total: 3,
+    };
+    server.sessions.set("srv-1", session);
+    return session;
+  }
+
+  it("adopts the server's active session when the device has no record, keeping the real start time", async () => {
+    seedServerSession();
+    expect(await store().restoreActive()).toBe("restored");
+    const restored = store().sessions["room-9"];
+    expect(restored).toMatchObject({ sessionId: "srv-1", startConfirmed: true, startedAt: "2026-10-08T14:00:00.000Z" });
+    expect(restored.checklist).toHaveLength(3);
+    expect(isRoomManagedBySession("room-9")).toBe(true);
+  });
+
+  it("survives a restart after being adopted", async () => {
+    seedServerSession();
+    await store().restoreActive();
+    await restart();
+    expect(store().sessions["room-9"]?.sessionId).toBe("srv-1");
+  });
+
+  it("never starts a session: no active session means no POST and no record", async () => {
+    expect(await store().restoreActive()).toBe("none");
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(store().sessions).toEqual({});
+  });
+
+  it("keeps unsynced local work instead of overwriting it with the server copy", async () => {
+    await store().startSession({ id: "room-9", clean_type: "DEP" }, { entryAcknowledged: true });
+    const local = store().sessions["room-9"];
+    const entry = local.checklist[0];
+    store().toggleItem("room-9", itemKey(entry), true);
+    expect(await store().restoreActive()).toBe("restored");
+    const after = store().sessions["room-9"];
+    expect(after.sessionId).toBe(local.sessionId);
+    expect(after.checklist.find((c) => itemKey(c) === itemKey(entry))?.checked).toBe(true);
+    expect(server.sessions.size).toBe(1);
+  });
+
+  it("reports offline and failed lookups without touching local state", async () => {
+    mockApp.isOnline = false;
+    expect(await store().restoreActive()).toBe("offline");
+    mockApp.isOnline = true;
+    server.failNext.push(new Error("boom"));
+    expect(await store().restoreActive()).toBe("failed");
+    expect(store().sessions).toEqual({});
   });
 });

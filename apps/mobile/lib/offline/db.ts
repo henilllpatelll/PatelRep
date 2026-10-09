@@ -121,6 +121,19 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
     "ALTER TABLE rooms ADD COLUMN updated_at TEXT",
     "ALTER TABLE rooms ADD COLUMN room_type_code TEXT",
     "ALTER TABLE rooms ADD COLUMN room_type_name TEXT",
+    // My Rooms dashboard: ordering, rush, access/return-later and reclean context.
+    "ALTER TABLE rooms ADD COLUMN building TEXT",
+    "ALTER TABLE rooms ADD COLUMN sequence_order INTEGER",
+    "ALTER TABLE rooms ADD COLUMN priority INTEGER",
+    "ALTER TABLE rooms ADD COLUMN priority_reason TEXT",
+    "ALTER TABLE rooms ADD COLUMN priority_needed_by TEXT",
+    "ALTER TABLE rooms ADD COLUMN do_not_service INTEGER DEFAULT 0",
+    "ALTER TABLE rooms ADD COLUMN dnd_retry_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN dnd_attempt_count INTEGER",
+    "ALTER TABLE rooms ADD COLUMN service_declined_reason TEXT",
+    "ALTER TABLE rooms ADD COLUMN reclean_requested_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN reclean_corrections TEXT",
+    "ALTER TABLE rooms ADD COLUMN base_clean_minutes INTEGER",
   ];
   for (const sql of roomsMigrations) {
     try {
@@ -132,56 +145,94 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
 }
 
 // Room operations
+type RoomRecord = Record<string, unknown>;
+
+const text = (value: unknown): string | null => (value == null ? null : String(value));
+const num = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
+
+function roomRow(room: RoomRecord, now: string): [string, unknown][] {
+  const nested = (room.rooms ?? null) as { room_types?: { base_clean_minutes?: number } | null } | null;
+  return [
+    ["id", room.id as string],
+    ["room_number", room.room_number as string],
+    ["floor", (room.floor as number) ?? null],
+    ["status", room.status as string],
+    ["risk_level", text(room.risk_level)],
+    ["dnd_flag", room.dnd_flag ? 1 : 0],
+    ["vip_flag", room.vip_flag ? 1 : 0],
+    ["guest_name", text(room.guest_name)],
+    ["checkin_time", text(room.checkin_time)],
+    ["checkout_time", text(room.checkout_time)],
+    ["actual_checkout_at", text(room.actual_checkout_at)],
+    ["fo_status", text(room.fo_status)],
+    ["clean_type", text(room.clean_type)],
+    ["clean_type_label", text(room.clean_type_label)],
+    ["latest_note", text(room.latest_note)],
+    ["latest_note_at", text(room.latest_note_at)],
+    ["open_work_order_id", text(room.open_work_order_id)],
+    ["open_work_order_number", text(room.open_work_order_number)],
+    ["open_work_order_title", text(room.open_work_order_title)],
+    ["open_work_order_priority", text(room.open_work_order_priority)],
+    ["open_work_order_status", text(room.open_work_order_status)],
+    ["assignment_date", text(room.assignment_date)],
+    ["last_cleaned_at", text(room.last_cleaned_at)],
+    ["last_inspected_at", text(room.last_inspected_at)],
+    ["updated_at", text(room.updated_at)],
+    ["predicted_ready_at", text(room.predicted_ready_at)],
+    ["assignment_id", text(room.assignment_id)],
+    ["room_type_code", text(room.room_type_code)],
+    ["room_type_name", text(room.room_type_name)],
+    ["building", text(room.building)],
+    ["sequence_order", num(room.sequence_order)],
+    ["priority", num(room.priority)],
+    ["priority_reason", text(room.priority_reason)],
+    ["priority_needed_by", text(room.priority_needed_by)],
+    ["do_not_service", room.do_not_service ? 1 : 0],
+    ["dnd_retry_at", text(room.dnd_retry_at)],
+    ["dnd_attempt_count", num(room.dnd_attempt_count)],
+    ["service_declined_reason", text(room.service_declined_reason)],
+    ["reclean_requested_at", text(room.reclean_requested_at)],
+    ["reclean_corrections", Array.isArray(room.reclean_corrections) ? JSON.stringify(room.reclean_corrections) : null],
+    ["base_clean_minutes", num(nested?.room_types?.base_clean_minutes)],
+    ["synced_at", now],
+  ];
+}
+
 export async function upsertRooms(rooms: unknown[]): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
-    for (const room of rooms as Record<string, unknown>[]) {
+    for (const room of rooms as RoomRecord[]) {
+      const row = roomRow(room, now);
       await db.runAsync(
-        `INSERT OR REPLACE INTO rooms
-         (id, room_number, floor, status, risk_level, dnd_flag, vip_flag, guest_name,
-          checkin_time, checkout_time, actual_checkout_at, fo_status,
-          clean_type, clean_type_label, latest_note, latest_note_at,
-          open_work_order_id, open_work_order_number, open_work_order_title,
-          open_work_order_priority, open_work_order_status, assignment_date,
-          last_cleaned_at, last_inspected_at, updated_at, predicted_ready_at, assignment_id,
-          room_type_code, room_type_name, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          room.id as string,
-          room.room_number as string,
-          (room.floor as number) ?? null,
-          room.status as string,
-          (room.risk_level as string) ?? null,
-          room.dnd_flag ? 1 : 0,
-          room.vip_flag ? 1 : 0,
-          (room.guest_name as string) ?? null,
-          (room.checkin_time as string) ?? null,
-          (room.checkout_time as string) ?? null,
-          (room.actual_checkout_at as string) ?? null,
-          (room.fo_status as string) ?? null,
-          (room.clean_type as string) ?? null,
-          (room.clean_type_label as string) ?? null,
-          (room.latest_note as string) ?? null,
-          (room.latest_note_at as string) ?? null,
-          (room.open_work_order_id as string) ?? null,
-          (room.open_work_order_number as string) ?? null,
-          (room.open_work_order_title as string) ?? null,
-          (room.open_work_order_priority as string) ?? null,
-          (room.open_work_order_status as string) ?? null,
-          (room.assignment_date as string) ?? null,
-          (room.last_cleaned_at as string) ?? null,
-          (room.last_inspected_at as string) ?? null,
-          (room.updated_at as string) ?? null,
-          (room.predicted_ready_at as string) ?? null,
-          (room.assignment_id as string) ?? null,
-          (room.room_type_code as string) ?? null,
-          (room.room_type_name as string) ?? null,
-          now,
-        ]
+        `INSERT OR REPLACE INTO rooms (${row.map(([column]) => column).join(", ")})
+         VALUES (${row.map(() => "?").join(", ")})`,
+        row.map(([, value]) => value as string | number | null),
       );
     }
   });
+}
+
+/** Turn a cached SQLite row back into the shape the API returns. */
+function hydrateCachedRoom(row: RoomRecord): RoomRecord {
+  let corrections: string[] | null = null;
+  if (typeof row.reclean_corrections === "string") {
+    try {
+      const parsed: unknown = JSON.parse(row.reclean_corrections);
+      if (Array.isArray(parsed)) corrections = parsed.map(String);
+    } catch {
+      corrections = null;
+    }
+  }
+  const base = num(row.base_clean_minutes);
+  return {
+    ...row,
+    dnd_flag: Boolean(row.dnd_flag),
+    vip_flag: Boolean(row.vip_flag),
+    do_not_service: Boolean(row.do_not_service),
+    reclean_corrections: corrections,
+    rooms: base ? { room_types: { base_clean_minutes: base } } : null,
+  };
 }
 
 export async function getRooms(): Promise<unknown[]> {
@@ -191,10 +242,11 @@ export async function getRooms(): Promise<unknown[]> {
 
 export async function getRoomsByDate(assignmentDate: string): Promise<unknown[]> {
   const db = await getDb();
-  return db.getAllAsync(
+  const rows = await db.getAllAsync<RoomRecord>(
     "SELECT * FROM rooms WHERE assignment_date = ? ORDER BY floor, room_number",
     [assignmentDate]
   );
+  return rows.map(hydrateCachedRoom);
 }
 
 // Sync queue operations

@@ -84,6 +84,25 @@ export interface Room {
   last_inspected_at?: string | null;
   room_type_code?: string | null;
   room_type_name?: string | null;
+  /** Real property topology (rooms.building); null/absent when the hotel has none. */
+  building?: string | null;
+  /** Supervisor/auto-assign visiting order for this housekeeper's day (1-based). */
+  sequence_order?: number | null;
+  /** Rush when <= 2 (same rule as the housekeeping board); lower = more urgent. */
+  priority?: number | null;
+  priority_reason?: string | null;
+  priority_needed_by?: string | null;
+  priority_note?: string | null;
+  do_not_service_reason?: string | null;
+  dnd_started_at?: string | null;
+  dnd_retry_at?: string | null;
+  dnd_attempt_count?: number | null;
+  dnd_last_attempt_at?: string | null;
+  service_declined_reason?: string | null;
+  service_declined_note?: string | null;
+  service_declined_at?: string | null;
+  reclean_requested_at?: string | null;
+  reclean_corrections?: string[] | null;
   rooms?: {
     room_types?: { name?: string; code?: string; base_clean_minutes?: number } | null;
   } | null;

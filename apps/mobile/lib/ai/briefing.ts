@@ -119,8 +119,14 @@ function nearestNeighborRoute(rooms: Room[], startFrom: Room | null): Room[] {
  *
  *  Priority is never compromised: a higher-tier room always comes before an
  *  adjacent lower-tier room regardless of physical proximity. */
-export function buildSmartQueue(rooms: Room[], now: Date = new Date()): SmartQueueEntry[] {
+export function buildSmartQueue(
+  rooms: Room[],
+  now: Date = new Date(),
+  /** Callers that already decided eligibility (My Rooms dashboard) pass their own predicate. */
+  isEligible?: (room: Room) => boolean,
+): SmartQueueEntry[] {
   const actionable = rooms.filter((room) => {
+    if (isEligible) return isEligible(room);
     const bucket = getRoomQueueBucket(room, now);
     return bucket === "next_to_clean" || bucket === "in_progress";
   });

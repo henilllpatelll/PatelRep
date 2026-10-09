@@ -32965,6 +32965,40 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1998",
+      "timestamp": "2026-10-08T23:40:00.000Z",
+      "error_message": "OperationsSemanticOnColor: 'uses the offline banner semantic roles in My Rooms' failed after the dashboard rewrite",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "The rewrite replaced the semantic offline banner with a header indicator, dropping theme.banner.offline.* roles that the audit test pins.",
+      "fix": "Restored the banner (theme.banner.offline.background/foreground/border) above the header; removed the duplicate offline indicator.",
+      "tags": [
+        "mobile",
+        "my-rooms",
+        "theme",
+        "regression"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T23:40:00.000Z"
+    },
+    {
+      "id": "bug-1999",
+      "timestamp": "2026-10-08T23:40:00.000Z",
+      "error_message": "Offline room cache dropped sequence_order, priority, DND retry, building (dashboard ordering/attention lost offline)",
+      "file": "apps/mobile/lib/offline/db.ts",
+      "root_cause": "upsertRooms listed a fixed set of columns and getRoomsByDate returned raw ints for booleans; new API fields were never persisted.",
+      "fix": "Added columns + ALTER migrations, column-driven upsert, and hydrateCachedRoom (booleans, corrections JSON, base_clean_minutes).",
+      "tags": [
+        "mobile",
+        "offline",
+        "sqlite",
+        "my-rooms"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T23:40:00.000Z"
     }
   ]
 }
