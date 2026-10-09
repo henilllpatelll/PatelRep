@@ -19,6 +19,7 @@ import {
   type MaintenanceDraft,
   type MaintenanceErrors,
 } from "@/lib/housekeeping/maintenanceReport";
+import { newSessionId } from "@/lib/housekeeping/cleanSession";
 import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
 import { BottomSheet, MAX_FONT_SCALE } from "./roomDetail/BottomSheet";
 import { Chip, FieldError, FieldLabel, StatusText, TextArea } from "./roomDetail/FormBits";
@@ -53,6 +54,8 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
   const mayHaveBeenSent = useRef(false);
+  /** Stable for this report until it is submitted or discarded. */
+  const requestId = useRef(newSessionId());
   const busyRef = useRef(false);
 
   const dirty = isMaintenanceDirty(draft, photoUri);
@@ -66,6 +69,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
     setCreatedId(null);
     setPhotoFailed(false);
     mayHaveBeenSent.current = false;
+    requestId.current = newSessionId();
   }
 
   const requestClose = useDiscardGuard({ dirty, busy: submitting, onClose, onDiscard: reset });
@@ -114,7 +118,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
     setSubmitting(true);
     setFailure(null);
     try {
-      const outcome = await createMaintenanceWorkOrder(buildMaintenancePayload(roomId, draft), {
+      const outcome = await createMaintenanceWorkOrder(buildMaintenancePayload(roomId, draft, requestId.current), {
         isOnline,
         userId,
         mayHaveBeenSent: mayHaveBeenSent.current,

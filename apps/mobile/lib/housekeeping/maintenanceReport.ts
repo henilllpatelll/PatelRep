@@ -8,6 +8,10 @@ import { prepareForUpload } from "@/lib/housekeeping/photo";
  * Maintenance / damage reports go through the existing work-order endpoint (and
  * the existing offline work-order queue). A housekeeper can set title, category,
  * priority up to "urgent" and details — never "emergency", never out-of-order.
+ *
+ * Each report carries one `client_request_id` for its whole life (online try,
+ * ambiguous retry, offline queue replay), so the server can answer a repeat with
+ * the work order the first attempt already made.
  */
 
 export const MAINTENANCE_CATEGORIES = [
@@ -60,8 +64,9 @@ export function validateMaintenance(draft: MaintenanceDraft): MaintenanceErrors 
   return errors;
 }
 
-export function buildMaintenancePayload(roomId: string, draft: MaintenanceDraft): CreateWorkOrderPayload {
+export function buildMaintenancePayload(roomId: string, draft: MaintenanceDraft, requestId?: string): CreateWorkOrderPayload {
   return {
+    ...(requestId ? { client_request_id: requestId } : {}),
     room_id: roomId,
     title: draft.title.trim(),
     description: draft.details.trim() || undefined,

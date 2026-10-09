@@ -99,6 +99,7 @@ describe("ReportIssueModal (maintenance / damage)", () => {
         description: "Unit is warm",
         category: "hvac",
         priority: "urgent",
+        client_request_id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
       }),
     );
     await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith("reportIssue.submittedOnline"));
@@ -219,6 +220,36 @@ describe("ReportIssueModal (maintenance / damage)", () => {
     await waitFor(() => expect(utils.onClose).toHaveBeenCalled());
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockGet).toHaveBeenCalledWith(expect.stringContaining("/work-orders?room_id=room-123"));
+  });
+
+  it("resends the SAME request id when the answer was lost and the earlier work order cannot be found", async () => {
+    mockCreate.mockRejectedValueOnce(new Error("Request timed out. Please try again."));
+    const utils = renderModal();
+    fill(utils);
+    fireEvent.press(utils.getByTestId("issue-submit"));
+    await waitFor(() => expect(utils.getByTestId("issue-failure")).toBeTruthy());
+
+    fireEvent.press(utils.getByTestId("issue-submit"));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(2));
+    const [first, second] = mockCreate.mock.calls.map((call) => call[0].client_request_id);
+    expect(first).toBeTruthy();
+    expect(second).toBe(first);
+  });
+
+  it("uses a fresh request id for the next report once one has been submitted", async () => {
+    const onClose = jest.fn();
+    const first = renderModal(onClose);
+    fill(first);
+    fireEvent.press(first.getByTestId("issue-submit"));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    first.unmount();
+
+    const second = renderModal();
+    fill(second, "Lamp broken", "furniture");
+    fireEvent.press(second.getByTestId("issue-submit"));
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(2));
+    const ids = mockCreate.mock.calls.map((call) => call[0].client_request_id);
+    expect(ids[0]).not.toBe(ids[1]);
   });
 
   it("asks before discarding a filled form, and closes straight away when nothing was entered", async () => {

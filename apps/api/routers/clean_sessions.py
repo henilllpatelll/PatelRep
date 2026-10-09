@@ -274,6 +274,59 @@ def _release_stale_sessions(hotel_id: str, room_id: str, user_id: str, now: date
         }).eq("id", other["id"]).eq("tenant_id", hotel_id).execute()
 
 
+def _unique_violation_of(exc: Exception, *constraints: str) -> str | None:
+    text = str(exc)
+    if "23505" not in text and "duplicate key" not in text:
+        return None
+    return next((name for name in constraints if name in text), None)
+
+
+def _resolve_start_race(exc: Exception, session_id: str, room_id: str, current_user: CurrentUser) -> dict:
+    """Map a lost insert race to the same answer the sequential path would give."""
+    violated = _unique_violation_of(
+        exc, "room_clean_sessions_pkey", "rcs_one_active_per_room", "rcs_one_active_per_attendant"
+    )
+    if violated is None:
+        raise exc
+    hotel_id = current_user.hotel_id
+    if violated == "room_clean_sessions_pkey":
+        # The same session id was started twice at once: an idempotent retry.
+        existing = _get_session(session_id, hotel_id)
+        _require_session_owner(existing, current_user)
+        return existing
+    if violated == "rcs_one_active_per_room":
+        active = (
+            supabase.table("room_clean_sessions")
+            .select("id, housekeeper_id")
+            .eq("tenant_id", hotel_id)
+            .eq("room_id", room_id)
+            .eq("status", "active")
+            .execute()
+        ).data or []
+        if not active:
+            raise _conflict("ROOM_IN_USE", "This room was just started by someone else; try again")
+        row = active[0]
+        if row.get("housekeeper_id") != current_user.user_id:
+            raise _conflict("ROOM_IN_USE", "Another housekeeper already has an active session on this room")
+        return _get_session(row["id"], hotel_id)
+    mine = (
+        supabase.table("room_clean_sessions")
+        .select("id, room_id")
+        .eq("tenant_id", hotel_id)
+        .eq("housekeeper_id", current_user.user_id)
+        .eq("status", "active")
+        .execute()
+    ).data or []
+    if mine and mine[0].get("room_id") == room_id:
+        return _get_session(mine[0]["id"], hotel_id)
+    raise _conflict(
+        "ACTIVE_SESSION_EXISTS",
+        "Finish your current room before starting another",
+        active_session_id=mine[0]["id"] if mine else None,
+        active_room_id=mine[0]["room_id"] if mine else None,
+    )
+
+
 # ---------------------------------------------------------------------------
 # POST /clean-sessions  (idempotent — id is client-generated)
 # ---------------------------------------------------------------------------
@@ -405,7 +458,13 @@ async def start_clean_session(
         "checklist_done": done,
         "checklist_total": total,
     }
-    result = supabase.table("room_clean_sessions").insert(insert_payload).execute()
+    try:
+        result = supabase.table("room_clean_sessions").insert(insert_payload).execute()
+    except Exception as exc:
+        # The checks above are advisory: concurrent requests can all pass them. The
+        # unique indexes decide, and every loser answers deterministically here --
+        # before the room status is touched.
+        return {"data": _resolve_start_race(exc, session_id, room_id, current_user)}
     session = (result.data or [insert_payload])[0]
 
     # Flip the room to IN_PROGRESS through the shared validated transition

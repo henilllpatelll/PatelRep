@@ -371,6 +371,9 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     problem_code_id: Optional[UUID4] = None
     problem_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     repeat_of_work_order_id: Optional[UUID4] = None
+    # Optional idempotency key: a retry with the same value returns the work order
+    # the first attempt created instead of making another (mobile offline replay).
+    client_request_id: Optional[UUID4] = None
 
 
 class ConsumedPartItem(SanitizedBaseModel):

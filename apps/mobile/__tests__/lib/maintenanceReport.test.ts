@@ -62,6 +62,12 @@ describe("payload", () => {
     });
   });
 
+  it("carries the request id as client_request_id, and omits it when none is given", () => {
+    const id = "6f1c1c2e-7c1a-4a55-9d57-2f2f6a2f3f10";
+    expect(buildMaintenancePayload("room-1", draft, id).client_request_id).toBe(id);
+    expect(buildMaintenancePayload("room-1", draft)).not.toHaveProperty("client_request_id");
+  });
+
   it("leaves description out when there are no details", () => {
     expect(payload.description).toBeUndefined();
   });
@@ -86,6 +92,21 @@ describe("createMaintenanceWorkOrder", () => {
     expect(await createMaintenanceWorkOrder(payload, { isOnline: false, mayHaveBeenSent: false })).toEqual({ kind: "queued" });
     expect(mockEnqueue).toHaveBeenCalledWith("work_order", "create", payload);
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("queues the request id with the payload so offline replay reuses it", async () => {
+    const keyed = buildMaintenancePayload("room-1", draft, "6f1c1c2e-7c1a-4a55-9d57-2f2f6a2f3f10");
+    await createMaintenanceWorkOrder(keyed, { isOnline: false, mayHaveBeenSent: false });
+    expect(mockEnqueue).toHaveBeenCalledWith("work_order", "create", expect.objectContaining({ client_request_id: keyed.client_request_id }));
+  });
+
+  it("sends the same request id on a retry after a lost answer", async () => {
+    const keyed = buildMaintenancePayload("room-1", draft, "6f1c1c2e-7c1a-4a55-9d57-2f2f6a2f3f10");
+    mockCreate.mockRejectedValueOnce(new Error("Request timed out")).mockResolvedValueOnce("wo-1");
+    await createMaintenanceWorkOrder(keyed, { isOnline: true, mayHaveBeenSent: false });
+    mockGet.mockResolvedValue({ data: [] });
+    await createMaintenanceWorkOrder(keyed, { isOnline: true, userId: "user-1", mayHaveBeenSent: true });
+    expect(mockCreate.mock.calls.map((call) => call[0].client_request_id)).toEqual([keyed.client_request_id, keyed.client_request_id]);
   });
 
   it("flags a lost answer as ambiguous and a rejection as definite", async () => {

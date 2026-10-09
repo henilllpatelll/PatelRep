@@ -15,6 +15,8 @@ export interface CreateWorkOrderPayload {
   priority: "urgent" | "normal" | "low" | "emergency";
   location_text?: string;
   source?: "guest" | "staff_patrol" | "pm" | "self";
+  /** Client-generated UUID4: the server returns the first work order for a repeated key. */
+  client_request_id?: string;
 }
 
 export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<string | null> {
