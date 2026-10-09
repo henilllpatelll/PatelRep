@@ -80,7 +80,25 @@ artifact to roll back production in Phase 3B.** Production Rollback remains manu
 migration remains prohibited. If the evidence says `unknown_after_attempt`, keep treating the mutation as
 possibly applied until proven otherwise.
 
-## Automatic rollback request decision (Phase 3C)
+### Release verification waits for Web propagation
+
+`railway up --ci` can return before the new Web container is serving, so the previous release may answer the
+first public check (run 37958771273: Web still reported the prior SHA ten seconds after the deploy job ended).
+The Production Release verification step therefore polls (`SMOKE_WAIT_TIMEOUT_SECONDS=600`, every 15s; capped by
+`scripts/public-smoke.mjs`). Only a stale or unreachable Web/API **identity** is retried; a pass still requires one
+complete snapshot with the exact SHA, version, environment, Supabase host, healthy database and compatible schema.
+Wrong environment/host, unhealthy database or incompatible schema fail on the first attempt, and a timeout fails the
+release with the last observed identities. Stabilization, Rollback, Staging and Deploy Health stay single-shot.
+A timeout means the new deployment never activated: check the Railway deployment status before anything else.
+
+### Partial release with a healthy runtime and no release record
+
+If production verifiably serves the exact candidate (API `/health` + `/ready`, Web `patelrep-release-*` meta) but the
+release has no tag/Release and a `partial_release_failure` incident is open, there is **no rollback to close**:
+incident closeout (`production-incident-closeout`) only exists for an automated Production Rollback + re-entry.
+Never hand-create the tag or Release: `computeNextVersion` fails closed on an existing tag without a completed Release.
+The supported record path is a deliberate human dispatch of Production Release for the same `release_sha` with the
+same `version_bump`; the incident issue is a separate, human-authorized closure.
 
 Phase 3C adds the owner-controlled rollback request path. The repository variable
 `PRODUCTION_AUTO_ROLLBACK_ENABLED` must equal exactly `true`; otherwise confirmed incidents are only recorded.

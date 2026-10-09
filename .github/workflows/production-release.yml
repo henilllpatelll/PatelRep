@@ -514,9 +514,16 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+      # `railway up --ci` can return while the new Web container is still activating, so the old container may
+      # briefly keep serving the previous release (run 37958771273). Poll for the EXACT expected SHA/version for a
+      # bounded window; a wrong environment, Supabase host, database or readiness fails immediately and a
+      # timeout fails the release. Nothing about the expected identity is relaxed.
       - name: Verify Web/API agree with each other and the exact expected release
+        timeout-minutes: 15
         run: node scripts/public-smoke.mjs
         env:
+          SMOKE_WAIT_TIMEOUT_SECONDS: '600'
+          SMOKE_WAIT_INTERVAL_SECONDS: '15'
           PUBLIC_WEB_URL: ${{ vars.PRODUCTION_WEB_URL }}
           PUBLIC_API_URL: ${{ vars.PRODUCTION_API_URL }}
           EXPECTED_APP_ENV: production

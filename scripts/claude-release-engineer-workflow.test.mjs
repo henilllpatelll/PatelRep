@@ -75,8 +75,10 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // Check-run pagination: the CI Gate / Staging Gate lookups use github.paginate so commits with >100 check runs are still found.
   // Phase 3A: a final read-only evidence-ledger job records sanitized release/mutation outcomes; it has no production Environment or credentials.
   // Phase 4B: an unprivileged re-entry preflight runs before any production Environment and the ledger records exact re-entry provenance.
+  // Release-verification race fix: the exact-identity smoke step opts in to bounded polling (SMOKE_WAIT_*) because `railway up --ci`
+  // can return before the new Web container is serving (run 37958771273); public-smoke.test.mjs pins that only this step opts in.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '14b32272dacfe35f2aa64c5bba1320247e8944ae9da7ad1c245c8c11a433de42')
+  assert.equal(digest, 'da03adc06613707c1b920535a49a0219b5a8ba2795c14a6c4280c75a255ee00f')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

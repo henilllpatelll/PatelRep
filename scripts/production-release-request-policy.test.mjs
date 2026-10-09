@@ -702,3 +702,21 @@ test('an unrelated bot-dispatched workflow that merely NAMES itself Deploy Healt
   state.healthRuns = [healthRun('37100000050', impostor)]
   assert.equal((await evaluateProductionRequest(request, deps)).eligible, true, 'an impostor success must not even suppress/influence the decision')
 })
+
+// Partial-release recovery (run 37958771273 / incident #137): v1.9.2 was deployed and verified live but never got a
+// tag or Release. Version computation derives from COMPLETED Releases only, so a deliberate re-release of the same
+// SHA computes v1.9.2 again; hand-creating the tag or a draft Release would make it fail closed instead.
+test('partial release: v1.9.1 is the newest completed Release, so the next patch is v1.9.2 again', () => {
+  const releases = [{ tag_name: 'v1.9.1' }, { tag_name: 'v1.9.0' }, { tag_name: 'v1.8.1' }]
+  const result = computeNextVersion({ bump: 'patch', releases, tagNames: ['v1.9.1', 'v1.9.0', 'v1.8.1'] })
+  assert.deepEqual(result, { previous: 'v1.9.1', next: 'v1.9.2' })
+})
+
+test('partial release: a hand-made v1.9.2 tag or draft Release makes version computation fail closed', () => {
+  const releases = [{ tag_name: 'v1.9.1' }]
+  assert.throws(() => computeNextVersion({ bump: 'patch', releases, tagNames: ['v1.9.1', 'v1.9.2'] }), /v1\.9\.2 exists without a completed production GitHub Release/)
+  assert.throws(
+    () => computeNextVersion({ bump: 'patch', releases: [...releases, { tag_name: 'v1.9.2', draft: true }], tagNames: ['v1.9.1', 'v1.9.2'] }),
+    /already has a GitHub Release that is a draft or prerelease/,
+  )
+})
