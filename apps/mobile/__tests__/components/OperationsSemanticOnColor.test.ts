@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 const OPERATIONS_SOURCES = {
   myRooms: "../../app/(app)/my-rooms/index.tsx",
-  roomDetail: "../../app/(app)/my-rooms/[roomId].tsx",
+  roomDetail: "../../components/housekeeping/roomDetail/NeedsAttentionView.tsx",
   workOrderDetail: "../../app/(app)/work-orders/[woId].tsx",
   scheduling: "../../app/(app)/scheduling/index.tsx",
   tasks: "../../app/(app)/tasks/index.tsx",

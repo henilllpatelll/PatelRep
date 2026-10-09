@@ -33032,6 +33032,85 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-09T00:50:00.000Z"
+    },
+    {
+      "id": "bug-2002",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "Reclean header showed the raw key rooms.work.reclean.count in a real browser",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "App runs i18next compatibilityJSON v3 (key + key_plural); I wrote _one/_other plural keys, which never resolve. Mocked-t tests could not see it.",
+      "fix": "Counted strings use key + key_plural; added a real-i18next resolution test for every rooms.work key in both languages.",
+      "tags": [
+        "mobile",
+        "i18n",
+        "plurals"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2003",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "Room Detail showed 'Cleaning complete' beside an IN PROGRESS badge once the session confirmed before the room list refreshed",
+      "file": "apps/mobile/lib/housekeeping/roomDetailState.ts",
+      "root_cause": "The header used the list status while the body used the resolved (confirmed-session) status.",
+      "fix": "resolveRoomDetailView now exposes the effective status and the header uses it.",
+      "tags": [
+        "mobile",
+        "room-detail",
+        "status"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2004",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "test_rbac_matrix_contract failed after adding linen_counts to clean_sessions.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "The matrix records route line numbers; two added lines shifted later routes.",
+      "fix": "Regenerated with scripts/generate_rbac_matrix.py (3 line-number changes, no role changes).",
+      "tags": [
+        "api",
+        "rbac"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2005",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "MyRoomsScreen Route test failed the day after it was written (expected date=2026-10-08)",
+      "file": "apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx",
+      "root_cause": "Literal date in an assertion while the screen requests the hotel-local current date.",
+      "fix": "Assert on hotelDateKey(new Date(), tz) like the later test in the same file.",
+      "tags": [
+        "mobile",
+        "tests",
+        "dates"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2006",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "Whole RoomDetail suite hung after one test: later start/complete calls never reached the API",
+      "file": "apps/mobile/__tests__/screens/RoomDetail.test.tsx",
+      "root_cause": "A double-tap test released its deferred request before the POST had been issued, so the promise never resolved and the store's module-level sync queue stayed blocked.",
+      "fix": "Tests wait for the call before releasing; every deferred is settled in afterEach.",
+      "tags": [
+        "mobile",
+        "tests",
+        "clean-session"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
     }
   ]
 }

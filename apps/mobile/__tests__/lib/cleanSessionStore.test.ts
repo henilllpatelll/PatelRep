@@ -54,6 +54,10 @@ class FakeServer {
   calls: Array<{ method: string; path: string; body?: Record<string, unknown> }> = [];
   failNext: Array<unknown> = [];
   online = true;
+  /** The next completion is processed by the server, but the answer never reaches the app. */
+  loseNextCompleteResponse = false;
+  /** When set, linen PATCHes are refused with this error (everything else still works). */
+  rejectLinen: unknown = null;
 
   private maybeFail(): void {
     if (!this.online) throw new Error("Network request failed");
@@ -62,6 +66,15 @@ class FakeServer {
   }
 
   handle(method: string, path: string, body?: Record<string, any>) {
+    const result = this.process(method, path, body);
+    if (this.loseNextCompleteResponse && method === "POST" && path.endsWith("/complete")) {
+      this.loseNextCompleteResponse = false;
+      throw new Error("Network request failed");
+    }
+    return result;
+  }
+
+  private process(method: string, path: string, body?: Record<string, any>) {
     this.calls.push({ method, path, body });
     this.maybeFail();
     if (method === "POST" && path === "/clean-sessions") {
@@ -73,6 +86,7 @@ class FakeServer {
         housekeeper_id: "user-1",
         clean_type: "DEP",
         status: "active",
+        base_clean_minutes: 30,
         started_at: body!.started_at,
         ended_at: null,
         duration_seconds: null,
@@ -92,12 +106,17 @@ class FakeServer {
     if (!session) throw new MockApiError("Clean session not found", 404);
     if (method === "GET") return { data: session };
     if (method === "PATCH") {
-      for (const incoming of body!.checklist as ChecklistItem[]) {
+      if (session.status !== "active") throw new MockApiError("Session is not active", 409, "SESSION_NOT_ACTIVE");
+      for (const incoming of (body!.checklist ?? []) as ChecklistItem[]) {
         const target = session.checklist.find((c: ChecklistItem) => c.item_id === incoming.item_id);
         if (target) {
           target.checked = incoming.checked;
           target.checked_at = incoming.checked_at;
         }
+      }
+      if (body!.linen_counts) {
+        if (this.rejectLinen) throw this.rejectLinen;
+        session.linen_counts = body!.linen_counts;
       }
       return { data: session };
     }
@@ -549,5 +568,269 @@ describe("restoreActive (read-only dashboard restore)", () => {
     server.failNext.push(new Error("boom"));
     expect(await store().restoreActive()).toBe("failed");
     expect(store().sessions).toEqual({});
+  });
+});
+
+describe("standard clean time", () => {
+  it("adopts the room type's base clean minutes from the server session", async () => {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    expect(record().baseCleanMinutes).toBe(30);
+  });
+
+  it("keeps it after a restart", async () => {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    await restart();
+    expect(record().baseCleanMinutes).toBe(30);
+  });
+
+  it("restores it, with the real start time, when the device had no record", async () => {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    const startedAt = record().startedAt;
+    store().reset();
+    await AsyncStorage.clear();
+    await store().restoreActive();
+    expect(record().baseCleanMinutes).toBe(30);
+    expect(record().startedAt).toBe(startedAt);
+  });
+});
+
+describe("linen exchange", () => {
+  async function started() {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+  }
+  const patches = () => server.calls.filter((c) => c.method === "PATCH");
+
+  it("saves the counts on this session through the session update", async () => {
+    await started();
+    await store().saveLinen(ROOM.id, { dirtyOut: 4, cleanIn: 3 });
+
+    expect(patches().pop()?.body).toEqual({ linen_counts: { dirty_out: 4, clean_in: 3 } });
+    expect(record().linen).toEqual({ dirtyOut: 4, cleanIn: 3, pending: false, failed: false });
+    expect((server.sessions.get(record().sessionId) as any).linen_counts).toEqual({ dirty_out: 4, clean_in: 3 });
+  });
+
+  it("keeps them keyed to the right session across a restart", async () => {
+    await started();
+    await store().saveLinen(ROOM.id, { dirtyOut: 2, cleanIn: 2 });
+    const id = record().sessionId;
+    await restart();
+    expect(record().sessionId).toBe(id);
+    expect(record().linen).toMatchObject({ dirtyOut: 2, cleanIn: 2 });
+  });
+
+  it("clamps to whole numbers between 0 and 99", async () => {
+    await started();
+    await store().saveLinen(ROOM.id, { dirtyOut: -3, cleanIn: 250 });
+    expect(patches().pop()?.body).toEqual({ linen_counts: { dirty_out: 0, clean_in: 99 } });
+    await store().saveLinen(ROOM.id, { dirtyOut: 2.7, cleanIn: Number.NaN });
+    expect(patches().pop()?.body).toEqual({ linen_counts: { dirty_out: 2, clean_in: 0 } });
+  });
+
+  it("offline: stays pending on the device and counts as a pending change", async () => {
+    await started();
+    mockApp.isOnline = false;
+    await store().saveLinen(ROOM.id, { dirtyOut: 1, cleanIn: 1 });
+
+    expect(record().linen).toMatchObject({ pending: true, failed: false });
+    expect(patches()).toHaveLength(0);
+    expect(getPhase(record())).toBe("active");
+    const { hasPendingSync, pendingChangeCount } = jest.requireActual("@/lib/housekeeping/cleanSession") as typeof import("@/lib/housekeeping/cleanSession");
+    expect(hasPendingSync(record())).toBe(true);
+    expect(pendingChangeCount(record())).toBe(1);
+  });
+
+  it("replays in order after reconnecting: checklist, then linen, then completion", async () => {
+    await started();
+    mockApp.isOnline = false;
+    store().toggleItem(ROOM.id, "id:t1", true);
+    store().toggleItem(ROOM.id, "id:t2", true);
+    await store().saveLinen(ROOM.id, { dirtyOut: 3, cleanIn: 3 });
+    await store().completeSession(ROOM.id);
+    server.calls.length = 0;
+
+    mockApp.isOnline = true;
+    await store().flush();
+
+    const writes = server.calls.filter((c) => c.method !== "GET").map((c) => `${c.method} ${c.path.replace(record().sessionId, ":id")}`);
+    expect(writes).toEqual(["PATCH /clean-sessions/:id", "PATCH /clean-sessions/:id", "POST /clean-sessions/:id/complete"]);
+    expect(server.calls.filter((c) => c.method === "PATCH")[1].body).toEqual({ linen_counts: { dirty_out: 3, clean_in: 3 } });
+    expect(getPhase(record())).toBe("completed");
+  });
+
+  it("an edit made while a save is in flight stays pending", async () => {
+    await started();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const original = mockPatch.getMockImplementation()!;
+    mockPatch.mockImplementationOnce(async (path: string, body: Record<string, unknown>) => {
+      await gate;
+      return original(path, body);
+    });
+
+    const first = store().saveLinen(ROOM.id, { dirtyOut: 1, cleanIn: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const second = store().saveLinen(ROOM.id, { dirtyOut: 5, cleanIn: 5 });
+    release();
+    await Promise.all([first, second]);
+
+    expect(record().linen).toEqual({ dirtyOut: 5, cleanIn: 5, pending: false, failed: false });
+    expect((server.sessions.get(record().sessionId) as any).linen_counts).toEqual({ dirty_out: 5, clean_in: 5 });
+  });
+
+  it("a refused save is flagged but never blocks submitting the room", async () => {
+    await started();
+    server.rejectLinen = new MockApiError("boom", 500);
+    await store().saveLinen(ROOM.id, { dirtyOut: 1, cleanIn: 1 });
+    expect(record().linen).toEqual({ dirtyOut: 1, cleanIn: 1, pending: false, failed: true });
+
+    store().toggleItem(ROOM.id, "id:t1", true);
+    store().toggleItem(ROOM.id, "id:t2", true);
+    const result = await store().completeSession(ROOM.id);
+    expect(result.outcome).toBe("confirmed");
+    expect(record().linen?.failed).toBe(true); // still visible, still on the device
+  });
+
+  it("linen still pending when the room is submitted, then refused by the server, does not hold up the completion", async () => {
+    await started();
+    mockApp.isOnline = false;
+    store().toggleItem(ROOM.id, "id:t1", true);
+    store().toggleItem(ROOM.id, "id:t2", true);
+    await store().saveLinen(ROOM.id, { dirtyOut: 1, cleanIn: 1 });
+    expect(record().linen?.pending).toBe(true);
+
+    mockApp.isOnline = true;
+    server.rejectLinen = new MockApiError("boom", 500);
+    const result = await store().completeSession(ROOM.id);
+
+    expect(result.outcome).toBe("confirmed");
+    expect(record().linen).toMatchObject({ pending: false, failed: true });
+    expect(server.calls.some((c) => c.method === "POST" && c.path.endsWith("/complete"))).toBe(true);
+  });
+
+  it("re-saving after a failure sends the counts again", async () => {
+    await started();
+    server.rejectLinen = new MockApiError("nope", 422);
+    await store().saveLinen(ROOM.id, { dirtyOut: 1, cleanIn: 1 });
+    server.rejectLinen = null;
+    await store().saveLinen(ROOM.id, { dirtyOut: 1, cleanIn: 1 });
+    expect(record().linen).toEqual({ dirtyOut: 1, cleanIn: 1, pending: false, failed: false });
+  });
+
+  it("cannot be changed once the finish was requested or confirmed", async () => {
+    await started();
+    store().toggleItem(ROOM.id, "id:t1", true);
+    store().toggleItem(ROOM.id, "id:t2", true);
+    await store().completeSession(ROOM.id);
+    const before = patches().length;
+    await store().saveLinen(ROOM.id, { dirtyOut: 9, cleanIn: 9 });
+    expect(patches()).toHaveLength(before);
+    expect(record().linen).toBeUndefined();
+  });
+
+  it("adopts counts the server already holds when the device has none", async () => {
+    await started();
+    (server.sessions.get(record().sessionId) as any).linen_counts = { dirty_out: 6, clean_in: 6 };
+    await store().restoreForRoom({ id: ROOM.id, status: "IN_PROGRESS" });
+    expect(record().linen).toEqual({ dirtyOut: 6, cleanIn: 6, pending: false, failed: false });
+  });
+
+  it("never overwrites unsaved device counts with the server copy", async () => {
+    await started();
+    mockApp.isOnline = false;
+    await store().saveLinen(ROOM.id, { dirtyOut: 2, cleanIn: 2 });
+    mockApp.isOnline = true;
+    (server.sessions.get(record().sessionId) as any).linen_counts = { dirty_out: 9, clean_in: 9 };
+    await store().restoreForRoom({ id: ROOM.id, status: "IN_PROGRESS" });
+    expect(record().linen).toMatchObject({ dirtyOut: 2, cleanIn: 2, pending: true });
+  });
+});
+
+describe("completion with an unknown outcome", () => {
+  async function readyToFinish() {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    store().toggleItem(ROOM.id, "id:t1", true);
+    store().toggleItem(ROOM.id, "id:t2", true);
+    // Let the syncs the ticks queued run to the end, so each scenario starts from a quiet queue.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await store().flush();
+    expect(Object.keys(record().pendingItems)).toHaveLength(0);
+    server.calls.length = 0;
+  }
+  const completeCalls = () => server.calls.filter((c) => c.method === "POST" && c.path.endsWith("/complete"));
+
+  it("a lost answer is queued, never shown as confirmed, and marked as unsure", async () => {
+    await readyToFinish();
+    server.loseNextCompleteResponse = true;
+
+    const result = await store().completeSession(ROOM.id);
+
+    expect(result.outcome).toBe("queued");
+    expect(record().completionConfirmed).toBe(false);
+    expect(record().completionUnsure).toBe(true);
+    expect(getPhase(record())).toBe("completing");
+  });
+
+  it("asks the server first and does not send the completion again when it already went through", async () => {
+    await readyToFinish();
+    server.loseNextCompleteResponse = true;
+    await store().completeSession(ROOM.id);
+    expect(completeCalls()).toHaveLength(1);
+
+    await store().flush();
+
+    expect(server.calls.some((c) => c.method === "GET" && c.path === "/clean-sessions/" + record().sessionId)).toBe(true);
+    expect(completeCalls()).toHaveLength(1); // reconciled, not re-sent
+    expect(record().completionConfirmed).toBe(true);
+    expect(record().completionUnsure).toBe(false);
+    expect(record().durationSeconds).toBe(1200);
+  });
+
+  it("sends it again, once, when the first request never reached the server", async () => {
+    await readyToFinish();
+    server.failNext.push(new Error("Network request failed")); // dropped before processing
+    const first = await store().completeSession(ROOM.id);
+    expect(first.outcome).toBe("queued");
+    expect(record().completionUnsure).toBe(true);
+
+    await store().flush();
+
+    expect(record().completionConfirmed).toBe(true);
+    expect(completeCalls()).toHaveLength(2); // the dropped attempt + the one that landed
+    expect((server.sessions.get(record().sessionId) as any).status).toBe("completed");
+  });
+
+  it("a session the server closed in the meantime becomes a conflict, with the work kept", async () => {
+    await readyToFinish();
+    server.failNext.push(new Error("Network request failed"));
+    await store().completeSession(ROOM.id);
+    (server.sessions.get(record().sessionId) as any).status = "abandoned";
+
+    await store().flush();
+
+    expect(getPhase(record())).toBe("conflict");
+    expect(record().conflict?.code).toBe("SESSION_ABANDONED");
+    expect(record().checklist.find((i) => i.item_id === "t1")?.checked).toBe(true);
+  });
+
+  it("a definite refusal is not treated as unknown", async () => {
+    await store().startSession(ROOM, { entryAcknowledged: true });
+    (server.sessions.get(record().sessionId) as any).checklist.push(item("t9", "Late required item", true));
+    store().toggleItem(ROOM.id, "id:t1", true);
+    store().toggleItem(ROOM.id, "id:t2", true);
+    await store().completeSession(ROOM.id);
+    expect(record().completionUnsure).toBeFalsy();
+  });
+
+  it("duplicate completion requests share one request", async () => {
+    await readyToFinish();
+    const [a, b, c] = await Promise.all([
+      store().completeSession(ROOM.id),
+      store().completeSession(ROOM.id),
+      store().completeSession(ROOM.id),
+    ]);
+    expect([a.outcome, b.outcome, c.outcome]).toEqual(["confirmed", "confirmed", "confirmed"]);
+    expect(completeCalls()).toHaveLength(1);
   });
 });

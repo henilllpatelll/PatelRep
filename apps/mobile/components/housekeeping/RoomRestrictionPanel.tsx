@@ -23,6 +23,14 @@ interface RoomRestrictionPanelProps {
   onRecord: (result: AttemptResult, returnAt?: string) => Promise<boolean>;
   onNotifySupervisor: () => void;
   onReturnToRoute: () => void;
+  /**
+   * Room Detail's sticky bar owns "Record attempt" and "Back to route": it can
+   * open the attempt options from outside (recordOpen) and hide the panel's own
+   * copies of those two buttons (compact). Standalone use is unchanged.
+   */
+  recordOpen?: boolean;
+  onRecordOpenChange?: (open: boolean) => void;
+  compact?: boolean;
 }
 
 type PanelKind = "dnd" | "do_not_service" | "service_declined" | "come_back_later" | "retry_due";
@@ -57,10 +65,19 @@ export function RoomRestrictionPanel({
   onRecord,
   onNotifySupervisor,
   onReturnToRoute,
+  recordOpen,
+  onRecordOpenChange,
+  compact = false,
 }: RoomRestrictionPanelProps) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = recordOpen ?? openState;
+  const setOpen = (next: boolean | ((current: boolean) => boolean)) => {
+    const value = typeof next === "function" ? next(open) : next;
+    setOpenState(value);
+    onRecordOpenChange?.(value);
+  };
   const [askTime, setAskTime] = useState(false);
   const [timeText, setTimeText] = useState("");
   const [timeError, setTimeError] = useState<string | null>(null);
@@ -162,7 +179,7 @@ export function RoomRestrictionPanel({
       ) : null}
 
       <View style={styles.actions}>
-        {canRecord ? (
+        {canRecord && !compact ? (
           <ActionButton
             label={t("rooms.dash.detail.restriction.recordAttempt")}
             onPress={() => setOpen((value) => !value)}
@@ -230,7 +247,9 @@ export function RoomRestrictionPanel({
           disabled={!isOnline || notifying || supervisorNotified}
           testID="restriction-notify"
         />
-        <ActionButton label={t("rooms.dash.detail.restriction.returnToRoute")} onPress={onReturnToRoute} testID="restriction-return" />
+        {compact ? null : (
+          <ActionButton label={t("rooms.dash.detail.restriction.returnToRoute")} onPress={onReturnToRoute} testID="restriction-return" />
+        )}
         {busy || notifying ? <ActivityIndicator color={theme.primaryAction} /> : null}
       </View>
     </View>

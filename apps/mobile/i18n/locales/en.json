@@ -444,8 +444,8 @@
         "savedPending": "Saved on this device — not confirmed yet. It will submit when you're back online.",
         "startPending": "Started on this device — waiting to sync",
         "changesPending": "Checklist changes waiting to sync",
-        "completingTitle": "Finished on this device — not confirmed yet",
-        "completingBody": "The room stays In Progress until the server confirms. Nothing is lost if you close the app.",
+        "completingTitle": "Completion pending sync",
+        "completingBody": "Your request has not yet been confirmed by the server. The room stays In Progress until it is. Nothing is lost if you close the app.",
         "requiredBlockedTitle": "Required items still open",
         "conflictTitle": "Couldn't sync this clean",
         "conflictKept": "Your checklist progress is still saved on this device.",
@@ -467,7 +467,8 @@
           "SESSION_GONE": "This cleaning session no longer exists.",
           "REQUIRED_ITEMS_INCOMPLETE": "Finish the required checklist items first.",
           "NO_CHECKLIST_OFFLINE": "Connect once to download this hotel's cleaning checklist before starting offline."
-        }
+        },
+        "completingUnsure": "We didn't get an answer from the server. Nothing is lost — we'll check with the server before sending again."
       }
     },
     "detailActions": {
@@ -764,6 +765,185 @@
           "deadline": "Needed by {{time}}",
           "arrival": "Guest arrival {{time}}"
         }
+      }
+    },
+    "work": {
+      "rushBadge": "RUSH",
+      "roomA11y": "Room {{number}}",
+      "beforeYouEnter": "Before you enter",
+      "actions": {
+        "start": "Start Cleaning",
+        "startCorrections": "Start Corrections",
+        "beginEntry": "Begin Entry Protocol",
+        "cantEnter": "Can't Enter / Report Issue",
+        "reportAccess": "Report Access Issue",
+        "more": "Report / More",
+        "markClean": "Mark Room Clean",
+        "completeSteps": "Complete required steps — {{done}} / {{total}}",
+        "resubmit": "Resubmit for Inspection",
+        "completeCorrections": "Finish corrections — {{done}} / {{total}}",
+        "nextRoom": "Go to Next Room",
+        "viewRecord": "View Cleaning Record",
+        "backToRoute": "Back to Route",
+        "backToMyRooms": "Back to My Rooms",
+        "recordAttempt": "Record Service Attempt",
+        "viewWorkOrder": "View Related Work Order"
+      },
+      "disabled": {
+        "otherRoom": "Finish your current room before starting another.",
+        "busy": "Working…",
+        "loadingChecklist": "Loading this room's checklist…",
+        "stepsRemaining": "Tick every required step to submit this room.",
+        "completionPending": "Waiting for the server to confirm. Nothing more to do.",
+        "conflict": "Resolve the sync problem above first."
+      },
+      "checks": {
+        "checkoutConfirmed": "Checkout confirmed at {{time}}",
+        "checkoutNotConfirmed": "Checkout not confirmed",
+        "guestMayBeInside": "Guest may still be inside",
+        "vacant": "Room is vacant",
+        "noDnd": "No active DND",
+        "dndActive": "DND is active",
+        "serviceDeclined": "Guest declined service",
+        "reviewInstructions": "Review room instructions"
+      },
+      "attention": {
+        "scheduledCheckout": "Scheduled checkout: {{time}}",
+        "checkoutUnverified": {
+          "title": "Checkout not verified",
+          "body": "The guest has not been checked out yet. Use the entry protocol before going in, or report an access issue."
+        },
+        "guestInside": {
+          "title": "Guest may be inside",
+          "body": "A guest may still be in the room. Use the entry protocol, or report that you can't enter."
+        },
+        "accessProblem": {
+          "title": "Access problem reported",
+          "body": "An access problem was reported for this room. Use the entry protocol, or report an access issue."
+        }
+      },
+      "roomInfo": {
+        "open": "Room Information",
+        "title": "Room {{room}} information",
+        "sections": {
+          "room": "Room",
+          "frontDesk": "Front desk",
+          "instructions": "Instructions",
+          "inspection": "Inspection",
+          "history": "History"
+        },
+        "roomType": "Room type",
+        "cleanType": "Clean type",
+        "location": "Location",
+        "status": "Status",
+        "frontDesk": "Front desk",
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "scheduledCheckout": "Scheduled checkout",
+        "confirmedCheckout": "Confirmed checkout",
+        "notConfirmed": "Not confirmed",
+        "nextArrival": "Next arrival",
+        "predictedReady": "Predicted ready",
+        "lastAction": "Last action",
+        "cleaningStarted": "Cleaning started",
+        "lastCleaned": "Last cleaned",
+        "lastInspected": "Last inspected",
+        "inspectedAt": "Inspected"
+      },
+      "timer": {
+        "elapsed": "Time elapsed",
+        "standard": "Standard time",
+        "standardValue": "~{{minutes}} min",
+        "elapsedA11y": "Time elapsed: {{minutes}} minutes",
+        "standardA11y": "Standard time: about {{minutes}} minutes",
+        "unknownA11y": "Time elapsed is unavailable"
+      },
+      "checklist": {
+        "optional": "Optional",
+        "saving": "saving",
+        "lockedHint": "Checklist is locked while the room is being submitted.",
+        "progressA11y": "{{done}} of {{total}} steps done",
+        "sectionA11y": "{{section}}, {{done}} of {{total}} done"
+      },
+      "linen": {
+        "title": "Linen Exchange",
+        "sheetTitle": "Linen exchange — Room {{room}}",
+        "summary": "{{out}} out · {{in}} in",
+        "notRecorded": "Not recorded",
+        "save": "Save Linen Counts",
+        "status": {
+          "saved": "Saved",
+          "pending": "Waiting to sync",
+          "failed": "Not saved"
+        },
+        "help": "Optional. Count whole items, 0–99.",
+        "pendingHelp": "Saved on this device. It will reach the server when you're back online.",
+        "failedHelp": "The server didn't accept these counts. They're kept on this device — tap Save to try again. This doesn't stop you from finishing the room.",
+        "lockedHelp": "This clean is being submitted, so the counts are locked."
+      },
+      "reclean": {
+        "title": "Inspection corrections",
+        "count": "{{count}} item needs attention",
+        "count_plural": "{{count}} items need attention",
+        "checklistTitle": "Corrections",
+        "viewInspection": "View original inspection"
+      },
+      "complete": {
+        "title": "Finish room {{room}}?",
+        "titleReclean": "Resubmit room {{room}}?",
+        "body": "Confirm cleaning is complete and the room is ready for inspection.",
+        "bodyReclean": "Confirm every correction is done and send the room back for inspection.",
+        "checklist": "Checklist",
+        "allDone": "All required steps complete",
+        "open": "{{count}} required step still open",
+        "open_plural": "{{count}} required steps still open",
+        "timeOnRoom": "Time on room so far",
+        "submit": "Submit for Inspection",
+        "submitReclean": "Resubmit for Inspection",
+        "keep": "Keep Cleaning",
+        "unsure": "We didn't get an answer from the server last time. Nothing is lost — we'll check with the server before sending again."
+      },
+      "submitted": {
+        "title": "Cleaning complete",
+        "body": "Your room has been submitted for supervisor inspection.",
+        "cleanType": "Clean type",
+        "duration": "Duration",
+        "minutes": "{{minutes}} min",
+        "checklist": "Checklist",
+        "status": "Status",
+        "awaitingInspection": "Awaiting inspection"
+      },
+      "ready": {
+        "title": "Inspection passed",
+        "body": "This room has been inspected and approved.",
+        "cleanedAt": "Cleaned",
+        "inspectedAt": "Inspected"
+      },
+      "unavailable": {
+        "title": "Out of service",
+        "body": "This room is unavailable for cleaning until it is cleared by authorized personnel.",
+        "workOrder": "Related work order"
+      },
+      "offline": {
+        "title": "Working offline",
+        "body": "What you see is the last known state. Your work is saved on this device.",
+        "pending": "{{count}} change is saved on this device and waiting to sync.",
+        "pending_plural": "{{count}} changes are saved on this device and waiting to sync."
+      },
+      "more": {
+        "title": "Report — Room {{room}}",
+        "reported": "Reported"
+      },
+      "knock": {
+        "title": "Before you enter",
+        "roomLine": "Room {{room}}",
+        "hint": "Do each step, then tick it. Nothing is ticked for you.",
+        "restricted": "Do not enter. A restriction is active on this room. Close this and record the attempt instead.",
+        "stepA11y": "Step {{n}}: {{text}}",
+        "cta": "I've Completed the Protocol",
+        "finishSteps": "Tick all five steps to continue.",
+        "cantEnter": "Can't Enter / Report Exception",
+        "cancel": "Cancel"
       }
     }
   },

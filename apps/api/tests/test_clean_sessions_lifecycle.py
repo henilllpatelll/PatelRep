@@ -368,3 +368,57 @@ def test_patch_after_completion_conflicts(client):
     )
     res = client.patch(f"/v1/clean-sessions/{session['id']}", json={"notes": "late"}, headers=_auth())
     assert res.status_code == 409 and res.json()["detail"]["code"] == "SESSION_NOT_ACTIVE"
+
+
+# --- linen exchange --------------------------------------------------------
+
+def test_patch_persists_linen_counts_on_the_session(client, db):
+    session = _start(client)[0].json()["data"]
+    res = client.patch(
+        f"/v1/clean-sessions/{session['id']}",
+        json={"linen_counts": {"dirty_out": 4, "clean_in": 3}},
+        headers=_auth(),
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["data"]["linen_counts"] == {"dirty_out": 4, "clean_in": 3}
+    stored = next(r for r in db.rows["room_clean_sessions"] if r["id"] == session["id"])
+    assert stored["linen_counts"] == {"dirty_out": 4, "clean_in": 3}
+    # Saving linen never touches the checklist snapshot.
+    assert [i["label"] for i in stored["checklist"]] == ["Strip beds", "Clean bathroom", "Vacuum"]
+
+
+@pytest.mark.parametrize("counts", [
+    {"dirty_out": -1, "clean_in": 0},
+    {"dirty_out": 0, "clean_in": 100},
+    {"dirty_out": 1.5, "clean_in": 1},
+    {"dirty_out": 2},
+])
+def test_linen_counts_reject_invalid_values(client, counts):
+    session = _start(client)[0].json()["data"]
+    res = client.patch(f"/v1/clean-sessions/{session['id']}", json={"linen_counts": counts}, headers=_auth())
+    assert res.status_code == 422
+
+
+def test_other_housekeeper_cannot_write_linen_counts(client):
+    session = _start(client)[0].json()["data"]
+    res = client.patch(
+        f"/v1/clean-sessions/{session['id']}",
+        json={"linen_counts": {"dirty_out": 1, "clean_in": 1}},
+        headers=_auth(user_id="hk-2"),
+    )
+    assert res.status_code in (403, 404)
+
+
+def test_linen_counts_locked_after_completion(client):
+    session = _start(client)[0].json()["data"]
+    client.post(
+        f"/v1/clean-sessions/{session['id']}/complete",
+        json={"ended_at": datetime.now(timezone.utc).isoformat(), "checklist": _check_all(session, True)},
+        headers=_auth(),
+    )
+    res = client.patch(
+        f"/v1/clean-sessions/{session['id']}",
+        json={"linen_counts": {"dirty_out": 1, "clean_in": 1}},
+        headers=_auth(),
+    )
+    assert res.status_code == 409 and res.json()["detail"]["code"] == "SESSION_NOT_ACTIVE"

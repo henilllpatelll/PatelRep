@@ -161,9 +161,10 @@ beforeEach(() => {
 
 describe("My Rooms dashboard", () => {
   it("opens on Route with the pinned current room, ordered Up Next and Needs Attention", async () => {
+    const { hotelDateKey } = jest.requireActual("@/lib/housekeeping/hotelTime");
     const { getByTestId, getByText, queryByTestId } = renderScreen();
 
-    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-10-08"));
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith(`/housekeeping/my-rooms?date=${hotelDateKey(new Date(), "America/Chicago")}`));
 
     expect(getByTestId("my-rooms-tab-route").props.accessibilityState.selected).toBe(true);
     expect(getByText("rooms.dash.route.currentTitle")).toBeTruthy();

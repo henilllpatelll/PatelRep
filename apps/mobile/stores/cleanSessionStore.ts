@@ -7,8 +7,10 @@ import {
   apiGetSession,
   apiPatchChecklist,
   apiStartSession,
+  apiPatchLinen,
   applyLocalState,
   checklistFromTemplate,
+  clampLinen,
   classifyFailure,
   getProgress,
   hasPendingSync,
@@ -16,6 +18,7 @@ import {
   newSessionId,
   setItemChecked,
   type ChecklistItem,
+  type LinenState,
   type LocalCleanSession,
   type ServerCleanSession,
   type SessionConflictCode,
@@ -41,6 +44,8 @@ interface CleanSessionState {
   hydrate: () => Promise<void>;
   startSession: (room: Pick<Room, "id" | "clean_type">, opts: { entryAcknowledged: boolean }) => Promise<ActionResult>;
   toggleItem: (roomId: string, key: string, checked: boolean) => void;
+  /** Record the linen exchange; saved to the server in order, never blocking completion. */
+  saveLinen: (roomId: string, counts: { dirtyOut: number; cleanIn: number }) => Promise<void>;
   completeSession: (roomId: string) => Promise<ActionResult>;
   /** Replay everything the server has not confirmed yet, in order. */
   flush: () => Promise<void>;
@@ -71,6 +76,36 @@ function exclusive<T>(fn: () => Promise<T>): Promise<T> {
   const run = chain.then(fn, fn);
   chain = run.catch(() => undefined);
   return run;
+}
+
+function linenFromServer(server: ServerCleanSession): LinenState | undefined {
+  const counts = server.linen_counts;
+  if (!counts) return undefined;
+  return { dirtyOut: clampLinen(counts.dirty_out), cleanIn: clampLinen(counts.clean_in), pending: false, failed: false };
+}
+
+/** A device record built from a session the server already has (restart / started elsewhere). */
+function localFromServer(server: ServerCleanSession, now: string): LocalCleanSession {
+  return {
+    roomId: server.room_id,
+    sessionId: server.id,
+    cleanType: server.clean_type,
+    startedAt: server.started_at,
+    entryAcknowledged: true,
+    checklist: server.checklist ?? [],
+    provisional: false,
+    startConfirmed: true,
+    pendingItems: {},
+    completeRequestedAt: null,
+    completionConfirmed: server.status === "completed",
+    endedAt: server.ended_at,
+    durationSeconds: server.duration_seconds,
+    baseCleanMinutes: server.base_clean_minutes ?? null,
+    linen: linenFromServer(server),
+    conflict: null,
+    lastError: null,
+    updatedAt: now,
+  };
 }
 
 export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
@@ -151,6 +186,9 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
         pendingItems: merged.pendingItems,
         provisional: false,
         startConfirmed: true,
+        baseCleanMinutes: server.base_clean_minutes ?? local.baseCleanMinutes ?? null,
+        // Device-entered counts win until they are saved; otherwise adopt the server's.
+        linen: local.linen?.pending || local.linen?.failed ? local.linen : (linenFromServer(server) ?? local.linen),
       };
     });
   }
@@ -232,13 +270,70 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
         }
       }
 
+      // 2b. linen exchange. Optional data: a refusal is surfaced on the sheet but
+      //     must never stand between the housekeeper and submitting the room.
+      if (session.linen?.pending) {
+        const sent = session.linen;
+        try {
+          await apiPatchLinen(session.sessionId, sent);
+          patch(roomId, (local) => {
+            const edited = local.linen && (local.linen.dirtyOut !== sent.dirtyOut || local.linen.cleanIn !== sent.cleanIn);
+            return { ...local, linen: local.linen ? { ...local.linen, pending: Boolean(edited), failed: false } : local.linen };
+          });
+          await persist();
+          continue;
+        } catch (err) {
+          const failure = classifyFailure(err);
+          if (failure.kind === "offline") break;
+          patch(roomId, (local) => ({ ...local, linen: local.linen ? { ...local.linen, pending: false, failed: true } : local.linen }));
+          await persist();
+          continue;
+        }
+      }
+
       // 3. complete
       if (session.completeRequestedAt) {
+        // An earlier attempt may have reached the server even though its answer never
+        // came back. Ask first; only an active session is worth sending again.
+        if (session.completionUnsure) {
+          try {
+            const known = await apiGetSession(session.sessionId);
+            if (known.status === "completed") {
+              patch(roomId, {
+                completionConfirmed: true,
+                completeRequestedAt: null,
+                completionUnsure: false,
+                pendingItems: {},
+                endedAt: known.ended_at,
+                durationSeconds: known.duration_seconds,
+                checklist: known.checklist ?? session.checklist,
+                lastError: null,
+              });
+              await persist();
+              result = { outcome: "confirmed", session: get().sessions[roomId] };
+              break;
+            }
+            if (known.status === "abandoned") {
+              markConflict(roomId, "SESSION_ABANDONED", "This cleaning session was closed by the server.");
+              await persist();
+              result = { outcome: "rejected", code: "SESSION_ABANDONED", message: "This cleaning session was closed by the server.", session: get().sessions[roomId] };
+              break;
+            }
+          } catch (err) {
+            const failure = classifyFailure(err);
+            if (failure.kind === "offline" || failure.kind === "retry") break;
+            markConflict(roomId, failure.code as SessionConflictCode, failure.message);
+            await persist();
+            result = { outcome: "rejected", code: failure.code, message: failure.message, session: get().sessions[roomId] };
+            break;
+          }
+        }
         try {
           const server = await apiCompleteSession(session.sessionId, session.completeRequestedAt, []);
           patch(roomId, {
             completionConfirmed: true,
             completeRequestedAt: null,
+            completionUnsure: false,
             pendingItems: {},
             endedAt: server.ended_at,
             durationSeconds: server.duration_seconds,
@@ -250,7 +345,12 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
           break;
         } catch (err) {
           const failure = classifyFailure(err);
-          if (failure.kind === "offline" || failure.kind === "retry") break;
+          if (failure.kind === "offline" || failure.kind === "retry") {
+            // No answer is not a refusal: remember the outcome is unknown.
+            patch(roomId, { completionUnsure: true });
+            await persist();
+            break;
+          }
           if (failure.kind === "validation") {
             // The completion was refused, not lost: back to active work with the reason.
             patch(roomId, {
@@ -363,6 +463,20 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
       void persist().then(() => exclusive(() => syncRoom(roomId, false)));
     },
 
+    saveLinen: async (roomId, counts) => {
+      const before = get().sessions[roomId];
+      if (!before || before.completionConfirmed || before.completeRequestedAt) return;
+      const linen: LinenState = {
+        dirtyOut: clampLinen(counts.dirtyOut),
+        cleanIn: clampLinen(counts.cleanIn),
+        pending: true,
+        failed: false,
+      };
+      patch(roomId, { linen });
+      await persist();
+      await exclusive(() => syncRoom(roomId, false));
+    },
+
     completeSession: async (roomId) => {
       const session = get().sessions[roomId];
       if (!session) return { outcome: "rejected", code: "NO_SESSION", message: "No active cleaning session for this room" };
@@ -451,29 +565,7 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
           if (active && active.room_id !== room.id) return;
           const server = active ?? (await apiStartSession({ id: newSessionId(), roomId: room.id, startedAt: new Date().toISOString(), entryAcknowledged: false }));
           const now = new Date().toISOString();
-          set((state) => ({
-            sessions: {
-              ...state.sessions,
-              [room.id]: {
-                roomId: room.id,
-                sessionId: server.id,
-                cleanType: server.clean_type,
-                startedAt: server.started_at,
-                entryAcknowledged: true,
-                checklist: server.checklist ?? [],
-                provisional: false,
-                startConfirmed: true,
-                pendingItems: {},
-                completeRequestedAt: null,
-                completionConfirmed: server.status === "completed",
-                endedAt: server.ended_at,
-                durationSeconds: server.duration_seconds,
-                conflict: null,
-                lastError: null,
-                updatedAt: now,
-              },
-            },
-          }));
+          set((state) => ({ sessions: { ...state.sessions, [room.id]: localFromServer(server, now) } }));
           await persist();
         } catch (err) {
           console.warn("[clean-session] restore failed", err);
@@ -495,24 +587,7 @@ export const useCleanSessionStore = create<CleanSessionState>((set, get) => {
           set((state) => ({
             sessions: {
               ...state.sessions,
-              [server.room_id]: {
-                roomId: server.room_id,
-                sessionId: server.id,
-                cleanType: server.clean_type,
-                startedAt: server.started_at,
-                entryAcknowledged: true,
-                checklist: server.checklist ?? [],
-                provisional: false,
-                startConfirmed: true,
-                pendingItems: {},
-                completeRequestedAt: null,
-                completionConfirmed: false,
-                endedAt: null,
-                durationSeconds: null,
-                conflict: null,
-                lastError: null,
-                updatedAt: now,
-              },
+              [server.room_id]: { ...localFromServer(server, now), completionConfirmed: false, endedAt: null, durationSeconds: null },
             },
           }));
           await persist();

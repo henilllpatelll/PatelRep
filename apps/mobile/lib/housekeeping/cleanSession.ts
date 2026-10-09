@@ -35,6 +35,7 @@ export interface ServerCleanSession {
   checklist_done: number;
   checklist_total: number;
   notes?: string | null;
+  linen_counts?: { dirty_out: number; clean_in: number } | null;
 }
 
 export type SessionConflictCode =
@@ -55,6 +56,28 @@ export interface SessionConflict {
   code: SessionConflictCode;
   message: string;
   at: string;
+}
+
+/** Linen exchange for one clean. `saved` is what the server holds; the rest is device state. */
+export interface LinenState {
+  dirtyOut: number;
+  cleanIn: number;
+  /** Values the server has not confirmed yet. */
+  pending: boolean;
+  /** The last save was refused or failed; the counts stay on this device until re-saved. */
+  failed: boolean;
+}
+
+export const LINEN_MAX = 99;
+
+export function clampLinen(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(LINEN_MAX, Math.max(0, Math.trunc(value)));
+}
+
+/** Linen counts are only asked for on departure cleans (a full bed + bath strip). */
+export function tracksLinen(cleanType: string | null | undefined): boolean {
+  return cleanType === "DEP";
 }
 
 /** Everything the app keeps on disk for one room's clean. */
@@ -79,8 +102,16 @@ export interface LocalCleanSession {
   completeRequestedAt: string | null;
   /** Server confirmed completion. Only then may the UI call the room clean. */
   completionConfirmed: boolean;
+  /**
+   * A completion request went out and the answer never arrived (timeout, dropped
+   * connection). The outcome is unknown: reconcile with the server before resending.
+   */
+  completionUnsure?: boolean;
   endedAt: string | null;
   durationSeconds: number | null;
+  /** Expected clean length from the room type; an estimate, never a deadline. */
+  baseCleanMinutes?: number | null;
+  linen?: LinenState;
   conflict: SessionConflict | null;
   /** Last actionable server rejection that is not a conflict (e.g. required items). */
   lastError: { code: string; message: string; missing?: string[] } | null;
@@ -108,8 +139,14 @@ export function hasPendingSync(session: LocalCleanSession): boolean {
   return (
     !session.startConfirmed ||
     Object.keys(session.pendingItems).length > 0 ||
+    Boolean(session.linen?.pending) ||
     session.completeRequestedAt !== null
   );
+}
+
+/** Count of local changes the server has not confirmed (checklist edits + linen). */
+export function pendingChangeCount(session: LocalCleanSession): number {
+  return Object.keys(session.pendingItems).length + (session.linen?.pending ? 1 : 0);
 }
 
 export function itemKey(item: Pick<ChecklistItem, "item_id" | "section" | "label">): string {
@@ -348,6 +385,13 @@ export async function apiGetSession(id: string): Promise<ServerCleanSession> {
 
 export async function apiPatchChecklist(id: string, items: ChecklistItem[]): Promise<ServerCleanSession> {
   const res = await api.patch<{ data: ServerCleanSession }>(`/clean-sessions/${id}`, { checklist: items });
+  return assertSession(res.data);
+}
+
+export async function apiPatchLinen(id: string, counts: { dirtyOut: number; cleanIn: number }): Promise<ServerCleanSession> {
+  const res = await api.patch<{ data: ServerCleanSession }>(`/clean-sessions/${id}`, {
+    linen_counts: { dirty_out: clampLinen(counts.dirtyOut), clean_in: clampLinen(counts.cleanIn) },
+  });
   return assertSession(res.data);
 }
 

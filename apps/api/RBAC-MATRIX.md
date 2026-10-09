@@ -76,9 +76,9 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | clean_sessions.py | /v1/clean-sessions/hotel-avg-clean-time | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*_AVG_CLEAN_TIME_ROLES) [L527] |
 | clean_sessions.py | /v1/clean-sessions/{session_id} | GET | gm, housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES, 'gm') [L590] |
 | clean_sessions.py | /v1/clean-sessions/{session_id} | PATCH | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L618] |
-| clean_sessions.py | /v1/clean-sessions/{session_id}/complete | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L663] |
-| clean_sessions.py | /v1/clean-sessions/{session_id}/blocker | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L787] |
-| clean_sessions.py | /v1/clean-sessions/{session_id}/photos | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L866] |
+| clean_sessions.py | /v1/clean-sessions/{session_id}/complete | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L665] |
+| clean_sessions.py | /v1/clean-sessions/{session_id}/blocker | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L789] |
+| clean_sessions.py | /v1/clean-sessions/{session_id}/photos | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L868] |
 | cleaning_checklists.py | /v1/housekeeping/checklists | GET | none |  |
 | cleaning_checklists.py | /v1/housekeeping/checklists/{clean_type} | PUT | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L147] |
 | cleaning_checklists.py | /v1/housekeeping/checklists/{clean_type}/reset | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L216] |

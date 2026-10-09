@@ -1690,9 +1690,17 @@ class CreateCleanSessionRequest(SanitizedBaseModel):
     entry_acknowledged: bool = False
 
 
+class LinenCounts(SanitizedBaseModel):
+    """Linen exchange for one clean: whole numbers, zero up to a sane per-room ceiling."""
+
+    dirty_out: int = Field(ge=0, le=99)
+    clean_in: int = Field(ge=0, le=99)
+
+
 class UpdateCleanSessionRequest(SanitizedBaseModel):
     checklist: Optional[List[ChecklistStateItem]] = Field(default=None, max_length=100)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    linen_counts: Optional[LinenCounts] = None
 
 
 class CompleteCleanSessionRequest(SanitizedBaseModel):

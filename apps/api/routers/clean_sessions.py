@@ -637,6 +637,8 @@ async def update_clean_session(
         })
     if request.notes is not None:
         update_payload["notes"] = request.notes
+    if request.linen_counts is not None:
+        update_payload["linen_counts"] = request.linen_counts.model_dump()
 
     if not update_payload:
         return {"data": session}

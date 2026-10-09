@@ -5,7 +5,7 @@ const HOUSEKEEPING_SOURCES = {
   supplyRequest: "../../components/housekeeping/SupplyRequestModal.tsx",
   reportIssue: "../../components/housekeeping/ReportIssueModal.tsx",
   knock: "../../components/housekeeping/KnockModal.tsx",
-  checklist: "../../components/housekeeping/ChecklistSection.tsx",
+  checklist: "../../components/housekeeping/roomDetail/CleaningChecklist.tsx",
   inspect: "../../app/(app)/inspect/index.tsx",
 } as const;
 

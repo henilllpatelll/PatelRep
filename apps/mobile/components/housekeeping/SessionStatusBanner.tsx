@@ -2,12 +2,14 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
-import { getPhase, hasPendingSync, type LocalCleanSession } from "@/lib/housekeeping/cleanSession";
+import { getPhase, hasPendingSync, pendingChangeCount, type LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 
 interface Props {
   session: LocalCleanSession;
   onRetry: () => void;
   onDiscard: () => void;
+  /** Connectivity, so offline work reads as "last known", not as confirmed. */
+  isOnline?: boolean;
 }
 
 /**
@@ -15,7 +17,7 @@ interface Props {
  * what the server refused, and what the housekeeper can do about it. A queued
  * completion is never presented as done.
  */
-export default function SessionStatusBanner({ session, onRetry, onDiscard }: Props) {
+export default function SessionStatusBanner({ session, onRetry, onDiscard, isOnline = true }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const phase = getPhase(session);
@@ -73,7 +75,9 @@ export default function SessionStatusBanner({ session, onRetry, onDiscard }: Pro
           <Ionicons name="cloud-upload-outline" size={16} color={theme.status.pickup} />
           <Text style={[styles.title, { color: theme.status.pickup }]}>{t("rooms.detail.session.completingTitle")}</Text>
         </View>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("rooms.detail.session.completingBody")}</Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>
+          {t(session.completionUnsure ? "rooms.detail.session.completingUnsure" : "rooms.detail.session.completingBody")}
+        </Text>
       </View>
     );
   }
@@ -92,6 +96,25 @@ export default function SessionStatusBanner({ session, onRetry, onDiscard }: Pro
         </View>
         <Text style={[styles.body, { color: theme.textSecondary }]}>
           {missing.length > 0 ? missing.join(" · ") : session.lastError.message}
+        </Text>
+      </View>
+    );
+  }
+
+  if (!isOnline && !session.completionConfirmed) {
+    const count = pendingChangeCount(session);
+    return (
+      <View
+        style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+        testID="session-offline-banner"
+        accessibilityRole="alert"
+      >
+        <View style={styles.row}>
+          <Ionicons name="cloud-offline-outline" size={16} color={theme.textMuted} />
+          <Text style={[styles.title, { color: theme.textSecondary }]}>{t("rooms.work.offline.title")}</Text>
+        </View>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>
+          {count > 0 ? t("rooms.work.offline.pending", { count }) : t("rooms.work.offline.body")}
         </Text>
       </View>
     );
