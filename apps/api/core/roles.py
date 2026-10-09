@@ -27,6 +27,9 @@ TASK_ASSIGNMENT_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer", "fro
 HOUSEKEEPING_EXCEPTION_REPORT_ROLES = ("housekeeper", "housekeeping_supervisor", "gm", "chief_engineer")
 # Roles that may only act on rooms assigned to them (managers and engineers cover any room).
 ASSIGNMENT_BOUND_ROLES = ("housekeeper",)
+# Floor staff report what they find but do not manage records: their Lost & Found intake carries no
+# custody metadata, and they may add photos only to work orders they reported themselves.
+FLOOR_STAFF_ROLES = ("housekeeper",)
 RUSH_MANAGER_ROLES = ("housekeeping_supervisor", "front_desk", "gm", "chief_engineer")
 DISCREPANCY_RESOLVER_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
 

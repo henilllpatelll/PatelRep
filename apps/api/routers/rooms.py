@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     ManualCheckoutRequest,
@@ -32,8 +32,22 @@ from services.room_status_transitions import (
 logger = logging.getLogger(__name__)
 
 
+def _parse_dt(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+ROOM_NOTE_MAX_LENGTH = 1000
+NOTE_RETRY_WINDOW = timedelta(minutes=2)
+
+
 class AddRoomNoteRequest(BaseModel):
-    text: str
+    text: str = Field(max_length=ROOM_NOTE_MAX_LENGTH)
 
 class ReCleanRequest(BaseModel):
     note: Optional[str] = None
@@ -1824,6 +1838,23 @@ async def add_room_note(
         raise HTTPException(status_code=404, detail="Room not found")
 
     current_status = current_row.data.get("status", "DIRTY")
+
+    # A retried submit (flaky network, double tap) of the same note is one note.
+    now = datetime.now(timezone.utc)
+    note_text = request.text.strip()
+    recent = (
+        supabase.table("room_status_history")
+        .select("notes, created_at, from_status, to_status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("changed_by", current_user.user_id)
+        .eq("notes", note_text)
+        .execute()
+    ).data or []
+    for row in recent:
+        created = _parse_dt(row.get("created_at"))
+        if row.get("from_status") == row.get("to_status") and created and now - created <= NOTE_RETRY_WINDOW:
+            return {"data": {"ok": True, "replayed": True}}
 
     # Write directly to history — from_status == to_status marks this as a note-only entry
     supabase.table("room_status_history").insert({

@@ -1,4 +1,5 @@
 import React from "react";
+import { Alert } from "react-native";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Room } from "@/stores/appStore";
@@ -8,6 +9,7 @@ import { ToastProvider } from "@/lib/theme/ToastProvider";
 const mockSetMyRooms = jest.fn();
 const mockRefreshRooms = jest.fn().mockResolvedValue(undefined);
 let mockIsOnline = true;
+let mockUserRole = "housekeeper";
 let mockHotelTimezone: string | null = "America/Chicago";
 const mockT = (key: string, options?: Record<string, unknown>) => {
   if (key.startsWith("rooms.dash.") && options && !("defaultValue" in options)) return `${key} ${JSON.stringify(options)}`;
@@ -88,7 +90,8 @@ function mockAppState() {
     isOnline: mockIsOnline,
     myRooms: mockRooms,
     setMyRooms: mockSetMyRooms,
-    user: { id: "user-1", tenant_id: "hotel-1" },
+    user: { id: "user-1", tenant_id: "hotel-1", role: mockUserRole },
+    pendingActions: [],
     refreshRooms: mockRefreshRooms,
     dropQueuedRoomStatus: jest.fn().mockResolvedValue(undefined),
     hotelTimezone: mockHotelTimezone,
@@ -209,6 +212,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
   mockIsOnline = true;
+  mockUserRole = "housekeeper";
   mockRooms = [makeRoom()];
   useCleanSessionStore.getState().reset();
   mockApiGet.mockResolvedValue({ data: [] });
@@ -516,25 +520,6 @@ describe("Room Detail — knock protocol", () => {
     fireEvent.press(getByTestId("sticky-begin_entry"));
     expect(getByTestId("knock-step-1").props.accessibilityState.checked).toBe(false);
     expect(getByTestId("knock-confirm").props.accessibilityState.disabled).toBe(true);
-  });
-
-  it("'Can't enter' hands off to the reporting options (guest inside, return later, locked door, declined) and starts nothing", async () => {
-    jest.useFakeTimers();
-    mockRooms = [stayover({ latest_note: null })];
-    const { getByTestId } = renderScreen();
-    await waitFor(() => expect(getByTestId("sticky-begin_entry")).toBeTruthy());
-    fireEvent.press(getByTestId("sticky-begin_entry"));
-    fireEvent.press(getByTestId("knock-cant-enter"));
-    act(() => {
-      jest.advanceTimersByTime(500);
-    });
-
-    expect(getByTestId("report-more-sheet")).toBeTruthy();
-    expect(getByTestId("more-blocker-guest_inside")).toBeTruthy();
-    expect(getByTestId("more-blocker-come_back_later")).toBeTruthy();
-    expect(getByTestId("more-blocker-declined_service")).toBeTruthy();
-    expect(getByTestId("more-blocker-dnd_sign")).toBeTruthy();
-    expect(mockApiPost.mock.calls.some(([path]) => path === "/clean-sessions")).toBe(false);
   });
 });
 
@@ -1337,15 +1322,30 @@ describe("Room Detail — reclean (state D)", () => {
 
 /* ─── Report / More ────────────────────────────────────────────────────────── */
 
-describe("Room Detail — Report / More keeps every reporting path reachable", () => {
-  it("opens one sheet with note, work order, lost & found and supplies", async () => {
+const attemptResponse = { data: {}, replayed: false, room: { dnd_flag: false, dnd_attempt_count: 1, dnd_last_attempt_at: "x", dnd_retry_at: "y" } };
+
+async function openSheet(utils: ReturnType<typeof renderScreen>, rowId: string) {
+  // A restricted room keeps Report / More in the header; the sticky bar is for the main action.
+  await waitFor(() => expect(utils.queryByTestId("sticky-more") ?? utils.queryByTestId("room-detail-more")).toBeTruthy());
+  fireEvent.press((utils.queryByTestId("sticky-more") ?? utils.getByTestId("room-detail-more")) as never);
+  jest.useFakeTimers();
+  fireEvent.press(utils.getByTestId(rowId));
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+  jest.useRealTimers();
+}
+
+describe("Room Detail — Report / More is the hub for secondary actions", () => {
+  it("lists the secondary actions this role may use, each with a hint", async () => {
     mockRooms = [vacantDeparture()];
-    const { getByTestId } = renderScreen();
+    const { getByTestId, getByText } = renderScreen();
     await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
     fireEvent.press(getByTestId("sticky-more"));
 
     expect(getByTestId("report-more-sheet")).toBeTruthy();
-    for (const id of ["more-note", "more-issue", "more-found", "more-supplies"]) expect(getByTestId(id)).toBeTruthy();
+    for (const id of ["more-exception", "more-issue", "more-supplies", "more-found", "more-note", "more-info"]) expect(getByTestId(id)).toBeTruthy();
+    expect(getByText("rooms.work.more.rows.exception.hint")).toBeTruthy();
   });
 
   it("is also available from the header", async () => {
@@ -1360,93 +1360,318 @@ describe("Room Detail — Report / More keeps every reporting path reachable", (
     ["more-issue", "issue-modal"],
     ["more-found", "found-modal"],
     ["more-supplies", "supply-modal"],
-  ])("%s hands off to the existing %s", async (rowId, modalId) => {
-    jest.useFakeTimers();
+    ["more-exception", "exception-sheet"],
+    ["more-note", "note-sheet"],
+    ["more-info", "room-info-sheet"],
+  ])("%s closes the hub and opens %s", async (rowId, sheetId) => {
+    mockRooms = [vacantDeparture()];
+    const utils = renderScreen();
+    await openSheet(utils, rowId);
+
+    expect(utils.getByTestId(sheetId)).toBeTruthy();
+    expect(utils.queryByTestId("report-more-sheet")).toBeNull();
+  });
+
+  it("hides what the role cannot do on the server (engineer: no exception, no found item)", async () => {
+    mockUserRole = "engineer";
     mockRooms = [vacantDeparture()];
     const { getByTestId, queryByTestId } = renderScreen();
     await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
     fireEvent.press(getByTestId("sticky-more"));
-    fireEvent.press(getByTestId(rowId));
+
+    expect(queryByTestId("more-exception")).toBeNull();
+    expect(queryByTestId("more-found")).toBeNull();
+    expect(getByTestId("more-supplies")).toBeTruthy();
+    expect(getByTestId("more-issue")).toBeTruthy();
+  });
+
+  it("says why a row is unavailable instead of failing after the tap (offline)", async () => {
+    mockIsOnline = false;
+    mockRooms = [stayover({ latest_note: null })];
+    const { getByTestId, getAllByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    fireEvent.press(getByTestId("sticky-more"));
+
+    expect(getByTestId("more-supplies").props.accessibilityState.disabled).toBe(true);
+    expect(getByTestId("more-note").props.accessibilityState.disabled).toBe(true);
+    // Work orders keep their offline queue, so reporting maintenance stays available.
+    expect(getByTestId("more-issue").props.accessibilityState.disabled).toBe(false);
+    expect(getAllByText("rooms.work.more.disabled.needsConnection").length).toBeGreaterThan(0);
+  });
+
+  it("does not offer the pre-entry exception once cleaning has started", async () => {
+    mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL" })];
+    seedSession([item("a", "Change linens", true)]);
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    fireEvent.press(getByTestId("sticky-more"));
+
+    expect(getByTestId("more-exception").props.accessibilityState.disabled).toBe(true);
+    expect(getByText("rooms.work.more.disabled.cleaningStarted")).toBeTruthy();
+  });
+
+  it("opens Linen Exchange from the hub during a clean", async () => {
+    mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "DEP" })];
+    seedSession([item("a", "Change linens", true)], { cleanType: "DEP" });
+    const utils = renderScreen();
+    await waitFor(() => expect(utils.getByTestId("sticky-more")).toBeTruthy());
+    await openSheet(utils, "more-linen");
+    expect(utils.getByTestId("linen-sheet")).toBeTruthy();
+  });
+
+  it("shows the sync row with the count when something is waiting", async () => {
+    mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL" })];
+    seedSession([item("a", "Change linens", true)], { pendingItems: { "id:a": item("a", "Change linens", true, true) } });
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    fireEvent.press(getByTestId("sticky-more"));
+    expect(getByTestId("more-sync")).toBeTruthy();
+  });
+});
+
+describe("Room Detail — Can't Enter / Service Exception", () => {
+  async function openException(room: Room = stayover({ latest_note: null, latest_note_at: null })) {
+    mockRooms = [room];
+    mockApiPost.mockImplementation((path: string) =>
+      path.endsWith("/service-attempts") ? Promise.resolve(attemptResponse) : Promise.resolve({ data: {} }),
+    );
+    const utils = renderScreen();
+    await openSheet(utils, "more-exception");
+    return utils;
+  }
+
+  const startedCleaning = () => mockApiPost.mock.calls.some(([path]) => String(path).startsWith("/clean-sessions"));
+
+  it("records Guest inside as a server attempt with a note and keeps the Needs Attention signal — and starts nothing", async () => {
+    const { getByTestId } = await openException();
+    fireEvent.press(getByTestId("exception-reason-guest_inside"));
+    fireEvent.press(getByTestId("exception-submit"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Guest inside" }));
+    const attempt = mockApiPost.mock.calls.find(([path]) => path === "/rooms/room-1/service-attempts");
+    expect(attempt?.[1]).toMatchObject({ result: "other", note: "Guest inside" });
+    expect(startedCleaning()).toBe(false);
+    expect(mockApiPatch).not.toHaveBeenCalled();
+  });
+
+  it("records Do Not Disturb as dnd_no_response and takes the count from the server, not the device", async () => {
+    const { getByTestId } = await openException();
+    fireEvent.press(getByTestId("exception-reason-dnd"));
+    fireEvent.press(getByTestId("exception-submit"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/service-attempts", expect.objectContaining({ result: "dnd_no_response" })));
+    await waitFor(() => expect(mockSetMyRooms).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ id: "room-1", dnd_attempt_count: 1 })])));
+    expect(startedCleaning()).toBe(false);
+  });
+
+  it("sends the same attempted_at when a failed attempt is retried, so the server can replay it", async () => {
+    mockRooms = [stayover({ latest_note: null, latest_note_at: null })];
+    let calls = 0;
+    mockApiPost.mockImplementation((path: string) => {
+      if (!path.endsWith("/service-attempts")) return Promise.resolve({ data: {} });
+      calls += 1;
+      return calls === 1 ? Promise.reject(new Error("Request timed out. Please try again.")) : Promise.resolve(attemptResponse);
+    });
+    const utils = renderScreen();
+    await openSheet(utils, "more-exception");
+    fireEvent.press(utils.getByTestId("exception-reason-dnd"));
+    fireEvent.press(utils.getByTestId("exception-submit"));
+    await waitFor(() => expect(calls).toBe(1));
+    await waitFor(() => expect(utils.getByTestId("exception-submit").props.accessibilityState.disabled).toBe(false));
+    fireEvent.press(utils.getByTestId("exception-submit"));
+    await waitFor(() => expect(calls).toBe(2));
+
+    const stamps = mockApiPost.mock.calls.filter(([path]) => path.endsWith("/service-attempts")).map(([, body]) => body.attempted_at);
+    expect(stamps[0]).toBeTruthy();
+    expect(stamps[1]).toBe(stamps[0]);
+  });
+
+  it("records Come back later with the hotel-local instant the attendant chose", async () => {
+    const { getByTestId } = await openException();
+    fireEvent.press(getByTestId("exception-reason-come_back_later"));
+    fireEvent.changeText(getByTestId("exception-time-input"), "11:59 PM");
+    fireEvent.press(getByTestId("exception-submit"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/service-attempts", expect.objectContaining({ result: "return_later" })));
+    const attempt = mockApiPost.mock.calls.find(([path]) => path === "/rooms/room-1/service-attempts");
+    const retry = new Date(attempt?.[1].return_at as string);
+    const hotelClock = retry.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", hour12: false });
+    expect(hotelClock.replace(/ /g, " ")).toMatch(/^(23:59|11:59)/);
+  });
+
+  it("never invents a return time: Come back later without one is refused inline and posts nothing", async () => {
+    const { getByTestId, getByText } = await openException();
+    fireEvent.press(getByTestId("exception-reason-come_back_later"));
+    fireEvent.press(getByTestId("exception-submit"));
+
+    expect(getByText("rooms.work.exception.errors.time.required")).toBeTruthy();
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/service-attempts")).toBe(false);
+  });
+
+  it("refuses an unusable time inline and writes neither an attempt nor a note", async () => {
+    const { getByTestId, getByText } = await openException();
+    fireEvent.press(getByTestId("exception-reason-come_back_later"));
+    fireEvent.changeText(getByTestId("exception-time-input"), "soonish");
+    fireEvent.press(getByTestId("exception-submit"));
+
+    expect(getByText("rooms.work.exception.errors.time.invalid")).toBeTruthy();
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/service-attempts" || path === "/rooms/room-1/notes")).toBe(false);
+  });
+
+  it("requires a note for Other access issue", async () => {
+    const { getByTestId, getByText } = await openException();
+    fireEvent.press(getByTestId("exception-reason-other"));
+    fireEvent.press(getByTestId("exception-submit"));
+    expect(getByText("rooms.work.exception.errors.note.required")).toBeTruthy();
+
+    fireEvent.changeText(getByTestId("exception-note"), "Chain latched from inside");
+    fireEvent.press(getByTestId("exception-submit"));
+    await waitFor(() =>
+      expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/service-attempts", expect.objectContaining({ result: "other", note: "Access issue: Chain latched from inside" })),
+    );
+  });
+
+  it("records Guest declined through the reason-bearing endpoint", async () => {
+    const { getByTestId } = await openException(stayover({ latest_note: null, latest_note_at: null }));
+    fireEvent.press(getByTestId("exception-reason-guest_declined"));
+    fireEvent.press(getByTestId("exception-submit"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/service-declined", { reason: "guest_declined_housekeeping", note: undefined }));
+    expect(startedCleaning()).toBe(false);
+  });
+
+  it("does not claim success when the server rejects it, and keeps the draft open", async () => {
+    mockRooms = [stayover({ latest_note: null, latest_note_at: null })];
+    mockApiPost.mockImplementation((path: string) =>
+      path.endsWith("/service-attempts") ? Promise.reject(apiError(403, "FORBIDDEN", "This room is not assigned to you")) : Promise.resolve({ data: {} }),
+    );
+    const utils = renderScreen();
+    await openSheet(utils, "more-exception");
+    fireEvent.press(utils.getByTestId("exception-reason-guest_inside"));
+    fireEvent.press(utils.getByTestId("exception-submit"));
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("rooms.dash.detail.restriction.failed"));
+    expect(mockToast.info).not.toHaveBeenCalledWith("rooms.dash.detail.restriction.recorded");
+    expect(utils.getByTestId("exception-sheet")).toBeTruthy();
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/notes")).toBe(false);
+  });
+
+  it("cannot be submitted offline and records nothing", async () => {
+    const utils = await openException();
+    const { getByTestId } = utils;
+    fireEvent.press(getByTestId("exception-reason-dnd"));
+    mockIsOnline = false;
+    utils.rerender(withProviders());
+    expect(getByTestId("exception-offline")).toBeTruthy();
+    expect(getByTestId("exception-submit").props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(getByTestId("exception-submit"));
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("cancelling changes nothing", async () => {
+    const { getByTestId, queryByTestId } = await openException();
+    fireEvent.press(getByTestId("exception-cancel"));
+    await waitFor(() => expect(queryByTestId("exception-sheet")).toBeNull());
+    expect(mockApiPost).not.toHaveBeenCalled();
+    expect(mockSetMyRooms).not.toHaveBeenCalled();
+  });
+
+  it("asks before discarding a half-filled exception", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    const { getByTestId } = await openException();
+    fireEvent.press(getByTestId("exception-reason-dnd"));
+    fireEvent.press(getByTestId("exception-cancel"));
+    expect(alertSpy).toHaveBeenCalledWith("rooms.work.sheets.discard.title", "rooms.work.sheets.discard.message", expect.any(Array));
+    expect(getByTestId("exception-sheet")).toBeTruthy();
+    alertSpy.mockRestore();
+  });
+
+  it("lets a room on DND be cleared from the sheet through the server", async () => {
+    const { getByTestId } = await openException(stayover({ dnd_flag: true, dnd_attempt_count: 1 }));
+    fireEvent.press(getByTestId("exception-clear-dnd"));
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/service-attempts", expect.objectContaining({ result: "dnd_cleared" })));
+  });
+
+  it("hands off from the knock protocol directly to this sheet", async () => {
+    jest.useFakeTimers();
+    mockRooms = [stayover({ latest_note: null })];
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-begin_entry")).toBeTruthy());
+    fireEvent.press(getByTestId("sticky-begin_entry"));
+    fireEvent.press(getByTestId("knock-cant-enter"));
     act(() => {
       jest.advanceTimersByTime(500);
     });
 
-    expect(getByTestId(modalId)).toBeTruthy();
-    expect(queryByTestId("report-more-sheet")).toBeNull();
+    expect(getByTestId("exception-sheet")).toBeTruthy();
+    expect(startedCleaning()).toBe(false);
   });
+});
 
-  it("saves a note through the notes endpoint", async () => {
+describe("Room Detail — Add Room Note", () => {
+  async function openNote() {
     mockRooms = [vacantDeparture()];
-    const { getByTestId } = renderScreen();
-    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
-    fireEvent.press(getByTestId("sticky-more"));
-    fireEvent.press(getByTestId("more-note"));
-    fireEvent.changeText(getByTestId("more-note-input"), "Extra towels requested");
-    fireEvent.press(getByTestId("more-note-save"));
+    const utils = renderScreen();
+    await openSheet(utils, "more-note");
+    return utils;
+  }
 
-    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "Extra towels requested" }));
-    await waitFor(() => expect(getByTestId("report-saved")).toBeTruthy());
+  it("saves through the notes endpoint and clears the draft", async () => {
+    const { getByTestId } = await openNote();
+    fireEvent.changeText(getByTestId("note-input"), "Extra towels requested\nLeft at door");
+    fireEvent.press(getByTestId("note-save"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "Extra towels requested\nLeft at door" }));
+    await waitFor(() => expect(getByTestId("note-input").props.value).toBe(""));
   });
 
-  it("posts a quick-blocker note and never offers a local-only 'remove' that the server wouldn't honor", async () => {
-    mockRooms = [stayover({ latest_note: null, latest_note_at: null })];
-    const { getByTestId, queryByText } = renderScreen();
-    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
-    fireEvent.press(getByTestId("sticky-more"));
-    fireEvent.press(getByTestId("more-blocker-guest_inside"));
+  it("keeps the draft when the save fails", async () => {
+    mockApiPost.mockRejectedValue(new Error("boom"));
+    const { getByTestId } = await openNote();
+    fireEvent.changeText(getByTestId("note-input"), "Important");
+    fireEvent.press(getByTestId("note-save"));
 
-    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Guest inside" }));
-    expect(queryByText("rooms.detail.removeNote")).toBeNull();
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalled());
+    expect(getByTestId("note-input").props.value).toBe("Important");
   });
 
-  it("records a come-back-later attempt on the server with a hotel-local retry instant, then writes the audit note", async () => {
-    mockRooms = [stayover({ latest_note: null, latest_note_at: null })];
-    mockApiPost.mockImplementation((path: string) =>
-      path.endsWith("/service-attempts")
-        ? Promise.resolve({ data: {}, replayed: false, room: { dnd_flag: false, dnd_attempt_count: 1, dnd_last_attempt_at: "x", dnd_retry_at: "y" } })
-        : Promise.resolve({ data: {} }),
+  it("shows saved notes with author and hotel-local time", async () => {
+    mockApiGet.mockImplementation((path: string) =>
+      path.includes("/history?limit=50")
+        ? Promise.resolve({
+            data: [
+              { id: "h1", from_status: "DIRTY", to_status: "DIRTY", notes: "Tray at door", created_at: "2026-10-08T15:30:00Z", actor_name: "Avery" },
+              { id: "h2", from_status: "DIRTY", to_status: "IN_PROGRESS", notes: "Started", created_at: "2026-10-08T15:00:00Z", actor_name: "Avery" },
+            ],
+          })
+        : Promise.resolve({ data: [] }),
     );
-    const { getByTestId } = renderScreen();
-    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
-    fireEvent.press(getByTestId("sticky-more"));
-    fireEvent.press(getByTestId("more-blocker-come_back_later"));
-    fireEvent.changeText(getByTestId("more-time-input"), "11:59 PM");
-    fireEvent.press(getByTestId("more-time-submit"));
-
-    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Come back later — 11:59 PM" }));
-    const attempt = mockApiPost.mock.calls.find(([path]) => path === "/rooms/room-1/service-attempts");
-    expect(attempt?.[1]).toMatchObject({ result: "return_later" });
-    // 11:59 PM hotel time (America/Chicago) is an absolute instant, not the device's 11:59 PM.
-    const retry = new Date(attempt?.[1].return_at as string);
-    const hotelClock = retry.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", hour12: false });
-    expect(hotelClock.replace(/ /g, " ")).toMatch(/^(23:59|11:59)/);
-    expect(mockSetMyRooms).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ id: "room-1", dnd_attempt_count: 1 })]));
+    const { getByTestId, getAllByTestId } = await openNote();
+    await waitFor(() => expect(getByTestId("note-saved")).toBeTruthy());
+    expect(getAllByTestId("note-saved")).toHaveLength(1);
+    expect(getByTestId("note-saved").props.accessibilityLabel).toMatch(/Avery · .*Tray at door/);
   });
 
-  it("does not write a come-back-later note when the time is not a usable time", async () => {
-    mockRooms = [stayover({ latest_note: null, latest_note_at: null })];
-    const { getByTestId } = renderScreen();
-    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
-    fireEvent.press(getByTestId("sticky-more"));
-    fireEvent.press(getByTestId("more-blocker-come_back_later"));
-    fireEvent.changeText(getByTestId("more-time-input"), "soonish");
-    fireEvent.press(getByTestId("more-time-submit"));
-
-    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("rooms.dash.detail.restriction.timeInvalid"));
-    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/service-attempts")).toBe(false);
-    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/notes")).toBe(false);
-  });
-
-  it("refuses to report offline instead of faking it", async () => {
+  it("explains the connection requirement offline and keeps the draft", async () => {
+    const utils = await openNote();
+    fireEvent.changeText(utils.getByTestId("note-input"), "Draft text");
     mockIsOnline = false;
-    mockRooms = [stayover({ latest_note: null })];
-    const { getByTestId } = renderScreen();
-    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
-    fireEvent.press(getByTestId("sticky-more"));
-    fireEvent.press(getByTestId("more-blocker-guest_inside"));
+    utils.rerender(withProviders());
 
-    await waitFor(() => expect(mockToast.info).toHaveBeenCalledWith("rooms.detail.alerts.blockersNeedConnection"));
-    expect(mockApiPost).not.toHaveBeenCalled();
+    expect(utils.getByTestId("note-offline")).toBeTruthy();
+    expect(utils.getByTestId("note-save").props.accessibilityState.disabled).toBe(true);
+    expect(utils.getByTestId("note-input").props.value).toBe("Draft text");
+  });
+});
+
+describe("Room Detail — Room flags keep their follow-up work", () => {
+  it("creates the ozone task for a smoke smell", async () => {
+    mockRooms = [vacantDeparture()];
+    const utils = renderScreen();
+    await openSheet(utils, "more-flags");
+    fireEvent.press(utils.getByTestId("flag-smoke_smell"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/tasks", expect.objectContaining({ title: "Ozone treatment — Room 101" })));
   });
 });
 

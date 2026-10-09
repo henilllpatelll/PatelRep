@@ -4,6 +4,12 @@ import { resolve } from "node:path";
 const HOUSEKEEPING_SOURCES = {
   supplyRequest: "../../components/housekeeping/SupplyRequestModal.tsx",
   reportIssue: "../../components/housekeeping/ReportIssueModal.tsx",
+  foundItem: "../../components/housekeeping/FoundItemModal.tsx",
+  formBits: "../../components/housekeeping/roomDetail/FormBits.tsx",
+  exception: "../../components/housekeeping/roomDetail/ServiceExceptionSheet.tsx",
+  note: "../../components/housekeeping/roomDetail/RoomNoteSheet.tsx",
+  sync: "../../components/housekeeping/roomDetail/SyncDetailsSheet.tsx",
+  moreSheet: "../../components/housekeeping/roomDetail/ReportMoreSheet.tsx",
   knock: "../../components/housekeeping/KnockModal.tsx",
   checklist: "../../components/housekeeping/roomDetail/CleaningChecklist.tsx",
   inspect: "../../app/(app)/inspect/index.tsx",
@@ -45,13 +51,18 @@ describe("housekeeping and inspection semantic on-colors", () => {
     },
   );
 
-  it("uses the tested primary on-color for supply selections", () => {
-    expect(sources.supplyRequest).toContain("theme.onPrimary");
+  it("keeps supply quantity controls on neutral surfaces (no filled selection to colour)", () => {
+    expect(sources.supplyRequest).toContain("theme.surfaceSubtle");
+    expect(sources.supplyRequest).not.toContain("theme.primaryAction");
   });
 
-  it("uses tested primary and destructive on-colors for issue priority selections", () => {
-    expect(sources.reportIssue).toContain("theme.onPrimary");
+  it("uses the tested destructive on-color for the urgent priority choice", () => {
     expect(sources.reportIssue).toContain("theme.onDestructive");
+  });
+
+  it("shared form chips and radios draw selection from tested primary tokens, not literals", () => {
+    expect(sources.formBits).toContain("theme.primarySoft");
+    expect(sources.formBits).toContain("theme.primaryAction");
   });
 
   it("uses the tested primary on-color for knock step markers", () => {

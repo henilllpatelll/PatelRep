@@ -901,7 +901,8 @@
         "submit": "Submit for Inspection",
         "submitReclean": "Resubmit for Inspection",
         "keep": "Keep Cleaning",
-        "unsure": "We didn't get an answer from the server last time. Nothing is lost — we'll check with the server before sending again."
+        "unsure": "We didn't get an answer from the server last time. Nothing is lost — we'll check with the server before sending again.",
+        "cleanType": "Clean type"
       },
       "submitted": {
         "title": "Cleaning complete",
@@ -931,8 +932,51 @@
         "pending_plural": "{{count}} changes are saved on this device and waiting to sync."
       },
       "more": {
-        "title": "Report — Room {{room}}",
-        "reported": "Reported"
+        "title": "Report / More — Room {{room}}",
+        "reported": "Reported",
+        "disabled": {
+          "needsConnection": "Needs a connection",
+          "cleaningStarted": "Not available once cleaning has started",
+          "linenLocked": "Already submitted — counts can't change"
+        },
+        "rows": {
+          "exception": {
+            "title": "Can't Enter / Service Exception",
+            "hint": "DND, guest inside, return later"
+          },
+          "issue": {
+            "title": "Report Maintenance / Damage",
+            "hint": "Create a work order"
+          },
+          "supplies": {
+            "title": "Request Supplies",
+            "hint": "Towels, linens, amenities"
+          },
+          "found": {
+            "title": "Report Found Item",
+            "hint": "Lost & Found"
+          },
+          "note": {
+            "title": "Add Room Note",
+            "hint": "Share operational information"
+          },
+          "flags": {
+            "title": "Room Flags",
+            "hint": "Pet room, smoke smell, late checkout"
+          },
+          "info": {
+            "title": "Room Information",
+            "hint": "Reservation, status and history"
+          },
+          "linen": {
+            "title": "Linen Exchange",
+            "hint": "Dirty linens out, fresh linens in"
+          },
+          "sync": {
+            "title": "Cleaning / Sync Details",
+            "hint": "What is waiting to reach the server"
+          }
+        }
       },
       "knock": {
         "title": "Before you enter",
@@ -944,6 +988,125 @@
         "finishSteps": "Tick all five steps to continue.",
         "cantEnter": "Can't Enter / Report Exception",
         "cancel": "Cancel"
+      },
+      "sheets": {
+        "discard": {
+          "title": "Discard what you entered?",
+          "message": "You have unsaved changes.",
+          "keep": "Keep editing",
+          "discard": "Discard"
+        },
+        "photo": {
+          "take": "Take Photo",
+          "retake": "Retake Photo",
+          "gallery": "Choose from Gallery",
+          "remove": "Remove Photo",
+          "previewLabel": "Selected photo preview",
+          "cameraDenied": "Camera access is off. Allow it in Settings, or choose a photo from the gallery.",
+          "failed": "Could not open the photo. Try again."
+        }
+      },
+      "exception": {
+        "title": "Can't Enter — Room {{room}}",
+        "question": "What prevented service?",
+        "reasons": {
+          "dnd": {
+            "label": "Do Not Disturb",
+            "hint": "DND sign or no answer"
+          },
+          "guest_inside": {
+            "label": "Guest inside",
+            "hint": "Guest is in the room"
+          },
+          "come_back_later": {
+            "label": "Come back later",
+            "hint": "Guest asked you to return"
+          },
+          "double_locked": {
+            "label": "Door double-locked",
+            "hint": "Can't open the door"
+          },
+          "guest_declined": {
+            "label": "Guest declined service",
+            "hint": "Guest doesn't want housekeeping"
+          },
+          "other": {
+            "label": "Other access issue",
+            "hint": "Add a note"
+          }
+        },
+        "returnWhen": "When should you return?",
+        "hotelTime": "Hotel local time.",
+        "noteOptional": "Note (optional)",
+        "noteRequired": "Note",
+        "noteLabel": "Exception note",
+        "notePlaceholder": "Anything the supervisor should know",
+        "submit": "Record Exception",
+        "needsConnection": "Connect to the internet to record this. Nothing is saved while offline.",
+        "currentDnd": "This room is on Do Not Disturb.",
+        "currentDeclined": "Service is marked as declined.",
+        "clearDnd": "Guest answered — clear DND",
+        "restoreService": "Restore service",
+        "errors": {
+          "reason": {
+            "required": "Choose what prevented service."
+          },
+          "time": {
+            "required": "Enter the time you will return.",
+            "invalid": "Use a time like 1:30 PM.",
+            "past": "That time has already passed today."
+          },
+          "note": {
+            "required": "Add a note for this reason.",
+            "tooShort": "Add a little more detail.",
+            "tooLong": "That note is too long."
+          }
+        }
+      },
+      "flags": {
+        "title": "Room Flags — Room {{room}}",
+        "eyebrow": "Flag a condition"
+      },
+      "note": {
+        "title": "Add Room Note — Room {{room}}",
+        "label": "Note",
+        "needsConnection": "Connect to the internet to save a note. Your draft is kept.",
+        "recent": "Recent notes",
+        "recentOffline": "Notes load when you are online.",
+        "loadFailed": "Could not load recent notes.",
+        "none": "No notes yet."
+      },
+      "sync": {
+        "titleOnline": "Sync Details",
+        "titleOffline": "Working Offline",
+        "lastSync": "Last successful sync: {{time}}",
+        "neverSynced": "No successful sync yet this session.",
+        "pending": "Pending changes: {{count}}",
+        "offlineHelp": "Changes are kept on this device and sent when you are back online.",
+        "allSaved": "Everything is saved on the server.",
+        "retry": "Retry Sync",
+        "rowWithRoom": "Room {{room}} — {{kind}}",
+        "failedHelp": "Some changes could not be sent. Tell your supervisor before leaving the room.",
+        "kinds": {
+          "start": "Start cleaning",
+          "checklist": "Checklist update",
+          "checklist_plural": "Checklist updates ({{count}})",
+          "linen": "Linen counts",
+          "completion": "Completion request",
+          "work_order": "Work order",
+          "work_order_update": "Work order update",
+          "room_status": "Room status change",
+          "task": "Task update",
+          "logbook": "Logbook entry",
+          "other": "Update"
+        },
+        "states": {
+          "pending": "Pending",
+          "retrying": "Retrying",
+          "failed": "Failed",
+          "conflict": "Needs attention"
+        },
+        "unreadable": "Could not read the work-order queue on this device, so \"everything is saved\" can't be confirmed."
       }
     }
   },
@@ -1175,12 +1338,76 @@
     "details": "Details",
     "optional": "(optional)",
     "titlePlaceholder": "e.g. Toilet not flushing, A/C not cooling",
-    "detailsPlaceholder": "Describe what you found…"
+    "detailsPlaceholder": "Describe what you found…",
+    "sheetTitle": "Report an Issue",
+    "photo": "Photo",
+    "saveOffline": "Save Work Order",
+    "offlineQueued": "No connection. The work order is saved on this device and sent when you are back online.",
+    "photoNeedsConnection": "Photos need a connection. Remove the photo or reconnect to submit.",
+    "savedOffline": "Saved on this device. It will be sent when you are online.",
+    "submittedOnline": "Work order submitted.",
+    "submittedNoPhoto": "Work order submitted without a photo.",
+    "retryPhoto": "Retry Photo Upload",
+    "finishWithoutPhoto": "Finish Without Photo",
+    "photoFailed": "The work order was created, but the photo did not upload. Retry the photo — a second work order will not be created.",
+    "createdWithoutPhoto": "The work order was created. Add the photo now or finish without it.",
+    "failed": "The work order was not submitted. Your details are kept — try again.",
+    "failedUnsure": "No answer from the server. Your details are kept; submitting again will not create a duplicate.",
+    "errors": {
+      "title": {
+        "required": "Describe what is wrong.",
+        "tooLong": "That title is too long."
+      },
+      "category": {
+        "required": "Choose a category."
+      },
+      "details": {
+        "tooLong": "Details are too long."
+      }
+    },
+    "categories": {
+      "plumbing": "Plumbing",
+      "electrical": "Electrical",
+      "hvac": "HVAC / A/C",
+      "furniture": "Furniture",
+      "appliance": "Appliance",
+      "structural": "Structural",
+      "safety": "Safety",
+      "doors_locks": "Doors / Locks",
+      "painting": "Painting",
+      "general": "General"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "urgent": "Urgent"
+    }
   },
   "supplies": {
     "request": "Request Supplies",
     "roomTapHint": "Room {{room}} — tap what you need",
-    "otherPlaceholder": "Other (e.g. extra pillow, folding cot...)"
+    "otherPlaceholder": "Other (e.g. extra pillow, folding cot...)",
+    "sheetTitle": "Request Supplies — Room {{room}}",
+    "items": {
+      "towels": "Bath towels",
+      "pillowcases": "Sheets / Pillowcases",
+      "toiletries": "Toiletries",
+      "trash_bags": "Trash bags",
+      "amenities": "Amenities"
+    },
+    "increase": "More {{item}}",
+    "decrease": "Fewer {{item}}",
+    "otherDetails": "Other details",
+    "total": "Total requested: {{count}}",
+    "send": "Send Supply Request",
+    "sent": "Supply request sent to your supervisor.",
+    "needsConnection": "Connect to the internet to send a supply request.",
+    "failed": "The request did not go through. Your selections are kept — try again.",
+    "failedUnsure": "No answer from the server. Your selections are kept; sending again will not create a duplicate.",
+    "errors": {
+      "empty": "Choose at least one item or describe what you need.",
+      "noteTooLong": "Details are too long."
+    }
   },
   "profile": {
     "me": "Me",
@@ -1277,7 +1504,16 @@
     "offlineError": "Connect to the internet to report a found item.",
     "submitError": "Could not submit found item. Try again.",
     "cameraPermissionTitle": "Camera Access",
-    "cameraPermissionMessage": "Allow camera access to photograph the item."
+    "cameraPermissionMessage": "Allow camera access to photograph the item.",
+    "whatFound": "What did you find?",
+    "photo": "Photo",
+    "submitted": "Found item reported to Lost & Found.",
+    "photoError": "The photo did not upload. Try again, or remove it to report without a photo.",
+    "reminderTitle": "Handling reminder",
+    "reminderBody": "Follow hotel procedure for securing and transferring the item.",
+    "errors": {
+      "description": "Describe the item."
+    }
   },
   "alerts": {
     "subtitle": "AI-powered risk alerts for your property",

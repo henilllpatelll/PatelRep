@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, type ReactNode } from "react";
+import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,12 @@ interface Props {
   children: ReactNode;
   /** Pinned under the scrolling content (primary buttons). */
   footer?: ReactNode;
+  /**
+   * When this value changes (and is set), the body scrolls to its end so a field or
+   * message that just appeared below the fold is not missed. Forms use it for the
+   * time entry that opens after a choice and for the error under it.
+   */
+  scrollKey?: string | null;
   testID?: string;
 }
 
@@ -23,10 +29,29 @@ interface Props {
  * keyboard, closes from the backdrop and the Android back button, and scrolls
  * rather than clipping under large text.
  */
-export function BottomSheet({ visible, title, onClose, children, footer, testID }: Props) {
+export function BottomSheet({ visible, title, onClose, children, footer, scrollKey, testID }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const titleRef = useRef<Text>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (!visible || !scrollKey) return;
+    const timer = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    return () => clearTimeout(timer);
+  }, [visible, scrollKey]);
+
+  // Screen readers land on the sheet's title, not on whatever is behind it.
+  useEffect(() => {
+    // findNodeHandle throws on react-native-web; there the browser manages focus.
+    if (!visible || Platform.OS === "web") return;
+    const timer = setTimeout(() => {
+      const node = titleRef.current ? findNodeHandle(titleRef.current) : null;
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -48,6 +73,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, testID 
         >
           <View style={styles.header}>
             <Text
+              ref={titleRef}
               accessibilityRole="header"
               maxFontSizeMultiplier={MAX_FONT_SCALE}
               style={[styles.title, { color: theme.textPrimary }]}
@@ -65,6 +91,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, testID 
             </Pressable>
           </View>
           <ScrollView
+            ref={scrollRef}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.body}
             showsVerticalScrollIndicator={false}

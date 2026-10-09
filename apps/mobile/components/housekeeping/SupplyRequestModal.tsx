@@ -1,20 +1,25 @@
-import { useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { useRef, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { api } from "@/lib/api/client";
+import { useAppStore } from "@/stores/appStore";
+import { Button } from "@/components/ui/Button";
+import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
-import { Button } from "@/components/ui/Button";
-
-const SUPPLY_ITEMS = [
-  { key: "towels", label: "Extra towels" },
-  { key: "pillowcases", label: "Pillowcases / sheets" },
-  { key: "toiletries", label: "Toiletries (shampoo, soap)" },
-  { key: "trash_bags", label: "Trash bags" },
-  { key: "amenities", label: "Amenities kit" },
-] as const;
+import { newSessionId } from "@/lib/housekeeping/cleanSession";
+import {
+  SUPPLY_CATALOG,
+  SUPPLY_MAX_QTY,
+  SUPPLY_NOTE_MAX,
+  clampQty,
+  submitSupplyRequest,
+  totalRequested,
+  validateSupply,
+  type Quantities,
+} from "@/lib/housekeeping/supplyRequest";
+import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
+import { BottomSheet, MAX_FONT_SCALE } from "./roomDetail/BottomSheet";
+import { FieldError, FieldLabel, StatusText, TextArea } from "./roomDetail/FormBits";
 
 interface Props {
   visible: boolean;
@@ -23,170 +28,192 @@ interface Props {
   onClose: () => void;
 }
 
+function QuantityRow({ label, value, onChange, disabled }: { label: string; value: number; onChange: (next: number) => void; disabled: boolean }) {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  return (
+    <View style={styles.row} testID={`supply-row-${label}`}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textPrimary }]}>
+        {label}
+      </Text>
+      <View style={styles.controls}>
+        <Pressable
+          onPress={() => onChange(clampQty(value - 1))}
+          disabled={disabled || value <= 0}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={t("supplies.decrease", { item: label })}
+          accessibilityState={{ disabled: disabled || value <= 0 }}
+          style={[styles.step, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }, (disabled || value <= 0) && styles.dim]}
+        >
+          <Text style={[styles.glyph, { color: theme.textPrimary }]}>−</Text>
+        </Pressable>
+        <Text
+          accessibilityRole="adjustable"
+          accessibilityLabel={label}
+          accessibilityValue={{ min: 0, max: SUPPLY_MAX_QTY, now: value }}
+          style={[styles.count, { color: theme.textPrimary }]}
+        >
+          {value}
+        </Text>
+        <Pressable
+          onPress={() => onChange(clampQty(value + 1))}
+          disabled={disabled || value >= SUPPLY_MAX_QTY}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={t("supplies.increase", { item: label })}
+          accessibilityState={{ disabled: disabled || value >= SUPPLY_MAX_QTY }}
+          style={[styles.step, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }, (disabled || value >= SUPPLY_MAX_QTY) && styles.dim]}
+        >
+          <Text style={[styles.glyph, { color: theme.textPrimary }]}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Supply request with quantities. It posts the existing housekeeping task, so the
+ * web tasks board shows it unchanged; success is only claimed once the server
+ * answered. Online only: a request "sent" from a device with no signal would not
+ * reach the supervisor. Selections survive a failed send, and a retry after a lost
+ * answer first checks for the request it may already have made.
+ */
 export default function SupplyRequestModal({ visible, roomId, roomNumber, onClose }: Props) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [customNote, setCustomNote] = useState("");
-  const [loading, setLoading] = useState(false);
+  const isOnline = useAppStore((state) => state.isOnline);
 
-  function toggle(key: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
+  const [quantities, setQuantities] = useState<Quantities>({});
+  const [note, setNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const requestId = useRef(newSessionId());
+  const mayHaveBeenSent = useRef(false);
+  const busyRef = useRef(false);
+
+  const total = totalRequested(quantities);
+  const dirty = total > 0 || note.trim() !== "";
 
   function reset() {
-    setSelected(new Set());
-    setCustomNote("");
+    setQuantities({});
+    setNote("");
+    setFailure(null);
+    setFieldError(null);
+    requestId.current = newSessionId();
+    mayHaveBeenSent.current = false;
+  }
+
+  const requestClose = useDiscardGuard({ dirty, busy: sending, onClose, onDiscard: reset });
+
+  /** Editing a request that may already have gone out makes it a different request. */
+  function editedAfterUnsure() {
+    if (!mayHaveBeenSent.current) return;
+    requestId.current = newSessionId();
+    mayHaveBeenSent.current = false;
+  }
+
+  function setQty(key: string, value: number) {
+    editedAfterUnsure();
+    setQuantities((current) => ({ ...current, [key]: clampQty(value) }));
+    setFieldError(null);
+    setFailure(null);
   }
 
   async function submit() {
-    const items = SUPPLY_ITEMS.filter((item) => selected.has(item.key)).map((item) => item.label);
-    const allItems = customNote.trim() ? [...items, customNote.trim()] : items;
-    if (allItems.length === 0) {
-      toast.error("Pick at least one item to request.");
+    if (busyRef.current) return;
+    const check = validateSupply(quantities, note);
+    if (!check.ok) {
+      setFieldError(t(check.code === "empty" ? "supplies.errors.empty" : "supplies.errors.noteTooLong"));
       return;
     }
-    setLoading(true);
+    busyRef.current = true;
+    setSending(true);
+    setFailure(null);
     try {
-      await api.post("/tasks", {
-        title: `Supply request — Room ${roomNumber}`,
-        description: `Room ${roomNumber} needs: ${allItems.join(", ")}.`,
-        task_type: "housekeeping",
-        priority: "normal",
-        room_id: roomId,
-      });
-      toast.success("Your supervisor has been notified.");
+      const result = await submitSupplyRequest({ roomId, roomNumber, quantities, note, requestId: requestId.current }, mayHaveBeenSent.current);
+      if (result.outcome === "failed") {
+        mayHaveBeenSent.current = result.ambiguous;
+        setFailure(t(result.ambiguous ? "supplies.failedUnsure" : "supplies.failed"));
+        return;
+      }
+      toast.success(t("supplies.sent"));
       reset();
       onClose();
-    } catch (err: unknown) {
-      toast.error((err as Error).message ?? "Failed to send request");
     } finally {
-      setLoading(false);
+      busyRef.current = false;
+      setSending(false);
     }
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity
-          style={[styles.sheet, { backgroundColor: theme.surface }]}
-          activeOpacity={1}
-        >
-          <ScrollView
-            contentContainerStyle={[styles.sheetContent, { paddingBottom: insets.bottom + 16 }]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.titleRow}>
-              <Ionicons name="cube-outline" size={16} color={theme.primaryAction} />
-              <Text style={[styles.title, { color: theme.textPrimary }]}>{t("supplies.request")}</Text>
-            </View>
-            <Text style={[styles.sub, { color: theme.textMuted }]}>{t("supplies.roomTapHint", { room: roomNumber })}</Text>
-            <View style={styles.items}>
-              {SUPPLY_ITEMS.map((item) => {
-                const active = selected.has(item.key);
-                return (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[
-                      styles.item,
-                      {
-                        backgroundColor: active ? theme.primarySoft : theme.surfaceSubtle,
-                        borderColor: active ? theme.primaryLine : theme.border,
-                      },
-                    ]}
-                    onPress={() => toggle(item.key)}
-                    activeOpacity={0.8}
-                    accessibilityRole="checkbox"
-                    accessibilityLabel={item.label}
-                    accessibilityState={{ checked: active }}
-                  >
-                    <View
-                      style={[
-                        styles.check,
-                        {
-                          borderColor: active ? theme.primaryAction : theme.border,
-                          backgroundColor: active ? theme.primaryAction : "transparent",
-                        },
-                      ]}
-                    >
-                      {active ? <Ionicons name="checkmark" size={13} color={theme.onPrimary} /> : null}
-                    </View>
-                    <Text
-                      style={[
-                        styles.itemLabel,
-                        { color: active ? theme.primaryAction : theme.textSecondary, fontWeight: active ? "700" : "600" },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <TextInput
-              style={[styles.customInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
-              value={customNote}
-              onChangeText={setCustomNote}
-              placeholder={t("supplies.otherPlaceholder")}
-              placeholderTextColor={theme.textMuted}
-            />
-            <View style={styles.actions}>
-              <Button
-                label="Send Request"
-                icon="send"
-                onPress={submit}
-                loading={loading}
-                disabled={loading || (selected.size === 0 && !customNote.trim())}
-                style={styles.sendBtn}
-              />
-              <Button
-                label="Cancel"
-                variant="ghost"
-                size="sm"
-                onPress={() => { reset(); onClose(); }}
-              />
-            </View>
-          </ScrollView>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+    <BottomSheet
+      visible={visible}
+      title={t("supplies.sheetTitle", { room: roomNumber })}
+      onClose={requestClose}
+      testID="supplies-sheet"
+      footer={
+        <>
+          {!isOnline ? <StatusText tone="warn" message={t("supplies.needsConnection")} testID="supplies-offline" /> : null}
+          <Button
+            label={t("supplies.send")}
+            icon="send"
+            onPress={() => void submit()}
+            loading={sending}
+            disabled={sending || !isOnline || (total === 0 && !note.trim())}
+            size="lg"
+            testID="supplies-send"
+          />
+        </>
+      }
+    >
+      <View accessibilityRole="list" style={styles.list}>
+        {SUPPLY_CATALOG.map((item) => (
+          <QuantityRow key={item.key} label={t(item.labelKey)} value={clampQty(quantities[item.key] ?? 0)} onChange={(next) => setQty(item.key, next)} disabled={sending} />
+        ))}
+      </View>
+
+      <FieldLabel>{t("supplies.otherDetails")}</FieldLabel>
+      <TextArea
+        label={t("supplies.otherDetails")}
+        value={note}
+        onChangeText={(next) => {
+          editedAfterUnsure();
+          setNote(next);
+          setFieldError(null);
+          setFailure(null);
+        }}
+        max={SUPPLY_NOTE_MAX}
+        placeholder={t("supplies.otherPlaceholder")}
+        editable={!sending}
+        invalid={Boolean(fieldError)}
+        testID="supplies-note"
+      />
+      <FieldError message={fieldError} testID="supplies-error" />
+
+      <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.total, { color: theme.textPrimary }]} testID="supplies-total">
+        {t("supplies.total", { count: total })}
+      </Text>
+      {failure ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.failure, { color: theme.status.dirty }]} testID="supplies-failure">
+          {failure}
+        </Text>
+      ) : null}
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: "92%" },
-  sheetContent: { padding: 20, gap: 14 },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 16, fontWeight: "900" },
-  sub: { fontSize: 12.5, marginTop: -6 },
-  items: { gap: 8 },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  check: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
-  itemLabel: { fontSize: 14 },
-  customInput: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    fontSize: 13,
-  },
-  actions: { flexDirection: "row", alignItems: "stretch", gap: 14 },
-  sendBtn: { flex: 1, borderRadius: 12 },
+  list: { gap: 2 },
+  row: { minHeight: 56, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: "700" },
+  controls: { flexDirection: "row", alignItems: "center", gap: 14 },
+  step: { width: 48, height: 48, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  glyph: { fontSize: 24, fontWeight: "700", lineHeight: 28 },
+  count: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", minWidth: 36, textAlign: "center" },
+  dim: { opacity: 0.4 },
+  total: { fontSize: 15, fontWeight: "800" },
+  failure: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
 });

@@ -29,6 +29,9 @@ interface AppState {
   // Network
   isOnline: boolean;
   setIsOnline: (online: boolean) => void;
+  /** ISO time of the last sync that left nothing waiting (in memory; resets with the app). */
+  lastSyncedAt: string | null;
+  setLastSyncedAt: (at: string | null) => void;
 
   // Rooms (housekeeper view)
   myRooms: Room[];
@@ -142,6 +145,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
 
   isOnline: true,
+  lastSyncedAt: null,
+  setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
   setIsOnline: (online: boolean) => {
     set({ isOnline: online });
     if (online) {

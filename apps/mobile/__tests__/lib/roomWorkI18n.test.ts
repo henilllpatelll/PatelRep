@@ -121,7 +121,7 @@ describe("rooms.work translations", () => {
  * never resolved at runtime (the plural-suffix trap) shows up as the raw key.
  */
 describe("rooms.work through the app's real i18next configuration", () => {
-  const PARAMS = { count: 2, done: 1, total: 3, minutes: 5, room: "224", number: "224", time: "9:00 AM", out: 2, in: 2, section: "Bedroom", n: 1, text: "Knock" };
+  const PARAMS = { count: 2, done: 1, total: 3, minutes: 5, room: "224", number: "224", time: "9:00 AM", out: 2, in: 2, section: "Bedroom", n: 1, text: "Knock", kind: "Update", item: "Towels" };
 
   function instance(lng: "en" | "es") {
     const i18n = i18next.createInstance();

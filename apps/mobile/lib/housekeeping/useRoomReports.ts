@@ -10,6 +10,7 @@ import {
   type RoomBlocker,
 } from "@/lib/housekeeping/roomBlockers";
 import type { useRoomExceptions } from "@/lib/housekeeping/useRoomExceptions";
+import type { ExceptionPlan } from "@/lib/housekeeping/serviceException";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -110,6 +111,31 @@ export function useRoomReports({ room, isOnline, hotelTimezone, exceptions, upda
     [room, isOnline, hotelTimezone, exceptions, submitNote, toast, t],
   );
 
+  /**
+   * Record a pre-entry access issue. The server attempt (or Service Declined) is the
+   * record and decides success; the room note that keeps the Needs Attention signal is
+   * best-effort afterwards — a failed note never turns a recorded exception into an error.
+   * Nothing here touches a clean session or the room's status.
+   */
+  const submitException = useCallback(
+    async (plan: ExceptionPlan): Promise<boolean> => {
+      if (!room) return false;
+      if (!isOnline) {
+        toast.info(t("rooms.dash.detail.restriction.needsConnection"));
+        return false;
+      }
+      if (plan.kind === "declined") {
+        if (!(await exceptions.markDeclined(plan.note))) return false;
+        await sendDeclinedServiceAlert(room.room_number);
+        return true;
+      }
+      if (!(await exceptions.record(plan.result, plan.returnAt, plan.note))) return false;
+      if (plan.roomNote) await submitNote(plan.roomNote);
+      return true;
+    },
+    [room, isOnline, exceptions, submitNote, toast, t],
+  );
+
   const toggleDnd = useCallback(async () => {
     if (!room || !isOnline) {
       toast.info(t("rooms.detail.alerts.dndNeedsConnection"));
@@ -151,5 +177,5 @@ export function useRoomReports({ room, isOnline, hotelTimezone, exceptions, upda
     }
   }, [room, isOnline, exceptions, updateLocalRoom, toast, t]);
 
-  return { noteLoading, blockerBusy, dndLoading, declineLoading, submitNote, submitBlocker, toggleDnd, toggleDeclineService };
+  return { noteLoading, blockerBusy, dndLoading, declineLoading, submitNote, submitBlocker, submitException, toggleDnd, toggleDeclineService };
 }

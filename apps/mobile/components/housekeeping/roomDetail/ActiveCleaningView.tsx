@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,7 @@ import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
 import { CleaningChecklist } from "./CleaningChecklist";
 import { CleaningTimer } from "./CleaningTimer";
 import { DamagePhotoBanner } from "./DamagePhotoBanner";
-import { LinenExchangeRow, LinenExchangeSheet } from "./LinenExchange";
+import { LinenExchangeRow } from "./LinenExchange";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 
 interface Props {
@@ -22,7 +22,8 @@ interface Props {
   locked: boolean;
   placeholder: string | null;
   onToggle: (key: string, checked: boolean) => void;
-  onSaveLinen: (counts: { dirtyOut: number; cleanIn: number }) => Promise<void>;
+  /** The Linen Exchange sheet lives on the screen so Report / More can open it too. */
+  onOpenLinen: () => void;
   onReportFoundItem: () => void;
   onOpenInfo: () => void;
 }
@@ -40,13 +41,12 @@ export function ActiveCleaningView({
   locked,
   placeholder,
   onToggle,
-  onSaveLinen,
+  onOpenLinen,
   onReportFoundItem,
   onOpenInfo,
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const [linenOpen, setLinenOpen] = useState(false);
   const reclean = view.kind === "reclean";
   const items = session?.checklist ?? [];
 
@@ -107,17 +107,7 @@ export function ActiveCleaningView({
       />
 
       {!reclean && session && tracksLinen(session.cleanType ?? room.clean_type) ? (
-        <>
-          <LinenExchangeRow linen={session.linen} onOpen={() => setLinenOpen(true)} />
-          <LinenExchangeSheet
-            visible={linenOpen}
-            roomNumber={room.room_number}
-            linen={session.linen}
-            locked={locked}
-            onSave={onSaveLinen}
-            onClose={() => setLinenOpen(false)}
-          />
-        </>
+        <LinenExchangeRow linen={session.linen} onOpen={onOpenLinen} />
       ) : null}
     </View>
   );

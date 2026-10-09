@@ -42,28 +42,29 @@ export async function createLostFoundItem(payload: CreateLostFoundPayload): Prom
   await api.post<{ data: unknown }>("/lost-found", payload);
 }
 
-export async function uploadLostFoundPhoto(uri: string): Promise<string | null> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return null;
+/**
+ * Upload one photo and return its stored URL. Throws when it did not go through:
+ * callers must not carry on as if the photo were attached.
+ */
+export async function uploadLostFoundPhoto(uri: string): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Not authenticated");
 
-    const formData = new FormData();
-    formData.append("file", {
-      uri,
-      type: "image/jpeg",
-      name: `photo_${Date.now()}.jpg`,
-    } as unknown as Blob);
+  const formData = new FormData();
+  formData.append("file", {
+    uri,
+    type: "image/jpeg",
+    name: `photo_${Date.now()}.jpg`,
+  } as unknown as Blob);
 
-    const response = await fetch(`${API_BASE}/lost-found/upload-photo`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${session.access_token}` },
-      body: formData,
-    });
-
-    if (!response.ok) return null;
-    const json = await response.json();
-    return (json as { data?: { url?: string } })?.data?.url ?? null;
-  } catch {
-    return null;
-  }
+  const response = await fetch(`${API_BASE}/lost-found/upload-photo`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`Photo upload failed (HTTP ${response.status})`);
+  const json = (await response.json()) as { data?: { url?: string } };
+  const url = json?.data?.url;
+  if (!url) throw new Error("Photo upload failed");
+  return url;
 }

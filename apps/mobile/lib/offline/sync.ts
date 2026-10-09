@@ -8,6 +8,7 @@ import {
   upsertRooms,
 } from "@/lib/offline/db";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
+import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
 import { localDate } from "@/lib/utils/date";
 import type { Room } from "@/stores/appStore";
 
@@ -33,6 +34,8 @@ export async function syncOnConnect(): Promise<void> {
     if (user && (user.role === "housekeeper" || user.role === "housekeeping_supervisor")) {
       await refreshRooms();
     }
+    // "Last sync" only moves when the round-trip left nothing waiting.
+    if ((await countPendingChanges()) === 0) useAppStore.getState().setLastSyncedAt(new Date().toISOString());
   } finally {
     _syncOnConnectInProgress = false;
   }

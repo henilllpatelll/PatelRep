@@ -18,7 +18,12 @@ import { BeforeCleaningView } from "@/components/housekeeping/roomDetail/BeforeC
 import { CompleteCleaningSheet } from "@/components/housekeeping/roomDetail/CompleteCleaningSheet";
 import { NeedsAttentionView } from "@/components/housekeeping/roomDetail/NeedsAttentionView";
 import { ReadyRoomView } from "@/components/housekeeping/roomDetail/ReadyRoomView";
+import { LinenExchangeSheet } from "@/components/housekeeping/roomDetail/LinenExchange";
 import { ReportMoreSheet, type ReportTarget } from "@/components/housekeeping/roomDetail/ReportMoreSheet";
+import { RoomFlagsSheet } from "@/components/housekeeping/roomDetail/RoomFlagsSheet";
+import { RoomNoteSheet } from "@/components/housekeeping/roomDetail/RoomNoteSheet";
+import { ServiceExceptionSheet } from "@/components/housekeeping/roomDetail/ServiceExceptionSheet";
+import { SyncDetailsSheet } from "@/components/housekeeping/roomDetail/SyncDetailsSheet";
 import { RoomDetailHeader } from "@/components/housekeeping/roomDetail/RoomDetailHeader";
 import { RoomInformationSheet } from "@/components/housekeeping/roomDetail/RoomInformationSheet";
 import { RoomStickyActions } from "@/components/housekeeping/roomDetail/RoomStickyActions";
@@ -30,6 +35,8 @@ import { cleanTypeLabel, locationLabel, type Translate } from "@/lib/housekeepin
 import { useRoomExceptions } from "@/lib/housekeeping/useRoomExceptions";
 import { useRoomReports } from "@/lib/housekeeping/useRoomReports";
 import { getBlockersForRoom } from "@/lib/housekeeping/roomBlockers";
+import { getReportActions } from "@/lib/housekeeping/reportActions";
+import { countPendingSync } from "@/lib/housekeeping/syncDetails";
 import { hasRoomInProgress } from "@/lib/housekeeping/roomWorkflow";
 import {
   findNextRoom,
@@ -37,7 +44,7 @@ import {
   resolveRoomDetailView,
   type StickyActionId,
 } from "@/lib/housekeeping/roomDetailState";
-import { getPhase } from "@/lib/housekeeping/cleanSession";
+import { getPhase, tracksLinen } from "@/lib/housekeeping/cleanSession";
 import { selectSession, useCleanSessionStore } from "@/stores/cleanSessionStore";
 
 function getRoomStatusKey(status: string): StatusKey {
@@ -118,7 +125,7 @@ const SHEET_HANDOFF_MS = Platform.OS === "ios" ? 350 : 0;
 export default function RoomDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { t, i18n } = useTranslation();
-  const { isOnline, myRooms, setMyRooms, user, hotelTimezone, refreshRooms } = useAppStore();
+  const { isOnline, myRooms, setMyRooms, user, hotelTimezone, refreshRooms, pendingActions = [] } = useAppStore();
   const id = typeof roomId === "string" ? roomId : undefined;
   const session = useCleanSessionStore(selectSession(id));
   const sessions = useCleanSessionStore((state) => state.sessions);
@@ -135,6 +142,8 @@ export default function RoomDetailScreen() {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [knockOpen, setKnockOpen] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [linenOpen, setLinenOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [target, setTarget] = useState<ReportTarget | null>(null);
 
   // One start/finish at a time: a second tap while the first is in flight does nothing.
@@ -192,6 +201,8 @@ export default function RoomDetailScreen() {
     setCompleteOpen(false);
     setKnockOpen(false);
     setRecordOpen(false);
+    setLinenOpen(false);
+    setSyncOpen(false);
     setTarget(null);
   }, [room?.id]);
 
@@ -312,9 +323,15 @@ export default function RoomDetailScreen() {
     handoffTimer.current = setTimeout(open, SHEET_HANDOFF_MS);
   }
 
+  /** One sheet at a time: close the hub, then open the chosen sheet once it has finished dismissing. */
   function openReportTarget(next: ReportTarget) {
     setMoreOpen(false);
-    openAfterHandoff(() => setTarget(next));
+    openAfterHandoff(() => {
+      if (next === "info") setInfoOpen(true);
+      else if (next === "linen") setLinenOpen(true);
+      else if (next === "sync") setSyncOpen(true);
+      else setTarget(next);
+    });
   }
 
   if (loading) {
@@ -357,10 +374,19 @@ export default function RoomDetailScreen() {
     ? null
     : t(view.working ? (isOnline ? "rooms.detail.session.loadingChecklist" : "rooms.detail.session.checklistNeedsConnection") : "rooms.detail.session.startToLoad");
   const reportable = view.kind === "ready" || view.kind === "reclean" || view.kind === "in_progress" || view.kind === "needs_attention";
-  const blockers = getBlockersForRoom(room);
-  const blockersTitle = t(
-    room.status === "DIRTY" || room.status === "IN_PROGRESS" ? "rooms.detail.blockerSections.roomFlags" : "rooms.detail.blockerSections.quickBlockers",
-  );
+  // Access problems live in Can't Enter; what remains here are condition flags that create follow-up work.
+  const flags = getBlockersForRoom(room).filter((blocker) => blocker.sideEffect);
+  const linenApplicable = Boolean(session) && view.kind !== "reclean" && tracksLinen(session?.cleanType ?? room.clean_type);
+  const pendingCount = countPendingSync(sessions, pendingActions);
+  const reportActions = getReportActions({
+    role: user?.role,
+    isOnline,
+    room,
+    hasLiveSession: Boolean(session && !session.completionConfirmed),
+    linenApplicable,
+    linenLocked: locked,
+    pendingCount,
+  });
 
   function onAction(actionId: StickyActionId) {
     const current = room!;
@@ -474,7 +500,7 @@ export default function RoomDetailScreen() {
             locked={locked}
             placeholder={checklistPlaceholder}
             onToggle={(key, checked) => useCleanSessionStore.getState().toggleItem(room.id, key, checked)}
-            onSaveLinen={(counts) => useCleanSessionStore.getState().saveLinen(room.id, counts)}
+            onOpenLinen={() => setLinenOpen(true)}
             onReportFoundItem={() => setTarget("found")}
             onOpenInfo={() => setInfoOpen(true)}
           />
@@ -495,13 +521,12 @@ export default function RoomDetailScreen() {
       <ReportMoreSheet
         visible={moreOpen}
         room={room}
-        blockers={blockers}
-        blockersTitle={blockersTitle}
-        reports={reports}
-        showDnd={room.status === "OCCUPIED" || room.status === "PICKUP" || room.dnd_flag}
-        showDecline={room.status === "PICKUP"}
+        actions={reportActions}
+        hasFlags={flags.length > 0}
+        isOnline={isOnline}
+        pendingCount={pendingCount}
         onClose={() => setMoreOpen(false)}
-        onOpenTarget={openReportTarget}
+        onSelect={openReportTarget}
       />
 
       <CompleteCleaningSheet
@@ -510,6 +535,7 @@ export default function RoomDetailScreen() {
         reclean={view.kind === "reclean"}
         completion={view.completion}
         startedAt={session?.startedAt}
+        cleanType={cleanTypeLabel(room, tr)}
         busy={busy}
         unsure={Boolean(session?.completionUnsure)}
         onConfirm={() => void submitCompletion(room)}
@@ -525,13 +551,47 @@ export default function RoomDetailScreen() {
         onCancel={() => setKnockOpen(false)}
         onCannotEnter={() => {
           setKnockOpen(false);
-          openAfterHandoff(() => setMoreOpen(true));
+          openAfterHandoff(() => setTarget("exception"));
         }}
       />
 
-      <ReportIssueModal visible={target === "issue"} roomId={room.id} roomNumber={room.room_number} onClose={() => setTarget(null)} />
-      <FoundItemModal visible={target === "found"} roomId={room.id} roomNumber={room.room_number} onClose={() => setTarget(null)} />
-      <SupplyRequestModal visible={target === "supplies"} roomId={room.id} roomNumber={room.room_number} onClose={() => setTarget(null)} />
+      {/* Forms mount only while open: nothing is fetched or rendered until it is needed. */}
+      {target === "exception" ? (
+        <ServiceExceptionSheet
+          visible
+          room={room}
+          isOnline={isOnline}
+          timeZone={hotelTimezone}
+          busy={exceptions.busy}
+          onSubmit={reports.submitException}
+          onClearDnd={async () => {
+            if (await exceptions.record("dnd_cleared")) setTarget(null);
+          }}
+          onRestoreService={async () => {
+            await reports.toggleDeclineService();
+            setTarget(null);
+          }}
+          onClose={() => setTarget(null)}
+        />
+      ) : null}
+      {target === "issue" ? <ReportIssueModal visible roomId={room.id} roomNumber={room.room_number} onClose={() => setTarget(null)} /> : null}
+      {target === "supplies" ? <SupplyRequestModal visible roomId={room.id} roomNumber={room.room_number} onClose={() => setTarget(null)} /> : null}
+      {target === "found" ? <FoundItemModal visible roomId={room.id} roomNumber={room.room_number} onClose={() => setTarget(null)} /> : null}
+      {target === "note" ? (
+        <RoomNoteSheet visible room={room} isOnline={isOnline} ctx={textCtx} saving={reports.noteLoading} onSave={reports.submitNote} onClose={() => setTarget(null)} />
+      ) : null}
+      {target === "flags" ? <RoomFlagsSheet visible room={room} flags={flags} isOnline={isOnline} reports={reports} onClose={() => setTarget(null)} /> : null}
+      {linenApplicable ? (
+        <LinenExchangeSheet
+          visible={linenOpen}
+          roomNumber={room.room_number}
+          linen={session?.linen}
+          locked={locked}
+          onSave={(counts) => useCleanSessionStore.getState().saveLinen(room.id, counts)}
+          onClose={() => setLinenOpen(false)}
+        />
+      ) : null}
+      {syncOpen ? <SyncDetailsSheet visible isOnline={isOnline} ctx={textCtx} onClose={() => setSyncOpen(false)} /> : null}
     </View>
   );
 }

@@ -22,7 +22,7 @@ from models.requests import (
 )
 from core.database import supabase
 from core.config import settings
-from core.roles import GM_ONLY_ROLES
+from core.roles import FLOOR_STAFF_ROLES, GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
 from services.asset_reliability import restore_active_work_order_downtime, start_asset_downtime
@@ -1431,7 +1431,7 @@ async def upload_work_order_photo(
     photo_type: str = Form("progress"),
     caption: Optional[str] = Form(None),
     current_user: CurrentUser = Depends(
-        require_role("engineer", "gm")
+        require_role("engineer", "gm", "housekeeper")
     ),
 ):
     if file.content_type not in ALLOWED_PHOTO_TYPES:
@@ -1445,7 +1445,7 @@ async def upload_work_order_photo(
 
     wo_check = (
         supabase.table("work_orders")
-        .select("id")
+        .select("id, created_by")
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -1453,6 +1453,9 @@ async def upload_work_order_photo(
     )
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
+    # A housekeeper attaches evidence to the issue they reported, never to engineering's.
+    if current_user.role in FLOOR_STAFF_ROLES and wo_check.data.get("created_by") != current_user.user_id:
+        raise HTTPException(status_code=403, detail="You can only add photos to work orders you reported")
 
     contents = await file.read(MAX_PHOTO_BYTES + 1)
     if len(contents) > MAX_PHOTO_BYTES:

@@ -10,7 +10,7 @@ import { api } from "@/lib/api/client";
  * nothing — so offline we say so and record nothing.
  */
 
-export type AttemptResult = "dnd_no_response" | "return_later" | "guest_answered" | "dnd_cleared";
+export type AttemptResult = "dnd_no_response" | "return_later" | "guest_answered" | "dnd_cleared" | "other";
 
 export interface RoomAttemptState {
   dnd_flag: boolean;
@@ -38,7 +38,7 @@ export interface AttemptInput {
 const pendingStamps = new Map<string, string>();
 
 function stampKey(input: AttemptInput): string {
-  return `${input.roomId}|${input.result}|${input.returnAt ?? ""}`;
+  return `${input.roomId}|${input.result}|${input.returnAt ?? ""}|${input.note ?? ""}`;
 }
 
 export function pendingAttemptStamp(input: AttemptInput): string {

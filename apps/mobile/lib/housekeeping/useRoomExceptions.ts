@@ -40,7 +40,7 @@ export function useRoomExceptions({ room, isOnline, updateLocalRoom, refreshRoom
   }, [roomId]);
 
   const record = useCallback(
-    async (result: AttemptResult, returnAt?: string): Promise<boolean> => {
+    async (result: AttemptResult, returnAt?: string, note?: string): Promise<boolean> => {
       if (!roomId) return false;
       if (!isOnline) {
         toast.info(t("rooms.dash.detail.restriction.needsConnection"));
@@ -48,7 +48,7 @@ export function useRoomExceptions({ room, isOnline, updateLocalRoom, refreshRoom
       }
       setBusy(true);
       try {
-        const outcome = await recordServiceAttempt({ roomId, result, returnAt }, isOnline);
+        const outcome = await recordServiceAttempt({ roomId, result, returnAt, note }, isOnline);
         if (outcome.outcome === "offline") {
           toast.info(t("rooms.dash.detail.restriction.needsConnection"));
           return false;
@@ -68,7 +68,7 @@ export function useRoomExceptions({ room, isOnline, updateLocalRoom, refreshRoom
     [roomId, isOnline, updateLocalRoom, refreshRooms, toast, t],
   );
 
-  const markDeclined = useCallback(async (): Promise<boolean> => {
+  const markDeclined = useCallback(async (note?: string): Promise<boolean> => {
     if (!roomId) return false;
     if (!isOnline) {
       toast.info(t("rooms.detail.alerts.serviceNeedsConnection"));
@@ -76,7 +76,7 @@ export function useRoomExceptions({ room, isOnline, updateLocalRoom, refreshRoom
     }
     setBusy(true);
     try {
-      const outcome = await recordServiceDeclined(roomId, isOnline);
+      const outcome = await recordServiceDeclined(roomId, isOnline, "guest_declined_housekeeping", note);
       if (outcome.outcome !== "recorded") {
         toast.error(outcome.outcome === "failed" ? outcome.message : t("rooms.detail.alerts.serviceNeedsConnection"));
         return false;

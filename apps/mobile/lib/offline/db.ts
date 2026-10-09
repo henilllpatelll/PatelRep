@@ -321,6 +321,34 @@ export async function getPendingSyncQueue(): Promise<unknown[]> {
   );
 }
 
+export interface SyncQueueSummaryRow {
+  id: number;
+  entity_type: string;
+  action: string;
+  entity_id: string | null;
+  /** Only the room, never the payload: the sync sheet must not show what was typed. */
+  room_id: string | null;
+  attempts: number;
+}
+
+/** Everything still queued, including items that ran out of retries (they stay visible, not hidden). */
+export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ id: number; entity_type: string; action: string; entity_id: string | null; payload: string; attempts: number }>(
+    "SELECT id, entity_type, action, entity_id, payload, attempts FROM sync_queue ORDER BY created_at ASC LIMIT 100",
+  );
+  return rows.map((row) => {
+    let roomId: string | null = null;
+    try {
+      const parsed = JSON.parse(row.payload) as { room_id?: unknown };
+      roomId = typeof parsed.room_id === "string" ? parsed.room_id : null;
+    } catch {
+      roomId = null;
+    }
+    return { id: row.id, entity_type: row.entity_type, action: row.action, entity_id: row.entity_id, room_id: roomId, attempts: row.attempts };
+  });
+}
+
 export async function incrementSyncQueueAttempts(id: number): Promise<void> {
   const db = await getDb();
   await db.runAsync(

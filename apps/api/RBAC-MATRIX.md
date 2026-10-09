@@ -228,7 +228,7 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | logbook.py | /v1/logbook/shift-summary/{summary_id}/acknowledge | POST | none |  |
 | logbook.py | /v1/logbook/shift-summary/generate | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L1384] |
 | lost_found.py | /v1/lost-found/upload-photo | POST | none |  |
-| lost_found.py | /v1/lost-found | POST | none |  |
+| lost_found.py | /v1/lost-found | POST | none | inline: current_user.role in FLOOR_STAFF_ROLES [L505] |
 | lost_found.py | /v1/lost-found | GET | none |  |
 | lost_found.py | /v1/lost-found/tag-suggestion | GET | none |  |
 | lost_found.py | /v1/lost-found/capabilities | GET | none |  |
@@ -262,8 +262,8 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | lost_found.py | /v1/lost-found/{item_id}/matches | GET | none |  |
 | lost_found.py | /v1/lost-found/{item_id} | GET | none |  |
 | lost_found.py | /v1/lost-found/{item_id}/custody-events | GET | none |  |
-| lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1320]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1320] |
-| lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1386]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1386] |
+| lost_found.py | /v1/lost-found/{item_id}/custody-events | POST | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1348]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1348] |
+| lost_found.py | /v1/lost-found/{item_id} | PATCH | role-restricted (inline, see source) | gate: if current_user.role not in LOST_FOUND_MANAGER_ROLES: raise HTTPException(...) [L1414]; inline: current_user.role not in LOST_FOUND_MANAGER_ROLES [L1414] |
 | lost_found.py | /v1/lost-found/{item_id} | DELETE | none |  |
 | management_roi.py | /v1/reports/roi/repeat-failures | GET | gm | require_role('gm') [L224] |
 | management_roi.py | /v1/reports/roi/downtime-revenue | GET | gm | require_role('gm') [L248] |
@@ -334,33 +334,33 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | room_unavailability.py | /v1/room-unavailability/{period_id}/release | POST | engineer, gm, housekeeping_supervisor | require_role(*MANAGE_ROLES) [L150] |
 | rooms.py | /v1/rooms | GET | none |  |
 | rooms.py | /v1/rooms/types | GET | none |  |
-| rooms.py | /v1/rooms | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L302] |
-| rooms.py | /v1/rooms/{room_id}/details | PATCH | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L342] |
-| rooms.py | /v1/rooms/{room_id}/deletion-check | GET | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L397] |
+| rooms.py | /v1/rooms | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L316] |
+| rooms.py | /v1/rooms/{room_id}/details | PATCH | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L356] |
+| rooms.py | /v1/rooms/{room_id}/deletion-check | GET | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L411] |
 | rooms.py | /v1/rooms/{room_id} | GET | none |  |
-| rooms.py | /v1/rooms/{room_id}/status | PATCH | none | inline: current_user.role == 'gm' [L461] |
-| rooms.py | /v1/rooms/{room_id}/checkout | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L567] |
-| rooms.py | /v1/rooms/{room_id}/checkout | DELETE | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L676] |
-| rooms.py | /v1/rooms/{room_id}/stayover | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L752] |
-| rooms.py | /v1/rooms/{room_id}/checkin | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L845] |
-| rooms.py | /v1/rooms/{room_id}/welfare-check | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L899] |
-| rooms.py | /v1/rooms/{room_id}/re-clean | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L988] |
-| rooms.py | /v1/rooms/{room_id}/strip | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1113] |
-| rooms.py | /v1/rooms/{room_id}/dnd | PATCH | gm, housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor', 'gm') [L1160] |
-| rooms.py | /v1/rooms/{room_id}/decline-service | PATCH | gm, housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor', 'gm') [L1201] |
-| rooms.py | /v1/rooms/{room_id}/priority | PATCH | chief_engineer, front_desk, gm, housekeeping_supervisor | require_role(*RUSH_MANAGER_ROLES) [L1257] |
-| rooms.py | /v1/rooms/{room_id}/service-attempts | POST | chief_engineer, gm, housekeeper, housekeeping_supervisor | require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES) [L1350] |
+| rooms.py | /v1/rooms/{room_id}/status | PATCH | none | inline: current_user.role == 'gm' [L475] |
+| rooms.py | /v1/rooms/{room_id}/checkout | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L581] |
+| rooms.py | /v1/rooms/{room_id}/checkout | DELETE | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L690] |
+| rooms.py | /v1/rooms/{room_id}/stayover | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L766] |
+| rooms.py | /v1/rooms/{room_id}/checkin | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L859] |
+| rooms.py | /v1/rooms/{room_id}/welfare-check | POST | front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk') [L913] |
+| rooms.py | /v1/rooms/{room_id}/re-clean | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1002] |
+| rooms.py | /v1/rooms/{room_id}/strip | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1127] |
+| rooms.py | /v1/rooms/{room_id}/dnd | PATCH | gm, housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor', 'gm') [L1174] |
+| rooms.py | /v1/rooms/{room_id}/decline-service | PATCH | gm, housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor', 'gm') [L1215] |
+| rooms.py | /v1/rooms/{room_id}/priority | PATCH | chief_engineer, front_desk, gm, housekeeping_supervisor | require_role(*RUSH_MANAGER_ROLES) [L1271] |
+| rooms.py | /v1/rooms/{room_id}/service-attempts | POST | chief_engineer, gm, housekeeper, housekeeping_supervisor | require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES) [L1364] |
 | rooms.py | /v1/rooms/{room_id}/service-attempts | GET | none |  |
-| rooms.py | /v1/rooms/{room_id}/service-declined | POST | chief_engineer, gm, housekeeper, housekeeping_supervisor | require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES) [L1469] |
-| rooms.py | /v1/rooms/{room_id}/discrepancies | POST | chief_engineer, gm, housekeeper, housekeeping_supervisor | require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES) [L1511] |
+| rooms.py | /v1/rooms/{room_id}/service-declined | POST | chief_engineer, gm, housekeeper, housekeeping_supervisor | require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES) [L1483] |
+| rooms.py | /v1/rooms/{room_id}/discrepancies | POST | chief_engineer, gm, housekeeper, housekeeping_supervisor | require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES) [L1525] |
 | rooms.py | /v1/rooms/{room_id}/discrepancies | GET | none |  |
-| rooms.py | /v1/rooms/discrepancies/{discrepancy_id}/resolve | POST | front_desk, gm, housekeeping_supervisor | require_role(*DISCREPANCY_RESOLVER_ROLES) [L1590] |
-| rooms.py | /v1/rooms/{room_id}/checkout-time | PATCH | engineer, front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer', 'front_desk') [L1647] |
+| rooms.py | /v1/rooms/discrepancies/{discrepancy_id}/resolve | POST | front_desk, gm, housekeeping_supervisor | require_role(*DISCREPANCY_RESOLVER_ROLES) [L1604] |
+| rooms.py | /v1/rooms/{room_id}/checkout-time | PATCH | engineer, front_desk, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer', 'front_desk') [L1661] |
 | rooms.py | /v1/rooms/{room_id}/status/undo | POST | none |  |
 | rooms.py | /v1/rooms/{room_id}/history | GET | none |  |
 | rooms.py | /v1/rooms/{room_id}/notes | POST | none |  |
-| rooms.py | /v1/rooms/{room_id} | DELETE | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1850] |
-| rooms.py | /v1/rooms/import | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1893] |
+| rooms.py | /v1/rooms/{room_id} | DELETE | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1881] |
+| rooms.py | /v1/rooms/import | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L1924] |
 | safety.py | /v1/safety/training/courses | POST | gm | require_role('gm') [L70] |
 | safety.py | /v1/safety/training/status | GET | none | inline: current_user.role not in MANAGER_ROLES [L84] |
 | safety.py | /v1/safety/training/courses/{course_id}/assignments | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*MANAGER_ROLES) [L121] |
@@ -474,14 +474,14 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L1300] |
 | work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L1312] |
 | work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L1386] |
-| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm | require_role('engineer', 'gm') [L1434] |
+| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm, housekeeper | require_role('engineer', 'gm', 'housekeeper') [L1434]; inline: current_user.role in FLOOR_STAFF_ROLES [L1457] |
 | work_orders.py | /v1/work-orders/{wo_id}/comments | POST | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/checklist | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/checklist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1556] |
-| work_orders.py | /v1/work-orders/{wo_id}/checklist/{item_id} | PATCH | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1592] |
+| work_orders.py | /v1/work-orders/{wo_id}/checklist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1559] |
+| work_orders.py | /v1/work-orders/{wo_id}/checklist/{item_id} | PATCH | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1595] |
 | work_orders.py | /v1/work-orders/{wo_id}/parts | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/duplicate-signal | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1763] |
-| work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1837] |
+| work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1766] |
+| work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1840] |
 
 **40 routers, 473 routes.**

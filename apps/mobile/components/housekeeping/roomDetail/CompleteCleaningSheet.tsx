@@ -12,6 +12,8 @@ interface Props {
   reclean: boolean;
   completion: CompletionState | null;
   startedAt: string | null | undefined;
+  /** "Departure" etc., already translated; null when the room has no clean type. */
+  cleanType?: string | null;
   /** The finish request is in flight. */
   busy: boolean;
   /** Last attempt ended without an answer from the server. */
@@ -25,7 +27,7 @@ interface Props {
  * the server re-validates the required items regardless. The time shown is time on
  * the room so far (a courtesy); the recorded duration is calculated by the server.
  */
-export function CompleteCleaningSheet({ visible, roomNumber, reclean, completion, startedAt, busy, unsure, onConfirm, onKeep }: Props) {
+export function CompleteCleaningSheet({ visible, roomNumber, reclean, completion, startedAt, cleanType, busy, unsure, onConfirm, onKeep }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const seconds = elapsedSeconds(startedAt, Date.now());
@@ -64,6 +66,16 @@ export function CompleteCleaningSheet({ visible, roomNumber, reclean, completion
             {ready ? t("rooms.work.complete.allDone") : t("rooms.work.complete.open", { count: completion?.requiredRemaining ?? 0 })}
           </Text>
         </View>
+        {cleanType ? (
+          <View style={styles.row} accessible accessibilityLabel={`${t("rooms.work.complete.cleanType")}: ${cleanType}`}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+              {t("rooms.work.complete.cleanType")}
+            </Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]}>
+              {cleanType}
+            </Text>
+          </View>
+        ) : null}
         {minutes !== null ? (
           <View style={styles.row} accessible accessibilityLabel={`${t("rooms.work.complete.timeOnRoom")}: ${t("rooms.work.submitted.minutes", { minutes })}`}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
