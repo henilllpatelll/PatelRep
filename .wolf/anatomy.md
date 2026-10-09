@@ -702,3 +702,12 @@
 - `components/housekeeping/MyRoomCards.tsx` — MyRoomCard, CompactRoomRow, CurrentRoomCard (+ recovery state). (~3k tok)
 - `components/housekeeping/MyRoomsHeader.tsx` — title/date/sync indicators/progress summary/segmented control. (~1.8k tok)
 - `app/(app)/my-rooms/index.tsx` — My Rooms screen: one FlatList serving Route | Floors | Done. (~3.5k tok)
+
+## apps/mobile (My Rooms Phase 3)
+
+- `lib/housekeeping/needsAttention.ts` — pure room classifier: state, ordered reason codes, restricted flag, rush/retry/reclean info. (~3k tok)
+- `lib/housekeeping/hotelTime.ts` — hotel-timezone formatting, shift date, wall-clock to instant (DST-safe), return-time parsing. (~2k tok)
+- `lib/housekeeping/serviceAttempts.ts` — client for POST /rooms/{id}/service-attempts (online-only, stable attempted_at), supervisor notify, service-declined. (~1.4k tok)
+- `lib/housekeeping/useRoomExceptions.ts` — room-detail hook for attempts/decline/notify. (~1.2k tok)
+- `components/housekeeping/{RoomRestrictionPanel,RecleanCorrectionsPanel,RushPriorityPanel}.tsx` — room-detail panels. (~4k tok)
+- `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist. (~1k tok)

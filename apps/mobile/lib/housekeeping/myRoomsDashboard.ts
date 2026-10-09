@@ -1,11 +1,14 @@
 import type { Room } from "@/stores/appStore";
 import { buildSmartQueue, estimateCleanMinutes } from "@/lib/ai/briefing";
+import { isDepartureClean } from "@/lib/housekeeping/roomWorkflow";
 import {
-  hasBlockingNote,
-  hasOpenWorkOrder,
-  isBlocked,
-  isDepartureClean,
-} from "@/lib/housekeeping/roomWorkflow";
+  ATTENTION_PRECEDENCE,
+  classifyRoom,
+  isRushPriority,
+  type AttentionCode,
+  type RoomClassification,
+  type RushInfo,
+} from "@/lib/housekeeping/needsAttention";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 
 /**
@@ -44,27 +47,8 @@ export type RoomCategory =
   | "inspected"
   | "unavailable";
 
-export type AttentionReason =
-  | "dnd"
-  | "declined"
-  | "checkout_unverified"
-  | "blocker"
-  | "reclean"
-  | "work_order"
-  | "risk"
-  | "note";
-
-/** Order attention rooms by how firmly they block entry. */
-const ATTENTION_RANK: Record<AttentionReason, number> = {
-  dnd: 0,
-  declined: 1,
-  checkout_unverified: 2,
-  blocker: 3,
-  reclean: 4,
-  work_order: 5,
-  risk: 6,
-  note: 7,
-};
+/** Application-level reason codes; see lib/housekeeping/needsAttention.ts. */
+export type AttentionReason = AttentionCode;
 
 export type AccessKind =
   | "dnd"
@@ -104,9 +88,13 @@ export interface RoomEntry {
   /** The room with its effective status applied (see effectiveStatus). */
   room: Room;
   category: RoomCategory;
+  /** Everything the classifier found, strongest reason first. */
+  classification: RoomClassification;
+  /** The reason the UI leads with (needs-attention rooms only). */
   attention: AttentionReason | null;
   access: AccessState;
-  rush: boolean;
+  /** Active, verified Rush priority (backend priority 1–2); null otherwise. */
+  rush: RushInfo | null;
   neededBy: string | null;
   estimateMinutes: number;
   /** Only for category "current". */
@@ -154,10 +142,7 @@ function parseTime(value: string | null | undefined): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
-/** Rush = backend priority 1–2 (the same rule the housekeeping board uses). */
-export function isRush(room: Room): boolean {
-  return typeof room.priority === "number" && room.priority <= 2;
-}
+export const isRush = isRushPriority;
 
 /** A usable supervisor/auto-assign order: a positive whole number. */
 export function getSequenceOrder(room: Room): number | null {
@@ -204,22 +189,6 @@ export function getAccessState(room: Room, now: Date = new Date()): AccessState 
   return { kind: "vacant" };
 }
 
-/** Why a room needs follow-up before normal service, or null if it does not. */
-export function getAttentionReason(room: Room): AttentionReason | null {
-  if (room.dnd_flag) return "dnd";
-  if (room.do_not_service) return "declined";
-  if (isDepartureClean(room) && !room.actual_checkout_at) return "checkout_unverified";
-  const note = room.latest_note?.trim();
-  if (note?.startsWith("BLOCKER: ")) return "blocker";
-  if (room.reclean_requested_at && (room.reclean_corrections?.length ?? 0) > 0) return "reclean";
-  // A verified-vacant departure can be cleaned around notes and open work orders.
-  const vacantDeparture = isDepartureClean(room) && Boolean(room.actual_checkout_at);
-  if (!vacantDeparture && hasOpenWorkOrder(room)) return "work_order";
-  if (room.risk_level === "HIGH") return "risk";
-  if (!vacantDeparture && hasBlockingNote(room)) return "note";
-  return null;
-}
-
 /* ─── Classification ────────────────────────────────────────────────────────── */
 
 function sessionView(room: Room, session: LocalCleanSession | undefined): CurrentSessionView {
@@ -246,27 +215,38 @@ function sessionView(room: Room, session: LocalCleanSession | undefined): Curren
   };
 }
 
-export function categorizeRoom(room: Room, session: LocalCleanSession | undefined): RoomCategory {
+const STATE_TO_CATEGORY = {
+  unavailable: "unavailable",
+  active: "current",
+  needs_attention: "attention",
+  cleanable: "up_next",
+} as const;
+
+function classify(room: Room, session: LocalCleanSession | undefined, now: Date) {
   const status = effectiveStatus(room, session);
-  if (isBlocked({ ...room, status })) return "unavailable";
-  if (status === "CLEAN") return "submitted";
-  if (status === "INSPECTED") return "inspected";
-  if (isLiveSession(session) || status === "IN_PROGRESS") return "current";
-  return getAttentionReason(room) ? "attention" : "up_next";
+  const effective = status === room.status ? room : { ...room, status };
+  const classification = classifyRoom(effective, { now, hasLiveSession: isLiveSession(session) });
+  return { effective, classification };
+}
+
+export function categorizeRoom(room: Room, session: LocalCleanSession | undefined, now: Date = new Date()): RoomCategory {
+  const { effective, classification } = classify(room, session, now);
+  if (classification.state === "completed") return effective.status === "INSPECTED" ? "inspected" : "submitted";
+  return STATE_TO_CATEGORY[classification.state];
 }
 
 function toEntry(room: Room, session: LocalCleanSession | undefined, now: Date): RoomEntry {
-  const status = effectiveStatus(room, session);
-  const viewRoom = status === room.status ? room : { ...room, status };
-  const category = categorizeRoom(room, session);
+  const { effective, classification } = classify(room, session, now);
+  const category = categorizeRoom(room, session, now);
   return {
-    room: viewRoom,
+    room: effective,
     category,
-    attention: category === "attention" ? getAttentionReason(room) : null,
-    access: getAccessState(viewRoom, now),
-    rush: isRush(room),
-    neededBy: room.priority_needed_by ?? null,
-    estimateMinutes: estimateCleanMinutes(viewRoom),
+    classification,
+    attention: category === "attention" ? classification.primary : null,
+    access: getAccessState(effective, now),
+    rush: classification.rush,
+    neededBy: classification.rush?.neededBy ?? null,
+    estimateMinutes: estimateCleanMinutes(effective),
     session: category === "current" ? sessionView(room, session) : null,
   };
 }
@@ -298,22 +278,26 @@ export function orderUpNext(entries: RoomEntry[], now: Date = new Date()): RoomE
 
   sequenced.sort((a, b) => (getSequenceOrder(a.room) ?? 0) - (getSequenceOrder(b.room) ?? 0) || stable(a, b));
 
-  const rush = unsequenced.filter((e) => e.rush);
+  const rush = unsequenced.filter((e) => e.rush !== null);
   rush.sort(
     (a, b) =>
       (a.room.priority ?? 0) - (b.room.priority ?? 0) ||
       (parseTime(a.neededBy) ?? Number.MAX_SAFE_INTEGER) - (parseTime(b.neededBy) ?? Number.MAX_SAFE_INTEGER) ||
       stable(a, b),
   );
-  const regular = unsequenced.filter((e) => !e.rush).sort(stable);
+  // Reclean corrections are actionable work with an inspector waiting on them:
+  // after rush, ahead of the general heuristic.
+  const reclean = unsequenced.filter((e) => e.rush === null && e.classification.reclean !== null).sort(stable);
+  const regular = unsequenced.filter((e) => e.rush === null && e.classification.reclean === null).sort(stable);
 
-  return [...sequenced, ...rush, ...regular];
+  return [...sequenced, ...rush, ...reclean, ...regular];
 }
 
 function orderAttention(entries: RoomEntry[]): RoomEntry[] {
+  const rank = (entry: RoomEntry) => ATTENTION_PRECEDENCE.indexOf(entry.attention ?? "note");
   return [...entries].sort((a, b) => {
-    const rank = ATTENTION_RANK[a.attention ?? "note"] - ATTENTION_RANK[b.attention ?? "note"];
-    if (rank !== 0) return rank;
+    const byReason = rank(a) - rank(b);
+    if (byReason !== 0) return byReason;
     const retry = (parseTime(a.room.dnd_retry_at) ?? Number.MAX_SAFE_INTEGER) - (parseTime(b.room.dnd_retry_at) ?? Number.MAX_SAFE_INTEGER);
     if (retry !== 0) return retry;
     return compareRoomNumbers(a.room.room_number, b.room.room_number);

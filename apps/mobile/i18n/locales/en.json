@@ -602,7 +602,10 @@
         "room": "Room {{room}}",
         "rushA11y": "rush priority",
         "floor": "Floor {{floor}}",
-        "building": "Building {{name}}"
+        "building": "Building {{name}}",
+        "recleanCorrections": "{{count}} corrections requested",
+        "recleanRequested": "Reclean requested",
+        "arrival": "Arrival {{time}}"
       },
       "access": {
         "dnd": "Do not disturb",
@@ -618,17 +621,30 @@
           "title": "DND",
           "detail": "Do not enter"
         },
-        "declined": {
+        "do_not_service": {
+          "title": "Do Not Service",
+          "detail": "Do Not Service is active"
+        },
+        "service_declined": {
           "title": "Declined",
           "detail": "Guest declined service"
+        },
+        "guest_inside": {
+          "title": "Guest inside",
+          "detail": "Guest reported inside"
+        },
+        "access_problem": {
+          "title": "Can't enter",
+          "detail": "Access is not possible right now"
         },
         "checkout_unverified": {
           "title": "Not checked out",
           "detail": "Confirm the guest has left before entering"
         },
-        "blocker": {
-          "title": "Entry blocked",
-          "detail": "Entry is blocked"
+        "come_back_later": {
+          "title": "Come back later",
+          "detail": "Guest asked housekeeping to come back later",
+          "detailAt": "Come back at {{time}}"
         },
         "reclean": {
           "title": "Reclean",
@@ -638,7 +654,7 @@
           "title": "Work order",
           "detail": "Open work order"
         },
-        "risk": {
+        "high_risk": {
           "title": "High risk",
           "detail": "Review room context first"
         },
@@ -646,9 +662,17 @@
           "title": "Note",
           "detail": "Read the latest note first"
         },
-        "retryAt": "Retry at {{time}}",
-        "attempts": "Attempts recorded: {{count}}",
-        "corrections": "{{count}} corrections to fix"
+        "retryAt": "Retry: {{time}}",
+        "lastAttempt": "Last attempt: {{time}}",
+        "attempts": "Attempts: {{count}}",
+        "corrections": "{{count}} corrections requested",
+        "also": "Also: {{reason}}",
+        "declineReasons": {
+          "guest_declined_housekeeping": "Guest declined housekeeping",
+          "guest_no_service_today": "Guest requested no service today",
+          "privacy_request": "Privacy request",
+          "other": "Service declined"
+        }
       },
       "floors": {
         "searchPlaceholder": "Search room number",
@@ -661,7 +685,8 @@
         "floorA11y": "{{floor}}, {{completed}} of {{total}} completed",
         "current": "Current",
         "emptyTitle": "No rooms assigned",
-        "unavailableCount": "{{count}} unavailable"
+        "unavailableCount": "{{count}} unavailable",
+        "comeBackAt": "Back {{time}}"
       },
       "done": {
         "awaitingTitle": "Awaiting inspection",
@@ -677,6 +702,68 @@
         "errorBody": "Check your connection and try again.",
         "offlineEmpty": "You're offline and no saved rooms are available on this device yet.",
         "retry": "Try again"
+      },
+      "rush": {
+        "overdue": "Overdue — was due {{time}}",
+        "title": "Rush priority",
+        "noteLabel": "Supervisor note",
+        "reasons": {
+          "early_arrival": "Early arrival",
+          "vip": "VIP",
+          "guest_waiting": "Guest waiting",
+          "front_desk_request": "Front desk request",
+          "operational_priority": "Operational priority",
+          "other": "Priority"
+        }
+      },
+      "detail": {
+        "restriction": {
+          "doNotEnter": "DO NOT ENTER",
+          "dnd": "Do Not Disturb is currently active.",
+          "do_not_service": "Do Not Service is active for this stay.",
+          "service_declined": "The guest declined service.",
+          "come_back_later": "The guest asked housekeeping to come back later.",
+          "retryDue": "The agreed retry time has arrived. Knock before entering.",
+          "lastAttempt": "Last attempt: {{time}}",
+          "lastAttemptUnknown": "Last attempt: not recorded",
+          "attempts": "Attempts: {{count}}",
+          "retry": "Retry: {{time}}",
+          "retryUnset": "Retry time: not set",
+          "recordAttempt": "Record service attempt",
+          "notifySupervisor": "Notify supervisor",
+          "notified": "Supervisor notified",
+          "notifyFailed": "Couldn't notify the supervisor. Try again.",
+          "returnToRoute": "Return to route",
+          "needsConnection": "Connect to the internet to record this. Nothing was saved.",
+          "timePrompt": "Retry at what time?",
+          "timePlaceholder": "e.g. 1:30 PM",
+          "timeInvalid": "Enter a time like 1:30 PM.",
+          "timePast": "That time has already passed today. Pick a later time.",
+          "confirmTime": "Save retry time",
+          "recorded": "Attempt recorded",
+          "failed": "Couldn't record the attempt. Try again — it won't be counted twice.",
+          "options": {
+            "dnd_no_response": "No response (DND)",
+            "return_later": "Come back later",
+            "guest_answered": "Guest answered",
+            "dnd_cleared": "DND cleared"
+          },
+          "blockedStart": "This room is restricted right now, so cleaning can't be started."
+        },
+        "reclean": {
+          "title": "Inspection corrections",
+          "subtitle": "{{count}} corrections requested",
+          "inspectedAt": "Inspected {{time}}",
+          "inspectorNotes": "Inspector notes",
+          "toFix": "To fix",
+          "fixed": "Fixed",
+          "start": "Review / Start Reclean",
+          "unavailable": "The inspector's correction details aren't available on this device. Re-clean the room as flagged and ask your supervisor if anything is unclear."
+        },
+        "rush": {
+          "deadline": "Needed by {{time}}",
+          "arrival": "Guest arrival {{time}}"
+        }
       }
     }
   },

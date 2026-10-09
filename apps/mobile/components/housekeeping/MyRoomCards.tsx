@@ -11,20 +11,18 @@ import { elapsedMinutes } from "@/lib/housekeeping/myRoomsDashboard";
 import {
   cardAccessibilityLabel,
   cleanTypeLabel,
+  compactStateLabel,
   describeAccess,
+  describeArrival,
   describeAttention,
-  formatClock,
+  describeReclean,
+  describeRush,
   locationLabel,
-  statusLabel,
 } from "@/lib/housekeeping/myRoomsText";
+import { useTextContext } from "@/components/housekeeping/useTextContext";
 
 const MIN_TARGET = 44;
 const MAX_FONT_SCALE = 1.6;
-
-function useLanguage(): string {
-  const { i18n } = useTranslation();
-  return i18n.resolvedLanguage ?? i18n.language;
-}
 
 /** Re-render on an interval so elapsed time follows the real session clock. */
 function useNow(intervalMs: number): Date {
@@ -59,32 +57,41 @@ interface MyRoomCardProps {
 }
 
 /**
- * Primary: room number + status/urgency. Secondary: clean type and location.
- * One contextual line: needed-by, then access state. At most two badges.
+ * Primary: room number + one state badge (+ Rush). Secondary: clean type and
+ * location. Then only what matters for this room: the Rush deadline, what is
+ * blocking entry (with attempts and retry), or the reclean corrections.
  */
 export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const language = useLanguage();
+  const ctx = useTextContext();
   const room = entry.room;
   const isAttention = entry.category === "attention";
-  const attention = isAttention ? describeAttention(entry, t, language) : null;
+  const isReclean = !isAttention && entry.classification.reclean !== null;
+  const attention = isAttention ? describeAttention(entry, t, ctx) : null;
+  const rush = describeRush(entry, t, ctx);
   const subtitle = [cleanTypeLabel(room, t), locationLabel(room, t)].filter(Boolean).join(" · ");
-  const neededBy = formatClock(entry.neededBy, language);
-  const access = isAttention ? null : describeAccess(entry, t, language);
-  const corrections = room.reclean_corrections?.length ?? 0;
-  const reclean = !isAttention && room.reclean_requested_at && corrections > 0
-    ? t("rooms.dash.card.reclean", { count: corrections })
-    : null;
-  const contextual = [access, reclean, isAttention ? null : t("rooms.dash.card.estimate", { minutes: entry.estimateMinutes })]
-    .filter(Boolean)
-    .join(" · ");
+  const rushLine = rush ? [rush.deadline, rush.reason].filter(Boolean).join(" · ") : "";
+  const contextual = isAttention
+    ? []
+    : [
+        describeReclean(entry, t),
+        describeArrival(room, t, ctx),
+        [describeAccess(entry, t, ctx), t("rooms.dash.card.estimate", { minutes: entry.estimateMinutes })]
+          .filter(Boolean)
+          .join(" · "),
+      ].filter((line): line is string => Boolean(line));
+  const stateBadge = attention
+    ? { label: attention.title, icon: "alert-circle-outline" as const }
+    : isReclean
+      ? { label: t("rooms.dash.attention.reclean.title"), icon: "refresh-outline" as const }
+      : null;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={cardAccessibilityLabel(entry, t, language)}
+      accessibilityLabel={cardAccessibilityLabel(entry, t, ctx)}
       testID={`room-card-${room.room_number}`}
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
@@ -107,11 +114,11 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
               </Text>
             </View>
             <View style={styles.badges}>
-              {attention ? (
+              {stateBadge ? (
                 <View style={[styles.badge, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-                  <Ionicons name="alert-circle-outline" size={12} color={theme.status.dirty} />
+                  <Ionicons name={stateBadge.icon} size={12} color={theme.status.dirty} />
                   <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badgeText, { color: theme.status.dirty }]}>
-                    {attention.title}
+                    {stateBadge.label}
                   </Text>
                 </View>
               ) : (
@@ -127,33 +134,28 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
             </Text>
           ) : null}
 
-          {neededBy ? (
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.neededBy, { color: theme.status.dirty }]}>
-              {t("rooms.dash.card.neededBy", { time: neededBy })}
+          {rushLine ? (
+            <Text
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              style={[styles.neededBy, { color: rush?.overdue ? theme.status.dirty : theme.textPrimary }]}
+            >
+              {rushLine}
             </Text>
           ) : null}
 
-          {attention
-            ? attention.details.map((line) => (
-                <Text
-                  key={line}
-                  maxFontSizeMultiplier={MAX_FONT_SCALE}
-                  style={[styles.detail, { color: theme.textSecondary }]}
-                >
-                  {line}
-                </Text>
-              ))
-            : contextual
-              ? (
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.detail, { color: theme.textSecondary }]}>
-                  {contextual}
-                </Text>
-              )
-              : null}
+          {(attention ? attention.details : contextual).map((line) => (
+            <Text
+              key={line}
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              style={[styles.detail, { color: theme.textSecondary }]}
+            >
+              {line}
+            </Text>
+          ))}
 
           <View style={styles.actionRow}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.action, { color: theme.primaryAction }]}>
-              {t("rooms.dash.card.review")}
+              {isReclean ? t("rooms.dash.detail.reclean.start") : t("rooms.dash.card.review")}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={theme.primaryAction} />
           </View>
@@ -168,20 +170,18 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
 export function CompactRoomRow({ entry, onPress }: { entry: RoomEntry; onPress: () => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const language = useLanguage();
+  const ctx = useTextContext();
   const room = entry.room;
-  const marker =
-    entry.category === "current"
-      ? t("rooms.dash.floors.current")
-      : entry.category === "attention"
-        ? describeAttention(entry, t, language).title
-        : null;
+  const label = compactStateLabel(entry, t, ctx);
+  // One dominant state per row; a restricted or active Rush room keeps just the Rush tag as well.
+  const alsoRush = entry.rush !== null && (entry.category === "attention" || entry.category === "current");
+  const tone = entry.category === "attention" || entry.rush ? theme.status.dirty : theme.textSecondary;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={cardAccessibilityLabel(entry, t, language)}
+      accessibilityLabel={cardAccessibilityLabel(entry, t, ctx)}
       testID={`room-row-${room.room_number}`}
       style={({ pressed }) => [
         styles.row,
@@ -193,17 +193,15 @@ export function CompactRoomRow({ entry, onPress }: { entry: RoomEntry; onPress: 
         {room.room_number}
       </Text>
       <View style={styles.rowMain}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowStatus, { color: theme.textSecondary }]}>
-          {statusLabel(room.status, t)}
+        <Text
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+          style={[styles.rowStatus, { color: entry.category === "attention" || entry.rush ? tone : theme.textSecondary }]}
+        >
+          {label}
         </Text>
-        {marker || entry.rush ? (
+        {alsoRush ? (
           <View style={styles.rowMarkers}>
-            {marker ? (
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowMarker, { color: theme.status.pickup }]}>
-                {marker}
-              </Text>
-            ) : null}
-            {entry.rush ? <RushBadge /> : null}
+            <RushBadge />
           </View>
         ) : null}
       </View>
@@ -371,9 +369,8 @@ const styles = StyleSheet.create({
   },
   rowNumber: { fontFamily: monoFont, fontSize: 18, fontWeight: "800", minWidth: 52 },
   rowMain: { flex: 1, minWidth: 0, gap: 2 },
-  rowStatus: { fontSize: 14 },
+  rowStatus: { fontSize: 14, fontWeight: "700" },
   rowMarkers: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  rowMarker: { fontSize: 12, fontWeight: "800" },
 
   currentCard: { borderWidth: 1.5, borderRadius: 16, padding: 16, gap: 6 },
   currentTitle: { fontSize: 20, fontWeight: "800", lineHeight: 26 },

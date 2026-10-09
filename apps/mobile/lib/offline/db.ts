@@ -134,6 +134,13 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
     "ALTER TABLE rooms ADD COLUMN reclean_requested_at TEXT",
     "ALTER TABLE rooms ADD COLUMN reclean_corrections TEXT",
     "ALTER TABLE rooms ADD COLUMN base_clean_minutes INTEGER",
+    // Phase 3: priority note/reason, DND/decline history, structured reclean details.
+    "ALTER TABLE rooms ADD COLUMN priority_note TEXT",
+    "ALTER TABLE rooms ADD COLUMN dnd_started_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN dnd_last_attempt_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN service_declined_note TEXT",
+    "ALTER TABLE rooms ADD COLUMN service_declined_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN reclean_details TEXT",
   ];
   for (const sql of roomsMigrations) {
     try {
@@ -187,6 +194,12 @@ function roomRow(room: RoomRecord, now: string): [string, unknown][] {
     ["priority", num(room.priority)],
     ["priority_reason", text(room.priority_reason)],
     ["priority_needed_by", text(room.priority_needed_by)],
+    ["priority_note", text(room.priority_note)],
+    ["dnd_started_at", text(room.dnd_started_at)],
+    ["dnd_last_attempt_at", text(room.dnd_last_attempt_at)],
+    ["service_declined_note", text(room.service_declined_note)],
+    ["service_declined_at", text(room.service_declined_at)],
+    ["reclean_details", room.reclean_details ? JSON.stringify(room.reclean_details) : null],
     ["do_not_service", room.do_not_service ? 1 : 0],
     ["dnd_retry_at", text(room.dnd_retry_at)],
     ["dnd_attempt_count", num(room.dnd_attempt_count)],
@@ -198,10 +211,30 @@ function roomRow(room: RoomRecord, now: string): [string, unknown][] {
   ];
 }
 
-export async function upsertRooms(rooms: unknown[]): Promise<void> {
+export interface UpsertRoomsOptions {
+  /**
+   * The assignment date these rooms are the COMPLETE list for. Cached rows for
+   * that date that are no longer in the list (reassigned away, cancelled) are
+   * removed, so an offline restart never shows a room the attendant lost.
+   */
+  replaceDate?: string;
+}
+
+export async function upsertRooms(rooms: unknown[], options: UpsertRoomsOptions = {}): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
+    if (options.replaceDate) {
+      const keep = (rooms as RoomRecord[]).map((room) => String(room.id));
+      if (keep.length === 0) {
+        await db.runAsync("DELETE FROM rooms WHERE assignment_date = ?", [options.replaceDate]);
+      } else {
+        await db.runAsync(
+          `DELETE FROM rooms WHERE assignment_date = ? AND id NOT IN (${keep.map(() => "?").join(", ")})`,
+          [options.replaceDate, ...keep],
+        );
+      }
+    }
     for (const room of rooms as RoomRecord[]) {
       const row = roomRow(room, now);
       await db.runAsync(
@@ -211,6 +244,12 @@ export async function upsertRooms(rooms: unknown[]): Promise<void> {
       );
     }
   });
+}
+
+/** Drop every cached room — called when a different user signs in on this device. */
+export async function clearRoomsCache(): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("DELETE FROM rooms");
 }
 
 /** Turn a cached SQLite row back into the shape the API returns. */
@@ -224,9 +263,18 @@ function hydrateCachedRoom(row: RoomRecord): RoomRecord {
       corrections = null;
     }
   }
+  let details: unknown = null;
+  if (typeof row.reclean_details === "string") {
+    try {
+      details = JSON.parse(row.reclean_details);
+    } catch {
+      details = null;
+    }
+  }
   const base = num(row.base_clean_minutes);
   return {
     ...row,
+    reclean_details: details,
     dnd_flag: Boolean(row.dnd_flag),
     vip_flag: Boolean(row.vip_flag),
     do_not_service: Boolean(row.do_not_service),

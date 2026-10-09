@@ -47,12 +47,16 @@ const mockStore: {
   setMyRooms: jest.Mock;
   user: { id: string; tenant_id: string } | null;
   pendingActions: unknown[];
+  hotelTimezone: string | null;
+  setHotelTimezone: jest.Mock;
 } = {
   isOnline: true,
   myRooms: mockRooms,
   setMyRooms: mockSetMyRooms,
   user: { id: "user-1", tenant_id: "hotel-1" },
   pendingActions: [],
+  hotelTimezone: "America/Chicago",
+  setHotelTimezone: jest.fn(),
 };
 
 jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockRouterPush(...args) } }));
@@ -70,7 +74,10 @@ jest.mock("@/lib/offline/db", () => ({
 }));
 jest.mock("@/lib/utils/date", () => ({ localDate: () => "2026-10-08" }));
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: Object.assign(() => mockStore, { getState: () => mockStore }),
+  useAppStore: Object.assign(
+    (selector?: (state: typeof mockStore) => unknown) => (selector ? selector(mockStore) : mockStore),
+    { getState: () => mockStore },
+  ),
 }));
 jest.mock("@/stores/cleanSessionStore", () => ({
   useCleanSessionStore: Object.assign(
@@ -121,10 +128,12 @@ function liveSession(roomId: string) {
   };
 }
 
+const META = { timezone: "America/Chicago", shift_date: "2026-10-08" };
+
 function setRooms(rooms: Room[]) {
   mockRooms = rooms;
   mockStore.myRooms = rooms;
-  mockApiGet.mockResolvedValue({ data: rooms });
+  mockApiGet.mockResolvedValue({ data: rooms, meta: META });
 }
 
 beforeEach(() => {
@@ -133,6 +142,7 @@ beforeEach(() => {
   mockStore.isOnline = true;
   mockStore.pendingActions = [];
   mockStore.user = { id: "user-1", tenant_id: "hotel-1" };
+  mockStore.hotelTimezone = "America/Chicago";
   mockSessionState = { scope: "hotel-1:user-1", sessions: {} };
   mockGetCached.mockResolvedValue([]);
   mockRestoreActive.mockResolvedValue("none");
@@ -350,7 +360,7 @@ describe("data states", () => {
     expect(queryByText("rooms.noRooms")).toBeNull();
     expect(queryByText("rooms.dash.route.emptyTitle")).toBeNull();
 
-    mockApiGet.mockResolvedValue({ data: [] });
+    mockApiGet.mockResolvedValue({ data: [], meta: META });
     mockApiGet.mockClear();
     fireEvent.press(getByText("rooms.dash.state.retry"));
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledTimes(1));
@@ -428,5 +438,185 @@ describe("large assignment lists", () => {
     setRooms(many);
     const { findByText } = renderScreen();
     expect(await findByText(/rooms\.dash\.progressOf .*"completed":60,"total":300/)).toBeTruthy();
+  });
+});
+
+
+describe("Phase 3 on the dashboard", () => {
+  const plain = (text: string) => text.replace(/\u202f/g, " ");
+  const stay = { clean_type: "LIGHT", clean_type_label: "Light", status: "PICKUP" as const, fo_status: "OCC" as const, actual_checkout_at: null };
+
+  function textOf(node: { props: { children?: unknown } }): string {
+    return plain([node.props.children].flat().join(""));
+  }
+
+  it("shows Rush with the deadline in hotel time and the reason, only for a real priority", async () => {
+    setRooms([
+      makeRoom({ id: "rush", room_number: "224", priority: 1, priority_reason: "vip", priority_needed_by: "2099-01-01T18:00:00.000Z" }),
+      makeRoom({ id: "plain", room_number: "226", priority: 5 }),
+    ]);
+    const { getByTestId, getByText, queryByTestId } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+
+    expect(getByTestId("room-card-224")).toBeTruthy();
+    expect(getByText("rooms.dash.card.rush")).toBeTruthy();
+    expect(plain(getByText(/card\.neededBy/).props.children as string)).toContain('"time":"12:00 PM"');
+    expect(getByText(/rush\.reasons\.vip/)).toBeTruthy();
+    // The ordinary room has no rush marker of its own.
+    expect(queryByTestId("room-card-226")).toBeTruthy();
+  });
+
+  it("flags a passed deadline as overdue", async () => {
+    setRooms([makeRoom({ id: "late", room_number: "224", priority: 1, priority_needed_by: "2026-01-01T18:00:00.000Z" })]);
+    const { getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    expect(plain(getByText(/rush\.overdue/).props.children as string)).toContain('"time":"12:00 PM"');
+    expect(queryByText(/card\.neededBy/)).toBeNull();
+  });
+
+  it("a revoked priority drops the Rush marker on the next refresh", async () => {
+    setRooms([makeRoom({ id: "r", room_number: "224", priority: 1 })]);
+    const { getByText, queryByText, UNSAFE_getByType } = renderScreen();
+    await waitFor(() => expect(getByText("rooms.dash.card.rush")).toBeTruthy());
+
+    mockStore.myRooms = [makeRoom({ id: "r", room_number: "224", priority: 5 })];
+    mockApiGet.mockResolvedValue({ data: mockStore.myRooms, meta: META });
+    await act(async () => {
+      await UNSAFE_getByType(FlatList).props.refreshControl.props.onRefresh();
+    });
+    await waitFor(() => expect(queryByText("rooms.dash.card.rush")).toBeNull());
+  });
+
+  it("Rush never lifts a DND room out of Needs Attention; the Rush stays visible as secondary", async () => {
+    setRooms([
+      makeRoom({ id: "dnd", room_number: "314", ...stay, dnd_flag: true, priority: 1, priority_needed_by: "2099-01-01T18:00:00.000Z" }),
+      makeRoom({ id: "ok", room_number: "316" }),
+    ]);
+    const { getAllByTestId, getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+
+    const order = getAllByTestId(/^room-card-/).map((node) => node.props.testID);
+    expect(order).toEqual(["room-card-316", "room-card-314"]); // workable first, restricted room under Needs Attention
+    expect(getByText("rooms.dash.attention.dnd.title")).toBeTruthy();
+    expect(getByText("rooms.dash.card.rush")).toBeTruthy();
+    expect(getByTestId("room-card-314").props.accessibilityLabel).toContain("rooms.dash.attention.dnd.title");
+  });
+
+  it("shows the persisted DND attempt history and retry on the card", async () => {
+    setRooms([
+      makeRoom({
+        id: "dnd",
+        room_number: "314",
+        ...stay,
+        dnd_flag: true,
+        dnd_attempt_count: 2,
+        dnd_last_attempt_at: "2026-10-08T16:25:00.000Z",
+        dnd_retry_at: "2026-10-08T18:30:00.000Z",
+      }),
+    ]);
+    const { getByText } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    expect(plain(getByText(/attention\.lastAttempt/).props.children as string)).toContain('"time":"11:25 AM"');
+    expect(getByText(/attention\.attempts/).props.children).toContain('"count":2');
+    expect(plain(getByText(/attention\.retryAt/).props.children as string)).toContain('"time":"1:30 PM"');
+  });
+
+  it("keeps Do Not Service and Service Declined apart from DND", async () => {
+    setRooms([
+      makeRoom({ id: "a", room_number: "301", ...stay, do_not_service: true }),
+      makeRoom({ id: "b", room_number: "302", ...stay, do_not_service: true, service_declined_reason: "privacy_request" }),
+      makeRoom({ id: "c", room_number: "303", ...stay, dnd_flag: true }),
+    ]);
+    const { getAllByText, getByText } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    expect(getByText("rooms.dash.attention.do_not_service.title")).toBeTruthy();
+    expect(getByText("rooms.dash.attention.service_declined.title")).toBeTruthy();
+    expect(getAllByText("rooms.dash.attention.dnd.title")).toHaveLength(1);
+  });
+
+  it("a reclean that is safe to enter is actionable in Up Next with its corrections discoverable", async () => {
+    setRooms([
+      makeRoom({
+        id: "rc",
+        room_number: "319",
+        status: "DIRTY",
+        clean_type: "FULL",
+        clean_type_label: "Full",
+        reclean_requested_at: "2026-10-08T15:00:00.000Z",
+        reclean_corrections: ["Restock", "Mirror"],
+      }),
+      makeRoom({ id: "n", room_number: "320", sequence_order: undefined }),
+    ]);
+    const { getByTestId, getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    expect(getByTestId("room-card-319").props.accessibilityLabel).toContain("rooms.dash.card.recleanCorrections");
+    expect(getByText("rooms.dash.attention.reclean.title")).toBeTruthy();
+    expect(getByText(/card\.recleanCorrections/).props.children).toContain('"count":2');
+    expect(getByText("rooms.dash.detail.reclean.start")).toBeTruthy();
+    expect(queryByText("rooms.dash.route.attentionTitle")).toBeNull();
+  });
+
+  it("a failed inspection leaves Done and counts as remaining work; a resubmitted reclean waits in Awaiting inspection", async () => {
+    setRooms([
+      makeRoom({ id: "failed", room_number: "401", status: "DIRTY", reclean_requested_at: "2026-10-08T15:00:00.000Z", reclean_corrections: ["Mirror"] }),
+      makeRoom({ id: "resub", room_number: "402", status: "CLEAN", reclean_requested_at: "2026-10-08T15:00:00.000Z" }),
+      makeRoom({ id: "pass", room_number: "403", status: "INSPECTED" }),
+    ]);
+    const { getByTestId, queryByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    // INSPECTED and the resubmitted (CLEAN) reclean are completed; the failed-inspection room is remaining work.
+    expect(getByText(/rooms\.dash\.progressOf .*"completed":2,"total":3/)).toBeTruthy();
+    fireEvent.press(getByTestId("my-rooms-tab-done"));
+    expect(queryByTestId("room-row-401")).toBeNull();
+    expect(getByTestId("room-row-402")).toBeTruthy();
+    expect(getByTestId("room-row-403")).toBeTruthy();
+  });
+
+  it("Floors shows one dominant state per row", async () => {
+    setRooms([
+      makeRoom({ id: "a", room_number: "218", status: "IN_PROGRESS" }),
+      makeRoom({ id: "b", room_number: "224", priority: 1 }),
+      makeRoom({ id: "c", room_number: "226" }),
+      makeRoom({ id: "d", room_number: "314", ...stay, dnd_flag: true }),
+      makeRoom({ id: "e", room_number: "319", status: "DIRTY", reclean_requested_at: "2026-10-08T15:00:00.000Z", reclean_corrections: ["Mirror"] }),
+      makeRoom({ id: "f", room_number: "309", status: "OUT_OF_SERVICE" }),
+      makeRoom({ id: "g", room_number: "330", ...stay, dnd_retry_at: "2099-01-01T18:30:00.000Z", dnd_attempt_count: 1 }),
+    ]);
+    mockSessionState = { scope: "hotel-1:user-1", sessions: {} };
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    fireEvent.press(getByTestId("my-rooms-tab-floors"));
+    const label = (room: string) => getByTestId(`room-row-${room}`).props.accessibilityLabel as string;
+    expect(label("224")).toContain("rooms.dash.card.rushA11y");
+    expect(label("314")).toContain("rooms.dash.attention.dnd.title");
+    expect(label("309")).toContain("rooms.card.status.OUT_OF_SERVICE");
+    expect(label("319")).toContain("rooms.dash.card.recleanCorrections");
+  });
+
+  it("requests the hotel's calendar day, stores the timezone from the response, and prunes the cache to that date", async () => {
+    const { hotelDateKey } = jest.requireActual("@/lib/housekeeping/hotelTime");
+    mockStore.hotelTimezone = "Pacific/Auckland";
+    setRooms([makeRoom({ id: "a", room_number: "101" })]);
+    mockApiGet.mockResolvedValue({ data: mockRooms, meta: { timezone: "America/New_York", shift_date: "2026-10-08" } });
+    renderScreen();
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
+    expect(mockApiGet).toHaveBeenCalledWith(`/housekeeping/my-rooms?date=${hotelDateKey(new Date(), "Pacific/Auckland")}`);
+    await waitFor(() => expect(mockStore.setHotelTimezone).toHaveBeenCalledWith("America/New_York"));
+    const { upsertRooms } = jest.requireMock("@/lib/offline/db");
+    await waitFor(() => expect(upsertRooms).toHaveBeenCalledWith(expect.any(Array), { replaceDate: "2026-10-08" }));
+  });
+
+  it("does not claim a restricted room is workable when a refresh clears DND (authoritative refresh wins)", async () => {
+    setRooms([makeRoom({ id: "d", room_number: "314", ...stay, dnd_flag: true })]);
+    const { getByTestId, queryByText, UNSAFE_getByType } = renderScreen();
+    await waitFor(() => expect(queryByText("rooms.dash.route.attentionTitle")).toBeTruthy());
+
+    mockStore.myRooms = [makeRoom({ id: "d", room_number: "314", ...stay, dnd_flag: false })];
+    mockApiGet.mockResolvedValue({ data: mockStore.myRooms, meta: META });
+    await act(async () => {
+      await UNSAFE_getByType(FlatList).props.refreshControl.props.onRefresh();
+    });
+    await waitFor(() => expect(queryByText("rooms.dash.route.attentionTitle")).toBeNull());
+    expect(getByTestId("room-card-314")).toBeTruthy();
   });
 });

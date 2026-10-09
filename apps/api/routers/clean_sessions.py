@@ -16,6 +16,7 @@ from models.requests import (
 from core.database import supabase
 from core.roles import MANAGER_ROLES
 from routers.cleaning_checklists import get_checklist_template_for_clean_type
+from services.reclean_corrections import correction_checklist, load_reclean_details
 from services.housekeeping_assignments import effective_room_status
 from services.room_status_transitions import (
     SESSION_STARTABLE_STATUSES,
@@ -222,7 +223,9 @@ def _guest_may_be_inside(room_status: dict, effective_status: str | None) -> boo
 def _enforce_entry_safety(room_status: dict, effective_status: str | None, acknowledged: bool) -> None:
     if room_status.get("dnd_flag"):
         raise _conflict("DND_ACTIVE", "Do Not Disturb is active — do not enter until front desk clears it")
-    if room_status.get("do_not_service") and effective_status == "PICKUP":
+    # A decline holds for the stay: it bars entry whatever the room's status,
+    # until a verified checkout ends the stay (which also resets the flag).
+    if room_status.get("do_not_service") and not room_status.get("actual_checkout_at"):
         raise _conflict("SERVICE_DECLINED", "The guest declined service for this room")
     if _guest_may_be_inside(room_status, effective_status) and not acknowledged:
         raise _conflict(
@@ -365,6 +368,15 @@ async def start_clean_session(
         }
         for item in ((template or {}).get("items") or [])
     ]
+    # A reclean after a failed inspection is a correction-only clean: the
+    # checklist is the inspection's failed items (all required), not the full
+    # departure/stayover template. Inspection history itself is never touched.
+    if room_status.get("reclean_requested_at"):
+        corrections = correction_checklist(
+            load_reclean_details(supabase, current_user.hotel_id, [room_id]).get(room_id)
+        )
+        if corrections:
+            checklist = corrections
 
     room_row = (
         supabase.table("rooms")

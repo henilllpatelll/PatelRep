@@ -7,6 +7,18 @@ const mockRuns: Array<{ sql: string; params: unknown[] }> = [];
 const mockDb = {
   runAsync: jest.fn(async (sql: string, params: unknown[] = []) => {
     mockRuns.push({ sql, params });
+    if (/^DELETE FROM rooms$/.test(sql.trim())) {
+      mockStore.clear();
+      return;
+    }
+    const prune = /^DELETE FROM rooms WHERE assignment_date = \?(?: AND id NOT IN \(([^)]*)\))?$/.exec(sql.trim());
+    if (prune) {
+      const [date, ...keep] = params as string[];
+      for (const [id, row] of [...mockStore]) {
+        if (row.assignment_date === date && (prune[1] === undefined || !keep.includes(id))) mockStore.delete(id);
+      }
+      return;
+    }
     const insert = /INSERT OR REPLACE INTO rooms \(([^)]+)\)\s+VALUES \(([^)]+)\)/.exec(sql);
     if (insert) {
       const columns = insert[1].split(",").map((c) => c.trim());
@@ -26,7 +38,7 @@ const mockDb = {
 
 jest.mock("expo-sqlite", () => ({ openDatabaseAsync: jest.fn(async () => mockDb) }));
 
-import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
+import { clearRoomsCache, getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 
 beforeEach(() => {
   mockStore.clear();
@@ -95,5 +107,70 @@ describe("offline rooms cache", () => {
     mockStore.get("r3")!.reclean_corrections = "{not json";
     const [cached] = (await getRoomsByDate("2026-10-08")) as Array<Record<string, unknown>>;
     expect(cached.reclean_corrections).toBeNull();
+  });
+
+  it("persists priority, DND attempt history, decline and structured reclean details across an offline restart", async () => {
+    const details = {
+      inspection_id: "i1",
+      inspected_at: "2026-10-08T14:00:00Z",
+      overall_result: "failed",
+      notes: "Needs another pass",
+      items: [{ id: "ti-1", label: "Mirror", note: "Streaks" }],
+    };
+    await upsertRooms([
+      {
+        id: "r9",
+        room_number: "314",
+        floor: 3,
+        status: "PICKUP",
+        assignment_date: "2026-10-08",
+        dnd_flag: true,
+        dnd_started_at: "2026-10-08T15:00:00Z",
+        dnd_last_attempt_at: "2026-10-08T16:25:00Z",
+        dnd_attempt_count: 2,
+        dnd_retry_at: "2026-10-08T18:30:00Z",
+        priority: 1,
+        priority_reason: "vip",
+        priority_needed_by: "2026-10-08T18:00:00Z",
+        priority_note: "Owner arriving",
+        do_not_service: true,
+        service_declined_reason: "privacy_request",
+        service_declined_note: "Baby asleep",
+        service_declined_at: "2026-10-08T15:30:00Z",
+        reclean_requested_at: "2026-10-08T13:00:00Z",
+        reclean_details: details,
+      },
+    ]);
+    const [cached] = (await getRoomsByDate("2026-10-08")) as Array<Record<string, unknown>>;
+    expect(cached).toMatchObject({
+      dnd_flag: true,
+      dnd_attempt_count: 2,
+      dnd_last_attempt_at: "2026-10-08T16:25:00Z",
+      dnd_retry_at: "2026-10-08T18:30:00Z",
+      priority: 1,
+      priority_reason: "vip",
+      priority_note: "Owner arriving",
+      service_declined_reason: "privacy_request",
+      service_declined_note: "Baby asleep",
+      reclean_details: details,
+    });
+  });
+
+  it("drops cached rooms that are no longer assigned when the full list for the date is replaced", async () => {
+    const room = (id: string, date = "2026-10-08") => ({ id, room_number: id, floor: 1, status: "DIRTY", assignment_date: date });
+    await upsertRooms([room("a"), room("b"), room("c"), room("other-day", "2026-10-07")]);
+    await upsertRooms([room("a"), room("c")], { replaceDate: "2026-10-08" });
+    const ids = ((await getRoomsByDate("2026-10-08")) as Array<{ id: string }>).map((r) => r.id).sort();
+    expect(ids).toEqual(["a", "c"]);
+    expect(((await getRoomsByDate("2026-10-07")) as unknown[]).length).toBe(1);
+
+    await upsertRooms([], { replaceDate: "2026-10-08" });
+    expect(((await getRoomsByDate("2026-10-08")) as unknown[]).length).toBe(0);
+  });
+
+  it("can be wiped when a different user signs in", async () => {
+    await upsertRooms([{ id: "a", room_number: "1", floor: 1, status: "DIRTY", assignment_date: "2026-10-08" }]);
+    await clearRoomsCache();
+    expect(((await getRoomsByDate("2026-10-08")) as unknown[]).length).toBe(0);
   });
 });

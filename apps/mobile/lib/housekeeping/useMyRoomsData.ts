@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/lib/api/client";
 import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
-import { localDate } from "@/lib/utils/date";
+import { currentShiftDate, isValidTimeZone } from "@/lib/housekeeping/hotelTime";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 
 const POLL_MS = 45_000;
+const TZ_KEY_PREFIX = "@patelrep/hotel_timezone/";
+
+interface MyRoomsResponse {
+  data: Room[];
+  meta?: { timezone?: string | null; shift_date?: string | null };
+}
 
 export interface MyRoomsData {
   loading: boolean;
@@ -16,6 +23,10 @@ export interface MyRoomsData {
   /** The rows on screen came from the device cache, not a fresh response. */
   usingCache: boolean;
   lastUpdated: Date | null;
+  /** The hotel's IANA zone, once known (cached per hotel for offline starts). */
+  timeZone: string | null;
+  /** Calendar date the listed rooms belong to, in hotel time. */
+  shiftDate: string;
   /**
    * The clock the suggested route was last ranked at. It only moves when data
    * is refreshed, so arrival-time tiers cannot reshuffle the list while the
@@ -31,7 +42,8 @@ export interface MyRoomsData {
  * and on foreground. A failed fetch is reported, never turned into "no rooms".
  */
 export function useMyRoomsData(): MyRoomsData {
-  const { isOnline, myRooms, setMyRooms } = useAppStore();
+  const { isOnline, myRooms, setMyRooms, hotelTimezone, setHotelTimezone, user } = useAppStore();
+  const tenantId = user?.tenant_id ?? null;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -47,9 +59,22 @@ export function useMyRoomsData(): MyRoomsData {
   const forceRank = useRef(true);
   const roomSignature = useRef("");
 
+  const zoneRef = useRef<string | null>(hotelTimezone ?? null);
+  zoneRef.current = hotelTimezone ?? null;
+
+  // Offline cold start: the hotel's zone was cached the last time we were online.
+  useEffect(() => {
+    if (!tenantId || zoneRef.current) return;
+    void AsyncStorage.getItem(TZ_KEY_PREFIX + tenantId)
+      .then((zone) => {
+        if (isValidTimeZone(zone) && !zoneRef.current) setHotelTimezone?.(zone);
+      })
+      .catch(() => undefined);
+  }, [tenantId, setHotelTimezone]);
+
   const readCache = useCallback(async (): Promise<Room[]> => {
     try {
-      return (await getRoomsByDate(localDate())) as Room[];
+      return (await getRoomsByDate(currentShiftDate(zoneRef.current))) as Room[];
     } catch (err) {
       console.warn("[my-rooms] cache read failed", err);
       return [];
@@ -62,8 +87,14 @@ export function useMyRoomsData(): MyRoomsData {
     const run = (async () => {
       if (isOnline) {
         try {
-          const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
+          const shiftDate = currentShiftDate(zoneRef.current);
+          const result = await api.get<MyRoomsResponse>(`/housekeeping/my-rooms?date=${shiftDate}`);
           setMyRooms(result.data);
+          const zone = result.meta?.timezone;
+          if (isValidTimeZone(zone)) {
+            if (zone !== zoneRef.current) setHotelTimezone?.(zone);
+            if (tenantId) void AsyncStorage.setItem(TZ_KEY_PREFIX + tenantId, zone).catch(() => undefined);
+          }
           setFetchError(null);
           setUsingCache(false);
           const now = new Date();
@@ -73,7 +104,7 @@ export function useMyRoomsData(): MyRoomsData {
           forceRank.current = false;
           roomSignature.current = signature;
           try {
-            await upsertRooms(result.data);
+            await upsertRooms(result.data, { replaceDate: result.meta?.shift_date ?? shiftDate });
           } catch (err) {
             console.warn("[my-rooms] cache write failed", err);
           }
@@ -100,7 +131,7 @@ export function useMyRoomsData(): MyRoomsData {
     });
     inFlight.current = run;
     return run;
-  }, [isOnline, setMyRooms, readCache]);
+  }, [isOnline, setMyRooms, setHotelTimezone, tenantId, readCache]);
 
   useEffect(() => {
     void loadRooms();
@@ -127,7 +158,18 @@ export function useMyRoomsData(): MyRoomsData {
     }
   }, [loadRooms]);
 
-  return { loading, refreshing, fetchError, usingCache, lastUpdated, rankedAt, refresh };
+  const shiftDate = myRooms[0]?.assignment_date?.slice(0, 10) ?? currentShiftDate(hotelTimezone);
+  return {
+    loading,
+    refreshing,
+    fetchError,
+    usingCache,
+    lastUpdated,
+    timeZone: hotelTimezone ?? null,
+    shiftDate,
+    rankedAt,
+    refresh,
+  };
 }
 
 /**

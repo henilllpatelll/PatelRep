@@ -32999,6 +32999,39 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-08T23:40:00.000Z"
+    },
+    {
+      "id": "bug-2000",
+      "timestamp": "2026-10-09T00:50:00.000Z",
+      "error_message": "Existing Phase 8 service-attempt tests failed with 403 after the endpoint gained an assignment check; bare-role guard and RBAC matrix drift tests failed",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "New assignment gate compared current_user.role directly (banned) and fixtures had no room_assignments; moved routes shifted RBAC-MATRIX line numbers.",
+      "fix": "Added ASSIGNMENT_BOUND_ROLES to core/roles.py, accepted room_status.assigned_to as fallback, added assignment rows to the fixture, regenerated RBAC-MATRIX.md.",
+      "tags": [
+        "api",
+        "rbac",
+        "service-attempts",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T00:50:00.000Z"
+    },
+    {
+      "id": "bug-2001",
+      "timestamp": "2026-10-09T00:50:00.000Z",
+      "error_message": "Come-back-later only wrote a room note and a local attempt counter; DND toggled without an attempt record; counts reset on restart",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Mobile used PATCH /rooms/{id}/dnd and a Zustand counter (appStore.dndAttemptCounts) instead of the server's service-attempt log.",
+      "fix": "Blockers and the DND toggle now call POST /rooms/{id}/service-attempts (online-only, idempotent); counters removed from appStore.",
+      "tags": [
+        "mobile",
+        "dnd",
+        "service-attempts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T00:50:00.000Z"
     }
   ]
 }

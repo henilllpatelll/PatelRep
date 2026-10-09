@@ -2,6 +2,7 @@ jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn(), post: jest.fn(), p
 
 import type { Room } from "@/stores/appStore";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
+import { classifyRoom } from "@/lib/housekeeping/needsAttention";
 import {
   buildDashboard,
   buildFloorSections,
@@ -9,7 +10,6 @@ import {
   effectiveStatus,
   elapsedMinutes,
   getAccessState,
-  getAttentionReason,
   getLastTab,
   parseShiftDate,
   resolveListState,
@@ -251,23 +251,32 @@ describe("access state", () => {
 });
 
 describe("needs attention", () => {
-  it("classifies DND, declined, unverified checkout, blockers, reclean and work orders", () => {
-    expect(getAttentionReason(room("1", { dnd_flag: true }))).toBe("dnd");
-    expect(getAttentionReason(room("1", { do_not_service: true }))).toBe("declined");
-    expect(getAttentionReason(room("1", { actual_checkout_at: null }))).toBe("checkout_unverified");
-    expect(getAttentionReason(room("1", { latest_note: "BLOCKER: Guest inside" }))).toBe("blocker");
-    expect(getAttentionReason(room("1", { reclean_requested_at: "2026-10-08T13:00:00Z", reclean_corrections: ["Dust"] }))).toBe("reclean");
-    expect(getAttentionReason(room("1", { clean_type: "FULL", open_work_order_id: "wo-1" }))).toBe("work_order");
+  const primary = (r: Room) => classifyRoom(r, { now: NOW }).primary;
+  const state = (r: Room) => classifyRoom(r, { now: NOW }).state;
+  const stay = { clean_type: "FULL", actual_checkout_at: null, fo_status: "OCC" as const };
+
+  it("classifies DND, declined, unverified checkout, blockers and work orders", () => {
+    expect(primary(room("1", { dnd_flag: true }))).toBe("dnd");
+    expect(primary(room("1", { ...stay, do_not_service: true }))).toBe("do_not_service");
+    expect(primary(room("1", { ...stay, do_not_service: true, service_declined_reason: "privacy_request" }))).toBe("service_declined");
+    expect(primary(room("1", { actual_checkout_at: null }))).toBe("checkout_unverified");
+    expect(primary(room("1", { latest_note: "BLOCKER: Guest inside" }))).toBe("guest_inside");
+    expect(primary(room("1", { latest_note: "BLOCKER: Can't enter (double-locked)" }))).toBe("access_problem");
+    expect(primary(room("1", { clean_type: "FULL", open_work_order_id: "wo-1" }))).toBe("work_order");
   });
 
-  it("keeps routine rooms out of attention", () => {
-    expect(getAttentionReason(room("1"))).toBeNull();
-    // A vacant departure can be cleaned around informational notes / open work orders.
-    expect(getAttentionReason(room("1", { open_work_order_id: "wo-1", latest_note: "Fridge humming" }))).toBeNull();
-    // A reclean with no outstanding corrections is normal work.
-    expect(getAttentionReason(room("1", { reclean_requested_at: "2026-10-08T13:00:00Z", reclean_corrections: [] }))).toBeNull();
-    // Occupied stayovers are workable, not blocked.
-    expect(getAttentionReason(room("1", { clean_type: "FULL", actual_checkout_at: null, fo_status: "OCC", status: "PICKUP" }))).toBeNull();
+  it("keeps routine and reclean-safe rooms out of attention", () => {
+    expect(state(room("1"))).toBe("cleanable");
+    // A verified-vacant departure can be cleaned around informational notes / open work orders.
+    expect(state(room("1", { open_work_order_id: "wo-1", latest_note: "Fridge humming" }))).toBe("cleanable");
+    // A reclean that is safe to enter is actionable work, with its corrections visible.
+    const reclean = room("1", { reclean_requested_at: "2026-10-08T13:00:00Z", reclean_corrections: ["Dust"] });
+    expect(state(reclean)).toBe("cleanable");
+    expect(classifyRoom(reclean, { now: NOW }).reclean).toEqual({ requestedAt: "2026-10-08T13:00:00Z", corrections: 1 });
+    // Occupied stayovers are workable (knock protocol), not blocked.
+    expect(state(room("1", { ...stay, status: "PICKUP" }))).toBe("cleanable");
+    // A stale decline does not survive a verified checkout.
+    expect(state(room("1", { do_not_service: true }))).toBe("cleanable");
   });
 
   it("never moves an attention room into Up Next, however high its priority or sequence", () => {
@@ -288,7 +297,7 @@ describe("needs attention", () => {
         room("201", { latest_note: "BLOCKER: stuck" }),
         room("202", { dnd_flag: true, dnd_retry_at: "2026-10-08T18:00:00Z" }),
         room("203", { dnd_flag: true, dnd_retry_at: "2026-10-08T16:00:00Z" }),
-        room("204", { do_not_service: true }),
+        room("204", { ...stay, do_not_service: true }),
       ],
       {},
       NOW,
@@ -550,5 +559,73 @@ describe("session helpers", () => {
     expect([parsed.getFullYear(), parsed.getMonth(), parsed.getDate()]).toEqual([2026, 9, 8]);
     expect(parseShiftDate(null)).toBeNull();
     expect(parseShiftDate("garbage")).toBeNull();
+  });
+});
+
+
+describe("Phase 3 ordering and counting", () => {
+  const recleanFields = { reclean_requested_at: "2026-10-08T13:00:00Z", reclean_corrections: ["Mirror"] };
+  const stay = { clean_type: "FULL", actual_checkout_at: null, fo_status: "OCC" as const, status: "PICKUP" as const };
+
+  it("puts unsequenced rush first, then reclean corrections, then the heuristic", () => {
+    const model = buildDashboard(
+      [room("301"), room("302", recleanFields), room("303", { priority: 1 }), room("304")],
+      {},
+      NOW,
+    );
+    expect(ids(model.upNext).slice(0, 2)).toEqual(["303", "302"]);
+    expect(ids(model.upNext).slice(2).sort()).toEqual(["301", "304"]);
+  });
+
+  it("keeps the supervisor's sequence ahead of both rush and reclean", () => {
+    const model = buildDashboard(
+      [room("301", { sequence_order: 1 }), room("302", { priority: 1 }), room("303", recleanFields)],
+      {},
+      NOW,
+    );
+    expect(ids(model.upNext)[0]).toBe("301");
+  });
+
+  it("exposes the rush as data (reason, deadline, note), not a boolean, and drops it when the priority is revoked", () => {
+    const rush = buildDashboard([room("301", { priority: 1, priority_reason: "vip", priority_needed_by: "2099-01-01T18:00:00Z", priority_note: "Owner" })], {}, NOW).upNext[0];
+    expect(rush.rush).toEqual({ reason: "vip", neededBy: "2099-01-01T18:00:00Z", note: "Owner", overdue: false });
+    expect(buildDashboard([room("301", { priority: 5 })], {}, NOW).upNext[0].rush).toBeNull();
+  });
+
+  it("a room with Rush + DND + a near arrival is counted once, in Needs Attention, with every reason kept", () => {
+    const model = buildDashboard(
+      [room("314", { ...stay, dnd_flag: true, priority: 1, priority_needed_by: "2099-01-01T18:00:00Z", checkin_time: "2026-10-08T17:00:00Z", reclean_requested_at: "2026-10-08T13:00:00Z", reclean_corrections: ["x"] })],
+      {},
+      NOW,
+    );
+    expect(ids(model.attention)).toEqual(["314"]);
+    expect(model.upNext).toHaveLength(0);
+    const entry = model.attention[0];
+    expect(entry.attention).toBe("dnd");
+    expect(entry.classification.reasons).toEqual(["dnd", "reclean"]);
+    expect(entry.rush?.neededBy).toBe("2099-01-01T18:00:00Z");
+    expect(model.progress).toMatchObject({ assigned: 1, attention: 1, workable: 0, remaining: 1, completed: 0 });
+  });
+
+  it("keeps the mutually exclusive categories summing to assigned across every mix of states", () => {
+    const rooms = [
+      room("1"),
+      room("2", { dnd_flag: true }),
+      room("3", { ...stay, do_not_service: true }),
+      room("4", { ...stay, dnd_retry_at: "2099-01-01T00:00:00Z" }),
+      room("5", { ...stay, dnd_retry_at: "2020-01-01T00:00:00Z" }),
+      room("6", recleanFields),
+      room("7", { status: "CLEAN", ...recleanFields }),
+      room("8", { status: "INSPECTED" }),
+      room("9", { status: "OUT_OF_ORDER", dnd_flag: true, priority: 1 }),
+      room("10", { status: "IN_PROGRESS", dnd_flag: true }),
+      room("11", { actual_checkout_at: null }),
+    ];
+    const { progress, current, upNext, attention, submitted, inspected, unavailable } = buildDashboard(rooms, {}, NOW);
+    expect(current.length + upNext.length + attention.length + submitted.length + inspected.length + unavailable.length).toBe(rooms.length);
+    expect(progress.remaining + progress.completed).toBe(progress.serviceable);
+    expect(ids(attention).sort()).toEqual(["11", "2", "3", "4"]);
+    expect(ids(upNext).sort()).toEqual(["1", "5", "6"]);
+    expect(ids(current)).toEqual(["10"]);
   });
 });

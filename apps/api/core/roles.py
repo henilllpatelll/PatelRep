@@ -25,6 +25,8 @@ TASK_ASSIGNMENT_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer", "fro
 # observe (attempts, occupancy, service declined); Rush/priority and
 # discrepancy resolution are supervisor/front-desk/GM calls.
 HOUSEKEEPING_EXCEPTION_REPORT_ROLES = ("housekeeper", "housekeeping_supervisor", "gm", "chief_engineer")
+# Roles that may only act on rooms assigned to them (managers and engineers cover any room).
+ASSIGNMENT_BOUND_ROLES = ("housekeeper",)
 RUSH_MANAGER_ROLES = ("housekeeping_supervisor", "front_desk", "gm", "chief_engineer")
 DISCREPANCY_RESOLVER_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
 

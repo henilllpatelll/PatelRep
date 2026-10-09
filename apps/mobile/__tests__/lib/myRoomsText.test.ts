@@ -59,24 +59,41 @@ describe("access copy never implies a guest left", () => {
 describe("attention copy", () => {
   it("includes the retry time and recorded attempts for DND", () => {
     const entry = entryFor({ dnd_flag: true, dnd_retry_at: "2026-10-08T18:30:00.000Z", dnd_attempt_count: 2 });
-    const copy = describeAttention(entry, t, "en");
+    const copy = describeAttention(entry, t, { language: "en" });
     expect(copy.title).toBe("rooms.dash.attention.dnd.title");
     expect(copy.details[0]).toBe("rooms.dash.attention.dnd.detail");
     expect(copy.details.some((line) => line.startsWith("rooms.dash.attention.retryAt"))).toBe(true);
     expect(copy.details.some((line) => line.includes('"count":2'))).toBe(true);
   });
 
-  it("uses the entered reason / blocker text and strips the BLOCKER prefix", () => {
-    expect(describeAttention(entryFor({ do_not_service: true, service_declined_reason: "Sleeping baby" }), t).details).toEqual([
-      "Sleeping baby",
-    ]);
-    expect(describeAttention(entryFor({ latest_note: "BLOCKER: Guest inside" }), t).details).toEqual(["Guest inside"]);
+  it("names the decline reason, and strips the BLOCKER prefix from attendant notes", () => {
+    const stay = { clean_type: "FULL", clean_type_label: "Full", actual_checkout_at: null, fo_status: "OCC" as const };
+    const declined = describeAttention(entryFor({ ...stay, do_not_service: true, service_declined_reason: "privacy_request", service_declined_note: "Sleeping baby" }), t);
+    expect(declined.title).toBe("rooms.dash.attention.service_declined.title");
+    expect(declined.details).toEqual(["rooms.dash.attention.declineReasons.privacy_request", "Sleeping baby"]);
+    expect(describeAttention(entryFor({ latest_note: "BLOCKER: Guest inside" }), t).details[0]).toBe("Guest inside");
+  });
+
+  it("shows a come-back-later retry in hotel time and keeps the next-strongest reason visible", () => {
+    const entry = entryFor({
+      clean_type: "FULL",
+      clean_type_label: "Full",
+      actual_checkout_at: null,
+      fo_status: "OCC",
+      dnd_retry_at: "2099-10-08T18:30:00.000Z",
+      dnd_attempt_count: 1,
+      open_work_order_id: "wo-1",
+    });
+    const copy = describeAttention(entry, t, { language: "en", timeZone: "America/Chicago" });
+    expect(copy.title).toBe("rooms.dash.attention.come_back_later.title");
+    expect(copy.details[0].replace(/\u202f/g, " ")).toContain('"time":"1:30 PM"');
+    expect(copy.details.some((line) => line.startsWith("rooms.dash.attention.also"))).toBe(true);
   });
 });
 
 describe("labels", () => {
   it("builds a screen-reader label with room, rush, status, type, access and the action", () => {
-    const label = cardAccessibilityLabel(entryFor({ priority: 1, priority_needed_by: "2026-10-08T19:00:00Z" }), t, "en");
+    const label = cardAccessibilityLabel(entryFor({ priority: 1, priority_needed_by: "2099-10-08T19:00:00Z" }), t, { language: "en" });
     expect(label.split(", ")[0]).toContain("rooms.dash.card.room");
     expect(label).toContain("rooms.dash.card.rushA11y");
     expect(label).toContain("rooms.card.status.DIRTY");

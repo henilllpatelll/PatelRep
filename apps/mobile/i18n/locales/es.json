@@ -602,7 +602,10 @@
         "room": "Habitación {{room}}",
         "rushA11y": "prioridad urgente",
         "floor": "Piso {{floor}}",
-        "building": "Edificio {{name}}"
+        "building": "Edificio {{name}}",
+        "recleanCorrections": "{{count}} correcciones solicitadas",
+        "recleanRequested": "Relimpieza solicitada",
+        "arrival": "Llegada {{time}}"
       },
       "access": {
         "dnd": "No molestar",
@@ -618,17 +621,30 @@
           "title": "NM",
           "detail": "No entrar"
         },
-        "declined": {
+        "do_not_service": {
+          "title": "No dar servicio",
+          "detail": "No dar servicio está activo"
+        },
+        "service_declined": {
           "title": "Rechazado",
           "detail": "El huésped rechazó el servicio"
+        },
+        "guest_inside": {
+          "title": "Huésped adentro",
+          "detail": "Se reportó huésped adentro"
+        },
+        "access_problem": {
+          "title": "No se puede entrar",
+          "detail": "No hay acceso por ahora"
         },
         "checkout_unverified": {
           "title": "Sin salida",
           "detail": "Confirma que el huésped salió antes de entrar"
         },
-        "blocker": {
-          "title": "Entrada bloqueada",
-          "detail": "La entrada está bloqueada"
+        "come_back_later": {
+          "title": "Volver más tarde",
+          "detail": "El huésped pidió que se regrese más tarde",
+          "detailAt": "Volver a las {{time}}"
         },
         "reclean": {
           "title": "Relimpieza",
@@ -638,7 +654,7 @@
           "title": "Orden de trabajo",
           "detail": "Orden de trabajo abierta"
         },
-        "risk": {
+        "high_risk": {
           "title": "Riesgo alto",
           "detail": "Revisa primero el contexto de la habitación"
         },
@@ -646,9 +662,17 @@
           "title": "Nota",
           "detail": "Lee primero la última nota"
         },
-        "retryAt": "Reintentar a las {{time}}",
-        "attempts": "Intentos registrados: {{count}}",
-        "corrections": "{{count}} correcciones por hacer"
+        "retryAt": "Reintentar: {{time}}",
+        "lastAttempt": "Último intento: {{time}}",
+        "attempts": "Intentos: {{count}}",
+        "corrections": "{{count}} correcciones solicitadas",
+        "also": "También: {{reason}}",
+        "declineReasons": {
+          "guest_declined_housekeeping": "El huésped rechazó la limpieza",
+          "guest_no_service_today": "El huésped pidió no recibir servicio hoy",
+          "privacy_request": "Solicitud de privacidad",
+          "other": "Servicio rechazado"
+        }
       },
       "floors": {
         "searchPlaceholder": "Buscar número de habitación",
@@ -661,7 +685,8 @@
         "floorA11y": "{{floor}}, {{completed}} de {{total}} completadas",
         "current": "Actual",
         "emptyTitle": "No hay habitaciones asignadas",
-        "unavailableCount": "{{count}} no disponibles"
+        "unavailableCount": "{{count}} no disponibles",
+        "comeBackAt": "Volver {{time}}"
       },
       "done": {
         "awaitingTitle": "Esperando inspección",
@@ -677,6 +702,68 @@
         "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
         "offlineEmpty": "Estás sin conexión y este dispositivo aún no tiene habitaciones guardadas.",
         "retry": "Reintentar"
+      },
+      "rush": {
+        "overdue": "Vencida — era para las {{time}}",
+        "title": "Prioridad urgente",
+        "noteLabel": "Nota del supervisor",
+        "reasons": {
+          "early_arrival": "Llegada temprana",
+          "vip": "VIP",
+          "guest_waiting": "Huésped esperando",
+          "front_desk_request": "Solicitud de recepción",
+          "operational_priority": "Prioridad operativa",
+          "other": "Prioridad"
+        }
+      },
+      "detail": {
+        "restriction": {
+          "doNotEnter": "NO ENTRAR",
+          "dnd": "No molestar está activo.",
+          "do_not_service": "No dar servicio está activo para esta estancia.",
+          "service_declined": "El huésped rechazó el servicio.",
+          "come_back_later": "El huésped pidió que se regrese más tarde.",
+          "retryDue": "Ya llegó la hora acordada para reintentar. Toca la puerta antes de entrar.",
+          "lastAttempt": "Último intento: {{time}}",
+          "lastAttemptUnknown": "Último intento: sin registro",
+          "attempts": "Intentos: {{count}}",
+          "retry": "Reintentar: {{time}}",
+          "retryUnset": "Hora de reintento: sin definir",
+          "recordAttempt": "Registrar intento de servicio",
+          "notifySupervisor": "Avisar al supervisor",
+          "notified": "Supervisor avisado",
+          "notifyFailed": "No se pudo avisar al supervisor. Inténtalo de nuevo.",
+          "returnToRoute": "Volver a la ruta",
+          "needsConnection": "Conéctate a internet para registrarlo. No se guardó nada.",
+          "timePrompt": "¿A qué hora reintentar?",
+          "timePlaceholder": "p. ej. 1:30 PM",
+          "timeInvalid": "Escribe una hora como 1:30 PM.",
+          "timePast": "Esa hora ya pasó hoy. Elige una hora posterior.",
+          "confirmTime": "Guardar hora de reintento",
+          "recorded": "Intento registrado",
+          "failed": "No se pudo registrar el intento. Inténtalo de nuevo — no se contará dos veces.",
+          "options": {
+            "dnd_no_response": "Sin respuesta (NM)",
+            "return_later": "Volver más tarde",
+            "guest_answered": "El huésped respondió",
+            "dnd_cleared": "NM retirado"
+          },
+          "blockedStart": "Esta habitación está restringida ahora, por lo que no se puede iniciar la limpieza."
+        },
+        "reclean": {
+          "title": "Correcciones de la inspección",
+          "subtitle": "{{count}} correcciones solicitadas",
+          "inspectedAt": "Inspeccionada {{time}}",
+          "inspectorNotes": "Notas del inspector",
+          "toFix": "Por corregir",
+          "fixed": "Corregido",
+          "start": "Revisar / Iniciar relimpieza",
+          "unavailable": "Los detalles de las correcciones no están disponibles en este dispositivo. Vuelve a limpiar la habitación según lo señalado y consulta a tu supervisor si algo no está claro."
+        },
+        "rush": {
+          "deadline": "Necesaria a las {{time}}",
+          "arrival": "Llegada del huésped {{time}}"
+        }
       }
     }
   },

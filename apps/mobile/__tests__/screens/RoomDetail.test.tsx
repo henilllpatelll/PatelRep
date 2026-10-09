@@ -10,7 +10,11 @@ import { ToastProvider } from "@/lib/theme/ToastProvider";
 const mockSetMyRooms = jest.fn();
 const mockRefreshRooms = jest.fn().mockResolvedValue(undefined);
 let mockIsOnline = true;
-const mockT = (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key;
+let mockHotelTimezone: string | null = "America/Chicago";
+const mockT = (key: string, options?: Record<string, unknown>) => {
+  if (key.startsWith("rooms.dash.") && options && !("defaultValue" in options)) return `${key} ${JSON.stringify(options)}`;
+  return (options?.defaultValue as string | undefined) ?? key;
+};
 
 function makeRoom(overrides: Partial<Room> = {}): Room {
   return {
@@ -46,7 +50,7 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: mockT }),
+  useTranslation: () => ({ t: mockT, i18n: { language: "en", resolvedLanguage: "en" } }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: ({ name }: { name: string }) => {
@@ -55,6 +59,8 @@ jest.mock("@expo/vector-icons", () => ({
     return React.createElement(Text, { testID: `icon-${name}` }, name);
   },
 }));
+const mockToast = { error: jest.fn(), info: jest.fn(), success: jest.fn(), warning: jest.fn() };
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => mockToast }));
 jest.mock("@/components/housekeeping/ReportIssueModal", () => () => null);
 jest.mock("@/components/housekeeping/FoundItemModal", () => () => null);
 jest.mock("@/components/housekeeping/SupplyRequestModal", () => () => null);
@@ -82,8 +88,7 @@ function mockAppState() {
     user: { id: "user-1", tenant_id: "hotel-1" },
     refreshRooms: mockRefreshRooms,
     dropQueuedRoomStatus: jest.fn().mockResolvedValue(undefined),
-    incrementDndAttempt: jest.fn().mockReturnValue(1),
-    resetDndAttempt: jest.fn(),
+    hotelTimezone: mockHotelTimezone,
   };
 }
 
@@ -357,19 +362,48 @@ describe("RoomDetailScreen", () => {
     expect(queryByText("rooms.detail.removeNote")).toBeNull();
   });
 
-  it("formats typed come-back-later time before saving the blocker note", async () => {
+  it("records a come-back-later attempt on the server with a hotel-local retry instant, then writes the audit note", async () => {
     mockRooms = [makeRoom({ status: "PICKUP", latest_note: null, latest_note_at: null })];
+    mockApiPost.mockImplementation((path: string) =>
+      path.endsWith("/service-attempts")
+        ? Promise.resolve({ data: {}, replayed: false, room: { dnd_flag: false, dnd_attempt_count: 1, dnd_last_attempt_at: "x", dnd_retry_at: "y" } })
+        : Promise.resolve({ data: {} }),
+    );
 
     const { getByPlaceholderText, getByText } = renderScreen();
 
     await waitFor(() => expect(getByText("blockers.comeBackLater")).toBeTruthy());
     fireEvent.press(getByText("blockers.comeBackLater"));
-    fireEvent.changeText(getByPlaceholderText("blockers.timePlaceholder"), "1:30");
+    fireEvent.changeText(getByPlaceholderText("blockers.timePlaceholder"), "11:59 PM");
     fireEvent.press(getByText("blockers.report"));
 
     await waitFor(() =>
-      expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Come back later — 1:30 PM" }),
+      expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Come back later — 11:59 PM" }),
     );
+    const attempt = mockApiPost.mock.calls.find(([path]) => path === "/rooms/room-1/service-attempts");
+    expect(attempt?.[1]).toMatchObject({ result: "return_later" });
+    // 11:59 PM hotel time (America/Chicago) is an absolute instant, not the device's 11:59 PM.
+    const retry = new Date(attempt?.[1].return_at as string);
+    const hotelClock = retry.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", hour12: false });
+    expect(hotelClock.replace(/\u202f/g, " ")).toMatch(/^(23:59|11:59)/);
+    // The count shown comes from the server response, not a local counter.
+    expect(mockSetMyRooms).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: "room-1", dnd_attempt_count: 1 })]),
+    );
+  });
+
+  it("does not write a come-back-later note when the time is not a usable time", async () => {
+    mockRooms = [makeRoom({ status: "PICKUP", latest_note: null, latest_note_at: null })];
+    const { getByPlaceholderText, getByText } = renderScreen();
+
+    await waitFor(() => expect(getByText("blockers.comeBackLater")).toBeTruthy());
+    fireEvent.press(getByText("blockers.comeBackLater"));
+    fireEvent.changeText(getByPlaceholderText("blockers.timePlaceholder"), "soonish");
+    fireEvent.press(getByText("blockers.report"));
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("rooms.dash.detail.restriction.timeInvalid"));
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/service-attempts")).toBe(false);
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/notes")).toBe(false);
   });
 
   it("clears undo loading if the undo request hangs", async () => {
@@ -538,5 +572,253 @@ describe("RoomDetailScreen", () => {
       expect(getByText("rooms.detail.session.conflictKept")).toBeTruthy();
       expect(useCleanSessionStore.getState().sessions["room-1"].checklist[0].checked).toBe(true);
     });
+  });
+});
+
+
+describe("Phase 3: rush, DND, service attempts and reclean", () => {
+  const plain = (text: string) => text.replace(/\u202f/g, " ");
+
+  function dndRoom(overrides: Partial<Room> = {}) {
+    return makeRoom({
+      status: "PICKUP",
+      clean_type: "LIGHT",
+      clean_type_label: "Light",
+      fo_status: "OCC",
+      dnd_flag: true,
+      dnd_attempt_count: 1,
+      dnd_last_attempt_at: "2026-10-08T16:25:00.000Z", // 11:25 AM Chicago
+      dnd_retry_at: "2026-10-08T18:30:00.000Z", // 1:30 PM Chicago
+      ...overrides,
+    });
+  }
+
+  it("shows authoritative DND state with persisted attempts, last attempt and retry in hotel time, and no Start", async () => {
+    mockRooms = [dndRoom()];
+    const { getByText, queryByText, getByTestId } = renderScreen();
+
+    await waitFor(() => expect(getByTestId("restriction-panel")).toBeTruthy());
+    expect(getByText("rooms.dash.detail.restriction.doNotEnter")).toBeTruthy();
+    expect(getByText("rooms.dash.detail.restriction.dnd")).toBeTruthy();
+    expect(plain(getByText(/restriction\.lastAttempt /).props.children as string)).toContain('"time":"11:25 AM"');
+    expect(plain(getByText(/restriction\.retry /).props.children as string)).toContain('"time":"1:30 PM"');
+    expect(getByText(/restriction\.attempts /).props.children).toContain('"count":1');
+    expect(queryByText("rooms.detail.primary.startCleaning")).toBeNull();
+  });
+
+  it("says what is unknown instead of implying nothing happened", async () => {
+    mockRooms = [dndRoom({ dnd_attempt_count: 0, dnd_last_attempt_at: null, dnd_retry_at: null })];
+    const { getByText } = renderScreen();
+    await waitFor(() => expect(getByText("rooms.dash.detail.restriction.lastAttemptUnknown")).toBeTruthy());
+    expect(getByText("rooms.dash.detail.restriction.retryUnset")).toBeTruthy();
+  });
+
+  it("records an attempt through the service-attempts endpoint and shows the server's count (no local increment)", async () => {
+    mockRooms = [dndRoom({ dnd_attempt_count: 1 })];
+    mockApiPost.mockResolvedValue({
+      data: {},
+      replayed: false,
+      room: { dnd_flag: true, dnd_attempt_count: 7, dnd_last_attempt_at: "2026-10-08T17:00:00.000Z", dnd_retry_at: null },
+    });
+    const { getByTestId } = renderScreen();
+
+    await waitFor(() => expect(getByTestId("restriction-record")).toBeTruthy());
+    fireEvent.press(getByTestId("restriction-record"));
+    fireEvent.press(getByTestId("restriction-option-dnd_no_response"));
+
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/service-attempts", expect.objectContaining({ result: "dnd_no_response" })));
+    expect(mockSetMyRooms).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: "room-1", dnd_attempt_count: 7 })]),
+    );
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/clean-sessions")).toBe(false);
+  });
+
+  it("retries a failed attempt with the SAME attempted_at so the server can replay it instead of double counting", async () => {
+    mockRooms = [dndRoom()];
+    mockApiPost.mockRejectedValueOnce(new Error("Network request failed")).mockResolvedValue({
+      data: {},
+      replayed: true,
+      room: { dnd_flag: true, dnd_attempt_count: 2, dnd_last_attempt_at: null, dnd_retry_at: null },
+    });
+    const { getByTestId } = renderScreen();
+
+    await waitFor(() => expect(getByTestId("restriction-record")).toBeTruthy());
+    fireEvent.press(getByTestId("restriction-record"));
+    fireEvent.press(getByTestId("restriction-option-guest_answered"));
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("rooms.dash.detail.restriction.failed"));
+
+    fireEvent.press(getByTestId("restriction-option-guest_answered"));
+    await waitFor(() => expect(mockApiPost.mock.calls.filter(([path]) => path === "/rooms/room-1/service-attempts")).toHaveLength(2));
+    const [first, second] = mockApiPost.mock.calls
+      .filter(([path]) => path === "/rooms/room-1/service-attempts")
+      .map(([, body]) => body as { attempted_at: string });
+    expect(second.attempted_at).toBe(first.attempted_at);
+  });
+
+  it("refuses to record offline and never pretends it saved", async () => {
+    mockIsOnline = false;
+    mockRooms = [dndRoom()];
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("restriction-record")).toBeTruthy());
+    fireEvent.press(getByTestId("restriction-record"));
+    expect(getByTestId("restriction-record").props.accessibilityState.disabled).toBe(true);
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/service-attempts")).toBe(false);
+  });
+
+  it("rejects a retry time that has already passed", async () => {
+    mockRooms = [dndRoom()];
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("restriction-record")).toBeTruthy());
+    fireEvent.press(getByTestId("restriction-record"));
+    fireEvent.press(getByTestId("restriction-option-return_later"));
+    fireEvent.changeText(getByTestId("restriction-time-input"), "12:00 AM");
+    fireEvent.press(getByTestId("restriction-time-confirm"));
+    await waitFor(() => expect(getByText("rooms.dash.detail.restriction.timePast")).toBeTruthy());
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/rooms/room-1/service-attempts")).toBe(false);
+  });
+
+  it("notifies the supervisor once through the existing push route", async () => {
+    mockRooms = [dndRoom()];
+    mockApiPost.mockResolvedValue({ data: {} });
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("restriction-notify")).toBeTruthy());
+    fireEvent.press(getByTestId("restriction-notify"));
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/notifications/push", expect.objectContaining({ target_role: "housekeeping_supervisor" })));
+    await waitFor(() => expect(getByTestId("restriction-notify").props.accessibilityState.disabled).toBe(true));
+    fireEvent.press(getByTestId("restriction-notify"));
+    expect(mockApiPost.mock.calls.filter(([path]) => path === "/notifications/push")).toHaveLength(1);
+  });
+
+  it("keeps Do Not Service distinct from DND and bars Start", async () => {
+    mockRooms = [dndRoom({ dnd_flag: false, dnd_attempt_count: 0, dnd_retry_at: null, do_not_service: true })];
+    const { getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(getByText("rooms.dash.detail.restriction.do_not_service")).toBeTruthy());
+    expect(queryByText("rooms.dash.detail.restriction.dnd")).toBeNull();
+    expect(queryByText("rooms.detail.primary.startCleaning")).toBeNull();
+  });
+
+  it("a future come-back-later bars Start; once the retry time passes the room is workable again", async () => {
+    const future = new Date(Date.now() + 3 * 3600_000).toISOString();
+    mockRooms = [makeRoom({ status: "PICKUP", clean_type: "LIGHT", fo_status: "OCC", dnd_retry_at: future, dnd_attempt_count: 1 })];
+    const first = renderScreen();
+    await waitFor(() => expect(first.getByTestId("restriction-panel")).toBeTruthy());
+    expect(first.getByText("rooms.dash.detail.restriction.come_back_later")).toBeTruthy();
+    fireEvent.press(first.getByText("rooms.detail.primary.startCleaning"));
+    expect(first.queryByTestId("knock-modal")).toBeNull();
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/clean-sessions")).toBe(false);
+    first.unmount();
+
+    mockRooms = [makeRoom({ status: "PICKUP", clean_type: "LIGHT", fo_status: "OCC", dnd_retry_at: new Date(Date.now() - 600_000).toISOString(), dnd_attempt_count: 1 })];
+    const second = renderScreen();
+    await waitFor(() => expect(second.getByText("rooms.dash.detail.restriction.retryDue")).toBeTruthy());
+    fireEvent.press(second.getByText("rooms.detail.primary.startCleaning"));
+    // Occupied stayovers still go through the knock protocol — unchanged.
+    await waitFor(() => expect(second.getByTestId("knock-modal")).toBeTruthy());
+  });
+
+  it("revalidates against the freshest list when Start is tapped (a DND that landed after the page opened)", async () => {
+    const open = makeRoom({ status: "DIRTY", clean_type: "FULL", fo_status: "VAC", actual_checkout_at: "2026-10-08T08:00:00.000Z" });
+    mockRooms = [open];
+    const { getByText } = renderScreen();
+    await waitFor(() => expect(getByText("rooms.detail.primary.startCleaning")).toBeTruthy());
+    mockRooms = [{ ...open, dnd_flag: true }]; // refresh landed in the store, screen state is stale
+    fireEvent.press(getByText("rooms.detail.primary.startCleaning"));
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("rooms.dash.detail.restriction.blockedStart"));
+    expect(mockApiPost.mock.calls.some(([path]) => path === "/clean-sessions")).toBe(false);
+  });
+
+  const rushRoom = (neededBy: string) =>
+    makeRoom({
+      status: "DIRTY",
+      clean_type: "DEP",
+      fo_status: "VAC",
+      actual_checkout_at: "2026-10-08T08:00:00.000Z",
+      priority: 1,
+      priority_reason: "vip",
+      priority_needed_by: neededBy,
+      priority_note: "Owner arriving - check amenities",
+      checkin_time: "2099-01-01T21:00:00.000Z",
+    });
+
+  it("shows Rush with the deadline in hotel time, the reason and the supervisor note, apart from the guest arrival", async () => {
+    mockRooms = [rushRoom("2099-01-01T18:00:00.000Z")]; // 12:00 PM CST in America/Chicago
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("rush-panel")).toBeTruthy());
+    expect(getByText("Owner arriving - check amenities")).toBeTruthy();
+    expect(plain(getByText(/detail\.rush\.deadline/).props.children as string)).toContain('"time":"12:00 PM"');
+  });
+
+  it("flags a passed Rush deadline as overdue instead of 'needed by'", async () => {
+    mockRooms = [rushRoom("2026-01-01T18:00:00.000Z")];
+    const { getByTestId, getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("rush-panel")).toBeTruthy());
+    expect(plain(getByText(/rush\.overdue/).props.children as string)).toContain('"time":"12:00 PM"');
+    expect(queryByText(/detail\.rush\.deadline/)).toBeNull();
+  });
+
+  it("handles a Rush with no deadline and no reason", async () => {
+    mockRooms = [makeRoom({ status: "DIRTY", clean_type: "DEP", fo_status: "VAC", actual_checkout_at: "2026-10-08T08:00:00.000Z", priority: 2 })];
+    const { getByTestId, queryByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("rush-panel")).toBeTruthy());
+    expect(queryByText(/detail\.rush\.deadline|rush\.overdue/)).toBeNull();
+  });
+
+  it("lists the inspector's corrections with notes and shows only server-confirmed fixes as fixed", async () => {
+    mockRooms = [
+      makeRoom({
+        status: "DIRTY",
+        clean_type: "FULL",
+        fo_status: "VAC",
+        actual_checkout_at: "2026-10-08T08:00:00.000Z",
+        reclean_requested_at: "2026-10-08T15:00:00.000Z",
+        reclean_corrections: ["Restock bathroom amenities", "Clean bathroom mirror"],
+        reclean_details: {
+          inspection_id: "insp-1",
+          inspected_at: "2026-10-08T14:00:00.000Z", // 9:00 AM Chicago
+          overall_result: "failed",
+          notes: "Needs another pass",
+          items: [
+            { id: "ti-1", label: "Restock bathroom amenities", note: "Missing shampoo and conditioner" },
+            { id: "ti-2", label: "Clean bathroom mirror", note: "Visible streaks remain" },
+          ],
+        },
+      }),
+    ];
+    seedSession(
+      [
+        item("c1", "Restock bathroom amenities", true, true, "Corrections"),
+        item("c2", "Clean bathroom mirror", true, false, "Corrections"),
+      ],
+      { cleanType: "FULL" },
+    );
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("reclean-panel")).toBeTruthy());
+    expect(getByText("Missing shampoo and conditioner")).toBeTruthy();
+    expect(getByText("Visible streaks remain")).toBeTruthy();
+    expect(getByText("Needs another pass")).toBeTruthy();
+    expect(getByTestId("correction-Restock bathroom amenities").props.accessibilityLabel).toContain("rooms.dash.detail.reclean.fixed");
+    expect(getByTestId("correction-Clean bathroom mirror").props.accessibilityLabel).toContain("rooms.dash.detail.reclean.toFix");
+  });
+
+  it("offers Review / Start Reclean for a reclean that is safe to enter", async () => {
+    mockRooms = [
+      makeRoom({
+        status: "DIRTY",
+        clean_type: "FULL",
+        fo_status: "VAC",
+        actual_checkout_at: "2026-10-08T08:00:00.000Z",
+        reclean_requested_at: "2026-10-08T15:00:00.000Z",
+        reclean_corrections: ["Clean bathroom mirror"],
+        reclean_details: { inspection_id: "i", inspected_at: null, overall_result: "failed", notes: null, items: [{ id: null, label: "Clean bathroom mirror", note: null }] },
+      }),
+    ];
+    const { getByText } = renderScreen();
+    await waitFor(() => expect(getByText("rooms.dash.detail.reclean.start")).toBeTruthy());
+  });
+
+  it("explains missing correction details instead of showing an empty list", async () => {
+    mockRooms = [makeRoom({ status: "DIRTY", fo_status: "VAC", actual_checkout_at: "2026-10-08T08:00:00.000Z", reclean_requested_at: "2026-10-08T15:00:00.000Z" })];
+    const { getByText } = renderScreen();
+    await waitFor(() => expect(getByText("rooms.dash.detail.reclean.unavailable")).toBeTruthy());
   });
 });

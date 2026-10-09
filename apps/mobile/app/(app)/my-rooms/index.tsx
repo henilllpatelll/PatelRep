@@ -13,7 +13,6 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
-import { localDate } from "@/lib/utils/date";
 import { useAppStore } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { SectionHeader } from "@/components/shared/evening";
@@ -25,7 +24,6 @@ import {
   buildDashboard,
   buildFloorSections,
   getLastTab,
-  parseShiftDate,
   resolveListState,
   setLastTab,
   type DashboardTab,
@@ -38,7 +36,8 @@ import {
   isRouteEmpty,
   type ListItem,
 } from "@/lib/housekeeping/myRoomsItems";
-import { dateLocale, formatClock } from "@/lib/housekeeping/myRoomsText";
+import { formatClock } from "@/lib/housekeeping/myRoomsText";
+import { formatShiftDate } from "@/lib/housekeeping/hotelTime";
 import { useActiveSessionRestore, useMyRoomsData } from "@/lib/housekeeping/useMyRoomsData";
 
 const NO_SESSIONS: SessionMap = {};
@@ -109,7 +108,7 @@ export default function MyRoomsScreen() {
   if (isOnline && data.fetchError && data.usingCache) {
     indicators.push({ key: "stale", icon: "alert-circle-outline", text: t("rooms.dash.sync.refreshFailed"), tone: "warn" });
   } else if (isOnline && data.lastUpdated) {
-    const time = formatClock(data.lastUpdated.toISOString(), language);
+    const time = formatClock(data.lastUpdated.toISOString(), { language, timeZone: data.timeZone });
     indicators.push({
       key: "online",
       icon: "cloud-done-outline",
@@ -123,8 +122,9 @@ export default function MyRoomsScreen() {
 
   // The server resolves the shift date (with the hotel-local fallback); use it
   // over the device clock so the header names the day the rooms belong to.
-  const shiftDate = parseShiftDate(myRooms[0]?.assignment_date) ?? parseShiftDate(localDate()) ?? new Date();
-  const dateLabel = shiftDate.toLocaleDateString(dateLocale(language), { weekday: "long", month: "long", day: "numeric" });
+  // The shift date is the hotel's calendar day the rooms belong to (server-resolved),
+  // not whatever day it is on the phone.
+  const dateLabel = formatShiftDate(data.shiftDate, language) ?? data.shiftDate;
 
   const listState = resolveListState({ loading: data.loading, roomCount: myRooms.length, fetchError: data.fetchError });
 

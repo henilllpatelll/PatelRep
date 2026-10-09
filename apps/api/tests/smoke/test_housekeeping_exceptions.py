@@ -41,6 +41,10 @@ def make_db(room_overrides: dict | None = None):
     return FakeDB({
         "room_status": [room_row],
         "rooms": [{"id": ROOM_ID, "tenant_id": HOTEL, "room_number": "101"}],
+        # Housekeepers may only log attempts on rooms assigned to them.
+        "room_assignments": [
+            {"id": "as-1", "tenant_id": HOTEL, "room_id": ROOM_ID, "assigned_to": HOUSEKEEPER.user_id, "assignment_date": datetime.now(timezone.utc).date().isoformat()}
+        ],
         "room_service_attempts": [],
         "room_occupancy_discrepancies": [],
         "operational_audit_events": [],

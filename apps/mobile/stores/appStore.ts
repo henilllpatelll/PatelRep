@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
-import { upsertRooms } from "@/lib/offline/db";
-import { localDate } from "@/lib/utils/date";
+import { clearRoomsCache, upsertRooms } from "@/lib/offline/db";
+import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
 import { flushSessions, isRoomManagedBySession } from "@/lib/housekeeping/sessionGuard";
 import type { UserProfile } from "@/lib/supabase";
 
@@ -35,10 +35,9 @@ interface AppState {
   setMyRooms: (rooms: Room[]) => void;
   refreshRooms: () => Promise<void>;
 
-  // DND / come-back-later attempt tracking per room
-  dndAttemptCounts: Record<string, number>;
-  incrementDndAttempt: (roomId: string) => number;
-  resetDndAttempt: (roomId: string) => void;
+  /** The hotel's IANA zone (from GET /housekeeping/my-rooms meta), for hotel-local display. */
+  hotelTimezone: string | null;
+  setHotelTimezone: (zone: string | null) => void;
 
   // Notifications badge
   unreadCount: number;
@@ -51,6 +50,21 @@ interface AppState {
   dropQueuedRoomStatus: (roomId: string) => Promise<void>;
   flushQueue: () => Promise<void>;
   loadPendingActions: () => Promise<void>;
+}
+
+export interface RecleanCorrection {
+  id: string | null;
+  label: string;
+  /** Inspector's extra detail, when it adds to the label. */
+  note: string | null;
+}
+
+export interface RecleanDetails {
+  inspection_id: string;
+  inspected_at: string | null;
+  overall_result: "failed" | "conditional" | string | null;
+  notes: string | null;
+  items: RecleanCorrection[];
 }
 
 export interface Room {
@@ -103,6 +117,8 @@ export interface Room {
   service_declined_at?: string | null;
   reclean_requested_at?: string | null;
   reclean_corrections?: string[] | null;
+  /** Failed-inspection context for a reclean (server: services/reclean_corrections). */
+  reclean_details?: RecleanDetails | null;
   rooms?: {
     room_types?: { name?: string; code?: string; base_clean_minutes?: number } | null;
   } | null;
@@ -112,7 +128,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUser: (user) => {
+    const previous = get().user;
+    const changed = (previous?.id ?? null) !== (user?.id ?? null) || (previous?.tenant_id ?? null) !== (user?.tenant_id ?? null);
+    if (changed && previous) {
+      // A different person/hotel on this device must never see the last user's rooms.
+      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null });
+      void clearRoomsCache().catch(() => undefined);
+      return;
+    }
+    set({ user, isAuthenticated: !!user });
+  },
   setIsLoading: (isLoading) => set({ isLoading }),
 
   isOnline: true,
@@ -129,29 +155,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   myRooms: [],
   setMyRooms: (myRooms) => set({ myRooms }),
+  hotelTimezone: null,
+  setHotelTimezone: (hotelTimezone) => set({ hotelTimezone }),
   refreshRooms: async () => {
     try {
-      const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
-      set({ myRooms: result.data });
-      await upsertRooms(result.data);
+      const shiftDate = currentShiftDate(get().hotelTimezone);
+      const result = await api.get<{ data: Room[]; meta?: { timezone?: string | null; shift_date?: string | null } }>(
+        `/housekeeping/my-rooms?date=${shiftDate}`,
+      );
+      set({ myRooms: result.data, ...(result.meta?.timezone ? { hotelTimezone: result.meta.timezone } : {}) });
+      await upsertRooms(result.data, { replaceDate: result.meta?.shift_date ?? shiftDate });
     } catch {
       // Silently preserve local state on refresh failure.
     }
-  },
-
-  dndAttemptCounts: {},
-  incrementDndAttempt: (roomId) => {
-    const current = get().dndAttemptCounts[roomId] ?? 0;
-    const next = current + 1;
-    set((state) => ({ dndAttemptCounts: { ...state.dndAttemptCounts, [roomId]: next } }));
-    return next;
-  },
-  resetDndAttempt: (roomId) => {
-    set((state) => {
-      const counts = { ...state.dndAttemptCounts };
-      delete counts[roomId];
-      return { dndAttemptCounts: counts };
-    });
   },
 
   unreadCount: 0,

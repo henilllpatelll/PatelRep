@@ -30,6 +30,12 @@ import SupplyRequestModal from "@/components/housekeeping/SupplyRequestModal";
 import KnockModal from "@/components/housekeeping/KnockModal";
 import ChecklistSection from "@/components/housekeeping/ChecklistSection";
 import SessionStatusBanner from "@/components/housekeeping/SessionStatusBanner";
+import { RoomRestrictionPanel, hasRestrictionPanel } from "@/components/housekeeping/RoomRestrictionPanel";
+import { RecleanCorrectionsPanel } from "@/components/housekeeping/RecleanCorrectionsPanel";
+import { RushPriorityPanel } from "@/components/housekeeping/RushPriorityPanel";
+import { classifyRoom } from "@/lib/housekeeping/needsAttention";
+import { formatHotelTime, resolveReturnTime } from "@/lib/housekeeping/hotelTime";
+import { useRoomExceptions } from "@/lib/housekeeping/useRoomExceptions";
 import {
   getBeforeEnterWarnings,
   getRoomAction,
@@ -44,7 +50,6 @@ import {
   getBlockersForRoom,
   runBlockerSideEffect,
   sendDeclinedServiceAlert,
-  sendSupervisorEscalation,
   type RoomBlocker,
 } from "@/lib/housekeeping/roomBlockers";
 
@@ -122,15 +127,6 @@ function getCleanTypeMeta(
 }
 
 const STATUS_ACTION_TIMEOUT_MS = 12000;
-
-function formatTime(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  } catch {
-    return null;
-  }
-}
 
 function formatLastActionTime(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -233,14 +229,13 @@ function needsKnockProtocol(room: Room): boolean {
 
 export default function RoomDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     isOnline,
     myRooms,
     setMyRooms,
     user,
-    incrementDndAttempt,
-    resetDndAttempt,
+    hotelTimezone,
     refreshRooms,
   } = useAppStore();
   const session = useCleanSessionStore(selectSession(typeof roomId === "string" ? roomId : undefined));
@@ -346,6 +341,14 @@ export default function RoomDetailScreen() {
     setRoom((current) => (current?.id === roomIdToUpdate ? { ...current, ...patch } : current));
   }
 
+  const exceptions = useRoomExceptions({ room, isOnline, updateLocalRoom, refreshRooms, toast, t });
+
+  /** Entry restrictions are re-read from the freshest list on every action that changes workflow state. */
+  function isRestrictedNow(target: Room): boolean {
+    const latest = useAppStore.getState().myRooms.find((candidate) => candidate.id === target.id) ?? target;
+    return classifyRoom(latest, { hasLiveSession: Boolean(session && !session.completionConfirmed) }).restricted;
+  }
+
   function clearStatusLoadingTimer() {
     if (statusLoadingTimer.current) {
       clearTimeout(statusLoadingTimer.current);
@@ -374,6 +377,10 @@ export default function RoomDetailScreen() {
   /** Start (or resume) the persistent clean session; the server flips the room to IN_PROGRESS. */
   async function startCleaning(entryAcknowledged: boolean) {
     if (!room) return;
+    if (isRestrictedNow(room)) {
+      toast.error(t("rooms.dash.detail.restriction.blockedStart"));
+      return;
+    }
     prevRoomRef.current = room;
     startStatusLoading();
     try {
@@ -436,6 +443,10 @@ export default function RoomDetailScreen() {
     if (!action.targetStatus) return;
 
     if (action.targetStatus === "IN_PROGRESS") {
+      if (isRestrictedNow(room)) {
+        toast.error(t("rooms.dash.detail.restriction.blockedStart"));
+        return;
+      }
       if (needsKnockProtocol(room)) {
         setShowKnockModal(true);
         return;
@@ -516,6 +527,21 @@ export default function RoomDetailScreen() {
     setBlockerBusy(blocker.key);
     try {
       const formattedTime = blocker.needsTime ? formatBlockerTimeInput(time) : time;
+      // Server-backed records come first: if they cannot be saved, nothing is faked.
+      if (blocker.key === "come_back_later") {
+        const resolved = resolveReturnTime(formattedTime, hotelTimezone);
+        if (!resolved.ok) {
+          toast.error(
+            t(resolved.reason === "past" ? "rooms.dash.detail.restriction.timePast" : "rooms.dash.detail.restriction.timeInvalid"),
+          );
+          return;
+        }
+        if (!(await exceptions.record("return_later", resolved.iso))) return;
+      } else if (blocker.key === "dnd_on_door" || blocker.key === "dnd_sign") {
+        if (!(await exceptions.record("dnd_no_response"))) return;
+      } else if (blocker.key === "declined_service") {
+        if (!(await exceptions.markDeclined())) return;
+      }
       await runBlockerSideEffect(room, blocker, formattedTime);
       await Promise.race([
         submitNote(buildBlockerNote(blocker, formattedTime)),
@@ -524,15 +550,6 @@ export default function RoomDetailScreen() {
       setLastBlockerKey(blocker.key);
       setTimeEntryKey(null);
       setTimeText("");
-
-      if (blocker.key === "come_back_later") {
-        const newCount = incrementDndAttempt(room.id);
-        if (newCount >= 2) {
-          toast.info(t("rooms.detail.alerts.dndEscalationTitle"));
-          await sendSupervisorEscalation(room.room_number);
-          resetDndAttempt(room.id);
-        }
-      }
 
       if (blocker.key === "declined_service") {
         await sendDeclinedServiceAlert(room.room_number);
@@ -549,14 +566,10 @@ export default function RoomDetailScreen() {
       toast.info(t("rooms.detail.alerts.dndNeedsConnection"));
       return;
     }
-    const next = !room.dnd_flag;
     setDndLoading(true);
-    updateLocalRoom(room.id, { dnd_flag: next });
     try {
-      await api.patch(`/rooms/${room.id}/dnd`, { dnd: next });
-    } catch (err: unknown) {
-      updateLocalRoom(room.id, { dnd_flag: !next });
-      toast.error((err as Error).message ?? t("rooms.detail.alerts.updateDndFailed"));
+      // The attempt log is the record; the server flips the flag and counts it once.
+      await exceptions.record(room.dnd_flag ? "dnd_cleared" : "dnd_no_response");
     } finally {
       setDndLoading(false);
     }
@@ -569,6 +582,15 @@ export default function RoomDetailScreen() {
     }
     const next = !room.do_not_service;
     setDeclineLoading(true);
+    if (next) {
+      // Turning it on goes through the reason-bearing endpoint (persists reason + time).
+      try {
+        await exceptions.markDeclined();
+      } finally {
+        setDeclineLoading(false);
+      }
+      return;
+    }
     updateLocalRoom(room.id, { do_not_service: next });
     try {
       await api.patch(`/rooms/${room.id}/decline-service`, { decline: next });
@@ -611,9 +633,14 @@ export default function RoomDetailScreen() {
 
   const status = room.status;
   const action = getRoomAction(room);
-  const primaryLabel = t(getPrimaryLabelKey(room));
+  const classification = classifyRoom(room, { hasLiveSession: Boolean(session && !session.completionConfirmed) });
+  const textCtx = { language: i18n.language, timeZone: hotelTimezone };
+  const primaryLabel = t(
+    action.targetStatus === "IN_PROGRESS" && classification.reclean ? "rooms.dash.detail.reclean.start" : getPrimaryLabelKey(room),
+  );
   const startBlockedByInProgress = action.targetStatus === "IN_PROGRESS" && hasRoomInProgress(myRooms, room.id);
-  const primaryDisabled = !action.targetStatus || startBlockedByInProgress;
+  const startRestricted = action.targetStatus === "IN_PROGRESS" && classification.restricted;
+  const primaryDisabled = !action.targetStatus || startBlockedByInProgress || startRestricted;
   const sessionPending = Boolean(session && hasPendingSync(session));
   const showUndo = isOnline && Boolean(action.allowUndo) && !sessionPending && phase !== "conflict";
   const statusColor = getStatusColor(status, theme);
@@ -647,11 +674,11 @@ export default function RoomDetailScreen() {
   const timingRows = [
     { labelKey: "rooms.detail.timing.guest", value: room.guest_name },
     { labelKey: "rooms.detail.timing.foStatus", value: room.fo_status },
-    { labelKey: "rooms.detail.timing.checkin", value: formatTime(room.checkin_time) },
-    { labelKey: "rooms.detail.timing.scheduledCheckout", value: formatTime(room.checkout_time) },
-    { labelKey: "rooms.detail.timing.actualCheckout", value: formatTime(room.actual_checkout_at) },
-    status === "IN_PROGRESS" ? { labelKey: "rooms.detail.timing.cleaningStarted", value: formatTime(session?.startedAt ?? room.updated_at) } : null,
-    { labelKey: "rooms.detail.timing.predictedReady", value: formatTime(room.predicted_ready_at) },
+    { labelKey: "rooms.detail.timing.checkin", value: formatHotelTime(room.checkin_time, hotelTimezone, i18n.language) },
+    { labelKey: "rooms.detail.timing.scheduledCheckout", value: formatHotelTime(room.checkout_time, hotelTimezone, i18n.language) },
+    { labelKey: "rooms.detail.timing.actualCheckout", value: formatHotelTime(room.actual_checkout_at, hotelTimezone, i18n.language) },
+    status === "IN_PROGRESS" ? { labelKey: "rooms.detail.timing.cleaningStarted", value: formatHotelTime(session?.startedAt ?? room.updated_at, hotelTimezone, i18n.language) } : null,
+    { labelKey: "rooms.detail.timing.predictedReady", value: formatHotelTime(room.predicted_ready_at, hotelTimezone, i18n.language) },
   ].filter((row): row is { labelKey: string; value: string } => Boolean(row?.value));
 
   return (
@@ -709,6 +736,34 @@ export default function RoomDetailScreen() {
             }}
           />
         ) : null}
+
+        <RushPriorityPanel room={room} classification={classification} ctx={textCtx} />
+
+        {hasRestrictionPanel(room, classification) ? (
+          <RoomRestrictionPanel
+            room={room}
+            classification={classification}
+            ctx={textCtx}
+            isOnline={isOnline}
+            busy={exceptions.busy}
+            supervisorNotified={exceptions.notified}
+            notifying={exceptions.notifying}
+            onRecord={exceptions.record}
+            onNotifySupervisor={() => {
+              const attempts = classification.retry?.attempts ?? 0;
+              void exceptions.notify(
+                classification.reasons.includes("dnd")
+                  ? `DND active — ${attempts} attempt(s) recorded, needs supervisor follow-up`
+                  : classification.reasons.includes("come_back_later")
+                    ? "guest asked to come back later — needs supervisor follow-up"
+                    : "guest declined service — needs supervisor follow-up",
+              );
+            }}
+            onReturnToRoute={() => router.push("/(app)/my-rooms" as never)}
+          />
+        ) : null}
+
+        <RecleanCorrectionsPanel room={room} checklist={session?.checklist} ctx={textCtx} />
 
         {isDepRoom ? (
           <View style={[styles.depBanner, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
