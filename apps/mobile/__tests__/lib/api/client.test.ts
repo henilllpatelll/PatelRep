@@ -1,4 +1,4 @@
-import { api, DEFAULT_API_BASE } from '@/lib/api/client';
+import { api, ApiError, DEFAULT_API_BASE } from '@/lib/api/client';
 import { supabase } from '@/lib/supabase';
 
 // Mock supabase module
@@ -70,6 +70,39 @@ describe('API client', () => {
 
     await expect(api.get('/test')).rejects.toThrow('Server error');
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes status, code and detail for structured API rejections', async () => {
+    const detail = { code: 'REQUIRED_ITEMS_INCOMPLETE', message: '2 required item(s) unfinished', missing: ['Strip beds'] };
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 422, ok: false, json: async () => ({ detail }) });
+
+    const error = (await api.post('/clean-sessions/x/complete', {}).catch((err: unknown) => err)) as ApiError;
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.message).toBe('2 required item(s) unfinished');
+    expect(error.status).toBe(422);
+    expect(error.code).toBe('REQUIRED_ITEMS_INCOMPLETE');
+    expect(error.detail).toEqual(detail);
+  });
+
+  it('keeps string details readable and still carries the status', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 403, ok: false, json: async () => ({ detail: 'Not your clean session' }) });
+
+    const error = (await api.get('/clean-sessions/x').catch((err: unknown) => err)) as ApiError;
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.message).toBe('Not your clean session');
+    expect(error.status).toBe(403);
+    expect(error.code).toBeUndefined();
+  });
+
+  it('does not wrap network failures in ApiError (callers treat them as offline)', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
+
+    const error = (await api.get('/anything').catch((err: unknown) => err)) as Partial<ApiError>;
+
+    expect(error).not.toBeInstanceOf(ApiError);
+    expect(error.status).toBeUndefined();
   });
 
   it('aborts requests that exceed the mobile API timeout', async () => {

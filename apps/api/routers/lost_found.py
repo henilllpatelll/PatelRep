@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from datetime import datetime, timedelta, timezone
 import logging
 import re
+from core.roles import FLOOR_STAFF_ROLES
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     ApproveLostFoundDispositionRequest,
@@ -44,6 +45,10 @@ MAX_PHOTO_BYTES = 5 * 1024 * 1024
 RETENTION_PERIOD_DAYS = 90  # D-10: fixed retention window, not per-tenant configurable in this phase
 LOST_FOUND_MANAGER_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
 LOST_FOUND_CLAIM_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
+# Floor staff log what they find in a room. Intake only: they cannot read, claim,
+# move or dispose of items (those stay on the manager roles above).
+LOST_FOUND_INTAKE_ROLES = (*LOST_FOUND_MANAGER_ROLES, "housekeeper")
+DUPLICATE_INTAKE_WINDOW = timedelta(minutes=3)
 # D-12: disposition and void are corrective/destructive-adjacent actions, restricted to
 # supervisory roles only (narrower than the general manager-roles set above).
 LOST_FOUND_DISPOSITION_ROLES = ("housekeeping_supervisor", "gm")
@@ -473,13 +478,36 @@ async def upload_photo(
     return {"data": {"url": public_url}}
 
 
-@router.post("", dependencies=[Depends(require_role(*LOST_FOUND_MANAGER_ROLES))])
+def _recent_duplicate_intake(request: CreateLostFoundRequest, current_user: CurrentUser, now: datetime) -> Optional[dict]:
+    """A retried submit (flaky network, double tap) must not log the item twice."""
+    query = (
+        supabase.table("lost_found_items")
+        .select("*")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("found_by", current_user.user_id)
+        .eq("description", request.description)
+    )
+    query = query.eq("room_id", str(request.room_id)) if request.room_id else query.is_("room_id", "null")
+    for row in query.execute().data or []:
+        created = _match_date(row.get("created_at"))
+        if created and now - created <= DUPLICATE_INTAKE_WINDOW:
+            return row
+    return None
+
+
+@router.post("", dependencies=[Depends(require_role(*LOST_FOUND_INTAKE_ROLES))])
 async def create_lost_found_item(
     request: CreateLostFoundRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """Log a found item."""
     now = datetime.now(timezone.utc)
+    if current_user.role in FLOOR_STAFF_ROLES:
+        # Floor intake carries what was found and where; custody metadata is the desk's.
+        request = request.model_copy(update={"tag_identifier": None, "storage_location": None, "classification": "standard"})
+        duplicate = _recent_duplicate_intake(request, current_user, now)
+        if duplicate:
+            return {"data": duplicate, "replayed": True}
     if request.tag_identifier and _active_tag_exists(request.tag_identifier, current_user.hotel_id):
         raise HTTPException(status_code=409, detail="This tag ID is already in use.")
     data = {

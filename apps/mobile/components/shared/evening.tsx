@@ -327,7 +327,8 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
                 </View>
               ) : null}
               {badges
-                .filter((badge) => badge.key !== "checkout")
+                // "Not Checked Out" is access information, not clutter: showing it
+                // (instead of dropping it) keeps an unverified departure from reading as vacant.
                 .map((badge) => {
                   const loud = badge.key === "dnd";
                   const brass = badge.key === "vip";

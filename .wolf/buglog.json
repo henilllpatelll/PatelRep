@@ -32901,6 +32901,232 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-08T03:18:09.219765+00:00"
+    },
+    {
+      "id": "bug-1994",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "POST /clean-sessions/{id}/complete accepted unfinished required checklist items (client-supplied checklist trusted)",
+      "file": "apps/api/routers/clean_sessions.py",
+      "root_cause": "Completion only copied the client's checklist and never validated required items; PATCH/complete let the client rewrite labels and is_required.",
+      "fix": "Merge checked state onto the server snapshot by item id, reject unfinished required items with 422 before mutating, transition the room first, 409 if the room changed.",
+      "tags": [
+        "clean-sessions",
+        "validation",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1995",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "Session start did not enforce assignment, DND, declined service, knock protocol or one-active-room; legacy room status PATCH is UI-gated only",
+      "file": "apps/api/routers/clean_sessions.py",
+      "root_cause": "Safety rules lived only in the mobile UI.",
+      "fix": "Server-side gates on start (ROOM_NOT_ASSIGNED, DND_ACTIVE, SERVICE_DECLINED, ENTRY_PROTOCOL_REQUIRED, ACTIVE_SESSION_EXISTS) with stale-session release; session reads limited to owner/managers.",
+      "tags": [
+        "clean-sessions",
+        "safety",
+        "rbac"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1996",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "completeSession reported 'queued' after the server had already rejected completion",
+      "file": "apps/mobile/stores/cleanSessionStore.ts",
+      "root_cause": "Result was taken from the sync call that ran last; a toggle's background sync had already executed the complete step.",
+      "fix": "Derive the outcome from the stored session record (confirmed / conflict / lastError / queued).",
+      "tags": [
+        "mobile",
+        "offline",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1997",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "Home HoldToConfirm test wiped local checklist when GET /clean-sessions returned a non-session payload",
+      "file": "apps/mobile/lib/housekeeping/cleanSession.ts",
+      "root_cause": "adoptServerSession trusted any response shape.",
+      "fix": "assertSession validates id/room_id/checklist before a response is adopted.",
+      "tags": [
+        "mobile",
+        "clean-sessions",
+        "validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1998",
+      "timestamp": "2026-10-08T23:40:00.000Z",
+      "error_message": "OperationsSemanticOnColor: 'uses the offline banner semantic roles in My Rooms' failed after the dashboard rewrite",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "The rewrite replaced the semantic offline banner with a header indicator, dropping theme.banner.offline.* roles that the audit test pins.",
+      "fix": "Restored the banner (theme.banner.offline.background/foreground/border) above the header; removed the duplicate offline indicator.",
+      "tags": [
+        "mobile",
+        "my-rooms",
+        "theme",
+        "regression"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T23:40:00.000Z"
+    },
+    {
+      "id": "bug-1999",
+      "timestamp": "2026-10-08T23:40:00.000Z",
+      "error_message": "Offline room cache dropped sequence_order, priority, DND retry, building (dashboard ordering/attention lost offline)",
+      "file": "apps/mobile/lib/offline/db.ts",
+      "root_cause": "upsertRooms listed a fixed set of columns and getRoomsByDate returned raw ints for booleans; new API fields were never persisted.",
+      "fix": "Added columns + ALTER migrations, column-driven upsert, and hydrateCachedRoom (booleans, corrections JSON, base_clean_minutes).",
+      "tags": [
+        "mobile",
+        "offline",
+        "sqlite",
+        "my-rooms"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-08T23:40:00.000Z"
+    },
+    {
+      "id": "bug-2000",
+      "timestamp": "2026-10-09T00:50:00.000Z",
+      "error_message": "Existing Phase 8 service-attempt tests failed with 403 after the endpoint gained an assignment check; bare-role guard and RBAC matrix drift tests failed",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "New assignment gate compared current_user.role directly (banned) and fixtures had no room_assignments; moved routes shifted RBAC-MATRIX line numbers.",
+      "fix": "Added ASSIGNMENT_BOUND_ROLES to core/roles.py, accepted room_status.assigned_to as fallback, added assignment rows to the fixture, regenerated RBAC-MATRIX.md.",
+      "tags": [
+        "api",
+        "rbac",
+        "service-attempts",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T00:50:00.000Z"
+    },
+    {
+      "id": "bug-2001",
+      "timestamp": "2026-10-09T00:50:00.000Z",
+      "error_message": "Come-back-later only wrote a room note and a local attempt counter; DND toggled without an attempt record; counts reset on restart",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Mobile used PATCH /rooms/{id}/dnd and a Zustand counter (appStore.dndAttemptCounts) instead of the server's service-attempt log.",
+      "fix": "Blockers and the DND toggle now call POST /rooms/{id}/service-attempts (online-only, idempotent); counters removed from appStore.",
+      "tags": [
+        "mobile",
+        "dnd",
+        "service-attempts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T00:50:00.000Z"
+    },
+    {
+      "id": "bug-2002",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "Reclean header showed the raw key rooms.work.reclean.count in a real browser",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "App runs i18next compatibilityJSON v3 (key + key_plural); I wrote _one/_other plural keys, which never resolve. Mocked-t tests could not see it.",
+      "fix": "Counted strings use key + key_plural; added a real-i18next resolution test for every rooms.work key in both languages.",
+      "tags": [
+        "mobile",
+        "i18n",
+        "plurals"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2003",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "Room Detail showed 'Cleaning complete' beside an IN PROGRESS badge once the session confirmed before the room list refreshed",
+      "file": "apps/mobile/lib/housekeeping/roomDetailState.ts",
+      "root_cause": "The header used the list status while the body used the resolved (confirmed-session) status.",
+      "fix": "resolveRoomDetailView now exposes the effective status and the header uses it.",
+      "tags": [
+        "mobile",
+        "room-detail",
+        "status"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2004",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "test_rbac_matrix_contract failed after adding linen_counts to clean_sessions.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "The matrix records route line numbers; two added lines shifted later routes.",
+      "fix": "Regenerated with scripts/generate_rbac_matrix.py (3 line-number changes, no role changes).",
+      "tags": [
+        "api",
+        "rbac"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2005",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "MyRoomsScreen Route test failed the day after it was written (expected date=2026-10-08)",
+      "file": "apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx",
+      "root_cause": "Literal date in an assertion while the screen requests the hotel-local current date.",
+      "fix": "Assert on hotelDateKey(new Date(), tz) like the later test in the same file.",
+      "tags": [
+        "mobile",
+        "tests",
+        "dates"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2006",
+      "timestamp": "2026-10-09T20:00:00.000Z",
+      "error_message": "Whole RoomDetail suite hung after one test: later start/complete calls never reached the API",
+      "file": "apps/mobile/__tests__/screens/RoomDetail.test.tsx",
+      "root_cause": "A double-tap test released its deferred request before the POST had been issued, so the promise never resolved and the store's module-level sync queue stayed blocked.",
+      "fix": "Tests wait for the call before releasing; every deferred is settled in afterEach.",
+      "tags": [
+        "mobile",
+        "tests",
+        "clean-session"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2007",
+      "timestamp": "2026-10-09T21:00:00.000Z",
+      "error_message": "Concurrent double-tap Start returned outcome 'queued' to the second caller although the session was already confirmed",
+      "file": "apps/mobile/stores/cleanSessionStore.ts",
+      "root_cause": "startSession judged the pre-sync snapshot of the record (startConfirmed=false) after awaiting the exclusive sync.",
+      "fix": "Read the record again after syncRoom before choosing confirmed vs queued; added rapid-action tests.",
+      "tags": [
+        "mobile",
+        "clean-session",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T21:00:00.000Z"
     }
   ]
 }

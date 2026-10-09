@@ -17,6 +17,7 @@ import { setupPushNotifications } from "@/lib/notifications";
 import { listNotifications } from "@/lib/api/notifications";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 
 export default function AppLayout() {
   const { t } = useTranslation();
@@ -139,6 +140,14 @@ export default function AppLayout() {
 
     setupPushNotifications().catch(console.warn);
     loadPendingActions().catch(console.warn);
+    // Restore any in-flight clean sessions from disk and replay what the server hasn't confirmed.
+    if (user?.role === "housekeeper" || user?.role === "housekeeping_supervisor") {
+      useCleanSessionStore
+        .getState()
+        .hydrate()
+        .then(() => useCleanSessionStore.getState().flush())
+        .catch(console.warn);
+    }
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as {
@@ -167,7 +176,7 @@ export default function AppLayout() {
     });
 
     return () => subscription.remove();
-  }, [isAuthenticated, loadPendingActions]);
+  }, [isAuthenticated, loadPendingActions, user?.role]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

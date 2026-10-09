@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     ManualCheckoutRequest,
@@ -22,7 +22,7 @@ from models.requests import (
 )
 from core.database import supabase
 from services.settings_audit import record_settings_event
-from core.roles import HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
+from core.roles import ASSIGNMENT_BOUND_ROLES, HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
 from services.room_status_transitions import (
     close_active_sessions_for_room,
     update_housekeeper_profile,
@@ -32,8 +32,22 @@ from services.room_status_transitions import (
 logger = logging.getLogger(__name__)
 
 
+def _parse_dt(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+ROOM_NOTE_MAX_LENGTH = 1000
+NOTE_RETRY_WINDOW = timedelta(minutes=2)
+
+
 class AddRoomNoteRequest(BaseModel):
-    text: str
+    text: str = Field(max_length=ROOM_NOTE_MAX_LENGTH)
 
 class ReCleanRequest(BaseModel):
     note: Optional[str] = None
@@ -1310,15 +1324,52 @@ async def set_room_priority(
     return {"data": {"room_id": room_id, **update_payload}}
 
 
+MAX_ATTEMPT_FUTURE_SKEW = timedelta(minutes=2)
+ASSIGNMENT_LOOKBACK = timedelta(days=2)
+
+
+def _require_assigned_housekeeper(hotel_id: str, room_id: str, current_user: CurrentUser, status_row: dict) -> None:
+    """A housekeeper may only log attempts on rooms assigned to them (the most
+    recent assignment wins, so a reassignment is honoured; room_status.assigned_to
+    is the fallback when no assignment row exists, as for clean-session starts).
+    Managers and engineers are not assignment-bound."""
+    if current_user.role not in ASSIGNMENT_BOUND_ROLES:
+        return
+    floor = (datetime.now(timezone.utc) - ASSIGNMENT_LOOKBACK).date().isoformat()
+    rows = (
+        supabase.table("room_assignments")
+        .select("assigned_to, assignment_date")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", room_id)
+        .gte("assignment_date", floor)
+        .execute()
+    ).data or []
+    if rows:
+        latest = max(str(row.get("assignment_date") or "") for row in rows)
+        if any(
+            row.get("assigned_to") == current_user.user_id and str(row.get("assignment_date") or "") == latest
+            for row in rows
+        ):
+            return
+        raise HTTPException(status_code=403, detail="This room is not assigned to you")
+    if status_row.get("assigned_to") == current_user.user_id:
+        return
+    raise HTTPException(status_code=403, detail="This room is not assigned to you")
+
+
 @router.post("/{room_id}/service-attempts")
 async def record_service_attempt(
     room_id: str,
     body: RecordServiceAttemptRequest,
     current_user: CurrentUser = Depends(require_role(*HOUSEKEEPING_EXCEPTION_REPORT_ROLES)),
 ):
+    """Record a pre-entry DND / come-back-later visit. No clean session is needed
+    (or created). Idempotent on (room, recorder, attempted_at, result): a retried
+    request returns the original row and does NOT bump the attempt counter, so
+    the offline queue and flaky networks cannot double-count."""
     current_row = (
         supabase.table("room_status")
-        .select("room_id, status, dnd_flag, dnd_attempt_count")
+        .select("room_id, status, assigned_to, dnd_flag, dnd_attempt_count, dnd_last_attempt_at, dnd_retry_at")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -1326,10 +1377,36 @@ async def record_service_attempt(
     )
     if not current_row or not current_row.data:
         raise HTTPException(status_code=404, detail="Room not found")
+    _require_assigned_housekeeper(current_user.hotel_id, room_id, current_user, current_row.data)
 
     now = datetime.now(timezone.utc)
-    attempted_at_iso = (body.attempted_at or now).isoformat()
+    attempted_at = body.attempted_at or now
+    if attempted_at.tzinfo is None:
+        attempted_at = attempted_at.replace(tzinfo=timezone.utc)
+    if attempted_at > now + MAX_ATTEMPT_FUTURE_SKEW:
+        attempted_at = now
+    attempted_at_iso = attempted_at.isoformat()
     return_at_iso = body.return_at.isoformat() if body.return_at else None
+
+    if body.attempted_at is not None:
+        replay = (
+            supabase.table("room_service_attempts")
+            .select("*")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("room_id", room_id)
+            .eq("recorded_by", current_user.user_id)
+            .eq("result", body.result)
+            .eq("attempted_at", attempted_at_iso)
+            .limit(1)
+            .execute()
+        ).data or []
+        if replay:
+            snapshot = current_row.data
+            return {
+                "data": replay[0],
+                "replayed": True,
+                "room": {key: snapshot.get(key) for key in ("dnd_flag", "dnd_attempt_count", "dnd_last_attempt_at", "dnd_retry_at")},
+            }
 
     attempt_result = supabase.table("room_service_attempts").insert({
         "tenant_id": current_user.hotel_id,
@@ -1359,8 +1436,7 @@ async def record_service_attempt(
         update_payload["dnd_started_at"] = None
         update_payload["dnd_retry_at"] = None
 
-    supabase.table("room_status").update(update_payload)\
-        .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+    supabase.table("room_status").update(update_payload)        .eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
 
     _record_audit_event(
         current_user=current_user, resource_type="room", resource_id=room_id,
@@ -1374,7 +1450,12 @@ async def record_service_attempt(
     )
 
     rows = attempt_result.data or []
-    return {"data": rows[0] if rows else None}
+    room_after = {**current_row.data, **update_payload}
+    return {
+        "data": rows[0] if rows else None,
+        "replayed": False,
+        "room": {key: room_after.get(key) for key in ("dnd_flag", "dnd_attempt_count", "dnd_last_attempt_at", "dnd_retry_at")},
+    }
 
 
 @router.get("/{room_id}/service-attempts")
@@ -1757,6 +1838,23 @@ async def add_room_note(
         raise HTTPException(status_code=404, detail="Room not found")
 
     current_status = current_row.data.get("status", "DIRTY")
+
+    # A retried submit (flaky network, double tap) of the same note is one note.
+    now = datetime.now(timezone.utc)
+    note_text = request.text.strip()
+    recent = (
+        supabase.table("room_status_history")
+        .select("notes, created_at, from_status, to_status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("changed_by", current_user.user_id)
+        .eq("notes", note_text)
+        .execute()
+    ).data or []
+    for row in recent:
+        created = _parse_dt(row.get("created_at"))
+        if row.get("from_status") == row.get("to_status") and created and now - created <= NOTE_RETRY_WINDOW:
+            return {"data": {"ok": True, "replayed": True}}
 
     # Write directly to history — from_status == to_status marks this as a note-only entry
     supabase.table("room_status_history").insert({

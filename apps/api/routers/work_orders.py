@@ -22,7 +22,7 @@ from models.requests import (
 )
 from core.database import supabase
 from core.config import settings
-from core.roles import GM_ONLY_ROLES
+from core.roles import FLOOR_STAFF_ROLES, GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
 from services.asset_reliability import restore_active_work_order_downtime, start_asset_downtime
@@ -296,11 +296,41 @@ def _apply_timing_action(wo_id: str, current_user: CurrentUser, action: str):
         raise
 
 
+def _is_unique_violation(exc: Exception, constraint: str) -> bool:
+    text = str(exc)
+    return ("23505" in text or "duplicate key" in text) and constraint in text
+
+
+def _find_replayed_work_order(client_request_id, current_user: CurrentUser) -> Optional[dict]:
+    """The work order this user already created under this key, scoped to tenant AND creator."""
+    existing = (
+        supabase.table("work_orders")
+        .select("*")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("created_by", current_user.user_id)
+        .eq("client_request_id", str(client_request_id))
+        .limit(1)
+        .execute()
+    )
+    return (existing.data or [None])[0] if existing else None
+
+
+def _replay_response(wo: dict) -> dict:
+    return {"data": wo, "room_marked_out_of_order": False, "asset_downtime": None, "idempotent_replay": True}
+
+
 @router.post("")
 async def create_work_order(
     request: CreateWorkOrderRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    # Idempotent replay: answer from the first attempt before validating again, so a
+    # retry still succeeds if the referenced room/asset changed in the meantime.
+    if request.client_request_id:
+        replayed = _find_replayed_work_order(request.client_request_id, current_user)
+        if replayed:
+            return _replay_response(replayed)
+
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = datetime.now(timezone.utc) + timedelta(minutes=sla)
     if request.asset_impact != "operating" and not request.asset_id:
@@ -330,7 +360,18 @@ async def create_work_order(
         "problem_code_id": str(request.problem_code_id) if request.problem_code_id else None,
         "problem_other_text": request.problem_other_text,
     }
-    result = supabase.table("work_orders").insert(wo_data).execute()
+    if request.client_request_id:
+        wo_data["client_request_id"] = str(request.client_request_id)
+    try:
+        result = supabase.table("work_orders").insert(wo_data).execute()
+    except Exception as exc:
+        # Two copies of the same request raced past the lookup above: the unique
+        # index let exactly one in. The loser answers with the winner's row.
+        if request.client_request_id and _is_unique_violation(exc, "work_orders_client_request_uniq"):
+            replayed = _find_replayed_work_order(request.client_request_id, current_user)
+            if replayed:
+                return _replay_response(replayed)
+        raise
     wo = result.data[0] if result.data else None
     room_marked_out_of_order = False
     asset_downtime = None
@@ -1431,7 +1472,7 @@ async def upload_work_order_photo(
     photo_type: str = Form("progress"),
     caption: Optional[str] = Form(None),
     current_user: CurrentUser = Depends(
-        require_role("engineer", "gm")
+        require_role("engineer", "gm", "housekeeper")
     ),
 ):
     if file.content_type not in ALLOWED_PHOTO_TYPES:
@@ -1445,7 +1486,7 @@ async def upload_work_order_photo(
 
     wo_check = (
         supabase.table("work_orders")
-        .select("id")
+        .select("id, created_by")
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -1453,6 +1494,9 @@ async def upload_work_order_photo(
     )
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
+    # A housekeeper attaches evidence to the issue they reported, never to engineering's.
+    if current_user.role in FLOOR_STAFF_ROLES and wo_check.data.get("created_by") != current_user.user_id:
+        raise HTTPException(status_code=403, detail="You can only add photos to work orders you reported")
 
     contents = await file.read(MAX_PHOTO_BYTES + 1)
     if len(contents) > MAX_PHOTO_BYTES:

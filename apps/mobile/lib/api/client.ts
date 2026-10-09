@@ -5,6 +5,25 @@ export const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_BASE;
 const API_TIMEOUT_MS = 12000;
 const API_TIMEOUT_MESSAGE = "Request timed out. Please try again.";
 
+/**
+ * Error thrown for any non-2xx API response. Network failures and timeouts are
+ * plain `Error`s (no `status`), so callers can tell "the server said no" apart
+ * from "the request never got an answer" — the offline sync engine depends on it.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+  readonly detail?: unknown;
+
+  constructor(message: string, status: number, code?: string, detail?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.detail = detail;
+  }
+}
+
 async function getAuthHeader(): Promise<Record<string, string>> {
   const {
     data: { session },
@@ -68,7 +87,17 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(error.detail ?? `HTTP ${response.status}`);
+    const detail = error.detail;
+    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+      const structured = detail as { code?: string; message?: string };
+      throw new ApiError(structured.message ?? `HTTP ${response.status}`, response.status, structured.code, detail);
+    }
+    throw new ApiError(
+      typeof detail === "string" ? detail : `HTTP ${response.status}`,
+      response.status,
+      undefined,
+      detail,
+    );
   }
 
   return response.json() as Promise<T>;

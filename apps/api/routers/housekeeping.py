@@ -16,6 +16,7 @@ from models.requests import (
     BatchRoomReadinessRequest,
 )
 from core.database import supabase
+from services.reclean_corrections import load_reclean_details
 from services.settings_audit import record_settings_event
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 from services.opera_pdf import parse_hk_details, parse_task_sheet
@@ -484,61 +485,23 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
 def _attach_reclean_corrections(rows: list[dict], hotel_id: str) -> list[dict]:
     """For any row flagged reclean_requested_at, attach the failed items from the
     most recent failed/conditional inspection so the housekeeper sees exactly what
-    to fix (spec: "N corrections / label / label"), not just that a reclean is due."""
+    to fix (spec: "N corrections / label / label"), not just that a reclean is due.
+
+    ``reclean_corrections`` (labels only) is kept for existing consumers;
+    ``reclean_details`` adds the inspection id/time, inspector notes and the
+    per-item notes."""
     reclean_room_ids = [row["room_id"] for row in rows if row.get("reclean_requested_at") and row.get("room_id")]
     if not reclean_room_ids:
         return rows
 
-    inspections = (
-        supabase.table("inspections")
-        .select("id, room_id, completed_at")
-        .eq("tenant_id", hotel_id)
-        .in_("room_id", reclean_room_ids)
-        .in_("overall_result", ["failed", "conditional"])
-        .order("completed_at", desc=True)
-        .execute()
-    )
-    latest_inspection_by_room: dict[str, str] = {}
-    for insp in (inspections.data or []):
-        room_id = insp.get("room_id")
-        if room_id and room_id not in latest_inspection_by_room:
-            latest_inspection_by_room[room_id] = insp["id"]
-    if not latest_inspection_by_room:
-        return rows
-
-    inspection_ids = list(latest_inspection_by_room.values())
-    results = (
-        supabase.table("inspection_results")
-        .select("inspection_id, template_item_id, note")
-        .eq("tenant_id", hotel_id)
-        .in_("inspection_id", inspection_ids)
-        .eq("result", "fail")
-        .execute()
-    )
-    fail_rows = results.data or []
-
-    item_ids = list({r["template_item_id"] for r in fail_rows if r.get("template_item_id")})
-    item_labels: dict[str, str] = {}
-    if item_ids:
-        items = (
-            supabase.table("inspection_template_items")
-            .select("id, description")
-            .in_("id", item_ids)
-            .execute()
-        )
-        item_labels = {i["id"]: i["description"] for i in (items.data or [])}
-
-    corrections_by_inspection: dict[str, list[str]] = {}
-    for r in fail_rows:
-        label = item_labels.get(r.get("template_item_id")) or (r.get("note") or "").strip()
-        if not label:
-            continue
-        corrections_by_inspection.setdefault(r["inspection_id"], []).append(label)
-
+    details_by_room = load_reclean_details(supabase, hotel_id, reclean_room_ids)
     for row in rows:
         room_id = row.get("room_id")
-        inspection_id = latest_inspection_by_room.get(room_id)
-        row["reclean_corrections"] = corrections_by_inspection.get(inspection_id, []) if inspection_id else []
+        if not row.get("reclean_requested_at") or not room_id:
+            continue
+        details = details_by_room.get(room_id)
+        row["reclean_details"] = details
+        row["reclean_corrections"] = [item["label"] for item in (details or {}).get("items", [])]
     return rows
 
 
@@ -792,6 +755,20 @@ def _fetch_my_assignments(current_user: CurrentUser, target_date: date) -> list[
     return assignments.data or []
 
 
+def _my_rooms_meta(hotel_id: str, shift_date: date) -> dict:
+    """Hotel timezone + the shift date the rooms belong to, so the app can show
+    deadlines and retry times in hotel-local time rather than the device's."""
+    tz_name = "America/Chicago"
+    try:
+        result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
+        tz_name = ((result.data if result else None) or {}).get("timezone") or tz_name
+    except Exception:
+        logger.warning("my-rooms: failed to resolve hotel timezone for hotel_id=%s; using default", hotel_id)
+    if tz.gettz(tz_name) is None:
+        tz_name = "America/Chicago"
+    return {"timezone": tz_name, "shift_date": shift_date.isoformat()}
+
+
 @router.get("/my-rooms")
 async def get_my_rooms(
     assignment_date: Optional[date] = Query(None, alias="date"),
@@ -824,7 +801,7 @@ async def get_my_rooms(
             "my-rooms: 0 assignments for user=%s tenant=%s date=%s",
             current_user.user_id, current_user.hotel_id, today.isoformat(),
         )
-        return {"data": []}
+        return {"data": [], "meta": _my_rooms_meta(current_user.hotel_id, today)}
 
     # Return current status for all rooms assigned today (all statuses, not filtered)
     # room_status uses room_id as PK — there is no separate "id" column
@@ -836,7 +813,7 @@ async def get_my_rooms(
         "dnd_started_at, dnd_retry_at, dnd_attempt_count, dnd_last_attempt_at, "
         "service_declined_reason, service_declined_note, service_declined_at, "
         "reclean_requested_at, "
-        "rooms!inner(id, room_number, floor, room_types(name, code, base_clean_minutes))"
+        "rooms!inner(id, room_number, floor, building, room_types(name, code, base_clean_minutes))"
     )
     try:
         result = (
@@ -869,6 +846,7 @@ async def get_my_rooms(
             "id": room_id,  # mobile app uses room.id for navigation / API calls
             "room_number": nested_room.get("room_number"),
             "floor": nested_room.get("floor"),
+            "building": (nested_room.get("building") or None) if isinstance(nested_room, dict) else None,
             "room_type_code": nested_room_types.get("code"),
             "room_type_name": nested_room_types.get("name"),
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
@@ -888,7 +866,7 @@ async def get_my_rooms(
     _attach_task_sheet_clean_types(rows, current_user.hotel_id, today)
     _attach_room_activity(rows, current_user.hotel_id, today)
     _attach_reclean_corrections(rows, current_user.hotel_id)
-    return {"data": rows}
+    return {"data": rows, "meta": _my_rooms_meta(current_user.hotel_id, today)}
 
 
 # ---------------------------------------------------------------------------

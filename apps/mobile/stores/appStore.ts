@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
-import { upsertRooms } from "@/lib/offline/db";
-import { localDate } from "@/lib/utils/date";
+import { clearRoomsCache, upsertRooms } from "@/lib/offline/db";
+import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
+import { flushSessions, isRoomManagedBySession } from "@/lib/housekeeping/sessionGuard";
 import type { UserProfile } from "@/lib/supabase";
 
 const QUEUE_STORAGE_KEY = "@patelrep/offline_queue";
@@ -28,23 +29,18 @@ interface AppState {
   // Network
   isOnline: boolean;
   setIsOnline: (online: boolean) => void;
+  /** ISO time of the last sync that left nothing waiting (in memory; resets with the app). */
+  lastSyncedAt: string | null;
+  setLastSyncedAt: (at: string | null) => void;
 
   // Rooms (housekeeper view)
   myRooms: Room[];
   setMyRooms: (rooms: Room[]) => void;
   refreshRooms: () => Promise<void>;
 
-  // DND / come-back-later attempt tracking per room
-  dndAttemptCounts: Record<string, number>;
-  incrementDndAttempt: (roomId: string) => number;
-  resetDndAttempt: (roomId: string) => void;
-
-  // In-session checklist progress per room (roomId -> checklist item key -> checked).
-  // Session-only, same lifetime as the old per-screen useState it replaces — lets
-  // Home read the same progress the room detail screen writes.
-  roomChecklistProgress: Record<string, Record<string, boolean>>;
-  setRoomChecklistItem: (roomId: string, itemKey: string, checked: boolean) => void;
-  resetRoomChecklist: (roomId: string) => void;
+  /** The hotel's IANA zone (from GET /housekeeping/my-rooms meta), for hotel-local display. */
+  hotelTimezone: string | null;
+  setHotelTimezone: (zone: string | null) => void;
 
   // Notifications badge
   unreadCount: number;
@@ -53,8 +49,25 @@ interface AppState {
   // Offline write queue
   pendingActions: OfflineAction[];
   enqueueAction: (action: Omit<OfflineAction, "id" | "createdAt">) => Promise<void>;
+  /** Drop queued legacy room_status actions for rooms now owned by a clean session. */
+  dropQueuedRoomStatus: (roomId: string) => Promise<void>;
   flushQueue: () => Promise<void>;
   loadPendingActions: () => Promise<void>;
+}
+
+export interface RecleanCorrection {
+  id: string | null;
+  label: string;
+  /** Inspector's extra detail, when it adds to the label. */
+  note: string | null;
+}
+
+export interface RecleanDetails {
+  inspection_id: string;
+  inspected_at: string | null;
+  overall_result: "failed" | "conditional" | string | null;
+  notes: string | null;
+  items: RecleanCorrection[];
 }
 
 export interface Room {
@@ -88,6 +101,27 @@ export interface Room {
   last_inspected_at?: string | null;
   room_type_code?: string | null;
   room_type_name?: string | null;
+  /** Real property topology (rooms.building); null/absent when the hotel has none. */
+  building?: string | null;
+  /** Supervisor/auto-assign visiting order for this housekeeper's day (1-based). */
+  sequence_order?: number | null;
+  /** Rush when <= 2 (same rule as the housekeeping board); lower = more urgent. */
+  priority?: number | null;
+  priority_reason?: string | null;
+  priority_needed_by?: string | null;
+  priority_note?: string | null;
+  do_not_service_reason?: string | null;
+  dnd_started_at?: string | null;
+  dnd_retry_at?: string | null;
+  dnd_attempt_count?: number | null;
+  dnd_last_attempt_at?: string | null;
+  service_declined_reason?: string | null;
+  service_declined_note?: string | null;
+  service_declined_at?: string | null;
+  reclean_requested_at?: string | null;
+  reclean_corrections?: string[] | null;
+  /** Failed-inspection context for a reclean (server: services/reclean_corrections). */
+  reclean_details?: RecleanDetails | null;
   rooms?: {
     room_types?: { name?: string; code?: string; base_clean_minutes?: number } | null;
   } | null;
@@ -97,59 +131,48 @@ export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUser: (user) => {
+    const previous = get().user;
+    const changed = (previous?.id ?? null) !== (user?.id ?? null) || (previous?.tenant_id ?? null) !== (user?.tenant_id ?? null);
+    if (changed && previous) {
+      // A different person/hotel on this device must never see the last user's rooms.
+      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null });
+      void clearRoomsCache().catch(() => undefined);
+      return;
+    }
+    set({ user, isAuthenticated: !!user });
+  },
   setIsLoading: (isLoading) => set({ isLoading }),
 
   isOnline: true,
+  lastSyncedAt: null,
+  setLastSyncedAt: (lastSyncedAt) => set({ lastSyncedAt }),
   setIsOnline: (online: boolean) => {
     set({ isOnline: online });
     if (online) {
-      get().flushQueue().catch(console.warn);
+      // Clean sessions replay first (start -> checklist -> complete); the generic
+      // queue follows and skips room_status entries a session now owns.
+      flushSessions()
+        .catch(console.warn)
+        .finally(() => get().flushQueue().catch(console.warn));
     }
   },
 
   myRooms: [],
   setMyRooms: (myRooms) => set({ myRooms }),
+  hotelTimezone: null,
+  setHotelTimezone: (hotelTimezone) => set({ hotelTimezone }),
   refreshRooms: async () => {
     try {
-      const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
-      set({ myRooms: result.data });
-      await upsertRooms(result.data);
+      const shiftDate = currentShiftDate(get().hotelTimezone);
+      const result = await api.get<{ data: Room[]; meta?: { timezone?: string | null; shift_date?: string | null } }>(
+        `/housekeeping/my-rooms?date=${shiftDate}`,
+      );
+      set({ myRooms: result.data, ...(result.meta?.timezone ? { hotelTimezone: result.meta.timezone } : {}) });
+      await upsertRooms(result.data, { replaceDate: result.meta?.shift_date ?? shiftDate });
     } catch {
       // Silently preserve local state on refresh failure.
     }
-  },
-
-  dndAttemptCounts: {},
-  incrementDndAttempt: (roomId) => {
-    const current = get().dndAttemptCounts[roomId] ?? 0;
-    const next = current + 1;
-    set((state) => ({ dndAttemptCounts: { ...state.dndAttemptCounts, [roomId]: next } }));
-    return next;
-  },
-  resetDndAttempt: (roomId) => {
-    set((state) => {
-      const counts = { ...state.dndAttemptCounts };
-      delete counts[roomId];
-      return { dndAttemptCounts: counts };
-    });
-  },
-
-  roomChecklistProgress: {},
-  setRoomChecklistItem: (roomId, itemKey, checked) => {
-    set((state) => ({
-      roomChecklistProgress: {
-        ...state.roomChecklistProgress,
-        [roomId]: { ...state.roomChecklistProgress[roomId], [itemKey]: checked },
-      },
-    }));
-  },
-  resetRoomChecklist: (roomId) => {
-    set((state) => {
-      const progress = { ...state.roomChecklistProgress };
-      delete progress[roomId];
-      return { roomChecklistProgress: progress };
-    });
   },
 
   unreadCount: 0,
@@ -168,12 +191,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(next));
   },
 
+  dropQueuedRoomStatus: async (roomId) => {
+    const remaining = get().pendingActions.filter(
+      (a) => !(a.type === "room_status" && a.entityId === roomId),
+    );
+    if (remaining.length === get().pendingActions.length) return;
+    set({ pendingActions: remaining });
+    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(remaining));
+  },
+
   flushQueue: async () => {
     const actions = get().pendingActions;
     if (actions.length === 0) return;
 
     const succeeded: string[] = [];
     for (const action of actions) {
+      // A persistent clean session owns this room's start/complete lifecycle;
+      // replaying the legacy status change as well would transition it twice.
+      if (action.type === "room_status" && isRoomManagedBySession(action.entityId)) {
+        succeeded.push(action.id);
+        continue;
+      }
       try {
         if (action.type === "task_complete") {
           await api.patch(`/tasks/${action.entityId}`, { status: "completed", ...action.payload });

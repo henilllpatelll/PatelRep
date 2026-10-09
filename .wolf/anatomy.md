@@ -692,3 +692,28 @@
 ## supabase/migrations/
 
 - `206_report_schedules.sql` — Reports redesign Phase 4: scheduled report delivery. (~1208 tok)
+
+## apps/mobile (My Rooms Phase 2)
+
+- `lib/housekeeping/myRoomsDashboard.ts` — single source for My Rooms classification, progress counts, Up Next ordering, floor grouping, list-state resolution. (~4.5k tok)
+- `lib/housekeeping/myRoomsItems.ts` — pure flat list rows for the Route/Floors/Done FlatList. (~1.4k tok)
+- `lib/housekeeping/myRoomsText.ts` — access/attention copy, location and a11y labels (pure, i18n via t). (~1.5k tok)
+- `lib/housekeeping/useMyRoomsData.ts` — fetch/cache/poll hook + read-only active-session restore hook. (~1.6k tok)
+- `components/housekeeping/MyRoomCards.tsx` — MyRoomCard, CompactRoomRow, CurrentRoomCard (+ recovery state). (~3k tok)
+- `components/housekeeping/MyRoomsHeader.tsx` — title/date/sync indicators/progress summary/segmented control. (~1.8k tok)
+- `app/(app)/my-rooms/index.tsx` — My Rooms screen: one FlatList serving Route | Floors | Done. (~3.5k tok)
+
+## apps/mobile (My Rooms Phase 3)
+
+- `lib/housekeeping/needsAttention.ts` — pure room classifier: state, ordered reason codes, restricted flag, rush/retry/reclean info. (~3k tok)
+- `lib/housekeeping/hotelTime.ts` — hotel-timezone formatting, shift date, wall-clock to instant (DST-safe), return-time parsing. (~2k tok)
+- `lib/housekeeping/serviceAttempts.ts` — client for POST /rooms/{id}/service-attempts (online-only, stable attempted_at), supervisor notify, service-declined. (~1.4k tok)
+- `lib/housekeeping/useRoomExceptions.ts` — room-detail hook for attempts/decline/notify. (~1.2k tok)
+- `components/housekeeping/{RoomRestrictionPanel,RecleanCorrectionsPanel,RushPriorityPanel}.tsx` — room-detail panels. (~4k tok)
+- `lib/housekeeping/roomDetailState.ts` — Room Detail view model: resolveRoomDetailView (kind + sync precedence), getStickyActions (disabled reasons), buildEntryChecks, findNextRoom. (~4k tok)
+- `lib/housekeeping/cleaningTimer.ts` — elapsed/standard/confirmed-duration math (from session start timestamp; never client-written). (~0.8k tok)
+- `lib/housekeeping/useRoomReports.ts` — note / quick-blocker / DND / decline-service actions moved out of the screen. (~1.8k tok)
+- `components/housekeeping/roomDetail/*.tsx` — Phase 4 Room Detail pieces: header, before/needs-attention/active/submitted/ready/unavailable views, checklist, timer, linen sheet, complete sheet, info sheet, report/more sheet, sticky actions, BottomSheet. (~20k tok)
+- `components/housekeeping/KnockModal.tsx` — knock protocol: per-step acknowledgement, restricted stop notice, cancel, can't-enter hand-off. (~1.5k tok)
+- `supabase/migrations/208_clean_session_linen_counts.sql` — nullable jsonb room_clean_sessions.linen_counts. (~0.2k tok)
+- `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist. (~1k tok)

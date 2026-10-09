@@ -92,6 +92,29 @@ describe("flushSyncQueue", () => {
     expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith(3);
   });
 
+  it("replays a queued work-order create with the same client_request_id after a lost response", async () => {
+    const queued = {
+      id: 8,
+      entity_type: "work_order",
+      action: "create",
+      entity_id: undefined,
+      payload: JSON.stringify({ title: "Broken AC", room_id: "room-1", client_request_id: "6f1c1c2e-7c1a-4a55-9d57-2f2f6a2f3f10" }),
+    };
+    mockGetPendingSyncQueue.mockResolvedValue([queued]);
+    mockApi.post.mockRejectedValueOnce(new Error("Network request failed")).mockResolvedValueOnce({ data: { id: "wo-1" } });
+
+    await flushSyncQueue(); // the server may have created it; the answer was lost
+    expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();
+    expect(mockIncrementSyncQueueAttempts).toHaveBeenCalledWith(8);
+
+    await flushSyncQueue(); // replay
+    const bodies = mockApi.post.mock.calls.map((call) => call[1]);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toEqual(bodies[0]);
+    expect(bodies[1].client_request_id).toBe("6f1c1c2e-7c1a-4a55-9d57-2f2f6a2f3f10");
+    expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith(8);
+  });
+
   it("processes work_order/claim items and calls POST /work-orders/{id}/claim", async () => {
     mockGetPendingSyncQueue.mockResolvedValue([{
       id: 4, entity_type: "work_order", action: "claim",

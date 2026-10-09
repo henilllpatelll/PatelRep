@@ -1,23 +1,17 @@
-import { api } from "@/lib/api/client";
-import { useAppStore, type OfflineAction, type Room } from "@/stores/appStore";
+import type { Room } from "@/stores/appStore";
+import { useCleanSessionStore, type ActionResult } from "@/stores/cleanSessionStore";
 
 /**
- * Marks a stayover/pickup room clean from a context that has no linen-count UI
+ * Finishes a stayover/pickup room from a context that has no linen-count UI
  * (the Home hold-to-confirm sheet). DEP rooms need linen_out/linen_in entry and
  * always route through the room detail screen instead — never call this for one.
+ *
+ * Completion goes through the room's persistent clean session so the server
+ * validates the required checklist items and performs the single IN_PROGRESS →
+ * CLEAN transition. The result says whether the server confirmed it.
  */
-export async function markRoomClean(
-  room: Room,
-  opts: {
-    isOnline: boolean;
-    enqueueAction: (action: Omit<OfflineAction, "id" | "createdAt">) => Promise<void>;
-  },
-): Promise<void> {
-  const payload = { status: "CLEAN" as const };
-  if (opts.isOnline) {
-    await api.patch(`/rooms/${room.id}/status`, payload);
-  } else {
-    await opts.enqueueAction({ type: "room_status", entityId: room.id, payload });
-  }
-  useAppStore.getState().resetRoomChecklist(room.id);
+export async function markRoomClean(room: Pick<Room, "id" | "status">): Promise<ActionResult> {
+  const store = useCleanSessionStore.getState();
+  await store.restoreForRoom(room);
+  return store.completeSession(room.id);
 }

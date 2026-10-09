@@ -5,6 +5,7 @@ delete, maybe_single, neq, gte, in_ and limit support.
 """
 
 import re
+import threading
 from types import SimpleNamespace
 
 
@@ -33,8 +34,12 @@ class FakeStorage:
 
 
 class FakeDB:
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, unique_indexes=None):
         self.rows = rows or {}
+        # Opt-in Postgres-style partial unique indexes: (table, name, columns, where) with
+        # `where` a {column: value} predicate. Inserts check-and-append atomically.
+        self.unique_indexes = unique_indexes or []
+        self.insert_lock = threading.Lock()
         self.inserts = []
         self.updates = []
         self.deletes = []
@@ -219,6 +224,22 @@ class FakeQuery:
                 return False
         return True
 
+    def _enforce_unique_indexes(self, rows, new_row):
+        for table, name, columns, where in self.db.unique_indexes:
+            if table != self.table_name:
+                continue
+            if any(new_row.get(col) != val for col, val in where.items()):
+                continue
+            if any(new_row.get(col) is None for col in columns):
+                continue
+            for existing in rows:
+                if any(existing.get(col) != val for col, val in where.items()):
+                    continue
+                if all(existing.get(col) == new_row.get(col) for col in columns):
+                    raise Exception(
+                        {"message": f'duplicate key value violates unique constraint "{name}"', "code": "23505"}
+                    )
+
     def execute(self):
         rows = self.db.rows.setdefault(self.table_name, [])
         matched = [row for row in rows if self._matches(row)]
@@ -252,7 +273,9 @@ class FakeQuery:
                     "id": payload.get("id") or self.db.next_id(self.table_name),
                     **payload,
                 }
-                rows.append(row)
+                with self.db.insert_lock:
+                    self._enforce_unique_indexes(rows, row)
+                    rows.append(row)
                 self.db.inserts.append((self.table_name, row))
                 saved.append(row)
             return SimpleNamespace(data=saved)

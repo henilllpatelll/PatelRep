@@ -1,38 +1,29 @@
-import { useEffect, useState } from "react";
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useRef, useState } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/appStore";
-import { enqueueAction } from "@/lib/offline/db";
-import { createWorkOrder, type CreateWorkOrderPayload } from "@/lib/api/workOrders";
-import { monoFont } from "@/components/shared/tokens";
-import { useTheme } from "@/lib/theme/useTheme";
 import { Button } from "@/components/ui/Button";
-
-const CATEGORIES = [
-  { value: "appliance",   label: "Appliance" },
-  { value: "electrical",  label: "Electrical" },
-  { value: "furniture",   label: "Furniture" },
-  { value: "general",     label: "General" },
-  { value: "hvac",        label: "HVAC / A/C" },
-  { value: "plumbing",    label: "Plumbing" },
-  { value: "safety",      label: "Safety" },
-  { value: "structural",  label: "Structural" },
-];
-
-const PRIORITIES: { value: "urgent" | "normal" | "low"; label: string }[] = [
-  { value: "urgent", label: "Urgent" },
-  { value: "normal", label: "Normal" },
-  { value: "low",    label: "Low" },
-];
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import {
+  EMPTY_MAINTENANCE_DRAFT,
+  MAINTENANCE_CATEGORIES,
+  MAINTENANCE_DETAILS_MAX,
+  MAINTENANCE_PRIORITIES,
+  MAINTENANCE_TITLE_MAX,
+  attachMaintenancePhoto,
+  buildMaintenancePayload,
+  createMaintenanceWorkOrder,
+  isMaintenanceDirty,
+  validateMaintenance,
+  type MaintenanceDraft,
+  type MaintenanceErrors,
+} from "@/lib/housekeeping/maintenanceReport";
+import { newSessionId } from "@/lib/housekeeping/cleanSession";
+import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
+import { BottomSheet, MAX_FONT_SCALE } from "./roomDetail/BottomSheet";
+import { Chip, FieldError, FieldLabel, StatusText, TextArea } from "./roomDetail/FormBits";
+import { PhotoAttachment } from "./roomDetail/PhotoAttachment";
 
 interface ReportIssueModalProps {
   visible: boolean;
@@ -41,306 +32,235 @@ interface ReportIssueModalProps {
   onClose: () => void;
 }
 
+/**
+ * Report maintenance / damage. Creates a normal work order (offline it goes to the
+ * existing work-order queue and is labelled "saved", not "submitted"). A photo
+ * needs a connection; if the work order is created but the photo fails, the sheet
+ * stays on that work order and retries only the photo — never a second work order.
+ */
 export default function ReportIssueModal({ visible, roomId, roomNumber, onClose }: ReportIssueModalProps) {
   const { t } = useTranslation();
-  const isOnline = useAppStore((s) => s.isOnline);
   const theme = useTheme();
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState<"urgent" | "normal" | "low">("normal");
-  const [description, setDescription] = useState("");
-  const [categoryOpen, setCategoryOpen] = useState(false);
+  const toast = useToast();
+  const isOnline = useAppStore((state) => state.isOnline);
+  const userId = useAppStore((state) => state.user?.id);
+
+  const [draft, setDraft] = useState<MaintenanceDraft>(EMPTY_MAINTENANCE_DRAFT);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [errors, setErrors] = useState<MaintenanceErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  /** The work order exists on the server but its photo has not uploaded. */
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const mayHaveBeenSent = useRef(false);
+  /** Stable for this report until it is submitted or discarded. */
+  const requestId = useRef(newSessionId());
+  const busyRef = useRef(false);
 
-  useEffect(() => {
-    if (!visible) {
-      setTitle("");
-      setCategory("");
-      setPriority("normal");
-      setDescription("");
-      setCategoryOpen(false);
-      setError(null);
-    }
-  }, [visible]);
+  const dirty = isMaintenanceDirty(draft, photoUri);
+  const offlineWithPhoto = !isOnline && Boolean(photoUri);
 
-  async function handleSubmit() {
-    if (!title.trim() || !category) return;
-    setSubmitting(true);
-    setError(null);
-    const payload: CreateWorkOrderPayload = {
-      room_id: roomId,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      category,
-      priority,
-    };
-    try {
-      if (isOnline) {
-        await createWorkOrder(payload);
-      } else {
-        await enqueueAction("work_order", "create", payload);
+  function reset() {
+    setDraft(EMPTY_MAINTENANCE_DRAFT);
+    setPhotoUri(null);
+    setErrors({});
+    setFailure(null);
+    setCreatedId(null);
+    setPhotoFailed(false);
+    mayHaveBeenSent.current = false;
+    requestId.current = newSessionId();
+  }
+
+  const requestClose = useDiscardGuard({ dirty, busy: submitting, onClose, onDiscard: reset });
+
+  function update(patch: Partial<MaintenanceDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setErrors({});
+    setFailure(null);
+  }
+
+  function finish(message: string, tone: "success" | "info") {
+    reset();
+    toast[tone](message);
+    onClose();
+  }
+
+  async function uploadPhotoTo(workOrderId: string) {
+    if (!photoUri) return finish(t("reportIssue.submittedOnline"), "success");
+    const result = await attachMaintenancePhoto(workOrderId, photoUri);
+    if (result.ok) return finish(t("reportIssue.submittedOnline"), "success");
+    setCreatedId(workOrderId);
+    setPhotoFailed(true);
+  }
+
+  async function submit() {
+    if (busyRef.current) return;
+    // The work order already exists: the only thing left is the photo.
+    if (createdId) {
+      busyRef.current = true;
+      setSubmitting(true);
+      try {
+        await uploadPhotoTo(createdId);
+      } finally {
+        busyRef.current = false;
+        setSubmitting(false);
       }
-      onClose();
-    } catch {
-      setError("Failed to submit. Please try again.");
+      return;
+    }
+    const found = validateMaintenance(draft);
+    if (Object.keys(found).length > 0) {
+      setErrors(found);
+      return;
+    }
+    if (offlineWithPhoto) return;
+    busyRef.current = true;
+    setSubmitting(true);
+    setFailure(null);
+    try {
+      const outcome = await createMaintenanceWorkOrder(buildMaintenancePayload(roomId, draft, requestId.current), {
+        isOnline,
+        userId,
+        mayHaveBeenSent: mayHaveBeenSent.current,
+      });
+      if (outcome.kind === "queued") return finish(t("reportIssue.savedOffline"), "info");
+      if (outcome.kind === "failed") {
+        mayHaveBeenSent.current = outcome.ambiguous;
+        setFailure(t(outcome.ambiguous ? "reportIssue.failedUnsure" : "reportIssue.failed"));
+        return;
+      }
+      mayHaveBeenSent.current = false;
+      if (outcome.workOrderId) return await uploadPhotoTo(outcome.workOrderId);
+      // Created, but the server gave no id to attach a photo to: say so rather than imply it was sent.
+      finish(t(photoUri ? "reportIssue.submittedNoPhoto" : "reportIssue.submittedOnline"), photoUri ? "info" : "success");
     } finally {
+      busyRef.current = false;
       setSubmitting(false);
     }
   }
 
+  const locked = submitting || createdId !== null;
+  const errorText = (field: keyof MaintenanceErrors) => (errors[field] ? t(`reportIssue.errors.${field}.${errors[field]}`) : null);
+  const photoRetryOnly = createdId !== null;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>{t("reportIssue.submit")}</Text>
-            <Text style={[styles.subtitle, { color: theme.textMuted }]}>{t("reportIssue.roomLabel", { room: roomNumber })}</Text>
-          </View>
-
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {/* Issue title */}
-            <Text style={[styles.label, { color: theme.textMuted }]}>
-              {t("reportIssue.issueTitle")} <Text style={{ color: theme.status.dirty }}>*</Text>
-            </Text>
-            <TextInput
-              testID="title-input"
-              style={[styles.input, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
-              placeholder={t("reportIssue.titlePlaceholder")}
-              placeholderTextColor={theme.textMuted}
-              value={title}
-              onChangeText={setTitle}
-              returnKeyType="next"
-            />
-
-            {/* Category */}
-            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>
-              {t("reportIssue.category")} <Text style={{ color: theme.status.dirty }}>*</Text>
-            </Text>
-            <TouchableOpacity
-              testID="category-select"
-              style={[styles.selectRow, { borderColor: theme.border, backgroundColor: theme.background }]}
-              onPress={() => setCategoryOpen((v) => !v)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={t("reportIssue.category")}
-              accessibilityState={{ expanded: categoryOpen }}
-            >
-              <Text style={[styles.selectValue, { color: category ? theme.textPrimary : theme.textMuted }]}>
-                {CATEGORIES.find((c) => c.value === category)?.label ?? "Select a category"}
-              </Text>
-              <Ionicons
-                name={categoryOpen ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={theme.textMuted}
-              />
-            </TouchableOpacity>
-            {categoryOpen && (
-              <View style={[styles.dropdownList, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                {CATEGORIES.map((c, i) => (
-                  <TouchableOpacity
-                    testID={`category-option-${c.value}`}
-                    key={c.value}
-                    style={[
-                      styles.dropdownItem,
-                      i < CATEGORIES.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.borderSubtle },
-                      c.value === category && { backgroundColor: theme.accentBrassSoft },
-                    ]}
-                    onPress={() => { setCategory(c.value); setCategoryOpen(false); }}
-                    activeOpacity={0.75}
-                    accessibilityRole="radio"
-                    accessibilityLabel={c.label}
-                    accessibilityState={{ selected: c.value === category }}
-                  >
-                    <Text style={[
-                      styles.dropdownItemText,
-                      { color: c.value === category ? theme.accentBrass : theme.textSecondary },
-                      c.value === category && styles.dropdownItemTextActive,
-                    ]}>
-                      {c.label}
-                    </Text>
-                    {c.value === category && (
-                      <Ionicons name="checkmark" size={15} color={theme.accentBrass} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Priority */}
-            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>{t("reportIssue.priority")}</Text>
-            <View style={styles.priorityRow}>
-              {PRIORITIES.map((p) => {
-                const isActive = priority === p.value;
-                let activeBg: string | undefined;
-                let activeFg: string | undefined;
-                if (isActive) {
-                  if (p.value === "urgent") {
-                    activeBg = theme.status.dirty;
-                    activeFg = theme.onDestructive;
-                  } else if (p.value === "low") {
-                    activeBg = theme.status.clean;
-                    activeFg = theme.onPrimary;
-                  } else {
-                    activeBg = theme.primaryAction;
-                    activeFg = theme.onPrimary;
-                  }
-                }
-                return (
-                  <TouchableOpacity
-                    key={p.value}
-                    style={[
-                      styles.priorityBtn,
-                      { borderColor: isActive ? activeBg : theme.border, backgroundColor: isActive ? activeBg : theme.background },
-                    ]}
-                    onPress={() => setPriority(p.value)}
-                    activeOpacity={0.75}
-                    accessibilityRole="radio"
-                    accessibilityLabel={p.label}
-                    accessibilityState={{ selected: isActive }}
-                  >
-                    <Text style={[
-                      styles.priorityText,
-                      { color: isActive ? activeFg : theme.textSecondary },
-                    ]}>
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Details */}
-            <Text style={[styles.label, { color: theme.textMuted, marginTop: 14 }]}>
-              {t("reportIssue.details")} <Text style={{ color: theme.textMuted, fontWeight: "400" }}>{t("reportIssue.optional")}</Text>
-            </Text>
-            <TextInput
-              testID="description-input"
-              style={[styles.input, styles.textarea, { borderColor: theme.border, color: theme.textPrimary, backgroundColor: theme.background }]}
-              placeholder={t("reportIssue.detailsPlaceholder")}
-              placeholderTextColor={theme.textMuted}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-
-            {error ? <Text style={[styles.errorText, { color: theme.status.dirty }]}>{error}</Text> : null}
-          </ScrollView>
-
-          <View style={[styles.footer, { borderTopColor: theme.border }]}>
+    <BottomSheet
+      visible={visible}
+      title={t("reportIssue.sheetTitle")}
+      onClose={requestClose}
+      testID="issue-sheet"
+      footer={
+        <>
+          {offlineWithPhoto && !photoRetryOnly ? <StatusText tone="warn" message={t("reportIssue.photoNeedsConnection")} testID="issue-offline-photo" /> : null}
+          {!isOnline && !photoUri ? <StatusText message={t("reportIssue.offlineQueued")} testID="issue-offline" /> : null}
+          <Button
+            label={photoRetryOnly ? t("reportIssue.retryPhoto") : t(isOnline ? "reportIssue.submit" : "reportIssue.saveOffline")}
+            onPress={() => void submit()}
+            loading={submitting}
+            disabled={submitting || (offlineWithPhoto && !photoRetryOnly) || (photoRetryOnly && !isOnline)}
+            size="lg"
+            testID="issue-submit"
+          />
+          {photoRetryOnly ? (
             <Button
-              label="Cancel"
-              onPress={onClose}
+              label={t("reportIssue.finishWithoutPhoto")}
+              onPress={() => finish(t("reportIssue.submittedNoPhoto"), "info")}
               variant="secondary"
-              style={styles.cancelBtn}
+              disabled={submitting}
+              testID="issue-skip-photo"
             />
-            <Button
-              testID="submit-button"
-              label="Submit to Engineering"
-              onPress={handleSubmit}
-              variant="primary"
-              loading={submitting}
-              disabled={!title.trim() || !category || submitting}
-              style={styles.submitBtn}
-            />
-          </View>
-        </View>
+          ) : null}
+        </>
+      }
+    >
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textSecondary }]}>
+        {t("reportIssue.roomLabel", { room: roomNumber })}
+      </Text>
+
+      {photoRetryOnly ? (
+        <StatusText tone="warn" message={t(photoFailed ? "reportIssue.photoFailed" : "reportIssue.createdWithoutPhoto")} testID="issue-photo-failed" />
+      ) : null}
+
+      <FieldLabel required>{t("reportIssue.issueTitle")}</FieldLabel>
+      <TextInput
+        testID="title-input"
+        value={draft.title}
+        onChangeText={(title) => update({ title })}
+        placeholder={t("reportIssue.titlePlaceholder")}
+        placeholderTextColor={theme.textMuted}
+        accessibilityLabel={t("reportIssue.issueTitle")}
+        maxLength={MAINTENANCE_TITLE_MAX}
+        editable={!locked}
+        returnKeyType="next"
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
+        style={[
+          styles.input,
+          { color: theme.textPrimary, backgroundColor: theme.surfaceSubtle, borderColor: errors.title ? theme.status.dirty : theme.border },
+        ]}
+      />
+      <FieldError message={errorText("title")} testID="issue-error-title" />
+
+      <FieldLabel required>{t("reportIssue.category")}</FieldLabel>
+      <View accessibilityRole="radiogroup" style={styles.chips}>
+        {MAINTENANCE_CATEGORIES.map((value) => (
+          <Chip
+            key={value}
+            label={t(`reportIssue.categories.${value}`)}
+            selected={draft.category === value}
+            onPress={() => update({ category: value })}
+            disabled={locked}
+            testID={`category-option-${value}`}
+          />
+        ))}
       </View>
-    </Modal>
+      <FieldError message={errorText("category")} testID="issue-error-category" />
+
+      <FieldLabel>{t("reportIssue.priority")}</FieldLabel>
+      <View accessibilityRole="radiogroup" style={styles.chips}>
+        {MAINTENANCE_PRIORITIES.map((value) => (
+          <Chip
+            key={value}
+            label={t(`reportIssue.priorities.${value}`)}
+            selected={draft.priority === value}
+            onPress={() => update({ priority: value })}
+            disabled={locked}
+            tone={value === "urgent" ? { bg: theme.status.dirty, fg: theme.onDestructive } : undefined}
+            testID={`priority-${value}`}
+          />
+        ))}
+      </View>
+
+      <FieldLabel>{t("reportIssue.details")}</FieldLabel>
+      <TextArea
+        label={t("reportIssue.details")}
+        value={draft.details}
+        onChangeText={(details) => update({ details })}
+        max={MAINTENANCE_DETAILS_MAX}
+        placeholder={t("reportIssue.detailsPlaceholder")}
+        editable={!locked}
+        invalid={Boolean(errors.details)}
+        testID="issue-details"
+      />
+
+      <FieldLabel>{t("reportIssue.photo")}</FieldLabel>
+      {photoRetryOnly && photoUri ? (
+        <PhotoAttachment uri={photoUri} onChange={setPhotoUri} disabled testIDPrefix="issue-photo" />
+      ) : (
+        <PhotoAttachment uri={photoUri} onChange={setPhotoUri} disabled={locked || !isOnline} testIDPrefix="issue-photo" />
+      )}
+
+      {failure ? (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.failure, { color: theme.status.dirty }]} testID="issue-failure">
+          {failure}
+        </Text>
+      ) : null}
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  card: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "88%",
-  },
-  header: {
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-  },
-  title: { fontSize: 17, fontWeight: "700" },
-  subtitle: { fontSize: 12, marginTop: 2, fontFamily: monoFont },
-
-  body: { paddingHorizontal: 18, paddingTop: 16 },
-
-  label: { fontSize: 12, fontWeight: "600", marginBottom: 6 },
-
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
-  textarea: { minHeight: 72, textAlignVertical: "top" },
-
-  selectRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 44,
-  },
-  selectValue: { fontSize: 14 },
-  dropdownList: {
-    marginTop: 4,
-    borderWidth: 1,
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    minHeight: 44,
-  },
-  dropdownItemText: { fontSize: 14 },
-  dropdownItemTextActive: { fontWeight: "600" },
-
-  priorityRow: { flexDirection: "row", gap: 8 },
-  priorityBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  priorityText: { fontSize: 13, fontWeight: "600" },
-
-  errorText: { fontSize: 12, marginTop: 8 },
-
-  footer: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-  },
-  cancelBtn: {
-    flex: 1,
-    borderRadius: 12,
-  },
-  submitBtn: {
-    flex: 2,
-    borderRadius: 12,
-  },
+  room: { fontSize: 14, fontWeight: "700" },
+  input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 15 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  failure: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
 });

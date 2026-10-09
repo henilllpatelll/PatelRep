@@ -371,6 +371,9 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     problem_code_id: Optional[UUID4] = None
     problem_other_text: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     repeat_of_work_order_id: Optional[UUID4] = None
+    # Optional idempotency key: a retry with the same value returns the work order
+    # the first attempt created instead of making another (mobile offline replay).
+    client_request_id: Optional[UUID4] = None
 
 
 class ConsumedPartItem(SanitizedBaseModel):
@@ -1685,11 +1688,22 @@ class CreateCleanSessionRequest(SanitizedBaseModel):
     id: UUID4
     room_id: UUID4
     started_at: datetime
+    # Set by the app once the housekeeper has completed the knock-and-announce
+    # protocol. Required by the server when a guest may still be inside.
+    entry_acknowledged: bool = False
+
+
+class LinenCounts(SanitizedBaseModel):
+    """Linen exchange for one clean: whole numbers, zero up to a sane per-room ceiling."""
+
+    dirty_out: int = Field(ge=0, le=99)
+    clean_in: int = Field(ge=0, le=99)
 
 
 class UpdateCleanSessionRequest(SanitizedBaseModel):
     checklist: Optional[List[ChecklistStateItem]] = Field(default=None, max_length=100)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    linen_counts: Optional[LinenCounts] = None
 
 
 class CompleteCleanSessionRequest(SanitizedBaseModel):
