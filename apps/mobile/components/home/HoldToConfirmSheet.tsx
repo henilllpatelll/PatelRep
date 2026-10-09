@@ -8,7 +8,9 @@ import { monoFont } from "@/components/shared/tokens";
 import { useHousekeeperAccent, useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { getChecklistForRoom, isArrivalSoon } from "@/lib/housekeeping/roomWorkflow";
+import { isArrivalSoon } from "@/lib/housekeeping/roomWorkflow";
+import { getProgress } from "@/lib/housekeeping/cleanSession";
+import { selectSession, useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { markRoomClean } from "@/lib/housekeeping/markClean";
 import type { SmartQueueEntry } from "@/lib/ai/briefing";
 import { Button } from "@/components/ui/Button";
@@ -46,16 +48,22 @@ export default function HoldToConfirmSheet({ visible, room, elapsedSec, nextUp, 
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const isOnline = useAppStore((s) => s.isOnline);
-  const enqueueAction = useAppStore((s) => s.enqueueAction);
-  const checklistProgress = useAppStore((s) => s.roomChecklistProgress[room.id]);
+  const session = useCleanSessionStore(selectSession(room.id));
   const [confirming, setConfirming] = useState(false);
   const fill = useRef(new Animated.Value(0)).current;
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const checklist = getChecklistForRoom(room);
-  const progress = checklistProgress ?? {};
-  const doneCount = checklist.filter((key) => progress[key]).length;
-  const complete = doneCount === checklist.length;
+  // The checklist is the server's snapshot for this clean session. Until it has
+  // loaded (or if the session is in conflict) the housekeeper finishes in the room screen.
+  const progress = getProgress(session?.checklist ?? []);
+  const usable = Boolean(session && !session.conflict && !session.completionConfirmed && !session.completeRequestedAt);
+  const complete = usable && progress.requiredRemaining.length === 0;
+  const countDone = progress.requiredTotal > 0 ? progress.requiredDone : progress.done;
+  const countTotal = progress.requiredTotal > 0 ? progress.requiredTotal : progress.total;
+
+  useEffect(() => {
+    if (visible && isOnline) void useCleanSessionStore.getState().restoreForRoom(room);
+  }, [visible, isOnline, room.id]);
 
   useEffect(() => {
     if (!visible && holdTimer.current) {
@@ -68,8 +76,17 @@ export default function HoldToConfirmSheet({ visible, room, elapsedSec, nextUp, 
   async function handleConfirmed() {
     setConfirming(true);
     try {
-      await markRoomClean(room, { isOnline, enqueueAction });
-      onConfirmed(room.id);
+      const result = await markRoomClean(room);
+      if (result.outcome === "confirmed") {
+        onConfirmed(room.id);
+      } else if (result.outcome === "queued") {
+        // Saved on this device only — never show it as done until the server confirms.
+        toast.info(t("rooms.detail.session.savedPending"));
+        onClose();
+      } else {
+        toast.error(result.message);
+        Animated.timing(fill, { toValue: 0, duration: 150, useNativeDriver: false }).start();
+      }
     } catch (err: unknown) {
       toast.error((err as Error).message ?? t("rooms.detail.alerts.updateRoomFailed"));
       Animated.timing(fill, { toValue: 0, duration: 150, useNativeDriver: false }).start();
@@ -145,7 +162,9 @@ export default function HoldToConfirmSheet({ visible, room, elapsedSec, nextUp, 
               />
             </View>
             <Text style={[styles.checklistText, { color: theme.textPrimary }]}>
-              {t("home.holdConfirm.checklistStatus", { done: doneCount, total: checklist.length })}
+              {session
+                ? t("home.holdConfirm.checklistStatus", { done: countDone, total: countTotal })
+                : t("rooms.detail.session.loadingChecklist")}
             </Text>
           </View>
 

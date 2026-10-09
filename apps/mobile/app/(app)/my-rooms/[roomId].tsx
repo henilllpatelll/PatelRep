@@ -29,13 +29,14 @@ import FoundItemModal from "@/components/housekeeping/FoundItemModal";
 import SupplyRequestModal from "@/components/housekeeping/SupplyRequestModal";
 import KnockModal from "@/components/housekeeping/KnockModal";
 import ChecklistSection from "@/components/housekeeping/ChecklistSection";
+import SessionStatusBanner from "@/components/housekeeping/SessionStatusBanner";
 import {
   getBeforeEnterWarnings,
-  getChecklistForRoom,
   getRoomAction,
   hasRoomInProgress,
-  LOST_FOUND_CHECK_KEY,
 } from "@/lib/housekeeping/roomWorkflow";
+import { getPhase, getProgress, hasPendingSync } from "@/lib/housekeeping/cleanSession";
+import { selectSession, useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { buildRoomInsight } from "@/lib/ai/briefing";
 import {
   buildBlockerNote,
@@ -237,15 +238,13 @@ export default function RoomDetailScreen() {
     isOnline,
     myRooms,
     setMyRooms,
-    enqueueAction,
     user,
     incrementDndAttempt,
     resetDndAttempt,
     refreshRooms,
-    roomChecklistProgress,
-    setRoomChecklistItem,
-    resetRoomChecklist,
   } = useAppStore();
+  const session = useCleanSessionStore(selectSession(typeof roomId === "string" ? roomId : undefined));
+  const phase = session ? getPhase(session) : null;
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
@@ -264,7 +263,6 @@ export default function RoomDetailScreen() {
   const [showSupplyRequest, setShowSupplyRequest] = useState(false);
   const [dndLoading, setDndLoading] = useState(false);
   const [declineLoading, setDeclineLoading] = useState(false);
-  const checkedItems = room ? (roomChecklistProgress[room.id] ?? {}) : {};
   const [timeEntryKey, setTimeEntryKey] = useState<string | null>(null);
   const [timeText, setTimeText] = useState("");
   const [blockerBusy, setBlockerBusy] = useState<string | null>(null);
@@ -272,7 +270,6 @@ export default function RoomDetailScreen() {
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
   const [showKnockModal, setShowKnockModal] = useState(false);
-  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<Room["status"] | null>(null);
   const [linenOut, setLinenOut] = useState(0);
   const [linenIn, setLinenIn] = useState(0);
   const [removableLatestNote, setRemovableLatestNote] = useState<{
@@ -319,6 +316,18 @@ export default function RoomDetailScreen() {
     return () => { cancelled = true; };
   }, [isOnline, room?.id, t, user?.id]);
 
+  // Resume the real clean session: restores checklist progress after a restart and
+  // attaches rooms that were started elsewhere. Keyed on status so a room that the
+  // server moved to IN_PROGRESS is picked up too.
+  useEffect(() => {
+    if (!room || !isOnline) return;
+    void useCleanSessionStore.getState().restoreForRoom({ id: room.id, status: room.status });
+  }, [isOnline, room?.id, room?.status]);
+
+  useEffect(() => {
+    void useCleanSessionStore.getState().hydrate();
+  }, []);
+
   useEffect(() => {
     setLinenOut(0);
     setLinenIn(0);
@@ -358,40 +367,63 @@ export default function RoomDetailScreen() {
     setStatusLoading(false);
   }
 
-  async function updateRoomStatus(nextStatus: Room["status"]) {
+  function describeSessionError(code: string, message: string): string {
+    return t(`rooms.detail.session.errors.${code}`, { defaultValue: message });
+  }
+
+  /** Start (or resume) the persistent clean session; the server flips the room to IN_PROGRESS. */
+  async function startCleaning(entryAcknowledged: boolean) {
     if (!room) return;
-    const previous = room;
-    prevRoomRef.current = previous;
-    const updatedAt = new Date().toISOString();
-    updateLocalRoom(room.id, { status: nextStatus, updated_at: updatedAt });
+    prevRoomRef.current = room;
     startStatusLoading();
-
-    const payload: Record<string, unknown> = { status: nextStatus };
-    if (room.clean_type === "DEP" && nextStatus === "CLEAN") {
-      payload.linen_out = linenOut;
-      payload.linen_in = linenIn;
-    }
-
     try {
-      if (isOnline) {
-        await api.patch(`/rooms/${room.id}/status`, payload);
-        if (nextStatus === "CLEAN") {
-          resetRoomChecklist(room.id);
-          void refreshRooms();
-          if (Platform.OS === "android") {
-            ToastAndroid.show(t("rooms.detail.cleanSuccess"), ToastAndroid.SHORT);
-          } else {
-            setCleanSuccess(true);
-            if (cleanSuccessTimer.current) clearTimeout(cleanSuccessTimer.current);
-            cleanSuccessTimer.current = setTimeout(() => setCleanSuccess(false), 2000);
-          }
+      const result = await useCleanSessionStore
+        .getState()
+        .startSession({ id: room.id, clean_type: room.clean_type }, { entryAcknowledged });
+      if (result.outcome === "rejected") {
+        if (result.code === "ENTRY_PROTOCOL_REQUIRED" && !entryAcknowledged) {
+          // The guest situation changed since this page loaded: do the knock first.
+          setShowKnockModal(true);
+          return;
         }
+        toast.error(describeSessionError(result.code, result.message));
+        // The room may have changed since the detail page opened (DND, reassignment...).
+        void refreshRooms();
+        return;
+      }
+      updateLocalRoom(room.id, { status: "IN_PROGRESS", updated_at: new Date().toISOString() });
+      if (result.outcome === "queued") toast.info(t("rooms.detail.session.startQueued"));
+    } catch (err: unknown) {
+      toast.error((err as Error).message ?? t("rooms.detail.alerts.updateRoomFailed"));
+    } finally {
+      stopStatusLoading();
+    }
+  }
+
+  /** Complete through the session API. The room only turns CLEAN once the server says so. */
+  async function completeCleaning() {
+    if (!room) return;
+    prevRoomRef.current = room;
+    startStatusLoading();
+    try {
+      const result = await useCleanSessionStore.getState().completeSession(room.id);
+      if (result.outcome === "confirmed") {
+        updateLocalRoom(room.id, { status: "CLEAN", updated_at: new Date().toISOString() });
+        void refreshRooms();
+        if (Platform.OS === "android") {
+          ToastAndroid.show(t("rooms.detail.cleanSuccess"), ToastAndroid.SHORT);
+        } else {
+          setCleanSuccess(true);
+          if (cleanSuccessTimer.current) clearTimeout(cleanSuccessTimer.current);
+          cleanSuccessTimer.current = setTimeout(() => setCleanSuccess(false), 2000);
+        }
+      } else if (result.outcome === "queued") {
+        toast.info(t("rooms.detail.session.savedPending"));
       } else {
-        await enqueueAction({ type: "room_status", entityId: room.id, payload });
-        if (nextStatus === "CLEAN") resetRoomChecklist(room.id);
+        toast.error(describeSessionError(result.code, result.message));
+        void refreshRooms();
       }
     } catch (err: unknown) {
-      updateLocalRoom(previous.id, previous);
       toast.error((err as Error).message ?? t("rooms.detail.alerts.updateRoomFailed"));
     } finally {
       stopStatusLoading();
@@ -403,21 +435,21 @@ export default function RoomDetailScreen() {
     const action = getRoomAction(room);
     if (!action.targetStatus) return;
 
-    if (action.targetStatus === "IN_PROGRESS" && needsKnockProtocol(room)) {
-      setPendingStatusUpdate("IN_PROGRESS");
-      setShowKnockModal(true);
+    if (action.targetStatus === "IN_PROGRESS") {
+      if (needsKnockProtocol(room)) {
+        setShowKnockModal(true);
+        return;
+      }
+      void startCleaning(false);
       return;
     }
 
-    void updateRoomStatus(action.targetStatus);
+    if (action.targetStatus === "CLEAN") void completeCleaning();
   }
 
   function handleKnockConfirm() {
     setShowKnockModal(false);
-    if (pendingStatusUpdate) {
-      void updateRoomStatus(pendingStatusUpdate);
-      setPendingStatusUpdate(null);
-    }
+    void startCleaning(true);
   }
 
   function handleUndo() {
@@ -439,6 +471,9 @@ export default function RoomDetailScreen() {
       if (nextStatus && nextStatus !== snapshot?.status) {
         updateLocalRoom(room.id, { status: nextStatus, updated_at: new Date().toISOString() });
       }
+      // The status moved outside the session lifecycle; the old session is no longer
+      // this room's source of truth. A fresh one attaches when the room is IN_PROGRESS.
+      useCleanSessionStore.getState().discard(room.id);
     } catch (err: unknown) {
       updateLocalRoom(failsafe.id, failsafe);
       toast.error((err as Error).message ?? t("rooms.detail.alerts.undoFailed"));
@@ -560,13 +595,6 @@ export default function RoomDetailScreen() {
     setLastBlockerKey(null);
   }
 
-  function handleCheckItem(key: string, newVal: boolean) {
-    // The L&F check item is one-way — once checked it records the check and cannot be undone.
-    if (key === LOST_FOUND_CHECK_KEY && !newVal) return;
-    if (!room) return;
-    setRoomChecklistItem(room.id, key, newVal);
-  }
-
   if (loading) {
     return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
   }
@@ -586,7 +614,8 @@ export default function RoomDetailScreen() {
   const primaryLabel = t(getPrimaryLabelKey(room));
   const startBlockedByInProgress = action.targetStatus === "IN_PROGRESS" && hasRoomInProgress(myRooms, room.id);
   const primaryDisabled = !action.targetStatus || startBlockedByInProgress;
-  const showUndo = isOnline && Boolean(action.allowUndo);
+  const sessionPending = Boolean(session && hasPendingSync(session));
+  const showUndo = isOnline && Boolean(action.allowUndo) && !sessionPending && phase !== "conflict";
   const statusColor = getStatusColor(status, theme);
   const statusLabel = t(STATUS_LABEL_KEYS[status] ?? "rooms.detail.status.UNKNOWN", { status: status.replace(/_/g, " ") });
   const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
@@ -600,11 +629,13 @@ export default function RoomDetailScreen() {
     return 0;
   });
   const canRemoveLatestNote = Boolean(removableLatestNote && room.latest_note?.trim() === removableLatestNote.text);
-  const checklist = getChecklistForRoom(room);
+  const sessionItems = session?.checklist ?? [];
   const insight = buildRoomInsight(room, myRooms, t);
-  const checkedCount = checklist.filter((item) => checkedItems[item]).length;
-  const checklistIncomplete = action.kind === "done" && checkedCount < checklist.length;
-  const primaryDisabledFinal = primaryDisabled || checklistIncomplete;
+  const progress = getProgress(sessionItems);
+  const waitingForChecklist = action.kind === "done" && !session;
+  const checklistIncomplete = action.kind === "done" && Boolean(session) && progress.requiredRemaining.length > 0;
+  const sessionBlocked = phase === "completing" || phase === "conflict";
+  const primaryDisabledFinal = primaryDisabled || checklistIncomplete || waitingForChecklist || sessionBlocked || statusLoading;
   const blockers = getBlockersForRoom(room);
   const sectionLabel = t(
     room.status === "DIRTY" || room.status === "IN_PROGRESS"
@@ -619,7 +650,7 @@ export default function RoomDetailScreen() {
     { labelKey: "rooms.detail.timing.checkin", value: formatTime(room.checkin_time) },
     { labelKey: "rooms.detail.timing.scheduledCheckout", value: formatTime(room.checkout_time) },
     { labelKey: "rooms.detail.timing.actualCheckout", value: formatTime(room.actual_checkout_at) },
-    status === "IN_PROGRESS" ? { labelKey: "rooms.detail.timing.cleaningStarted", value: formatTime(room.updated_at) } : null,
+    status === "IN_PROGRESS" ? { labelKey: "rooms.detail.timing.cleaningStarted", value: formatTime(session?.startedAt ?? room.updated_at) } : null,
     { labelKey: "rooms.detail.timing.predictedReady", value: formatTime(room.predicted_ready_at) },
   ].filter((row): row is { labelKey: string; value: string } => Boolean(row?.value));
 
@@ -667,6 +698,17 @@ export default function RoomDetailScreen() {
             ) : null}
           </View>
         </View>
+
+        {session ? (
+          <SessionStatusBanner
+            session={session}
+            onRetry={() => void useCleanSessionStore.getState().retry(room.id)}
+            onDiscard={() => {
+              useCleanSessionStore.getState().discard(room.id);
+              void refreshRooms();
+            }}
+          />
+        ) : null}
 
         {isDepRoom ? (
           <View style={[styles.depBanner, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
@@ -988,9 +1030,10 @@ export default function RoomDetailScreen() {
 
         <ChecklistSection
           room={room}
-          checklist={checklist}
-          checkedItems={checkedItems}
-          onCheck={handleCheckItem}
+          items={sessionItems}
+          locked={!session || room.status !== "IN_PROGRESS" || phase === "completed" || phase === "completing" || phase === "conflict"}
+          placeholder={session ? null : t(room.status === "IN_PROGRESS" ? "rooms.detail.session.loadingChecklist" : "rooms.detail.session.startToLoad")}
+          onToggle={(key, checked) => useCleanSessionStore.getState().toggleItem(room.id, key, checked)}
           linenOut={linenOut}
           linenIn={linenIn}
           onLinenOut={setLinenOut}
@@ -1014,9 +1057,13 @@ export default function RoomDetailScreen() {
         </View>
         {startBlockedByInProgress ? (
           <Text style={[styles.inProgressBlockText, { color: theme.status.pickup }]}>{t("rooms.detail.finishCurrentRoom")}</Text>
+        ) : waitingForChecklist ? (
+          <Text style={[styles.inProgressBlockText, { color: theme.status.pickup }]}>
+            {t(isOnline ? "rooms.detail.session.loadingChecklist" : "rooms.detail.session.checklistNeedsConnection")}
+          </Text>
         ) : checklistIncomplete ? (
           <Text style={[styles.inProgressBlockText, { color: theme.status.pickup }]}>
-            {t("rooms.detail.checklistGateHint", { done: checkedCount, total: checklist.length })}
+            {t("rooms.detail.checklistGateHint", { done: progress.requiredDone, total: progress.requiredTotal })}
           </Text>
         ) : null}
         <View style={styles.stickyButtons}>

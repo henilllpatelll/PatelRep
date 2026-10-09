@@ -432,7 +432,43 @@
         "dndEscalationTitle": "Supervisora notificada — se registraron 2 intentos sin respuesta."
       },
       "finishCurrentRoom": "Termina tu cuarto actual antes de empezar otro.",
-      "checklistGateHint": "Completa la lista primero — {{done}} de {{total}} listos."
+      "checklistGateHint": "Termina primero los elementos obligatorios — {{done}} de {{total}} listos.",
+      "session": {
+        "required": "Obligatorio",
+        "requiredProgress": "{{done}} de {{total}} elementos obligatorios listos",
+        "noChecklist": "No hay elementos en la lista para esta limpieza.",
+        "startToLoad": "Inicia la limpieza para cargar la lista de esta habitación.",
+        "loadingChecklist": "Cargando la lista de esta habitación…",
+        "checklistNeedsConnection": "Vuelve a conectarte para cargar la lista de esta habitación antes de terminar.",
+        "startQueued": "Guardado en este dispositivo. La limpieza se confirmará cuando vuelvas a tener conexión.",
+        "savedPending": "Guardado en este dispositivo — aún sin confirmar. Se enviará cuando vuelvas a tener conexión.",
+        "startPending": "Iniciada en este dispositivo — esperando sincronización",
+        "changesPending": "Cambios de la lista esperando sincronización",
+        "completingTitle": "Terminada en este dispositivo — aún sin confirmar",
+        "completingBody": "La habitación sigue En proceso hasta que el servidor lo confirme. No se pierde nada si cierras la app.",
+        "requiredBlockedTitle": "Aún hay elementos obligatorios pendientes",
+        "conflictTitle": "No se pudo sincronizar esta limpieza",
+        "conflictKept": "El avance de tu lista sigue guardado en este dispositivo.",
+        "retry": "Reintentar",
+        "discard": "Descartar",
+        "discardTitle": "¿Descartar el avance local?",
+        "discardBody": "Esto elimina el avance de la lista guardado en este dispositivo para esta habitación. No se puede deshacer.",
+        "errors": {
+          "DND_ACTIVE": "No molestar está activo. No entres hasta que recepción lo quite.",
+          "SERVICE_DECLINED": "El huésped rechazó el servicio de esta habitación.",
+          "ENTRY_PROTOCOL_REQUIRED": "Toca y anúnciate antes de entrar, luego confirma para empezar.",
+          "ROOM_NOT_ASSIGNED": "Esta habitación no está asignada a ti.",
+          "ROOM_IN_USE": "Otra camarera ya está limpiando esta habitación.",
+          "ACTIVE_SESSION_EXISTS": "Termina tu habitación actual antes de empezar otra.",
+          "ROOM_NOT_STARTABLE": "Esta habitación no se puede iniciar ahora.",
+          "ROOM_STATE_CHANGED": "Esta habitación cambió mientras limpiabas. Revisa su estado antes de terminar.",
+          "SESSION_NOT_ACTIVE": "Esta sesión de limpieza ya está cerrada.",
+          "SESSION_ABANDONED": "Esta sesión de limpieza fue cerrada.",
+          "SESSION_GONE": "Esta sesión de limpieza ya no existe.",
+          "REQUIRED_ITEMS_INCOMPLETE": "Termina primero los elementos obligatorios de la lista.",
+          "NO_CHECKLIST_OFFLINE": "Conéctate una vez para descargar la lista de limpieza del hotel antes de empezar sin conexión."
+        }
+      }
     },
     "detailActions": {
       "title": "Acciones",

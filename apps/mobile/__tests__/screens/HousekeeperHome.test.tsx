@@ -1,4 +1,5 @@
 import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
@@ -152,6 +153,7 @@ jest.mock("@/lib/api/client", () => ({
   api: {
     get: jest.fn((path: string) => {
       if (path.startsWith("/shifts/current")) return Promise.resolve({ data: null });
+      if (path.startsWith("/clean-sessions")) return Promise.resolve({ data: null });
       return Promise.resolve({ data: mockRoomsForRequest });
     }),
     post: jest.fn((path: string) => {
@@ -177,21 +179,17 @@ jest.mock("@/lib/offline/db", () => ({
 
 const mockEnqueueAction = jest.fn().mockResolvedValue(undefined);
 const mockRefreshRooms = jest.fn().mockResolvedValue(undefined);
-const mockResetRoomChecklist = jest.fn();
 let mockStoreRooms: typeof mockRooms = mockRooms;
-let mockChecklistProgress: Record<string, Record<string, boolean>> = {};
 
 function mockAppState() {
   return {
-    user: { id: "user-1", full_name: "Maria Vega", role: "housekeeper" },
+    user: { id: "user-1", tenant_id: "hotel-1", full_name: "Maria Vega", role: "housekeeper" },
     isOnline: true,
     myRooms: mockStoreRooms,
     setMyRooms: mockSetMyRooms,
     refreshRooms: mockRefreshRooms,
-    roomChecklistProgress: mockChecklistProgress,
-    setRoomChecklistItem: jest.fn(),
-    resetRoomChecklist: mockResetRoomChecklist,
     enqueueAction: mockEnqueueAction,
+    dropQueuedRoomStatus: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -205,15 +203,44 @@ jest.mock("@/stores/appStore", () => {
 });
 
 import HousekeeperHomeScreen from "@/app/(app)/home";
+import { useCleanSessionStore } from "@/stores/cleanSessionStore";
+import type { ChecklistItem, LocalCleanSession } from "@/lib/housekeeping/cleanSession";
+
+function seedSession(roomId: string, checked: boolean): void {
+  const checklist: ChecklistItem[] = [
+    { item_id: "i1", section: "Bedroom", label: "Make bed", is_required: true, checked, checked_at: checked ? "2026-10-08T10:00:00Z" : null },
+    { item_id: "i2", section: "Bathroom", label: "Clean bathroom", is_required: true, checked, checked_at: checked ? "2026-10-08T10:01:00Z" : null },
+    { item_id: "i3", section: "General", label: "Vacuum", is_required: false, checked: false, checked_at: null },
+  ];
+  const record: LocalCleanSession = {
+    roomId,
+    sessionId: "sess-" + roomId,
+    cleanType: "LIGHT",
+    startedAt: "2026-10-08T09:30:00Z",
+    entryAcknowledged: true,
+    checklist,
+    provisional: false,
+    startConfirmed: true,
+    pendingItems: {},
+    completeRequestedAt: null,
+    completionConfirmed: false,
+    endedAt: null,
+    durationSeconds: null,
+    conflict: null,
+    lastError: null,
+    updatedAt: "2026-10-08T10:01:00Z",
+  };
+  useCleanSessionStore.setState({ scope: "hotel-1:user-1", sessions: { [roomId]: record } });
+}
 
 describe("HousekeeperHomeScreen", () => {
   beforeEach(() => {
     mockListNotifications.mockReset().mockResolvedValue({ data: [] });
     mockMarkRead.mockReset().mockResolvedValue(undefined);
     mockStoreRooms = mockRooms;
-    mockChecklistProgress = {};
+    useCleanSessionStore.getState().reset();
+    void AsyncStorage.clear();
     mockEndShift.mockClear();
-    mockResetRoomChecklist.mockClear();
   });
 
   it("renders the Right Now focus card, shift progress, needs-you signals, and AI briefing — no mosaic, no up-next queue", async () => {
@@ -483,7 +510,8 @@ describe("HousekeeperHomeScreen", () => {
     expect(queryByTestId("clock-out-button")).toBeNull();
   });
 
-  it("opens the hold-to-confirm sheet from Mark Clean, gated on the same checklist the room screen tracks", async () => {
+  it("opens the hold-to-confirm sheet from Mark Clean, gated on the clean session's required items", async () => {
+    seedSession("room-108", false);
     const { getByTestId, getByText, queryByTestId } = render(
       <ThemeProvider>
         <ToastProvider>
@@ -495,10 +523,10 @@ describe("HousekeeperHomeScreen", () => {
     await waitFor(() => expect(getByText("Mark Clean")).toBeTruthy());
     fireEvent.press(getByText("Mark Clean"));
 
-    // Checklist untouched this session (room-108 is IN_PROGRESS) — sheet routes to the
+    // Required items still open on the server-snapshotted checklist — sheet routes to the
     // detail screen instead of exposing a shortcut around the gate.
     await waitFor(() => expect(getByTestId("hold-confirm-open-room")).toBeTruthy());
-    expect(getByText("Checklist 0 of 10")).toBeTruthy();
+    expect(getByText("Checklist 0 of 2")).toBeTruthy();
     expect(queryByTestId("hold-confirm-button")).toBeNull();
 
     fireEvent.press(getByTestId("hold-confirm-open-room"));
@@ -506,11 +534,8 @@ describe("HousekeeperHomeScreen", () => {
     expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-108");
   });
 
-  it("enables the hold-to-confirm button once the room's checklist is fully checked", async () => {
-    const { STAYOVER_CHECKLIST } = require("@/lib/housekeeping/roomWorkflow");
-    mockChecklistProgress = {
-      "room-108": Object.fromEntries(STAYOVER_CHECKLIST.map((key: string) => [key, true])),
-    };
+  it("enables the hold-to-confirm button once every required checklist item is done", async () => {
+    seedSession("room-108", true);
 
     const { getByTestId, getByText, queryByTestId } = render(
       <ThemeProvider>
@@ -524,7 +549,7 @@ describe("HousekeeperHomeScreen", () => {
     fireEvent.press(getByText("Mark Clean"));
 
     await waitFor(() => expect(getByTestId("hold-confirm-button")).toBeTruthy());
-    expect(getByText("Checklist 10 of 10")).toBeTruthy();
+    expect(getByText("Checklist 2 of 2")).toBeTruthy();
     expect(queryByTestId("hold-confirm-open-room")).toBeNull();
   });
 });

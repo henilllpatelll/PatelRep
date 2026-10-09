@@ -7,6 +7,7 @@ import {
   incrementSyncQueueAttempts,
   upsertRooms,
 } from "@/lib/offline/db";
+import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { localDate } from "@/lib/utils/date";
 import type { Room } from "@/stores/appStore";
 
@@ -21,6 +22,9 @@ export async function syncOnConnect(): Promise<void> {
   try {
     const state = await NetInfo.fetch();
     if (!state.isConnected) return;
+    // Clean sessions replay first (start -> checklist -> complete, in order); the
+    // generic queue then skips room_status entries a session owns.
+    await flushSessions();
     // Flush both queues: appStore queue (logbook, task_complete, etc.) + SQLite queue
     await useAppStore.getState().flushQueue();
     await flushSyncQueue();

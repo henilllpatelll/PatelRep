@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { api } from "@/lib/api/client";
 import { upsertRooms } from "@/lib/offline/db";
 import { localDate } from "@/lib/utils/date";
+import { flushSessions, isRoomManagedBySession } from "@/lib/housekeeping/sessionGuard";
 import type { UserProfile } from "@/lib/supabase";
 
 const QUEUE_STORAGE_KEY = "@patelrep/offline_queue";
@@ -39,13 +40,6 @@ interface AppState {
   incrementDndAttempt: (roomId: string) => number;
   resetDndAttempt: (roomId: string) => void;
 
-  // In-session checklist progress per room (roomId -> checklist item key -> checked).
-  // Session-only, same lifetime as the old per-screen useState it replaces — lets
-  // Home read the same progress the room detail screen writes.
-  roomChecklistProgress: Record<string, Record<string, boolean>>;
-  setRoomChecklistItem: (roomId: string, itemKey: string, checked: boolean) => void;
-  resetRoomChecklist: (roomId: string) => void;
-
   // Notifications badge
   unreadCount: number;
   setUnreadCount: (count: number) => void;
@@ -53,6 +47,8 @@ interface AppState {
   // Offline write queue
   pendingActions: OfflineAction[];
   enqueueAction: (action: Omit<OfflineAction, "id" | "createdAt">) => Promise<void>;
+  /** Drop queued legacy room_status actions for rooms now owned by a clean session. */
+  dropQueuedRoomStatus: (roomId: string) => Promise<void>;
   flushQueue: () => Promise<void>;
   loadPendingActions: () => Promise<void>;
 }
@@ -104,7 +100,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setIsOnline: (online: boolean) => {
     set({ isOnline: online });
     if (online) {
-      get().flushQueue().catch(console.warn);
+      // Clean sessions replay first (start -> checklist -> complete); the generic
+      // queue follows and skips room_status entries a session now owns.
+      flushSessions()
+        .catch(console.warn)
+        .finally(() => get().flushQueue().catch(console.warn));
     }
   },
 
@@ -135,23 +135,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  roomChecklistProgress: {},
-  setRoomChecklistItem: (roomId, itemKey, checked) => {
-    set((state) => ({
-      roomChecklistProgress: {
-        ...state.roomChecklistProgress,
-        [roomId]: { ...state.roomChecklistProgress[roomId], [itemKey]: checked },
-      },
-    }));
-  },
-  resetRoomChecklist: (roomId) => {
-    set((state) => {
-      const progress = { ...state.roomChecklistProgress };
-      delete progress[roomId];
-      return { roomChecklistProgress: progress };
-    });
-  },
-
   unreadCount: 0,
   setUnreadCount: (unreadCount) => set({ unreadCount }),
 
@@ -168,12 +151,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(next));
   },
 
+  dropQueuedRoomStatus: async (roomId) => {
+    const remaining = get().pendingActions.filter(
+      (a) => !(a.type === "room_status" && a.entityId === roomId),
+    );
+    if (remaining.length === get().pendingActions.length) return;
+    set({ pendingActions: remaining });
+    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(remaining));
+  },
+
   flushQueue: async () => {
     const actions = get().pendingActions;
     if (actions.length === 0) return;
 
     const succeeded: string[] = [];
     for (const action of actions) {
+      // A persistent clean session owns this room's start/complete lifecycle;
+      // replaying the legacy status change as well would transition it twice.
+      if (action.type === "room_status" && isRoomManagedBySession(action.entityId)) {
+        succeeded.push(action.id);
+        continue;
+      }
       try {
         if (action.type === "task_complete") {
           await api.patch(`/tasks/${action.entityId}`, { status: "completed", ...action.payload });

@@ -343,50 +343,6 @@ export function buildBuildingGroups(rooms: Room[]): BuildingGroup[] {
   return groups.sort((a, b) => BUILDING_ORDER[a.building] - BUILDING_ORDER[b.building]);
 }
 
-// ─── Checklist constants ───────────────────────────────────────────────────────
-
-export const LOST_FOUND_CHECK_KEY = "rooms.detail.checklist.lostFoundCheck";
-
-export const DEPARTURE_CHECKLIST: readonly string[] = [
-  "rooms.detail.checklist.lostFoundCheck",
-  "rooms.detail.checklist.stripAllLinens",
-  "rooms.detail.checklist.freshLinens",
-  "rooms.detail.checklist.replaceAllTowels",
-  "rooms.detail.checklist.cleanBathroomDep",
-  "rooms.detail.checklist.restockToiletries",
-  "rooms.detail.checklist.wipeMirrors",
-  "rooms.detail.checklist.emptyTrashDep",
-  "rooms.detail.checklist.dustSurfaces",
-  "rooms.detail.checklist.wipeTvRemote",
-  "rooms.detail.checklist.resetTv",
-  "rooms.detail.checklist.checkSafe",
-  "rooms.detail.checklist.checkAc",
-  "rooms.detail.checklist.restockMinibar",
-  "rooms.detail.checklist.vacuumDep",
-  "rooms.detail.checklist.mopHardFloor",
-  "rooms.detail.checklist.cleanDoorHandles",
-  "rooms.detail.checklist.restockStationery",
-  "rooms.detail.checklist.finalSweepDep",
-  "rooms.detail.checklist.markCleanItem",
-] as const;
-
-export const STAYOVER_CHECKLIST: readonly string[] = [
-  "rooms.detail.checklist.makeBedPickup",
-  "rooms.detail.checklist.replaceTowelsUsed",
-  "rooms.detail.checklist.cleanToiletSink",
-  "rooms.detail.checklist.restockToiletriesNeeded",
-  "rooms.detail.checklist.emptyTrashPickup",
-  "rooms.detail.checklist.dustSurfacesQuick",
-  "rooms.detail.checklist.vacuumIfNeeded",
-  "rooms.detail.checklist.tidyDesk",
-  "rooms.detail.checklist.finalVisualCheck",
-  "rooms.detail.checklist.markCleanPickup",
-] as const;
-
-export function getChecklistForRoom(room: Room): readonly string[] {
-  return room.clean_type === "DEP" ? DEPARTURE_CHECKLIST : STAYOVER_CHECKLIST;
-}
-
 export function getBeforeEnterWarnings(room: Room, now: Date = new Date()): BeforeEnterWarning[] {
   const warnings: BeforeEnterWarning[] = [];
 

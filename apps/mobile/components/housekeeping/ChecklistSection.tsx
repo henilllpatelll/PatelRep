@@ -6,16 +6,20 @@ import { useTranslation } from "react-i18next";
 import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { createWorkOrder, uploadWorkOrderPhoto } from "@/lib/api/workOrders";
-import { LOST_FOUND_CHECK_KEY } from "@/lib/housekeeping/roomWorkflow";
+import { getProgress, groupBySection, itemKey, type ChecklistItem } from "@/lib/housekeeping/cleanSession";
 import type { Room } from "@/stores/appStore";
 
 type Theme = ReturnType<typeof useTheme>;
 
 interface Props {
   room: Room;
-  checklist: readonly string[];
-  checkedItems: Record<string, boolean>;
-  onCheck: (key: string, newVal: boolean) => void;
+  /** The clean session's server-snapshotted checklist (empty until a session exists). */
+  items: ChecklistItem[];
+  onToggle: (key: string, checked: boolean) => void;
+  /** Shown instead of the list when there is nothing to render yet. */
+  placeholder?: string | null;
+  /** The session is finished or waiting on the server; items cannot change. */
+  locked?: boolean;
   linenOut: number;
   linenIn: number;
   onLinenOut: (n: number) => void;
@@ -66,11 +70,14 @@ function LinenStepper({
   );
 }
 
+const LOST_FOUND_LABEL = /lost\s*(&|and)?\s*found/i;
+
 export default function ChecklistSection({
   room,
-  checklist,
-  checkedItems,
-  onCheck,
+  items,
+  onToggle,
+  placeholder,
+  locked = false,
   linenOut,
   linenIn,
   onLinenOut,
@@ -85,7 +92,9 @@ export default function ChecklistSection({
   const isDep = room.clean_type === "DEP";
   const showDamageBanner = isDep && !damageBannerDismissed;
 
-  const checkedCount = checklist.filter((item) => checkedItems[item]).length;
+  const progress = getProgress(items);
+  const groups = groupBySection(items);
+  const showSectionTitles = groups.length > 1;
 
   async function handleDamagePhoto() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -157,56 +166,80 @@ export default function ChecklistSection({
       <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.checklistHeader}>
           <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("rooms.detail.cleaningChecklist")}</Text>
-          <Text style={[styles.checklistCount, { color: theme.textMuted }]}>
-            {checkedCount}/{checklist.length}
-          </Text>
+          {items.length > 0 ? (
+            <Text style={[styles.checklistCount, { color: theme.textMuted }]}>
+              {progress.done}/{progress.total}
+            </Text>
+          ) : null}
         </View>
+        {items.length > 0 && progress.requiredTotal > 0 ? (
+          <Text style={[styles.requiredSummary, { color: progress.requiredRemaining.length === 0 ? theme.status.ready : theme.status.pickup }]}>
+            {t("rooms.detail.session.requiredProgress", { done: progress.requiredDone, total: progress.requiredTotal })}
+          </Text>
+        ) : null}
+        {items.length === 0 ? (
+          <Text style={[styles.placeholder, { color: theme.textMuted }]}>
+            {placeholder ?? t("rooms.detail.session.noChecklist")}
+          </Text>
+        ) : null}
         <View style={styles.checklist}>
-          {checklist.map((item) => {
-            const checked = Boolean(checkedItems[item]);
-            const isLostFound = item === LOST_FOUND_CHECK_KEY;
-            const isLocked = isLostFound && checked;
+          {groups.map((group) => (
+            <View key={group.section} style={styles.group}>
+              {showSectionTitles ? (
+                <Text style={[styles.groupTitle, { color: theme.textSecondary }]}>{group.section}</Text>
+              ) : null}
+              {group.items.map((item) => {
+                const key = itemKey(item);
+                const checked = item.checked;
+                const isLostFound = LOST_FOUND_LABEL.test(item.label);
 
-            return (
-              <View key={item}>
-                <TouchableOpacity
-                  style={styles.checkRow}
-                  onPress={() => {
-                    if (isLocked) return;
-                    onCheck(item, !checked);
-                  }}
-                  activeOpacity={isLocked ? 1 : 0.78}
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={t(item)}
-                  accessibilityState={{ checked, disabled: isLocked }}
-                >
-                  <View
-                    style={[
-                      styles.checkBox,
-                      { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
-                      checked && { backgroundColor: theme.status.ready, borderColor: theme.status.ready },
-                    ]}
-                  >
-                    {checked ? <Ionicons name="checkmark" size={14} color={theme.onPrimary} /> : null}
+                return (
+                  <View key={key}>
+                    <TouchableOpacity
+                      style={styles.checkRow}
+                      onPress={() => {
+                        if (locked) return;
+                        onToggle(key, !checked);
+                      }}
+                      activeOpacity={locked ? 1 : 0.78}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={item.is_required ? `${item.label}, ${t("rooms.detail.session.required")}` : item.label}
+                      accessibilityState={{ checked, disabled: locked }}
+                    >
+                      <View
+                        style={[
+                          styles.checkBox,
+                          { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
+                          checked && { backgroundColor: theme.status.ready, borderColor: theme.status.ready },
+                        ]}
+                      >
+                        {checked ? <Ionicons name="checkmark" size={14} color={theme.onPrimary} /> : null}
+                      </View>
+                      <Text style={[styles.checkText, { color: theme.textPrimary }, checked && { color: theme.textMuted, textDecorationLine: "line-through" }]}>{item.label}</Text>
+                      {item.is_required && !checked ? (
+                        <Text style={[styles.requiredTag, { color: theme.status.pickup, borderColor: theme.status.pickupLine, backgroundColor: theme.status.pickupSoft }]}>
+                          {t("rooms.detail.session.required")}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+
+                    {isLostFound && checked ? (
+                      <TouchableOpacity
+                        style={styles.lostFoundLink}
+                        onPress={onReportFoundItem}
+                        activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("rooms.detail.lostFoundLink")}
+                      >
+                        <Ionicons name="bag-outline" size={13} color={theme.status.pickup} />
+                        <Text style={[styles.lostFoundLinkText, { color: theme.status.pickup }]}>{t("rooms.detail.lostFoundLink")}</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
-                  <Text style={[styles.checkText, { color: theme.textPrimary }, checked && { color: theme.textMuted, textDecorationLine: "line-through" }]}>{t(item)}</Text>
-                </TouchableOpacity>
-
-                {isLostFound && checked ? (
-                  <TouchableOpacity
-                    style={styles.lostFoundLink}
-                    onPress={onReportFoundItem}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("rooms.detail.lostFoundLink")}
-                  >
-                    <Ionicons name="bag-outline" size={13} color={theme.status.pickup} />
-                    <Text style={[styles.lostFoundLinkText, { color: theme.status.pickup }]}>{t("rooms.detail.lostFoundLink")}</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            );
-          })}
+                );
+              })}
+            </View>
+          ))}
         </View>
       </View>
 
@@ -254,7 +287,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
-  checklist: { gap: 4 },
+  checklist: { gap: 10 },
+  group: { gap: 2 },
+  groupTitle: { fontSize: 11, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase", marginTop: 2 },
+  requiredSummary: { fontSize: 12, fontWeight: "700" },
+  placeholder: { fontSize: 13, lineHeight: 18 },
+  requiredTag: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
   checkRow: {
     minHeight: 44,
     flexDirection: "row",

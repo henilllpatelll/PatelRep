@@ -32901,6 +32901,70 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-08T03:18:09.219765+00:00"
+    },
+    {
+      "id": "bug-1994",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "POST /clean-sessions/{id}/complete accepted unfinished required checklist items (client-supplied checklist trusted)",
+      "file": "apps/api/routers/clean_sessions.py",
+      "root_cause": "Completion only copied the client's checklist and never validated required items; PATCH/complete let the client rewrite labels and is_required.",
+      "fix": "Merge checked state onto the server snapshot by item id, reject unfinished required items with 422 before mutating, transition the room first, 409 if the room changed.",
+      "tags": [
+        "clean-sessions",
+        "validation",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1995",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "Session start did not enforce assignment, DND, declined service, knock protocol or one-active-room; legacy room status PATCH is UI-gated only",
+      "file": "apps/api/routers/clean_sessions.py",
+      "root_cause": "Safety rules lived only in the mobile UI.",
+      "fix": "Server-side gates on start (ROOM_NOT_ASSIGNED, DND_ACTIVE, SERVICE_DECLINED, ENTRY_PROTOCOL_REQUIRED, ACTIVE_SESSION_EXISTS) with stale-session release; session reads limited to owner/managers.",
+      "tags": [
+        "clean-sessions",
+        "safety",
+        "rbac"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1996",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "completeSession reported 'queued' after the server had already rejected completion",
+      "file": "apps/mobile/stores/cleanSessionStore.ts",
+      "root_cause": "Result was taken from the sync call that ran last; a toggle's background sync had already executed the complete step.",
+      "fix": "Derive the outcome from the stored session record (confirmed / conflict / lastError / queued).",
+      "tags": [
+        "mobile",
+        "offline",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
+    },
+    {
+      "id": "bug-1997",
+      "timestamp": "2026-10-09T04:10:00.000Z",
+      "error_message": "Home HoldToConfirm test wiped local checklist when GET /clean-sessions returned a non-session payload",
+      "file": "apps/mobile/lib/housekeeping/cleanSession.ts",
+      "root_cause": "adoptServerSession trusted any response shape.",
+      "fix": "assertSession validates id/room_id/checklist before a response is adopted.",
+      "tags": [
+        "mobile",
+        "clean-sessions",
+        "validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-09T04:10:00.000Z"
     }
   ]
 }

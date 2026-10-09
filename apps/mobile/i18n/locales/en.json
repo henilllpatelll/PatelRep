@@ -432,7 +432,43 @@
         "dndEscalationTitle": "Supervisor notified — 2 unanswered knock attempts logged."
       },
       "finishCurrentRoom": "Finish your current room before starting another.",
-      "checklistGateHint": "Complete checklist first — {{done}} of {{total}} done."
+      "checklistGateHint": "Finish the required items first — {{done}} of {{total}} done.",
+      "session": {
+        "required": "Required",
+        "requiredProgress": "{{done}} of {{total}} required items done",
+        "noChecklist": "No checklist items for this clean.",
+        "startToLoad": "Start cleaning to load this room's checklist.",
+        "loadingChecklist": "Loading this room's checklist…",
+        "checklistNeedsConnection": "Reconnect to load this room's checklist before finishing.",
+        "startQueued": "Saved on this device. Cleaning will be confirmed when you're back online.",
+        "savedPending": "Saved on this device — not confirmed yet. It will submit when you're back online.",
+        "startPending": "Started on this device — waiting to sync",
+        "changesPending": "Checklist changes waiting to sync",
+        "completingTitle": "Finished on this device — not confirmed yet",
+        "completingBody": "The room stays In Progress until the server confirms. Nothing is lost if you close the app.",
+        "requiredBlockedTitle": "Required items still open",
+        "conflictTitle": "Couldn't sync this clean",
+        "conflictKept": "Your checklist progress is still saved on this device.",
+        "retry": "Try again",
+        "discard": "Discard",
+        "discardTitle": "Discard local progress?",
+        "discardBody": "This removes the checklist progress saved on this device for this room. It can't be undone.",
+        "errors": {
+          "DND_ACTIVE": "Do Not Disturb is active. Don't enter until front desk clears it.",
+          "SERVICE_DECLINED": "The guest declined service for this room.",
+          "ENTRY_PROTOCOL_REQUIRED": "Knock and announce before entering, then confirm to start.",
+          "ROOM_NOT_ASSIGNED": "This room isn't assigned to you.",
+          "ROOM_IN_USE": "Another housekeeper is already cleaning this room.",
+          "ACTIVE_SESSION_EXISTS": "Finish your current room before starting another.",
+          "ROOM_NOT_STARTABLE": "This room can't be started right now.",
+          "ROOM_STATE_CHANGED": "This room changed while you were cleaning. Check its status before finishing.",
+          "SESSION_NOT_ACTIVE": "This cleaning session is already closed.",
+          "SESSION_ABANDONED": "This cleaning session was closed.",
+          "SESSION_GONE": "This cleaning session no longer exists.",
+          "REQUIRED_ITEMS_INCOMPLETE": "Finish the required checklist items first.",
+          "NO_CHECKLIST_OFFLINE": "Connect once to download this hotel's cleaning checklist before starting offline."
+        }
+      }
     },
     "detailActions": {
       "title": "Actions",

@@ -1,14 +1,16 @@
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Alert, StyleSheet } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Room } from "@/stores/appStore";
 import { C } from "@/components/shared/tokens";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 
 const mockSetMyRooms = jest.fn();
-const mockEnqueueAction = jest.fn();
-const mockT = (key: string) => key;
+const mockRefreshRooms = jest.fn().mockResolvedValue(undefined);
+let mockIsOnline = true;
+const mockT = (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key;
 
 function makeRoom(overrides: Partial<Room> = {}): Room {
   return {
@@ -56,7 +58,10 @@ jest.mock("@expo/vector-icons", () => ({
 jest.mock("@/components/housekeeping/ReportIssueModal", () => () => null);
 jest.mock("@/components/housekeeping/FoundItemModal", () => () => null);
 jest.mock("@/components/housekeeping/SupplyRequestModal", () => () => null);
-jest.mock("@/components/housekeeping/KnockModal", () => () => null);
+jest.mock("@/components/housekeeping/KnockModal", () => ({ visible }: { visible: boolean }) => {
+  const { Text } = require("react-native");
+  return visible ? <Text testID="knock-modal">knock</Text> : null;
+});
 jest.mock("expo-image-picker", () => ({
   requestCameraPermissionsAsync: jest.fn(),
   launchCameraAsync: jest.fn(),
@@ -68,32 +73,74 @@ jest.mock("@/lib/api/client", () => ({
     post: jest.fn(),
   },
 }));
-let mockChecklistProgress: Record<string, Record<string, boolean>> = {};
 
-jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
-    isOnline: true,
+function mockAppState() {
+  return {
+    isOnline: mockIsOnline,
     myRooms: mockRooms,
     setMyRooms: mockSetMyRooms,
-    enqueueAction: mockEnqueueAction,
-    user: { id: "user-1" },
-    refreshRooms: jest.fn(),
+    user: { id: "user-1", tenant_id: "hotel-1" },
+    refreshRooms: mockRefreshRooms,
+    dropQueuedRoomStatus: jest.fn().mockResolvedValue(undefined),
     incrementDndAttempt: jest.fn().mockReturnValue(1),
     resetDndAttempt: jest.fn(),
-    roomChecklistProgress: mockChecklistProgress,
-    setRoomChecklistItem: (roomId: string, key: string, checked: boolean) => {
-      mockChecklistProgress = { ...mockChecklistProgress, [roomId]: { ...mockChecklistProgress[roomId], [key]: checked } };
-    },
-    resetRoomChecklist: (roomId: string) => {
-      const next = { ...mockChecklistProgress };
-      delete next[roomId];
-      mockChecklistProgress = next;
-    },
-  }),
-}));
+  };
+}
+
+jest.mock("@/stores/appStore", () => {
+  const useAppStore = () => mockAppState();
+  useAppStore.getState = () => mockAppState();
+  return { useAppStore };
+});
 
 import { api } from "@/lib/api/client";
 import RoomDetailScreen from "@/app/(app)/my-rooms/[roomId]";
+import { useCleanSessionStore } from "@/stores/cleanSessionStore";
+import type { ChecklistItem, LocalCleanSession } from "@/lib/housekeeping/cleanSession";
+
+function item(id: string, label: string, required: boolean, checked = false, section = "General"): ChecklistItem {
+  return { item_id: id, section, label, is_required: required, checked, checked_at: checked ? "2026-10-08T10:00:00Z" : null };
+}
+
+function seedSession(checklist: ChecklistItem[], overrides: Partial<LocalCleanSession> = {}): void {
+  const record: LocalCleanSession = {
+    roomId: "room-1",
+    sessionId: "sess-1",
+    cleanType: "FULL",
+    startedAt: "2026-10-08T09:30:00Z",
+    entryAcknowledged: true,
+    checklist,
+    provisional: false,
+    startConfirmed: true,
+    pendingItems: {},
+    completeRequestedAt: null,
+    completionConfirmed: false,
+    endedAt: null,
+    durationSeconds: null,
+    conflict: null,
+    lastError: null,
+    updatedAt: "2026-10-08T10:00:00Z",
+    ...overrides,
+  };
+  useCleanSessionStore.setState({ scope: "hotel-1:user-1", sessions: { "room-1": record } });
+}
+
+function serverSession(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "sess-1",
+    room_id: "room-1",
+    housekeeper_id: "user-1",
+    clean_type: "FULL",
+    status: "active",
+    started_at: "2026-10-08T09:30:00Z",
+    ended_at: null,
+    duration_seconds: null,
+    checklist: [item("a", "Change linens", true), item("b", "Empty trash", false)],
+    checklist_done: 0,
+    checklist_total: 2,
+    ...overrides,
+  };
+}
 
 const mockApiPost = api.post as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
@@ -114,10 +161,12 @@ function renderScreen() {
   return render(withProviders());
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
   jest.clearAllMocks();
+  mockIsOnline = true;
   mockRooms = [makeRoom()];
-  mockChecklistProgress = {};
+  useCleanSessionStore.getState().reset();
   mockApiGet.mockResolvedValue({
     data: [],
   });
@@ -201,8 +250,18 @@ describe("RoomDetailScreen", () => {
     expect(queryByText("King Suite")).toBeNull();
   });
 
-  it("shows a local cleaning checklist based on clean_type", async () => {
+  it("renders the server-snapshotted checklist for the clean session, grouped by section", async () => {
     mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL", clean_type_label: "Full" })];
+    seedSession([
+      item("a", "Change linens", true, false, "Bedroom"),
+      item("b", "Clean bathroom", true, false, "Bathroom"),
+      item("c", "Empty trash", false, false, "Bedroom"),
+    ]);
+    mockApiGet.mockImplementation((path: string) =>
+      path.startsWith("/clean-sessions/")
+        ? Promise.resolve({ data: serverSession({ checklist: useCleanSessionStore.getState().sessions["room-1"].checklist }) })
+        : Promise.resolve({ data: [] }),
+    );
 
     const { getByLabelText, getByText } = renderScreen();
 
@@ -215,9 +274,12 @@ describe("RoomDetailScreen", () => {
         borderColor: C.cautionLine,
       }),
     );
-    expect(getByText("rooms.detail.checklist.makeBedPickup")).toBeTruthy();
-    expect(getByText("rooms.detail.checklist.replaceTowelsUsed")).toBeTruthy();
-    expect(getByText("rooms.detail.checklist.vacuumIfNeeded")).toBeTruthy();
+    expect(getByText("Change linens")).toBeTruthy();
+    expect(getByText("Clean bathroom")).toBeTruthy();
+    expect(getByText("Empty trash")).toBeTruthy();
+    expect(getByText("Bedroom")).toBeTruthy();
+    expect(getByText("Bathroom")).toBeTruthy();
+    expect(getByText("rooms.detail.session.requiredProgress")).toBeTruthy();
   });
 
   it("removes Full and Light clean-type symbols from pickup room hero chips", async () => {
@@ -264,7 +326,8 @@ describe("RoomDetailScreen", () => {
     expect(getByText("rooms.detail.departure.title")).toBeTruthy();
     expect(getByText("rooms.detail.departure.subtitle")).toBeTruthy();
     expect(getByText("rooms.detail.cleaningChecklist")).toBeTruthy();
-    expect(getByText("rooms.detail.checklist.lostFoundCheck")).toBeTruthy();
+    // No hardcoded local checklist: items only exist once the server has snapshotted a session.
+    expect(getByText("rooms.detail.session.startToLoad")).toBeTruthy();
     expect(getByText("rooms.detail.primary.startCleaning")).toBeTruthy();
     expect(queryByText("Vacant Dirty")).toBeNull();
     expect(queryByText("Departure")).toBeNull();
@@ -335,5 +398,145 @@ describe("RoomDetailScreen", () => {
       alertSpy.mockRestore();
       jest.useRealTimers();
     }
+  });
+  describe("clean-session lifecycle", () => {
+    const apiError = (status: number, code: string, message: string) => Object.assign(new Error(message), { status, code });
+    const sessionPath = "/clean-sessions/sess-1/complete";
+
+    it("starts cleaning through the clean-session API and never the legacy status endpoint", async () => {
+      mockRooms = [makeRoom({ status: "DIRTY", clean_type: "FULL", fo_status: "VAC", actual_checkout_at: "2026-10-08T08:00:00.000Z" })];
+      mockApiPost.mockImplementation((path: string) =>
+        path === "/clean-sessions" ? Promise.resolve({ data: serverSession() }) : Promise.resolve({ data: {} }),
+      );
+
+      const { getByText } = renderScreen();
+      await waitFor(() => expect(getByText("rooms.detail.primary.startCleaning")).toBeTruthy());
+      fireEvent.press(getByText("rooms.detail.primary.startCleaning"));
+
+      await waitFor(() =>
+        expect(mockApiPost).toHaveBeenCalledWith(
+          "/clean-sessions",
+          expect.objectContaining({ room_id: "room-1", entry_acknowledged: false }),
+        ),
+      );
+      await waitFor(() =>
+        expect(mockSetMyRooms).toHaveBeenCalledWith([expect.objectContaining({ id: "room-1", status: "IN_PROGRESS" })]),
+      );
+      expect((api.patch as jest.Mock).mock.calls.filter(([path]) => String(path).includes("/status"))).toEqual([]);
+      expect(useCleanSessionStore.getState().sessions["room-1"].checklist.map((i) => i.label)).toEqual(["Change linens", "Empty trash"]);
+    });
+
+    it("leaves the room alone and says why when the server refuses the start (DND set since the page opened)", async () => {
+      mockRooms = [makeRoom({ status: "DIRTY", clean_type: "FULL", fo_status: "VAC", actual_checkout_at: "2026-10-08T08:00:00.000Z" })];
+      mockApiPost.mockImplementation((path: string) =>
+        path === "/clean-sessions"
+          ? Promise.reject(apiError(409, "DND_ACTIVE", "Do Not Disturb is active"))
+          : Promise.resolve({ data: {} }),
+      );
+
+      const { getByText } = renderScreen();
+      await waitFor(() => expect(getByText("rooms.detail.primary.startCleaning")).toBeTruthy());
+      fireEvent.press(getByText("rooms.detail.primary.startCleaning"));
+
+      await waitFor(() => expect(mockRefreshRooms).toHaveBeenCalled());
+      expect(mockSetMyRooms).not.toHaveBeenCalled();
+      expect(useCleanSessionStore.getState().sessions["room-1"]).toBeUndefined();
+    });
+
+    it("opens the knock protocol when the server says a guest may now be inside", async () => {
+      mockRooms = [makeRoom({ status: "DIRTY", clean_type: "FULL", fo_status: "VAC", actual_checkout_at: "2026-10-08T08:00:00.000Z" })];
+      mockApiPost.mockImplementation((path: string, body?: { entry_acknowledged?: boolean }) =>
+        path === "/clean-sessions"
+          ? body?.entry_acknowledged
+            ? Promise.resolve({ data: serverSession() })
+            : Promise.reject(apiError(409, "ENTRY_PROTOCOL_REQUIRED", "Knock and announce before entering"))
+          : Promise.resolve({ data: {} }),
+      );
+
+      const { getByText, findByTestId } = renderScreen();
+      await waitFor(() => expect(getByText("rooms.detail.primary.startCleaning")).toBeTruthy());
+      fireEvent.press(getByText("rooms.detail.primary.startCleaning"));
+
+      expect(await findByTestId("knock-modal")).toBeTruthy();
+      expect(useCleanSessionStore.getState().sessions["room-1"]).toBeUndefined();
+    });
+
+    it("blocks Mark Clean while required checklist items are open", async () => {
+      mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL" })];
+      seedSession([item("a", "Change linens", true), item("b", "Empty trash", false, true)]);
+      mockApiGet.mockImplementation((path: string) =>
+        path.startsWith("/clean-sessions/") ? Promise.resolve({ data: serverSession() }) : Promise.resolve({ data: [] }),
+      );
+
+      const { getByText } = renderScreen();
+      await waitFor(() => expect(getByText("rooms.detail.checklistGateHint")).toBeTruthy());
+      fireEvent.press(getByText("rooms.detail.primary.markClean"));
+
+      expect(mockApiPost).not.toHaveBeenCalledWith(sessionPath, expect.anything());
+      expect(mockSetMyRooms).not.toHaveBeenCalled();
+    });
+
+    it("completes through the session API and only then marks the room clean", async () => {
+      mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL" })];
+      seedSession([item("a", "Change linens", true, true), item("b", "Empty trash", false)]);
+      mockApiGet.mockImplementation((path: string) =>
+        path.startsWith("/clean-sessions/")
+          ? Promise.resolve({ data: serverSession({ checklist: [item("a", "Change linens", true, true), item("b", "Empty trash", false)] }) })
+          : Promise.resolve({ data: [] }),
+      );
+      let resolveComplete: (value: unknown) => void = () => undefined;
+      mockApiPost.mockImplementation((path: string) =>
+        path === sessionPath
+          ? new Promise((resolve) => {
+              resolveComplete = resolve;
+            })
+          : Promise.resolve({ data: {} }),
+      );
+
+      const { getByText } = renderScreen();
+      await waitFor(() => expect(getByText("rooms.detail.primary.markClean")).toBeTruthy());
+      fireEvent.press(getByText("rooms.detail.primary.markClean"));
+
+      await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith(sessionPath, expect.objectContaining({ ended_at: expect.any(String) })));
+      // Server has not answered yet: the UI must not claim the room is clean.
+      expect(mockSetMyRooms).not.toHaveBeenCalledWith([expect.objectContaining({ status: "CLEAN" })]);
+
+      await act(async () => {
+        resolveComplete({ data: serverSession({ status: "completed", ended_at: "2026-10-08T10:20:00Z", duration_seconds: 1200 }) });
+      });
+      await waitFor(() =>
+        expect(mockSetMyRooms).toHaveBeenCalledWith([expect.objectContaining({ id: "room-1", status: "CLEAN" })]),
+      );
+      expect((api.patch as jest.Mock).mock.calls.filter(([path]) => String(path).includes("/status"))).toEqual([]);
+    });
+
+    it("keeps an offline completion visibly pending and the room In Progress", async () => {
+      mockIsOnline = false;
+      mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL" })];
+      seedSession([item("a", "Change linens", true, true)]);
+
+      const { getByText, getByTestId } = renderScreen();
+      await waitFor(() => expect(getByText("rooms.detail.primary.markClean")).toBeTruthy());
+      fireEvent.press(getByText("rooms.detail.primary.markClean"));
+
+      await waitFor(() => expect(getByTestId("session-completing-banner")).toBeTruthy());
+      expect(mockApiPost).not.toHaveBeenCalled();
+      expect(mockSetMyRooms).not.toHaveBeenCalledWith([expect.objectContaining({ status: "CLEAN" })]);
+      expect(useCleanSessionStore.getState().sessions["room-1"].completionConfirmed).toBe(false);
+    });
+
+    it("shows a recoverable conflict instead of silently dropping local work", async () => {
+      mockIsOnline = false;
+      mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL" })];
+      seedSession([item("a", "Change linens", true, true)], {
+        conflict: { code: "ROOM_NOT_ASSIGNED", message: "This room is assigned to someone else", at: "2026-10-08T10:00:00Z" },
+      });
+
+      const { getByTestId, getByText } = renderScreen();
+      await waitFor(() => expect(getByTestId("session-conflict-banner")).toBeTruthy());
+      expect(getByText("This room is assigned to someone else")).toBeTruthy();
+      expect(getByText("rooms.detail.session.conflictKept")).toBeTruthy();
+      expect(useCleanSessionStore.getState().sessions["room-1"].checklist[0].checked).toBe(true);
+    });
   });
 });
