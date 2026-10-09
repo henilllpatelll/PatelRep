@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from middleware.auth import CurrentUser
 from models.requests import (
     CleanSessionBlockerRequest,
+    ChecklistStateItem,
     CompleteCleanSessionRequest,
     CreateCleanSessionRequest,
 )
@@ -131,6 +132,16 @@ async def test_start_session_conflicts_when_other_housekeeper_active(monkeypatch
     assert exc.value.status_code == 409
 
 
+def completion_request(db, ended_at):
+    """Complete body with every required checklist item ticked (server enforces this)."""
+    session = db.rows["room_clean_sessions"][0]
+    items = [
+        ChecklistStateItem(**{**item, "checked": item["checked"] or item["is_required"]})
+        for item in session["checklist"]
+    ]
+    return CompleteCleanSessionRequest(ended_at=ended_at, checklist=items)
+
+
 @pytest.mark.asyncio
 async def test_complete_session_transitions_clean_and_updates_profile(monkeypatch):
     db = make_db()
@@ -140,7 +151,7 @@ async def test_complete_session_transitions_clean_and_updates_profile(monkeypatc
 
     response = await sessions_router.complete_clean_session(
         SESSION_ID,
-        CompleteCleanSessionRequest(ended_at=datetime.now(timezone.utc)),
+        completion_request(db, datetime.now(timezone.utc)),
         HOUSEKEEPER,
     )
     completed = response["data"]
@@ -165,7 +176,7 @@ async def test_complete_session_is_idempotent(monkeypatch):
     patch_db(monkeypatch, db)
     started_at = datetime.now(timezone.utc) - timedelta(minutes=25)
     await sessions_router.start_clean_session(start_request(started_at), HOUSEKEEPER)
-    body = CompleteCleanSessionRequest(ended_at=datetime.now(timezone.utc))
+    body = completion_request(db, datetime.now(timezone.utc))
 
     first = await sessions_router.complete_clean_session(SESSION_ID, body, HOUSEKEEPER)
     second = await sessions_router.complete_clean_session(SESSION_ID, body, HOUSEKEEPER)

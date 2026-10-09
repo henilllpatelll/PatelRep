@@ -14,7 +14,9 @@ from models.requests import (
     UpdateCleanSessionRequest,
 )
 from core.database import supabase
+from core.roles import MANAGER_ROLES
 from routers.cleaning_checklists import get_checklist_template_for_clean_type
+from services.housekeeping_assignments import effective_room_status
 from services.room_status_transitions import (
     SESSION_STARTABLE_STATUSES,
     apply_status_transition,
@@ -104,6 +106,171 @@ def _get_signed_url(path: str) -> str:
         return ""
 
 
+
+MAX_CLOCK_SKEW_SECONDS = 120
+ASSIGNMENT_LOOKBACK_DAYS = 1
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _clamp_client_time(value: datetime, now: datetime) -> datetime:
+    """Client clocks drift and queued offline writes replay late.
+
+    A queued timestamp in the past is a legitimate offline capture, but a time
+    in the future is never valid — the server clock wins in that case.
+    """
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    if value > now + timedelta(seconds=MAX_CLOCK_SKEW_SECONDS):
+        return now
+    return value
+
+
+def _conflict(code: str, message: str, status_code: int = 409, **extra) -> HTTPException:
+    return HTTPException(status_code=status_code, detail={"code": code, "message": message, **extra})
+
+
+def _item_key(item: dict) -> str:
+    item_id = item.get("item_id")
+    if item_id:
+        return f"id:{item_id}"
+    return f"label:{item.get('section') or 'General'}|{item.get('label')}"
+
+
+def _merge_checklist(stored: list[dict], incoming, now: datetime) -> list[dict]:
+    """Apply checked-state changes onto the server-side snapshot.
+
+    The snapshot taken at session start is authoritative for labels, sections,
+    ordering and required flags. A client can only flip `checked` on items that
+    exist in the snapshot — it can neither add items nor downgrade a required
+    item to optional.
+    """
+    merged = [dict(item) for item in stored]
+    by_key = {_item_key(item): item for item in merged}
+    for entry in incoming:
+        data = entry.model_dump(mode="json") if hasattr(entry, "model_dump") else dict(entry)
+        target = by_key.get(_item_key(data))
+        if target is None:
+            raise _conflict(
+                "CHECKLIST_ITEM_UNKNOWN",
+                "Checklist item is not part of this clean session",
+                status_code=422,
+            )
+        checked = bool(data.get("checked"))
+        if checked and not target.get("checked"):
+            raw = entry.checked_at if hasattr(entry, "checked_at") else data.get("checked_at")
+            stamp = _clamp_client_time(raw, now) if isinstance(raw, datetime) else now
+            target["checked_at"] = stamp.isoformat()
+        elif not checked:
+            target["checked_at"] = None
+        target["checked"] = checked
+    return merged
+
+
+def _missing_required(checklist: list[dict]) -> list[dict]:
+    return [item for item in checklist if item.get("is_required") and not item.get("checked")]
+
+
+def _hotel_today(hotel_id: str) -> date:
+    return datetime.now(_get_hotel_tz(hotel_id)).date()
+
+
+def _resolve_assignment(hotel_id: str, room_id: str, room_status: dict, current_user: CurrentUser) -> dict:
+    """Return the caller's current assignment for the room or raise 403.
+
+    A housekeeper may only start rooms assigned to them. The most recent
+    assignment row for the room wins, so a reassignment between opening the
+    room screen and tapping Start is rejected instead of silently honoured.
+    Supervisors may start any room (they can cover for staff).
+    """
+    floor = (_hotel_today(hotel_id) - timedelta(days=ASSIGNMENT_LOOKBACK_DAYS)).isoformat()
+    rows = (
+        supabase.table("room_assignments")
+        .select("id, clean_type, assigned_to, assignment_date")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", room_id)
+        .gte("assignment_date", floor)
+        .execute()
+    ).data or []
+    if rows:
+        latest = max(str(row.get("assignment_date") or "") for row in rows)
+        current = [row for row in rows if str(row.get("assignment_date") or "") == latest]
+        mine = next((row for row in current if row.get("assigned_to") == current_user.user_id), None)
+        if mine:
+            return mine
+        if current_user.role in MANAGER_ROLES:
+            return {}
+        raise _conflict("ROOM_NOT_ASSIGNED", "This room is assigned to someone else", status_code=403)
+    if room_status.get("assigned_to") == current_user.user_id:
+        return {}
+    if current_user.role in MANAGER_ROLES:
+        return {}
+    raise _conflict("ROOM_NOT_ASSIGNED", "This room is not assigned to you", status_code=403)
+
+
+def _guest_may_be_inside(room_status: dict, effective_status: str | None) -> bool:
+    """Server mirror of the mobile knock-protocol rule (roomWorkflow.ts)."""
+    if room_status.get("actual_checkout_at"):
+        return False
+    if effective_status in ("PICKUP", "OCCUPIED"):
+        return True
+    return room_status.get("fo_status") == "OCC"
+
+
+def _enforce_entry_safety(room_status: dict, effective_status: str | None, acknowledged: bool) -> None:
+    if room_status.get("dnd_flag"):
+        raise _conflict("DND_ACTIVE", "Do Not Disturb is active — do not enter until front desk clears it")
+    if room_status.get("do_not_service") and effective_status == "PICKUP":
+        raise _conflict("SERVICE_DECLINED", "The guest declined service for this room")
+    if _guest_may_be_inside(room_status, effective_status) and not acknowledged:
+        raise _conflict(
+            "ENTRY_PROTOCOL_REQUIRED",
+            "Knock and announce before entering — confirm the entry protocol to start",
+        )
+
+
+def _release_stale_sessions(hotel_id: str, room_id: str, user_id: str, now: datetime) -> None:
+    """Enforce one active room per attendant, without letting a dead session block them.
+
+    A session whose room is no longer IN_PROGRESS (supervisor reset, legacy
+    undo, another flow) can never be completed, so it is closed as abandoned.
+    A session on a room that is still IN_PROGRESS is a real conflict.
+    """
+    others = (
+        supabase.table("room_clean_sessions")
+        .select("id, room_id")
+        .eq("tenant_id", hotel_id)
+        .eq("housekeeper_id", user_id)
+        .eq("status", "active")
+        .execute()
+    ).data or []
+    for other in others:
+        if other.get("room_id") == room_id:
+            continue
+        status_row = (
+            supabase.table("room_status")
+            .select("status")
+            .eq("room_id", other["room_id"])
+            .eq("tenant_id", hotel_id)
+            .maybe_single()
+            .execute()
+        )
+        if ((status_row.data if status_row else None) or {}).get("status") == "IN_PROGRESS":
+            raise _conflict(
+                "ACTIVE_SESSION_EXISTS",
+                "Finish your current room before starting another",
+                active_session_id=other["id"],
+                active_room_id=other["room_id"],
+            )
+        supabase.table("room_clean_sessions").update({
+            "status": "abandoned",
+            "ended_at": now.isoformat(),
+            "notes": "Superseded: room was no longer in progress",
+        }).eq("id", other["id"]).eq("tenant_id", hotel_id).execute()
+
+
 # ---------------------------------------------------------------------------
 # POST /clean-sessions  (idempotent — id is client-generated)
 # ---------------------------------------------------------------------------
@@ -115,6 +282,7 @@ async def start_clean_session(
 ):
     session_id = str(request.id)
     room_id = str(request.room_id)
+    now = _now()
 
     # Idempotent replay: offline queue may retry the same start
     existing = (
@@ -126,6 +294,7 @@ async def start_clean_session(
         .execute()
     )
     if existing and existing.data:
+        _require_session_owner(existing.data, current_user)
         return {"data": existing.data}
 
     # Conflict guard: another housekeeper already cleaning this room?
@@ -139,9 +308,9 @@ async def start_clean_session(
     )
     for row in (active.data or []):
         if row.get("housekeeper_id") != current_user.user_id:
-            raise HTTPException(
-                status_code=409,
-                detail="Another housekeeper already has an active session on this room",
+            raise _conflict(
+                "ROOM_IN_USE",
+                "Another housekeeper already has an active session on this room",
             )
         return {"data": _get_session(row["id"], current_user.hotel_id)}
 
@@ -165,24 +334,23 @@ async def start_clean_session(
     elif previous_status in SESSION_STARTABLE_STATUSES:
         previous_status_for_revert = previous_status
     else:
-        raise HTTPException(
+        raise _conflict(
+            "ROOM_NOT_STARTABLE",
+            f"Cannot start a clean from status {previous_status}",
             status_code=400,
-            detail=f"Cannot start a clean from status {previous_status}",
         )
 
-    # Today's assignment for clean type precedence (assignment -> room_status)
-    assignment_row = (
-        supabase.table("room_assignments")
-        .select("id, clean_type")
-        .eq("tenant_id", current_user.hotel_id)
-        .eq("room_id", room_id)
-        .eq("assigned_to", current_user.user_id)
-        .order("assignment_date", desc=True)
-        .limit(1)
-        .execute()
-    )
-    assignment = (assignment_row.data or [{}])[0] if assignment_row.data else {}
+    # Ownership: a housekeeper may only clean rooms assigned to them
+    assignment = _resolve_assignment(current_user.hotel_id, room_id, room_status, current_user)
     clean_type = assignment.get("clean_type") or room_status.get("clean_type")
+
+    # Before-entry safety is enforced here, not only in the app UI. A room that
+    # a legacy start already moved to IN_PROGRESS has been entered, so skip it.
+    if previous_status != "IN_PROGRESS":
+        effective = effective_room_status(previous_status, clean_type, room_status.get("fo_status"))
+        _enforce_entry_safety(room_status, effective, request.entry_acknowledged)
+
+    _release_stale_sessions(current_user.hotel_id, room_id, current_user.user_id, now)
 
     # Snapshot the checklist template and base clean minutes
     template = get_checklist_template_for_clean_type(current_user.hotel_id, clean_type)
@@ -219,7 +387,7 @@ async def start_clean_session(
         "clean_type": clean_type,
         "previous_status": previous_status_for_revert,
         "base_clean_minutes": base_clean_minutes,
-        "started_at": request.started_at.isoformat(),
+        "started_at": _clamp_client_time(request.started_at, now).isoformat(),
         "status": "active",
         "checklist": checklist,
         "checklist_done": done,
@@ -410,6 +578,7 @@ async def get_clean_session(
     current_user: CurrentUser = Depends(require_role(*SESSION_ROLES, "gm")),
 ):
     session = _get_session(session_id, current_user.hotel_id)
+    _require_session_owner(session, current_user)
     photos_result = (
         supabase.table("room_clean_photos")
         .select("id, kind, url, storage_path, created_at")
@@ -438,10 +607,16 @@ async def update_clean_session(
 ):
     session = _get_session(session_id, current_user.hotel_id)
     _require_session_owner(session, current_user)
+    if session.get("status") != "active":
+        raise _conflict(
+            "SESSION_NOT_ACTIVE",
+            f"Clean session is {session.get('status')}; it can no longer be edited",
+            session_status=session.get("status"),
+        )
 
     update_payload: dict = {}
     if request.checklist is not None:
-        checklist = _serialize_checklist(request.checklist)
+        checklist = _merge_checklist(session.get("checklist") or [], request.checklist, _now())
         done, total = _checklist_counts(checklist)
         update_payload.update({
             "checklist": checklist,
@@ -481,23 +656,77 @@ async def complete_clean_session(
     if session.get("status") == "completed":
         return {"data": session}  # idempotent replay
     if session.get("status") == "abandoned":
-        raise HTTPException(status_code=409, detail="Session was abandoned")
+        raise _conflict("SESSION_ABANDONED", "Session was abandoned")
 
-    duration = _duration_seconds(session.get("started_at"), request.ended_at)
+    now = _now()
 
+    # 1. Validate against the server-side snapshot before mutating anything, so
+    #    a rejected completion leaves the session and the room untouched.
+    checklist = session.get("checklist") or []
+    if request.checklist is not None:
+        checklist = _merge_checklist(checklist, request.checklist, now)
+    missing = _missing_required(checklist)
+    if missing:
+        labels = [str(item.get("label")) for item in missing]
+        raise _conflict(
+            "REQUIRED_ITEMS_INCOMPLETE",
+            f"{len(missing)} required checklist item(s) unfinished: " + "; ".join(labels[:5]),
+            status_code=422,
+            missing=labels,
+            missing_item_ids=[item.get("item_id") for item in missing],
+        )
+
+    # 2. Move the room first. If the room changed under us (supervisor reset,
+    #    OOO, ...) the completion is rejected with the session still active; if
+    #    the session write below fails, a retry finds the room already CLEAN and
+    #    simply finishes the session.
+    room_id = session["room_id"]
+    status_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_status = (status_row.data if status_row else None) or {}
+    room_state = room_status.get("status")
+    if room_state == "IN_PROGRESS":
+        apply_status_transition(
+            room_id=room_id,
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            role=current_user.role,
+            to_status="CLEAN",
+            current_row=room_status,
+        )
+    elif room_state != "CLEAN":
+        raise _conflict(
+            "ROOM_STATE_CHANGED",
+            f"Room is {room_state}, not in progress — cleaning cannot be completed",
+            room_status=room_state,
+        )
+
+    # 3. Server-backed timing: never trust a future client clock, never end
+    #    before the session started.
+    ended_at = _clamp_client_time(request.ended_at, now)
+    try:
+        started = datetime.fromisoformat(str(session.get("started_at")).replace("Z", "+00:00"))
+        if ended_at < started:
+            ended_at = started
+    except (ValueError, TypeError):
+        pass
+    duration = _duration_seconds(session.get("started_at"), ended_at)
+
+    done, total = _checklist_counts(checklist)
     update_payload: dict = {
         "status": "completed",
-        "ended_at": request.ended_at.isoformat(),
+        "ended_at": ended_at.isoformat(),
         "duration_seconds": duration,
+        "checklist": checklist,
+        "checklist_done": done,
+        "checklist_total": total,
     }
-    if request.checklist is not None:
-        checklist = _serialize_checklist(request.checklist)
-        done, total = _checklist_counts(checklist)
-        update_payload.update({
-            "checklist": checklist,
-            "checklist_done": done,
-            "checklist_total": total,
-        })
     if request.notes is not None:
         update_payload["notes"] = request.notes
 
@@ -510,27 +739,6 @@ async def complete_clean_session(
     )
     rows = result.data or []
     updated = rows[0] if rows else {**session, **update_payload}
-
-    # Transition the room IN_PROGRESS -> CLEAN (tolerate legacy flips)
-    room_id = session["room_id"]
-    status_row = (
-        supabase.table("room_status")
-        .select("*")
-        .eq("room_id", room_id)
-        .eq("tenant_id", current_user.hotel_id)
-        .maybe_single()
-        .execute()
-    )
-    room_status = (status_row.data if status_row else None) or {}
-    if room_status.get("status") == "IN_PROGRESS":
-        apply_status_transition(
-            room_id=room_id,
-            hotel_id=current_user.hotel_id,
-            user_id=current_user.user_id,
-            role=current_user.role,
-            to_status="CLEAN",
-            current_row=room_status,
-        )
 
     # Rolling average uses the TRUE session duration
     try:

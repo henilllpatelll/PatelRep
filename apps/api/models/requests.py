@@ -1685,6 +1685,9 @@ class CreateCleanSessionRequest(SanitizedBaseModel):
     id: UUID4
     room_id: UUID4
     started_at: datetime
+    # Set by the app once the housekeeper has completed the knock-and-announce
+    # protocol. Required by the server when a guest may still be inside.
+    entry_acknowledged: bool = False
 
 
 class UpdateCleanSessionRequest(SanitizedBaseModel):
