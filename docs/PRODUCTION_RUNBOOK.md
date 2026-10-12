@@ -100,6 +100,19 @@ Never hand-create the tag or Release: `computeNextVersion` fails closed on an ex
 The supported record path is a deliberate human dispatch of Production Release for the same `release_sha` with the
 same `version_bump`; the incident issue is a separate, human-authorized closure.
 
+### Release tag is created server-side, not pushed
+
+The annotated tag is created through the Git Data API with the job's own `GITHUB_TOKEN` (`contents: write`), then
+the GitHub Release is created with `--verify-tag`, strictly after production verification. `git push` of the tag is
+rejected by GitHub ("refusing to allow a GitHub App to create or update workflow … without `workflows` permission")
+when the released SHA's `.github/workflows` differs from `main`'s, i.e. releasing a SHA behind `main` after a
+workflow change (run 38185575766). `GITHUB_TOKEN` cannot hold `workflows`, and no app or token permission is
+broadened. The step refuses a non-`vX.Y.Z` name, a SHA other than the checked-out verified target, and an existing
+tag, and asserts the created tag resolves to the exact verified commit before any Release exists. Re-running failed
+jobs of an old run reuses that run's old workflow definition; finish a release with a new deliberate dispatch.
+
+## Automatic rollback request decision (Phase 3C)
+
 Phase 3C adds the owner-controlled rollback request path. The repository variable
 `PRODUCTION_AUTO_ROLLBACK_ENABLED` must equal exactly `true`; otherwise confirmed incidents are only recorded.
 Phase 3D now supplies the required rollback-side provenance hook, so an incident that passes every 3C gate may be

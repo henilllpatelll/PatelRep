@@ -183,8 +183,53 @@ test('every production job keeps the `production` Environment (secret scoping) a
   // The tag and GitHub Release stay last, behind full production verification.
   assert.match(jobSection(release, 'tag-and-release'), /needs: \[resolve-and-verify-eligibility, compute-version, verify-production-release\]/)
   assert.ok(release.indexOf('verify-production-release:') < release.indexOf('tag-and-release:'))
-  assert.equal(release.match(/git tag -a/g).length, 1)
-  assert.equal(release.match(/gh release create/g).length, 1)
+  assert.equal(releaseCode.match(/createTag\(/g).length, 1)
+  assert.equal(releaseCode.match(/gh release create/g).length, 1)
+})
+
+// Run 38185575766: `git push` of the tag was rejected ("refusing to allow a GitHub App to create or update workflow
+// .github/workflows/production-release.yml without `workflows` permission") because the release SHA was behind main
+// after a workflow change. GITHUB_TOKEN can never hold `workflows`, so the tag is created server-side with the same
+// token and the Release still comes strictly after, behind exact-commit assertions.
+test('tag-and-release creates the annotated tag server-side, never via git push, with the same GITHUB_TOKEN', () => {
+  const job = jobSection(release, 'tag-and-release')
+  const jobCode = code(job)
+  assert.doesNotMatch(jobCode, /git push|git tag|git config user\.|create-github-app-token|PATELREP_APP|secrets\.(?!GITHUB_TOKEN)|permission-workflows|workflows: write/)
+  assert.match(job, /persist-credentials: false/, 'checkout leaves no push-capable credential behind')
+  const tagStep = job.slice(job.indexOf('- name: Create annotated tag'), job.indexOf('- name: Create GitHub Release'))
+  assert.match(tagStep, /uses: actions\/github-script@v8/)
+  assert.doesNotMatch(tagStep, /github-token:/, 'uses the default GITHUB_TOKEN, no other identity')
+  assert.match(tagStep, /TARGET_SHA: \$\{\{ needs\.resolve-and-verify-eligibility\.outputs\.target_sha \}\}/)
+  assert.match(tagStep, /NEXT_VERSION: \$\{\{ needs\.compute-version\.outputs\.next_version \}\}/)
+})
+
+test('tag creation fails closed before any Release: strict names, exact commit, no reuse, post-create resolution', () => {
+  const job = jobSection(release, 'tag-and-release')
+  const tagStep = job.slice(job.indexOf('- name: Create annotated tag'), job.indexOf('- name: Create GitHub Release'))
+  const order = [
+    /\^v\(0\|\[1-9\]\[0-9\]\*\)/, // strict vMAJOR.MINOR.PATCH only
+    /\[0-9a-f\]\{40\}/, // exact 40-hex SHA only
+    /rev-parse', 'HEAD'.*\n.*checkedOut !== sha/s, // checkout is the verified target
+    /git\.getRef/, // existence probe: 404 -> proceed, anything else rethrown
+    /already exists; refusing to move or reuse it/,
+    /git\.createTag\(/,
+    /type: 'commit'/,
+    /git\.createRef\(/,
+    /refs\/\$\{ref\}/,
+    /resolvedRef\.data\.object\.type !== 'tag'/,
+    /resolvedTag\.data\.object\.sha !== sha/,
+    /not creating a Release/,
+  ]
+  let at = -1
+  for (const pattern of order) {
+    const found = tagStep.search(pattern)
+    assert.ok(found > at, `${pattern} appears, in order`)
+    at = found
+  }
+  assert.match(tagStep, /error\.status === 404\) return false\n\s+throw error/)
+  const release_ = job.slice(job.indexOf('- name: Create GitHub Release'))
+  assert.match(release_, /gh release create "\$NEXT_VERSION" --verify-tag --title/, 'Release requires the tag to already exist')
+  assert.ok(job.indexOf('- name: Create annotated tag') < job.indexOf('- name: Create GitHub Release'))
 })
 
 test('Production Release automated mode: optional input, provenance verified in the first production job before anything else', () => {
