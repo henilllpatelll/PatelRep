@@ -79,8 +79,11 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // can return before the new Web container is serving (run 37958771273); public-smoke.test.mjs pins that only this step opts in.
   // Tag creation: the annotated tag is created server-side (Git Data API) instead of `git push`, which GitHub rejects for GITHUB_TOKEN
   // when the tagged SHA's workflows differ from main's (run 38185575766); production-release-request-workflow.test.mjs pins the contract.
+  // Release recording (runs 38185575766/38189513925): the Git Data API ref write ALSO needs `workflows` write, which GITHUB_TOKEN can never hold,
+  // so recording moved to the dedicated Release Recorder App in the `release-recording` Environment (scripts/production-release-recorder.mjs,
+  // pinned by production-release-recorder*.test.mjs), with a recording preflight before any migration/deploy and default `contents: read`.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '24f42608aaa76da45dd24ce34cc303804eabb60348515828adae5be03ee7f2c5')
+  assert.equal(digest, 'e78c80a8c8e373c979c1149371d6520c8232652bbca6f51b31aacc9302343c7f')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

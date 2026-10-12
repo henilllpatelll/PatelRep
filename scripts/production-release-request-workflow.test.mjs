@@ -178,58 +178,31 @@ test('every production job keeps the `production` Environment (secret scoping) a
   assert.match(release, /concurrency:\n {2}# [^\n]*\n {2}# [^\n]*\n {2}group: production-deploy\n {2}cancel-in-progress: false/)
   const gated = ['resolve-and-verify-eligibility', 'production-db-preflight', 'production-db-migrate', 'deploy-api', 'deploy-web', 'verify-production-release']
   for (const job of gated) assert.match(jobSection(release, job), /environment:/, `${job} keeps its production environment`)
-  assert.equal(releaseCode.match(/^\s+environment:/gm).length, gated.length, 'no production job lost or gained an environment')
+  // The Release Recorder App credentials live ONLY in the separate `release-recording` Environment (two jobs), never in `production`.
+  for (const job of gated) assert.doesNotMatch(jobSection(release, job), /environment: release-recording|RELEASE_RECORDER/, `${job} never sees recorder credentials`)
+  assert.equal(releaseCode.match(/^\s+environment: release-recording$/gm).length, 2, 'only the recording preflight and the tag job use release-recording')
+  assert.equal(releaseCode.match(/^\s+environment:/gm).length, gated.length + 2)
   assert.doesNotMatch(releaseCode, /continue-on-error|migration repair|--force|environment: staging/)
   // The tag and GitHub Release stay last, behind full production verification.
   assert.match(jobSection(release, 'tag-and-release'), /needs: \[resolve-and-verify-eligibility, compute-version, verify-production-release\]/)
   assert.ok(release.indexOf('verify-production-release:') < release.indexOf('tag-and-release:'))
-  assert.equal(releaseCode.match(/createTag\(/g).length, 1)
-  assert.equal(releaseCode.match(/gh release create/g).length, 1)
+  assert.doesNotMatch(releaseCode, /createTag\(|git\.createRef|gh release create|git push|git tag /, 'tag/Release writes live only in the trusted recorder script')
+  assert.equal(releaseCode.match(/production-release-recorder\.mjs record/g).length, 1)
 })
 
-// Run 38185575766: `git push` of the tag was rejected ("refusing to allow a GitHub App to create or update workflow
-// .github/workflows/production-release.yml without `workflows` permission") because the release SHA was behind main
-// after a workflow change. GITHUB_TOKEN can never hold `workflows`, so the tag is created server-side with the same
-// token and the Release still comes strictly after, behind exact-commit assertions.
-test('tag-and-release creates the annotated tag server-side, never via git push, with the same GITHUB_TOKEN', () => {
+// Runs 38185575766 / 38189513925: GITHUB_TOKEN can never hold `workflows`, and GitHub requires contents + workflows
+// write to create a ref for a commit that carries workflow changes. Recording therefore uses a dedicated GitHub App
+// token that exists only in the `release-recording` Environment; deep contract tests: production-release-recorder-workflow.test.mjs.
+test('tag-and-release delegates to the trusted recorder with the App token only on the tag write', () => {
   const job = jobSection(release, 'tag-and-release')
   const jobCode = code(job)
-  assert.doesNotMatch(jobCode, /git push|git tag|git config user\.|create-github-app-token|PATELREP_APP|secrets\.(?!GITHUB_TOKEN)|permission-workflows|workflows: write/)
+  assert.doesNotMatch(jobCode, /git push|git tag|git config user\.|PATELREP_APP|github-script|createTag|createRef/)
   assert.match(job, /persist-credentials: false/, 'checkout leaves no push-capable credential behind')
-  const tagStep = job.slice(job.indexOf('- name: Create annotated tag'), job.indexOf('- name: Create GitHub Release'))
-  assert.match(tagStep, /uses: actions\/github-script@v8/)
-  assert.doesNotMatch(tagStep, /github-token:/, 'uses the default GITHUB_TOKEN, no other identity')
-  assert.match(tagStep, /TARGET_SHA: \$\{\{ needs\.resolve-and-verify-eligibility\.outputs\.target_sha \}\}/)
-  assert.match(tagStep, /NEXT_VERSION: \$\{\{ needs\.compute-version\.outputs\.next_version \}\}/)
-})
-
-test('tag creation fails closed before any Release: strict names, exact commit, no reuse, post-create resolution', () => {
-  const job = jobSection(release, 'tag-and-release')
-  const tagStep = job.slice(job.indexOf('- name: Create annotated tag'), job.indexOf('- name: Create GitHub Release'))
-  const order = [
-    /\^v\(0\|\[1-9\]\[0-9\]\*\)/, // strict vMAJOR.MINOR.PATCH only
-    /\[0-9a-f\]\{40\}/, // exact 40-hex SHA only
-    /rev-parse', 'HEAD'.*\n.*checkedOut !== sha/s, // checkout is the verified target
-    /git\.getRef/, // existence probe: 404 -> proceed, anything else rethrown
-    /already exists; refusing to move or reuse it/,
-    /git\.createTag\(/,
-    /type: 'commit'/,
-    /git\.createRef\(/,
-    /refs\/\$\{ref\}/,
-    /resolvedRef\.data\.object\.type !== 'tag'/,
-    /resolvedTag\.data\.object\.sha !== sha/,
-    /not creating a Release/,
-  ]
-  let at = -1
-  for (const pattern of order) {
-    const found = tagStep.search(pattern)
-    assert.ok(found > at, `${pattern} appears, in order`)
-    at = found
-  }
-  assert.match(tagStep, /error\.status === 404\) return false\n\s+throw error/)
-  const release_ = job.slice(job.indexOf('- name: Create GitHub Release'))
-  assert.match(release_, /gh release create "\$NEXT_VERSION" --verify-tag --title/, 'Release requires the tag to already exist')
-  assert.ok(job.indexOf('- name: Create annotated tag') < job.indexOf('- name: Create GitHub Release'))
+  assert.match(job, /environment: release-recording/)
+  assert.match(job, /node \.trusted-recorder\/scripts\/production-release-recorder\.mjs record/)
+  assert.match(job, /RELEASE_VERSION: \$\{\{ needs\.compute-version\.outputs\.next_version \}\}/)
+  assert.match(job, /RELEASE_SHA: \$\{\{ needs\.resolve-and-verify-eligibility\.outputs\.target_sha \}\}/)
+  assert.match(job, /RELEASE_TOKEN: \$\{\{ github\.token \}\}/)
 })
 
 test('Production Release automated mode: optional input, provenance verified in the first production job before anything else', () => {
@@ -250,7 +223,7 @@ test('Production Release automated mode: optional input, provenance verified in 
   for (const downstream of ['compute-version', 'production-db-preflight', 'deploy-api']) {
     assert.match(jobSection(release, downstream), /resolve-and-verify-eligibility/)
   }
-  assert.match(release, /^permissions:\n {2}contents: write\n {2}actions: read\n {2}checks: read\n {2}pull-requests: read\n/m)
+  assert.match(release, /^permissions:\n {2}contents: read\n {2}actions: read\n {2}checks: read\n {2}pull-requests: read\n/m)
 })
 
 test('manual mode is unchanged: the verification step is skipped unless the automation input is present', () => {

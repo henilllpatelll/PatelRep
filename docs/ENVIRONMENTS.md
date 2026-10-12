@@ -68,6 +68,10 @@ No Required Reviewer (removed deliberately; the Production Release workflow's tr
 
 Secrets: `SUPABASE_SERVICE_ROLE_KEY` (feature-rollout), `PRODUCTION_SUPABASE_DB_URL`, `PRODUCTION_RAILWAY_API_TOKEN`. This repository currently uses a Railway account token because project tokens are unavailable on the current Railway plan; GitHub maps the secret to the Railway CLI's `RAILWAY_API_TOKEN` (never set alongside `RAILWAY_TOKEN`). These are set directly by a repository admin (`gh secret set NAME --env production`) — never typed into an AI assistant conversation, since Supabase's own tooling deliberately cannot return a service-role key and a Railway token is a high-blast-radius credential.
 
+## `release-recording` GitHub Environment
+
+Holds only the Release Recorder GitHub App credentials (variable `RELEASE_RECORDER_APP_CLIENT_ID`, secret `RELEASE_RECORDER_APP_PRIVATE_KEY`), deployment branches limited to `main`, no production credentials. Used by exactly `release-recording-preflight` and `tag-and-release` in `production-release.yml` and `record` in `production-release-record.yml`. Setup and rationale: [RELEASE_RECORDING.md](RELEASE_RECORDING.md).
+
 ## Secret hygiene
 
 Examples use placeholders only. If secret scanning identifies a genuine credential in tracked source or history, revoke and rotate it at the provider, remove it from tracked files, and use `git filter-repo` (with a coordinated force-push and downstream clone cleanup) for a history purge. Removing a secret from the latest commit alone is not remediation.

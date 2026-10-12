@@ -1,0 +1,115 @@
+name: Production Release Record
+
+# RECORD-ONLY recovery for a production release that deployed and passed production verification but whose annotated
+# tag / GitHub Release could not be created (runs 38185575766 and 38189513925: GITHUB_TOKEN lacks `workflows`).
+#
+# This workflow can ONLY create the missing annotated tag + GitHub Release. It never deploys, migrates, rolls back,
+# merges, dispatches, uses the `production` Environment, or touches a Railway/Supabase credential. It refuses unless:
+#   * the source Production Release run is this repository's, on main, completed, and NOT successful;
+#   * its API deploy, Web deploy and production verification jobs succeeded and its tag job failed;
+#   * its sanitized evidence ledger names exactly this SHA + version as eligible and production-verified;
+#   * production RIGHT NOW serves exactly this SHA + version on both API and Web (so no later release/rollback);
+#   * the SHA is still on main with a successful CI Gate, and the version is the exact successor of the newest
+#     completed release, with no conflicting tag.
+# An existing tag is never moved: it is accepted only if already annotated and peeling to exactly this SHA.
+# It shares the production-deploy lock so it can never overlap a release or rollback.
+# Human configuration: docs/RELEASE_RECORDING.md.
+run-name: Record production release ${{ inputs.version }} (${{ inputs.release_sha }}) from run ${{ inputs.source_run_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact release version to record, e.g. v1.9.2"
+        required: true
+        type: string
+      release_sha:
+        description: "Exact 40-character commit SHA that was deployed and verified"
+        required: true
+        type: string
+      source_run_id:
+        description: "Run id of the failed Production Release run that deployed and verified this exact release"
+        required: true
+        type: string
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
+jobs:
+  record:
+    name: Verify evidence and record release
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment: release-recording
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+    steps:
+      # Trusted recorder code: this workflow's own commit on main. The release target is checked out separately and
+      # is only ever read (git history for release notes); none of its code is executed.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-recorder
+          sparse-checkout: scripts
+          persist-credentials: false
+      - name: Validate dispatch inputs before any checkout of the target
+        run: |
+          printf '%s' "$RELEASE_VERSION" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          printf '%s' "$RELEASE_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$SOURCE_RUN_ID" | grep -Eq '^[1-9][0-9]{0,19}$'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_sha }}
+          path: target
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prove exact release checkout
+        run: test "$(git -C target rev-parse HEAD)" = "$RELEASE_SHA"
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Build release notes
+        working-directory: target
+        run: node ../.trusted-recorder/scripts/release-content-summary.mjs > "$RUNNER_TEMP/release-notes.md"
+      # Every proof is gathered with the read-only run token BEFORE the write-capable App token exists.
+      - name: Verify record-only recovery evidence (read-only, no App token yet)
+        run: node .trusted-recorder/scripts/production-release-recorder.mjs verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      - name: Create Release Recorder GitHub App token
+        id: recorder-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_RECORDER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_RECORDER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: Re-verify and record the annotated tag and GitHub Release
+        run: node .trusted-recorder/scripts/production-release-recorder.mjs recover
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_TOKEN: ${{ steps.recorder-token.outputs.token }}
+          RELEASE_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.md

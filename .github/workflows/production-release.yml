@@ -60,7 +60,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
   actions: read
   checks: read
   pull-requests: read
@@ -274,6 +274,42 @@ jobs:
             node scripts/release-content-summary.mjs
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
+  # Fail BEFORE any production mutation if the release could not be recorded afterwards (run 38185575766 / 38189513925
+  # deployed and verified production and only then failed to tag). The Release Recorder App token is minted with the
+  # exact permissions recording needs and used for one read-only call; nothing is written. This job has no production
+  # Environment, no production credential and no deploy access.
+  release-recording-preflight:
+    name: Release recording preflight
+    needs: resolve-and-verify-eligibility
+    if: needs.resolve-and-verify-eligibility.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    environment: release-recording
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Create Release Recorder GitHub App token
+        id: recorder-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_RECORDER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_RECORDER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: Prove the recorder can reach this repository (read-only)
+        run: node scripts/production-release-recorder.mjs preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_TOKEN: ${{ steps.recorder-token.outputs.token }}
+          REPO: ${{ github.repository }}
+
   production-db-preflight:
     name: Production database pre-flight
     needs: resolve-and-verify-eligibility
@@ -342,8 +378,8 @@ jobs:
 
   production-db-migrate:
     name: Apply production migrations
-    needs: [resolve-and-verify-eligibility, production-db-preflight]
-    if: needs.production-db-preflight.outputs.pending == 'true'
+    needs: [resolve-and-verify-eligibility, production-db-preflight, release-recording-preflight]
+    if: needs.production-db-preflight.outputs.pending == 'true' && needs.release-recording-preflight.result == 'success'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -399,8 +435,8 @@ jobs:
 
   deploy-api:
     name: Deploy exact API release
-    needs: [resolve-and-verify-eligibility, compute-version, production-db-preflight, production-db-migrate]
-    if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.outputs.eligible == 'true' && needs.compute-version.result == 'success' && needs.production-db-preflight.result == 'success' && (needs.production-db-migrate.result == 'success' || needs.production-db-migrate.result == 'skipped') }}
+    needs: [resolve-and-verify-eligibility, compute-version, release-recording-preflight, production-db-preflight, production-db-migrate]
+    if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.outputs.eligible == 'true' && needs.compute-version.result == 'success' && needs.release-recording-preflight.result == 'success' && needs.production-db-preflight.result == 'success' && (needs.production-db-migrate.result == 'success' || needs.production-db-migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -539,66 +575,56 @@ jobs:
         env:
           DEPLOYMENT_TARGETS: ${{ vars.PRODUCTION_WEB_URL }}
 
+  # Recording runs in the dedicated `release-recording` Environment (App credentials live ONLY there, never in
+  # `production`), only after full production verification. See docs/RELEASE_RECORDING.md.
   tag-and-release:
     name: Tag and create GitHub Release
     needs: [resolve-and-verify-eligibility, compute-version, verify-production-release]
     if: ${{ !cancelled() && needs.resolve-and-verify-eligibility.result == 'success' && needs.compute-version.result == 'success' && needs.verify-production-release.result == 'success' }}
     runs-on: ubuntu-latest
+    environment: release-recording
+    permissions:
+      contents: write
+      actions: read
+      checks: read
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Prove exact release checkout
+        run: test "$(git rev-parse HEAD)" = "${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}"
+      # Trusted recorder code comes from the workflow's own commit, never from the (possibly older) release target.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-recorder
+          sparse-checkout: scripts
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Build release notes
-        run: node scripts/release-content-summary.mjs > release-notes.md
-      # The annotated tag is created server-side (Git Data API) instead of `git push`. GitHub refuses a push of a
-      # tag from the built-in GITHUB_TOKEN app ("without `workflows` permission", a scope GITHUB_TOKEN can never
-      # hold) whenever the tagged commit's `.github/workflows` differs from main's, which is exactly a release of a
-      # SHA that is behind main after a workflow change (run 38185575766). Same token, no broader permission. Every
-      # assertion fails closed BEFORE the Release exists, and nothing runs unless production verification passed.
-      - name: Create annotated tag (only now that production verification has succeeded)
-        uses: actions/github-script@v8
-        env:
-          NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
-          TARGET_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
-          SHORT_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.short_sha }}
+        run: node .trusted-recorder/scripts/release-content-summary.mjs > "$RUNNER_TEMP/release-notes.md"
+      - name: Create Release Recorder GitHub App token
+        id: recorder-token
+        uses: actions/create-github-app-token@v3
         with:
-          script: |
-            const { NEXT_VERSION: tag, TARGET_SHA: sha, SHORT_SHA: shortSha } = process.env
-            if (!/^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(tag)) throw new Error(`Refusing non-release tag name "${tag}".`)
-            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`Refusing non-exact target SHA "${sha}".`)
-            const checkedOut = require('child_process').execFileSync('git', ['rev-parse', 'HEAD']).toString().trim()
-            if (checkedOut !== sha) throw new Error(`Checked-out commit ${checkedOut} is not the verified target ${sha}.`)
-            const ref = `tags/${tag}`
-            const existing = await github.rest.git.getRef({ ...context.repo, ref }).then(() => true, (error) => {
-              if (error.status === 404) return false
-              throw error
-            })
-            if (existing) throw new Error(`Tag ${tag} already exists; refusing to move or reuse it.`)
-            const created = await github.rest.git.createTag({
-              ...context.repo,
-              tag,
-              message: `Production release ${tag} (${shortSha})`,
-              object: sha,
-              type: 'commit',
-              tagger: { name: 'github-actions[bot]', email: '41898282+github-actions[bot]@users.noreply.github.com' },
-            })
-            await github.rest.git.createRef({ ...context.repo, ref: `refs/${ref}`, sha: created.data.sha })
-            const resolvedRef = await github.rest.git.getRef({ ...context.repo, ref })
-            const resolvedTag = await github.rest.git.getTag({ ...context.repo, tag_sha: resolvedRef.data.object.sha })
-            if (resolvedRef.data.object.type !== 'tag' || resolvedTag.data.object.type !== 'commit' || resolvedTag.data.object.sha !== sha) {
-              throw new Error(`Created tag ${tag} does not resolve to the exact verified commit ${sha}; not creating a Release.`)
-            }
-            core.info(`Created annotated tag ${tag} -> ${sha}`)
-      - name: Create GitHub Release
-        run: gh release create "$NEXT_VERSION" --verify-tag --title "$NEXT_VERSION" --notes-file release-notes.md
+          client-id: ${{ vars.RELEASE_RECORDER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_RECORDER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: Record annotated tag and GitHub Release (never moves an existing tag)
+        run: node .trusted-recorder/scripts/production-release-recorder.mjs record
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
+          GH_TOKEN: ${{ github.token }}
+          TAG_TOKEN: ${{ steps.recorder-token.outputs.token }}
+          RELEASE_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ needs.compute-version.outputs.next_version }}
+          RELEASE_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.md
 
   production-release-evidence:
     name: Production release evidence ledger
@@ -607,6 +633,7 @@ jobs:
       - resolve-and-verify-eligibility
       - compute-version
       - release-content-summary
+      - release-recording-preflight
       - production-db-preflight
       - production-db-migrate
       - deploy-api

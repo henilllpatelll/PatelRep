@@ -104,7 +104,7 @@ Merging a PR into `main` makes code *eligible* for production. It does not deplo
 
 The full path is now:
 
-`main` → **Production Release** workflow dispatched → eligibility + staging-identity verification → release content summary → production DB pre-flight → production migration (if pending) → API deploy → API health/readiness (hard gate) → web deploy → Web/API release-identity + deployment-drift verification → annotated tag + GitHub Release → (separately) **Feature Rollout** for any new flag
+`main` → **Production Release** workflow dispatched → eligibility + staging-identity verification → release content summary → production DB pre-flight → production migration (if pending) → API deploy → API health/readiness (hard gate) → web deploy → Web/API release-identity + deployment-drift verification → annotated tag + GitHub Release (recorded by the dedicated Release Recorder App, see [RELEASE_RECORDING.md](RELEASE_RECORDING.md)) → (separately) **Feature Rollout** for any new flag
 
 ### Eligibility (never skipped)
 
@@ -129,7 +129,7 @@ The previous version is derived by `scripts/release-version.mjs` from **complete
 
 `/health` and `/ready` report `release_sha` and `release_version`; the web bundle carries the same two values in `<meta name="patelrep-release-sha">` / `<meta name="patelrep-release-version">`. `scripts/public-smoke.mjs` verifies API and web report the exact same values the workflow expects before any tag is created — a 200 response from both is not sufficient proof of a correct release.
 
-A tag and GitHub Release are created **only after** every verification step above succeeds. A failed release leaves no tag, however far it got.
+A tag and GitHub Release are created **only after** every verification step above succeeds, by a dedicated **Release Recorder** GitHub App token (`contents` + `workflows` write) that exists only in the `release-recording` Environment; the built-in `GITHUB_TOKEN` cannot create a tag for a commit that carries workflow changes. A `release-recording-preflight` job proves the recorder is usable **before** the database migration or any deploy, so a misconfigured recorder stops a release before production is touched. An existing tag is never moved or recreated. If a release deployed and verified but recording failed, use the evidence-backed, record-only `production-release-record.yml` instead of redeploying. A release that fails before verification leaves no tag. Setup and recovery: [RELEASE_RECORDING.md](RELEASE_RECORDING.md).
 
 ### Production release evidence ledger (Phase 3A)
 
