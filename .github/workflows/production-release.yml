@@ -549,21 +549,53 @@ jobs:
         with:
           ref: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Build release notes
         run: node scripts/release-content-summary.mjs > release-notes.md
+      # The annotated tag is created server-side (Git Data API) instead of `git push`. GitHub refuses a push of a
+      # tag from the built-in GITHUB_TOKEN app ("without `workflows` permission", a scope GITHUB_TOKEN can never
+      # hold) whenever the tagged commit's `.github/workflows` differs from main's, which is exactly a release of a
+      # SHA that is behind main after a workflow change (run 38185575766). Same token, no broader permission. Every
+      # assertion fails closed BEFORE the Release exists, and nothing runs unless production verification passed.
       - name: Create annotated tag (only now that production verification has succeeded)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$NEXT_VERSION" -m "Production release $NEXT_VERSION (${{ needs.resolve-and-verify-eligibility.outputs.short_sha }})"
-          git push origin "$NEXT_VERSION"
+        uses: actions/github-script@v8
         env:
           NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
+          TARGET_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.target_sha }}
+          SHORT_SHA: ${{ needs.resolve-and-verify-eligibility.outputs.short_sha }}
+        with:
+          script: |
+            const { NEXT_VERSION: tag, TARGET_SHA: sha, SHORT_SHA: shortSha } = process.env
+            if (!/^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(tag)) throw new Error(`Refusing non-release tag name "${tag}".`)
+            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`Refusing non-exact target SHA "${sha}".`)
+            const checkedOut = require('child_process').execFileSync('git', ['rev-parse', 'HEAD']).toString().trim()
+            if (checkedOut !== sha) throw new Error(`Checked-out commit ${checkedOut} is not the verified target ${sha}.`)
+            const ref = `tags/${tag}`
+            const existing = await github.rest.git.getRef({ ...context.repo, ref }).then(() => true, (error) => {
+              if (error.status === 404) return false
+              throw error
+            })
+            if (existing) throw new Error(`Tag ${tag} already exists; refusing to move or reuse it.`)
+            const created = await github.rest.git.createTag({
+              ...context.repo,
+              tag,
+              message: `Production release ${tag} (${shortSha})`,
+              object: sha,
+              type: 'commit',
+              tagger: { name: 'github-actions[bot]', email: '41898282+github-actions[bot]@users.noreply.github.com' },
+            })
+            await github.rest.git.createRef({ ...context.repo, ref: `refs/${ref}`, sha: created.data.sha })
+            const resolvedRef = await github.rest.git.getRef({ ...context.repo, ref })
+            const resolvedTag = await github.rest.git.getTag({ ...context.repo, tag_sha: resolvedRef.data.object.sha })
+            if (resolvedRef.data.object.type !== 'tag' || resolvedTag.data.object.type !== 'commit' || resolvedTag.data.object.sha !== sha) {
+              throw new Error(`Created tag ${tag} does not resolve to the exact verified commit ${sha}; not creating a Release.`)
+            }
+            core.info(`Created annotated tag ${tag} -> ${sha}`)
       - name: Create GitHub Release
-        run: gh release create "$NEXT_VERSION" --title "$NEXT_VERSION" --notes-file release-notes.md
+        run: gh release create "$NEXT_VERSION" --verify-tag --title "$NEXT_VERSION" --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}

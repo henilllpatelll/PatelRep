@@ -77,8 +77,10 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // Phase 4B: an unprivileged re-entry preflight runs before any production Environment and the ledger records exact re-entry provenance.
   // Release-verification race fix: the exact-identity smoke step opts in to bounded polling (SMOKE_WAIT_*) because `railway up --ci`
   // can return before the new Web container is serving (run 37958771273); public-smoke.test.mjs pins that only this step opts in.
+  // Tag creation: the annotated tag is created server-side (Git Data API) instead of `git push`, which GitHub rejects for GITHUB_TOKEN
+  // when the tagged SHA's workflows differ from main's (run 38185575766); production-release-request-workflow.test.mjs pins the contract.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, 'da03adc06613707c1b920535a49a0219b5a8ba2795c14a6c4280c75a255ee00f')
+  assert.equal(digest, '24f42608aaa76da45dd24ce34cc303804eabb60348515828adae5be03ee7f2c5')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
