@@ -9,6 +9,9 @@ Everything here is authenticated, tenant-scoped and decided on the server:
 * ``POST /tasks/{id}/complete``   Complete a task (assignee, or a manager role).
 * ``GET  /tasks/{id}/activity``   Authoritative task + its persisted activity feed.
 
+An active ``task_blockers`` row (see ``routers/task_blockers.py``) makes a task "blocked": start
+and an assignee's complete answer ``409 task_blocked`` until the problem is resumed/resolved.
+
 Claiming stays in ``routers/tasks.py`` (``POST /tasks/{id}/claim``). Generic
 ``PATCH /tasks/{id}`` is unchanged and stays manager-only for status changes — these
 dedicated verbs are how non-managers move a task they own, without being able to edit
@@ -41,6 +44,10 @@ from routers.tasks import (
     _assignment_bound_may_access,
     _attach_profiles,
     _record_task_audit,
+    attach_blockers,
+    blocker_visible_to,
+    get_active_blocker,
+    resolve_active_blocker,
 )
 
 logger = logging.getLogger(__name__)
@@ -152,8 +159,9 @@ def _attach_guest_requests(tasks: list[dict], hotel_id: str) -> list[dict]:
     return tasks
 
 
-def _decorate(tasks: list[dict], hotel_id: str) -> list[dict]:
-    return _attach_guest_requests(_attach_profiles(tasks, hotel_id), hotel_id)
+def _decorate(tasks: list[dict], current_user: CurrentUser) -> list[dict]:
+    hotel_id = current_user.hotel_id
+    return attach_blockers(_attach_guest_requests(_attach_profiles(tasks, hotel_id), hotel_id), current_user)
 
 
 def _load_task(task_id: str, hotel_id: str) -> dict:
@@ -170,8 +178,36 @@ def _load_task(task_id: str, hotel_id: str) -> dict:
     return result.data
 
 
-def _authoritative(task_id: str, hotel_id: str) -> dict:
-    return _decorate([_load_task(task_id, hotel_id)], hotel_id)[0]
+def _authoritative(task_id: str, current_user: CurrentUser) -> dict:
+    return _decorate([_load_task(task_id, current_user.hotel_id)], current_user)[0]
+
+
+def _blocked(code: str, message: str, **extra) -> HTTPException:
+    return HTTPException(status_code=409, detail={"code": code, "message": message, **extra})
+
+
+def _active_blocker_or_none(task_id: str, hotel_id: str) -> Optional[dict]:
+    """The task's active blocker for lifecycle checks. A failed lookup is logged loudly and
+    treated as "no blocker": the blocker is workflow friction, and a metadata table problem must
+    not stop every employee from starting or finishing work."""
+    try:
+        return get_active_blocker(task_id, hotel_id)
+    except Exception:  # noqa: BLE001
+        logger.error("TASK_BLOCKER_LOOKUP_FAILED task=%s", task_id, exc_info=True)
+        return None
+
+
+def _autoclose_blocker(current_user: CurrentUser, task: dict, resolution: str) -> None:
+    """After a committed transition, close any blocker still active on the task (also covers a
+    blocker reported in the instant between the check and the write)."""
+    try:
+        closed = resolve_active_blocker(current_user, task["id"], resolution)
+        if closed:
+            _record_task_audit(
+                current_user, task, "task.blocker_resolved", {"blocker_id": closed["id"], "resolution": resolution}
+            )
+    except Exception:  # noqa: BLE001 - the transition already committed
+        logger.error("TASK_BLOCKER_AUTOCLOSE_FAILED task=%s", task.get("id"), exc_info=True)
 
 
 def _page_limit(limit: int) -> int:
@@ -243,7 +279,7 @@ async def list_my_work(
 
     rows, truncated = _fetch_all(base)
     page = _paginate_sorted(rows, cursor, _page_limit(limit), truncated, _now())
-    return {"data": _decorate(page["items"], current_user.hotel_id), "meta": page["meta"]}
+    return {"data": _decorate(page["items"], current_user), "meta": page["meta"]}
 
 
 @router.get("/available")
@@ -267,7 +303,7 @@ async def list_available_tasks(
 
     rows, truncated = _fetch_all(base)
     page = _paginate_sorted(rows, cursor, _page_limit(limit), truncated, _now())
-    return {"data": _decorate(page["items"], current_user.hotel_id), "meta": page["meta"]}
+    return {"data": _decorate(page["items"], current_user), "meta": page["meta"]}
 
 
 @router.get("/mine/completed")
@@ -316,7 +352,7 @@ async def list_my_completed(
         _encode_cursor({"t": window[-1]["completed_at"], "i": window[-1]["id"]}) if has_more and window else None
     )
     return {
-        "data": _decorate(window, current_user.hotel_id),
+        "data": _decorate(window, current_user),
         "meta": {"limit": limit, "has_more": has_more, "next_cursor": next_cursor},
     }
 
@@ -340,9 +376,11 @@ async def start_task(task_id: str, current_user: CurrentUser = Depends(get_curre
         raise HTTPException(status_code=403, detail="This task is assigned to someone else")
 
     if task["status"] == "in_progress":
-        return {"data": _authoritative(task_id, current_user.hotel_id), "meta": {"replayed": True}}
+        return {"data": _authoritative(task_id, current_user), "meta": {"replayed": True}}
     if task["status"] not in ("open", "escalated"):
         raise HTTPException(status_code=409, detail=f"A {task['status']} task can not be started")
+    if _active_blocker_or_none(task_id, current_user.hotel_id):
+        raise _blocked("task_blocked", "This task has a reported problem. Resume it before starting.")
 
     result = (
         supabase.table("tasks")
@@ -357,11 +395,11 @@ async def start_task(task_id: str, current_user: CurrentUser = Depends(get_curre
         # Lost a race with another request; judge the task as it is now.
         current = _load_task(task_id, current_user.hotel_id)
         if current["status"] == "in_progress" and current.get("assigned_to") == current_user.user_id:
-            return {"data": _authoritative(task_id, current_user.hotel_id), "meta": {"replayed": True}}
+            return {"data": _authoritative(task_id, current_user), "meta": {"replayed": True}}
         raise HTTPException(status_code=409, detail="Task state changed; refresh and try again")
 
     _record_task_audit(current_user, task, "task.started", {"status": "in_progress"})
-    return {"data": _authoritative(task_id, current_user.hotel_id), "meta": {"replayed": False}}
+    return {"data": _authoritative(task_id, current_user), "meta": {"replayed": False}}
 
 
 @router.post("/{task_id}/complete")
@@ -385,9 +423,12 @@ async def complete_task(
         raise HTTPException(status_code=403, detail="Not authorized to complete this task")
 
     if task["status"] == "completed":
-        return {"data": _authoritative(task_id, current_user.hotel_id), "meta": {"replayed": True}}
+        return {"data": _authoritative(task_id, current_user), "meta": {"replayed": True}}
     if task["status"] == "cancelled":
         raise HTTPException(status_code=409, detail="A cancelled task can not be completed")
+    if not is_manager and _active_blocker_or_none(task_id, current_user.hotel_id):
+        # The assignee must clear the reported problem first; a manager can finish the task outright.
+        raise _blocked("task_blocked", "This task has a reported problem. Resume it before completing.")
 
     completed_at = _now().isoformat()
     changes = {"status": "completed", "completed_at": completed_at}
@@ -407,7 +448,7 @@ async def complete_task(
     if not result.data:
         current = _load_task(task_id, current_user.hotel_id)
         if current["status"] == "completed":
-            return {"data": _authoritative(task_id, current_user.hotel_id), "meta": {"replayed": True}}
+            return {"data": _authoritative(task_id, current_user), "meta": {"replayed": True}}
         raise HTTPException(status_code=409, detail="Task state changed; refresh and try again")
 
     meta = {"replayed": False}
@@ -428,7 +469,8 @@ async def complete_task(
             meta["note_saved"] = False
 
     _record_task_audit(current_user, task, "task.completed", {"status": "completed", "completed_at": completed_at})
-    return {"data": _authoritative(task_id, current_user.hotel_id), "meta": meta}
+    _autoclose_blocker(current_user, task, "completed")
+    return {"data": _authoritative(task_id, current_user), "meta": meta}
 
 
 # ---------------------------------------------------------------------------
@@ -456,7 +498,9 @@ def _actor_names(user_ids: set, hotel_id: str) -> dict:
     return {r["id"]: (r.get("preferred_name") or r.get("full_name")) for r in rows}
 
 
-def _build_activity(task: dict, comments: list[dict], audits: list[dict], names: dict) -> list[dict]:
+def _build_activity(
+    task: dict, comments: list[dict], audits: list[dict], names: dict, blockers: Optional[list[dict]] = None
+) -> list[dict]:
     """Only persisted facts: the task row's own timestamps (created / started / completed /
     cancelled), the audit rows that say who claimed / started / completed it, and its
     comments. Nothing is inferred — assignment has no timestamp, so it is not an event."""
@@ -491,6 +535,28 @@ def _build_activity(task: dict, comments: list[dict], audits: list[dict], names:
                 **actor(c.get("user_id")),
             }
         )
+    for b in blockers or []:
+        events.append(
+            {
+                "id": f"blocker-{b['id']}-reported",
+                "kind": "blocker_reported",
+                "at": b.get("reported_at"),
+                "text": b.get("details"),
+                "reason": b.get("reason"),
+                **actor(b.get("reported_by")),
+            }
+        )
+        if b.get("status") == "resolved":
+            events.append(
+                {
+                    "id": f"blocker-{b['id']}-resolved",
+                    "kind": "blocker_resolved",
+                    "at": b.get("resolved_at"),
+                    "text": b.get("resolution_note"),
+                    "resolution": b.get("resolution"),
+                    **actor(b.get("resolved_by")),
+                }
+            )
     events = [e for e in events if e.get("at")]
     events.sort(key=lambda e: (_parse_ts(e["at"]) or datetime.min.replace(tzinfo=timezone.utc), e["id"]))
     return events
@@ -532,10 +598,31 @@ async def get_task_activity(task_id: str, current_user: CurrentUser = Depends(ge
         .data
         or []
     )
-    user_ids = {task.get("created_by")} | {c.get("user_id") for c in comments} | {a.get("actor_id") for a in audits}
+    try:
+        blocker_rows = (
+            supabase.table("task_blockers")
+            .select("id, task_id, reason, details, reported_by, reported_at, status, resolution, resolved_at, resolved_by, resolution_note, assigned_to")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("task_id", task_id)
+            .order("reported_at")
+            .execute()
+            .data
+            or []
+        )
+    except Exception:  # noqa: BLE001 - activity still loads without blocker events
+        logger.error("TASK_BLOCKER_LOOKUP_FAILED task=%s", task_id, exc_info=True)
+        blocker_rows = []
+    blocker_rows = [b for b in blocker_rows if blocker_visible_to(b, task, current_user)]
+    user_ids = (
+        {task.get("created_by")}
+        | {c.get("user_id") for c in comments}
+        | {a.get("actor_id") for a in audits}
+        | {b.get("reported_by") for b in blocker_rows}
+        | {b.get("resolved_by") for b in blocker_rows}
+    )
     names = _actor_names(user_ids, current_user.hotel_id)
-    decorated = _decorate([task], current_user.hotel_id)[0]
+    decorated = _decorate([task], current_user)[0]
     return {
-        "data": {"task": decorated, "events": _build_activity(task, comments, audits, names)},
+        "data": {"task": decorated, "events": _build_activity(task, comments, audits, names, blocker_rows)},
         "meta": {"truncated": truncated},
     }

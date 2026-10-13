@@ -431,22 +431,26 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | staff_schedules.py | /v1/staff/{user_id}/role-schedules | GET | gm | require_role('gm') [L36] |
 | staff_schedules.py | /v1/staff/{user_id}/role-schedules | POST | gm | require_role('gm') [L55] |
 | staff_schedules.py | /v1/staff/{user_id}/role-schedules/{schedule_id} | DELETE | gm | require_role('gm') [L108] |
+| task_blockers.py | /v1/tasks/{task_id}/blockers | POST | none |  |
+| task_blockers.py | /v1/tasks/{task_id}/resume | POST | none |  |
+| task_blockers.py | /v1/tasks/{task_id}/blockers/{blocker_id}/resolve | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*MANAGER_ROLES) [L328] |
+| task_blockers.py | /v1/tasks/blocked | GET | chief_engineer, gm, housekeeping_supervisor | require_role(*MANAGER_ROLES) [L358] |
 | task_lifecycle.py | /v1/tasks/mine | GET | none |  |
-| task_lifecycle.py | /v1/tasks/available | GET | housekeeper | require_role('housekeeper') [L253] |
+| task_lifecycle.py | /v1/tasks/available | GET | housekeeper | require_role('housekeeper') [L289] |
 | task_lifecycle.py | /v1/tasks/mine/completed | GET | none |  |
 | task_lifecycle.py | /v1/tasks/{task_id}/start | POST | none |  |
-| task_lifecycle.py | /v1/tasks/{task_id}/complete | POST | role-restricted (inline, see source) | gate: if not (is_assignee or is_manager): raise HTTPException(...) [L384]; inline: current_user.role in MANAGER_ROLES [L383] |
-| task_lifecycle.py | /v1/tasks/{task_id}/activity | GET | role-restricted (inline, see source) | gate: if current_user.role in ASSIGNMENT_BOUND_ROLES and (not _assignment_bound_may_access(task, current_user.user_id)): raise HTTPException(...) [L507]; inline: current_user.role in ASSIGNMENT_BOUND_ROLES [L507] |
-| tasks.py | /v1/tasks | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L266]; inline: current_user.role in FLOOR_STAFF_ROLES [L279] |
-| tasks.py | /v1/tasks/schedules | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L333] |
-| tasks.py | /v1/tasks/schedules/{schedule_id} | PATCH | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L380] |
-| tasks.py | /v1/tasks | GET | none | inline: current_user.role == 'housekeeper' [L434] |
+| task_lifecycle.py | /v1/tasks/{task_id}/complete | POST | role-restricted (inline, see source) | gate: if not (is_assignee or is_manager): raise HTTPException(...) [L422]; inline: current_user.role in MANAGER_ROLES [L421] |
+| task_lifecycle.py | /v1/tasks/{task_id}/activity | GET | role-restricted (inline, see source) | gate: if current_user.role in ASSIGNMENT_BOUND_ROLES and (not _assignment_bound_may_access(task, current_user.user_id)): raise HTTPException(...) [L573]; inline: current_user.role in ASSIGNMENT_BOUND_ROLES [L573] |
+| tasks.py | /v1/tasks | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L393]; inline: current_user.role in FLOOR_STAFF_ROLES [L406] |
+| tasks.py | /v1/tasks/schedules | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L460] |
+| tasks.py | /v1/tasks/schedules/{schedule_id} | PATCH | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'front_desk', 'engineer', 'housekeeper', 'chief_engineer') [L507] |
+| tasks.py | /v1/tasks | GET | none | inline: current_user.role == 'housekeeper' [L561] |
 | tasks.py | /v1/tasks/workspace | GET | none |  |
-| tasks.py | /v1/tasks/{task_id} | GET | role-restricted (inline, see source) | gate: if current_user.role in ASSIGNMENT_BOUND_ROLES and (not _assignment_bound_may_access(result.data[0], current_user.user_id)): raise HTTPException(...) [L511]; inline: current_user.role in ASSIGNMENT_BOUND_ROLES [L511] |
-| tasks.py | /v1/tasks/{task_id}/claim | POST | housekeeper | require_role('housekeeper') [L522] |
-| tasks.py | /v1/tasks/{task_id} | PATCH | role-restricted (inline, see source) | gate: if 'assigned_to' in update_data and current_user.role not in TASK_ASSIGNMENT_ROLES: raise HTTPException(...) [L591]; gate: if 'priority' in update_data and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L593]; gate: if 'status' in update_data and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L595]; gate: if editable_fields.intersection(update_data) and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L598]; inline: current_user.role not in TASK_ASSIGNMENT_ROLES [L591]; inline: current_user.role not in MANAGER_ROLES [L593]; inline: current_user.role not in MANAGER_ROLES [L595]; inline: current_user.role not in MANAGER_ROLES [L598] |
+| tasks.py | /v1/tasks/{task_id} | GET | role-restricted (inline, see source) | gate: if current_user.role in ASSIGNMENT_BOUND_ROLES and (not _assignment_bound_may_access(result.data[0], current_user.user_id)): raise HTTPException(...) [L638]; inline: current_user.role in ASSIGNMENT_BOUND_ROLES [L638] |
+| tasks.py | /v1/tasks/{task_id}/claim | POST | housekeeper | require_role('housekeeper') [L650] |
+| tasks.py | /v1/tasks/{task_id} | PATCH | role-restricted (inline, see source) | gate: if 'assigned_to' in update_data and current_user.role not in TASK_ASSIGNMENT_ROLES: raise HTTPException(...) [L719]; gate: if 'priority' in update_data and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L721]; gate: if 'status' in update_data and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L723]; gate: if editable_fields.intersection(update_data) and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L726]; inline: current_user.role not in TASK_ASSIGNMENT_ROLES [L719]; inline: current_user.role not in MANAGER_ROLES [L721]; inline: current_user.role not in MANAGER_ROLES [L723]; inline: current_user.role not in MANAGER_ROLES [L726] |
 | tasks.py | /v1/tasks/{task_id} | DELETE | none |  |
-| tasks.py | /v1/tasks/{task_id}/comments | POST | role-restricted (inline, see source) | gate: if current_user.role in ASSIGNMENT_BOUND_ROLES and (not _assignment_bound_may_access(task.data, current_user.user_id)): raise HTTPException(...) [L698]; inline: current_user.role in ASSIGNMENT_BOUND_ROLES [L698] |
+| tasks.py | /v1/tasks/{task_id}/comments | POST | role-restricted (inline, see source) | gate: if current_user.role in ASSIGNMENT_BOUND_ROLES and (not _assignment_bound_may_access(task.data, current_user.user_id)): raise HTTPException(...) [L857]; inline: current_user.role in ASSIGNMENT_BOUND_ROLES [L857] |
 | tasks.py | /v1/tasks/batch | POST | none |  |
 | vendors.py | /v1/engineering/vendors | GET | none |  |
 | vendors.py | /v1/engineering/vendors | POST | chief_engineer, gm | require_role(*MANAGE_VENDOR_ROLES) [L95] |
@@ -491,4 +495,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1807] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1881] |
 
-**41 routers, 480 routes.**
+**42 routers, 484 routes.**

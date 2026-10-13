@@ -1664,6 +1664,45 @@ class CompleteTaskRequest(SanitizedBaseModel):
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
+TaskBlockerReason = Literal[
+    "guest_unavailable",
+    "do_not_disturb",
+    "missing_supplies",
+    "access_issue",
+    "assistance_needed",
+    "equipment_issue",
+    "other",
+]
+
+
+class ReportTaskBlockerRequest(SanitizedBaseModel):
+    """Body for POST /tasks/{id}/blockers. ``client_request_id`` is the idempotency key: a retry
+    of the same submission returns the blocker the first attempt stored."""
+
+    reason: TaskBlockerReason
+    details: Optional[str] = Field(default=None, max_length=1000)
+    client_request_id: UUID
+
+    @model_validator(mode="after")
+    def other_needs_details(self):
+        if self.reason == "other" and not (self.details or "").strip():
+            raise ValueError("details are required when the reason is 'other'")
+        return self
+
+
+class ResumeTaskRequest(SanitizedBaseModel):
+    """Optional body for POST /tasks/{id}/resume. ``blocker_id`` pins the blocker the employee was
+    looking at, so a stale screen can not resume past a newer report."""
+
+    blocker_id: Optional[UUID] = None
+
+
+class ResolveTaskBlockerRequest(SanitizedBaseModel):
+    """Optional body for POST /tasks/{id}/blockers/{blocker_id}/resolve."""
+
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
 class TaskCommentRequest(SanitizedBaseModel):
     """Optional JSON body for POST /tasks/{id}/comments (the ``comment`` query param still works)."""
 

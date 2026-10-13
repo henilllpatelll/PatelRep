@@ -129,6 +129,133 @@ def _attach_comment_profiles(task: dict, hotel_id: str) -> dict:
     return task
 
 
+BLOCKER_SELECT = (
+    "id, task_id, reason, details, reported_by, reported_at, status, resolution, resolved_at, "
+    "resolved_by, resolution_note, notification_status, assigned_to"
+)
+
+
+def blocker_visible_to(blocker: dict, task: dict, current_user: CurrentUser) -> bool:
+    """Managers and engineers see every blocker of their hotel; a housekeeper only sees the
+    blockers on their own task or ones they reported themselves."""
+    if current_user.role not in ASSIGNMENT_BOUND_ROLES:
+        return True
+    return current_user.user_id in (task.get("assigned_to"), blocker.get("reported_by"))
+
+
+def public_blocker(row: dict, names: dict) -> dict:
+    """The blocker as a client may see it (no tenant id, no internal counters)."""
+    return {
+        "id": row["id"],
+        "task_id": row["task_id"],
+        "reason": row["reason"],
+        "details": row.get("details"),
+        "reported_by": row.get("reported_by"),
+        "reported_by_name": names.get(row.get("reported_by")),
+        "reported_at": row.get("reported_at"),
+        "status": row.get("status"),
+        "resolution": row.get("resolution"),
+        "resolved_at": row.get("resolved_at"),
+        "resolved_by": row.get("resolved_by"),
+        "resolved_by_name": names.get(row.get("resolved_by")),
+        "resolution_note": row.get("resolution_note"),
+        "notification_status": row.get("notification_status"),
+    }
+
+
+def profile_names(user_ids: set, hotel_id: str) -> dict:
+    ids = [uid for uid in user_ids if uid]
+    if not ids:
+        return {}
+    rows = (
+        supabase.table("user_profiles")
+        .select("id, full_name, preferred_name")
+        .eq("tenant_id", hotel_id)
+        .in_("id", ids)
+        .execute()
+        .data
+        or []
+    )
+    return {r["id"]: (r.get("preferred_name") or r.get("full_name")) for r in rows}
+
+
+def attach_blockers(tasks: list[dict], current_user: CurrentUser) -> list[dict]:
+    """Set ``task["blocker"]`` to the task's active blocker (or None) for every task.
+
+    "Blocked" is derived from the active ``task_blockers`` row; ``tasks.status`` never changes.
+    This is a read decoration: if the lookup fails (e.g. the table is not deployed yet) the
+    failure is logged and tasks load without blocker info instead of breaking every task list.
+    The write paths that must not run past a blocker use ``get_active_blocker`` and fail closed."""
+    for task in tasks:
+        task["blocker"] = None
+    task_ids = [t["id"] for t in tasks if t.get("id")]
+    if not task_ids:
+        return tasks
+    try:
+        rows = (
+            supabase.table("task_blockers")
+            .select(BLOCKER_SELECT)
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("status", "active")
+            .in_("task_id", task_ids)
+            .execute()
+            .data
+            or []
+        )
+        by_task = {row["task_id"]: row for row in rows}
+        names = profile_names(
+            {r.get("reported_by") for r in by_task.values()} | {r.get("resolved_by") for r in by_task.values()},
+            current_user.hotel_id,
+        )
+    except Exception:  # noqa: BLE001 - never take the whole task list down
+        logger.error("TASK_BLOCKER_LOOKUP_FAILED tasks=%d", len(task_ids), exc_info=True)
+        return tasks
+    for task in tasks:
+        row = by_task.get(task["id"])
+        if row and blocker_visible_to(row, task, current_user):
+            task["blocker"] = public_blocker(row, names)
+    return tasks
+
+
+def get_active_blocker(task_id: str, hotel_id: str) -> Optional[dict]:
+    """The task's active blocker row. Raises on a lookup failure so callers fail closed."""
+    rows = (
+        supabase.table("task_blockers")
+        .select(BLOCKER_SELECT)
+        .eq("tenant_id", hotel_id)
+        .eq("task_id", task_id)
+        .eq("status", "active")
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def resolve_active_blocker(
+    current_user: CurrentUser, task_id: str, resolution: str, note: Optional[str] = None
+) -> Optional[dict]:
+    """Close the task's active blocker (conditional on it still being active). Returns the closed
+    row, or None when there was nothing to close or someone else closed it first."""
+    result = (
+        supabase.table("task_blockers")
+        .update(
+            {
+                "status": "resolved",
+                "resolution": resolution,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": current_user.user_id,
+                "resolution_note": note,
+            }
+        )
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("task_id", task_id)
+        .eq("status", "active")
+        .execute()
+    )
+    return result.data[0] if result.data else None
+
+
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
     result = (
         supabase.table(table)
@@ -513,6 +640,7 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
     ):
         raise HTTPException(status_code=404, detail="Task not found")
     task = _attach_profiles(result.data, current_user.hotel_id)[0]
+    attach_blockers([task], current_user)
     return {"data": _attach_comment_profiles(task, current_user.hotel_id)}
 
 
@@ -613,6 +741,13 @@ async def update_task(
     elif request.status == "escalated":
         update_data["escalated_at"] = datetime.now(timezone.utc).isoformat()
 
+    blocker_before = None
+    if "assigned_to" in update_data:
+        try:
+            blocker_before = get_active_blocker(task_id, current_user.hotel_id)
+        except Exception:  # noqa: BLE001 - reassignment itself must not depend on the blocker lookup
+            logger.error("TASK_BLOCKER_LOOKUP_FAILED task=%s", task_id, exc_info=True)
+
     if update_data:
         result = (
             supabase.table("tasks")
@@ -636,6 +771,30 @@ async def update_task(
     )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # A blocker belongs to the person it was reported for: a manager moving the task to someone
+    # else, or finishing/cancelling it, closes the blocker so it never lingers on the wrong task.
+    if (
+        "assigned_to" in update_data
+        and blocker_before is not None
+        and blocker_before.get("assigned_to") != update_data["assigned_to"]
+    ):
+        closing = "reassigned"
+    elif request.status == "completed":
+        closing = "completed"
+    elif request.status == "cancelled":
+        closing = "resolved"
+    else:
+        closing = None
+    if closing:
+        try:
+            closed = resolve_active_blocker(current_user, task_id, closing)
+            if closed:
+                _record_task_audit(
+                    current_user, task, "task.blocker_resolved", {"blocker_id": closed["id"], "resolution": closing}
+                )
+        except Exception:  # noqa: BLE001 - the task update already committed
+            logger.error("TASK_BLOCKER_AUTOCLOSE_FAILED task=%s", task_id, exc_info=True)
 
     if isinstance(notes, str) and notes.strip():
         supabase.table("task_comments").insert(
