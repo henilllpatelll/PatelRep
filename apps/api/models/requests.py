@@ -272,6 +272,11 @@ class CreateTaskRequest(SanitizedBaseModel):
     due_at: Optional[datetime] = None
     nl_input: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     use_ai: bool = False
+    # Optional idempotency key (mobile Add Task): it becomes the new task's id, so a retry of an
+    # attempt whose outcome the client never saw returns that task instead of creating another.
+    client_request_id: Optional[UUID4] = None
+    # The person reviewed and kept details an AI parse suggested (recorded as is_ai_created).
+    ai_suggested: bool = False
 
     @field_validator("title")
     @classmethod

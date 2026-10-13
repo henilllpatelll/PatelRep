@@ -9,7 +9,7 @@ from models.requests import (
     UpdateTaskScheduleRequest,
 )
 from core.database import supabase
-from core.roles import ASSIGNMENT_BOUND_ROLES, MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
+from core.roles import ASSIGNMENT_BOUND_ROLES, FLOOR_STAFF_ROLES, MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
 from datetime import datetime, timedelta, timezone
 import logging
 
@@ -221,6 +221,42 @@ def _fetch_all_workspace_records(query_factory) -> list[dict]:
         offset += ACTIVE_FETCH_PAGE_SIZE
 
 
+def _is_duplicate_key(exc: Exception) -> bool:
+    text = str(exc)
+    return "23505" in text or "duplicate key" in text
+
+
+def _find_task_by_request_key(request_key: str, current_user: CurrentUser) -> Optional[dict]:
+    """The task already stored under this idempotency key.
+
+    The key is the task id, so it is looked up by id alone first: a row that belongs to another
+    hotel or creator is a 409 (key already used), never a replay and never a leak of that row.
+    """
+    existing = supabase.table("tasks").select("*").eq("id", request_key).limit(1).execute()
+    row = (existing.data or [None])[0] if existing else None
+    if row is None:
+        return None
+    if row.get("tenant_id") != current_user.hotel_id or row.get("created_by") != current_user.user_id:
+        raise HTTPException(status_code=409, detail="This request id has already been used")
+    return row
+
+
+def _task_create_response(row: Optional[dict], replayed: bool = False, hotel_id: Optional[str] = None) -> dict:
+    """`{data, meta}`; the row carries its verified room (`rooms`) the way list reads do."""
+    if row and row.get("room_id") and not row.get("rooms"):
+        room = (
+            supabase.table("rooms")
+            .select("room_number, floor")
+            .eq("id", row["room_id"])
+            .eq("tenant_id", hotel_id or row.get("tenant_id"))
+            .limit(1)
+            .execute()
+        )
+        if room and room.data:
+            row = {**row, "rooms": room.data[0]}
+    return {"data": row, "meta": {"replayed": replayed}}
+
+
 @router.post("")
 async def create_task(
     request: CreateTaskRequest,
@@ -239,6 +275,20 @@ async def create_task(
                 "message": "Use POST /ai/copilot/chat with use_ai=true for NL task creation",
             }
         }
+
+    if current_user.role in FLOOR_STAFF_ROLES:
+        # Floor staff create tasks for the team or for themselves; assigning someone else or
+        # filing under a department is a management action.
+        if request.assigned_to and str(request.assigned_to) != current_user.user_id:
+            raise HTTPException(status_code=403, detail="You can only assign a task to yourself")
+        if request.department_id:
+            raise HTTPException(status_code=403, detail="Your role cannot set a task department")
+
+    request_key = str(request.client_request_id) if request.client_request_id else None
+    if request_key:
+        replayed = _find_task_by_request_key(request_key, current_user)
+        if replayed:
+            return _task_create_response(replayed, replayed=True)
 
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = request.due_at or (datetime.now(timezone.utc) + timedelta(minutes=sla))
@@ -259,9 +309,21 @@ async def create_task(
         "sla_minutes": sla,
         "due_at": due_at.isoformat(),
     }
+    if request.ai_suggested:
+        task_data["is_ai_created"] = True
+    if request_key:
+        task_data["id"] = request_key
 
-    result = supabase.table("tasks").insert(task_data).execute()
-    return {"data": result.data[0] if result.data else None}
+    try:
+        result = supabase.table("tasks").insert(task_data).execute()
+    except Exception as exc:
+        # Two attempts with the same key raced: the loser returns the winner's task.
+        if request_key and _is_duplicate_key(exc):
+            replayed = _find_task_by_request_key(request_key, current_user)
+            if replayed:
+                return _task_create_response(replayed, replayed=True)
+        raise
+    return _task_create_response(result.data[0] if result.data else None, hotel_id=current_user.hotel_id)
 
 
 @router.post("/schedules")

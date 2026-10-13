@@ -2,7 +2,8 @@ import re
 import logging
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from typing import Optional, Literal
-from datetime import date
+from datetime import datetime, timedelta, timezone as dt_timezone
+from zoneinfo import ZoneInfo
 from services.ai.providers import get_openai_client
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,42 @@ CREATE_TASKS_SCHEMA = {
 }
 
 
+DEFAULT_HOTEL_TIMEZONE = "America/Chicago"
+# A parsed due time earlier than this much before "now" is treated as unresolved, not saved.
+DUE_PAST_TOLERANCE = timedelta(minutes=2)
+
+
+def hotel_zone(name: Optional[str]) -> ZoneInfo:
+    """The hotel's IANA zone; an unknown or missing name falls back to the platform default."""
+    try:
+        return ZoneInfo(name or DEFAULT_HOTEL_TIMEZONE)
+    except Exception:
+        return ZoneInfo(DEFAULT_HOTEL_TIMEZONE)
+
+
+def normalize_due_at(value: Optional[str], zone: ZoneInfo, now: Optional[datetime] = None) -> tuple[Optional[str], bool]:
+    """Validate the model's ``due_at`` and return ``(utc_iso | None, unresolved)``.
+
+    * Missing -> ``(None, False)``: no due time was stated.
+    * A wall-clock time without an offset is read in the hotel's zone, never the server's.
+    * Unparseable text or a moment that has already passed -> ``(None, True)``: the person must
+      correct it; nothing is guessed.
+    """
+    if value is None or not str(value).strip():
+        return None, False
+    try:
+        parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None, True
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=zone)
+    parsed = parsed.astimezone(dt_timezone.utc)
+    current = now or datetime.now(dt_timezone.utc)
+    if parsed < current - DUE_PAST_TOLERANCE:
+        return None, True
+    return parsed.isoformat().replace("+00:00", "Z"), False
+
+
 def parse_nl_tasks(
     message: str,
     hotel_name: str,
@@ -61,15 +98,18 @@ def parse_nl_tasks(
     shift_start: str = "07:00",
     shift_end: str = "15:00",
     context: dict = None,
+    timezone_name: Optional[str] = None,
 ) -> dict:
     """
     Parse natural language into structured task objects using GPT-4o-mini function calling.
     Returns {"tasks": [...], "prompt_tokens": int, "completion_tokens": int}
     """
-    today = date.today().strftime("%A, %B %d, %Y")
+    local_now = datetime.now(hotel_zone(timezone_name))
+    today = local_now.strftime("%A, %B %d, %Y")
+    clock = local_now.strftime("%H:%M %z")
 
     system_prompt = f"""You are the AI operations assistant for {hotel_name}, a hotel in Texas.
-Today is {today} and the current shift is {shift_name} ({shift_start}–{shift_end}).
+Today is {today}; the hotel's local time is {clock} ({timezone_name or DEFAULT_HOTEL_TIMEZONE}). The current shift is {shift_name} ({shift_start}–{shift_end}).
 The user {staff_name} has the role: {role}.
 
 Your job is to parse natural language into structured hotel operations tasks.
@@ -87,6 +127,8 @@ Rules:
 - Engineering issues (AC, plumbing, electrical) → task_type: engineering
 - Housekeeping requests (towels, turndown, clean) → task_type: housekeeping
 - Spanish input is acceptable. Parse correctly regardless of language.
+- due_at: only when a time or day is stated. Resolve relative words ("before 2 PM", "tomorrow morning") against the hotel's local date and time above and answer as ISO-8601 with the hotel's UTC offset. If the time or day is vague or cannot be resolved, omit due_at; never guess.
+- Never invent a room number, a guest name or an assignee. Omit room_number unless one is written in the request.
 
 Call the create_tasks function with an array of 1 or more task objects."""
 
@@ -152,12 +194,24 @@ _FAST_PATTERNS = [
 ]
 
 
+# A stated time or day ("before 2 PM", "tomorrow", "para las 3") needs the model to resolve it;
+# the rule engine would fold it into the title and silently drop the due time.
+_TIME_HINT = re.compile(
+    r"\b\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)(?!\w)|\b\d{1,2}:\d{2}\b"
+    r"|\b(?:before|by|after|until|at|tonight|today|tomorrow|tmrw|noon|midnight|asap|"
+    r"antes|despu[eé]s|hoy|ma[nñ]ana|mediod[ií]a)\b|\besta\s+noche\b|\bpara\s+las?\b",
+    re.IGNORECASE,
+)
+
+
 def try_fast_path(message: str) -> Optional[dict]:
     """
     Returns a parse_nl_tasks-shaped dict if message matches a known high-confidence
     pattern (confidence >= 0.92), otherwise returns None.
     """
     text = message.strip()
+    if _TIME_HINT.search(text):
+        return None
     for pattern, task_type, priority in _FAST_PATTERNS:
         m = re.search(pattern, text, re.IGNORECASE)
         if m:

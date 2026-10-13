@@ -11,7 +11,7 @@ from models.requests import (
     UpdateAIModelRouteRequest,
 )
 from core.database import supabase
-from services.ai.task_parser import parse_nl_tasks, try_fast_path
+from services.ai.task_parser import hotel_zone, normalize_due_at, parse_nl_tasks, try_fast_path
 from services.ai.insights import generate_gm_insights
 from services.ai.work_order_parser import parse_work_orders
 from services.ai.guest_request_parser import parse_guest_requests
@@ -175,12 +175,13 @@ def _build_work_order_triage_summary(work_orders: list[dict]) -> str:
 
 def _get_hotel_context(hotel_id: str) -> dict:
     hotel = supabase.table("tenants")\
-        .select("name, layout")\
+        .select("name, layout, timezone")\
         .eq("id", hotel_id)\
         .maybe_single()\
         .execute()
     hotel_data = (hotel.data or {}) if hotel else {}
     hotel_name = hotel_data.get("name", "the hotel")
+    hotel_timezone = hotel_data.get("timezone")
     layout_text = _layout_to_context_text(hotel_data.get("layout"))
     from datetime import datetime, timezone
     now_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
@@ -196,9 +197,10 @@ def _get_hotel_context(hotel_id: str) -> dict:
         s = shift.data[0]
         return {"hotel_name": hotel_name, "shift_name": s["name"],
                 "shift_start": s["start_time"][:5], "shift_end": s["end_time"][:5],
-                "layout_text": layout_text}
+                "layout_text": layout_text, "timezone": hotel_timezone}
     return {"hotel_name": hotel_name, "shift_name": "Current Shift",
-            "shift_start": "07:00", "shift_end": "15:00", "layout_text": layout_text}
+            "shift_start": "07:00", "shift_end": "15:00", "layout_text": layout_text,
+            "timezone": hotel_timezone}
 
 
 def _resolve_room_id(hotel_id: str, room_number: str) -> Optional[str]:
@@ -249,6 +251,24 @@ def _is_assignable_housekeeping_staff(hotel_id: str, staff_id: str) -> bool:
     return bool(result.data)
 
 
+def _finalize_parsed_tasks(hotel_id: str, tasks: list[dict], hotel_timezone: Optional[str]) -> None:
+    """Make AI/rule-engine drafts safe to show: verified room or none, validated due time.
+
+    * ``room_id`` is set only when ``room_number`` matches a room of this hotel; otherwise the
+      number is kept as text (``room_number_display``) for the person to correct.
+    * ``due_at`` is re-validated here (hotel zone, not in the past); anything unusable is
+      dropped and flagged ``due_unresolved`` so the client asks for a correction.
+    * Drafts never carry an assignee: the parser does not choose who does the work.
+    """
+    zone = hotel_zone(hotel_timezone)
+    for task in tasks:
+        rn = task.pop("room_number", None)
+        task["room_id"] = _resolve_room_id(hotel_id, rn) if rn else None
+        task["room_number_display"] = rn
+        task["due_at"], task["due_unresolved"] = normalize_due_at(task.get("due_at"), zone)
+        task.pop("assigned_to", None)
+
+
 @router.post("/copilot/chat")
 async def copilot_chat(
     request: CopilotChatRequest,
@@ -278,10 +298,9 @@ async def copilot_chat(
             fast = try_fast_path(request.message)
             if fast:
                 tasks = fast["tasks"]
-                for task in tasks:
-                    rn = task.pop("room_number", None)
-                    task["room_id"] = _resolve_room_id(current_user.hotel_id, rn) if rn else None
-                    task["room_number_display"] = rn
+                _finalize_parsed_tasks(
+                    current_user.hotel_id, tasks, _get_hotel_context(current_user.hotel_id).get("timezone")
+                )
                 response_payload = {
                     "response_type": "task_preview",
                     "message": "I recognised that — here's what I'll create:",
@@ -301,6 +320,7 @@ async def copilot_chat(
                     shift_start=ctx["shift_start"],
                     shift_end=ctx["shift_end"],
                     context=request.context,
+                    timezone_name=ctx.get("timezone"),
                 )
                 prompt_tokens = result["prompt_tokens"]
                 completion_tokens = result["completion_tokens"]
@@ -308,10 +328,7 @@ async def copilot_chat(
                     current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
                 )
                 tasks = result["tasks"]
-                for task in tasks:
-                    rn = task.pop("room_number", None)
-                    task["room_id"] = _resolve_room_id(current_user.hotel_id, rn) if rn else None
-                    task["room_number_display"] = rn
+                _finalize_parsed_tasks(current_user.hotel_id, tasks, ctx.get("timezone"))
                 needs_confirm = any(t.get("confidence", 1.0) < 0.7 for t in tasks)
                 response_payload = {
                     "response_type": "task_preview",

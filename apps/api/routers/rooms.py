@@ -310,6 +310,24 @@ async def list_room_types(current_user: CurrentUser = Depends(get_current_user))
     return {"data": result.data or []}
 
 
+@router.get("/directory")
+async def room_directory(current_user: CurrentUser = Depends(get_current_user)):
+    """Minimal room list for pickers: id, number, floor and building of this hotel's rooms.
+
+    Deliberately narrower than ``GET /rooms`` (no status, assignment, occupancy or guest
+    data) so any signed-in role can use it to verify a room reference.
+    """
+    result = (
+        supabase.table("rooms")
+        .select("id, room_number, floor, building")
+        .eq("tenant_id", current_user.hotel_id)
+        .order("room_number")
+        .limit(2000)
+        .execute()
+    )
+    return {"data": result.data or []}
+
+
 @router.post("", status_code=201)
 async def create_room(
     request: CreateRoomRequest,
