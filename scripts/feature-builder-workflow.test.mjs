@@ -60,7 +60,7 @@ test('publisher receives exact provenance and only a captured patch artifact', (
   assert.match(publish, /BASE_SHA: \$\{\{ needs\.resolve\.outputs\.base_sha \}\}/)
   assert.match(publish, /FEATURE_BRANCH: \$\{\{ needs\.resolve\.outputs\.branch \}\}/)
   assert.match(publish, /FEATURE_RUN_ID: \$\{\{ github\.run_id \}\}/)
-  assert.match(publish, /actions\/download-artifact@v4/)
+  assert.match(publish, /actions\/download-artifact@v\d+/)
   assert.match(publish, /name: feature-builder-output/)
 })
 

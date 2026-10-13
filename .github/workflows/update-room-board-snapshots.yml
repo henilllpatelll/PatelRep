@@ -39,7 +39,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
       - name: Upload regenerated -linux baselines
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: room-board-linux-snapshots
           path: apps/web/e2e/room-board-baseline.spec.ts-snapshots/*-linux.png
