@@ -82,8 +82,9 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // Release recording (runs 38185575766/38189513925): the Git Data API ref write ALSO needs `workflows` write, which GITHUB_TOKEN can never hold,
   // so recording moved to the dedicated Release Recorder App in the `release-recording` Environment (scripts/production-release-recorder.mjs,
   // pinned by production-release-recorder*.test.mjs), with a recording preflight before any migration/deploy and default `contents: read`.
+  // Dependabot github-actions bump (upload-artifact v7, download-artifact v8, supabase/setup-cli v3, github-script v9): version-only change.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, 'e78c80a8c8e373c979c1149371d6520c8232652bbca6f51b31aacc9302343c7f')
+  assert.equal(digest, '8ad1da9550390b48a8c1adfffc66c9d2b9547c8d28f018f3d7eb623b1dce3397')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
