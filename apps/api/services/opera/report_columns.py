@@ -114,3 +114,18 @@ def is_trailer_row(cells: list[str]) -> bool:
     if TRAILER_MARKER_CELL not in cells:
         return False
     return any(cell.startswith(TRAILER_SUM_PREFIX) for cell in cells)
+
+
+# Canonical fields a report MUST map for ingestion to be safe. Without the guest
+# name the ingest would blank room_status.guest_name; without the identity field
+# (reservation id for arrivals, room number for in-house) rows cannot be matched.
+REQUIRED_CANONICAL_FIELDS: dict[str, tuple[str, ...]] = {
+    "arrivals": ("opera_reservation_id", "guest_name"),
+    "in_house": ("room_number_opera", "guest_name"),
+}
+
+
+def missing_required_fields(report_type: str, header_index: dict[int, str]) -> list[str]:
+    """Canonical required fields that no header column mapped to (empty list = OK)."""
+    mapped = set(header_index.values())
+    return [f for f in REQUIRED_CANONICAL_FIELDS.get(report_type, ()) if f not in mapped]

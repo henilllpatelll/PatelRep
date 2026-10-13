@@ -19,7 +19,7 @@ from core.database import supabase
 from services.reclean_corrections import load_reclean_details
 from services.settings_audit import record_settings_event
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
-from services.opera_pdf import parse_hk_details, parse_task_sheet
+from services.opera_pdf import OUT_OF_SERVICE, parse_hk_details, parse_task_sheet
 from services.ai.predictions import count_rooms_ahead, notify_supervisors_high_risk
 from services.programs.contracts import experience_band, select_inspection_sample
 from routers.hotels import DEFAULT_HOUSEKEEPING_ASSIGNMENT_PREFERENCES
@@ -226,35 +226,268 @@ def _activity_day_window_utc(activity_date: date) -> tuple[str, str]:
     )
 
 
-def _clear_import_history_markers(hotel_id: str, assignment_date: str) -> None:
+def _clear_import_history_markers(hotel_id: str, assignment_date: str, room_ids: list[str] | None = None) -> None:
+    """Delete generated same-day import markers (task-sheet clean types, stayover overrides).
+
+    When ``room_ids`` is given only those rooms' markers are removed, so rooms the
+    importer skipped (active cleans, Out of Order, unrecognised rows) keep theirs.
+    """
     try:
         activity_date = date.fromisoformat(assignment_date)
     except ValueError:
         logger.warning("Invalid assignment_date on import marker cleanup: %s", assignment_date)
         return
+    if room_ids is not None and not room_ids:
+        return
 
     activity_start, activity_end = _activity_day_window_utc(activity_date)
+
+    def _scoped(query):
+        return query.in_("room_id", room_ids) if room_ids is not None else query
+
     marker_queries = (
-        lambda: supabase.table("room_status_history")
-        .delete()
-        .eq("tenant_id", hotel_id)
-        .gte("created_at", activity_start)
-        .lt("created_at", activity_end)
-        .like("notes", f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}%"),
-        lambda: supabase.table("room_status_history")
-        .delete()
-        .eq("tenant_id", hotel_id)
-        .gte("created_at", activity_start)
-        .lt("created_at", activity_end)
-        .eq("notes", STAYOVER_OVERRIDE_NOTE),
+        lambda: _scoped(
+            supabase.table("room_status_history")
+            .delete()
+            .eq("tenant_id", hotel_id)
+            .gte("created_at", activity_start)
+            .lt("created_at", activity_end)
+            .like("notes", f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}%")
+        ),
+        lambda: _scoped(
+            supabase.table("room_status_history")
+            .delete()
+            .eq("tenant_id", hotel_id)
+            .gte("created_at", activity_start)
+            .lt("created_at", activity_end)
+            .eq("notes", STAYOVER_OVERRIDE_NOTE)
+        ),
     )
 
     for build_query in marker_queries:
         build_query().execute()
 
 
+# ---------------------------------------------------------------------------
+# HK Details import contract
+#
+# The HK Details import is a deliberate DAILY BASELINE: Opera is treated as the
+# source of truth for housekeeping status and front-office occupancy, so every
+# room the import applies to is reset to a clean slate for the day (the fields
+# in HK_IMPORT_RESET_FIELDS). That reset is intentional and covered by tests.
+# What the import must NOT do is act on data it cannot trust or clobber state
+# it does not own:
+#   * rows with an unrecognised status are skipped (never guessed);
+#   * Out of Service has no room_status value and is left alone;
+#   * rooms being cleaned (IN_PROGRESS or an active clean session) are skipped;
+#   * rooms already Out of Order in PatelRep are skipped (release them via the
+#     OOO workflow); a newly Out of Order room goes through the
+#     create_room_unavailability RPC so a period row always backs the status;
+#   * a report dated more than a day from "today" is rejected, and a file whose
+#     rows are mostly unrecognised is rejected as the wrong report.
+# Preview and apply share _plan_hk_details_import so they cannot disagree.
+# The import deliberately writes no room_status_history transitions: Opera
+# baseline changes are not housekeeper work and would inflate rooms-cleaned KPIs.
+# ---------------------------------------------------------------------------
+HK_IMPORT_RESET_FIELDS: dict = {
+    "actual_checkout_at": None,
+    "checkout_time": None,
+    "checkin_time": None,
+    "clean_type": None,
+    "guest_name": None,
+    "vip_flag": False,
+    "dnd_flag": False,
+    "do_not_service": False,
+    "notes": None,
+    "stripped": False,
+    "stripped_by": None,
+    "stripped_at": None,
+    "assigned_to": None,
+}
+# Fields the web preview modal has labels for; other resets are reported in
+# `field_resets` so the UI never renders an unlabeled field name.
+HK_IMPORT_PREVIEW_FIELDS = ("status", "fo_status", "clean_type", "checkout_time")
+HK_IMPORT_MAX_UNRECOGNISED_RATIO = 0.5
+HK_IMPORT_DATE_WINDOW_DAYS = 1
+
+
+def _hotel_today() -> date:
+    return datetime.now(HOTEL_ACTIVITY_TIMEZONE).date()
+
+
+def _validate_hk_import_date(assignment_date: str) -> date:
+    """Single date rule for HK Details preview AND apply."""
+    try:
+        parsed = date.fromisoformat(assignment_date)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="Invalid housekeeping date") from exc
+    if abs((parsed - _hotel_today()).days) > HK_IMPORT_DATE_WINDOW_DAYS:
+        raise HTTPException(
+            status_code=422,
+            detail="Housekeeping date must be within one day of today (hotel local time). "
+                   "Importing an older report would overwrite current room state.",
+        )
+    return parsed
+
+
+async def _read_hk_details_upload(file: UploadFile) -> tuple[list, list[str]]:
+    """Validate, parse and sanity-check an HK Details upload (shared by preview and apply)."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    pdf_bytes = await file.read()
+    try:
+        rows, warnings = parse_hk_details(pdf_bytes)
+    except Exception as exc:
+        logger.warning("HK Details PDF parsing failed: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=422,
+            detail="Could not read PDF. Please upload a valid Opera Housekeeping Details report.",
+        ) from exc
+    if not rows:
+        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+    unrecognised = sum(1 for row in rows if getattr(row, "our_status", None) is None)
+    if unrecognised and unrecognised / len(rows) > HK_IMPORT_MAX_UNRECOGNISED_RATIO:
+        raise HTTPException(
+            status_code=422,
+            detail="Most rows have unrecognised housekeeping statuses, so this does not look like an "
+                   "Opera Housekeeping Details report. Nothing was imported.",
+        )
+    return rows, list(warnings)
+
+
+def _hk_value_differs(field: str, current: dict, new) -> bool:
+    if isinstance(new, bool):
+        return bool(current.get(field)) != new
+    return current.get(field) != new
+
+
+def _plan_hk_details_import(rows: list, hotel_id: str) -> dict:
+    """Decide, without writing, what an HK Details import will do to each room.
+
+    Both the preview and the apply endpoint consume this plan, so what the
+    preview shows is exactly what apply writes.
+    """
+    rooms = supabase.table("rooms").select("id, room_number").eq("tenant_id", hotel_id).execute()
+    room_map = {row["room_number"]: row["id"] for row in (rooms.data or [])}
+    statuses = supabase.table("room_status").select("*").eq("tenant_id", hotel_id).execute()
+    status_map = {row["room_id"]: row for row in (statuses.data or [])}
+    try:
+        sessions = supabase.table("room_clean_sessions").select("room_id") \
+            .eq("tenant_id", hotel_id).eq("status", "active").execute()
+    except Exception as exc:
+        # Fail closed: without the session list we cannot prove no one is mid-clean.
+        logger.warning("HK Details import could not read active clean sessions: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Could not verify active cleaning sessions. Try again shortly.") from exc
+    active_session_rooms = {row["room_id"] for row in (sessions.data or [])}
+
+    by_room: dict[str, list] = {}
+    for row in rows:
+        by_room.setdefault(row.room_number, []).append(row)
+
+    items: list[dict] = []
+    warnings: list[str] = []
+    counts: dict = {"not_found": [], "skipped_active": 0, "skipped_unrecognised": 0,
+                    "skipped_unsupported": 0, "skipped_ooo": 0, "skipped_duplicate": 0}
+
+    for room_number, group in by_room.items():
+        row = group[0]
+        room_id = room_map.get(room_number)
+        if not room_id:
+            counts["not_found"].append(room_number or "(missing room number)")
+            continue
+        if len({(getattr(r, "our_status", None), getattr(r, "fo_status", None)) for r in group}) > 1:
+            counts["skipped_duplicate"] += 1
+            warnings.append(f"Room {room_number}: appears more than once with conflicting values - skipped")
+            continue
+        our_status = getattr(row, "our_status", None)
+        fo_status = getattr(row, "fo_status", None)
+        current = status_map.get(room_id, {})
+        current_status = current.get("status")
+
+        if our_status is None:
+            counts["skipped_unrecognised"] += 1
+            continue
+        if our_status == OUT_OF_SERVICE:
+            counts["skipped_unsupported"] += 1
+            warnings.append(f"Room {room_number}: Out of Service in Opera has no PatelRep room status - left unchanged")
+            continue
+        if current_status == "IN_PROGRESS" or room_id in active_session_rooms:
+            counts["skipped_active"] += 1
+            continue
+        if current_status == "OOO" and our_status != "OOO":
+            counts["skipped_ooo"] += 1
+            warnings.append(f"Room {room_number}: Out of Order in PatelRep - left unchanged (release it in PatelRep first)")
+            continue
+
+        if our_status == "OOO":
+            if current_status == "OOO":
+                items.append({"room_id": room_id, "room_number": room_number, "action": "noop",
+                              "payload": None, "changes": [], "field_resets": [], "fo_status": fo_status})
+                continue
+            # Status is set by the create_room_unavailability RPC; notes hold the OOO details.
+            payload = {"room_id": room_id, "tenant_id": hotel_id, "fo_status": fo_status,
+                       **{k: v for k, v in HK_IMPORT_RESET_FIELDS.items() if k != "notes"}}
+            new_status = "OOO"
+            action = "mark_ooo"
+        else:
+            new_status = "OCCUPIED" if our_status == "DIRTY" and fo_status == "OCC" else our_status
+            payload = {"room_id": room_id, "tenant_id": hotel_id, "status": new_status,
+                       "fo_status": fo_status, **HK_IMPORT_RESET_FIELDS}
+            action = "write"
+
+        diff_view = {"status": new_status,
+                     **{k: v for k, v in payload.items() if k not in ("room_id", "tenant_id", "status")}}
+        changed = {f: v for f, v in diff_view.items() if _hk_value_differs(f, current, v)}
+        items.append({
+            "room_id": room_id,
+            "room_number": room_number,
+            "action": action,
+            "payload": payload,
+            "stamp_stay_reset": action == "write" and new_status == "INSPECTED" and current_status != "INSPECTED",
+            "fo_status": fo_status,
+            "changes": [
+                {"field": f, "before": current.get(f), "after": v}
+                for f, v in changed.items() if f in HK_IMPORT_PREVIEW_FIELDS
+            ],
+            "field_resets": sorted(f for f in changed if f not in HK_IMPORT_PREVIEW_FIELDS),
+        })
+
+    return {"items": items, "warnings": warnings, "counts": counts, "total_parsed": len(rows)}
+
+
+def _hk_plan_summary(plan: dict, parser_warnings: list[str]) -> dict:
+    items = plan["items"]
+    counts = plan["counts"]
+    will_update = [i for i in items if i["changes"] or i["field_resets"]]
+    warnings = list(parser_warnings) + list(plan["warnings"])
+    warnings.extend(f"Room {n}: no matching PatelRep room" for n in counts["not_found"])
+    if counts["skipped_active"]:
+        warnings.append(f"{counts['skipped_active']} active room(s) will be skipped")
+    return {
+        "total_parsed": plan["total_parsed"],
+        "will_update": len(will_update),
+        "unchanged": len(items) - len(will_update),
+        "not_found": len(counts["not_found"]),
+        "skipped_active": counts["skipped_active"],
+        "skipped_unrecognised": counts["skipped_unrecognised"],
+        "skipped_ooo": counts["skipped_ooo"],
+        "skipped_unsupported": counts["skipped_unsupported"],
+        "changes": [
+            {"room_id": i["room_id"], "room_number": i["room_number"], "changes": i["changes"]}
+            for i in items if i["changes"]
+        ],
+        "field_resets": [
+            {"room_number": i["room_number"], "fields": i["field_resets"]}
+            for i in items if i["field_resets"]
+        ],
+        "warnings": warnings,
+    }
+
+
 def _build_opera_import_preview(rows: list, warnings: list[str], hotel_id: str, import_kind: str) -> dict:
     """Calculate an import against live room state without writing anything."""
+    if import_kind == "hk-details":
+        return _hk_plan_summary(_plan_hk_details_import(rows, hotel_id), warnings)
     rooms = supabase.table("rooms").select("id, room_number").eq("tenant_id", hotel_id).execute()
     room_map = {row["room_number"]: row["id"] for row in (rooms.data or [])}
     statuses = supabase.table("room_status").select("room_id, status, fo_status, clean_type, checkout_time").eq("tenant_id", hotel_id).execute()
@@ -2879,15 +3112,8 @@ async def preview_hk_details_import(
     assignment_date: str = Form(...),
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="File must be a PDF")
-    try:
-        date.fromisoformat(assignment_date)
-        rows, warnings = parse_hk_details(await file.read())
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Invalid housekeeping date") from exc
-    if not rows:
-        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+    _validate_hk_import_date(assignment_date)
+    rows, warnings = await _read_hk_details_upload(file)
     return {"data": _build_opera_import_preview(rows, warnings, current_user.hotel_id, "hk-details")}
 
 @router.post("/import/hk-details")
@@ -2897,86 +3123,69 @@ async def import_hk_details(
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
     """
-    Import an Opera HK Details PDF to reset room_status for the day.
-    Overrides any current room status including IN_PROGRESS.
+    Import an Opera HK Details PDF as the daily baseline for room_status.
+
+    Applies exactly what the preview endpoint reports (both use _plan_hk_details_import).
+    Rooms with an active cleaning session (IN_PROGRESS status or an active clean
+    session), rooms already Out of Order in PatelRep, Out of Service rows and rows
+    with an unrecognised Opera status are skipped. Every room that is applied has
+    the baseline fields in HK_IMPORT_RESET_FIELDS reset. See the contract comment
+    above HK_IMPORT_RESET_FIELDS.
     """
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="File must be a PDF")
+    _validate_hk_import_date(assignment_date)
+    rows, warnings = await _read_hk_details_upload(file)
+    plan = _plan_hk_details_import(rows, current_user.hotel_id)
+    counts = plan["counts"]
+    warnings = list(warnings) + list(plan["warnings"])
 
-    pdf_bytes = await file.read()
-    rows, warnings = parse_hk_details(pdf_bytes)
-
-    if not rows:
-        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
-
-    _clear_import_history_markers(current_user.hotel_id, assignment_date)
-
-    # Fetch all rooms for this hotel to resolve room_number → room_id
-    rooms_res = supabase.table("rooms") \
-        .select("id, room_number") \
-        .eq("tenant_id", current_user.hotel_id) \
-        .execute()
-    room_map: dict[str, str] = {r["room_number"]: r["id"] for r in (rooms_res.data or [])}
-
-    # Prior status per room, so the stay_reset_at boundary only moves on a genuine
-    # fresh-inspection transition — not on every imported row that already was INSPECTED.
-    prior_status_res = supabase.table("room_status") \
-        .select("room_id, status") \
-        .eq("tenant_id", current_user.hotel_id) \
-        .execute()
-    prior_status_map: dict[str, str] = {
-        r["room_id"]: r["status"] for r in (prior_status_res.data or [])
-    }
+    # Markers are cleared only for rooms about to be baselined (and before any
+    # state write, so a failure here leaves room state untouched).
+    _clear_import_history_markers(
+        current_user.hotel_id, assignment_date,
+        room_ids=[item["room_id"] for item in plan["items"] if item["action"] != "noop"],
+    )
 
     applied = 0
-    skipped_active = 0
-    not_found: list[str] = []
+    failed = 0
     room_ids_processed: list[str] = []
 
-    for row in rows:
-        room_id = room_map.get(row.room_number)
-        if not room_id:
-            not_found.append(row.room_number)
+    for item in plan["items"]:
+        if item["action"] == "noop":
             continue
-        if prior_status_map.get(room_id) == "IN_PROGRESS":
-            skipped_active += 1
+        payload = dict(item["payload"])
+        try:
+            if item["action"] == "mark_ooo":
+                supabase.rpc("create_room_unavailability", {
+                    "p_room_id": item["room_id"],
+                    "p_tenant_id": current_user.hotel_id,
+                    "p_reason_code": "LEGACY_UNKNOWN",
+                    "p_reason_label": "Unknown / legacy",
+                    "p_details": "Out of Order per Opera HK Details import",
+                    "p_expected_return_at": None,
+                    "p_owner_id": None,
+                    "p_work_order_id": None,
+                    "p_created_by": current_user.user_id,
+                    "p_source": "PMS",
+                }).execute()
+                _execute_room_status_clean_type_write(
+                    {k: v for k, v in payload.items() if k not in ("room_id", "tenant_id")},
+                    lambda p, rid=item["room_id"]: supabase.table("room_status").update(p)
+                        .eq("room_id", rid).eq("tenant_id", current_user.hotel_id),
+                )
+            else:
+                if item.get("stamp_stay_reset"):
+                    payload["stay_reset_at"] = datetime.now(timezone.utc).isoformat()
+                _execute_room_status_clean_type_write(
+                    payload,
+                    lambda p: supabase.table("room_status").upsert(p, on_conflict="room_id"),
+                )
+        except Exception as exc:
+            failed += 1
+            logger.warning("HK Details import failed for a room: %s", type(exc).__name__)
+            warnings.append(f"Room {item['room_number']}: could not be updated - retry the import")
             continue
-
-        resolved_status = (
-            "OCCUPIED"
-            if row.our_status == "DIRTY" and row.fo_status == "OCC"
-            else row.our_status
-        )
-
-        now_iso = datetime.now(timezone.utc).isoformat()
-        update_data: dict = {
-            "room_id": room_id,
-            "tenant_id": current_user.hotel_id,
-            "status": resolved_status,
-            "fo_status": row.fo_status,
-            "actual_checkout_at": None,
-            "checkout_time": None,
-            "checkin_time": None,
-            "clean_type": None,
-            "guest_name": None,
-            "vip_flag": False,
-            "dnd_flag": False,
-            "do_not_service": False,
-            "notes": None,
-            "stripped": False,
-            "stripped_by": None,
-            "stripped_at": None,
-            "assigned_to": None,
-        }
-        if resolved_status == "INSPECTED" and prior_status_map.get(room_id) != "INSPECTED":
-            update_data["stay_reset_at"] = now_iso
-
-        _execute_room_status_clean_type_write(
-            update_data,
-            lambda payload: supabase.table("room_status").upsert(payload, on_conflict="room_id"),
-        )
         applied += 1
-        room_ids_processed.append(room_id)
+        room_ids_processed.append(item["room_id"])
 
     # Cancel any pending late-checkout requests for imported rooms — Opera is the
     # source of truth so yesterday's housekeeping flags no longer apply.
@@ -2988,18 +3197,23 @@ async def import_hk_details(
                 .eq("status", "pending") \
                 .in_("room_id", room_ids_processed) \
                 .execute()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("HK Details import could not cancel pending late-checkout requests: %s", type(exc).__name__)
+            warnings.append("Pending late-checkout requests for imported rooms could not be cancelled")
 
-    if not_found:
-        warnings.append(f"Rooms not found in system: {', '.join(not_found[:20])}")
+    if counts["not_found"]:
+        warnings.append(f"Rooms not found in system: {', '.join(counts['not_found'][:20])}")
 
     return {
         "data": {
             "applied": applied,
-            "skipped_active": skipped_active,
-            "not_found": len(not_found),
-            "total_parsed": len(rows),
+            "failed": failed,
+            "skipped_active": counts["skipped_active"],
+            "skipped_unrecognised": counts["skipped_unrecognised"],
+            "skipped_ooo": counts["skipped_ooo"],
+            "skipped_unsupported": counts["skipped_unsupported"],
+            "not_found": len(counts["not_found"]),
+            "total_parsed": plan["total_parsed"],
             "warnings": warnings,
         }
     }

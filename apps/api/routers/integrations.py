@@ -253,6 +253,11 @@ async def opera_sftp_connect(
     Connect Opera Cloud via scheduled-report SFTP ingestion (services/opera/report_ingest.py),
     an alternative to the OHIP API path for hotels whose subscription doesn't include OHIP access.
     Tests the SFTP connection before storing credentials.
+
+    Outside development/test the server's host key MUST be pinned (sftp_host_key_fingerprint,
+    SHA256:<base64> or MD5 hex). If it is not, the connection is refused before any credential
+    is sent and the 400 detail contains the fingerprint the server presented: verify it
+    out-of-band, then resubmit with it pinned.
     """
     _require_opera_pilot(current_user)
     creds = {
@@ -312,11 +317,15 @@ async def opera_sftp_sync(
     result = sync_report_files(current_user.hotel_id)
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
+    status = "skipped" if result.get("skipped") else result.get("status", "ok")
     return {
         "data": {
+            "status": status,
             "files_processed": result.get("files_processed", 0),
+            "files_failed": result.get("files_failed", 0),
             "synced_rows": result.get("synced", 0),
-            "synced_at": datetime.now(timezone.utc).isoformat(),
+            # Only a fully successful poll counts as a sync; partial/failed polls are retried.
+            "synced_at": datetime.now(timezone.utc).isoformat() if status == "ok" else None,
         }
     }
 

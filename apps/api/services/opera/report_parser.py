@@ -20,6 +20,8 @@ rather than per-report:
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from services.opera.report_columns import is_trailer_row
 
 CONTINUATION_RATIO_THRESHOLD = 0.7
@@ -31,12 +33,27 @@ def _pad(cells: list[str], length: int) -> list[str]:
     return cells[:length]
 
 
-def parse_delimited_report(raw_bytes: bytes, delimiter: str = "\t") -> tuple[list[str], list[list[str]]]:
-    """Decode and reassemble a Delimited Data export into (headers, rows).
+@dataclass
+class ParsedReport:
+    """Structured result of parsing a Delimited Data export.
 
-    Tolerant of a malformed file: returns whatever was parsed before any
-    unrecoverable structural break rather than raising.
+    ``rows`` holds only records that reached the expected width. A final record
+    that never did (a truncated or half-written file) is surfaced separately as
+    ``incomplete_tail`` so callers can refuse to call the file fully processed.
     """
+    headers: list[str]
+    rows: list[list[str]]
+    incomplete_tail: list[str] | None = None
+    trailer_seen: bool = False
+    has_binary_content: bool = False
+
+
+def parse_delimited_report_detailed(raw_bytes: bytes, delimiter: str = "\t") -> ParsedReport:
+    """Decode and reassemble a Delimited Data export, reporting structural problems."""
+    if b"\x00" in raw_bytes:
+        # NUL bytes mean binary or UTF-16 content, not a Delimited Data text export.
+        return ParsedReport(headers=[], rows=[], has_binary_content=True)
+
     try:
         text = raw_bytes.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -55,15 +72,17 @@ def parse_delimited_report(raw_bytes: bytes, delimiter: str = "\t") -> tuple[lis
         body.append(line)
 
     if headers is None:
-        return [], []
+        return ParsedReport(headers=[], rows=[])
 
     header_len = len(headers)
     rows: list[list[str]] = []
     buffer = ""
+    trailer_seen = False
 
     for line in body:
         if is_trailer_row(line.split(delimiter)):
             buffer = ""
+            trailer_seen = True
             break
 
         if line.strip() == "" and not buffer:
@@ -79,12 +98,30 @@ def parse_delimited_report(raw_bytes: bytes, delimiter: str = "\t") -> tuple[lis
         else:
             buffer = candidate
 
+    incomplete_tail: list[str] | None = None
     if buffer.strip():
         cells = buffer.split(delimiter)
         if not is_trailer_row(cells):
-            rows.append(_pad(cells, header_len))
+            incomplete_tail = _pad(cells, header_len)
 
-    return headers, rows
+    return ParsedReport(
+        headers=headers, rows=rows, incomplete_tail=incomplete_tail, trailer_seen=trailer_seen,
+    )
+
+
+def parse_delimited_report(raw_bytes: bytes, delimiter: str = "\t") -> tuple[list[str], list[list[str]]]:
+    """Decode and reassemble a Delimited Data export into (headers, rows).
+
+    Tolerant of a malformed file: returns whatever was parsed before any
+    unrecoverable structural break rather than raising (an incomplete final
+    record is included, padded). Ingestion uses parse_delimited_report_detailed
+    so it can tell a clean file from a damaged one.
+    """
+    parsed = parse_delimited_report_detailed(raw_bytes, delimiter)
+    rows = list(parsed.rows)
+    if parsed.incomplete_tail is not None:
+        rows.append(parsed.incomplete_tail)
+    return parsed.headers, rows
 
 
 def map_row(cells: list[str], header_index: dict[int, str]) -> dict:

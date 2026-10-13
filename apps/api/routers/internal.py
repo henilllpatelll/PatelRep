@@ -559,10 +559,22 @@ async def sync_opera_report_files(x_cron_secret: str = Header(None)):
             result = sync_report_files(hotel_id)
             results.append({"hotel_id": hotel_id, **result})
         except Exception as e:
-            results.append({"hotel_id": hotel_id, "error": str(e)})
+            # One hotel's failure never stops the others; it is recorded, not swallowed.
+            logger.error("Opera SFTP sync failed for hotel=%s: %s", hotel_id, type(e).__name__)
+            results.append({"hotel_id": hotel_id, "status": "failed", "error": type(e).__name__})
 
-    _record_cron_run("opera.sftp-sync-reports")
-    return {"status": "ok", "results": results, "hotels_synced": len(results)}
+    # cron_health must not report success when any hotel failed or only partly synced.
+    unhealthy = [r for r in results if r.get("error") or r.get("status") in ("failed", "partial")]
+    _record_cron_run(
+        "opera.sftp-sync-reports",
+        error=f"{len(unhealthy)} of {len(results)} hotel(s) failed or partially synced" if unhealthy else None,
+    )
+    return {
+        "status": "partial" if unhealthy else "ok",
+        "results": results,
+        "hotels_synced": len(results) - len(unhealthy),
+        "hotels_failed": len(unhealthy),
+    }
 
 
 def _notify_role(hotel_id: str, target_role: str, notif_type: str, title: str, body: str, data: dict) -> None:

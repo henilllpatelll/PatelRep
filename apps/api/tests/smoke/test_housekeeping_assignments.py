@@ -20,6 +20,13 @@ SUPERVISOR = CurrentUser(
 )
 
 
+@pytest.fixture(autouse=True)
+def _freeze_hotel_today(monkeypatch):
+    """HK Details import rejects report dates more than a day from hotel-local today;
+    these fixtures use 2026-05-24, so pin "today" to it."""
+    monkeypatch.setattr(housekeeping_router, "_hotel_today", lambda: date(2026, 5, 24))
+
+
 class FakeDB:
     def __init__(
         self,

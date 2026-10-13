@@ -36,7 +36,9 @@ _TASKSHEET_NO_RE = re.compile(r"/(\d+)$")
 class HKDetailsRow:
     room_number: str
     raw_status: str
-    our_status: str
+    # Canonical PatelRep status, or None when Opera's value is not recognised.
+    # Never a guess: the importer skips rows whose status is None.
+    our_status: Optional[str]
     fo_status: Optional[str]       # "OCC", "VAC", or None
     reservation_status: str
 
@@ -48,14 +50,32 @@ class TaskSheetRow:
     guest_name: str
     clean_type: Optional[str]      # "DEP", "FULL", "LIGHT", or None
 
+# Opera HK Details status text -> PatelRep status. Housekeeping cleanliness
+# (Dirty/Clean/Inspected/Pickup) is distinct from room availability restrictions
+# (Out of Order removes the room from inventory, Out of Service does not).
+# "OOS" is recognised but is NOT a room_status.status value: PatelRep models Out
+# of Service only as a room_unavailability_periods type, so the importer must not
+# write it to room_status (it violates room_status_status_check).
+OUT_OF_SERVICE = "OOS"
 _HK_STATUS_MAP: dict[str, str] = {
     "dirty":          "DIRTY",
+    "clean":          "CLEAN",
     "inspected":      "INSPECTED",
-    "clean":          "OOO",
     "pickup":         "PICKUP",
     "out of order":   "OOO",
-    "out of service": "OOS",
+    "out of service": OUT_OF_SERVICE,
 }
+
+
+def map_hk_status(raw: str | None) -> Optional[str]:
+    """Map an Opera HK Details status string to a PatelRep status, or None if unknown."""
+    key = " ".join((raw or "").split()).lower()
+    return _HK_STATUS_MAP.get(key)
+
+
+def _safe_label(raw: str, limit: int = 40) -> str:
+    cleaned = "".join(ch if ch.isprintable() else "?" for ch in " ".join(raw.split()))
+    return cleaned[:limit]
 
 
 def _normalize_task(raw: str) -> Optional[str]:
@@ -169,8 +189,12 @@ def _parse_hk_details_inner(pdf_bytes: bytes) -> tuple[list[HKDetailsRow], list[
                 if not _is_room_number(room_no):
                     continue
 
-                raw_lower  = raw_status.lower().strip()
-                our_status = _HK_STATUS_MAP.get(raw_lower, raw_lower.upper())
+                our_status = map_hk_status(raw_status)
+                if our_status is None:
+                    label = _safe_label(raw_status) or "(blank)"
+                    warnings.append(
+                        f"Room {room_no}: unrecognised housekeeping status '{label}' - row will not be imported"
+                    )
 
                 row = HKDetailsRow(
                     room_number=room_no,
