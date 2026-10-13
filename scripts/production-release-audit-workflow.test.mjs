@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
+import { POLICY } from './production-automation-watchdog.mjs'
 import { classifyChangedFile } from './release-engineer-auto-merge-policy.mjs'
 
 const read = (file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
@@ -10,9 +11,16 @@ const workflowCode = code(workflow)
 const script = read('scripts/production-release-audit.mjs')
 const deps = read('scripts/production-release-audit-deps.mjs')
 
-test('Phase 4D audit runs on main pushes, every six hours, and manual dispatch only', () => {
-  assert.match(workflow, /on:\n {2}push:\n {4}branches: \[main\]\n {2}schedule:\n {4}- cron: '17 \*\/6 \* \* \*'\n {2}workflow_dispatch:/)
+test('Phase 4D audit runs on main pushes, every three hours, and manual dispatch only', () => {
+  assert.match(workflow, /on:\n {2}push:\n {4}branches: \[main\]\n {2}schedule:\n {4}- cron: '17 \*\/3 \* \* \*'\n {2}workflow_dispatch:/)
   assert.doesNotMatch(workflowCode, /pull_request|pull_request_target/)
+})
+
+test('audit cadence leaves room for GitHub dropping or delaying a scheduled slot within the watchdog heartbeat budget', () => {
+  const hours = Number(workflow.match(/cron: '17 \*\/(\d+) \* \* \*'/)?.[1])
+  assert.ok(Number.isInteger(hours) && hours > 0)
+  // A single dropped slot must still leave a later slot inside the budget, so scheduler jitter alone cannot trip the watchdog.
+  assert.ok(2 * hours * 60 <= POLICY.heartbeat_minutes.release_audit + hours * 60 - 60)
 })
 
 test('audit has read-only repository permissions and no production authority', () => {
