@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
 import { clearRoomsCache, upsertRooms } from "@/lib/offline/db";
+import { clearAllTaskCaches } from "@/lib/tasks/offline/taskCache";
 import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
 import { flushSessions, isRoomManagedBySession } from "@/lib/housekeeping/sessionGuard";
 import type { UserProfile } from "@/lib/supabase";
@@ -138,6 +139,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       // A different person/hotel on this device must never see the last user's rooms.
       set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null });
       void clearRoomsCache().catch(() => undefined);
+      // ...nor the last user's cached tasks, history or counts (their unsent completions stay isolated in the task outbox).
+      void clearAllTaskCaches().catch(() => undefined);
       return;
     }
     set({ user, isAuthenticated: !!user });
@@ -212,13 +215,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         succeeded.push(action.id);
         continue;
       }
+      // Task completions now live in the per-user task outbox (lib/tasks/offline). This shared queue has no
+      // owner on its entries, so replaying one could complete a task as a different (e.g. manager) account.
+      if (action.type === "task_complete") {
+        console.warn("[offline] discarded an unowned legacy task_complete action");
+        succeeded.push(action.id);
+        continue;
+      }
       try {
-        if (action.type === "task_complete") {
-          // Dedicated completion verb: housekeepers can't PATCH status, and the server owns
-          // the completion time (a queued client timestamp is intentionally not sent).
-          const note = typeof action.payload?.note === "string" ? action.payload.note : undefined;
-          await api.post(`/tasks/${action.entityId}/complete`, note ? { note } : {});
-        } else if (action.type === "room_status") {
+        if (action.type === "room_status") {
           await api.patch(`/rooms/${action.entityId}/status`, action.payload);
         } else if (action.type === "work_order_update") {
           await api.patch(`/work-orders/${action.entityId}`, action.payload);
@@ -240,8 +245,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const stored = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
       if (stored) {
-        const actions = JSON.parse(stored) as OfflineAction[];
+        const all = JSON.parse(stored) as OfflineAction[];
+        // See flushQueue: unowned legacy task completions are never replayed, so they are not shown as pending either.
+        const actions = all.filter((action) => action.type !== "task_complete");
         set({ pendingActions: actions });
+        if (actions.length !== all.length) await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(actions));
       }
     } catch (err) {
       console.warn("[offline] failed to load pending actions", err);

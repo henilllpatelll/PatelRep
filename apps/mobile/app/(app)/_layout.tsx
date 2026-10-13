@@ -1,3 +1,4 @@
+import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -140,6 +141,8 @@ export default function AppLayout() {
 
     setupPushNotifications().catch(console.warn);
     loadPendingActions().catch(console.warn);
+    // Saved task completions for this person + hotel (isolated per scope; flushed when online).
+    useTaskOutbox.getState().hydrate().catch(console.warn);
     // Restore any in-flight clean sessions from disk and replay what the server hasn't confirmed.
     if (user?.role === "housekeeper" || user?.role === "housekeeping_supervisor") {
       useCleanSessionStore

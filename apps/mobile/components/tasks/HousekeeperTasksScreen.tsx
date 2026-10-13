@@ -14,21 +14,27 @@ import { CompleteTaskSheet, type CompletePhase } from "@/components/tasks/Comple
 import { TaskDetailSheet } from "@/components/tasks/TaskDetailSheet";
 import { UnableToCompleteSheet } from "@/components/tasks/UnableToCompleteSheet";
 import { TaskCard, type TaskCardVariant } from "@/components/tasks/TaskCard";
-import { TasksHeader, type Segment, type SummaryValue, type SyncKey } from "@/components/tasks/TasksHeader";
-import { resolveTimeZone } from "@/lib/housekeeping/hotelTime";
-import { addTaskComment, type BlockerReason, type Task } from "@/lib/api/tasks";
+import { TaskSyncSheet } from "@/components/tasks/TaskSyncSheet";
+import { TasksHeader, type Segment, type SummaryValue } from "@/components/tasks/TasksHeader";
+import { formatHotelTime, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
+import { addTaskComment, TASK_NOTE_MAX, type BlockerReason, type Task } from "@/lib/api/tasks";
 import { validateBlockerDraft } from "@/lib/tasks/blockers";
 import { newRequestId } from "@/lib/tasks/addTask/draft";
 import { conflictReason, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
 import { buildWorkBuckets } from "@/lib/tasks/workQueue";
 import { useWorkQueue, type ListState, type MutationResult } from "@/lib/tasks/useWorkQueue";
+import { checkQueueable } from "@/lib/tasks/offline/outboxPolicy";
+import { buildSyncRows, deriveSyncKey } from "@/lib/tasks/offline/syncStatus";
+import { taskScope } from "@/lib/tasks/offline/taskCache";
+import { entriesForCurrentUser, flushTaskOutbox, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
+import { useTaskOutboxSync } from "@/lib/tasks/offline/useTaskOutboxSync";
 
 const MAX_FONT_SCALE = 1.5;
 const CLOCK_TICK_MS = 60_000;
 
 type Row =
   | { key: string; kind: "intro" }
-  | { key: string; kind: "header"; section: "needsAttention" | "nextUp" | "inProgress" | "upNext" | "later" | "available"; count?: number; toggle?: boolean; open?: boolean }
+  | { key: string; kind: "header"; section: "pendingSync" | "needsAttention" | "nextUp" | "inProgress" | "upNext" | "later" | "available"; count?: number; toggle?: boolean; open?: boolean }
   | { key: string; kind: "card"; task: Task; variant: TaskCardVariant };
 
 function dateLabel(now: Date, zone: string | null, language: string): string {
@@ -99,12 +105,22 @@ export function HousekeeperTasksScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
-  const { isOnline, hotelTimezone, pendingActions, user, myRooms } = useAppStore();
+  const { isOnline, hotelTimezone, user, myRooms } = useAppStore();
   const zone = hotelTimezone ?? null;
   const viewer = useMemo<Viewer>(() => ({ userId: user?.id ?? null, role: user?.role ?? null }), [user?.id, user?.role]);
 
-  const queue = useWorkQueue({ isOnline, timeZone: zone, userId: viewer.userId });
+  const scope = taskScope(user);
+  const queue = useWorkQueue({ isOnline, timeZone: zone, userId: viewer.userId, scope });
   const { mine, available, done } = queue;
+
+  // Completions saved on this device (this person + hotel only), until the server confirms them.
+  useTaskOutboxSync(isOnline);
+  const outboxEntries = useTaskOutbox((state) => entriesForCurrentUser(state));
+  const outboxSending = useTaskOutbox((state) => state.sending);
+  const syncRows = useMemo(() => buildSyncRows(outboxEntries, outboxSending), [outboxEntries, outboxSending]);
+  const queuedById = useMemo(() => new Map(syncRows.map((row) => [row.taskId, row])), [syncRows]);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncBusy, setSyncBusy] = useState(false);
 
   const [segment, setSegment] = useState<Segment>("mine");
   const [laterOpen, setLaterOpen] = useState(false);
@@ -136,30 +152,34 @@ export function HousekeeperTasksScreen() {
   }, []);
   const now = useMemo(() => new Date(), [mine.tasks, available.tasks, tick]);
 
-  const buckets = useMemo(() => buildWorkBuckets(mine.tasks, now), [mine.tasks, now]);
+  // Counts include saved completions (the server has not confirmed them, so they are still unfinished);
+  // the lists show those tasks once, in their own "Pending sync" section.
+  const allBuckets = useMemo(() => buildWorkBuckets(mine.tasks, now), [mine.tasks, now]);
+  const buckets = useMemo(
+    () => buildWorkBuckets(mine.tasks.filter((task) => !queuedById.has(task.id)), now),
+    [mine.tasks, queuedById, now],
+  );
   const mineKnown = mine.status === "ready";
   const availableKnown = available.status === "ready";
 
   const summary = {
-    remaining: { value: mineKnown ? buckets.remaining : null, atLeast: mine.truncated } as SummaryValue,
-    inProgress: { value: mineKnown ? buckets.started : null } as SummaryValue,
+    remaining: { value: mineKnown ? allBuckets.remaining : null, atLeast: mine.truncated } as SummaryValue,
+    inProgress: { value: mineKnown ? allBuckets.started : null } as SummaryValue,
     doneToday: { value: done.value ? done.value.count : null, atLeast: done.value?.atLeast } as SummaryValue,
   };
   const counts = {
-    mine: mineKnown ? buckets.remaining + buckets.started : null,
-    available: availableKnown ? available.tasks.length : null,
+    mine: mineKnown ? allBuckets.remaining + allBuckets.started : null,
+    // Offline the pool is unknown: a saved copy of it must never look claimable.
+    available: availableKnown && isOnline ? available.tasks.length : null,
   };
 
-  const hasPendingTaskChanges = pendingActions.some((action) => action.type === "task_complete");
-  const sync: SyncKey = hasPendingTaskChanges
-    ? "pending"
-    : !isOnline
-      ? "offline"
-      : queue.refreshing || queue.busyIds.size > 0
-        ? "syncing"
-        : mine.stale || available.stale
-          ? "stale"
-          : "synced";
+  const sync = deriveSyncKey({
+    isOnline,
+    entries: outboxEntries,
+    sending: outboxSending,
+    refreshing: queue.refreshing || queue.busyIds.size > 0,
+    stale: mine.stale || available.stale,
+  });
 
   // A success line clears itself; it never needs dismissing.
   useEffect(() => {
@@ -195,6 +215,16 @@ export function HousekeeperTasksScreen() {
     const fresher = [...mine.tasks, ...available.tasks].find((candidate) => candidate.id === sheetTask.id);
     if (fresher && fresher !== sheetTask) setSheetTask(fresher);
   }, [mine.tasks, available.tasks]);
+
+  const queuedForSheet = sheetTask ? (queuedById.get(sheetTask.id) ?? null) : null;
+  // A refused item's snapshot is the server's latest word; keep the open sheet on it.
+  useEffect(() => {
+    if (queuedForSheet && sheetTask && queuedForSheet.state !== "pending" && queuedForSheet.state !== "sending") {
+      if (queuedForSheet.entry.task.status !== sheetTask.status || queuedForSheet.entry.task.assigned_to !== sheetTask.assigned_to) {
+        setSheetTask(queuedForSheet.entry.task);
+      }
+    }
+  }, [queuedForSheet?.entry.task]);
 
   const adoptRefreshed = useCallback((task: Task) => {
     setSheetTask((current) => (current && current.id === task.id ? task : current));
@@ -277,6 +307,17 @@ export function HousekeeperTasksScreen() {
     setCompleteError(null);
     try {
       const note = completeNote.trim();
+      if (!isOnline) {
+        // Offline: save it durably first; it is "done" only once the server confirms it.
+        const saved = await useTaskOutbox.getState().enqueueComplete(sheetTask, note);
+        if (saved.ok) {
+          closeSheets();
+          setSuccess({ text: t("tasks.hk.offline.complete.queued") });
+        } else {
+          setCompleteError(t(`tasks.hk.offline.complete.refusal.${saved.reason}`));
+        }
+        return;
+      }
       const result = await queue.complete(sheetTask.id, note || undefined);
       if (result.ok) {
         if (note && result.noteSaved === false) {
@@ -295,7 +336,9 @@ export function HousekeeperTasksScreen() {
       completeLock.current = false;
       setCompleting(false);
     }
-  }, [sheetTask, completeNote, queue, viewer, t, finishCompleted]);
+  }, [sheetTask, completeNote, queue, viewer, t, finishCompleted, isOnline, closeSheets]);
+
+  const offlineRefusal = !isOnline && sheet === "complete" && sheetTask ? checkQueueable(sheetTask, viewer, outboxEntries, completeNote, TASK_NOTE_MAX) : null;
 
   const retryCompletionNote = useCallback(async () => {
     if (!sheetTask || completeLock.current || !completeNote.trim()) return;
@@ -424,6 +467,7 @@ export function HousekeeperTasksScreen() {
 
   const rows = useMemo<Row[]>(() => {
     if (segment === "available") {
+      if (!isOnline) return [];
       const out: Row[] = [{ key: "intro", kind: "intro" }];
       if (available.tasks.length > 0) {
         out.push({ key: "h-available", kind: "header", section: "available", count: available.tasks.length });
@@ -432,6 +476,14 @@ export function HousekeeperTasksScreen() {
       return out;
     }
     const out: Row[] = [];
+    if (syncRows.length > 0) {
+      // Saved on this device, not yet confirmed: always visible, never mixed in with confirmed work.
+      out.push({ key: "h-sync", kind: "header", section: "pendingSync", count: syncRows.length });
+      for (const row of syncRows) {
+        const task = row.state === "pending" || row.state === "sending" ? (mine.tasks.find((c) => c.id === row.taskId) ?? row.entry.task) : row.entry.task;
+        out.push({ key: `q-${task.id}`, kind: "card", task, variant: "inProgress" });
+      }
+    }
     if (buckets.needsAttention.length > 0) {
       // First, so unfinished work with a problem is never buried; each task is listed once, here.
       out.push({ key: "h-attn", kind: "header", section: "needsAttention", count: buckets.needsAttention.length });
@@ -454,7 +506,7 @@ export function HousekeeperTasksScreen() {
       if (laterVisible) for (const task of buckets.later) out.push({ key: `l-${task.id}`, kind: "card", task, variant: "queue" });
     }
     return out;
-  }, [segment, available.tasks, buckets, laterVisible, nothingElse]);
+  }, [segment, isOnline, available.tasks, buckets, laterVisible, nothingElse, syncRows, mine.tasks]);
 
   const renderRow = ({ item }: { item: Row }) => {
     if (item.kind === "intro") {
@@ -497,9 +549,11 @@ export function HousekeeperTasksScreen() {
         zone={zone}
         language={language}
         busy={queue.busyIds.has(task.id)}
-        actionsDisabled={!isOnline}
+        // Offline only "Complete" stays available (it can be saved for sync); start / claim need the server.
+        actionsDisabled={!isOnline && variant !== "inProgress"}
         onOpenDetails={() => openDetails(task)}
         onPrimary={() => onPrimary(task, variant)}
+        pending={queuedById.has(task.id) ? { state: queuedById.get(task.id)!.state, queuedAt: queuedById.get(task.id)!.entry.queuedAt } : null}
       />
     );
   };
@@ -526,7 +580,9 @@ export function HousekeeperTasksScreen() {
   };
 
   let empty: React.ReactNode = null;
-  if (list.status === "loading") {
+  if (segment === "available" && !isOnline) {
+    empty = <EmptyState icon="cloud-offline-outline" title={t("tasks.hk.offline.availableTitle")} body={t("tasks.hk.offline.availableBody")} />;
+  } else if (list.status === "loading") {
     empty = <Skeleton />;
   } else if (list.status === "error") {
     empty = (
@@ -556,7 +612,18 @@ export function HousekeeperTasksScreen() {
     );
   }
 
-  const banner = list.stale ? (
+  const savedAt = list.syncedAt ? formatHotelTime(list.syncedAt, zone, language) : null;
+  const savedCopy =
+    !isOnline && list.status === "ready" && segment === "mine" ? (
+      <View style={[styles.banner, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]} accessibilityRole="alert" testID="tasks-saved-copy">
+        <Ionicons name="cloud-offline-outline" size={16} color={theme.textSecondary} />
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerText, { color: theme.textSecondary }]}>
+          {savedAt ? t("tasks.hk.offline.cachedList", { time: savedAt }) : t("tasks.hk.offline.cachedListNoTime")}
+        </Text>
+      </View>
+    ) : null;
+
+  const banner = !isOnline ? null : list.stale ? (
     <View style={[styles.banner, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]} accessibilityRole="alert">
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerText, { color: theme.status.pickup }]}>
         {t("tasks.hk.error.staleBanner")}
@@ -614,6 +681,7 @@ export function HousekeeperTasksScreen() {
         counts={counts}
         onSegmentChange={(next) => setSegment(next)}
         onOpenHistory={() => router.push("/(app)/tasks/history" as never)}
+        onOpenSync={() => setSyncOpen(true)}
         topInset={insets.top}
       />
       <FlatList
@@ -624,6 +692,7 @@ export function HousekeeperTasksScreen() {
           <View style={styles.banners}>
             {successBanner}
             {messageBanner}
+            {savedCopy}
             {banner}
           </View>
         }
@@ -664,6 +733,16 @@ export function HousekeeperTasksScreen() {
         onRequestBlocker={() => sheetTask && openBlocker(sheetTask)}
         onOpenNotes={() => sheetTask && openNotes(sheetTask, "detail")}
         onOpenRoom={openRoom}
+        queued={queuedForSheet ? { entry: queuedForSheet.entry, state: queuedForSheet.state } : null}
+        onRetryQueued={() => sheetTask && void useTaskOutbox.getState().retry(sheetTask.id)}
+        onDismissQueued={() => {
+          if (!sheetTask) return;
+          void useTaskOutbox.getState().dismiss(sheetTask.id).then(() => {
+            closeSheets();
+            void queue.refreshAll();
+          });
+        }}
+        savedCopySyncedAt={mine.syncedAt}
       />
       <CompleteTaskSheet
         visible={sheet === "complete"}
@@ -673,7 +752,8 @@ export function HousekeeperTasksScreen() {
         onNoteChange={setCompleteNote}
         busy={completing}
         offline={!isOnline}
-        error={completeError}
+        canSaveOffline={!isOnline && offlineRefusal === null}
+        error={completeError ?? (offlineRefusal ? t(`tasks.hk.offline.complete.refusal.${offlineRefusal}`) : null)}
         onConfirm={() => void confirmComplete()}
         onBack={backFromComplete}
         onRetryNote={() => void retryCompletionNote()}
@@ -712,6 +792,33 @@ export function HousekeeperTasksScreen() {
         viewer={{ id: viewer.userId, tenantId: user?.tenant_id ?? null, role: viewer.role }}
         onClose={() => setAddOpen(false)}
         onCreated={handleCreated}
+      />
+      <TaskSyncSheet
+        visible={syncOpen}
+        isOnline={isOnline}
+        rows={syncRows}
+        lastSyncedAt={mine.syncedAt}
+        syncing={syncBusy || queue.refreshing || Object.keys(outboxSending).length > 0}
+        zone={zone}
+        language={language}
+        onRetry={() => {
+          if (syncBusy) return;
+          setSyncBusy(true);
+          void flushTaskOutbox()
+            .then(() => queue.refreshAll())
+            .finally(() => setSyncBusy(false));
+        }}
+        onReview={(taskId) => {
+          const row = queuedById.get(taskId);
+          if (!row) return;
+          setSyncOpen(false);
+          const task = mine.tasks.find((candidate) => candidate.id === taskId) ?? row.entry.task;
+          setSheetTask(task);
+          setNotice(null);
+          setOrigin("list");
+          setSheet("detail");
+        }}
+        onClose={() => setSyncOpen(false)}
       />
     </View>
   );

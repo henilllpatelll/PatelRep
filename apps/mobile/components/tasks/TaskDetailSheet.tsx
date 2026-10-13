@@ -13,6 +13,8 @@ import { canReportBlocker, notificationKey } from "@/lib/tasks/blockers";
 import { formatWhen, placeLabel, shortPlace, statusLabel } from "@/lib/tasks/taskDisplay";
 import { isOverdue } from "@/lib/tasks/workQueue";
 import { useTaskActivity } from "@/lib/tasks/useTaskActivity";
+import { canRetryConflict, type OutboxEntry } from "@/lib/tasks/offline/outboxPolicy";
+import type { SyncRowState } from "@/lib/tasks/offline/syncStatus";
 
 const PREVIEW_EVENTS = 3;
 /** Instructions longer than this fold behind "Show more" so the actions stay reachable. */
@@ -42,6 +44,12 @@ interface Props {
   onRequestBlocker: () => void;
   onOpenNotes: () => void;
   onOpenRoom: () => void;
+  /** A completion saved on this device for this task (pending, or refused and waiting for review). */
+  queued?: { entry: OutboxEntry; state: SyncRowState } | null;
+  onRetryQueued?: () => void;
+  onDismissQueued?: () => void;
+  /** Offline: when the saved copy on screen was last synced (null = unknown). */
+  savedCopySyncedAt?: string | null;
 }
 
 export function TaskDetailSheet({
@@ -62,11 +70,16 @@ export function TaskDetailSheet({
   onRequestBlocker,
   onOpenNotes,
   onOpenRoom,
+  queued = null,
+  onRetryQueued,
+  onDismissQueued,
+  savedCopySyncedAt = null,
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
-  const activity = useTaskActivity(visible && task ? task.id : null);
+  // Offline there is nothing to fetch: the saved copy is shown and activity waits for a connection.
+  const activity = useTaskActivity(visible && task && !offline ? task.id : null);
 
   // Whatever the server says now replaces what the list showed when the card was tapped.
   const fetched = activity.data?.task ?? null;
@@ -75,7 +88,9 @@ export function TaskDetailSheet({
   }, [fetched]);
   useEffect(() => setExpanded(false), [task?.id]);
 
-  const action = task ? primaryAction(task, viewer) : null;
+  // A saved completion is never offered a second time; the sheet shows its state instead.
+  const action = task && !queued ? primaryAction(task, viewer) : null;
+  const review = queued && (queued.state === "conflict" || queued.state === "failed") ? queued : null;
   const events = activity.data?.events ?? [];
   const preview = useMemo(() => events.slice(-PREVIEW_EVENTS), [events]);
 
@@ -178,7 +193,8 @@ export function TaskDetailSheet({
             onPress={onRequestComplete}
             icon="checkmark"
             size="lg"
-            disabled={actionsDisabled}
+            // Offline, completing can still be saved for sync (the complete sheet applies the rules).
+            disabled={busy}
             testID="detail-complete"
           />
           {canAddNote(task, viewer) ? (
@@ -197,12 +213,29 @@ export function TaskDetailSheet({
     </>
   );
 
+  const reviewFooter = review ? (
+    <>
+      {review.state === "failed" || canRetryConflict(review.entry.conflict?.reason) ? (
+        <Button label={t("tasks.hk.offline.detail.retry")} onPress={() => onRetryQueued?.()} icon="refresh" size="lg" disabled={offline} testID="queued-retry" />
+      ) : null}
+      <Button
+        label={t("tasks.hk.offline.detail.viewUpdated")}
+        onPress={() => void activity.reload()}
+        variant="secondary"
+        icon="eye-outline"
+        disabled={offline}
+        testID="queued-view-updated"
+      />
+      <Button label={t("tasks.hk.offline.detail.dismiss")} onPress={() => onDismissQueued?.()} variant="ghost" icon="close-circle-outline" testID="queued-dismiss" />
+    </>
+  ) : null;
+
   return (
     <BottomSheet
       visible={visible}
       title={t("tasks.hk.sheet.detailTitle")}
       onClose={busy ? () => undefined : onClose}
-      footer={action ? footer : undefined}
+      footer={review ? reviewFooter : action ? footer : undefined}
       grabber
       testID="task-detail-sheet"
     >
@@ -288,7 +321,54 @@ export function TaskDetailSheet({
         </View>
       ) : null}
 
-      {readOnlyKey ? (
+      {offline ? (
+        <View style={[styles.notice, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]} testID="detail-saved-copy">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeText, { color: theme.textSecondary }]}>
+            {savedCopySyncedAt && formatWhen(savedCopySyncedAt, now, zone, language)
+              ? t("tasks.hk.offline.detail.cachedBanner", { time: formatWhen(savedCopySyncedAt, now, zone, language) })
+              : t("tasks.hk.offline.detail.cachedBannerNoTime")}
+          </Text>
+        </View>
+      ) : null}
+
+      {queued ? (
+        <View
+          style={[
+            styles.notice,
+            review
+              ? { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }
+              : { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine },
+          ]}
+          accessibilityRole="alert"
+          testID="detail-queued"
+        >
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockerTitle, { color: review ? theme.status.dirty : theme.status.pickup }]}>
+            {queued.state === "conflict"
+              ? t("tasks.hk.offline.detail.conflictTitle")
+              : queued.state === "failed"
+                ? t("tasks.hk.offline.detail.failedTitle")
+                : t("tasks.hk.offline.detail.pendingTitle")}
+          </Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeText, { color: theme.textPrimary }]}>
+            {queued.state === "conflict"
+              ? t(`tasks.hk.offline.detail.conflict.${queued.entry.conflict?.reason ?? "changed"}`)
+              : queued.state === "failed"
+                ? queued.entry.conflict?.reason === "expired"
+                  ? t("tasks.hk.offline.detail.conflict.expired")
+                  : t("tasks.hk.offline.detail.failedBody")
+                : queued.state === "sending"
+                  ? t("tasks.hk.offline.detail.sendingBody")
+                  : t("tasks.hk.offline.detail.pendingBody", { time: formatWhen(queued.entry.queuedAt, now, zone, language) ?? "" })}
+          </Text>
+          {queued.state === "conflict" ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeText, { color: theme.textSecondary }]}>
+              {t("tasks.hk.offline.detail.supervisor")}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {readOnlyKey && !queued ? (
         <View style={[styles.notice, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]} testID="detail-readonly">
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeText, { color: theme.textSecondary }]}>
             {t(`tasks.hk.sheet.readOnly.${readOnlyKey}`)}
@@ -362,42 +442,45 @@ export function TaskDetailSheet({
         </View>
       ) : null}
 
-      <View style={styles.section}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
-          {t("tasks.hk.sheet.activity")}
-        </Text>
-        {activity.status === "loading" ? (
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.muted, { color: theme.textMuted }]}>
-            {t("tasks.hk.sheet.activityLoading")}
+      {/* Offline there is nothing to fetch, so an empty Activity heading would say nothing. */}
+      {offline && !activity.data ? null : (
+        <View style={styles.section}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+            {t("tasks.hk.sheet.activity")}
           </Text>
-        ) : activity.status === "error" ? (
-          <View style={styles.errorRow}>
+          {activity.status === "loading" ? (
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.muted, { color: theme.textMuted }]}>
-              {t("tasks.hk.sheet.activityError")}
+              {t("tasks.hk.sheet.activityLoading")}
             </Text>
-            <Pressable onPress={() => void activity.reload()} accessibilityRole="button" accessibilityLabel={t("common.retry")} style={styles.link}>
+          ) : activity.status === "error" ? (
+            <View style={styles.errorRow}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.muted, { color: theme.textMuted }]}>
+                {t("tasks.hk.sheet.activityError")}
+              </Text>
+              <Pressable onPress={() => void activity.reload()} accessibilityRole="button" accessibilityLabel={t("common.retry")} style={styles.link}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color: theme.primaryAction }]}>
+                  {t("common.retry")}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <ActivityFeed events={preview} viewer={viewer} zone={zone} language={language} now={now} />
+          )}
+          {activity.status === "ready" ? (
+            <Pressable
+              onPress={onOpenNotes}
+              accessibilityRole="button"
+              accessibilityLabel={t("tasks.hk.sheet.action.viewAll")}
+              style={styles.link}
+              testID="detail-view-all"
+            >
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color: theme.primaryAction }]}>
-                {t("common.retry")}
+                {t("tasks.hk.sheet.action.viewAll")}
               </Text>
             </Pressable>
-          </View>
-        ) : (
-          <ActivityFeed events={preview} viewer={viewer} zone={zone} language={language} now={now} />
-        )}
-        {activity.status === "ready" ? (
-          <Pressable
-            onPress={onOpenNotes}
-            accessibilityRole="button"
-            accessibilityLabel={t("tasks.hk.sheet.action.viewAll")}
-            style={styles.link}
-            testID="detail-view-all"
-          >
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color: theme.primaryAction }]}>
-              {t("tasks.hk.sheet.action.viewAll")}
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
+          ) : null}
+        </View>
+      )}
     </BottomSheet>
   );
 }

@@ -1308,7 +1308,8 @@
         "syncing": "Syncing",
         "offline": "Offline",
         "pending": "Pending changes",
-        "stale": "Not up to date"
+        "stale": "Not up to date",
+        "attention": "Needs attention"
       },
       "history": "Completed history",
       "historyTitle": "Completed tasks",
@@ -1338,7 +1339,8 @@
         "available": "AVAILABLE",
         "showLater": "Show later tasks",
         "hideLater": "Hide later tasks",
-        "needsAttention": "NEEDS ATTENTION"
+        "needsAttention": "NEEDS ATTENTION",
+        "pendingSync": "PENDING SYNC"
       },
       "action": {
         "start": "Start task",
@@ -1727,6 +1729,106 @@
           "not_available": "Your report is saved. No supervisor is available to alert right now."
         },
         "saved": "Your report has been saved."
+      },
+      "offline": {
+        "sheet": {
+          "titleOffline": "Working offline",
+          "titleOnline": "Sync status",
+          "savedAvailable": "Your saved tasks are still available.",
+          "lastSynced": "Last synced: {{time}}",
+          "neverSynced": "Nothing has synced on this device yet.",
+          "allSynced": "All changes synced",
+          "syncing": "Syncing changes…",
+          "offlineHelp": "Changes will sync when you're back online.",
+          "onlineHelp": "Saved changes are sent automatically. A change is only done once the server confirms it.",
+          "kindComplete": "Completion",
+          "rowLabel": "{{task}} — {{kind}}",
+          "review": "Review",
+          "reviewA11y": "Review {{task}}",
+          "retry": "Retry sync",
+          "close": "Close",
+          "states": {
+            "pending": "Pending",
+            "sending": "Sending",
+            "conflict": "Needs review",
+            "failed": "Sync failed"
+          },
+          "failedHelp": "Some changes could not be sent. Open them to see why and what you can do.",
+          "pending": "{{count}} pending change",
+          "pending_plural": "{{count}} pending changes",
+          "attention": "{{count}} change needs attention",
+          "attention_plural": "{{count}} changes need attention"
+        },
+        "card": {
+          "pendingTitle": "Completion pending sync",
+          "savedAt": "Saved on this device at {{time}}",
+          "sending": "Sending…",
+          "conflictTitle": "Couldn't sync — tap to review",
+          "pendingA11y": "{{title}}. Completion pending sync. Saved on this device at {{time}}.",
+          "conflictA11y": "{{title}}. Completion could not be synced. Review needed."
+        },
+        "detail": {
+          "pendingTitle": "Completion pending sync",
+          "pendingBody": "Saved on this device at {{time}}. It is sent when you're back online and is only done once the server confirms it.",
+          "sendingBody": "Sending your completion to the server…",
+          "failedTitle": "Sync failed",
+          "failedBody": "Your completion could not be sent after several tries. Check your connection and retry.",
+          "conflictTitle": "This couldn't be completed",
+          "supervisor": "If you think this is a mistake, ask your supervisor.",
+          "viewUpdated": "View updated task",
+          "dismiss": "Dismiss pending change",
+          "retry": "Retry",
+          "cachedBanner": "Saved copy — last synced {{time}}. Notes and activity need a connection.",
+          "cachedBannerNoTime": "Saved copy. Notes and activity need a connection.",
+          "conflict": {
+            "completed": "This task was already completed.",
+            "cancelled": "This task was cancelled, so it can't be completed.",
+            "reassigned": "This task was reassigned to someone else.",
+            "claimed": "This task was taken by someone else.",
+            "unavailable": "This task is no longer available to you.",
+            "blocked": "A problem was reported on this task. Resume it before completing.",
+            "changed": "The task changed while you were offline. Check it and try again.",
+            "forbidden": "You're no longer allowed to complete this task.",
+            "rejected": "The server couldn't accept this completion.",
+            "expired": "This change waited too long to sync. Check the task and complete it again if needed."
+          }
+        },
+        "complete": {
+          "saveOffline": "Save for sync",
+          "title": "Save completion",
+          "body": "You're offline. This will be saved on this device and sent when you're back online. The task isn't done until the server confirms it.",
+          "queued": "Saved on this device. Completion pending sync.",
+          "refusal": {
+            "no_session": "Sign in again to save this change.",
+            "not_assigned": "Only the person assigned to a task can complete it offline.",
+            "not_in_progress": "Start this task while online before completing it offline.",
+            "blocked": "A problem is reported on this task. Resume it while online first.",
+            "duplicate": "A completion for this task is already saved and waiting to sync.",
+            "note_too_long": "Your note is too long.",
+            "storage": "Couldn't save this on the device. Try again when you're online."
+          }
+        },
+        "availableTitle": "Available tasks need a connection",
+        "availableBody": "Claiming and starting tasks needs the internet so two people never take the same job. Your own tasks are still in My Work.",
+        "cachedList": "Showing saved tasks — last synced {{time}}.",
+        "cachedListNoTime": "Showing saved tasks."
+      },
+      "hist": {
+        "recent": "YOUR RECENT WORK",
+        "completedTodayAtLeast": "{{count}}+ completed today",
+        "completedTodayUnknown": "Completed today: unavailable",
+        "today": "TODAY",
+        "yesterday": "YESTERDAY",
+        "completedAt": "Completed {{time}}",
+        "cachedBanner": "Showing saved history — last synced {{time}}.",
+        "cachedBannerNoTime": "Showing saved history.",
+        "offlineMore": "Connect to the internet to load older tasks.",
+        "back": "Back",
+        "rowA11y": "{{title}}. {{place}}. Completed {{time}}.",
+        "rowA11yNoPlace": "{{title}}. Completed {{time}}.",
+        "offlineEmpty": "No saved history on this device yet. Connect to load it.",
+        "completedToday": "{{count}} completed today",
+        "completedToday_plural": "{{count}} completed today"
       }
     },
     "completeFailed": "Couldn't mark this task done. It is still on your list — try again.",

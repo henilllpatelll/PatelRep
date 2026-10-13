@@ -7,7 +7,9 @@ import { useTheme } from "@/lib/theme/useTheme";
 
 const MAX_FONT_SCALE = 1.5;
 
-export type SyncKey = "synced" | "syncing" | "offline" | "pending" | "stale";
+import type { TaskSyncKey } from "@/lib/tasks/offline/syncStatus";
+
+export type SyncKey = TaskSyncKey;
 
 const SYNC_ICON: Record<SyncKey, ComponentProps<typeof Ionicons>["name"]> = {
   synced: "cloud-done-outline",
@@ -15,6 +17,7 @@ const SYNC_ICON: Record<SyncKey, ComponentProps<typeof Ionicons>["name"]> = {
   offline: "cloud-offline-outline",
   pending: "cloud-upload-outline",
   stale: "alert-circle-outline",
+  attention: "warning-outline",
 };
 
 export type Segment = "mine" | "available";
@@ -33,6 +36,8 @@ interface TasksHeaderProps {
   counts: { mine: number | null; available: number | null };
   onSegmentChange: (segment: Segment) => void;
   onOpenHistory: () => void;
+  /** Tapping the sync chip opens the Sync Status sheet. */
+  onOpenSync: () => void;
   topInset: number;
 }
 
@@ -66,11 +71,12 @@ export function TasksHeader({
   counts,
   onSegmentChange,
   onOpenHistory,
+  onOpenSync,
   topInset,
 }: TasksHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const syncColor = sync === "synced" ? theme.shell.ink3 : theme.status.pickup;
+  const syncColor = sync === "synced" ? theme.shell.ink3 : sync === "attention" ? theme.status.dirty : theme.status.pickup;
   const syncText = t(`tasks.hk.sync.${sync}`);
 
   const segments: { key: Segment; label: string; a11y: string }[] = [
@@ -113,12 +119,22 @@ export function TasksHeader({
           </Text>
         </View>
         <View style={styles.right}>
-          <View style={styles.sync} accessible accessibilityLiveRegion="polite" accessibilityLabel={syncText} testID="sync-indicator">
+          {/* The words, not just the colour or icon, carry the state; the whole chip opens Sync Status. */}
+          <Pressable
+            onPress={onOpenSync}
+            accessibilityRole="button"
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={syncText}
+            accessibilityHint={t("tasks.hk.offline.sheet.titleOnline")}
+            hitSlop={6}
+            style={styles.sync}
+            testID="sync-indicator"
+          >
             <Ionicons name={SYNC_ICON[sync]} size={14} color={syncColor} />
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.syncText, { color: syncColor }]}>
               {syncText}
             </Text>
-          </View>
+          </Pressable>
           <Pressable
             onPress={onOpenHistory}
             accessibilityRole="button"
@@ -179,7 +195,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "700", lineHeight: 33 },
   date: { fontSize: 12.5, marginTop: 2 },
   right: { alignItems: "flex-end", gap: 8 },
-  sync: { flexDirection: "row", alignItems: "center", gap: 5 },
+  sync: { flexDirection: "row", alignItems: "center", gap: 5, minHeight: 32 },
   syncText: { fontSize: 12, fontWeight: "600" },
   historyBtn: {
     width: 44,

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import type { Task } from "@/lib/api/tasks";
 import { minutesSince, overdueMinutes } from "@/lib/tasks/workQueue";
+import type { SyncRowState } from "@/lib/tasks/offline/syncStatus";
 
 /* ─── Task card ──────────────────────────────────────────────────────────────
    Hierarchy: location -> title -> urgency/status -> type -> time context -> ONE action.
@@ -41,6 +42,11 @@ export interface TaskCardProps {
   actionsDisabled: boolean;
   onOpenDetails: () => void;
   onPrimary: () => void;
+  /**
+   * A completion saved on this device that the server has not confirmed. The card stays in My Work,
+   * clearly not "done", and offers details only (no second completion request is possible).
+   */
+  pending?: { state: SyncRowState; queuedAt: string } | null;
 }
 
 function durationLabel(
@@ -64,6 +70,7 @@ export function TaskCard({
   actionsDisabled,
   onOpenDetails,
   onPrimary,
+  pending = null,
 }: TaskCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -94,8 +101,12 @@ export function TaskCard({
   const blockerReason = blocker ? t(`tasks.hk.blocker.reason.${blocker.reason}`) : null;
   const reportedTime = blocker ? formatHotelTime(blocker.reported_at, zone, language) : null;
 
+  const needsReview = pending?.state === "conflict" || pending?.state === "failed";
+  const savedAt = pending ? formatHotelTime(pending.queuedAt, zone, language) ?? "" : "";
+  const detailsOnly = variant === "blocked" || pending !== null;
+
   const action =
-    variant === "blocked"
+    detailsOnly
       ? { label: t("tasks.hk.action.viewDetails"), a11y: t("tasks.hk.action.viewDetailsA11y", { title: task.title }), icon: "eye-outline" as IconName }
       : variant === "inProgress"
       ? { label: t("tasks.hk.action.complete"), a11y: t("tasks.hk.action.completeA11y", { title: task.title }), icon: "checkmark" as IconName }
@@ -103,7 +114,7 @@ export function TaskCard({
         ? { label: t("tasks.hk.action.claim"), a11y: t("tasks.hk.action.claimA11y", { title: task.title }), icon: "hand-left-outline" as IconName }
         : { label: t("tasks.hk.action.start"), a11y: t("tasks.hk.action.startA11y", { title: task.title }), icon: "play" as IconName };
 
-  const railColor = late !== null ? theme.status.dirty : urgent || blocker ? theme.status.pickup : theme.border;
+  const railColor = needsReview ? theme.status.dirty : late !== null ? theme.status.dirty : urgent || blocker || pending ? theme.status.pickup : theme.border;
   const lateText = late !== null ? durationLabel(t, late, "tasks.hk.card.overdueBy", "tasks.hk.card.overdueByHours") : null;
   const mutedColor = theme.textMuted;
 
@@ -167,7 +178,39 @@ export function TaskCard({
             {task.title}
           </Text>
 
-          {blocker && blockerReason ? (
+          {pending ? (
+            <View
+              style={[
+                styles.blockerRow,
+                needsReview
+                  ? { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }
+                  : { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine },
+              ]}
+              accessible
+              accessibilityLabel={
+                needsReview
+                  ? t("tasks.hk.offline.card.conflictA11y", { title: task.title })
+                  : t("tasks.hk.offline.card.pendingA11y", { title: task.title, time: savedAt })
+              }
+              testID={`task-pending-${task.id}`}
+            >
+              <Ionicons
+                name={needsReview ? "warning-outline" : "time-outline"}
+                size={15}
+                color={needsReview ? theme.status.dirty : theme.status.pickup}
+              />
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockerReason, { color: needsReview ? theme.status.dirty : theme.status.pickup }]}>
+                {needsReview ? t("tasks.hk.offline.card.conflictTitle") : t("tasks.hk.offline.card.pendingTitle")}
+              </Text>
+              {!needsReview ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockerTime, { color: theme.textSecondary }]}>
+                  {pending.state === "sending" ? t("tasks.hk.offline.card.sending") : t("tasks.hk.offline.card.savedAt", { time: savedAt })}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {blocker && blockerReason && !pending ? (
             <View
               style={[styles.blockerRow, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
               accessible
@@ -217,11 +260,11 @@ export function TaskCard({
           <Button
             label={action.label}
             accessibilityLabel={action.a11y}
-            onPress={variant === "blocked" ? onOpenDetails : onPrimary}
+            onPress={detailsOnly ? onOpenDetails : onPrimary}
             icon={action.icon}
             loading={busy}
-            disabled={variant === "blocked" ? false : actionsDisabled}
-            variant={variant === "inProgress" || variant === "blocked" ? "secondary" : "primary"}
+            disabled={detailsOnly ? false : actionsDisabled}
+            variant={variant === "inProgress" || detailsOnly ? "secondary" : "primary"}
             style={styles.flex}
             testID={`task-action-${task.id}`}
           />

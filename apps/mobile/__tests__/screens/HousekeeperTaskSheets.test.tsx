@@ -1,4 +1,5 @@
 import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
 import { Modal } from "react-native";
 import en from "@/i18n/locales/en.json";
@@ -43,17 +44,22 @@ jest.mock("@/lib/api/client", () => ({
 
 let mockOnline = true;
 let mockMyRooms: Array<{ id: string }> = [];
-jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
-    isOnline: mockOnline,
-    user: { id: "me", role: "housekeeper", language_pref: mockLanguage },
-    hotelTimezone: "America/Chicago",
-    pendingActions: [],
-    myRooms: mockMyRooms,
-  }),
-}));
+jest.mock("@/stores/appStore", () => {
+  const { makeAppStoreMock } = require("../helpers/appStoreMock");
+  return {
+    useAppStore: makeAppStoreMock(() => ({
+      isOnline: mockOnline,
+      user: { id: "me", tenant_id: "hotel-1", role: "housekeeper", language_pref: mockLanguage },
+      hotelTimezone: "America/Chicago",
+      pendingActions: [],
+      myRooms: mockMyRooms,
+      setHotelTimezone: () => undefined,
+    })),
+  };
+});
 
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import TasksRoute from "@/app/(app)/tasks";
 
 const NOW = Date.now();
@@ -111,7 +117,9 @@ function serve() {
 
 const posts = (suffix: string) => mockApiPost.mock.calls.filter((call) => String(call[0]).endsWith(suffix));
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
+  useTaskOutbox.setState({ scope: null, entries: {}, hydrated: false, sending: {} });
   jest.clearAllMocks();
   mockLanguage = "en";
   mockOnline = true;

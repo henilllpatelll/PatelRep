@@ -1308,7 +1308,8 @@
         "syncing": "Sincronizando",
         "offline": "Sin conexión",
         "pending": "Cambios pendientes",
-        "stale": "Desactualizado"
+        "stale": "Desactualizado",
+        "attention": "Requiere atención"
       },
       "history": "Historial completado",
       "historyTitle": "Tareas completadas",
@@ -1338,7 +1339,8 @@
         "available": "DISPONIBLES",
         "showLater": "Mostrar tareas para más tarde",
         "hideLater": "Ocultar tareas para más tarde",
-        "needsAttention": "REQUIERE ATENCIÓN"
+        "needsAttention": "REQUIERE ATENCIÓN",
+        "pendingSync": "PENDIENTE DE SINCRONIZAR"
       },
       "action": {
         "start": "Iniciar tarea",
@@ -1727,6 +1729,106 @@
           "not_available": "Tu reporte se guardó. No hay un supervisor disponible para avisar ahora."
         },
         "saved": "Tu reporte se guardó."
+      },
+      "offline": {
+        "sheet": {
+          "titleOffline": "Trabajando sin conexión",
+          "titleOnline": "Estado de sincronización",
+          "savedAvailable": "Tus tareas guardadas siguen disponibles.",
+          "lastSynced": "Última sincronización: {{time}}",
+          "neverSynced": "Aún no se ha sincronizado nada en este dispositivo.",
+          "allSynced": "Todos los cambios sincronizados",
+          "syncing": "Sincronizando cambios…",
+          "offlineHelp": "Los cambios se sincronizarán cuando vuelvas a tener conexión.",
+          "onlineHelp": "Los cambios guardados se envían automáticamente. Un cambio solo está hecho cuando el servidor lo confirma.",
+          "kindComplete": "Finalización",
+          "rowLabel": "{{task}} — {{kind}}",
+          "review": "Revisar",
+          "reviewA11y": "Revisar {{task}}",
+          "retry": "Reintentar sincronización",
+          "close": "Cerrar",
+          "states": {
+            "pending": "Pendiente",
+            "sending": "Enviando",
+            "conflict": "Requiere revisión",
+            "failed": "Falló la sincronización"
+          },
+          "failedHelp": "Algunos cambios no se pudieron enviar. Ábrelos para ver por qué y qué puedes hacer.",
+          "pending": "{{count}} cambio pendiente",
+          "pending_plural": "{{count}} cambios pendientes",
+          "attention": "{{count}} cambio requiere atención",
+          "attention_plural": "{{count}} cambios requieren atención"
+        },
+        "card": {
+          "pendingTitle": "Finalización pendiente de sincronizar",
+          "savedAt": "Guardado en este dispositivo a las {{time}}",
+          "sending": "Enviando…",
+          "conflictTitle": "No se pudo sincronizar — toca para revisar",
+          "pendingA11y": "{{title}}. Finalización pendiente de sincronizar. Guardada en este dispositivo a las {{time}}",
+          "conflictA11y": "{{title}}. No se pudo sincronizar la finalización. Requiere revisión."
+        },
+        "detail": {
+          "pendingTitle": "Finalización pendiente de sincronizar",
+          "pendingBody": "Guardada en este dispositivo a las {{time}} — se envía cuando vuelvas a tener conexión y solo queda hecha cuando el servidor la confirma.",
+          "sendingBody": "Enviando tu finalización al servidor…",
+          "failedTitle": "Falló la sincronización",
+          "failedBody": "No se pudo enviar tu finalización tras varios intentos. Revisa tu conexión y vuelve a intentarlo.",
+          "conflictTitle": "No se pudo completar",
+          "supervisor": "Si crees que es un error, consulta con tu supervisor.",
+          "viewUpdated": "Ver tarea actualizada",
+          "dismiss": "Descartar cambio pendiente",
+          "retry": "Reintentar",
+          "cachedBanner": "Copia guardada (última sincronización: {{time}}). Las notas y la actividad necesitan conexión.",
+          "cachedBannerNoTime": "Copia guardada. Las notas y la actividad necesitan conexión.",
+          "conflict": {
+            "completed": "Esta tarea ya estaba completada.",
+            "cancelled": "Esta tarea fue cancelada, así que no se puede completar.",
+            "reassigned": "Esta tarea fue reasignada a otra persona.",
+            "claimed": "Otra persona tomó esta tarea.",
+            "unavailable": "Esta tarea ya no está disponible para ti.",
+            "blocked": "Se reportó un problema en esta tarea. Reanúdala antes de completarla.",
+            "changed": "La tarea cambió mientras estabas sin conexión. Revísala e inténtalo de nuevo.",
+            "forbidden": "Ya no tienes permiso para completar esta tarea.",
+            "rejected": "El servidor no pudo aceptar esta finalización.",
+            "expired": "Este cambio esperó demasiado para sincronizarse. Revisa la tarea y complétala de nuevo si hace falta."
+          }
+        },
+        "complete": {
+          "saveOffline": "Guardar para sincronizar",
+          "title": "Guardar finalización",
+          "body": "Estás sin conexión. Se guardará en este dispositivo y se enviará cuando vuelvas a tener conexión. La tarea no queda hecha hasta que el servidor la confirme.",
+          "queued": "Guardado en este dispositivo. Finalización pendiente de sincronizar.",
+          "refusal": {
+            "no_session": "Vuelve a iniciar sesión para guardar este cambio.",
+            "not_assigned": "Solo la persona asignada puede completar una tarea sin conexión.",
+            "not_in_progress": "Inicia esta tarea con conexión antes de completarla sin conexión.",
+            "blocked": "Hay un problema reportado en esta tarea. Reanúdala primero con conexión.",
+            "duplicate": "Ya hay una finalización de esta tarea guardada y esperando sincronizarse.",
+            "note_too_long": "Tu nota es demasiado larga.",
+            "storage": "No se pudo guardar en el dispositivo. Inténtalo de nuevo con conexión."
+          }
+        },
+        "availableTitle": "Las tareas disponibles necesitan conexión",
+        "availableBody": "Tomar o iniciar tareas requiere internet para que dos personas nunca tomen el mismo trabajo. Tus propias tareas siguen en Mi trabajo.",
+        "cachedList": "Mostrando tareas guardadas — última sincronización: {{time}}",
+        "cachedListNoTime": "Mostrando tareas guardadas."
+      },
+      "hist": {
+        "recent": "TU TRABAJO RECIENTE",
+        "completedTodayAtLeast": "{{count}}+ completadas hoy",
+        "completedTodayUnknown": "Completadas hoy: no disponible",
+        "today": "HOY",
+        "yesterday": "AYER",
+        "completedAt": "Completada {{time}}",
+        "cachedBanner": "Mostrando historial guardado — última sincronización: {{time}}",
+        "cachedBannerNoTime": "Mostrando historial guardado.",
+        "offlineMore": "Conéctate a internet para cargar tareas anteriores.",
+        "back": "Atrás",
+        "rowA11y": "{{title}}. {{place}}. Completada {{time}}",
+        "rowA11yNoPlace": "{{title}}. Completada {{time}}",
+        "offlineEmpty": "Aún no hay historial guardado en este dispositivo. Conéctate para cargarlo.",
+        "completedToday": "{{count}} completada hoy",
+        "completedToday_plural": "{{count}} completadas hoy"
       }
     },
     "completeFailed": "No se pudo marcar la tarea como hecha. Sigue en tu lista — inténtalo de nuevo.",

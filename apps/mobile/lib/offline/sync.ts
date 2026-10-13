@@ -8,6 +8,7 @@ import {
   upsertRooms,
 } from "@/lib/offline/db";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
+import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
 import { localDate } from "@/lib/utils/date";
 import type { Room } from "@/stores/appStore";
@@ -26,7 +27,9 @@ export async function syncOnConnect(): Promise<void> {
     // Clean sessions replay first (start -> checklist -> complete, in order); the
     // generic queue then skips room_status entries a session owns.
     await flushSessions();
-    // Flush both queues: appStore queue (logbook, task_complete, etc.) + SQLite queue
+    // Saved task completions go through their own per-user outbox (identity re-checked on every item).
+    await flushTaskOutbox();
+    // Flush both queues: appStore queue (logbook, room status, etc.) + SQLite queue
     await useAppStore.getState().flushQueue();
     await flushSyncQueue();
     // Only refresh rooms for housekeepers and supervisors (API endpoint requires it)

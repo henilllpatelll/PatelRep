@@ -1,4 +1,5 @@
 import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { AppState, ScrollView, StyleSheet } from "react-native";
 import en from "@/i18n/locales/en.json";
@@ -50,17 +51,23 @@ jest.mock("@/lib/api/client", () => ({
 let mockOnline = true;
 let mockRole = "housekeeper";
 let mockPending: Array<{ type: string }> = [];
-jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
-    isOnline: mockOnline,
-    user: { id: "me", tenant_id: "hotel-1", role: mockRole, language_pref: mockLanguage },
-    hotelTimezone: "America/Chicago",
-    pendingActions: mockPending,
-    myRooms: [],
-  }),
-}));
+jest.mock("@/stores/appStore", () => {
+  const { makeAppStoreMock } = require("../helpers/appStoreMock");
+  return {
+    useAppStore: makeAppStoreMock(() => ({
+      isOnline: mockOnline,
+      user: { id: "me", tenant_id: "hotel-1", role: mockRole, language_pref: mockLanguage },
+      hotelTimezone: "America/Chicago",
+      pendingActions: mockPending,
+      myRooms: [],
+      setHotelTimezone: () => undefined,
+    })),
+  };
+});
 
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
+import { normalizeTask } from "@/lib/api/tasks";
 import TasksRoute from "@/app/(app)/tasks";
 
 const NOW = Date.now();
@@ -127,7 +134,9 @@ function renderScreen() {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
+  useTaskOutbox.setState({ scope: null, entries: {}, hydrated: false, sending: {} });
   jest.clearAllMocks();
   mockLanguage = "en";
   mockOnline = true;
@@ -344,14 +353,23 @@ describe("Housekeeper Tasks — Available", () => {
     expect(screen.queryByText("Couldn't refresh tasks.")).toBeNull();
   });
 
-  it("does not allow claiming while offline", async () => {
+  it("does not show a remembered Available pool as claimable while offline", async () => {
+    const screen = await ready();
+    fireEvent.press(screen.getByTestId("segment-available"));
+    await waitFor(() => expect(screen.getByText("Extra pillow delivery")).toBeTruthy());
+
     mockOnline = false;
-    const { getByLabelText, getByText } = await openAvailable();
+    screen.rerender(
+      <ThemeProvider>
+        <TasksRoute />
+      </ThemeProvider>,
+    );
 
-    fireEvent.press(getByLabelText("Claim and start Extra pillow delivery"));
-
+    await waitFor(() => expect(screen.getByText("Available tasks need a connection")).toBeTruthy());
+    expect(screen.queryByText("Extra pillow delivery")).toBeNull();
+    expect(screen.queryByLabelText("Claim and start Extra pillow delivery")).toBeNull();
     expect(mockApiPost).not.toHaveBeenCalled();
-    expect(getByText("Offline")).toBeTruthy();
+    expect(screen.getByText("Offline")).toBeTruthy();
   });
 });
 
@@ -542,10 +560,35 @@ describe("Housekeeper Tasks — entry points, roles, language, accessibility", (
     expect(mockPush).toHaveBeenCalledWith("/(app)/tasks/history");
   });
 
-  it("shows Pending changes only when task changes are really queued", async () => {
-    mockPending = [{ type: "task_complete" }];
-    const { getByText } = await ready();
+  it("shows Pending changes only when a completion is really saved in the task outbox", async () => {
+    const quiet = await ready();
+    expect(quiet.queryByText("Pending changes")).toBeNull();
+    quiet.unmount();
 
+    useTaskOutbox.setState({
+      scope: "hotel-1:me",
+      hydrated: true,
+      entries: {
+        iron: {
+          mutationId: "m-1",
+          op: "complete",
+          taskId: "iron",
+          userId: "me",
+          tenantId: "hotel-1",
+          task: normalizeTask(MINE[1]),
+          note: null,
+          observedStatus: "in_progress",
+          observedAssignee: "me",
+          queuedAt: at(-1),
+          attempts: 0,
+          lastAttemptAt: null,
+          nextAttemptAt: null,
+          state: "pending",
+          conflict: null,
+        },
+      },
+    });
+    const { getByText } = await ready();
     expect(getByText("Pending changes")).toBeTruthy();
   });
 

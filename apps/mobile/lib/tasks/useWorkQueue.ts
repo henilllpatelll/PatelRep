@@ -14,13 +14,20 @@ import {
   type Task,
 } from "@/lib/api/tasks";
 import { fetchDoneToday, type DoneToday } from "@/lib/tasks/workQueue";
+import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
+import { useAppStore } from "@/stores/appStore";
+import { readTaskCache, saveDoneToday, saveMyWork } from "@/lib/tasks/offline/taskCache";
+import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 
 /* ─── Server-authoritative queue state for the Housekeeper Tasks screen ───────
    * My Work and Available load independently: one failing or loading never resets the other.
    * A failed load is an error (never "no tasks"); a failed refresh keeps the last good data, flagged stale.
    * Overlapping refreshes share one request; a response older than a newer mutation/refresh is dropped.
    * Every mutation is locked per task id, only succeeds on a real server success, and is followed by a refresh.
-   * Mutations need a connection: task changes are not queued offline yet. */
+   * Mutations need a connection, except completing an assigned task, which the screen can save to the
+     task outbox (lib/tasks/offline) when the phone is offline.
+   * My Work and Done Today are cached per signed-in person + hotel: they show instantly on start-up and
+     offline, flagged `fromCache` / `stale` with the time they were last synced; the Available pool is never cached. */
 
 export type ListStatus = "loading" | "ready" | "error";
 
@@ -31,6 +38,10 @@ export interface ListState {
   stale: boolean;
   /** The server hit its scan cap: the list may be incomplete. */
   truncated: boolean;
+  /** When this data was last confirmed by the server (cache or live); null = never. */
+  syncedAt: string | null;
+  /** Showing the saved copy; no live response has replaced it yet. */
+  fromCache: boolean;
 }
 
 export type MutationCode = "offline" | "busy" | "conflict" | "failed";
@@ -53,7 +64,7 @@ export type MutationResult =
       errorCode?: string;
     };
 
-const INITIAL: ListState = { tasks: [], status: "loading", stale: false, truncated: false };
+const INITIAL: ListState = { tasks: [], status: "loading", stale: false, truncated: false, syncedAt: null, fromCache: false };
 
 function httpStatus(error: unknown): number | null {
   const status = (error as { status?: unknown } | null)?.status;
@@ -65,12 +76,14 @@ interface Options {
   timeZone: string | null;
   /** Signed-in employee; lets a transition that landed with a lost reply be recognised as success. */
   userId?: string | null;
+  /** `${hotel}:${employee}` key for the offline cache; null = signed out (nothing is cached or shown). */
+  scope?: string | null;
 }
 
-export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
+export function useWorkQueue({ isOnline, timeZone, userId = null, scope = null }: Options) {
   const [mine, setMine] = useState<ListState>(INITIAL);
   const [available, setAvailable] = useState<ListState>(INITIAL);
-  const [done, setDone] = useState<{ value: DoneToday | null; failed: boolean }>({ value: null, failed: false });
+  const [done, setDone] = useState<{ value: DoneToday | null; failed: boolean; syncedAt: string | null }>({ value: null, failed: false, syncedAt: null });
   const [refreshing, setRefreshing] = useState(false);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
 
@@ -85,6 +98,8 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
   zoneRef.current = timeZone;
   const onlineRef = useRef(isOnline);
   onlineRef.current = isOnline;
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -114,7 +129,9 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
         try {
           const result = await fetchMyWork();
           if (!mounted.current || token !== seq.current.mine) return;
-          setMine({ tasks: result.tasks, status: "ready", stale: false, truncated: result.truncated });
+          const forScope = scopeRef.current;
+          setMine({ tasks: result.tasks, status: "ready", stale: false, truncated: result.truncated, syncedAt: new Date().toISOString(), fromCache: false });
+          if (forScope) void saveMyWork(forScope, result.tasks, result.truncated, zoneRef.current);
         } catch {
           if (!mounted.current || token !== seq.current.mine) return;
           setMine((prev) => (prev.status === "ready" ? { ...prev, stale: true } : { ...INITIAL, status: "error" }));
@@ -129,7 +146,7 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
         try {
           const result = await fetchAvailable();
           if (!mounted.current || token !== seq.current.available) return;
-          setAvailable({ tasks: result.tasks, status: "ready", stale: false, truncated: result.truncated });
+          setAvailable({ tasks: result.tasks, status: "ready", stale: false, truncated: result.truncated, syncedAt: new Date().toISOString(), fromCache: false });
         } catch {
           if (!mounted.current || token !== seq.current.available) return;
           setAvailable((prev) => (prev.status === "ready" ? { ...prev, stale: true } : { ...INITIAL, status: "error" }));
@@ -144,19 +161,75 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
         try {
           const value = await fetchDoneToday(zoneRef.current);
           if (!mounted.current || token !== seq.current.done) return;
-          setDone({ value, failed: false });
+          const forScope = scopeRef.current;
+          setDone({ value, failed: false, syncedAt: new Date().toISOString() });
+          const day = hotelDateKey(new Date(), zoneRef.current);
+          if (forScope && day) void saveDoneToday(forScope, value, day);
         } catch {
           if (!mounted.current || token !== seq.current.done) return;
           // keep the last known count; flag that it could not be confirmed
-          setDone((prev) => ({ value: prev.value, failed: true }));
+          setDone((prev) => ({ value: prev.value, failed: true, syncedAt: prev.syncedAt }));
         }
       }),
     [guarded],
   );
 
+  // A different person or hotel (or sign-out) never inherits the previous lists: reset, then show only
+  // this scope's saved copy until the first live response replaces it.
+  const lastScope = useRef<string | null | undefined>(undefined);
+  const refreshAllRef = useRef<() => Promise<void>>(async () => undefined);
+  useEffect(() => {
+    if (lastScope.current === scope) return;
+    const switched = lastScope.current !== undefined;
+    lastScope.current = scope;
+    if (switched) {
+      seq.current.mine += 1;
+      seq.current.available += 1;
+      seq.current.done += 1;
+      inFlight.current = { mine: null, available: null, done: null };
+      setMine(INITIAL);
+      setAvailable(INITIAL);
+      setDone({ value: null, failed: false, syncedAt: null });
+      if (scope) void refreshAllRef.current();
+    }
+    if (!scope) return;
+    let live = true;
+    void readTaskCache(scope).then((cache) => {
+      if (!live || scopeRef.current !== scope) return;
+      if (cache.hotelTimezone && !useAppStore.getState().hotelTimezone) useAppStore.getState().setHotelTimezone(cache.hotelTimezone);
+      if (cache.mine) {
+        const saved = cache.mine;
+        // A live response that already arrived is newer than the saved copy.
+        setMine((prev) =>
+          prev.status === "ready" && !prev.fromCache
+            ? prev
+            : { tasks: saved.tasks, status: "ready", stale: true, truncated: saved.truncated, syncedAt: saved.syncedAt, fromCache: true },
+        );
+      }
+      const day = hotelDateKey(new Date(), zoneRef.current ?? cache.hotelTimezone);
+      if (cache.doneToday && day && cache.doneToday.day === day) {
+        const saved = cache.doneToday;
+        setDone((prev) => (prev.value ? prev : { value: { count: saved.count, atLeast: saved.atLeast }, failed: true, syncedAt: saved.syncedAt }));
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [scope]);
+
   const refreshAll = useCallback(async () => {
     await Promise.all([loadMine(), loadAvailable(), loadDone()]);
   }, [loadMine, loadAvailable, loadDone]);
+  refreshAllRef.current = refreshAll;
+
+  // A saved change was confirmed (or refused) by the server: re-read the lists, which are the truth.
+  const settledTick = useTaskOutbox((state) => state.settledTick);
+  const seenTick = useRef(settledTick);
+  useEffect(() => {
+    if (settledTick === seenTick.current) return;
+    seenTick.current = settledTick;
+    void refreshAll();
+  }, [settledTick, refreshAll]);
 
   const pullToRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -175,7 +248,10 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
   );
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") void refreshAll();
+      if (state !== "active") return;
+      // Saved completions first (cheap no-op when nothing is due), then re-read the lists.
+      void useTaskOutbox.getState().flush();
+      void refreshAll();
     });
     return () => sub.remove();
   }, [refreshAll]);

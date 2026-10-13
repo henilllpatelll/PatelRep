@@ -1,6 +1,8 @@
 import { getSyncQueueSummary, type SyncQueueSummaryRow } from "@/lib/offline/db";
 import { useAppStore, type OfflineAction } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
+import { entriesForCurrentUser, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
+import type { OutboxEntry } from "@/lib/tasks/offline/outboxPolicy";
 import { hasPendingSync, pendingChangeCount, type LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 
 /**
@@ -86,12 +88,23 @@ function queueRows(rows: SyncQueueSummaryRow[]): SyncRow[] {
   }));
 }
 
+/** Saved task completions: kind and room only, never the note. */
+function outboxRows(entries: Record<string, OutboxEntry>): SyncRow[] {
+  return Object.values(entries).map((entry) => ({
+    key: `outbox-${entry.mutationId}`,
+    roomId: entry.task.room_id,
+    kind: "task" as SyncKind,
+    state: (entry.state === "conflict" ? "conflict" : entry.state === "failed" ? "failed" : entry.attempts > 0 ? "retrying" : "pending") as SyncState,
+  }));
+}
+
 export function buildSyncRows(input: {
   sessions: Record<string, LocalCleanSession>;
   actions: OfflineAction[];
   queue: SyncQueueSummaryRow[];
+  outbox?: Record<string, OutboxEntry>;
 }): SyncRow[] {
-  return [...sessionRows(input.sessions), ...actionRows(input.actions), ...queueRows(input.queue)];
+  return [...sessionRows(input.sessions), ...actionRows(input.actions), ...queueRows(input.queue), ...outboxRows(input.outbox ?? {})];
 }
 
 const QUEUE_READ_TIMEOUT_MS = 4000;
@@ -120,6 +133,7 @@ export async function loadSyncRows(): Promise<LoadedSyncRows> {
       sessions: useCleanSessionStore.getState().sessions,
       actions: useAppStore.getState().pendingActions,
       queue,
+      outbox: entriesForCurrentUser(useTaskOutbox.getState()),
     }),
   };
 }

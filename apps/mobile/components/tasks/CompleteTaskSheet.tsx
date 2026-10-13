@@ -18,6 +18,8 @@ interface Props {
   /** The request is in flight; the sheet can not be dismissed meanwhile. */
   busy: boolean;
   offline: boolean;
+  /** Offline, and this completion can be saved on the device to sync later (the screen checked the rules). */
+  canSaveOffline?: boolean;
   /** Plain-language reason the last attempt failed; the note is kept so it can be retried. */
   error: string | null;
   onConfirm: () => void;
@@ -40,6 +42,7 @@ export function CompleteTaskSheet({
   onNoteChange,
   busy,
   offline,
+  canSaveOffline = false,
   error,
   onConfirm,
   onBack,
@@ -53,13 +56,14 @@ export function CompleteTaskSheet({
   const place = shortPlace(task, t);
   const identity = place ? `${place} · ${task.title}` : task.title;
   const tooLong = note.length > TASK_NOTE_MAX;
-  const blocked = busy || offline || tooLong;
+  const saving = offline && canSaveOffline;
+  const blocked = busy || (offline && !canSaveOffline) || tooLong;
   const failedPhase = phase === "noteFailed";
 
   return (
     <BottomSheet
       visible={visible}
-      title={t(failedPhase ? "tasks.hk.sheet.complete.noteFailedTitle" : "tasks.hk.sheet.completeTitle")}
+      title={t(failedPhase ? "tasks.hk.sheet.complete.noteFailedTitle" : saving ? "tasks.hk.offline.complete.title" : "tasks.hk.sheet.completeTitle")}
       onClose={busy ? () => undefined : failedPhase ? onSkipNote : onBack}
       grabber
       testID="complete-task-sheet"
@@ -80,12 +84,12 @@ export function CompleteTaskSheet({
         ) : (
           <>
             <Button
-              label={t("tasks.hk.sheet.complete.confirm")}
+              label={t(saving ? "tasks.hk.offline.complete.saveOffline" : "tasks.hk.sheet.complete.confirm")}
               onPress={onConfirm}
               loading={busy}
               disabled={blocked}
               size="lg"
-              icon="checkmark"
+              icon={saving ? "save-outline" : "checkmark"}
               testID="complete-confirm"
             />
             <Button label={t("tasks.hk.sheet.complete.back")} onPress={onBack} variant="secondary" disabled={busy} testID="complete-back" />
@@ -101,7 +105,7 @@ export function CompleteTaskSheet({
           {identity}
         </Text>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]}>
-          {t(failedPhase ? "tasks.hk.sheet.complete.noteFailedBody" : "tasks.hk.sheet.complete.body")}
+          {t(failedPhase ? "tasks.hk.sheet.complete.noteFailedBody" : saving ? "tasks.hk.offline.complete.body" : "tasks.hk.sheet.complete.body")}
         </Text>
       </View>
 
@@ -134,7 +138,7 @@ export function CompleteTaskSheet({
         ) : null}
       </View>
 
-      {offline ? (
+      {offline && !canSaveOffline ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.status.dirty }]} accessibilityRole="alert">
           {t("tasks.hk.sheet.reason.offline")}
         </Text>
