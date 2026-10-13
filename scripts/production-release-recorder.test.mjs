@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { EVIDENCE_SCHEMA, REQUIRED_SUCCESS_JOBS, TAG_JOB_NAME, assertExistingTagExact, assertVersionIntegrity, preflightRecorder, recordRelease, verifyRecoveryEvidence } from './production-release-recorder.mjs'
+import { EVIDENCE_SCHEMA, REQUIRED_SUCCESS_JOBS, TAG_JOB_NAME, VISIBILITY_ATTEMPTS, assertExistingTagExact, assertVersionIntegrity, preflightRecorder, recordRelease, verifyRecoveryEvidence } from './production-release-recorder.mjs'
 
 const REPO = 'henilllpatelll/PatelRep'
 const SHA = '8e4ee88b354360754d1134d62d81b8af370b0434'
@@ -19,6 +19,16 @@ function fakeDeps(overrides = {}) {
     listReleases: async () => state.releases,
     listTagNames: async () => state.tagNames,
     getTag: async () => state.tag,
+    getRelease: async (version) => {
+      deps.releaseReads += 1
+      if (deps.releaseReads <= deps.hiddenReads) return null
+      return state.releases.find((release) => release.tag_name === version) ?? null
+    },
+    sleep: async () => {
+      calls.push(['sleep'])
+    },
+    releaseReads: 0,
+    hiddenReads: 0,
     createAnnotatedTag: async ({ version, sha }) => {
       calls.push(['createAnnotatedTag', version, sha])
       state.tag = { type: 'tag', commit: sha }
@@ -44,6 +54,8 @@ function fakeDeps(overrides = {}) {
   return deps
 }
 
+const writes = (deps) => deps.calls.filter((call) => call[0] !== 'sleep').map((call) => call[0])
+const sleeps = (deps) => deps.calls.filter((call) => call[0] === 'sleep').length
 const input = (extra = {}) => ({ mode: 'pipeline', version: VERSION, sha: SHA, repo: REPO, ...extra })
 const recover = { sourceRunId: RUN }
 
@@ -197,4 +209,136 @@ test('preflight performs no write and rejects a token for another repository', a
   assert.equal(deps.calls.length, 0)
   await assert.rejects(preflightRecorder({ repo: REPO }, fakeDeps({ readRecorderRepo: async () => ({ full_name: 'other/repo' }) })), /not henilllpatelll/)
   await assert.rejects(preflightRecorder({ repo: '' }, deps), /repository is required/)
+})
+
+// --- Post-creation verification (run 38329516211: "Release v1.9.2 is not complete after creation") ---
+
+test('immediate publication is verified with a single authoritative read and no waiting', async () => {
+  const deps = fakeDeps()
+  assert.equal((await recordRelease(input(), deps)).outcome, 'recorded')
+  assert.equal(sleeps(deps), 0)
+})
+
+test('a Release that is briefly invisible after creation is awaited with bounded retries, never recreated', async () => {
+  const deps = fakeDeps()
+  const realCreate = deps.createRelease
+  deps.createRelease = async (args) => {
+    await realCreate(args)
+    deps.releaseReads = 0
+    deps.hiddenReads = 3
+  }
+  assert.deepEqual(await recordRelease(input(), deps), { outcome: 'recorded', tagCreated: true, releaseCreated: true })
+  assert.equal(sleeps(deps), 3)
+  assert.deepEqual(writes(deps), ['createAnnotatedTag', 'createRelease'])
+})
+
+test('a lagging collection listing does not matter: the direct lookup is authoritative after creation', async () => {
+  const deps = fakeDeps()
+  deps.createRelease = async ({ version }) => {
+    deps.calls.push(['createRelease', version])
+    deps.state.published = { tag_name: version, draft: false, prerelease: false }
+  }
+  deps.getRelease = async () => deps.state.published ?? null
+  assert.equal((await recordRelease(input(), deps)).outcome, 'recorded')
+  assert.equal(
+    deps.state.releases.some((release) => release.tag_name === VERSION),
+    false,
+  )
+})
+
+test('a Release that never becomes visible fails closed at the strict bound, with no further writes', async () => {
+  const deps = fakeDeps()
+  deps.getRelease = async () => {
+    deps.releaseReads += 1
+    return null
+  }
+  await assert.rejects(recordRelease(input(), deps), /not visible after \d+ checks/)
+  assert.equal(deps.releaseReads, VISIBILITY_ATTEMPTS + 1) // one pre-create read + the bounded window
+  assert.equal(sleeps(deps), VISIBILITY_ATTEMPTS - 1)
+  assert.deepEqual(writes(deps), ['createAnnotatedTag', 'createRelease'])
+})
+
+test('a Release missing from the listing but present on direct lookup is recognized (idempotent, no writes)', async () => {
+  const deps = fakeDeps()
+  deps.state.tag = { type: 'tag', commit: SHA }
+  deps.getRelease = async () => ({ tag_name: VERSION, draft: false, prerelease: false }) // listReleases does not include it
+  assert.deepEqual(await recordRelease(input(), deps), { outcome: 'already_recorded', tagCreated: false, releaseCreated: false })
+  assert.deepEqual(writes(deps), [])
+})
+
+test('repeated invocation after success creates no second tag or Release (pipeline and recover)', async () => {
+  for (const extra of [{}, { mode: 'recover', recovery: recover }]) {
+    const deps = fakeDeps()
+    await recordRelease(input(extra), deps)
+    assert.deepEqual(await recordRelease(input(extra), deps), { outcome: 'already_recorded', tagCreated: false, releaseCreated: false })
+    assert.deepEqual(writes(deps), ['createAnnotatedTag', 'createRelease'])
+  }
+})
+
+test('a draft or prerelease is never accepted as a completed Release, before or after creation', async () => {
+  for (const flags of [{ draft: true, prerelease: false }, { draft: false, prerelease: true }]) {
+    const deps = fakeDeps()
+    deps.createRelease = async ({ version }) => {
+      deps.calls.push(['createRelease', version])
+    }
+    deps.getRelease = async (version) => (deps.calls.some((call) => call[0] === 'createRelease') ? { tag_name: version, ...flags } : null)
+    await assert.rejects(recordRelease(input(), deps), /draft or prerelease/)
+    assert.equal(writes(deps).filter((name) => name === 'createRelease').length, 1)
+
+    const existing = fakeDeps()
+    existing.state.tag = { type: 'tag', commit: SHA }
+    existing.getRelease = async (version) => ({ tag_name: version, ...flags })
+    await assert.rejects(recordRelease(input(), existing), /draft or prerelease/)
+    assert.deepEqual(writes(existing), [])
+  }
+})
+
+test('a lookup that returns a different tag is refused', async () => {
+  const deps = fakeDeps()
+  deps.getRelease = async () => (deps.calls.some((call) => call[0] === 'createRelease') ? { tag_name: 'v1.9.3', draft: false, prerelease: false } : null)
+  await assert.rejects(recordRelease(input(), deps), /returned tag v1\.9\.3/)
+})
+
+test('the tag is re-verified after the Release exists: a moved, lightweight or vanished tag fails closed', async () => {
+  for (const moved of [{ type: 'tag', commit: OTHER }, { type: 'commit', commit: SHA }, null]) {
+    const deps = fakeDeps()
+    const realCreate = deps.createRelease
+    deps.createRelease = async (args) => {
+      await realCreate(args)
+      deps.state.tag = moved
+    }
+    await assert.rejects(recordRelease(input(), deps), /refusing to move or reuse it|lightweight|cannot be read back/)
+    assert.deepEqual(writes(deps), ['createAnnotatedTag', 'createRelease'])
+  }
+})
+
+test('permanent GitHub API failures are not retried: errors abort immediately', async () => {
+  for (const message of ['HTTP 401: Bad credentials', 'HTTP 403: Resource not accessible', 'HTTP 500']) {
+    const deps = fakeDeps()
+    const realCreate = deps.createRelease
+    let afterCreate = false
+    deps.createRelease = async (args) => {
+      await realCreate(args)
+      afterCreate = true
+    }
+    deps.getRelease = async () => {
+      if (afterCreate) throw new Error(message)
+      return null
+    }
+    await assert.rejects(recordRelease(input(), deps), new RegExp(message.slice(0, 8)))
+    assert.equal(sleeps(deps), 0)
+  }
+  const deps = fakeDeps({ getRelease: async () => { throw new Error('HTTP 403') } })
+  await assert.rejects(recordRelease(input(), deps), /HTTP 403/)
+  assert.deepEqual(writes(deps), [])
+})
+
+test('a failing createRelease is never retried', async () => {
+  const deps = fakeDeps()
+  deps.createRelease = async () => {
+    deps.calls.push(['createRelease'])
+    throw new Error('HTTP 422')
+  }
+  await assert.rejects(recordRelease(input(), deps), /HTTP 422/)
+  assert.equal(writes(deps).filter((name) => name === 'createRelease').length, 1)
 })

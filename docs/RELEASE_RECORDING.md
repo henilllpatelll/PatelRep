@@ -47,6 +47,15 @@ Environment, only after production verification:
 * **An existing tag is never created over, moved, deleted or force-updated.** It is accepted only when already an
   annotated tag peeling to exactly the verified SHA (then only the Release is created: safe resume). Anything else
   throws. After creation the tag is read back and must peel to the exact SHA before the Release is attempted.
+* **The created Release is verified through the authoritative single-Release endpoint** (`GET releases/tags/<version>`),
+  never by re-reading the `GET releases` collection immediately after creation (run 38329516211 failed with
+  `Release v1.9.2 is not complete after creation` less than a second after the Release was published; the Release
+  and annotated tag were in fact correct). Only "not visible yet" (404) is retried, at most 10 reads 3 s apart
+  (~27 s); auth, 5xx or malformed responses, a draft/prerelease, or a different tag fail immediately. Nothing is
+  written while waiting and `createRelease` is never retried. The tag is re-read once more and must still be an
+  annotated tag peeling to the exact SHA.
+* **Re-runs are idempotent:** a Release that exists on the direct lookup is recognized even if the listing lags it, and
+  then neither a tag nor a Release is created.
 * The eligibility, SHA/tree provenance, CI/Staging, database and production-target gates are untouched; recording is
   strictly downstream of them.
 

@@ -34,6 +34,9 @@ export const REQUIRED_SUCCESS_JOBS = Object.freeze([
   'Verify production release identity and smoke',
 ])
 export const TAG_JOB_NAME = 'Tag and create GitHub Release'
+/** Bounded read-after-write window for the freshly created Release (~27s worst case); never retried past this. */
+export const VISIBILITY_ATTEMPTS = 10
+export const VISIBILITY_DELAY_MS = 3000
 export const TAGGER = Object.freeze({ name: 'PatelRep Release Recorder', email: 'release-recorder@users.noreply.github.com' })
 
 const fail = (message) => {
@@ -79,6 +82,30 @@ export function assertVersionIntegrity({ version, releases, tagNames }) {
 export function assertExistingTagExact({ version, sha, ref }) {
   if (ref.type !== 'tag') fail(`tag ${version} exists as a lightweight/non-annotated ref; refusing to reuse it`)
   if (ref.commit !== sha) fail(`tag ${version} already exists at ${ref.commit}, not the verified ${sha}; refusing to move or reuse it`)
+}
+
+const defaultSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** A Release is complete only when it is published (not draft, not prerelease) for exactly this tag. */
+function assertCompleteRelease(version, release) {
+  if (release.tag_name !== version) fail(`Release lookup for ${version} returned tag ${release.tag_name}; refusing`)
+  if (release.draft !== false || release.prerelease !== false) fail(`${version} Release is a draft or prerelease, not a completed Release; a human must investigate`)
+}
+
+/**
+ * Read-after-write verification of the Release just created. Uses the authoritative single-Release endpoint
+ * (`getRelease`, null on 404), NOT the collection listing, which can lag a just-published Release. Only "not visible
+ * yet" (null) is retried, within a strict bound; any thrown error (auth, 5xx, malformed) or an invalid Release
+ * (draft, prerelease, wrong tag) fails immediately. Nothing is ever written while waiting.
+ */
+async function awaitPublishedRelease(version, deps) {
+  const sleep = deps.sleep ?? defaultSleep
+  for (let attempt = 1; attempt <= VISIBILITY_ATTEMPTS; attempt += 1) {
+    const release = await deps.getRelease(version)
+    if (release) return assertCompleteRelease(version, release)
+    if (attempt < VISIBILITY_ATTEMPTS) await sleep(VISIBILITY_DELAY_MS)
+  }
+  fail(`Release ${version} was created but is not visible after ${VISIBILITY_ATTEMPTS} checks; a human must investigate (nothing was retried or recreated)`)
 }
 
 /**
@@ -150,7 +177,11 @@ export async function recordRelease({ mode, version, sha, repo, recovery }, deps
   if ((await deps.isAncestorOfMain(sha)) !== true) fail(`${sha} is not reachable from main`)
   if ((await deps.checkConclusion(sha, 'CI Gate')) !== 'success') fail(`${sha} does not have a successful CI Gate`)
 
-  const releases = await deps.listReleases()
+  // The collection listing can lag a just-published Release; the single-Release lookup is authoritative, so a Release
+  // that exists there but is missing from the listing is still recognized (idempotent re-run).
+  const listed = await deps.listReleases()
+  const direct = await deps.getRelease(version)
+  const releases = direct && !listed.some((release) => release?.tag_name === version) ? [...listed, direct] : listed
   const { alreadyReleased } = assertVersionIntegrity({ version, releases, tagNames: await deps.listTagNames() })
   const existingTag = await deps.getTag(version)
   if (existingTag) assertExistingTagExact({ version, sha, ref: existingTag })
@@ -171,8 +202,10 @@ export async function recordRelease({ mode, version, sha, repo, recovery }, deps
 
   // The Release only after the tag provably resolves to the verified commit.
   await deps.createRelease({ version })
-  const releases2 = completedReleases(await deps.listReleases())
-  if (!releases2.some((release) => release.tag === version)) fail(`Release ${version} is not complete after creation`)
+  await awaitPublishedRelease(version, deps)
+  const finalTag = await deps.getTag(version)
+  if (!finalTag) fail(`tag ${version} cannot be read back after the Release was created`)
+  assertExistingTagExact({ version, sha, ref: finalTag })
   return { outcome: 'recorded', tagCreated, releaseCreated: true }
 }
 
