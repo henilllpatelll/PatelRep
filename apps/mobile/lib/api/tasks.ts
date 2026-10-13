@@ -8,7 +8,9 @@ import { api } from "@/lib/api/client";
      GET  /tasks/{id}/activity  Detail      (authoritative task + persisted activity feed)
      POST /tasks/{id}/start | /claim | /complete   (complete accepts an optional { note })
      POST /tasks/{id}/comments  body { comment }
-     POST /ai/tasks/confirm     body is a JSON ARRAY of previews
+     POST /tasks                Add Task (client_request_id = idempotency key; reply meta.replayed)
+     GET  /rooms/directory      Room picker (id, number, floor only)
+     POST /ai/tasks/confirm     body is a JSON ARRAY of previews (legacy Copilot composer)
    Membership, ordering and authorization are decided by the server; the client only
    normalises rows into `Task` and follows cursors until nothing is left. */
 
@@ -354,4 +356,52 @@ export async function createTasks(previews: TaskPreview[]): Promise<CreateTasksR
     createdCount: res?.data?.created_count ?? rows.length,
     deduplicated: res?.meta?.deduplicated ?? 0,
   };
+}
+
+/** The fields the Add Task flow sends to POST /tasks (built and validated in lib/tasks/addTask/draft.ts). */
+export interface CreateTaskBody {
+  title: string;
+  description?: string;
+  task_type: TaskType;
+  priority: TaskPriority;
+  room_id?: string;
+  location_text?: string;
+  due_at?: string;
+  assigned_to?: string;
+  /** Idempotency key: a repeat of the same key returns the task the first attempt created. */
+  client_request_id: string;
+  ai_suggested?: boolean;
+}
+
+export interface CreateTaskResult {
+  task: Task;
+  /** The server already had a task for this key; nothing new was written. */
+  replayed: boolean;
+}
+
+/** Create one task. Resolves only with the server's stored row; throws (ApiError or network Error) otherwise. */
+export async function createTask(body: CreateTaskBody): Promise<CreateTaskResult> {
+  const res = await api.post<{ data?: RawRecord | null; meta?: { replayed?: boolean } }>("/tasks", body);
+  if (!res?.data) throw new Error("Unexpected empty response from the task service");
+  return { task: normalizeTask(res.data), replayed: res.meta?.replayed === true };
+}
+
+export interface RoomOption {
+  id: string;
+  room_number: string;
+  floor: number | null;
+  building: string | null;
+}
+
+/** Every room of the signed-in hotel (id, number, floor, building) — nothing about guests or status. */
+export async function fetchRoomDirectory(): Promise<RoomOption[]> {
+  const res = await api.get<{ data?: RawRecord[] }>("/rooms/directory");
+  return (Array.isArray(res?.data) ? res.data : [])
+    .map((row) => ({
+      id: String(row.id ?? ""),
+      room_number: String(row.room_number ?? ""),
+      floor: typeof row.floor === "number" ? row.floor : null,
+      building: str(row.building),
+    }))
+    .filter((room) => room.id && room.room_number);
 }

@@ -1389,8 +1389,164 @@
       },
       "add": {
         "button": "Add task",
-        "sheetTitle": "Add a task",
-        "close": "Close"
+        "sheetTitle": "Add task",
+        "close": "Close",
+        "describe": {
+          "label": "What needs to be done?",
+          "hint": "Describe the request in your own words.",
+          "placeholder": "Room 318 needs two extra pillows delivered before 2 PM.",
+          "inputA11y": "Describe the task",
+          "count": "{{count}} of {{max}}",
+          "smartTitle": "Smart task creation",
+          "smartBody": "We'll suggest the details so you can review them before saving.",
+          "continue": "Continue",
+          "working": "Reading your request…",
+          "manual": "Enter details manually",
+          "continueManually": "Continue manually",
+          "tryAgain": "Try again",
+          "none": "We didn't find a task in that. Add more detail, or continue manually.",
+          "offlineNote": "You're offline. Adding a task needs a connection.",
+          "failed": {
+            "offline": "You're offline. Connect to get suggestions, or continue manually.",
+            "timeout": "That took too long. Try again, or continue manually.",
+            "rate_limited": "Too many requests right now. Wait a moment, or continue manually.",
+            "unavailable": "Suggestions aren't available right now. You can continue manually.",
+            "invalid": "We couldn't make sense of that. You can continue manually.",
+            "network": "Couldn't reach PatelRep. Try again, or continue manually."
+          },
+          "restored": "Continuing your unsaved draft."
+        },
+        "voice": {
+          "start": "Speak your request",
+          "stop": "Stop listening",
+          "requesting": "Asking for microphone access…",
+          "listening": "Listening… tap to stop",
+          "processing": "Processing…",
+          "denied": "Microphone or speech access is off. Turn it on in your phone's settings, or type instead.",
+          "nospeech": "We didn't hear anything. Tap the microphone to try again.",
+          "error": "Voice input didn't work. You can type instead.",
+          "done": "Added to your description. Check it before continuing.",
+          "privacy": "Your phone's speech service turns your voice into text. PatelRep doesn't record or save audio."
+        },
+        "review": {
+          "titleAi": "Review new task",
+          "titleManual": "New task",
+          "introAi": "Confirm these details before creating.",
+          "introManual": "Fill in the details, then create the task.",
+          "lowConfidence": "We weren't sure about some details. Please check them.",
+          "extraTasks_one": "Your description mentioned {{count}} more task. Add it separately after this one.",
+          "extraTasks_other": "Your description mentioned {{count}} more tasks. Add them separately after this one.",
+          "create": "Create task",
+          "back": "Back to edit",
+          "fixErrors": "Check the highlighted details."
+        },
+        "field": {
+          "title": "Task title",
+          "titlePlaceholder": "e.g. Deliver two extra pillows",
+          "description": "Description (optional)",
+          "descriptionPlaceholder": "Add any detail that helps",
+          "location": "Location",
+          "locationNone": "No location",
+          "locationRoom": "Room {{room}}",
+          "locationUnverified": "Room {{text}} (not verified)",
+          "locationChoose": "Choose location",
+          "change": "Change",
+          "edit": "Edit",
+          "type": "Task type",
+          "priority": "Priority",
+          "due": "Due (optional)",
+          "dueNone": "No due time",
+          "dueToday": "Today · {{time}}",
+          "dueTomorrow": "Tomorrow · {{time}}",
+          "dueOther": "{{date}} · {{time}}",
+          "dueUnresolved": "Not set — choose a time",
+          "assign": "Assign to me",
+          "assignOn": "It will show up in My Work.",
+          "assignOffHousekeeping": "Anyone on the team can pick it up in Available.",
+          "assignOffOther": "It goes to the team and won't appear in your lists."
+        },
+        "type": {
+          "housekeeping": "Housekeeping",
+          "engineering": "Maintenance",
+          "guest_request": "Guest request",
+          "general": "General"
+        },
+        "priority": {
+          "normal": "Normal",
+          "urgent": "Urgent",
+          "low": "Low",
+          "confirm": "The suggestion was Urgent. Tap a priority to confirm it."
+        },
+        "error": {
+          "title": {
+            "required": "Enter a task title.",
+            "tooLong": "Use {{max}} characters or fewer."
+          },
+          "description": {
+            "tooLong": "Use {{max}} characters or fewer."
+          },
+          "type": {
+            "required": "Choose a task type."
+          },
+          "location": {
+            "unverified": "Room {{text}} couldn't be verified. Choose a room, or use a general location.",
+            "placeRequired": "Enter the location.",
+            "placeTooLong": "Use {{max}} characters or fewer.",
+            "roomRequired": "Choose the guest's room."
+          },
+          "due": {
+            "unresolved": "We couldn't tell when this is due. Set a time or remove it.",
+            "invalid": "Enter a time like 2:00 PM.",
+            "past": "That time has already passed."
+          },
+          "submit": {
+            "rejected": "The task wasn't accepted. Check the details and try again.",
+            "forbidden": "Your role can't create this kind of task.",
+            "unconfirmed": "We couldn't confirm the task was saved. Tap Create task again — it won't be added twice.",
+            "offline": "You're offline. Connect to create the task."
+          }
+        },
+        "room": {
+          "title": "Choose location",
+          "tabRoom": "Room",
+          "tabPlace": "Other place",
+          "search": "Search rooms",
+          "searchA11y": "Search rooms by number",
+          "loading": "Loading rooms…",
+          "loadFailed": "Couldn't load the room list.",
+          "empty": "No room matches “{{query}}”.",
+          "floor": "Floor {{floor}}",
+          "placeLabel": "General location",
+          "placePlaceholder": "e.g. Pool deck, Lobby, Laundry",
+          "usePlace": "Use this location",
+          "remove": "No location",
+          "selectRoom": "Room {{room}}"
+        },
+        "due": {
+          "title": "Due time",
+          "today": "Today",
+          "tomorrow": "Tomorrow",
+          "other": "{{date}}",
+          "time": "Time",
+          "timePlaceholder": "2:00 PM",
+          "clear": "No due time",
+          "done": "Done"
+        },
+        "discard": {
+          "title": "Discard this task?",
+          "body": "What you've entered hasn't been created.",
+          "keep": "Keep editing",
+          "save": "Save draft for later",
+          "discard": "Discard"
+        },
+        "success": {
+          "created": "Task created",
+          "mine": "“{{title}}” was added to My Work.",
+          "pool": "“{{title}}” was added to Available.",
+          "team": "“{{title}}” was sent to the team.",
+          "replayed": "“{{title}}” was already created.",
+          "view": "View task"
+        }
       },
       "sheet": {
         "detailTitle": "Task details",

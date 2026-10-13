@@ -8,7 +8,7 @@ import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { AddTaskSheet } from "@/components/tasks/AddTaskSheet";
+import { AddTaskSheet, type CreatedTask } from "@/components/tasks/AddTaskSheet";
 import { ActivityNotesSheet } from "@/components/tasks/ActivityNotesSheet";
 import { CompleteTaskSheet, type CompletePhase } from "@/components/tasks/CompleteTaskSheet";
 import { TaskDetailSheet } from "@/components/tasks/TaskDetailSheet";
@@ -96,7 +96,8 @@ export function HousekeeperTasksScreen() {
   const [segment, setSegment] = useState<Segment>("mine");
   const [laterOpen, setLaterOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  // `task` is set for a just-created task: the banner then offers "View task" and stays a little longer.
+  const [success, setSuccess] = useState<{ text: string; task?: Task } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   // One sheet at a time: opening another replaces it, so sheets never stack or fight over gestures.
@@ -146,7 +147,7 @@ export function HousekeeperTasksScreen() {
   // A success line clears itself; it never needs dismissing.
   useEffect(() => {
     if (!success) return;
-    const id = setTimeout(() => setSuccess(null), 4000);
+    const id = setTimeout(() => setSuccess(null), success.task ? 8000 : 4000);
     return () => clearTimeout(id);
   }, [success]);
 
@@ -246,7 +247,7 @@ export function HousekeeperTasksScreen() {
 
   const finishCompleted = useCallback(() => {
     closeSheets();
-    setSuccess(t("tasks.hk.msg.completed"));
+    setSuccess({ text: t("tasks.hk.msg.completed") });
   }, [closeSheets, t]);
 
   const confirmComplete = useCallback(async () => {
@@ -396,6 +397,22 @@ export function HousekeeperTasksScreen() {
     );
   };
 
+  /* A task the server just confirmed: re-read the lists (their order and membership are the server's),
+     show the list it actually landed in, and say honestly where it went. */
+  const handleCreated = useCallback(
+    ({ task, replayed, destination }: CreatedTask) => {
+      void queue.refreshAll();
+      if (destination === "mine") setSegment("mine");
+      else if (destination === "pool") setSegment("available");
+      const key = replayed ? "replayed" : destination;
+      setSuccess({
+        text: `${t("tasks.hk.add.success.created")}. ${t(`tasks.hk.add.success.${key}`, { title: task.title })}`,
+        task,
+      });
+    },
+    [queue, t],
+  );
+
   const reload = segment === "mine" ? queue.reloadMine : queue.reloadAvailable;
   const retry = () => {
     void reload();
@@ -457,12 +474,24 @@ export function HousekeeperTasksScreen() {
     </View>
   ) : null;
 
+  const viewCreated = () => {
+    const created = success?.task;
+    if (!created) return;
+    setSuccess(null);
+    openDetails(created);
+  };
+
   const successBanner = success ? (
     <View style={[styles.banner, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]} accessibilityRole="alert" accessibilityLiveRegion="polite" testID="tasks-success">
       <Ionicons name="checkmark-circle" size={16} color={theme.status.clean} />
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerText, { color: theme.status.clean }]}>
-        {success}
+        {success.text}
       </Text>
+      {success.task ? (
+        <Pressable onPress={viewCreated} accessibilityRole="button" accessibilityLabel={t("tasks.hk.add.success.view")} style={styles.bannerRetry} testID="tasks-success-view">
+          <Text style={[styles.bannerRetryText, { color: theme.status.clean }]}>{t("tasks.hk.add.success.view")}</Text>
+        </Pressable>
+      ) : null}
     </View>
   ) : null;
 
@@ -556,8 +585,11 @@ export function HousekeeperTasksScreen() {
       <AddTaskSheet
         visible={addOpen}
         isOnline={isOnline}
+        zone={zone}
+        language={language}
+        viewer={{ id: viewer.userId, tenantId: user?.tenant_id ?? null, role: viewer.role }}
         onClose={() => setAddOpen(false)}
-        onCreated={() => void queue.refreshAll()}
+        onCreated={handleCreated}
       />
     </View>
   );

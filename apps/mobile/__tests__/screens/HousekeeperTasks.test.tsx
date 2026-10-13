@@ -53,7 +53,7 @@ let mockPending: Array<{ type: string }> = [];
 jest.mock("@/stores/appStore", () => ({
   useAppStore: () => ({
     isOnline: mockOnline,
-    user: { id: "me", role: mockRole, language_pref: mockLanguage },
+    user: { id: "me", tenant_id: "hotel-1", role: mockRole, language_pref: mockLanguage },
     hotelTimezone: "America/Chicago",
     pendingActions: mockPending,
     myRooms: [],
@@ -483,38 +483,55 @@ describe("Housekeeper Tasks — loading, errors and refresh", () => {
 });
 
 describe("Housekeeper Tasks — entry points, roles, language, accessibility", () => {
-  it("keeps Add task reachable and opens the existing creation flow", async () => {
-    const { getByLabelText, getByTestId, queryByText } = await ready();
+  it("keeps Add task reachable and opens the Describe step without creating anything", async () => {
+    const { getByLabelText, getByTestId, getByText, queryByText } = await ready();
 
     expect(queryByText("AI Task Briefing")).toBeNull();
     fireEvent.press(getByLabelText("Add task"));
 
     expect(getByTestId("add-task-sheet")).toBeTruthy();
-    expect(getByLabelText("Create task with AI")).toBeTruthy();
+    expect(getByText("What needs to be done?")).toBeTruthy();
+    expect(getByTestId("add-task-input")).toBeTruthy();
+    expect(mockApiPost).not.toHaveBeenCalled();
   });
 
-  it("creates a task from the Add task sheet (parse, review, confirm as an array) and refreshes", async () => {
+  it("creates a task through Describe, Review and Create, then refreshes and offers View task", async () => {
+    const created = row("new1", { title: "Bring crib to 412", task_type: "guest_request", rooms: { room_number: "412", floor: 4 }, assigned_to: "me" });
     mockApiPost.mockImplementation(async (path: string) => {
       if (path === "/ai/copilot/chat") {
-        return { data: { response_type: "task_preview", message: "", tasks: [{ title: "Bring crib to 412", task_type: "guest_request", priority: "normal", room_id: "r412", room_number_display: "412" }] } };
+        return { data: { response_type: "task_preview", message: "", tasks: [{ title: "Bring crib to 412", task_type: "guest_request", priority: "normal", room_id: "r412", room_number_display: "412", confidence: 0.9 }] } };
       }
-      return { data: { created_count: 1, tasks: [] }, meta: { deduplicated: 0 } };
+      if (path === "/tasks") return { data: created, meta: { replayed: false } };
+      throw new Error(`unexpected POST ${path}`);
     });
-    const { getByLabelText, getByPlaceholderText, getByText } = await ready();
+    const { getByLabelText, getByTestId, getByText, findByTestId } = await ready();
     const before = gets("/tasks/mine?");
 
     fireEvent.press(getByLabelText("Add task"));
-    fireEvent.changeText(getByPlaceholderText("Add a task in plain words…"), "crib for 412");
-    fireEvent.press(getByLabelText("Create task with AI"));
-    await waitFor(() => expect(getByText("Bring crib to 412")).toBeTruthy());
-    fireEvent.press(getByText("Create"));
+    fireEvent.changeText(getByTestId("add-task-input"), "crib for 412");
+    fireEvent.press(getByTestId("add-task-continue"));
+    await waitFor(() => expect(getByText("Review new task")).toBeTruthy());
+    expect(mockApiPost).toHaveBeenCalledTimes(1); // parsing only; nothing was created yet
+    fireEvent.press(getByTestId("review-create"));
 
     await waitFor(() =>
-      expect(mockApiPost).toHaveBeenCalledWith("/ai/tasks/confirm", [
-        expect.objectContaining({ title: "Bring crib to 412", room_id: "r412", room_number_display: "412" }),
-      ]),
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/tasks",
+        expect.objectContaining({
+          title: "Bring crib to 412",
+          task_type: "guest_request",
+          room_id: "r412",
+          assigned_to: "me",
+          ai_suggested: true,
+          client_request_id: expect.any(String),
+        }),
+      ),
     );
     await waitFor(() => expect(gets("/tasks/mine?")).toBeGreaterThan(before));
+    expect(await findByTestId("tasks-success")).toBeTruthy();
+    expect(getByText(/Task created\./)).toBeTruthy();
+    fireEvent.press(getByTestId("tasks-success-view"));
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/tasks/new1/activity"));
   });
 
   it("opens Completed History from the header", async () => {

@@ -33256,6 +33256,30 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-13T17:00:00.000Z"
+    },
+    {
+      "id": "bug-2016",
+      "timestamp": "2026-10-13T20:00:00.000Z",
+      "error_message": "Add Task validation let a guest_request with a free-text place through",
+      "file": "apps/mobile/lib/tasks/addTask/draft.ts",
+      "root_cause": "The roomRequired check lived in an else-if after the place branch, so any place location skipped it.",
+      "fix": "Run the guest_request room check after the location branches whenever no earlier location error was set.",
+      "tags": ["mobile", "tasks", "validation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-13T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2017",
+      "timestamp": "2026-10-13T20:10:00.000Z",
+      "error_message": "Rule-engine fast path turned 'Room 318 needs two extra pillows before 2 PM' into a title and dropped the due time; parser prompt used the server's date, not the hotel's",
+      "file": "apps/api/services/ai/task_parser.py",
+      "root_cause": "try_fast_path matched 'room N needs ...' before any time handling; parse_nl_tasks used date.today() and nothing validated the model's due_at.",
+      "fix": "Skip the fast path when a time/day word is present; prompt carries hotel-local date/time/zone; normalize_due_at() re-validates and flags due_unresolved.",
+      "tags": ["api", "ai", "tasks", "timezone"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-13T20:10:00.000Z"
     }
   ]
 }

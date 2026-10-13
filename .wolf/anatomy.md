@@ -736,3 +736,14 @@
 - apps/mobile/lib/tasks/taskActions.ts — primaryAction/canAddNote/conflictReason display rules (~0.6k tok)
 - apps/mobile/lib/tasks/taskDisplay.ts — place/status labels, hotel-day grouping, formatWhen (~0.7k tok)
 - apps/mobile/lib/tasks/useTaskActivity.ts — GET /tasks/{id}/activity hook (~0.6k tok)
+
+## Housekeeper Tasks Phase 4 (Add Task)
+- apps/mobile/components/tasks/AddTaskSheet.tsx — Add Task container: Describe -> Review -> Create in ONE BottomSheet; owns draft/parse/submit/discard state, in-memory draft restore (~3.5k tok)
+- apps/mobile/components/tasks/addTask/DescribeStep.tsx — description input, mic button, voice/AI failure messages, Continue / manual footer (~2k tok)
+- apps/mobile/components/tasks/addTask/ReviewStep.tsx — editable review form (title, location row, type/priority chips, due row, description, assign-to-me), inline errors (~2.5k tok)
+- apps/mobile/components/tasks/addTask/LocationEditor.tsx / DueEditor.tsx / formBits.tsx — room picker (hotel directory only) + place text; due day/time in hotel clock; chips, rows, FieldError (~3k tok)
+- apps/mobile/lib/tasks/addTask/draft.ts — TaskDraft, validateDraft, resolveDue (hotel tz), toCreateInput (single payload for AI + manual) (~2.5k tok)
+- apps/mobile/lib/tasks/addTask/parseRequest.ts — AI adapter (POST /ai/copilot/chat) -> draft; never creates; classifies failures (~1.8k tok)
+- apps/mobile/lib/tasks/addTask/submit.ts — createTask outcome classifier (rejected/forbidden/unconfirmed/offline), taskDestination, useCreateTask double-tap lock (~1k tok)
+- apps/mobile/lib/tasks/addTask/rooms.ts, draftMemory.ts, useVoiceInput.ts — room directory cache/search, per-hotel+user in-memory draft, expo-speech-recognition hook (no audio saved) (~2k tok)
+- apps/api: POST /tasks gains client_request_id (= task id, idempotent) + ai_suggested; GET /rooms/directory; services/ai/task_parser.py normalize_due_at + hotel-zone prompt

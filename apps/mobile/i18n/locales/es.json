@@ -1389,8 +1389,164 @@
       },
       "add": {
         "button": "Agregar tarea",
-        "sheetTitle": "Agregar una tarea",
-        "close": "Cerrar"
+        "sheetTitle": "Agregar tarea",
+        "close": "Cerrar",
+        "describe": {
+          "label": "¿Qué hay que hacer?",
+          "hint": "Describe la solicitud con tus propias palabras.",
+          "placeholder": "La habitación 318 necesita dos almohadas extra antes de las 2 PM.",
+          "inputA11y": "Describe la tarea",
+          "count": "{{count}} de {{max}}",
+          "smartTitle": "Creación inteligente de tareas",
+          "smartBody": "Te sugeriremos los detalles para que los revises antes de guardar.",
+          "continue": "Continuar",
+          "working": "Leyendo tu solicitud…",
+          "manual": "Ingresar los detalles manualmente",
+          "continueManually": "Continuar manualmente",
+          "tryAgain": "Intentar de nuevo",
+          "none": "No encontramos una tarea en eso. Agrega más detalle o continúa manualmente.",
+          "offlineNote": "Sin conexión. Agregar una tarea requiere conexión.",
+          "failed": {
+            "offline": "Sin conexión. Conéctate para recibir sugerencias o continúa manualmente.",
+            "timeout": "Tardó demasiado. Intenta de nuevo o continúa manualmente.",
+            "rate_limited": "Demasiadas solicitudes por ahora. Espera un momento o continúa manualmente.",
+            "unavailable": "Las sugerencias no están disponibles ahora. Puedes continuar manualmente.",
+            "invalid": "No pudimos entender eso. Puedes continuar manualmente.",
+            "network": "No se pudo conectar con PatelRep. Intenta de nuevo o continúa manualmente."
+          },
+          "restored": "Continuando tu borrador sin guardar."
+        },
+        "voice": {
+          "start": "Dicta tu solicitud",
+          "stop": "Dejar de escuchar",
+          "requesting": "Solicitando acceso al micrófono…",
+          "listening": "Escuchando… toca para detener",
+          "processing": "Procesando…",
+          "denied": "El acceso al micrófono o al reconocimiento de voz está desactivado. Actívalo en los ajustes del teléfono o escribe.",
+          "nospeech": "No escuchamos nada. Toca el micrófono para intentar de nuevo.",
+          "error": "La entrada de voz no funcionó. Puedes escribir.",
+          "done": "Se agregó a tu descripción. Revísala antes de continuar.",
+          "privacy": "El servicio de voz de tu teléfono convierte tu voz en texto. PatelRep no graba ni guarda audio."
+        },
+        "review": {
+          "titleAi": "Revisar nueva tarea",
+          "titleManual": "Nueva tarea",
+          "introAi": "Confirma estos detalles antes de crear la tarea.",
+          "introManual": "Completa los detalles y crea la tarea.",
+          "lowConfidence": "No estábamos seguros de algunos detalles. Por favor revísalos.",
+          "extraTasks_one": "Tu descripción mencionó {{count}} tarea más. Agrégala por separado después de esta.",
+          "extraTasks_other": "Tu descripción mencionó {{count}} tareas más. Agrégalas por separado después de esta.",
+          "create": "Crear tarea",
+          "back": "Volver a editar",
+          "fixErrors": "Revisa los detalles marcados."
+        },
+        "field": {
+          "title": "Título de la tarea",
+          "titlePlaceholder": "p. ej., Entregar dos almohadas extra",
+          "description": "Descripción (opcional)",
+          "descriptionPlaceholder": "Agrega cualquier detalle útil",
+          "location": "Ubicación",
+          "locationNone": "Sin ubicación",
+          "locationRoom": "Habitación {{room}}",
+          "locationUnverified": "Habitación {{text}} (sin verificar)",
+          "locationChoose": "Elegir ubicación",
+          "change": "Cambiar",
+          "edit": "Editar",
+          "type": "Tipo de tarea",
+          "priority": "Prioridad",
+          "due": "Vence (opcional)",
+          "dueNone": "Sin hora de vencimiento",
+          "dueToday": "Hoy · {{time}}",
+          "dueTomorrow": "Mañana · {{time}}",
+          "dueOther": "{{date}} · {{time}}",
+          "dueUnresolved": "Sin definir — elige una hora",
+          "assign": "Asignármela",
+          "assignOn": "Aparecerá en Mi trabajo.",
+          "assignOffHousekeeping": "Cualquiera del equipo puede tomarla en Disponibles.",
+          "assignOffOther": "Va al equipo y no aparecerá en tus listas."
+        },
+        "type": {
+          "housekeeping": "Limpieza",
+          "engineering": "Mantenimiento",
+          "guest_request": "Solicitud de huésped",
+          "general": "General"
+        },
+        "priority": {
+          "normal": "Normal",
+          "urgent": "Urgente",
+          "low": "Baja",
+          "confirm": "La sugerencia fue Urgente. Toca una prioridad para confirmarla."
+        },
+        "error": {
+          "title": {
+            "required": "Escribe un título para la tarea.",
+            "tooLong": "Usa {{max}} caracteres o menos."
+          },
+          "description": {
+            "tooLong": "Usa {{max}} caracteres o menos."
+          },
+          "type": {
+            "required": "Elige un tipo de tarea."
+          },
+          "location": {
+            "unverified": "No se pudo verificar la habitación {{text}}. Elige una habitación o usa una ubicación general.",
+            "placeRequired": "Escribe la ubicación.",
+            "placeTooLong": "Usa {{max}} caracteres o menos.",
+            "roomRequired": "Elige la habitación del huésped."
+          },
+          "due": {
+            "unresolved": "No pudimos saber cuándo vence. Define una hora o quítala.",
+            "invalid": "Escribe una hora como 2:00 PM.",
+            "past": "Esa hora ya pasó."
+          },
+          "submit": {
+            "rejected": "No se aceptó la tarea. Revisa los detalles e intenta de nuevo.",
+            "forbidden": "Tu rol no puede crear este tipo de tarea.",
+            "unconfirmed": "No pudimos confirmar que la tarea se guardó. Toca Crear tarea de nuevo; no se agregará dos veces.",
+            "offline": "Sin conexión. Conéctate para crear la tarea."
+          }
+        },
+        "room": {
+          "title": "Elegir ubicación",
+          "tabRoom": "Habitación",
+          "tabPlace": "Otro lugar",
+          "search": "Buscar habitaciones",
+          "searchA11y": "Buscar habitaciones por número",
+          "loading": "Cargando habitaciones…",
+          "loadFailed": "No se pudo cargar la lista de habitaciones.",
+          "empty": "Ninguna habitación coincide con “{{query}}”.",
+          "floor": "Piso {{floor}}",
+          "placeLabel": "Ubicación general",
+          "placePlaceholder": "p. ej., Piscina, Lobby, Lavandería",
+          "usePlace": "Usar esta ubicación",
+          "remove": "Sin ubicación",
+          "selectRoom": "Habitación {{room}}"
+        },
+        "due": {
+          "title": "Hora de vencimiento",
+          "today": "Hoy",
+          "tomorrow": "Mañana",
+          "other": "{{date}}",
+          "time": "Hora",
+          "timePlaceholder": "2:00 PM",
+          "clear": "Sin hora de vencimiento",
+          "done": "Listo"
+        },
+        "discard": {
+          "title": "¿Descartar esta tarea?",
+          "body": "Lo que ingresaste aún no se ha creado.",
+          "keep": "Seguir editando",
+          "save": "Guardar borrador para después",
+          "discard": "Descartar"
+        },
+        "success": {
+          "created": "Tarea creada",
+          "mine": "“{{title}}” se agregó a Mi trabajo.",
+          "pool": "“{{title}}” se agregó a Disponibles.",
+          "team": "“{{title}}” se envió al equipo.",
+          "replayed": "“{{title}}” ya estaba creada.",
+          "view": "Ver tarea"
+        }
       },
       "sheet": {
         "detailTitle": "Detalles de la tarea",
