@@ -7,12 +7,18 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
-import { getTaskRoomNumber, type TaskBucket, type TaskQueueEntry } from "@/lib/ai/tasks";
+import {
+  getTaskLocationText,
+  getTaskRoomNumber,
+  isGuestTask,
+  type TaskBucket,
+  type TaskQueueEntry,
+} from "@/lib/ai/tasks";
 
 /* ─── Task card — Evening Lobby work card for the Tasks tab ─────────────────
    Mirrors the room-card language: left urgency rail, identity tile, big
    readable title, quiet meta chips. Priority chips only appear when they
-   change behavior (urgent/high); "normal" stays silent. */
+   change behavior (urgent); "normal" stays silent. */
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -74,9 +80,10 @@ export function TaskCard({
   const typeKey = TYPE_META[rawType] ? rawType : "general";
   const type = TYPE_META[typeKey];
   const room = getTaskRoomNumber(task);
+  const location = getTaskLocationText(task);
   const priority = (task.priority ?? "normal").toLowerCase();
-  const isUrgent = priority === "urgent" || priority === "high";
-  const isGuest = task.source === "guest" || task.task_type === "guest_request";
+  const isUrgent = priority === "urgent";
+  const isGuest = isGuestTask(task);
   const inProgress = task.status === "in_progress";
   const dueLabel = formatClock(task.due_at, locale);
 
@@ -110,7 +117,7 @@ export function TaskCard({
               <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={2}>
                 {task.title}
               </Text>
-              {task.ai_suggested ? (
+              {task.is_ai_created ? (
                 <View style={[styles.aiTag, { backgroundColor: theme.ai.soft, borderColor: theme.ai.line }]}>
                   <Ionicons name="sparkles" size={8} color={theme.ai.primary} />
                   <Text style={[styles.aiTagText, { color: theme.ai.primary }]}>AI</Text>
@@ -131,6 +138,14 @@ export function TaskCard({
                 <View style={styles.roomChip}>
                   <Ionicons name="bed-outline" size={10} color={theme.textSecondary} />
                   <Text style={[styles.roomChipText, { color: theme.textSecondary }]}>{room}</Text>
+                </View>
+              ) : null}
+              {!room && location ? (
+                <View style={styles.roomChip} accessible accessibilityLabel={t("tasks.locationLabel", { place: location })}>
+                  <Ionicons name="location-outline" size={10} color={theme.textSecondary} />
+                  <Text style={[styles.locationChipText, { color: theme.textSecondary }]} numberOfLines={1}>
+                    {location}
+                  </Text>
                 </View>
               ) : null}
               {isGuest ? (
@@ -239,6 +254,7 @@ const styles = StyleSheet.create({
   overdueBadge: { marginLeft: "auto" },
   roomChip: { flexDirection: "row", alignItems: "center", gap: 3 },
   roomChipText: { fontSize: 12, fontWeight: "700", fontFamily: monoFont },
+  locationChipText: { fontSize: 12, fontWeight: "600", maxWidth: 140 },
   guestChip: { flexDirection: "row", alignItems: "center", gap: 3 },
   guestChipText: { fontSize: 11.5, fontWeight: "700" },
   dueRow: { flexDirection: "row", alignItems: "center", gap: 3, marginLeft: "auto" },

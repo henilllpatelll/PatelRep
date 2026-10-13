@@ -8,8 +8,11 @@ from models.requests import (
     UpdateTaskScheduleRequest,
 )
 from core.database import supabase
-from core.roles import MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
+from core.roles import ASSIGNMENT_BOUND_ROLES, MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
 from datetime import datetime, timedelta, timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -34,6 +37,42 @@ TASK_UPDATE_COLUMNS = {
     "cancelled_at",
     "escalated_at",
 }
+def _record_task_audit(current_user: CurrentUser, task: dict, action: str, new_state: dict) -> None:
+    """Append-only operational audit row for a task lifecycle transition (same table and
+    columns as routers/programs.py). Written after the transition committed; a failed
+    audit write is logged loudly but never turns a committed transition into an error."""
+    try:
+        supabase.table("operational_audit_events").insert(
+            {
+                "tenant_id": current_user.hotel_id,
+                "resource_type": "task",
+                "resource_id": task["id"],
+                "action": action,
+                "actor_id": current_user.user_id,
+                "actor_role": current_user.role,
+                "old_state": {"status": task.get("status"), "assigned_to": task.get("assigned_to")},
+                "new_state": new_state,
+                "source": "api",
+            }
+        ).execute()
+    except Exception:  # noqa: BLE001 - audit must not mask the committed transition
+        logger.error("TASK_AUDIT_WRITE_FAILED task=%s action=%s", task.get("id"), action, exc_info=True)
+
+
+def _assignment_bound_may_access(task: dict, user_id: str) -> bool:
+    """Same visibility the list/workspace queries give a housekeeper: tasks assigned to
+    them, created by them, or sitting in the open housekeeping pool."""
+    return bool(
+        task.get("assigned_to") == user_id
+        or task.get("created_by") == user_id
+        or (
+            task.get("assigned_to") is None
+            and task.get("status") == "open"
+            and task.get("task_type") == "housekeeping"
+        )
+    )
+
+
 def _attach_profiles(tasks: list[dict], hotel_id: str) -> list[dict]:
     """Batch-resolve assigned_to/assigned_by/created_by into display names.
 
@@ -406,6 +445,10 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Task not found")
+    if current_user.role in ASSIGNMENT_BOUND_ROLES and not _assignment_bound_may_access(
+        result.data[0], current_user.user_id
+    ):
+        raise HTTPException(status_code=404, detail="Task not found")
     task = _attach_profiles(result.data, current_user.hotel_id)[0]
     return {"data": _attach_comment_profiles(task, current_user.hotel_id)}
 
@@ -422,7 +465,7 @@ async def claim_task(
     """
     task_check = (
         supabase.table("tasks")
-        .select("id, status, assigned_to, task_type")
+        .select("*, rooms(room_number, floor)")
         .eq("id", task_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -430,9 +473,14 @@ async def claim_task(
     )
     if not task_check or not task_check.data:
         raise HTTPException(status_code=404, detail="Task not found")
-    if task_check.data["task_type"] != "housekeeping":
+    existing = task_check.data
+    if existing["task_type"] != "housekeeping":
         raise HTTPException(status_code=403, detail="Only housekeeping tasks can be claimed")
-    if task_check.data["status"] != "open" or task_check.data["assigned_to"] is not None:
+    if existing["assigned_to"] == current_user.user_id and existing["status"] == "in_progress":
+        # Replay of a claim this housekeeper already won (e.g. a retry after a dropped
+        # response): no second write, same authoritative task.
+        return {"data": _attach_profiles([existing], current_user.hotel_id)[0], "meta": {"replayed": True}}
+    if existing["status"] != "open" or existing["assigned_to"] is not None:
         raise HTTPException(status_code=409, detail="Task is no longer open for claiming")
 
     result = (
@@ -454,7 +502,14 @@ async def claim_task(
     task = result.data[0] if result.data else None
     if not task:
         raise HTTPException(status_code=409, detail="Task was just claimed by someone else")
-    return {"data": _attach_profiles([task], current_user.hotel_id)[0]}
+    task["rooms"] = existing.get("rooms")
+    _record_task_audit(
+        current_user,
+        existing,
+        "task.claimed",
+        {"status": "in_progress", "assigned_to": current_user.user_id},
+    )
+    return {"data": _attach_profiles([task], current_user.hotel_id)[0], "meta": {"replayed": False}}
 
 
 @router.patch("/{task_id}")
@@ -559,13 +614,17 @@ async def add_task_comment(
 ):
     task = (
         supabase.table("tasks")
-        .select("id")
+        .select("id, status, task_type, assigned_to, created_by")
         .eq("id", task_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
         .execute()
     )
     if not task.data:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if current_user.role in ASSIGNMENT_BOUND_ROLES and not _assignment_bound_may_access(
+        task.data, current_user.user_id
+    ):
         raise HTTPException(status_code=404, detail="Task not found")
 
     result = (

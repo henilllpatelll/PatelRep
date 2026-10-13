@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,18 +14,18 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
 import { TaskCard } from "@/components/tasks/TaskCard";
+import { completeTask, loadWorkQueue } from "@/lib/api/tasks";
 import {
   buildTaskBriefing,
   buildTaskQueue,
   claimTask,
-  confirmAITask,
+  confirmAITasks,
   parseTaskWithAI,
   type Task,
   type TaskBucket,
@@ -39,8 +39,10 @@ const BUCKET_TITLES: Record<TaskBucket, string> = {
   today: "tasks.groupToday",
 };
 
-function unwrapTasks(response: { data?: Task[] } | Task[]): Task[] {
-  return Array.isArray(response) ? response : response.data ?? [];
+/** HTTP status of an ApiError without importing the class (keeps this screen mock-friendly). */
+function errorStatus(error: unknown): number | null {
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status === "number" ? status : null;
 }
 
 function dayLabel(locale: string) {
@@ -54,30 +56,44 @@ export default function TasksScreen() {
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es-MX" : "en-US";
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadStatus, setLoadStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [listTruncated, setListTruncated] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoaded = useRef(false);
+  const creatingRef = useRef(false);
+  const includePool = user?.role === "housekeeper";
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
-  const [claimMessage, setClaimMessage] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [doneToday, setDoneToday] = useState(0);
 
   // AI composer state
   const [composerText, setComposerText] = useState("");
   const [aiParsing, setAiParsing] = useState(false);
-  const [aiPreview, setAiPreview] = useState<TaskPreview | null>(null);
+  const [aiPreviews, setAiPreviews] = useState<TaskPreview[]>([]);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [aiCreating, setAiCreating] = useState(false);
 
+  // Server-authoritative queue (My Work + the Available pool for housekeepers). A failed load
+  // is an error, never an empty list; a failed *refresh* keeps the last good data on screen.
   const loadTasks = useCallback(async () => {
     try {
-      const response = await api.get<{ data: Task[] } | Task[]>("/tasks?my_tasks=true");
-      setTasks(unwrapTasks(response));
+      const queue = await loadWorkQueue({ includeAvailable: includePool });
+      setTasks(queue.tasks);
+      setListTruncated(queue.truncated);
+      setRefreshFailed(false);
+      setLoadStatus("ready");
+      hasLoaded.current = true;
     } catch {
-      setTasks([]);
+      if (hasLoaded.current) {
+        setRefreshFailed(true);
+      } else {
+        setLoadStatus("error");
+      }
     }
-    setLoading(false);
-  }, []);
+  }, [includePool]);
 
   useEffect(() => {
     void loadTasks();
@@ -89,20 +105,31 @@ export default function TasksScreen() {
     setRefreshing(false);
   }, [loadTasks]);
 
-  const completeTask = useCallback(
-    (taskId: string) => {
+  const retryLoad = useCallback(() => {
+    setLoadStatus("loading");
+    void loadTasks();
+  }, [loadTasks]);
+
+  // The task leaves the list only after the server confirms the completion. On any failure it
+  // stays put with a message; a 404/409 means its state changed elsewhere, so re-sync too.
+  const completeTaskById = useCallback(
+    async (taskId: string) => {
       setConfirmingId(null);
       setBusyId(taskId);
-      api
-        .patch(`/tasks/${taskId}`, { status: "completed", completed_at: new Date().toISOString() })
-        .then(() => {
-          setTasks((prev) => prev.filter((task) => task.id !== taskId));
-          setDoneToday((count) => count + 1);
-        })
-        .catch(() => {})
-        .finally(() => setBusyId(null));
+      setActionMessage(null);
+      try {
+        const { replayed } = await completeTask(taskId);
+        setTasks((prev) => prev.filter((task) => task.id !== taskId));
+        if (!replayed) setDoneToday((count) => count + 1);
+      } catch (error) {
+        setActionMessage(t("tasks.completeFailed"));
+        const status = errorStatus(error);
+        if (status === 404 || status === 409) void loadTasks();
+      } finally {
+        setBusyId(null);
+      }
     },
-    [],
+    [loadTasks, t],
   );
 
   // Claiming an open, unassigned housekeeping task self-assigns and starts it in
@@ -111,13 +138,13 @@ export default function TasksScreen() {
   const claimTaskById = useCallback(
     (taskId: string) => {
       setClaimingId(taskId);
-      setClaimMessage(null);
+      setActionMessage(null);
       claimTask(taskId)
-        .then((claimed) => {
-          if (claimed) setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...claimed } : task)));
+        .then(({ task: claimed }) => {
+          setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...claimed } : task)));
         })
         .catch(() => {
-          setClaimMessage(t("tasks.claimFailed"));
+          setActionMessage(t("tasks.claimFailed"));
           void loadTasks();
         })
         .finally(() => setClaimingId(null));
@@ -130,14 +157,14 @@ export default function TasksScreen() {
     if (!text || aiParsing) return;
     setAiParsing(true);
     setAiMessage(null);
-    setAiPreview(null);
+    setAiPreviews([]);
     try {
-      const response = await parseTaskWithAI(text);
-      if (response.task_preview) {
-        setAiPreview(response.task_preview);
+      const parsed = await parseTaskWithAI(text);
+      if (parsed.previews.length > 0) {
+        setAiPreviews(parsed.previews);
         setComposerText("");
       } else {
-        setAiMessage(response.message || t("tasks.aiNoTask"));
+        setAiMessage(parsed.message || t("tasks.aiNoTask"));
       }
     } catch {
       setAiMessage(t("tasks.aiUnavailable"));
@@ -146,20 +173,24 @@ export default function TasksScreen() {
     }
   }, [composerText, aiParsing, t]);
 
-  const createFromPreview = useCallback(async () => {
-    if (!aiPreview || aiCreating) return;
+  const createFromPreviews = useCallback(async () => {
+    // Synchronous lock: two quick taps must not send two creates (state updates are async).
+    if (aiPreviews.length === 0 || creatingRef.current) return;
+    creatingRef.current = true;
     setAiCreating(true);
     try {
-      await confirmAITask(aiPreview);
-      setAiPreview(null);
+      await confirmAITasks(aiPreviews);
+      setAiPreviews([]);
       setAiMessage(t("tasks.aiCreated"));
       await loadTasks();
-    } catch {
-      setAiMessage(t("tasks.aiUnavailable"));
+    } catch (error) {
+      const status = errorStatus(error);
+      setAiMessage(status !== null && status >= 400 && status < 500 ? t("tasks.aiRejected") : t("tasks.aiUnavailable"));
     } finally {
+      creatingRef.current = false;
       setAiCreating(false);
     }
-  }, [aiPreview, aiCreating, loadTasks, t]);
+  }, [aiPreviews, loadTasks, t]);
 
   const queue = useMemo(() => buildTaskQueue(tasks), [tasks]);
   const briefing = useMemo(() => buildTaskBriefing(queue, t), [queue, t]);
@@ -172,10 +203,23 @@ export default function TasksScreen() {
       .filter((section) => section.entries.length > 0);
   }, [queue]);
 
-  if (loading) {
+  if (loadStatus === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <StateBlock status="loading" />
+      </View>
+    );
+  }
+
+  if (loadStatus === "error") {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <StateBlock
+          status="error"
+          errorMessage={t("tasks.loadFailed")}
+          onRetry={retryLoad}
+          retryLabel={t("common.retry")}
+        />
       </View>
     );
   }
@@ -207,8 +251,15 @@ export default function TasksScreen() {
             ) : null}
           </View>
         </View>
-        {claimMessage ? (
-          <Text style={[styles.claimMessage, { color: theme.status.dirty }]}>{claimMessage}</Text>
+        {actionMessage ? (
+          <Text style={[styles.claimMessage, { color: theme.status.dirty }]} accessibilityRole="alert">
+            {actionMessage}
+          </Text>
+        ) : null}
+        {refreshFailed || listTruncated ? (
+          <Text style={[styles.claimMessage, { color: theme.status.pickup }]} accessibilityRole="alert">
+            {refreshFailed ? t("tasks.refreshFailed") : t("tasks.listIncomplete")}
+          </Text>
         ) : null}
       </View>
 
@@ -249,7 +300,7 @@ export default function TasksScreen() {
                     claimable={entry.task.task_type === "housekeeping" && !entry.task.assigned_to}
                     claiming={claimingId === entry.task.id}
                     onRequestComplete={() => setConfirmingId(entry.task.id)}
-                    onConfirm={() => completeTask(entry.task.id)}
+                    onConfirm={() => void completeTaskById(entry.task.id)}
                     onCancel={() => setConfirmingId(null)}
                     onClaim={() => claimTaskById(entry.task.id)}
                   />
@@ -267,7 +318,7 @@ export default function TasksScreen() {
           { paddingBottom: insets.bottom + 10, borderTopColor: theme.shell.line, backgroundColor: theme.shell.bg },
         ]}
       >
-        {aiPreview ? (
+        {aiPreviews.length > 0 ? (
           <View
             style={[styles.previewCard, { backgroundColor: theme.shell.surface, borderColor: theme.ai.line }]}
             testID="ai-task-preview"
@@ -276,16 +327,22 @@ export default function TasksScreen() {
               <Ionicons name="sparkles" size={12} color={theme.ai.primary} />
               <Text style={[styles.previewLabel, { color: theme.ai.primary }]}>{t("tasks.aiPreviewLabel")}</Text>
             </View>
-            <Text style={[styles.previewTitle, { color: theme.shell.ink }]}>{aiPreview.title}</Text>
-            <View style={styles.previewMetaRow}>
-              {aiPreview.room_number ? (
-                <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>
-                  {t("tasks.roomLabel", { room: aiPreview.room_number })}
-                </Text>
-              ) : null}
-              <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{aiPreview.priority?.toUpperCase()}</Text>
-              <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{aiPreview.task_type}</Text>
-            </View>
+            {aiPreviews.map((preview, index) => (
+              <View key={`${preview.title}-${index}`} style={styles.previewItem}>
+                <Text style={[styles.previewTitle, { color: theme.shell.ink }]}>{preview.title}</Text>
+                <View style={styles.previewMetaRow}>
+                  {preview.room_number_display ? (
+                    <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>
+                      {preview.room_id
+                        ? t("tasks.roomLabel", { room: preview.room_number_display })
+                        : t("tasks.locationLabel", { place: preview.room_number_display })}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{preview.priority.toUpperCase()}</Text>
+                  <Text style={[styles.previewMeta, { color: theme.shell.ink2 }]}>{preview.task_type}</Text>
+                </View>
+              </View>
+            ))}
             <View style={styles.previewActions}>
               <TouchableOpacity
                 style={[
@@ -293,7 +350,7 @@ export default function TasksScreen() {
                   { backgroundColor: theme.primaryAction },
                   aiCreating && styles.btnDisabled,
                 ]}
-                onPress={() => void createFromPreview()}
+                onPress={() => void createFromPreviews()}
                 disabled={aiCreating}
                 activeOpacity={0.85}
                 accessibilityRole="button"
@@ -308,7 +365,7 @@ export default function TasksScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.previewDismissBtn, { borderColor: theme.shell.line }]}
-                onPress={() => setAiPreview(null)}
+                onPress={() => setAiPreviews([])}
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel={t("copilot.dismiss")}
@@ -422,6 +479,7 @@ const styles = StyleSheet.create({
   },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
   previewLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  previewItem: { gap: 4 },
   previewTitle: { fontSize: 14.5, fontWeight: "700" },
   previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   previewMeta: { fontSize: 11.5, fontFamily: monoFont },

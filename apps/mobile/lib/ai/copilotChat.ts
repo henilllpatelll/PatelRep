@@ -35,7 +35,9 @@ export function sendCopilotMessage(text: string, role: string | null | undefined
 }
 
 export function confirmTask(preview: TaskPreview): Promise<unknown> {
-  return api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
+  // POST /ai/tasks/confirm takes a JSON array of previews; a bare object is a 422.
+  const { room_number, ...rest } = preview;
+  return api.post("/ai/tasks/confirm", [{ ...rest, ...(room_number ? { room_number_display: room_number } : {}) }]);
 }
 
 export function confirmWorkOrder(preview: WorkOrderPreview): Promise<unknown> {

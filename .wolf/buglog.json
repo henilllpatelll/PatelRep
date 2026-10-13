@@ -33127,6 +33127,86 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-09T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2008",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "Housekeeper task completion always failed: mobile PATCHed /tasks/{id} status=completed (403 for non-managers) and swallowed the error",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Generic PATCH status updates are manager-only; the screen had .catch(() => {}) so failures looked like nothing happened (and queued offline completions retried the same 403 forever).",
+      "fix": "Added POST /tasks/{id}/complete (assignee or manager, replay-safe, server timestamp); screen/offline queue use it; failures keep the task and show a message.",
+      "tags": [
+        "tasks",
+        "rbac",
+        "mobile",
+        "silent-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2009",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "GET /tasks?my_tasks=true ignored by backend; default 20/page truncated active work; load failure rendered as an empty queue",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "my_tasks is not a query param; list is paginated newest-first; catch set tasks to [].",
+      "fix": "New server-authoritative /tasks/mine, /tasks/available, /tasks/mine/completed with cursors; screen shows error+retry and keeps last good data.",
+      "tags": [
+        "tasks",
+        "pagination",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2010",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "POST /ai/tasks/confirm 422 from mobile (single object vs list[TaskPreview]); chat preview read from non-existent task_preview key",
+      "file": "apps/mobile/lib/ai/tasks.ts",
+      "root_cause": "Backend takes a JSON array and returns {data:{tasks:[...]}}; mobile sent {...preview, use_ai} and read response.task_preview.",
+      "fix": "Mobile parses data.tasks and posts an array; server validates due_at, verifies rooms, persists assignee, dedupes resubmits.",
+      "tags": [
+        "ai",
+        "contract",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2011",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "confirm_tasks validated assigned_to permission but never saved it; unresolved room number was silently dropped",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "assigned_to was missing from the inserted row; _resolve_room_id None discarded the text.",
+      "fix": "Persist assignee (tenant-validated) and keep unresolved room text as location_text.",
+      "tags": [
+        "ai",
+        "tasks"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2012",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "GET /tasks/{id} and POST comments let a housekeeper read/comment on any tenant task",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "List queries scoped housekeepers; detail and comments did not.",
+      "fix": "Apply the same assigned/created/open-pool visibility to detail and comments (404 otherwise).",
+      "tags": [
+        "tasks",
+        "rbac",
+        "tenant"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
     }
   ]
 }

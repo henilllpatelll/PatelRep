@@ -214,7 +214,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       try {
         if (action.type === "task_complete") {
-          await api.patch(`/tasks/${action.entityId}`, { status: "completed", ...action.payload });
+          // Dedicated completion verb: housekeepers can't PATCH status, and the server owns
+          // the completion time (a queued client timestamp is intentionally not sent).
+          const note = typeof action.payload?.note === "string" ? action.payload.note : undefined;
+          await api.post(`/tasks/${action.entityId}/complete`, note ? { note } : {});
         } else if (action.type === "room_status") {
           await api.patch(`/rooms/${action.entityId}/status`, action.payload);
         } else if (action.type === "work_order_update") {

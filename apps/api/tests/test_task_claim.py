@@ -22,6 +22,10 @@ class _FakeQuery:
         self.calls.append(("select", args, kwargs))
         return self
 
+    def insert(self, payload):
+        self.insert_payload = payload
+        return self
+
     def update(self, payload):
         self.update_payload = payload
         self.calls.append(("update", payload))
@@ -65,12 +69,15 @@ class _ClaimDatabase:
     def __init__(self, check_rows, update_rows):
         self._tasks_queries = [_FakeQuery(check_rows), _FakeQuery(update_rows)]
         self.profiles_query = _FakeQuery([])
+        self.audit_query = _FakeQuery([])
 
     def table(self, name):
         if name == "tasks":
             return self._tasks_queries.pop(0)
         if name == "user_profiles":
             return self.profiles_query
+        if name == "operational_audit_events":
+            return self.audit_query
         raise AssertionError(f"unexpected table {name}")
 
 
@@ -183,3 +190,38 @@ async def test_housekeeper_task_list_includes_the_open_housekeeping_broadcast_po
     assert "assigned_to.eq.hk-1" in database.query.or_arg
     assert "created_by.eq.hk-1" in database.query.or_arg
     assert "and(assigned_to.is.null,status.eq.open,task_type.eq.housekeeping)" in database.query.or_arg
+
+
+@pytest.mark.asyncio
+async def test_claim_is_audited_and_returns_the_room_join(monkeypatch):
+    database = _ClaimDatabase(
+        check_rows={
+            "id": "task-1", "status": "open", "assigned_to": None, "task_type": "housekeeping",
+            "rooms": {"room_number": "214", "floor": 2},
+        },
+        update_rows=[{"id": "task-1", "status": "in_progress", "assigned_to": "hk-1", "task_type": "housekeeping"}],
+    )
+    monkeypatch.setattr(tasks_router, "supabase", database)
+
+    response = await tasks_router.claim_task("task-1", _housekeeper())
+
+    assert response["data"]["rooms"] == {"room_number": "214", "floor": 2}
+    assert response["meta"] == {"replayed": False}
+    assert database.audit_query.insert_payload["action"] == "task.claimed"
+    assert database.audit_query.insert_payload["resource_id"] == "task-1"
+
+
+@pytest.mark.asyncio
+async def test_repeated_claim_by_the_winner_is_a_no_write_replay(monkeypatch):
+    database = _ClaimDatabase(
+        check_rows={"id": "task-1", "status": "in_progress", "assigned_to": "hk-1", "task_type": "housekeeping"},
+        update_rows=[],
+    )
+    update_query = database._tasks_queries[1]
+    monkeypatch.setattr(tasks_router, "supabase", database)
+
+    response = await tasks_router.claim_task("task-1", _housekeeper())
+
+    assert response["data"]["assigned_to"] == "hk-1"
+    assert response["meta"] == {"replayed": True}
+    assert update_query.update_payload is None  # never reached the conditional update

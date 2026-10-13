@@ -19,6 +19,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
   mockApi.patch.mockResolvedValue({});
+  mockApi.post.mockResolvedValue({});
   useAppStore.setState({ pendingActions: [], isOnline: false });
   setManagedRooms([]);
   registerSessionFlush(null);
@@ -57,7 +58,7 @@ describe("offline queue vs. clean sessions", () => {
       order.push("sessions");
     });
     await queue("task_complete", "task-1", {});
-    mockApi.patch.mockImplementation(async () => {
+    mockApi.post.mockImplementation(async () => {
       order.push("queue");
       return {};
     });
@@ -66,5 +67,24 @@ describe("offline queue vs. clean sessions", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(order).toEqual(["sessions", "queue"]);
+  });
+
+  it("replays a queued task completion through the dedicated complete endpoint", async () => {
+    await queue("task_complete", "task-1", { completed_at: "2026-01-01T00:00:00Z", note: "all done" });
+
+    await useAppStore.getState().flushQueue();
+
+    expect(mockApi.post).toHaveBeenCalledWith("/tasks/task-1/complete", { note: "all done" });
+    expect(mockApi.patch).not.toHaveBeenCalled();
+    expect(useAppStore.getState().pendingActions).toEqual([]);
+  });
+
+  it("keeps a queued task completion when the server refuses it", async () => {
+    mockApi.post.mockRejectedValueOnce(new Error("HTTP 403"));
+    await queue("task_complete", "task-1", {});
+
+    await useAppStore.getState().flushQueue();
+
+    expect(useAppStore.getState().pendingActions.map((a) => a.entityId)).toEqual(["task-1"]);
   });
 });

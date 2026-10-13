@@ -717,3 +717,8 @@
 - `components/housekeeping/KnockModal.tsx` — knock protocol: per-step acknowledgement, restricted stop notice, cancel, can't-enter hand-off. (~1.5k tok)
 - `supabase/migrations/208_clean_session_linen_counts.sql` — nullable jsonb room_clean_sessions.linen_counts. (~0.2k tok)
 - `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist. (~1k tok)
+
+## apps/api/routers/ (Housekeeper Tasks Phase 1)
+- `task_lifecycle.py` - GET /tasks/mine|available|mine/completed (cursor, deterministic sort), POST /tasks/{id}/start|complete (replay-safe, audited). Include before tasks.router. (~4k tok)
+## apps/mobile/lib/api/
+- `tasks.ts` - Task model + normalizeTask, fetchMyWork/Available/CompletedPage/Task, start/claim/complete, addTaskComment, createTasks (array body). (~3k tok)

@@ -22,6 +22,7 @@ from routers import (
     clean_sessions,
     shifts,
     tasks,
+    task_lifecycle,
     work_orders,
     assets,
     ai_copilot,
@@ -329,6 +330,8 @@ app.include_router(housekeeping.router, prefix=PREFIX)
 app.include_router(cleaning_checklists.router, prefix=PREFIX)
 app.include_router(clean_sessions.router, prefix=PREFIX)
 app.include_router(shifts.router, prefix=PREFIX)
+# task_lifecycle owns static /tasks/mine and /tasks/available and must precede tasks.router's GET /tasks/{task_id}
+app.include_router(task_lifecycle.router, prefix=PREFIX)
 app.include_router(tasks.router, prefix=PREFIX)
 app.include_router(work_orders.router, prefix=PREFIX)
 app.include_router(assets.router, prefix=PREFIX)

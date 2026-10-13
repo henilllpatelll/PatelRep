@@ -769,35 +769,93 @@ async def gm_shift_briefing(
         raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
 
 
+DUPLICATE_TASK_WINDOW_SECONDS = 120
+
+
+def _find_recent_duplicate_task(
+    hotel_id: str, user_id: str, title: str, task_type: str, room_id: Optional[str], now
+) -> Optional[dict]:
+    """A task this user already created from an identical preview in the last couple of
+    minutes — a double-tap or a client retry after a dropped response, not a new request."""
+    since = (now - timedelta(seconds=DUPLICATE_TASK_WINDOW_SECONDS)).isoformat()
+    rows = (
+        supabase.table("tasks").select("*")
+        .eq("tenant_id", hotel_id)
+        .eq("created_by", user_id)
+        .eq("title", title)
+        .eq("task_type", task_type)
+        .eq("is_ai_created", True)
+        .neq("status", "cancelled")
+        .gte("created_at", since)
+        .execute()
+    ).data or []
+    for row in rows:
+        if (row.get("room_id") or None) == room_id:
+            return row
+    return None
+
+
 @router.post("/tasks/confirm")
 async def confirm_tasks(
     tasks: list[TaskPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    from datetime import datetime, timedelta, timezone
+    """Create the tasks from reviewed AI previews. Body: a JSON **array** of TaskPreview.
+
+    * A room is only linked when it is verified in this hotel: ``room_id`` must belong to the
+      tenant, or ``room_number_display`` must resolve to one. An unresolvable room number is
+      kept as plain ``location_text`` and is never treated as a verified room.
+    * ``assigned_to`` (when given) must be an active staff member of this hotel and, for
+      someone other than the caller, passes the reassign policy.
+    * Identical previews already created by the caller within the last two minutes are
+      returned instead of duplicated (``meta.deduplicated``).
+    """
     SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
+    if not tasks:
+        raise HTTPException(status_code=422, detail="At least one task is required")
+    if len(tasks) > 20:
+        raise HTTPException(status_code=422, detail="Too many tasks in one request")
     for task in tasks:
         assigned_to = str(task.assigned_to) if task.assigned_to else None
         if assigned_to and assigned_to != current_user.user_id:
             permitted, reason = check_action_permitted("reassign_other_staff_task", current_user.role)
             if not permitted:
                 raise HTTPException(status_code=403, detail=reason)
-    created = []
+
+    # Validate every preview before the first write so a bad item never leaves a partial batch.
+    prepared = []
     for task in tasks:
         room_id = str(task.room_id) if task.room_id else None
-        # Resolve room_id from display number when client fast path omits it
-        if not room_id and task.room_number_display:
-            room_id = _resolve_room_id(current_user.hotel_id, task.room_number_display)
+        location_text = None
         if room_id:
-            room_check = supabase.table("rooms").select("id")\
-                .eq("id", room_id)\
-                .eq("tenant_id", current_user.hotel_id)\
-                .maybe_single().execute()
+            room_check = supabase.table("rooms").select("id")                .eq("id", room_id)                .eq("tenant_id", current_user.hotel_id)                .maybe_single().execute()
             if not (room_check and room_check.data):
                 raise HTTPException(status_code=400, detail="Room not found in your hotel")
+        elif task.room_number_display:
+            room_id = _resolve_room_id(current_user.hotel_id, task.room_number_display)
+            if not room_id:
+                location_text = task.room_number_display
+        assigned_to = str(task.assigned_to) if task.assigned_to else None
+        if assigned_to:
+            staff_check = supabase.table("user_roles").select("id")                .eq("user_id", assigned_to)                .eq("tenant_id", current_user.hotel_id)                .eq("is_active", True)                .limit(1).execute()
+            if not staff_check.data:
+                raise HTTPException(status_code=400, detail="Assignee not found in your hotel")
+        prepared.append((task, room_id, location_text, assigned_to))
+
+    created = []
+    deduplicated = 0
+    now = datetime.now(timezone.utc)
+    for task, room_id, location_text, assigned_to in prepared:
+        duplicate = _find_recent_duplicate_task(
+            current_user.hotel_id, current_user.user_id, task.title, task.task_type, room_id, now
+        )
+        if duplicate:
+            deduplicated += 1
+            created.append(duplicate)
+            continue
         priority = task.priority
         sla = SLA_MINUTES.get(priority, 240)
-        due_at = task.due_at or (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat()
+        due_at = task.due_at or (now + timedelta(minutes=sla)).isoformat()
         row = {
             "tenant_id": current_user.hotel_id,
             "title": task.title,
@@ -805,15 +863,22 @@ async def confirm_tasks(
             "task_type": task.task_type,
             "priority": priority,
             "room_id": room_id,
+            "location_text": location_text,
             "due_at": due_at,
             "sla_minutes": sla,
             "created_by": current_user.user_id,
             "is_ai_created": True,
         }
+        if assigned_to:
+            row["assigned_to"] = assigned_to
+            row["assigned_by"] = current_user.user_id
         result = supabase.table("tasks").insert(row).execute()
         if result.data:
             created.append(result.data[0])
-    return {"data": {"created_count": len(created), "tasks": created}}
+    return {
+        "data": {"created_count": len(created), "tasks": created},
+        "meta": {"deduplicated": deduplicated},
+    }
 
 
 @router.post("/work-orders/confirm")

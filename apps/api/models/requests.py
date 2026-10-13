@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 from uuid import UUID
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 
 EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{2,}$")
@@ -1618,6 +1618,45 @@ class TaskPreview(SanitizedBaseModel):
     room_number_display: Optional[str] = Field(default=None, max_length=64)
     due_at: Optional[str] = Field(default=None, max_length=64)
     assigned_to: Optional[UUID4] = None
+
+    # AI output and older clients use near-synonyms; map them onto the enums the
+    # tasks table accepts instead of rejecting an otherwise valid preview.
+    @field_validator("priority", mode="before")
+    @classmethod
+    def normalize_priority(cls, value: Any):
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            return {"high": "urgent", "critical": "urgent", "medium": "normal"}.get(lowered, lowered)
+        return value
+
+    @field_validator("task_type", mode="before")
+    @classmethod
+    def normalize_task_type(cls, value: Any):
+        if isinstance(value, str):
+            lowered = value.strip().lower().replace("-", "_").replace(" ", "_")
+            return {"guest": "guest_request", "maintenance": "engineering"}.get(lowered, lowered)
+        return value
+
+    @field_validator("due_at", mode="after")
+    @classmethod
+    def normalize_due_at(cls, value: Optional[str]):
+        """Accept an ISO-8601 instant and re-emit it as UTC; reject anything else so a
+        free-text 'tomorrow' becomes a 422 rather than a database error."""
+        if value is None or value == "":
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("due_at must be an ISO-8601 date-time") from exc
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc).isoformat()
+
+
+class CompleteTaskRequest(SanitizedBaseModel):
+    """Optional body for POST /tasks/{id}/complete."""
+
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
 class WorkOrderPreview(SanitizedBaseModel):
