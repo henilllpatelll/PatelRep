@@ -46,6 +46,16 @@ export function realRecorderDeps({ repo, readToken, tagToken, releaseToken, note
     isAncestorOfMain: releaseDeps.isAncestorOfMain,
     readRuntimeIdentity: () => readProductionRuntimeIdentity(),
     getTag,
+    // Authoritative single-Release lookup by tag (null on 404; drafts are not served here). Other errors propagate.
+    getRelease: async (version) => {
+      try {
+        const release = api(`repos/${repo}/releases/tags/${encodeURIComponent(version)}`)
+        return { tag_name: release.tag_name, draft: release.draft, prerelease: release.prerelease }
+      } catch (error) {
+        if (isNotFound(error)) return null
+        throw error
+      }
+    },
     checkConclusion: async (sha, name) => {
       const runs = JSON.parse(read(['api', `repos/${repo}/commits/${sha}/check-runs?per_page=100&check_name=${encodeURIComponent(name)}`, '--jq', '[.check_runs[] | {name, conclusion, status}]']))
       return runs.some((run) => run.name === name && run.status === 'completed' && run.conclusion === 'success') ? 'success' : (runs[0]?.conclusion ?? 'missing')
