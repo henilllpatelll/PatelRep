@@ -1,9 +1,24 @@
 // expo-speech-recognition is a native module — unavailable in Expo Go.
 // Shared optional-load so every mic-capable surface (full chat screen, the
 // copilot bubble's long-press-to-talk) degrades the same way when it's absent.
-export type SpeechEventHandler = (e: { results: Array<{ transcript: string }> }) => void;
+export type SpeechEvent = {
+  results: Array<{ transcript: string }>;
+  isFinal?: boolean;
+  /** error events: e.g. "no-speech", "not-allowed", "network", "aborted" */
+  error?: string;
+  message?: string;
+};
+export type SpeechEventHandler = (e: SpeechEvent) => void;
 
-let _speechModule: { start: (opts: Record<string, unknown>) => void; stop: () => void } | null = null;
+export type SpeechPermission = { granted: boolean; canAskAgain?: boolean };
+
+let _speechModule: {
+  start: (opts: Record<string, unknown>) => void;
+  stop: () => void;
+  abort?: () => void;
+  requestPermissionsAsync?: () => Promise<SpeechPermission>;
+  isRecognitionAvailable?: () => boolean;
+} | null = null;
 let _useSpeechRecognitionEvent: (
   event: string,
   handler: SpeechEventHandler | (() => void),

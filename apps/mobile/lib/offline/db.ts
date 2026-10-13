@@ -1,4 +1,5 @@
 import * as SQLite from "expo-sqlite";
+import { getQueueOwner } from "@/lib/offline/queueOwner";
 
 // Promise-mutex: all concurrent getDb() calls share one initialization promise.
 // Prevents two callers racing to open + init the DB on the same connection.
@@ -94,7 +95,8 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
       action TEXT NOT NULL,
       payload TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      attempts INTEGER DEFAULT 0
+      attempts INTEGER DEFAULT 0,
+      owner_scope TEXT
     );
   `);
 
@@ -149,6 +151,15 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
       // column already exists — safe to ignore
     }
   }
+
+  // The queue used to be shared by whoever signed in next. Rows carry the owner now; a row from before
+  // that has no provable owner, so it is discarded instead of being replayed under a different account.
+  try {
+    await db.runAsync("ALTER TABLE sync_queue ADD COLUMN owner_scope TEXT");
+  } catch {
+    // column already exists — safe to ignore
+  }
+  await db.runAsync("DELETE FROM sync_queue WHERE owner_scope IS NULL");
 }
 
 // Room operations
@@ -297,27 +308,33 @@ export async function getRoomsByDate(assignmentDate: string): Promise<unknown[]>
   return rows.map(hydrateCachedRoom);
 }
 
-// Sync queue operations
+// Sync queue operations. Every row belongs to the person + hotel that queued it (owner_scope); a different
+// account on the same device never reads, sends or counts it, and it waits until its owner signs back in.
 export async function enqueueAction(
   entityType: string,
   action: string,
   payload: unknown,
   entityId?: string
 ): Promise<void> {
+  const owner = getQueueOwner();
+  if (!owner) throw new Error("Cannot queue a change without a signed-in user");
   const db = await getDb();
   await db.runAsync(
-    `INSERT INTO sync_queue (entity_type, entity_id, action, payload, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    [entityType, entityId ?? null, action, JSON.stringify(payload), new Date().toISOString()]
+    `INSERT INTO sync_queue (entity_type, entity_id, action, payload, created_at, owner_scope)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [entityType, entityId ?? null, action, JSON.stringify(payload), new Date().toISOString(), owner]
   );
 }
 
 const MAX_SYNC_ATTEMPTS = 5;
 
 export async function getPendingSyncQueue(): Promise<unknown[]> {
+  const owner = getQueueOwner();
+  if (!owner) return [];
   const db = await getDb();
   return db.getAllAsync(
-    `SELECT * FROM sync_queue WHERE attempts < ${MAX_SYNC_ATTEMPTS} ORDER BY created_at ASC LIMIT 50`
+    `SELECT * FROM sync_queue WHERE owner_scope = ? AND attempts < ${MAX_SYNC_ATTEMPTS} ORDER BY created_at ASC LIMIT 50`,
+    [owner]
   );
 }
 
@@ -331,11 +348,14 @@ export interface SyncQueueSummaryRow {
   attempts: number;
 }
 
-/** Everything still queued, including items that ran out of retries (they stay visible, not hidden). */
+/** Everything the signed-in person still has queued, including items that ran out of retries (they stay visible, not hidden). */
 export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
+  const owner = getQueueOwner();
+  if (!owner) return [];
   const db = await getDb();
   const rows = await db.getAllAsync<{ id: number; entity_type: string; action: string; entity_id: string | null; payload: string; attempts: number }>(
-    "SELECT id, entity_type, action, entity_id, payload, attempts FROM sync_queue ORDER BY created_at ASC LIMIT 100",
+    "SELECT id, entity_type, action, entity_id, payload, attempts FROM sync_queue WHERE owner_scope = ? ORDER BY created_at ASC LIMIT 100",
+    [owner]
   );
   return rows.map((row) => {
     let roomId: string | null = null;
@@ -352,12 +372,12 @@ export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
 export async function incrementSyncQueueAttempts(id: number): Promise<void> {
   const db = await getDb();
   await db.runAsync(
-    "UPDATE sync_queue SET attempts = attempts + 1 WHERE id = ?",
-    [id]
+    "UPDATE sync_queue SET attempts = attempts + 1 WHERE id = ? AND owner_scope = ?",
+    [id, getQueueOwner()]
   );
 }
 
 export async function deleteSyncQueueItem(id: number): Promise<void> {
   const db = await getDb();
-  await db.runAsync("DELETE FROM sync_queue WHERE id = ?", [id]);
+  await db.runAsync("DELETE FROM sync_queue WHERE id = ? AND owner_scope = ?", [id, getQueueOwner()]);
 }

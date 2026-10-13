@@ -1,15 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from typing import Literal, Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CreateTaskRequest,
     CreateTaskScheduleRequest,
+    TaskCommentRequest,
     UpdateTaskRequest,
     UpdateTaskScheduleRequest,
 )
 from core.database import supabase
-from core.roles import MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
+from core.roles import ASSIGNMENT_BOUND_ROLES, FLOOR_STAFF_ROLES, MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
 from datetime import datetime, timedelta, timezone
+import logging
+import httpx
+
+logger = logging.getLogger(__name__)
+
+BATCH_TASK_LIMIT = 20
+SHORT_TEXT_LIMIT = 120
+BATCH_TASK_TYPES = ("housekeeping", "engineering", "guest_request", "lost_found", "general")
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -34,6 +43,129 @@ TASK_UPDATE_COLUMNS = {
     "cancelled_at",
     "escalated_at",
 }
+def _record_task_audit(current_user: CurrentUser, task: dict, action: str, new_state: dict) -> None:
+    """Append-only operational audit row for a task lifecycle transition (same table and
+    columns as routers/programs.py). Written after the transition committed; a failed
+    audit write is logged loudly but never turns a committed transition into an error."""
+    try:
+        supabase.table("operational_audit_events").insert(
+            {
+                "tenant_id": current_user.hotel_id,
+                "resource_type": "task",
+                "resource_id": task["id"],
+                "action": action,
+                "actor_id": current_user.user_id,
+                "actor_role": current_user.role,
+                "old_state": {"status": task.get("status"), "assigned_to": task.get("assigned_to")},
+                "new_state": new_state,
+                "source": "api",
+            }
+        ).execute()
+    except Exception:  # noqa: BLE001 - audit must not mask the committed transition
+        logger.error("TASK_AUDIT_WRITE_FAILED task=%s action=%s", task.get("id"), action, exc_info=True)
+
+
+TASK_EVENT_TEXT = {
+    "task_assigned": ("New task assigned to you", "Open Tasks to see what needs doing."),
+    "task_assigned_urgent": ("Urgent task assigned to you", "Open Tasks now: this one is urgent."),
+    "task_reassigned": ("A task was reassigned", "A task is no longer on your list."),
+    "task_cancelled": ("A task was cancelled", "A task on your list was cancelled."),
+    "task_blocker_resolved": ("Problem resolved", "A reported problem was resolved. You can continue the task."),
+}
+
+
+async def _push_task_event(row: dict, recipient_id: str) -> None:
+    """Best-effort Expo push for a notification row that was just written. ``push_sent`` is set only when
+    Expo accepted the message (an "ok" ticket); no token, a refusal or a timeout leaves the in-app row as the
+    only delivery, and nothing here claims the device received it."""
+    try:
+        profile = (
+            supabase.table("user_profiles")
+            .select("expo_push_token")
+            .eq("id", recipient_id)
+            .eq("tenant_id", row["tenant_id"])
+            .maybe_single()
+            .execute()
+        )
+        token = (profile.data or {}).get("expo_push_token") if profile else None
+        if not token:
+            return
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            response = await client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json={"to": token, "title": row["title"], "body": row["body"], "data": {**row["data"], "type": row["type"]}},
+            )
+        ticket = ((response.json() or {}).get("data") or {}) if response.status_code == 200 else {}
+        if isinstance(ticket, list):
+            ticket = ticket[0] if ticket else {}
+        if ticket.get("status") == "ok" and row.get("id"):
+            supabase.table("notifications").update(
+                {"push_sent": True, "push_sent_at": datetime.now(timezone.utc).isoformat(), "expo_push_ticket": ticket.get("id")}
+            ).eq("id", row["id"]).eq("tenant_id", row["tenant_id"]).execute()
+    except Exception:  # noqa: BLE001 - push is an extra; the in-app notification already exists
+        logger.warning("TASK_PUSH_FAILED notification=%s", row.get("id"), exc_info=True)
+
+
+async def notify_task_event(current_user: CurrentUser, recipient_id: Optional[str], event: str, task: dict) -> bool:
+    """In-app notification plus a best-effort push for one task event. Generic wording only: no task title,
+    room, guest or note text leaves the database through a lock-screen alert. Never notifies the actor,
+    writes at most one UNREAD row per (person, event, task) so a retried mutation cannot double-alert, and
+    never fails the committed mutation. Returns True only when a row was actually written."""
+    if not recipient_id or str(recipient_id) == current_user.user_id or not task.get("id"):
+        return False
+    title, body = TASK_EVENT_TEXT[event]
+    try:
+        existing = (
+            supabase.table("notifications")
+            .select("id")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("user_id", str(recipient_id))
+            .eq("type", event)
+            .eq("is_read", False)
+            .contains("data", {"task_id": str(task["id"])})
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            return False
+        written = (
+            supabase.table("notifications")
+            .insert(
+                {
+                    "tenant_id": current_user.hotel_id,
+                    "user_id": str(recipient_id),
+                    "type": event,
+                    "title": title,
+                    "body": body,
+                    "data": {"task_id": str(task["id"])},
+                    "is_read": False,
+                }
+            )
+            .execute()
+        )
+        row = (written.data or [None])[0]
+        if row:
+            await _push_task_event(row, str(recipient_id))
+        return True
+    except Exception:  # noqa: BLE001 - the task change is already committed
+        logger.error("TASK_NOTIFY_FAILED task=%s event=%s", task.get("id"), event, exc_info=True)
+        return False
+
+
+def _assignment_bound_may_access(task: dict, user_id: str) -> bool:
+    """Same visibility the list/workspace queries give a housekeeper: tasks assigned to
+    them, created by them, or sitting in the open housekeeping pool."""
+    return bool(
+        task.get("assigned_to") == user_id
+        or task.get("created_by") == user_id
+        or (
+            task.get("assigned_to") is None
+            and task.get("status") == "open"
+            and task.get("task_type") == "housekeeping"
+        )
+    )
+
+
 def _attach_profiles(tasks: list[dict], hotel_id: str) -> list[dict]:
     """Batch-resolve assigned_to/assigned_by/created_by into display names.
 
@@ -87,6 +219,133 @@ def _attach_comment_profiles(task: dict, hotel_id: str) -> dict:
     for comment in comments:
         comment["user_profiles"] = by_id.get(comment.get("user_id"))
     return task
+
+
+BLOCKER_SELECT = (
+    "id, task_id, reason, details, reported_by, reported_at, status, resolution, resolved_at, "
+    "resolved_by, resolution_note, notification_status, assigned_to"
+)
+
+
+def blocker_visible_to(blocker: dict, task: dict, current_user: CurrentUser) -> bool:
+    """Managers and engineers see every blocker of their hotel; a housekeeper only sees the
+    blockers on their own task or ones they reported themselves."""
+    if current_user.role not in ASSIGNMENT_BOUND_ROLES:
+        return True
+    return current_user.user_id in (task.get("assigned_to"), blocker.get("reported_by"))
+
+
+def public_blocker(row: dict, names: dict) -> dict:
+    """The blocker as a client may see it (no tenant id, no internal counters)."""
+    return {
+        "id": row["id"],
+        "task_id": row["task_id"],
+        "reason": row["reason"],
+        "details": row.get("details"),
+        "reported_by": row.get("reported_by"),
+        "reported_by_name": names.get(row.get("reported_by")),
+        "reported_at": row.get("reported_at"),
+        "status": row.get("status"),
+        "resolution": row.get("resolution"),
+        "resolved_at": row.get("resolved_at"),
+        "resolved_by": row.get("resolved_by"),
+        "resolved_by_name": names.get(row.get("resolved_by")),
+        "resolution_note": row.get("resolution_note"),
+        "notification_status": row.get("notification_status"),
+    }
+
+
+def profile_names(user_ids: set, hotel_id: str) -> dict:
+    ids = [uid for uid in user_ids if uid]
+    if not ids:
+        return {}
+    rows = (
+        supabase.table("user_profiles")
+        .select("id, full_name, preferred_name")
+        .eq("tenant_id", hotel_id)
+        .in_("id", ids)
+        .execute()
+        .data
+        or []
+    )
+    return {r["id"]: (r.get("preferred_name") or r.get("full_name")) for r in rows}
+
+
+def attach_blockers(tasks: list[dict], current_user: CurrentUser) -> list[dict]:
+    """Set ``task["blocker"]`` to the task's active blocker (or None) for every task.
+
+    "Blocked" is derived from the active ``task_blockers`` row; ``tasks.status`` never changes.
+    This is a read decoration: if the lookup fails (e.g. the table is not deployed yet) the
+    failure is logged and tasks load without blocker info instead of breaking every task list.
+    The write paths that must not run past a blocker use ``get_active_blocker`` and fail closed."""
+    for task in tasks:
+        task["blocker"] = None
+    task_ids = [t["id"] for t in tasks if t.get("id")]
+    if not task_ids:
+        return tasks
+    try:
+        rows = (
+            supabase.table("task_blockers")
+            .select(BLOCKER_SELECT)
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("status", "active")
+            .in_("task_id", task_ids)
+            .execute()
+            .data
+            or []
+        )
+        by_task = {row["task_id"]: row for row in rows}
+        names = profile_names(
+            {r.get("reported_by") for r in by_task.values()} | {r.get("resolved_by") for r in by_task.values()},
+            current_user.hotel_id,
+        )
+    except Exception:  # noqa: BLE001 - never take the whole task list down
+        logger.error("TASK_BLOCKER_LOOKUP_FAILED tasks=%d", len(task_ids), exc_info=True)
+        return tasks
+    for task in tasks:
+        row = by_task.get(task["id"])
+        if row and blocker_visible_to(row, task, current_user):
+            task["blocker"] = public_blocker(row, names)
+    return tasks
+
+
+def get_active_blocker(task_id: str, hotel_id: str) -> Optional[dict]:
+    """The task's active blocker row. Raises on a lookup failure so callers fail closed."""
+    rows = (
+        supabase.table("task_blockers")
+        .select(BLOCKER_SELECT)
+        .eq("tenant_id", hotel_id)
+        .eq("task_id", task_id)
+        .eq("status", "active")
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def resolve_active_blocker(
+    current_user: CurrentUser, task_id: str, resolution: str, note: Optional[str] = None
+) -> Optional[dict]:
+    """Close the task's active blocker (conditional on it still being active). Returns the closed
+    row, or None when there was nothing to close or someone else closed it first."""
+    result = (
+        supabase.table("task_blockers")
+        .update(
+            {
+                "status": "resolved",
+                "resolution": resolution,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": current_user.user_id,
+                "resolution_note": note,
+            }
+        )
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("task_id", task_id)
+        .eq("status", "active")
+        .execute()
+    )
+    return result.data[0] if result.data else None
 
 
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
@@ -181,6 +440,42 @@ def _fetch_all_workspace_records(query_factory) -> list[dict]:
         offset += ACTIVE_FETCH_PAGE_SIZE
 
 
+def _is_duplicate_key(exc: Exception) -> bool:
+    text = str(exc)
+    return "23505" in text or "duplicate key" in text
+
+
+def _find_task_by_request_key(request_key: str, current_user: CurrentUser) -> Optional[dict]:
+    """The task already stored under this idempotency key.
+
+    The key is the task id, so it is looked up by id alone first: a row that belongs to another
+    hotel or creator is a 409 (key already used), never a replay and never a leak of that row.
+    """
+    existing = supabase.table("tasks").select("*").eq("id", request_key).limit(1).execute()
+    row = (existing.data or [None])[0] if existing else None
+    if row is None:
+        return None
+    if row.get("tenant_id") != current_user.hotel_id or row.get("created_by") != current_user.user_id:
+        raise HTTPException(status_code=409, detail="This request id has already been used")
+    return row
+
+
+def _task_create_response(row: Optional[dict], replayed: bool = False, hotel_id: Optional[str] = None) -> dict:
+    """`{data, meta}`; the row carries its verified room (`rooms`) the way list reads do."""
+    if row and row.get("room_id") and not row.get("rooms"):
+        room = (
+            supabase.table("rooms")
+            .select("room_number, floor")
+            .eq("id", row["room_id"])
+            .eq("tenant_id", hotel_id or row.get("tenant_id"))
+            .limit(1)
+            .execute()
+        )
+        if room and room.data:
+            row = {**row, "rooms": room.data[0]}
+    return {"data": row, "meta": {"replayed": replayed}}
+
+
 @router.post("")
 async def create_task(
     request: CreateTaskRequest,
@@ -199,6 +494,20 @@ async def create_task(
                 "message": "Use POST /ai/copilot/chat with use_ai=true for NL task creation",
             }
         }
+
+    if current_user.role in FLOOR_STAFF_ROLES:
+        # Floor staff create tasks for the team or for themselves; assigning someone else or
+        # filing under a department is a management action.
+        if request.assigned_to and str(request.assigned_to) != current_user.user_id:
+            raise HTTPException(status_code=403, detail="You can only assign a task to yourself")
+        if request.department_id:
+            raise HTTPException(status_code=403, detail="Your role cannot set a task department")
+
+    request_key = str(request.client_request_id) if request.client_request_id else None
+    if request_key:
+        replayed = _find_task_by_request_key(request_key, current_user)
+        if replayed:
+            return _task_create_response(replayed, replayed=True)
 
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = request.due_at or (datetime.now(timezone.utc) + timedelta(minutes=sla))
@@ -219,9 +528,29 @@ async def create_task(
         "sla_minutes": sla,
         "due_at": due_at.isoformat(),
     }
+    if request.ai_suggested:
+        task_data["is_ai_created"] = True
+    if request_key:
+        task_data["id"] = request_key
 
-    result = supabase.table("tasks").insert(task_data).execute()
-    return {"data": result.data[0] if result.data else None}
+    try:
+        result = supabase.table("tasks").insert(task_data).execute()
+    except Exception as exc:
+        # Two attempts with the same key raced: the loser returns the winner's task.
+        if request_key and _is_duplicate_key(exc):
+            replayed = _find_task_by_request_key(request_key, current_user)
+            if replayed:
+                return _task_create_response(replayed, replayed=True)
+        raise
+    created = result.data[0] if result.data else None
+    if created and created.get("assigned_to"):
+        await notify_task_event(
+            current_user,
+            created["assigned_to"],
+            "task_assigned_urgent" if created.get("priority") == "urgent" else "task_assigned",
+            created,
+        )
+    return _task_create_response(created, hotel_id=current_user.hotel_id)
 
 
 @router.post("/schedules")
@@ -406,7 +735,12 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Task not found")
+    if current_user.role in ASSIGNMENT_BOUND_ROLES and not _assignment_bound_may_access(
+        result.data[0], current_user.user_id
+    ):
+        raise HTTPException(status_code=404, detail="Task not found")
     task = _attach_profiles(result.data, current_user.hotel_id)[0]
+    attach_blockers([task], current_user)
     return {"data": _attach_comment_profiles(task, current_user.hotel_id)}
 
 
@@ -422,7 +756,7 @@ async def claim_task(
     """
     task_check = (
         supabase.table("tasks")
-        .select("id, status, assigned_to, task_type")
+        .select("*, rooms(room_number, floor)")
         .eq("id", task_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -430,9 +764,14 @@ async def claim_task(
     )
     if not task_check or not task_check.data:
         raise HTTPException(status_code=404, detail="Task not found")
-    if task_check.data["task_type"] != "housekeeping":
+    existing = task_check.data
+    if existing["task_type"] != "housekeeping":
         raise HTTPException(status_code=403, detail="Only housekeeping tasks can be claimed")
-    if task_check.data["status"] != "open" or task_check.data["assigned_to"] is not None:
+    if existing["assigned_to"] == current_user.user_id and existing["status"] == "in_progress":
+        # Replay of a claim this housekeeper already won (e.g. a retry after a dropped
+        # response): no second write, same authoritative task.
+        return {"data": _attach_profiles([existing], current_user.hotel_id)[0], "meta": {"replayed": True}}
+    if existing["status"] != "open" or existing["assigned_to"] is not None:
         raise HTTPException(status_code=409, detail="Task is no longer open for claiming")
 
     result = (
@@ -454,7 +793,14 @@ async def claim_task(
     task = result.data[0] if result.data else None
     if not task:
         raise HTTPException(status_code=409, detail="Task was just claimed by someone else")
-    return {"data": _attach_profiles([task], current_user.hotel_id)[0]}
+    task["rooms"] = existing.get("rooms")
+    _record_task_audit(
+        current_user,
+        existing,
+        "task.claimed",
+        {"status": "in_progress", "assigned_to": current_user.user_id},
+    )
+    return {"data": _attach_profiles([task], current_user.hotel_id)[0], "meta": {"replayed": False}}
 
 
 @router.patch("/{task_id}")
@@ -495,6 +841,29 @@ async def update_task(
     elif request.status == "escalated":
         update_data["escalated_at"] = datetime.now(timezone.utc).isoformat()
 
+    blocker_before = None
+    previous_assignee = None
+    if "assigned_to" in update_data or request.status == "cancelled":
+        try:
+            before = (
+                supabase.table("tasks")
+                .select("assigned_to")
+                .eq("id", task_id)
+                .eq("tenant_id", current_user.hotel_id)
+                .limit(1)
+                .execute()
+                .data
+                or []
+            )
+            previous_assignee = before[0].get("assigned_to") if before else None
+        except Exception:  # noqa: BLE001 - notifications are best-effort
+            logger.error("TASK_PREVIOUS_ASSIGNEE_LOOKUP_FAILED task=%s", task_id, exc_info=True)
+    if "assigned_to" in update_data:
+        try:
+            blocker_before = get_active_blocker(task_id, current_user.hotel_id)
+        except Exception:  # noqa: BLE001 - reassignment itself must not depend on the blocker lookup
+            logger.error("TASK_BLOCKER_LOOKUP_FAILED task=%s", task_id, exc_info=True)
+
     if update_data:
         result = (
             supabase.table("tasks")
@@ -519,6 +888,41 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    # A blocker belongs to the person it was reported for: a manager moving the task to someone
+    # else, or finishing/cancelling it, closes the blocker so it never lingers on the wrong task.
+    if (
+        "assigned_to" in update_data
+        and blocker_before is not None
+        and blocker_before.get("assigned_to") != update_data["assigned_to"]
+    ):
+        closing = "reassigned"
+    elif request.status == "completed":
+        closing = "completed"
+    elif request.status == "cancelled":
+        closing = "resolved"
+    else:
+        closing = None
+    if closing:
+        try:
+            closed = resolve_active_blocker(current_user, task_id, closing)
+            if closed:
+                _record_task_audit(
+                    current_user, task, "task.blocker_resolved", {"blocker_id": closed["id"], "resolution": closing}
+                )
+        except Exception:  # noqa: BLE001 - the task update already committed
+            logger.error("TASK_BLOCKER_AUTOCLOSE_FAILED task=%s", task_id, exc_info=True)
+
+    if "assigned_to" in update_data and update_data["assigned_to"] != previous_assignee:
+        await notify_task_event(
+            current_user,
+            update_data["assigned_to"],
+            "task_assigned_urgent" if task.get("priority") == "urgent" else "task_assigned",
+            task,
+        )
+        await notify_task_event(current_user, previous_assignee, "task_reassigned", task)
+    elif request.status == "cancelled":
+        await notify_task_event(current_user, task.get("assigned_to"), "task_cancelled", task)
+
     if isinstance(notes, str) and notes.strip():
         supabase.table("task_comments").insert(
             {
@@ -534,7 +938,10 @@ async def update_task(
 
 @router.delete("/{task_id}", status_code=204)
 async def delete_task(
-    task_id: str, current_user: CurrentUser = Depends(get_current_user)
+    task_id: str,
+    # Deleting a record is a management action (the web app only offers it to managers): floor staff and
+    # line roles may report and finish work, never erase it.
+    current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES)),
 ):
     result = (
         supabase.table("tasks")
@@ -554,18 +961,32 @@ async def delete_task(
 @router.post("/{task_id}/comments")
 async def add_task_comment(
     task_id: str,
-    comment: str = Query(..., min_length=1, max_length=2000),
+    comment: Optional[str] = Query(None, max_length=2000),
     current_user: CurrentUser = Depends(get_current_user),
+    body: Optional[TaskCommentRequest] = Body(default=None),
 ):
+    """Add a note to a task. Text comes from the JSON body (mobile) or the legacy ``comment``
+    query parameter (web). It is trimmed; blank notes are rejected."""
+    text = body.comment if isinstance(body, TaskCommentRequest) else (comment if isinstance(comment, str) else None)
+    text = text.strip() if text else ""
+    if not text:
+        raise HTTPException(status_code=422, detail="A note can not be empty")
+    if len(text) > 2000:
+        raise HTTPException(status_code=422, detail="A note can be at most 2000 characters")
+
     task = (
         supabase.table("tasks")
-        .select("id")
+        .select("id, status, task_type, assigned_to, created_by")
         .eq("id", task_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
         .execute()
     )
-    if not task.data:
+    if not task or not task.data:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if current_user.role in ASSIGNMENT_BOUND_ROLES and not _assignment_bound_may_access(
+        task.data, current_user.user_id
+    ):
         raise HTTPException(status_code=404, detail="Task not found")
 
     result = (
@@ -575,7 +996,7 @@ async def add_task_comment(
                 "task_id": task_id,
                 "tenant_id": current_user.hotel_id,
                 "user_id": current_user.user_id,
-                "comment": comment,
+                "comment": text,
             }
         )
         .execute()
@@ -588,7 +1009,23 @@ async def batch_create_tasks(
     tasks: list[dict], current_user: CurrentUser = Depends(get_current_user)
 ):
     """Batch create multiple tasks (used after AI copilot confirmation)."""
+    # Floor staff create one task at a time through POST /tasks (which pins assignment to themselves).
+    if current_user.role in FLOOR_STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to create tasks in bulk")
+    if len(tasks) > BATCH_TASK_LIMIT:
+        raise HTTPException(status_code=422, detail=f"At most {BATCH_TASK_LIMIT} tasks can be created at once")
     sla = {"urgent": 60, "normal": 240, "low": 480}
+    for t in tasks:
+        # Validate everything first so a bad row never leaves a half-created batch behind.
+        title = t.get("title")
+        if not isinstance(title, str) or not title.strip() or len(title) > SHORT_TEXT_LIMIT:
+            raise HTTPException(status_code=422, detail="Each task needs a title")
+        if t.get("priority", "normal") not in sla:
+            raise HTTPException(status_code=422, detail="Invalid priority")
+        if t.get("task_type", "general") not in BATCH_TASK_TYPES:
+            raise HTTPException(status_code=422, detail="Invalid task type")
+        if t.get("room_id"):
+            _ensure_tenant_row("rooms", str(t["room_id"]), current_user.hotel_id, "Room")
     created = []
     for t in tasks:
         priority = t.get("priority", "normal")

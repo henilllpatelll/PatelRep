@@ -1280,6 +1280,25 @@
     }
   },
   "tasks": {
+    "blocked": {
+      "title": "Tareas bloqueadas",
+      "reportedBy": "Reportado por {{name}}",
+      "assignedTo": "Asignada a {{name}}",
+      "waiting": "Esperando {{time}}",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Qué se hizo al respecto...",
+      "resolve": "Marcar como resuelto",
+      "close": "Cerrar",
+      "review": "Revisar",
+      "loadFailed": "No se pudieron cargar las tareas bloqueadas.",
+      "retry": "Reintentar",
+      "resolveFailed": "No se pudo marcar como resuelto. Revisa tu conexión e inténtalo de nuevo.",
+      "resolved": "Marcado como resuelto. Se avisó a la persona asignada que puede continuar.",
+      "offline": "Resolver requiere conexión.",
+      "more": "Hay más tareas bloqueadas de las que se muestran aquí.",
+      "room": "Habitación {{room}}",
+      "unassigned": "Sin asignar"
+    },
     "title": "Mis tareas",
     "groupOverdue": "VENCIDAS",
     "groupNow": "HAZLO AHORA",
@@ -1301,6 +1320,547 @@
     "claimStart": "Tomar y empezar",
     "unclaimedTag": "Disponible",
     "claimFailed": "Otra persona ya tomó esta tarea",
+    "hk": {
+      "title": "Mis tareas",
+      "sync": {
+        "synced": "Sincronizado",
+        "syncing": "Sincronizando",
+        "offline": "Sin conexión",
+        "pending": "Cambios pendientes",
+        "stale": "Desactualizado",
+        "attention": "Requiere atención"
+      },
+      "history": "Historial completado",
+      "historyTitle": "Tareas completadas",
+      "historyEmpty": "Aún no hay tareas completadas.",
+      "historyLoadMore": "Cargar más",
+      "historyFailed": "No se pudieron cargar las tareas completadas.",
+      "summary": {
+        "label": "Resumen de trabajo",
+        "remaining": "Pendientes",
+        "inProgress": "En curso",
+        "doneToday": "Hechas hoy",
+        "unavailable": "no disponible",
+        "atLeast": "al menos {{count}}"
+      },
+      "segments": {
+        "label": "Listas de tareas",
+        "myWork": "Mi trabajo",
+        "available": "Disponibles",
+        "myWorkA11y": "Mi trabajo, {{count}} tareas",
+        "availableA11y": "Disponibles, {{count}} tareas"
+      },
+      "sections": {
+        "nextUp": "SIGUIENTE",
+        "inProgress": "EN CURSO",
+        "upNext": "PRÓXIMAS",
+        "later": "MÁS TARDE",
+        "available": "DISPONIBLES",
+        "showLater": "Mostrar tareas para más tarde",
+        "hideLater": "Ocultar tareas para más tarde",
+        "needsAttention": "REQUIERE ATENCIÓN",
+        "pendingSync": "PENDIENTE DE SINCRONIZAR"
+      },
+      "action": {
+        "start": "Iniciar tarea",
+        "claim": "Tomar e iniciar",
+        "complete": "Completar",
+        "startA11y": "Iniciar {{title}}",
+        "claimA11y": "Tomar e iniciar {{title}}",
+        "completeA11y": "Completar {{title}}",
+        "openDetails": "Mostrar detalles de {{title}}",
+        "hideDetails": "Ocultar detalles de {{title}}",
+        "working": "Procesando",
+        "viewDetails": "Ver detalles",
+        "viewDetailsA11y": "Ver detalles de {{title}}",
+        "resumeA11y": "Reanudar {{title}}"
+      },
+      "card": {
+        "room": "HAB. {{room}}",
+        "urgent": "URGENTE",
+        "overdueBy": "{{minutes}} min de retraso",
+        "overdueByHours": "{{hours}} h {{minutes}} min de retraso",
+        "due": "Vence {{time}}",
+        "startedAgo": "Iniciada hace {{minutes}} min",
+        "startedAgoHours": "Iniciada hace {{hours}} h {{minutes}} min",
+        "startedJustNow": "Iniciada ahora mismo",
+        "created": "Creada {{time}}",
+        "confirm": "¿Marcar esta tarea como hecha?",
+        "confirmYes": "Sí, completar",
+        "noDescription": "Sin detalles adicionales.",
+        "reportedAt": "Reportado {{time}}"
+      },
+      "empty": {
+        "myTitle": "Estás al día.",
+        "myBody": "No tienes tareas asignadas por ahora. Revisa Disponibles para más trabajo.",
+        "viewAvailable": "Ver Disponibles",
+        "availableTitle": "No hay nada disponible por ahora.",
+        "availableBody": "Las nuevas tareas de limpieza sin asignar aparecerán aquí."
+      },
+      "availableIntro": "Estas tareas aún no están asignadas. Toma una cuando estés listo para trabajar en ella.",
+      "error": {
+        "loadTitle": "No se pudieron actualizar las tareas.",
+        "staleBanner": "No se pudieron actualizar las tareas. Se muestra tu última lista cargada.",
+        "incomplete": "Esta lista puede estar incompleta. Desliza hacia abajo para actualizar."
+      },
+      "msg": {
+        "offline": "Sin conexión. Vuelve a conectarte para cambiar tareas.",
+        "claimConflict": "Esa tarea ya no está disponible. Se actualizó tu lista.",
+        "claimFailed": "No se pudo tomar esta tarea. Inténtalo de nuevo.",
+        "startFailed": "No se pudo iniciar esta tarea. Inténtalo de nuevo.",
+        "startConflict": "Esta tarea cambió. Se actualizó tu lista.",
+        "completeFailed": "No se pudo completar esta tarea. Sigue en tu lista.",
+        "completeConflict": "Esta tarea cambió. Se actualizó tu lista.",
+        "completed": "Tarea completada",
+        "resumeFailed": "No se pudo reanudar esta tarea. Inténtalo de nuevo.",
+        "resumeConflict": "Esta tarea cambió. Se actualizó tu lista.",
+        "resumed": "Tarea reanudada"
+      },
+      "add": {
+        "button": "Agregar tarea",
+        "sheetTitle": "Agregar tarea",
+        "close": "Cerrar",
+        "describe": {
+          "label": "¿Qué hay que hacer?",
+          "hint": "Describe la solicitud con tus propias palabras.",
+          "placeholder": "La habitación 318 necesita dos almohadas extra antes de las 2 PM.",
+          "inputA11y": "Describe la tarea",
+          "count": "{{count}} de {{max}}",
+          "smartTitle": "Creación inteligente de tareas",
+          "smartBody": "Te sugeriremos los detalles para que los revises antes de guardar.",
+          "continue": "Continuar",
+          "working": "Leyendo tu solicitud…",
+          "manual": "Ingresar los detalles manualmente",
+          "continueManually": "Continuar manualmente",
+          "tryAgain": "Intentar de nuevo",
+          "none": "No encontramos una tarea en eso. Agrega más detalle o continúa manualmente.",
+          "offlineNote": "Sin conexión. Agregar una tarea requiere conexión.",
+          "failed": {
+            "offline": "Sin conexión. Conéctate para recibir sugerencias o continúa manualmente.",
+            "timeout": "Tardó demasiado. Intenta de nuevo o continúa manualmente.",
+            "rate_limited": "Demasiadas solicitudes por ahora. Espera un momento o continúa manualmente.",
+            "unavailable": "Las sugerencias no están disponibles ahora. Puedes continuar manualmente.",
+            "invalid": "No pudimos entender eso. Puedes continuar manualmente.",
+            "network": "No se pudo conectar con PatelRep. Intenta de nuevo o continúa manualmente."
+          },
+          "restored": "Continuando tu borrador sin guardar."
+        },
+        "voice": {
+          "start": "Dicta tu solicitud",
+          "stop": "Dejar de escuchar",
+          "requesting": "Solicitando acceso al micrófono…",
+          "listening": "Escuchando… toca para detener",
+          "processing": "Procesando…",
+          "denied": "El acceso al micrófono o al reconocimiento de voz está desactivado. Actívalo en los ajustes del teléfono o escribe.",
+          "nospeech": "No escuchamos nada. Toca el micrófono para intentar de nuevo.",
+          "error": "La entrada de voz no funcionó. Puedes escribir.",
+          "done": "Se agregó a tu descripción. Revísala antes de continuar.",
+          "privacy": "El servicio de voz de tu teléfono convierte tu voz en texto. PatelRep no graba ni guarda audio."
+        },
+        "review": {
+          "titleAi": "Revisar nueva tarea",
+          "titleManual": "Nueva tarea",
+          "introAi": "Confirma estos detalles antes de crear la tarea.",
+          "introManual": "Completa los detalles y crea la tarea.",
+          "lowConfidence": "No estábamos seguros de algunos detalles. Por favor revísalos.",
+          "extraTasks": "Tu descripción mencionó {{count}} tarea más. Agrégala por separado después de esta.",
+          "extraTasks_plural": "Tu descripción mencionó {{count}} tareas más. Agrégalas por separado después de esta.",
+          "create": "Crear tarea",
+          "back": "Volver a editar",
+          "fixErrors": "Revisa los detalles marcados."
+        },
+        "field": {
+          "title": "Título de la tarea",
+          "titlePlaceholder": "p. ej., Entregar dos almohadas extra",
+          "description": "Descripción (opcional)",
+          "descriptionPlaceholder": "Agrega cualquier detalle útil",
+          "location": "Ubicación",
+          "locationNone": "Sin ubicación",
+          "locationRoom": "Habitación {{room}}",
+          "locationUnverified": "Habitación {{text}} (sin verificar)",
+          "locationChoose": "Elegir ubicación",
+          "change": "Cambiar",
+          "edit": "Editar",
+          "type": "Tipo de tarea",
+          "priority": "Prioridad",
+          "due": "Vence (opcional)",
+          "dueNone": "Sin hora de vencimiento",
+          "dueToday": "Hoy · {{time}}",
+          "dueTomorrow": "Mañana · {{time}}",
+          "dueOther": "{{date}} · {{time}}",
+          "dueUnresolved": "Sin definir — elige una hora",
+          "assign": "Asignármela",
+          "assignOn": "Aparecerá en Mi trabajo.",
+          "assignOffHousekeeping": "Cualquiera del equipo puede tomarla en Disponibles.",
+          "assignOffOther": "Va al equipo y no aparecerá en tus listas."
+        },
+        "type": {
+          "housekeeping": "Limpieza",
+          "engineering": "Mantenimiento",
+          "guest_request": "Solicitud de huésped",
+          "general": "General"
+        },
+        "priority": {
+          "normal": "Normal",
+          "urgent": "Urgente",
+          "low": "Baja",
+          "confirm": "La sugerencia fue Urgente. Toca una prioridad para confirmarla."
+        },
+        "error": {
+          "title": {
+            "required": "Escribe un título para la tarea.",
+            "tooLong": "Usa {{max}} caracteres o menos."
+          },
+          "description": {
+            "tooLong": "Usa {{max}} caracteres o menos."
+          },
+          "type": {
+            "required": "Elige un tipo de tarea."
+          },
+          "location": {
+            "unverified": "No se pudo verificar la habitación {{text}}. Elige una habitación o usa una ubicación general.",
+            "placeRequired": "Escribe la ubicación.",
+            "placeTooLong": "Usa {{max}} caracteres o menos.",
+            "roomRequired": "Elige la habitación del huésped."
+          },
+          "due": {
+            "unresolved": "No pudimos saber cuándo vence. Define una hora o quítala.",
+            "invalid": "Escribe una hora como 2:00 PM.",
+            "past": "Esa hora ya pasó."
+          },
+          "submit": {
+            "rejected": "No se aceptó la tarea. Revisa los detalles e intenta de nuevo.",
+            "forbidden": "Tu rol no puede crear este tipo de tarea.",
+            "unconfirmed": "No pudimos confirmar que la tarea se guardó. Toca Crear tarea de nuevo; no se agregará dos veces.",
+            "offline": "Sin conexión. Conéctate para crear la tarea."
+          }
+        },
+        "room": {
+          "title": "Elegir ubicación",
+          "tabRoom": "Habitación",
+          "tabPlace": "Otro lugar",
+          "search": "Buscar habitaciones",
+          "searchA11y": "Buscar habitaciones por número",
+          "loading": "Cargando habitaciones…",
+          "loadFailed": "No se pudo cargar la lista de habitaciones.",
+          "empty": "Ninguna habitación coincide con “{{query}}”.",
+          "floor": "Piso {{floor}}",
+          "placeLabel": "Ubicación general",
+          "placePlaceholder": "p. ej., Piscina, Lobby, Lavandería",
+          "usePlace": "Usar esta ubicación",
+          "remove": "Sin ubicación",
+          "selectRoom": "Habitación {{room}}"
+        },
+        "due": {
+          "title": "Hora de vencimiento",
+          "today": "Hoy",
+          "tomorrow": "Mañana",
+          "other": "{{date}}",
+          "time": "Hora",
+          "timePlaceholder": "2:00 PM",
+          "clear": "Sin hora de vencimiento",
+          "done": "Listo"
+        },
+        "discard": {
+          "title": "¿Descartar esta tarea?",
+          "body": "Lo que ingresaste aún no se ha creado.",
+          "keep": "Seguir editando",
+          "save": "Guardar borrador para después",
+          "discard": "Descartar"
+        },
+        "success": {
+          "created": "Tarea creada",
+          "mine": "“{{title}}” se agregó a Mi trabajo.",
+          "pool": "“{{title}}” se agregó a Disponibles.",
+          "team": "“{{title}}” se envió al equipo.",
+          "replayed": "“{{title}}” ya estaba creada.",
+          "view": "Ver tarea"
+        }
+      },
+      "sheet": {
+        "detailTitle": "Detalles de la tarea",
+        "activityTitle": "Actividad y notas",
+        "completeTitle": "¿Completar esta tarea?",
+        "close": "Cerrar",
+        "instructions": "Instrucciones",
+        "details": "Detalles",
+        "activity": "Actividad",
+        "showMore": "Ver más",
+        "showLess": "Ver menos",
+        "you": "Tú",
+        "unassigned": "Sin asignar",
+        "overdue": "Vencida",
+        "floor": "Piso {{floor}}",
+        "subtitle": "{{type}} · {{status}}",
+        "field": {
+          "location": "Ubicación",
+          "due": "Vence",
+          "assignedTo": "Asignada a",
+          "createdBy": "Creada por",
+          "started": "Iniciada",
+          "completed": "Completada",
+          "guestRequest": "Solicitud de huésped"
+        },
+        "guestRequestLinked": "Vinculada a una solicitud de huésped",
+        "status": {
+          "open": "Sin iniciar",
+          "in_progress": "En curso",
+          "escalated": "Escalada",
+          "completed": "Completada",
+          "cancelled": "Cancelada",
+          "available": "Disponible",
+          "blocked": "Requiere atención"
+        },
+        "priorityUrgent": "Urgente",
+        "action": {
+          "start": "Iniciar tarea",
+          "claim": "Tomar e iniciar",
+          "complete": "Completar tarea",
+          "addNote": "Agregar nota",
+          "viewAll": "Ver toda la actividad",
+          "openRoom": "Abrir habitación {{room}}",
+          "openRoomA11y": "Abrir la habitación {{room}} en Mis habitaciones",
+          "unableToComplete": "¿No puedes completarla?",
+          "resume": "Reanudar tarea",
+          "viewActivity": "Ver actividad"
+        },
+        "readOnly": {
+          "completed": "Esta tarea está completada. Los detalles son de solo lectura.",
+          "cancelled": "Esta tarea fue cancelada. Los detalles son de solo lectura.",
+          "other": "Puedes ver esta tarea, pero no modificarla."
+        },
+        "reason": {
+          "completed": "Esta tarea ya fue completada.",
+          "cancelled": "Un supervisor canceló esta tarea.",
+          "reassigned": "Esta tarea ahora está asignada a otra persona.",
+          "claimed": "Otra persona tomó esta tarea primero.",
+          "unavailable": "Esta tarea ya no está disponible para ti.",
+          "changed": "Esta tarea cambió. Revísala e inténtalo de nuevo.",
+          "failed": "Algo salió mal. Inténtalo de nuevo.",
+          "uncertain": "No pudimos confirmarlo. Revisa tu conexión e inténtalo de nuevo.",
+          "offline": "Sin conexión. Vuelve a conectarte para continuar.",
+          "blocked": "Esta tarea tiene un problema reportado. Reanúdala primero.",
+          "blockerExists": "Ya se reportó un problema en esta tarea."
+        },
+        "activityLoading": "Cargando actividad…",
+        "activityError": "No se pudo cargar la actividad.",
+        "activityStale": "Mostrando la última actividad cargada.",
+        "activityTruncated": "Mostrando las notas más recientes.",
+        "complete": {
+          "body": "Confirma que la tarea ya se terminó.",
+          "noteLabel": "Nota de cierre (opcional)",
+          "notePlaceholder": "¿Algo que el equipo deba saber?",
+          "confirm": "Confirmar y completar",
+          "back": "Volver",
+          "count": "{{count}}/{{max}}",
+          "tooLong": "Las notas pueden tener hasta {{max}} caracteres.",
+          "done": "Tarea completada",
+          "noteFailedTitle": "Tarea completada",
+          "noteFailedBody": "No se guardó tu nota. Inténtalo de nuevo u omítela.",
+          "saveNote": "Guardar nota",
+          "skipNote": "Omitir nota",
+          "noteSaved": "Nota guardada",
+          "noteA11y": "Nota de cierre, opcional"
+        },
+        "notes": {
+          "subtitle": "{{place}} · {{title}}",
+          "today": "Hoy",
+          "yesterday": "Ayer",
+          "addLabel": "Agregar nota",
+          "placeholder": "Escribe una actualización para tu equipo…",
+          "post": "Publicar nota",
+          "empty": "Aún no hay actividad.",
+          "emptyNotes": "Aún no hay notas. Agrega una para informar a tu equipo.",
+          "needText": "Escribe una nota primero.",
+          "tooLong": "Las notas pueden tener hasta {{max}} caracteres.",
+          "readOnly": "No se pueden agregar notas a esta tarea.",
+          "postFailed": "Tu nota no se publicó. Sigue aquí; inténtalo de nuevo.",
+          "inputA11y": "Nota para tu equipo"
+        },
+        "event": {
+          "created": "Tarea creada",
+          "claimed": "Tarea tomada",
+          "started": "Tarea iniciada",
+          "completed": "Tarea completada",
+          "cancelled": "Tarea cancelada",
+          "system_note": "Actualización",
+          "by": "{{name}}",
+          "a11y": "{{time}}, {{what}}",
+          "blocker_reported": "No se pudo completar: {{reason}}",
+          "blocker_resolved": "Problema resuelto",
+          "resolution": {
+            "resumed": "Tarea reanudada",
+            "resolved": "Problema resuelto por un supervisor",
+            "completed": "Cerrado al completar la tarea",
+            "reassigned": "Cerrado al reasignar la tarea"
+          }
+        },
+        "room": "Habitación {{room}}"
+      },
+      "blocker": {
+        "title": "¿No puedes completarla?",
+        "prompt": "¿Qué te impidió terminar?",
+        "reasonsA11y": "Motivo",
+        "detailsLabel": "Detalles adicionales",
+        "detailsLabelOther": "Describe qué pasó",
+        "placeholder": "Describe qué pasó…",
+        "detailsA11y": "Detalles adicionales",
+        "send": "Enviar aviso",
+        "sending": "Enviando aviso",
+        "cancel": "Cancelar",
+        "count": "{{count}}/{{max}}",
+        "offline": "Para enviar se necesita conexión. Lo que escribiste se queda aquí hasta que vuelvas a estar en línea.",
+        "reason": {
+          "guest_unavailable": "Huésped no disponible",
+          "do_not_disturb": "No molestar",
+          "missing_supplies": "Faltan suministros",
+          "access_issue": "Problema de acceso",
+          "assistance_needed": "Necesito ayuda",
+          "equipment_issue": "Problema con el equipo",
+          "other": "Otro"
+        },
+        "validation": {
+          "reasonRequired": "Elige qué te lo impidió.",
+          "detailsRequired": "Se requiere una descripción para Otro.",
+          "detailsTooLong": "Los detalles pueden tener hasta {{max}} caracteres."
+        },
+        "error": {
+          "failed": "No se pudo enviar tu aviso. Lo que escribiste sigue aquí — inténtalo de nuevo.",
+          "uncertain": "No pudimos confirmar que se envió. Revisa tu conexión y envíalo de nuevo — no se reportará dos veces.",
+          "alreadyReported": "Ya se reportó un problema en esta tarea.",
+          "closed": "Esta tarea ya terminó, por lo que no se puede reportar un problema.",
+          "reassigned": "Esta tarea ahora está asignada a otra persona.",
+          "changed": "Esta tarea cambió. Revísala e inténtalo de nuevo.",
+          "unavailable": "Esta tarea ya no está disponible para ti."
+        },
+        "panel": {
+          "title": "Requiere atención",
+          "reason": "Motivo",
+          "reportedBy": "Reportado por",
+          "reportedAt": "Reportado",
+          "details": "Detalles",
+          "a11y": "Requiere atención: {{reason}}, reportado {{time}}"
+        },
+        "notify": {
+          "pending": "Tu reporte se guardó.",
+          "queued": "Tu reporte se guardó y se avisó a tu supervisor.",
+          "failed": "Tu reporte se guardó, pero no pudimos avisar a un supervisor.",
+          "not_available": "Tu reporte se guardó. No hay un supervisor disponible para avisar ahora."
+        },
+        "saved": "Tu reporte se guardó."
+      },
+      "link": {
+        "unavailable": "Esa tarea ya no está disponible para ti.",
+        "retry": "No se pudo abrir esa tarea. Revisa tu conexión e inténtalo de nuevo.",
+        "offline": "Conéctate a internet para abrir esa tarea."
+      },
+      "offline": {
+        "sheet": {
+          "titleOffline": "Trabajando sin conexión",
+          "titleOnline": "Estado de sincronización",
+          "savedAvailable": "Tus tareas guardadas siguen disponibles.",
+          "lastSynced": "Última sincronización: {{time}}",
+          "neverSynced": "Aún no se ha sincronizado nada en este dispositivo.",
+          "allSynced": "Todos los cambios sincronizados",
+          "syncing": "Sincronizando cambios…",
+          "offlineHelp": "Los cambios se sincronizarán cuando vuelvas a tener conexión.",
+          "onlineHelp": "Los cambios guardados se envían automáticamente. Un cambio solo está hecho cuando el servidor lo confirma.",
+          "kindComplete": "Finalización",
+          "rowLabel": "{{task}} — {{kind}}",
+          "review": "Revisar",
+          "reviewA11y": "Revisar {{task}}",
+          "retry": "Reintentar sincronización",
+          "close": "Cerrar",
+          "states": {
+            "pending": "Pendiente",
+            "sending": "Enviando",
+            "conflict": "Requiere revisión",
+            "failed": "Falló la sincronización"
+          },
+          "failedHelp": "Algunos cambios no se pudieron enviar. Ábrelos para ver por qué y qué puedes hacer.",
+          "pending": "{{count}} cambio pendiente",
+          "pending_plural": "{{count}} cambios pendientes",
+          "attention": "{{count}} cambio requiere atención",
+          "attention_plural": "{{count}} cambios requieren atención"
+        },
+        "card": {
+          "pendingTitle": "Finalización pendiente de sincronizar",
+          "savedAt": "Guardado en este dispositivo a las {{time}}",
+          "sending": "Enviando…",
+          "conflictTitle": "No se pudo sincronizar — toca para revisar",
+          "pendingA11y": "{{title}}. Finalización pendiente de sincronizar. Guardada en este dispositivo a las {{time}}",
+          "conflictA11y": "{{title}}. No se pudo sincronizar la finalización. Requiere revisión."
+        },
+        "detail": {
+          "pendingTitle": "Finalización pendiente de sincronizar",
+          "pendingBody": "Guardada en este dispositivo a las {{time}} — se envía cuando vuelvas a tener conexión y solo queda hecha cuando el servidor la confirma.",
+          "sendingBody": "Enviando tu finalización al servidor…",
+          "failedTitle": "Falló la sincronización",
+          "failedBody": "No se pudo enviar tu finalización tras varios intentos. Revisa tu conexión y vuelve a intentarlo.",
+          "conflictTitle": "No se pudo completar",
+          "supervisor": "Si crees que es un error, consulta con tu supervisor.",
+          "viewUpdated": "Ver tarea actualizada",
+          "dismiss": "Descartar cambio pendiente",
+          "retry": "Reintentar",
+          "cachedBanner": "Copia guardada (última sincronización: {{time}}). Las notas y la actividad necesitan conexión.",
+          "cachedBannerNoTime": "Copia guardada. Las notas y la actividad necesitan conexión.",
+          "conflict": {
+            "completed": "Esta tarea ya estaba completada.",
+            "cancelled": "Esta tarea fue cancelada, así que no se puede completar.",
+            "reassigned": "Esta tarea fue reasignada a otra persona.",
+            "claimed": "Otra persona tomó esta tarea.",
+            "unavailable": "Esta tarea ya no está disponible para ti.",
+            "blocked": "Se reportó un problema en esta tarea. Reanúdala antes de completarla.",
+            "changed": "La tarea cambió mientras estabas sin conexión. Revísala e inténtalo de nuevo.",
+            "forbidden": "Ya no tienes permiso para completar esta tarea.",
+            "rejected": "El servidor no pudo aceptar esta finalización.",
+            "expired": "Este cambio esperó demasiado para sincronizarse. Revisa la tarea y complétala de nuevo si hace falta."
+          }
+        },
+        "complete": {
+          "saveOffline": "Guardar para sincronizar",
+          "title": "Guardar finalización",
+          "body": "Estás sin conexión. Se guardará en este dispositivo y se enviará cuando vuelvas a tener conexión. La tarea no queda hecha hasta que el servidor la confirme.",
+          "queued": "Guardado en este dispositivo. Finalización pendiente de sincronizar.",
+          "refusal": {
+            "no_session": "Vuelve a iniciar sesión para guardar este cambio.",
+            "not_assigned": "Solo la persona asignada puede completar una tarea sin conexión.",
+            "not_in_progress": "Inicia esta tarea con conexión antes de completarla sin conexión.",
+            "blocked": "Hay un problema reportado en esta tarea. Reanúdala primero con conexión.",
+            "duplicate": "Ya hay una finalización de esta tarea guardada y esperando sincronizarse.",
+            "note_too_long": "Tu nota es demasiado larga.",
+            "storage": "No se pudo guardar en el dispositivo. Inténtalo de nuevo con conexión."
+          }
+        },
+        "availableTitle": "Las tareas disponibles necesitan conexión",
+        "availableBody": "Tomar o iniciar tareas requiere internet para que dos personas nunca tomen el mismo trabajo. Tus propias tareas siguen en Mi trabajo.",
+        "cachedList": "Mostrando tareas guardadas — última sincronización: {{time}}",
+        "cachedListNoTime": "Mostrando tareas guardadas."
+      },
+      "hist": {
+        "recent": "TU TRABAJO RECIENTE",
+        "completedTodayAtLeast": "{{count}}+ completadas hoy",
+        "completedTodayUnknown": "Completadas hoy: no disponible",
+        "today": "HOY",
+        "yesterday": "AYER",
+        "completedAt": "Completada {{time}}",
+        "cachedBanner": "Mostrando historial guardado — última sincronización: {{time}}",
+        "cachedBannerNoTime": "Mostrando historial guardado.",
+        "offlineMore": "Conéctate a internet para cargar tareas anteriores.",
+        "back": "Atrás",
+        "rowA11y": "{{title}}. {{place}}. Completada {{time}}",
+        "rowA11yNoPlace": "{{title}}. Completada {{time}}",
+        "offlineEmpty": "Aún no hay historial guardado en este dispositivo. Conéctate para cargarlo.",
+        "completedToday": "{{count}} completada hoy",
+        "completedToday_plural": "{{count}} completadas hoy"
+      }
+    },
+    "completeFailed": "No se pudo marcar la tarea como hecha. Sigue en tu lista — inténtalo de nuevo.",
+    "loadFailed": "No se pudieron cargar tus tareas.",
+    "refreshFailed": "No se pudo actualizar — se muestran tus últimas tareas cargadas.",
+    "listIncomplete": "Esta lista puede estar incompleta. Desliza hacia abajo para actualizar.",
+    "aiRejected": "No se pudo crear esa tarea. Revisa los detalles e inténtalo de nuevo.",
+    "locationLabel": "Ubicación: {{place}}",
     "guestTag": "Huésped",
     "dueAt": "Vence {{time}}",
     "overdueBy": "{{minutes}}m de retraso",
@@ -1438,6 +1998,10 @@
     "signOut": "Cerrar sesión",
     "signOutTitle": "Cerrar sesión",
     "signOutConfirm": "¿Estás seguro?",
+    "signOutUnsyncedTitle": "Tareas completadas sin sincronizar",
+    "signOutUnsynced": "{{count}} tarea completada aún no llega a tu gerente. Sigue guardada en este teléfono y se enviará la próxima vez que inicies sesión aquí con esta cuenta y tengas conexión.",
+    "signOutUnsynced_plural": "{{count}} tareas completadas aún no llegan a tu gerente. Siguen guardadas en este teléfono y se enviarán la próxima vez que inicies sesión aquí con esta cuenta y tengas conexión.",
+    "signOutAnyway": "Cerrar sesión de todos modos",
     "appVersion": "PatelRep v{{version}}"
   },
   "copilot": {

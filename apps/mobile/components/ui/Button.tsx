@@ -25,6 +25,8 @@ export interface ButtonProps {
   icon?: React.ComponentProps<typeof Ionicons>["name"];
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /** Overrides the spoken label (e.g. to include what the button acts on). Defaults to `label`. */
+  accessibilityLabel?: string;
 }
 
 const SIZE_STYLES: Record<
@@ -46,6 +48,7 @@ export function Button({
   icon,
   style,
   testID,
+  accessibilityLabel,
 }: ButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || loading;
@@ -87,7 +90,7 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,

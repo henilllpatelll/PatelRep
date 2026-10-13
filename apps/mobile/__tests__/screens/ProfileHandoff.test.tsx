@@ -31,6 +31,9 @@ const mockEn: Record<string, string> = {
   "profile.signOut": "Sign out",
   "profile.signOutTitle": "Sign out",
   "profile.signOutConfirm": "Are you sure?",
+  "profile.signOutUnsyncedTitle": "Task completions not synced",
+  "profile.signOutUnsynced": "{{count}} task completion(s) not synced",
+  "profile.signOutAnyway": "Sign out anyway",
   "profile.appVersion": "PatelRep v{{version}}",
   "staff.roles.housekeeper": "Housekeeper",
   "common.cancel": "Cancel",
@@ -96,8 +99,9 @@ jest.mock("@/lib/theme/ThemeProvider", () => ({
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock("expo-router", () => ({
-  router: { push: (...args: unknown[]) => mockPush(...args) },
+  router: { push: (...args: unknown[]) => mockPush(...args), replace: (...args: unknown[]) => mockReplace(...args) },
 }));
 
 jest.mock("expo-constants", () => ({
@@ -129,15 +133,16 @@ jest.mock("@/lib/api/client", () => ({
 
 const mockFlushQueue = jest.fn().mockResolvedValue(undefined);
 
-jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
-    user: {
-      id: "user-1",
-      full_name: "Maria Vega",
-      role: "housekeeper",
-      tenant_id: "hotel-1",
-      language_pref: "en",
-    },
+jest.mock("@/stores/appStore", () => {
+  const user = {
+    id: "user-1",
+    full_name: "Maria Vega",
+    role: "housekeeper",
+    tenant_id: "hotel-1",
+    language_pref: "en",
+  };
+  const buildState = () => ({
+    user,
     isOnline: true,
     pendingActions: [
       { id: "a-1", type: "room_status", entityId: "r-1", payload: {}, createdAt: "2026-06-11" },
@@ -145,10 +150,14 @@ jest.mock("@/stores/appStore", () => ({
     ],
     flushQueue: mockFlushQueue,
     unreadCount: 3,
-  }),
-}));
+  });
+  return { useAppStore: Object.assign(() => buildState(), { getState: () => buildState() }) };
+});
 
+import { Alert } from "react-native";
 import ProfileScreen from "@/app/(app)/profile";
+import { supabase } from "@/lib/supabase";
+import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 
 describe("ProfileScreen settings redesign", () => {
   beforeEach(() => {
@@ -264,5 +273,57 @@ describe("ProfileScreen settings redesign", () => {
     expect(queryByText("System")).toBeNull();
     expect(queryByText("Light")).toBeNull();
     expect(queryByText("Dark")).toBeNull();
+  });
+});
+
+describe("ProfileScreen sign out with unsynced task completions", () => {
+  const entry = (taskId: string) => ({ taskId, userId: "user-1", tenantId: "hotel-1", op: "complete", state: "pending" });
+
+  beforeEach(() => {
+    mockLanguage = "en";
+    mockReplace.mockClear();
+  });
+
+  afterEach(() => {
+    useTaskOutbox.setState({ scope: null, entries: {}, hydrated: false });
+    jest.restoreAllMocks();
+  });
+
+  it("warns, names how many completions are unsynced, and signs out only after confirmation", async () => {
+    useTaskOutbox.setState({
+      scope: "hotel-1:user-1",
+      hydrated: true,
+      entries: { "t-1": entry("t-1"), "t-2": entry("t-2") } as never,
+    });
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    const { getByText } = render(<ProfileScreen />);
+
+    fireEvent.press(getByText("Sign out"));
+
+    expect(alert).toHaveBeenCalledTimes(1);
+    const [title, message, buttons] = alert.mock.calls[0];
+    expect(title).toBe("Task completions not synced");
+    expect(message).toBe("2 task completion(s) not synced");
+    expect(supabase.auth.signOut).not.toHaveBeenCalled();
+    expect(buttons?.map((b) => b.text)).toEqual(["Cancel", "Sign out anyway"]);
+
+    await buttons?.[1].onPress?.();
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
+  });
+
+  it("uses the plain confirmation when nothing is waiting, and ignores another account's entries", () => {
+    useTaskOutbox.setState({
+      scope: "hotel-1:someone-else",
+      hydrated: true,
+      entries: { "t-9": { ...entry("t-9"), userId: "someone-else" } } as never,
+    });
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    const { getByText } = render(<ProfileScreen />);
+
+    fireEvent.press(getByText("Sign out"));
+
+    expect(alert.mock.calls[0][0]).toBe("Sign out");
+    expect(alert.mock.calls[0][1]).toBe("Are you sure?");
   });
 });

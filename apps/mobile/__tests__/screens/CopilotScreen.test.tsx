@@ -47,7 +47,7 @@ type PreviewCase = {
   previewKey: "task_preview" | "work_order_preview" | "guest_request_preview";
   preview: Record<string, string>;
   endpoint: string;
-  expectedPayload: Record<string, string | boolean>;
+  expectedPayload: Record<string, string | boolean> | Array<Record<string, string | boolean>>;
   successKey: string;
 };
 
@@ -62,13 +62,15 @@ const previewCases: PreviewCase[] = [
       room_number: "214",
     },
     endpoint: "/ai/tasks/confirm",
-    expectedPayload: {
-      title: "Bring towels to 214",
-      task_type: "guest_request",
-      priority: "high",
-      room_number: "214",
-      use_ai: true,
-    },
+    // POST /ai/tasks/confirm takes an ARRAY of previews (a bare object is a 422)
+    expectedPayload: [
+      {
+        title: "Bring towels to 214",
+        task_type: "guest_request",
+        priority: "high",
+        room_number_display: "214",
+      },
+    ],
     successKey: "copilot.taskCreated",
   },
   {

@@ -1280,6 +1280,25 @@
     }
   },
   "tasks": {
+    "blocked": {
+      "title": "Blocked tasks",
+      "reportedBy": "Reported by {{name}}",
+      "assignedTo": "Assigned to {{name}}",
+      "waiting": "Waiting {{time}}",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "What was done about it...",
+      "resolve": "Mark resolved",
+      "close": "Close",
+      "review": "Review",
+      "loadFailed": "Couldn't load blocked tasks.",
+      "retry": "Try again",
+      "resolveFailed": "Couldn't mark this resolved. Check your connection and try again.",
+      "resolved": "Marked resolved. The assignee was told they can carry on.",
+      "offline": "Resolving needs a connection.",
+      "more": "More blocked tasks exist than are shown here.",
+      "room": "Room {{room}}",
+      "unassigned": "Unassigned"
+    },
     "title": "My tasks",
     "groupOverdue": "OVERDUE",
     "groupNow": "DO NOW",
@@ -1301,6 +1320,547 @@
     "claimStart": "Claim & start",
     "unclaimedTag": "Up for grabs",
     "claimFailed": "Someone else already claimed this task",
+    "hk": {
+      "title": "My Tasks",
+      "sync": {
+        "synced": "Synced",
+        "syncing": "Syncing",
+        "offline": "Offline",
+        "pending": "Pending changes",
+        "stale": "Not up to date",
+        "attention": "Needs attention"
+      },
+      "history": "Completed history",
+      "historyTitle": "Completed tasks",
+      "historyEmpty": "No completed tasks yet.",
+      "historyLoadMore": "Load more",
+      "historyFailed": "Couldn't load completed tasks.",
+      "summary": {
+        "label": "Work summary",
+        "remaining": "Remaining",
+        "inProgress": "In progress",
+        "doneToday": "Done today",
+        "unavailable": "unavailable",
+        "atLeast": "at least {{count}}"
+      },
+      "segments": {
+        "label": "Task lists",
+        "myWork": "My Work",
+        "available": "Available",
+        "myWorkA11y": "My Work, {{count}} tasks",
+        "availableA11y": "Available, {{count}} tasks"
+      },
+      "sections": {
+        "nextUp": "NEXT UP",
+        "inProgress": "IN PROGRESS",
+        "upNext": "UP NEXT",
+        "later": "LATER",
+        "available": "AVAILABLE",
+        "showLater": "Show later tasks",
+        "hideLater": "Hide later tasks",
+        "needsAttention": "NEEDS ATTENTION",
+        "pendingSync": "PENDING SYNC"
+      },
+      "action": {
+        "start": "Start task",
+        "claim": "Claim & Start",
+        "complete": "Complete",
+        "startA11y": "Start {{title}}",
+        "claimA11y": "Claim and start {{title}}",
+        "completeA11y": "Complete {{title}}",
+        "openDetails": "Show details for {{title}}",
+        "hideDetails": "Hide details for {{title}}",
+        "working": "Working",
+        "viewDetails": "View details",
+        "viewDetailsA11y": "View details for {{title}}",
+        "resumeA11y": "Resume {{title}}"
+      },
+      "card": {
+        "room": "ROOM {{room}}",
+        "urgent": "URGENT",
+        "overdueBy": "{{minutes}}m overdue",
+        "overdueByHours": "{{hours}}h {{minutes}}m overdue",
+        "due": "Due {{time}}",
+        "startedAgo": "Started {{minutes}}m ago",
+        "startedAgoHours": "Started {{hours}}h {{minutes}}m ago",
+        "startedJustNow": "Started just now",
+        "created": "Created {{time}}",
+        "confirm": "Mark this task done?",
+        "confirmYes": "Yes, complete",
+        "noDescription": "No extra details.",
+        "reportedAt": "Reported {{time}}"
+      },
+      "empty": {
+        "myTitle": "You're all caught up.",
+        "myBody": "No assigned tasks right now. Check Available for additional work.",
+        "viewAvailable": "View Available",
+        "availableTitle": "Nothing available right now.",
+        "availableBody": "New unassigned housekeeping tasks will appear here."
+      },
+      "availableIntro": "These tasks are not assigned yet. Claim one when you're ready to work on it.",
+      "error": {
+        "loadTitle": "Couldn't refresh tasks.",
+        "staleBanner": "Couldn't refresh tasks. Showing your last loaded list.",
+        "incomplete": "This list may be incomplete. Pull down to refresh."
+      },
+      "msg": {
+        "offline": "You're offline. Reconnect to change tasks.",
+        "claimConflict": "That task is no longer available. Your list was refreshed.",
+        "claimFailed": "Couldn't claim this task. Try again.",
+        "startFailed": "Couldn't start this task. Try again.",
+        "startConflict": "This task changed. Your list was refreshed.",
+        "completeFailed": "Couldn't complete this task. It is still on your list.",
+        "completeConflict": "This task changed. Your list was refreshed.",
+        "completed": "Task completed",
+        "resumeFailed": "Couldn't resume this task. Try again.",
+        "resumeConflict": "This task changed. Your list was refreshed.",
+        "resumed": "Task resumed"
+      },
+      "add": {
+        "button": "Add task",
+        "sheetTitle": "Add task",
+        "close": "Close",
+        "describe": {
+          "label": "What needs to be done?",
+          "hint": "Describe the request in your own words.",
+          "placeholder": "Room 318 needs two extra pillows delivered before 2 PM.",
+          "inputA11y": "Describe the task",
+          "count": "{{count}} of {{max}}",
+          "smartTitle": "Smart task creation",
+          "smartBody": "We'll suggest the details so you can review them before saving.",
+          "continue": "Continue",
+          "working": "Reading your request…",
+          "manual": "Enter details manually",
+          "continueManually": "Continue manually",
+          "tryAgain": "Try again",
+          "none": "We didn't find a task in that. Add more detail, or continue manually.",
+          "offlineNote": "You're offline. Adding a task needs a connection.",
+          "failed": {
+            "offline": "You're offline. Connect to get suggestions, or continue manually.",
+            "timeout": "That took too long. Try again, or continue manually.",
+            "rate_limited": "Too many requests right now. Wait a moment, or continue manually.",
+            "unavailable": "Suggestions aren't available right now. You can continue manually.",
+            "invalid": "We couldn't make sense of that. You can continue manually.",
+            "network": "Couldn't reach PatelRep. Try again, or continue manually."
+          },
+          "restored": "Continuing your unsaved draft."
+        },
+        "voice": {
+          "start": "Speak your request",
+          "stop": "Stop listening",
+          "requesting": "Asking for microphone access…",
+          "listening": "Listening… tap to stop",
+          "processing": "Processing…",
+          "denied": "Microphone or speech access is off. Turn it on in your phone's settings, or type instead.",
+          "nospeech": "We didn't hear anything. Tap the microphone to try again.",
+          "error": "Voice input didn't work. You can type instead.",
+          "done": "Added to your description. Check it before continuing.",
+          "privacy": "Your phone's speech service turns your voice into text. PatelRep doesn't record or save audio."
+        },
+        "review": {
+          "titleAi": "Review new task",
+          "titleManual": "New task",
+          "introAi": "Confirm these details before creating.",
+          "introManual": "Fill in the details, then create the task.",
+          "lowConfidence": "We weren't sure about some details. Please check them.",
+          "extraTasks": "Your description mentioned {{count}} more task. Add it separately after this one.",
+          "extraTasks_plural": "Your description mentioned {{count}} more tasks. Add them separately after this one.",
+          "create": "Create task",
+          "back": "Back to edit",
+          "fixErrors": "Check the highlighted details."
+        },
+        "field": {
+          "title": "Task title",
+          "titlePlaceholder": "e.g. Deliver two extra pillows",
+          "description": "Description (optional)",
+          "descriptionPlaceholder": "Add any detail that helps",
+          "location": "Location",
+          "locationNone": "No location",
+          "locationRoom": "Room {{room}}",
+          "locationUnverified": "Room {{text}} (not verified)",
+          "locationChoose": "Choose location",
+          "change": "Change",
+          "edit": "Edit",
+          "type": "Task type",
+          "priority": "Priority",
+          "due": "Due (optional)",
+          "dueNone": "No due time",
+          "dueToday": "Today · {{time}}",
+          "dueTomorrow": "Tomorrow · {{time}}",
+          "dueOther": "{{date}} · {{time}}",
+          "dueUnresolved": "Not set — choose a time",
+          "assign": "Assign to me",
+          "assignOn": "It will show up in My Work.",
+          "assignOffHousekeeping": "Anyone on the team can pick it up in Available.",
+          "assignOffOther": "It goes to the team and won't appear in your lists."
+        },
+        "type": {
+          "housekeeping": "Housekeeping",
+          "engineering": "Maintenance",
+          "guest_request": "Guest request",
+          "general": "General"
+        },
+        "priority": {
+          "normal": "Normal",
+          "urgent": "Urgent",
+          "low": "Low",
+          "confirm": "The suggestion was Urgent. Tap a priority to confirm it."
+        },
+        "error": {
+          "title": {
+            "required": "Enter a task title.",
+            "tooLong": "Use {{max}} characters or fewer."
+          },
+          "description": {
+            "tooLong": "Use {{max}} characters or fewer."
+          },
+          "type": {
+            "required": "Choose a task type."
+          },
+          "location": {
+            "unverified": "Room {{text}} couldn't be verified. Choose a room, or use a general location.",
+            "placeRequired": "Enter the location.",
+            "placeTooLong": "Use {{max}} characters or fewer.",
+            "roomRequired": "Choose the guest's room."
+          },
+          "due": {
+            "unresolved": "We couldn't tell when this is due. Set a time or remove it.",
+            "invalid": "Enter a time like 2:00 PM.",
+            "past": "That time has already passed."
+          },
+          "submit": {
+            "rejected": "The task wasn't accepted. Check the details and try again.",
+            "forbidden": "Your role can't create this kind of task.",
+            "unconfirmed": "We couldn't confirm the task was saved. Tap Create task again — it won't be added twice.",
+            "offline": "You're offline. Connect to create the task."
+          }
+        },
+        "room": {
+          "title": "Choose location",
+          "tabRoom": "Room",
+          "tabPlace": "Other place",
+          "search": "Search rooms",
+          "searchA11y": "Search rooms by number",
+          "loading": "Loading rooms…",
+          "loadFailed": "Couldn't load the room list.",
+          "empty": "No room matches “{{query}}”.",
+          "floor": "Floor {{floor}}",
+          "placeLabel": "General location",
+          "placePlaceholder": "e.g. Pool deck, Lobby, Laundry",
+          "usePlace": "Use this location",
+          "remove": "No location",
+          "selectRoom": "Room {{room}}"
+        },
+        "due": {
+          "title": "Due time",
+          "today": "Today",
+          "tomorrow": "Tomorrow",
+          "other": "{{date}}",
+          "time": "Time",
+          "timePlaceholder": "2:00 PM",
+          "clear": "No due time",
+          "done": "Done"
+        },
+        "discard": {
+          "title": "Discard this task?",
+          "body": "What you've entered hasn't been created.",
+          "keep": "Keep editing",
+          "save": "Save draft for later",
+          "discard": "Discard"
+        },
+        "success": {
+          "created": "Task created",
+          "mine": "“{{title}}” was added to My Work.",
+          "pool": "“{{title}}” was added to Available.",
+          "team": "“{{title}}” was sent to the team.",
+          "replayed": "“{{title}}” was already created.",
+          "view": "View task"
+        }
+      },
+      "sheet": {
+        "detailTitle": "Task details",
+        "activityTitle": "Activity & notes",
+        "completeTitle": "Complete this task?",
+        "close": "Close",
+        "instructions": "Instructions",
+        "details": "Details",
+        "activity": "Activity",
+        "showMore": "Show more",
+        "showLess": "Show less",
+        "you": "You",
+        "unassigned": "Not assigned yet",
+        "overdue": "Overdue",
+        "floor": "Floor {{floor}}",
+        "subtitle": "{{type}} · {{status}}",
+        "field": {
+          "location": "Location",
+          "due": "Due",
+          "assignedTo": "Assigned to",
+          "createdBy": "Created by",
+          "started": "Started",
+          "completed": "Completed",
+          "guestRequest": "Guest request"
+        },
+        "guestRequestLinked": "Linked to a guest request",
+        "status": {
+          "open": "Not started",
+          "in_progress": "In progress",
+          "escalated": "Escalated",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "available": "Available",
+          "blocked": "Needs attention"
+        },
+        "priorityUrgent": "Urgent",
+        "action": {
+          "start": "Start task",
+          "claim": "Claim & start",
+          "complete": "Complete task",
+          "addNote": "Add note",
+          "viewAll": "View all activity",
+          "openRoom": "Open room {{room}}",
+          "openRoomA11y": "Open room {{room}} in My Rooms",
+          "unableToComplete": "Unable to complete?",
+          "resume": "Resume task",
+          "viewActivity": "View activity"
+        },
+        "readOnly": {
+          "completed": "This task is complete. Details are read-only.",
+          "cancelled": "This task was cancelled. Details are read-only.",
+          "other": "You can view this task but can't change it."
+        },
+        "reason": {
+          "completed": "This task was already completed.",
+          "cancelled": "A supervisor cancelled this task.",
+          "reassigned": "This task is now assigned to someone else.",
+          "claimed": "Someone else claimed this task first.",
+          "unavailable": "This task is no longer available to you.",
+          "changed": "This task changed. Review it and try again.",
+          "failed": "Something went wrong. Please try again.",
+          "uncertain": "We couldn't confirm that. Check your connection, then try again.",
+          "offline": "You're offline. Reconnect to continue.",
+          "blocked": "This task has a reported problem. Resume it first.",
+          "blockerExists": "A problem was already reported on this task."
+        },
+        "activityLoading": "Loading activity…",
+        "activityError": "Couldn't load activity.",
+        "activityStale": "Showing the last loaded activity.",
+        "activityTruncated": "Showing the most recent notes.",
+        "complete": {
+          "body": "Confirm that the task has been finished.",
+          "noteLabel": "Completion note (optional)",
+          "notePlaceholder": "Anything the team should know?",
+          "confirm": "Confirm complete",
+          "back": "Go back",
+          "count": "{{count}}/{{max}}",
+          "tooLong": "Notes can be up to {{max}} characters.",
+          "done": "Task completed",
+          "noteFailedTitle": "Task completed",
+          "noteFailedBody": "Your note wasn't saved. Try again, or skip it.",
+          "saveNote": "Save note",
+          "skipNote": "Skip note",
+          "noteSaved": "Note saved",
+          "noteA11y": "Completion note, optional"
+        },
+        "notes": {
+          "subtitle": "{{place}} · {{title}}",
+          "today": "Today",
+          "yesterday": "Yesterday",
+          "addLabel": "Add note",
+          "placeholder": "Write an update for your team…",
+          "post": "Post note",
+          "empty": "No activity yet.",
+          "emptyNotes": "No notes yet. Add one to update your team.",
+          "needText": "Write a note first.",
+          "tooLong": "Notes can be up to {{max}} characters.",
+          "readOnly": "Notes can't be added to this task.",
+          "postFailed": "Your note wasn't posted. It's still here — try again.",
+          "inputA11y": "Note for your team"
+        },
+        "event": {
+          "created": "Task created",
+          "claimed": "Task claimed",
+          "started": "Task started",
+          "completed": "Task completed",
+          "cancelled": "Task cancelled",
+          "system_note": "Update",
+          "by": "{{name}}",
+          "a11y": "{{time}}, {{what}}",
+          "blocker_reported": "Couldn't complete: {{reason}}",
+          "blocker_resolved": "Problem cleared",
+          "resolution": {
+            "resumed": "Task resumed",
+            "resolved": "Problem resolved by a supervisor",
+            "completed": "Closed when the task was completed",
+            "reassigned": "Closed when the task was reassigned"
+          }
+        },
+        "room": "Room {{room}}"
+      },
+      "blocker": {
+        "title": "Unable to complete?",
+        "prompt": "What prevented you from finishing?",
+        "reasonsA11y": "Reason",
+        "detailsLabel": "Additional details",
+        "detailsLabelOther": "Describe what happened",
+        "placeholder": "Describe what happened…",
+        "detailsA11y": "Additional details",
+        "send": "Send update",
+        "sending": "Sending update",
+        "cancel": "Cancel",
+        "count": "{{count}}/{{max}}",
+        "offline": "Sending needs a connection. What you wrote stays here until you're back online.",
+        "reason": {
+          "guest_unavailable": "Guest unavailable",
+          "do_not_disturb": "Do Not Disturb",
+          "missing_supplies": "Missing supplies",
+          "access_issue": "Access problem",
+          "assistance_needed": "Need assistance",
+          "equipment_issue": "Equipment issue",
+          "other": "Other"
+        },
+        "validation": {
+          "reasonRequired": "Choose what prevented you.",
+          "detailsRequired": "A description is required for Other.",
+          "detailsTooLong": "Details can be up to {{max}} characters."
+        },
+        "error": {
+          "failed": "Couldn't send your update. What you wrote is still here — try again.",
+          "uncertain": "We couldn't confirm it was sent. Check your connection and send again — it won't be reported twice.",
+          "alreadyReported": "A problem was already reported on this task.",
+          "closed": "This task is already finished, so a problem can't be reported.",
+          "reassigned": "This task is now assigned to someone else.",
+          "changed": "This task changed. Review it and try again.",
+          "unavailable": "This task is no longer available to you."
+        },
+        "panel": {
+          "title": "Needs attention",
+          "reason": "Reason",
+          "reportedBy": "Reported by",
+          "reportedAt": "Reported",
+          "details": "Details",
+          "a11y": "Needs attention: {{reason}}, reported {{time}}"
+        },
+        "notify": {
+          "pending": "Your report has been saved.",
+          "queued": "Your report is saved and your supervisor has been alerted.",
+          "failed": "Your report is saved, but we couldn't alert a supervisor.",
+          "not_available": "Your report is saved. No supervisor is available to alert right now."
+        },
+        "saved": "Your report has been saved."
+      },
+      "link": {
+        "unavailable": "That task isn't available to you anymore.",
+        "retry": "Couldn't open that task. Check your connection and try again.",
+        "offline": "Connect to the internet to open that task."
+      },
+      "offline": {
+        "sheet": {
+          "titleOffline": "Working offline",
+          "titleOnline": "Sync status",
+          "savedAvailable": "Your saved tasks are still available.",
+          "lastSynced": "Last synced: {{time}}",
+          "neverSynced": "Nothing has synced on this device yet.",
+          "allSynced": "All changes synced",
+          "syncing": "Syncing changes…",
+          "offlineHelp": "Changes will sync when you're back online.",
+          "onlineHelp": "Saved changes are sent automatically. A change is only done once the server confirms it.",
+          "kindComplete": "Completion",
+          "rowLabel": "{{task}} — {{kind}}",
+          "review": "Review",
+          "reviewA11y": "Review {{task}}",
+          "retry": "Retry sync",
+          "close": "Close",
+          "states": {
+            "pending": "Pending",
+            "sending": "Sending",
+            "conflict": "Needs review",
+            "failed": "Sync failed"
+          },
+          "failedHelp": "Some changes could not be sent. Open them to see why and what you can do.",
+          "pending": "{{count}} pending change",
+          "pending_plural": "{{count}} pending changes",
+          "attention": "{{count}} change needs attention",
+          "attention_plural": "{{count}} changes need attention"
+        },
+        "card": {
+          "pendingTitle": "Completion pending sync",
+          "savedAt": "Saved on this device at {{time}}",
+          "sending": "Sending…",
+          "conflictTitle": "Couldn't sync — tap to review",
+          "pendingA11y": "{{title}}. Completion pending sync. Saved on this device at {{time}}.",
+          "conflictA11y": "{{title}}. Completion could not be synced. Review needed."
+        },
+        "detail": {
+          "pendingTitle": "Completion pending sync",
+          "pendingBody": "Saved on this device at {{time}}. It is sent when you're back online and is only done once the server confirms it.",
+          "sendingBody": "Sending your completion to the server…",
+          "failedTitle": "Sync failed",
+          "failedBody": "Your completion could not be sent after several tries. Check your connection and retry.",
+          "conflictTitle": "This couldn't be completed",
+          "supervisor": "If you think this is a mistake, ask your supervisor.",
+          "viewUpdated": "View updated task",
+          "dismiss": "Dismiss pending change",
+          "retry": "Retry",
+          "cachedBanner": "Saved copy — last synced {{time}}. Notes and activity need a connection.",
+          "cachedBannerNoTime": "Saved copy. Notes and activity need a connection.",
+          "conflict": {
+            "completed": "This task was already completed.",
+            "cancelled": "This task was cancelled, so it can't be completed.",
+            "reassigned": "This task was reassigned to someone else.",
+            "claimed": "This task was taken by someone else.",
+            "unavailable": "This task is no longer available to you.",
+            "blocked": "A problem was reported on this task. Resume it before completing.",
+            "changed": "The task changed while you were offline. Check it and try again.",
+            "forbidden": "You're no longer allowed to complete this task.",
+            "rejected": "The server couldn't accept this completion.",
+            "expired": "This change waited too long to sync. Check the task and complete it again if needed."
+          }
+        },
+        "complete": {
+          "saveOffline": "Save for sync",
+          "title": "Save completion",
+          "body": "You're offline. This will be saved on this device and sent when you're back online. The task isn't done until the server confirms it.",
+          "queued": "Saved on this device. Completion pending sync.",
+          "refusal": {
+            "no_session": "Sign in again to save this change.",
+            "not_assigned": "Only the person assigned to a task can complete it offline.",
+            "not_in_progress": "Start this task while online before completing it offline.",
+            "blocked": "A problem is reported on this task. Resume it while online first.",
+            "duplicate": "A completion for this task is already saved and waiting to sync.",
+            "note_too_long": "Your note is too long.",
+            "storage": "Couldn't save this on the device. Try again when you're online."
+          }
+        },
+        "availableTitle": "Available tasks need a connection",
+        "availableBody": "Claiming and starting tasks needs the internet so two people never take the same job. Your own tasks are still in My Work.",
+        "cachedList": "Showing saved tasks — last synced {{time}}.",
+        "cachedListNoTime": "Showing saved tasks."
+      },
+      "hist": {
+        "recent": "YOUR RECENT WORK",
+        "completedTodayAtLeast": "{{count}}+ completed today",
+        "completedTodayUnknown": "Completed today: unavailable",
+        "today": "TODAY",
+        "yesterday": "YESTERDAY",
+        "completedAt": "Completed {{time}}",
+        "cachedBanner": "Showing saved history — last synced {{time}}.",
+        "cachedBannerNoTime": "Showing saved history.",
+        "offlineMore": "Connect to the internet to load older tasks.",
+        "back": "Back",
+        "rowA11y": "{{title}}. {{place}}. Completed {{time}}.",
+        "rowA11yNoPlace": "{{title}}. Completed {{time}}.",
+        "offlineEmpty": "No saved history on this device yet. Connect to load it.",
+        "completedToday": "{{count}} completed today",
+        "completedToday_plural": "{{count}} completed today"
+      }
+    },
+    "completeFailed": "Couldn't mark this task done. It is still on your list — try again.",
+    "loadFailed": "Couldn't load your tasks.",
+    "refreshFailed": "Couldn't refresh — showing your last loaded tasks.",
+    "listIncomplete": "This list may be incomplete. Pull down to refresh.",
+    "aiRejected": "That task couldn't be created. Check the details and try again.",
+    "locationLabel": "Location: {{place}}",
     "guestTag": "Guest",
     "dueAt": "Due {{time}}",
     "overdueBy": "{{minutes}}m overdue",
@@ -1438,6 +1998,10 @@
     "signOut": "Sign out",
     "signOutTitle": "Sign out",
     "signOutConfirm": "Are you sure?",
+    "signOutUnsyncedTitle": "Task completions not synced",
+    "signOutUnsynced": "{{count}} task completion hasn't reached your manager yet. It stays saved on this phone and sends the next time you sign in here with this account and a connection.",
+    "signOutUnsynced_plural": "{{count}} task completions haven't reached your manager yet. They stay saved on this phone and send the next time you sign in here with this account and a connection.",
+    "signOutAnyway": "Sign out anyway",
     "appVersion": "PatelRep v{{version}}"
   },
   "copilot": {

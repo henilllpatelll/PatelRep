@@ -33127,6 +33127,159 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-09T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2008",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "Housekeeper task completion always failed: mobile PATCHed /tasks/{id} status=completed (403 for non-managers) and swallowed the error",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Generic PATCH status updates are manager-only; the screen had .catch(() => {}) so failures looked like nothing happened (and queued offline completions retried the same 403 forever).",
+      "fix": "Added POST /tasks/{id}/complete (assignee or manager, replay-safe, server timestamp); screen/offline queue use it; failures keep the task and show a message.",
+      "tags": [
+        "tasks",
+        "rbac",
+        "mobile",
+        "silent-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2009",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "GET /tasks?my_tasks=true ignored by backend; default 20/page truncated active work; load failure rendered as an empty queue",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "my_tasks is not a query param; list is paginated newest-first; catch set tasks to [].",
+      "fix": "New server-authoritative /tasks/mine, /tasks/available, /tasks/mine/completed with cursors; screen shows error+retry and keeps last good data.",
+      "tags": [
+        "tasks",
+        "pagination",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2010",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "POST /ai/tasks/confirm 422 from mobile (single object vs list[TaskPreview]); chat preview read from non-existent task_preview key",
+      "file": "apps/mobile/lib/ai/tasks.ts",
+      "root_cause": "Backend takes a JSON array and returns {data:{tasks:[...]}}; mobile sent {...preview, use_ai} and read response.task_preview.",
+      "fix": "Mobile parses data.tasks and posts an array; server validates due_at, verifies rooms, persists assignee, dedupes resubmits.",
+      "tags": [
+        "ai",
+        "contract",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2011",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "confirm_tasks validated assigned_to permission but never saved it; unresolved room number was silently dropped",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "assigned_to was missing from the inserted row; _resolve_room_id None discarded the text.",
+      "fix": "Persist assignee (tenant-validated) and keep unresolved room text as location_text.",
+      "tags": [
+        "ai",
+        "tasks"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2012",
+      "timestamp": "2026-10-12T12:00:00.000Z",
+      "error_message": "GET /tasks/{id} and POST comments let a housekeeper read/comment on any tenant task",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "List queries scoped housekeepers; detail and comments did not.",
+      "fix": "Apply the same assigned/created/open-pool visibility to detail and comments (404 otherwise).",
+      "tags": [
+        "tasks",
+        "rbac",
+        "tenant"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2013",
+      "timestamp": "2026-10-12T15:00:00.000Z",
+      "error_message": "Refresh after a task mutation returned the pre-mutation list (stale response overwrote newer state)",
+      "file": "apps/mobile/lib/tasks/useWorkQueue.ts",
+      "root_cause": "In-flight de-duplication returned the still-running request even after a mutation had invalidated it, so the post-mutation refresh reused an older response.",
+      "fix": "Track the token of each in-flight request; reuse it only while it is still current, otherwise start a new one.",
+      "tags": [
+        "mobile",
+        "tasks",
+        "race",
+        "refresh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2014",
+      "timestamp": "2026-10-12T15:00:00.000Z",
+      "error_message": "OperationsSemanticOnColor 'tasks' audit failed after moving the Tasks screen out of app/(app)/tasks/index.tsx",
+      "file": "apps/mobile/__tests__/components/OperationsSemanticOnColor.test.ts",
+      "root_cause": "The audit read one hard-coded route file; the route became a thin role switch.",
+      "fix": "Audit the list of task component files (screens, cards, header, sheet) instead.",
+      "tags": [
+        "mobile",
+        "tests",
+        "tasks"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2015",
+      "timestamp": "2026-10-13T17:00:00.000Z",
+      "error_message": "AttributeError: 'Body' object has no attribute 'comment' when add_task_comment was called directly in tests",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "Optional Body() param left as a FieldInfo default when the handler is invoked directly (not through FastAPI).",
+      "fix": "Check isinstance(body, TaskCommentRequest) instead of `body is not None`.",
+      "tags": [
+        "api",
+        "tasks",
+        "comments"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-13T17:00:00.000Z"
+    },
+    {
+      "id": "bug-2016",
+      "timestamp": "2026-10-13T20:00:00.000Z",
+      "error_message": "Add Task validation let a guest_request with a free-text place through",
+      "file": "apps/mobile/lib/tasks/addTask/draft.ts",
+      "root_cause": "The roomRequired check lived in an else-if after the place branch, so any place location skipped it.",
+      "fix": "Run the guest_request room check after the location branches whenever no earlier location error was set.",
+      "tags": ["mobile", "tasks", "validation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-13T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2017",
+      "timestamp": "2026-10-13T20:10:00.000Z",
+      "error_message": "Rule-engine fast path turned 'Room 318 needs two extra pillows before 2 PM' into a title and dropped the due time; parser prompt used the server's date, not the hotel's",
+      "file": "apps/api/services/ai/task_parser.py",
+      "root_cause": "try_fast_path matched 'room N needs ...' before any time handling; parse_nl_tasks used date.today() and nothing validated the model's due_at.",
+      "fix": "Skip the fast path when a time/day word is present; prompt carries hotel-local date/time/zone; normalize_due_at() re-validates and flags due_unresolved.",
+      "tags": ["api", "ai", "tasks", "timezone"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-13T20:10:00.000Z"
     }
   ]
 }

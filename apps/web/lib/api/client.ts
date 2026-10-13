@@ -14,13 +14,18 @@ export class ApiClientError extends Error {
   status: number | null
   path: string
   isNetworkError: boolean
+  retryAfterSeconds: number | null
 
-  constructor(message: string, options: { status?: number | null; path: string; isNetworkError?: boolean }) {
+  constructor(
+    message: string,
+    options: { status?: number | null; path: string; isNetworkError?: boolean; retryAfterSeconds?: number | null },
+  ) {
     super(message)
     this.name = 'ApiClientError'
     this.status = options.status ?? null
     this.path = options.path
     this.isNetworkError = options.isNetworkError ?? false
+    this.retryAfterSeconds = options.retryAfterSeconds ?? null
   }
 }
 
@@ -117,9 +122,11 @@ async function request(method: string, path: string, body?: any, options: Reques
       createClient().auth.signOut().catch(() => undefined)
       window.dispatchEvent(new CustomEvent('patelrep:session-expired'))
     }
+    const retryAfter = Number(res.headers.get('retry-after'))
     throw new ApiClientError(detail || 'Something went wrong. Please try again.', {
       status: res.status,
       path,
+      retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
     })
   }
 

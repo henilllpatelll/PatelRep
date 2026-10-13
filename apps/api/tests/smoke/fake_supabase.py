@@ -156,6 +156,10 @@ class FakeQuery:
         self.filters.append(("like", column, pattern))
         return self
 
+    def contains(self, column, value):
+        self.filters.append(("contains", column, value))
+        return self
+
     def ilike(self, column, pattern):
         self.filters.append(("ilike", column, pattern))
         return self
@@ -207,6 +211,9 @@ class FakeQuery:
             if op == "like":
                 prefix = value.rstrip("%")
                 if not isinstance(actual, str) or not actual.startswith(prefix):
+                    return False
+            if op == "contains":
+                if not isinstance(actual, dict) or any(actual.get(k) != v for k, v in value.items()):
                     return False
             if op == "ilike":
                 needle = value.strip("%*").lower()

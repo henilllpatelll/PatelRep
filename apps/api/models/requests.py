@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 from uuid import UUID
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 
 EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{2,}$")
@@ -272,6 +272,11 @@ class CreateTaskRequest(SanitizedBaseModel):
     due_at: Optional[datetime] = None
     nl_input: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     use_ai: bool = False
+    # Optional idempotency key (mobile Add Task): it becomes the new task's id, so a retry of an
+    # attempt whose outcome the client never saw returns that task instead of creating another.
+    client_request_id: Optional[UUID4] = None
+    # The person reviewed and kept details an AI parse suggested (recorded as is_ai_created).
+    ai_suggested: bool = False
 
     @field_validator("title")
     @classmethod
@@ -1618,6 +1623,90 @@ class TaskPreview(SanitizedBaseModel):
     room_number_display: Optional[str] = Field(default=None, max_length=64)
     due_at: Optional[str] = Field(default=None, max_length=64)
     assigned_to: Optional[UUID4] = None
+
+    # AI output and older clients use near-synonyms; map them onto the enums the
+    # tasks table accepts instead of rejecting an otherwise valid preview.
+    @field_validator("priority", mode="before")
+    @classmethod
+    def normalize_priority(cls, value: Any):
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            return {"high": "urgent", "critical": "urgent", "medium": "normal"}.get(lowered, lowered)
+        return value
+
+    @field_validator("task_type", mode="before")
+    @classmethod
+    def normalize_task_type(cls, value: Any):
+        if isinstance(value, str):
+            lowered = value.strip().lower().replace("-", "_").replace(" ", "_")
+            return {"guest": "guest_request", "maintenance": "engineering"}.get(lowered, lowered)
+        return value
+
+    @field_validator("due_at", mode="after")
+    @classmethod
+    def normalize_due_at(cls, value: Optional[str]):
+        """Accept an ISO-8601 instant and re-emit it as UTC; reject anything else so a
+        free-text 'tomorrow' becomes a 422 rather than a database error."""
+        if value is None or value == "":
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("due_at must be an ISO-8601 date-time") from exc
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc).isoformat()
+
+
+class CompleteTaskRequest(SanitizedBaseModel):
+    """Optional body for POST /tasks/{id}/complete."""
+
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+TaskBlockerReason = Literal[
+    "guest_unavailable",
+    "do_not_disturb",
+    "missing_supplies",
+    "access_issue",
+    "assistance_needed",
+    "equipment_issue",
+    "other",
+]
+
+
+class ReportTaskBlockerRequest(SanitizedBaseModel):
+    """Body for POST /tasks/{id}/blockers. ``client_request_id`` is the idempotency key: a retry
+    of the same submission returns the blocker the first attempt stored."""
+
+    reason: TaskBlockerReason
+    details: Optional[str] = Field(default=None, max_length=1000)
+    client_request_id: UUID
+
+    @model_validator(mode="after")
+    def other_needs_details(self):
+        if self.reason == "other" and not (self.details or "").strip():
+            raise ValueError("details are required when the reason is 'other'")
+        return self
+
+
+class ResumeTaskRequest(SanitizedBaseModel):
+    """Optional body for POST /tasks/{id}/resume. ``blocker_id`` pins the blocker the employee was
+    looking at, so a stale screen can not resume past a newer report."""
+
+    blocker_id: Optional[UUID] = None
+
+
+class ResolveTaskBlockerRequest(SanitizedBaseModel):
+    """Optional body for POST /tasks/{id}/blockers/{blocker_id}/resolve."""
+
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
+class TaskCommentRequest(SanitizedBaseModel):
+    """Optional JSON body for POST /tasks/{id}/comments (the ``comment`` query param still works)."""
+
+    comment: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
 
 
 class WorkOrderPreview(SanitizedBaseModel):

@@ -121,7 +121,19 @@ function AuthListener() {
       if (fetchingRef.current) return
       fetchingRef.current = true
       try {
-        const data: MeResponse = await apiClient.get('/auth/me')
+        // /auth/me sits behind the strict auth rate limit; a burst of page loads can get a 429.
+        // Without the profile the hotel store stays empty and hotel-gated pages never render,
+        // so wait out Retry-After (bounded) and retry instead of leaving the session half-loaded.
+        let data: MeResponse | undefined
+        for (let attempt = 0; !data; attempt += 1) {
+          try {
+            data = await apiClient.get('/auth/me')
+          } catch (err) {
+            if (!(err instanceof ApiClientError) || err.status !== 429 || attempt >= 2) throw err
+            const waitSeconds = Math.min(Math.max(err.retryAfterSeconds ?? 5, 1), 60)
+            await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000))
+          }
+        }
         setHotel(data.hotel)
         setHotels(data.hotels?.length ? data.hotels : [data.hotel])
         setSubscription(data.subscription)

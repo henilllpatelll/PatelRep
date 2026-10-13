@@ -15,6 +15,7 @@ jest.mock("@react-native-community/netinfo", () => ({
 }));
 
 import { api } from "@/lib/api/client";
+import { setQueueOwner } from "@/lib/offline/queueOwner";
 import { getPendingSyncQueue, deleteSyncQueueItem, incrementSyncQueueAttempts, upsertRooms } from "@/lib/offline/db";
 
 const mockApi = api as unknown as {
@@ -29,6 +30,7 @@ const mockUpsertRooms = upsertRooms as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  setQueueOwner("hotel-1:user-1");
   mockDeleteSyncQueueItem.mockResolvedValue(undefined);
   mockIncrementSyncQueueAttempts.mockResolvedValue(undefined);
   mockUpsertRooms.mockResolvedValue(undefined);
@@ -158,5 +160,32 @@ describe("refreshRooms", () => {
     expect(mockUpsertRooms).toHaveBeenCalledWith(rooms);
     // Ensure it was NOT called with the wrapper object
     expect(mockUpsertRooms).not.toHaveBeenCalledWith({ data: rooms });
+  });
+});
+
+describe("flushSyncQueue owner isolation", () => {
+  const row = { id: 9, entity_type: "work_order", action: "claim", entity_id: "wo-1", payload: "{}" };
+
+  it("sends nothing when nobody is signed in", async () => {
+    setQueueOwner(null);
+    mockGetPendingSyncQueue.mockResolvedValue([row]);
+
+    await flushSyncQueue();
+
+    expect(mockApi.post).not.toHaveBeenCalled();
+    expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();
+  });
+
+  it("stops before the next row when a different account signs in mid-flush", async () => {
+    mockGetPendingSyncQueue.mockResolvedValue([row, { ...row, id: 10, entity_id: "wo-2" }]);
+    mockApi.post.mockImplementationOnce(async () => {
+      setQueueOwner("hotel-1:someone-else");
+      return {};
+    });
+
+    await flushSyncQueue();
+
+    expect(mockApi.post).toHaveBeenCalledTimes(1);
+    expect(mockApi.post).toHaveBeenCalledWith("/work-orders/wo-1/claim", {});
   });
 });

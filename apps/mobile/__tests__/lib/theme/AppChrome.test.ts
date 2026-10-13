@@ -23,10 +23,10 @@ describe("root app chrome", () => {
   it("does not expose navigator chrome before appearance hydration", () => {
     expect(rootLayoutSource).toContain("if (!isHydrated) return null;");
     expect(rootLayoutSource).toMatch(
-      /if \(!isLoading && isHydrated\)\s*\{\s*(?:void )?SplashScreen\.hideAsync\(\)/,
+      /if \(!isLoading && isHydrated && fontsLoaded\)\s*\{\s*(?:void )?SplashScreen\.hideAsync\(\)/,
     );
     expect(rootLayoutSource).toMatch(
-      /\}, \[isLoading, isHydrated\]\);/,
+      /\}, \[isLoading, isHydrated, fontsLoaded\]\);/,
     );
   });
 
