@@ -2,7 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
 import { clearRoomsCache, upsertRooms } from "@/lib/offline/db";
-import { clearAllTaskCaches } from "@/lib/tasks/offline/taskCache";
+import { clearAllTaskCaches, taskScope } from "@/lib/tasks/offline/taskCache";
+import { getQueueOwner, setQueueOwner } from "@/lib/offline/queueOwner";
 import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
 import { flushSessions, isRoomManagedBySession } from "@/lib/housekeeping/sessionGuard";
 import type { UserProfile } from "@/lib/supabase";
@@ -17,6 +18,8 @@ export interface OfflineAction {
   entityId: string;
   payload: Record<string, unknown>;
   createdAt: string;
+  /** `${tenant_id}:${user_id}` that queued it; only that person + hotel ever replays or sees it. */
+  owner?: string;
 }
 
 interface AppState {
@@ -128,19 +131,40 @@ export interface Room {
   } | null;
 }
 
+async function readStoredQueue(): Promise<OfflineAction[]> {
+  const stored = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
+  if (!stored) return [];
+  const parsed: unknown = JSON.parse(stored);
+  return Array.isArray(parsed) ? (parsed as OfflineAction[]) : [];
+}
+
+/** Write this person's entries back without touching anyone else's (they wait for their owner to sign in). */
+async function persistQueue(owner: string, mine: OfflineAction[]): Promise<void> {
+  let others: OfflineAction[] = [];
+  try {
+    others = (await readStoredQueue()).filter((a) => typeof a.owner === "string" && a.owner && a.owner !== owner);
+  } catch {
+    others = [];
+  }
+  await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify([...others, ...mine]));
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
   setUser: (user) => {
     const previous = get().user;
+    setQueueOwner(taskScope(user));
     const changed = (previous?.id ?? null) !== (user?.id ?? null) || (previous?.tenant_id ?? null) !== (user?.tenant_id ?? null);
     if (changed && previous) {
       // A different person/hotel on this device must never see the last user's rooms.
-      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null });
+      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null, pendingActions: [] });
       void clearRoomsCache().catch(() => undefined);
       // ...nor the last user's cached tasks, history or counts (their unsent completions stay isolated in the task outbox).
       void clearAllTaskCaches().catch(() => undefined);
+      // ...and their unsent changes stay on disk for them, out of this person's view and out of any replay.
+      if (user) void get().loadPendingActions();
       return;
     }
     set({ user, isAuthenticated: !!user });
@@ -184,41 +208,49 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingActions: [],
 
   enqueueAction: async (action) => {
+    const owner = getQueueOwner();
+    if (!owner) throw new Error("Cannot queue a change without a signed-in user");
     const fullAction: OfflineAction = {
       ...action,
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       createdAt: new Date().toISOString(),
+      owner,
     };
     const next = [...get().pendingActions, fullAction];
     set({ pendingActions: next });
-    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(next));
+    await persistQueue(owner, next);
   },
 
   dropQueuedRoomStatus: async (roomId) => {
+    const owner = getQueueOwner();
+    if (!owner) return;
     const remaining = get().pendingActions.filter(
       (a) => !(a.type === "room_status" && a.entityId === roomId),
     );
     if (remaining.length === get().pendingActions.length) return;
     set({ pendingActions: remaining });
-    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(remaining));
+    await persistQueue(owner, remaining);
   },
 
   flushQueue: async () => {
-    const actions = get().pendingActions;
+    const owner = getQueueOwner();
+    if (!owner) return;
+    const actions = get().pendingActions.filter((a) => a.owner === owner);
     if (actions.length === 0) return;
 
     const succeeded: string[] = [];
     for (const action of actions) {
+      // Never send under a different account: stop if the person or hotel changed mid-flush.
+      if (getQueueOwner() !== owner) return;
       // A persistent clean session owns this room's start/complete lifecycle;
       // replaying the legacy status change as well would transition it twice.
       if (action.type === "room_status" && isRoomManagedBySession(action.entityId)) {
         succeeded.push(action.id);
         continue;
       }
-      // Task completions now live in the per-user task outbox (lib/tasks/offline). This shared queue has no
-      // owner on its entries, so replaying one could complete a task as a different (e.g. manager) account.
+      // Task completions live in the per-user task outbox (lib/tasks/offline); a legacy entry here is never replayed.
       if (action.type === "task_complete") {
-        console.warn("[offline] discarded an unowned legacy task_complete action");
+        console.warn("[offline] discarded a legacy task_complete action");
         succeeded.push(action.id);
         continue;
       }
@@ -236,21 +268,31 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
-    const remaining = actions.filter((a) => !succeeded.includes(a.id));
+    // Someone else signed in while requests were in flight: leave their view and the stored queue alone.
+    if (getQueueOwner() !== owner) return;
+    const remaining = get().pendingActions.filter((a) => !succeeded.includes(a.id));
     set({ pendingActions: remaining });
-    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(remaining));
+    await persistQueue(owner, remaining);
   },
 
   loadPendingActions: async () => {
+    const owner = getQueueOwner();
+    if (!owner) {
+      set({ pendingActions: [] });
+      return;
+    }
     try {
-      const stored = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
-      if (stored) {
-        const all = JSON.parse(stored) as OfflineAction[];
-        // See flushQueue: unowned legacy task completions are never replayed, so they are not shown as pending either.
-        const actions = all.filter((action) => action.type !== "task_complete");
-        set({ pendingActions: actions });
-        if (actions.length !== all.length) await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(actions));
-      }
+      const all = await readStoredQueue();
+      // Entries from before queues had an owner (or task completions, which have their own outbox) can not be
+      // attributed to anyone, so they are dropped rather than replayed under whoever signs in.
+      const kept = all.filter((a) => typeof a.owner === "string" && a.owner && a.type !== "task_complete");
+      if (kept.length !== all.length) await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(kept));
+      // The person may have switched while storage was read.
+      if (getQueueOwner() !== owner) return;
+      // Keep anything this person queued while storage was being read.
+      const loaded = kept.filter((a) => a.owner === owner);
+      const loadedIds = new Set(loaded.map((a) => a.id));
+      set({ pendingActions: [...loaded, ...get().pendingActions.filter((a) => a.owner === owner && !loadedIds.has(a.id))] });
     } catch (err) {
       console.warn("[offline] failed to load pending actions", err);
     }

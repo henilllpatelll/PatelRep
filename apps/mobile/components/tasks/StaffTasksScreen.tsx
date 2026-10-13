@@ -20,6 +20,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
 import { TaskCard } from "@/components/tasks/LegacyTaskCard";
+import { BlockedTasksSection } from "@/components/tasks/BlockedTasksSection";
 import { completeTask, loadWorkQueue } from "@/lib/api/tasks";
 import {
   buildTaskBriefing,
@@ -68,6 +69,9 @@ export function StaffTasksScreen() {
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [doneToday, setDoneToday] = useState(0);
+  // GET /tasks/blocked is manager-only: these roles also see the hotel unresolved "Unable to Complete" reports.
+  const canSeeBlocked = ["gm", "housekeeping_supervisor", "chief_engineer"].includes(String(user?.role));
+  const [blockedReload, setBlockedReload] = useState(0);
 
   // AI composer state
   const [composerText, setComposerText] = useState("");
@@ -101,6 +105,7 @@ export function StaffTasksScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setBlockedReload((n) => n + 1);
     await loadTasks();
     setRefreshing(false);
   }, [loadTasks]);
@@ -277,6 +282,8 @@ export function StaffTasksScreen() {
           watchouts={briefing.watchouts}
           footNote={t("ai.briefing.sourceLocal")}
         />
+
+        {canSeeBlocked ? <BlockedTasksSection isOnline={isOnline} reloadToken={blockedReload} /> : null}
 
         {queue.length === 0 ? (
           <StateBlock

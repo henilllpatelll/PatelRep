@@ -425,6 +425,49 @@ export const reportBlocker = (taskId: string, report: BlockerReport) =>
 /** Clear my own blocker and carry on. `blockerId` pins the report I was looking at (stale screens get blocker_changed). */
 export const resumeTask = (taskId: string, blockerId: string) => mutateBlocker(`/tasks/${taskId}/resume`, { blocker_id: blockerId });
 
+/** Supervisor view: one unresolved "Unable to Complete" report, with the task it is on. */
+export interface BlockedTaskItem {
+  blocker: TaskBlocker;
+  task: {
+    id: string;
+    title: string;
+    task_type: TaskType;
+    priority: TaskPriority;
+    assigned_to_name: string | null;
+    room_number: string | null;
+    location_text: string | null;
+  };
+}
+
+/** Manager roles only (403 otherwise). Unresolved blockers of my hotel, longest-waiting first. */
+export async function fetchBlockedTasks(): Promise<{ items: BlockedTaskItem[]; hasMore: boolean }> {
+  const res = await api.get<{ data?: Array<{ blocker?: RawRecord; task?: RawRecord }>; meta?: { has_more?: boolean } }>("/tasks/blocked");
+  const items: BlockedTaskItem[] = [];
+  for (const row of res?.data ?? []) {
+    const blocker = normalizeBlocker(row.blocker);
+    const task = row.task;
+    const id = str(task?.id);
+    if (!blocker || !task || !id) continue;
+    items.push({
+      blocker,
+      task: {
+        id,
+        title: str(task.title) ?? "",
+        task_type: TYPES.includes(task.task_type as TaskType) ? (task.task_type as TaskType) : "general",
+        priority: task.priority === "urgent" || task.priority === "low" ? task.priority : "normal",
+        assigned_to_name: str(task.assigned_to_name),
+        room_number: str(task.room_number),
+        location_text: str(task.location_text),
+      },
+    });
+  }
+  return { items, hasMore: res?.meta?.has_more === true };
+}
+
+/** A manager closes a blocker (problem fixed or dismissed). The task keeps its owner and status; replay-safe. */
+export const resolveBlocker = (taskId: string, blockerId: string, note?: string) =>
+  mutateBlocker(`/tasks/${taskId}/blockers/${blockerId}/resolve`, note && note.trim() ? { note: note.trim() } : {});
+
 /** Post a note. The text goes in the JSON body (not the URL); the server trims and validates it. */
 export async function addTaskComment(taskId: string, comment: string): Promise<TaskComment> {
   const res = await api.post<{ data?: RawRecord | null }>(`/tasks/${taskId}/comments`, { comment: comment.trim() });

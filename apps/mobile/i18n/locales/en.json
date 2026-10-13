@@ -1280,6 +1280,25 @@
     }
   },
   "tasks": {
+    "blocked": {
+      "title": "Blocked tasks",
+      "reportedBy": "Reported by {{name}}",
+      "assignedTo": "Assigned to {{name}}",
+      "waiting": "Waiting {{time}}",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "What was done about it...",
+      "resolve": "Mark resolved",
+      "close": "Close",
+      "review": "Review",
+      "loadFailed": "Couldn't load blocked tasks.",
+      "retry": "Try again",
+      "resolveFailed": "Couldn't mark this resolved. Check your connection and try again.",
+      "resolved": "Marked resolved. The assignee was told they can carry on.",
+      "offline": "Resolving needs a connection.",
+      "more": "More blocked tasks exist than are shown here.",
+      "room": "Room {{room}}",
+      "unassigned": "Unassigned"
+    },
     "title": "My tasks",
     "groupOverdue": "OVERDUE",
     "groupNow": "DO NOW",
@@ -1979,6 +1998,10 @@
     "signOut": "Sign out",
     "signOutTitle": "Sign out",
     "signOutConfirm": "Are you sure?",
+    "signOutUnsyncedTitle": "Task completions not synced",
+    "signOutUnsynced": "{{count}} task completion hasn't reached your manager yet. It stays saved on this phone and sends the next time you sign in here with this account and a connection.",
+    "signOutUnsynced_plural": "{{count}} task completions haven't reached your manager yet. They stay saved on this phone and send the next time you sign in here with this account and a connection.",
+    "signOutAnyway": "Sign out anyway",
     "appVersion": "PatelRep v{{version}}"
   },
   "copilot": {

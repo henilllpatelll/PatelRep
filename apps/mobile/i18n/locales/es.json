@@ -1280,6 +1280,25 @@
     }
   },
   "tasks": {
+    "blocked": {
+      "title": "Tareas bloqueadas",
+      "reportedBy": "Reportado por {{name}}",
+      "assignedTo": "Asignada a {{name}}",
+      "waiting": "Esperando {{time}}",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Qué se hizo al respecto...",
+      "resolve": "Marcar como resuelto",
+      "close": "Cerrar",
+      "review": "Revisar",
+      "loadFailed": "No se pudieron cargar las tareas bloqueadas.",
+      "retry": "Reintentar",
+      "resolveFailed": "No se pudo marcar como resuelto. Revisa tu conexión e inténtalo de nuevo.",
+      "resolved": "Marcado como resuelto. Se avisó a la persona asignada que puede continuar.",
+      "offline": "Resolver requiere conexión.",
+      "more": "Hay más tareas bloqueadas de las que se muestran aquí.",
+      "room": "Habitación {{room}}",
+      "unassigned": "Sin asignar"
+    },
     "title": "Mis tareas",
     "groupOverdue": "VENCIDAS",
     "groupNow": "HAZLO AHORA",
@@ -1979,6 +1998,10 @@
     "signOut": "Cerrar sesión",
     "signOutTitle": "Cerrar sesión",
     "signOutConfirm": "¿Estás seguro?",
+    "signOutUnsyncedTitle": "Tareas completadas sin sincronizar",
+    "signOutUnsynced": "{{count}} tarea completada aún no llega a tu gerente. Sigue guardada en este teléfono y se enviará la próxima vez que inicies sesión aquí con esta cuenta y tengas conexión.",
+    "signOutUnsynced_plural": "{{count}} tareas completadas aún no llegan a tu gerente. Siguen guardadas en este teléfono y se enviarán la próxima vez que inicies sesión aquí con esta cuenta y tengas conexión.",
+    "signOutAnyway": "Cerrar sesión de todos modos",
     "appVersion": "PatelRep v{{version}}"
   },
   "copilot": {

@@ -16,6 +16,7 @@ import i18n from "@/i18n";
 import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
+import { entriesForCurrentUser, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { monoFont } from "@/components/shared/tokens";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { SectionHeader } from "@/components/shared/evening";
@@ -174,16 +175,22 @@ export default function ProfileScreen() {
   }
 
   function signOut() {
+    // Task completions saved on this phone that the server has not confirmed (pending or refused alike).
+    const unsyncedTasks = Object.keys(entriesForCurrentUser(useTaskOutbox.getState())).length;
+    const confirmSignOut = async () => {
+      await supabase.auth.signOut({ scope: "local" });
+      router.replace("/(auth)/login" as never);
+    };
+    if (unsyncedTasks > 0) {
+      Alert.alert(t("profile.signOutUnsyncedTitle"), t("profile.signOutUnsynced", { count: unsyncedTasks }), [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("profile.signOutAnyway"), style: "destructive", onPress: confirmSignOut },
+      ]);
+      return;
+    }
     Alert.alert(t("profile.signOutTitle"), t("profile.signOutConfirm"), [
       { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("profile.signOut"),
-        style: "destructive",
-        onPress: async () => {
-          await supabase.auth.signOut({ scope: "local" });
-          router.replace("/(auth)/login" as never);
-        },
-      },
+      { text: t("profile.signOut"), style: "destructive", onPress: confirmSignOut },
     ]);
   }
 

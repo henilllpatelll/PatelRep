@@ -7,6 +7,7 @@ import {
   incrementSyncQueueAttempts,
   upsertRooms,
 } from "@/lib/offline/db";
+import { getQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
@@ -49,6 +50,7 @@ export async function flushSyncQueue(): Promise<void> {
   _syncInProgress = true;
 
   try {
+    const owner = getQueueOwner();
     const items = (await getPendingSyncQueue()) as Array<{
       id: number;
       entity_type: string;
@@ -58,6 +60,8 @@ export async function flushSyncQueue(): Promise<void> {
     }>;
 
     for (const item of items) {
+      // Rows are the signed-in person's own; stop the moment someone else (or nobody) is signed in.
+      if (!owner || getQueueOwner() !== owner) break;
       try {
         const payload = JSON.parse(item.payload);
 
