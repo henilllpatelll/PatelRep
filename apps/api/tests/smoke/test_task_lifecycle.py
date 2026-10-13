@@ -699,3 +699,161 @@ async def test_housekeeper_cannot_comment_on_a_task_they_cannot_see(db):
 
     assert err.value.status_code == 404
     assert [c["task_id"] for c in db.rows["task_comments"]] == ["mine"]
+
+
+# --------------------------------------------------------------------------- activity feed + notes (phase 3)
+
+
+def _profile(user_id, name, hotel=HOTEL):
+    return {"id": user_id, "tenant_id": hotel, "full_name": name, "preferred_name": None}
+
+
+@pytest.mark.asyncio
+async def test_activity_returns_task_and_only_persisted_events_oldest_first(db):
+    t0 = NOW - timedelta(hours=3)
+    db.rows["tasks"].append(
+        make_task("t1", status="in_progress", started_at=(NOW - timedelta(hours=1)).isoformat(), created_at=t0.isoformat())
+    )
+    db.rows["user_profiles"].extend([_profile("sup-1", "Front Desk"), _profile(ME, "Maria")])
+    db.rows["operational_audit_events"].append(
+        {"tenant_id": HOTEL, "resource_type": "task", "resource_id": "t1", "action": "task.started",
+         "actor_id": ME, "created_at": (NOW - timedelta(hours=1)).isoformat()}
+    )
+    db.rows["task_comments"].append(
+        {"id": "c1", "task_id": "t1", "tenant_id": HOTEL, "user_id": "sup-1", "comment": "Leave towels outside.",
+         "is_system": False, "created_at": (NOW - timedelta(minutes=30)).isoformat()}
+    )
+
+    response = await lifecycle.get_task_activity("t1", hk())
+
+    assert response["data"]["task"]["id"] == "t1"
+    events = response["data"]["events"]
+    assert [e["kind"] for e in events] == ["created", "started", "comment"]
+    assert events[0]["actor_name"] == "Front Desk"
+    assert events[1]["actor_name"] == "Maria"
+    assert events[2]["text"] == "Leave towels outside."
+
+
+@pytest.mark.asyncio
+async def test_activity_never_invents_an_actor_or_event(db):
+    # started via legacy PATCH: the row has started_at but there is no audit row.
+    db.rows["tasks"].append(make_task("t1", status="in_progress", started_at=NOW.isoformat()))
+
+    events = (await lifecycle.get_task_activity("t1", hk()))["data"]["events"]
+
+    started = next(e for e in events if e["kind"] == "started")
+    assert started["actor_name"] is None
+    assert "completed" not in [e["kind"] for e in events]
+    assert not any(e["kind"] == "claimed" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_claimed_task_shows_a_claim_event_not_a_second_start(db):
+    db.rows["tasks"].append(make_task("t1", status="in_progress", started_at=NOW.isoformat()))
+    db.rows["operational_audit_events"].append(
+        {"tenant_id": HOTEL, "resource_type": "task", "resource_id": "t1", "action": "task.claimed",
+         "actor_id": ME, "created_at": NOW.isoformat()}
+    )
+
+    kinds = [e["kind"] for e in (await lifecycle.get_task_activity("t1", hk()))["data"]["events"]]
+
+    assert kinds.count("claimed") == 1 and "started" not in kinds
+
+
+@pytest.mark.asyncio
+async def test_activity_is_scoped_like_task_detail(db):
+    db.rows["tasks"].extend(
+        [
+            make_task("mine"),
+            make_task("pool", assigned_to=None),
+            make_task("theirs", assigned_to=COWORKER),
+            make_task("foreign", tenant_id=OTHER_HOTEL),
+        ]
+    )
+    for visible in ("mine", "pool"):
+        assert (await lifecycle.get_task_activity(visible, hk()))["data"]["task"]["id"] == visible
+    for hidden in ("theirs", "foreign", "does-not-exist"):
+        with pytest.raises(HTTPException) as err:
+            await lifecycle.get_task_activity(hidden, hk())
+        assert err.value.status_code == 404
+    assert (await lifecycle.get_task_activity("theirs", supervisor()))["data"]["task"]["id"] == "theirs"
+    with pytest.raises(HTTPException) as err:
+        await lifecycle.get_task_activity("foreign", supervisor())  # managers stop at the tenant line
+    assert err.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_activity_does_not_leak_other_tenants_comments(db):
+    db.rows["tasks"].append(make_task("t1"))
+    db.rows["task_comments"].extend(
+        [
+            {"id": "ok", "task_id": "t1", "tenant_id": HOTEL, "user_id": ME, "comment": "mine", "is_system": False,
+             "created_at": NOW.isoformat()},
+            {"id": "bad", "task_id": "t1", "tenant_id": OTHER_HOTEL, "user_id": "x", "comment": "secret",
+             "is_system": False, "created_at": NOW.isoformat()},
+        ]
+    )
+
+    texts = [e.get("text") for e in (await lifecycle.get_task_activity("t1", hk()))["data"]["events"] if e["kind"] == "comment"]
+
+    assert texts == ["mine"]
+
+
+@pytest.mark.asyncio
+async def test_comment_accepts_json_body_trims_and_attributes_author(db):
+    from models.requests import TaskCommentRequest
+
+    db.rows["tasks"].append(make_task("t1"))
+
+    result = await tasks_router.add_task_comment("t1", None, hk(), body=TaskCommentRequest(comment="  Guest is asleep  "))
+
+    stored = db.rows["task_comments"][0]
+    assert result["data"]["comment"] == "Guest is asleep"
+    assert (stored["task_id"], stored["tenant_id"], stored["user_id"]) == ("t1", HOTEL, ME)
+
+
+@pytest.mark.asyncio
+async def test_blank_or_oversized_notes_are_rejected_and_nothing_is_stored(db):
+    db.rows["tasks"].append(make_task("t1"))
+
+    for bad in (None, "", "   \n "):
+        with pytest.raises(HTTPException) as err:
+            await tasks_router.add_task_comment("t1", bad, hk())
+        assert err.value.status_code == 422
+    with pytest.raises(HTTPException) as err:
+        await tasks_router.add_task_comment("t1", "x" * 2001, hk())
+    assert err.value.status_code == 422
+    assert db.rows["task_comments"] == []
+
+
+@pytest.mark.asyncio
+async def test_cross_tenant_task_cannot_be_commented_on(db):
+    db.rows["tasks"].append(make_task("foreign", tenant_id=OTHER_HOTEL))
+
+    with pytest.raises(HTTPException) as err:
+        await tasks_router.add_task_comment("foreign", "hi", supervisor())
+
+    assert err.value.status_code == 404
+    assert db.rows["task_comments"] == []
+
+
+def test_activity_and_json_comment_http_contract(db):
+    from middleware.auth import get_current_user
+
+    db.rows["tasks"].append(make_task("t1"))
+    app.dependency_overrides[get_current_user] = lambda: hk()
+    try:
+        client = TestClient(app)
+        posted = client.post("/v1/tasks/t1/comments", json={"comment": "Running late"})
+        assert posted.status_code == 200 and posted.json()["data"]["comment"] == "Running late"
+        assert client.post("/v1/tasks/t1/comments", json={"comment": "   "}).status_code == 422
+        assert client.post("/v1/tasks/t1/comments").status_code == 422
+        legacy = client.post("/v1/tasks/t1/comments?comment=legacy+web")
+        assert legacy.status_code == 200 and legacy.json()["data"]["comment"] == "legacy web"
+        assert [c["comment"] for c in db.rows["task_comments"]] == ["Running late", "legacy web"]
+        feed = client.get("/v1/tasks/t1/activity")
+        assert feed.status_code == 200
+        assert feed.json()["data"]["task"]["id"] == "t1"
+        assert client.get("/v1/tasks/nope/activity").status_code == 404
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)

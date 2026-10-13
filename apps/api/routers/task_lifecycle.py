@@ -7,6 +7,7 @@ Everything here is authenticated, tenant-scoped and decided on the server:
 * ``GET  /tasks/mine/completed``  Completion history — caller's completed tasks, newest first.
 * ``POST /tasks/{id}/start``      Start a task already assigned to the caller.
 * ``POST /tasks/{id}/complete``   Complete a task (assignee, or a manager role).
+* ``GET  /tasks/{id}/activity``   Authoritative task + its persisted activity feed.
 
 Claiming stays in ``routers/tasks.py`` (``POST /tasks/{id}/claim``). Generic
 ``PATCH /tasks/{id}`` is unchanged and stays manager-only for status changes — these
@@ -32,10 +33,15 @@ from typing import Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from core.database import supabase
-from core.roles import MANAGER_ROLES
+from core.roles import ASSIGNMENT_BOUND_ROLES, MANAGER_ROLES
 from middleware.auth import CurrentUser, get_current_user, require_role
 from models.requests import CompleteTaskRequest
-from routers.tasks import ACTIVE_TASK_STATUSES, _attach_profiles, _record_task_audit
+from routers.tasks import (
+    ACTIVE_TASK_STATUSES,
+    _assignment_bound_may_access,
+    _attach_profiles,
+    _record_task_audit,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -423,3 +429,113 @@ async def complete_task(
 
     _record_task_audit(current_user, task, "task.completed", {"status": "completed", "completed_at": completed_at})
     return {"data": _authoritative(task_id, current_user.hotel_id), "meta": meta}
+
+
+# ---------------------------------------------------------------------------
+# activity feed
+# ---------------------------------------------------------------------------
+
+ACTIVITY_COMMENT_LIMIT = 200
+# audit actions that tell us *who* did a transition recorded on the task row
+_AUDIT_ACTIONS = ("task.claimed", "task.started", "task.completed")
+
+
+def _actor_names(user_ids: set, hotel_id: str) -> dict:
+    ids = [uid for uid in user_ids if uid]
+    if not ids:
+        return {}
+    rows = (
+        supabase.table("user_profiles")
+        .select("id, full_name, preferred_name")
+        .eq("tenant_id", hotel_id)
+        .in_("id", ids)
+        .execute()
+        .data
+        or []
+    )
+    return {r["id"]: (r.get("preferred_name") or r.get("full_name")) for r in rows}
+
+
+def _build_activity(task: dict, comments: list[dict], audits: list[dict], names: dict) -> list[dict]:
+    """Only persisted facts: the task row's own timestamps (created / started / completed /
+    cancelled), the audit rows that say who claimed / started / completed it, and its
+    comments. Nothing is inferred — assignment has no timestamp, so it is not an event."""
+    audit_by_action: dict = {}
+    for row in audits:  # newest audit row per action wins
+        audit_by_action[row["action"]] = row
+
+    def actor(user_id):
+        return {"actor_id": user_id, "actor_name": names.get(user_id) if user_id else None}
+
+    events: list[dict] = []
+    if task.get("created_at"):
+        events.append({"id": "created", "kind": "created", "at": task["created_at"], **actor(task.get("created_by"))})
+    if task.get("started_at"):
+        claimed = audit_by_action.get("task.claimed")
+        started = audit_by_action.get("task.started")
+        source = claimed or started
+        kind = "claimed" if claimed else "started"
+        events.append({"id": kind, "kind": kind, "at": task["started_at"], **actor(source.get("actor_id") if source else None)})
+    if task.get("status") == "completed" and task.get("completed_at"):
+        done = audit_by_action.get("task.completed")
+        events.append({"id": "completed", "kind": "completed", "at": task["completed_at"], **actor(done.get("actor_id") if done else None)})
+    if task.get("status") == "cancelled" and task.get("cancelled_at"):
+        events.append({"id": "cancelled", "kind": "cancelled", "at": task["cancelled_at"], "actor_id": None, "actor_name": None})
+    for c in comments:
+        events.append(
+            {
+                "id": f"comment-{c['id']}",
+                "kind": "system_note" if c.get("is_system") else "comment",
+                "at": c.get("created_at"),
+                "text": c.get("comment"),
+                **actor(c.get("user_id")),
+            }
+        )
+    events = [e for e in events if e.get("at")]
+    events.sort(key=lambda e: (_parse_ts(e["at"]) or datetime.min.replace(tzinfo=timezone.utc), e["id"]))
+    return events
+
+
+@router.get("/{task_id}/activity")
+async def get_task_activity(task_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """The task as it is now, plus its persisted activity (oldest first).
+
+    Visibility is exactly that of ``GET /tasks/{id}``: a housekeeper only reaches tasks
+    assigned to / created by them or in the open housekeeping pool; everything else, and
+    every other tenant's task, is an indistinguishable 404."""
+    task = _load_task(task_id, current_user.hotel_id)
+    if current_user.role in ASSIGNMENT_BOUND_ROLES and not _assignment_bound_may_access(task, current_user.user_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    comments = (
+        supabase.table("task_comments")
+        .select("id, comment, user_id, is_system, created_at")
+        .eq("task_id", task_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("created_at", desc=True)
+        .limit(ACTIVITY_COMMENT_LIMIT + 1)
+        .execute()
+        .data
+        or []
+    )
+    truncated = len(comments) > ACTIVITY_COMMENT_LIMIT
+    comments = list(reversed(comments[:ACTIVITY_COMMENT_LIMIT]))
+    audits = (
+        supabase.table("operational_audit_events")
+        .select("action, actor_id, created_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("resource_type", "task")
+        .eq("resource_id", task_id)
+        .in_("action", list(_AUDIT_ACTIONS))
+        .order("created_at")
+        .execute()
+        .data
+        or []
+    )
+    user_ids = {task.get("created_by")} | {c.get("user_id") for c in comments} | {a.get("actor_id") for a in audits}
+    names = _actor_names(user_ids, current_user.hotel_id)
+    decorated = _decorate([task], current_user.hotel_id)[0]
+    return {
+        "data": {"task": decorated, "events": _build_activity(task, comments, audits, names)},
+        "meta": {"truncated": truncated},
+    }

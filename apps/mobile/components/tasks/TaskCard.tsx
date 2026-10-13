@@ -11,8 +11,8 @@ import { minutesSince, overdueMinutes } from "@/lib/tasks/workQueue";
 
 /* ─── Task card ──────────────────────────────────────────────────────────────
    Hierarchy: location -> title -> urgency/status -> type -> time context -> ONE action.
-   The body opens details (inline here; the sheet arrives in a later phase); the action
-   button is a separate target so the two never compete. Urgency is always spelled out in
+   The body opens the Task Detail sheet; the action button is a separate target so the two never
+   compete. Completing is confirmed in its own sheet, never one accidental tap. Urgency is always spelled out in
    text, never colour alone. All colours come from the active theme. */
 
 const MAX_FONT_SCALE = 1.5;
@@ -39,13 +39,8 @@ export interface TaskCardProps {
   busy: boolean;
   /** Actions are unavailable (e.g. offline). Details still open. */
   actionsDisabled: boolean;
-  expanded: boolean;
-  /** Showing the "mark done?" confirmation (in-progress cards only). */
-  confirming: boolean;
-  onToggleDetails: () => void;
+  onOpenDetails: () => void;
   onPrimary: () => void;
-  onConfirm: () => void;
-  onCancelConfirm: () => void;
 }
 
 function durationLabel(
@@ -67,12 +62,8 @@ export function TaskCard({
   language,
   busy,
   actionsDisabled,
-  expanded,
-  confirming,
-  onToggleDetails,
+  onOpenDetails,
   onPrimary,
-  onConfirm,
-  onCancelConfirm,
 }: TaskCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -125,11 +116,11 @@ export function TaskCard({
       <View style={[styles.rail, { backgroundColor: railColor }]} />
       <View style={styles.content}>
         <Pressable
-          onPress={onToggleDetails}
+          onPress={onOpenDetails}
           accessibilityRole="button"
-          accessibilityLabel={t(expanded ? "tasks.hk.action.hideDetails" : "tasks.hk.action.openDetails", { title: task.title })}
-          accessibilityState={{ expanded }}
+          accessibilityLabel={t("tasks.hk.action.openDetails", { title: task.title })}
           style={styles.body}
+          testID={`task-open-${task.id}`}
         >
           <View style={styles.topRow}>
             <View style={styles.locationRow}>
@@ -164,7 +155,7 @@ export function TaskCard({
 
           <Text
             maxFontSizeMultiplier={MAX_FONT_SCALE}
-            numberOfLines={expanded ? undefined : 2}
+            numberOfLines={2}
             style={[styles.title, hero && styles.titleHero, { color: theme.textPrimary }]}
           >
             {task.title}
@@ -195,52 +186,21 @@ export function TaskCard({
             ) : null}
           </View>
 
-          {expanded ? (
-            <View style={[styles.details, { borderTopColor: theme.borderSubtle }]}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.description, { color: theme.textSecondary }]}>
-                {task.description ?? t("tasks.hk.card.noDescription")}
-              </Text>
-              {task.created_at && formatHotelTime(task.created_at, zone, language) ? (
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: mutedColor }]}>
-                  {t("tasks.hk.card.created", { time: formatHotelTime(task.created_at, zone, language) })}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
         </Pressable>
 
-        {confirming ? (
-          <View style={[styles.confirm, { borderTopColor: theme.borderSubtle }]}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.confirmLabel, { color: theme.textPrimary }]}>
-              {t("tasks.hk.card.confirm")}
-            </Text>
-            <View style={styles.confirmButtons}>
-              <Button
-                label={t("tasks.hk.card.confirmYes")}
-                onPress={onConfirm}
-                icon="checkmark"
-                loading={busy}
-                disabled={actionsDisabled}
-                style={styles.flex}
-              />
-              <Button label={t("common.cancel")} onPress={onCancelConfirm} variant="secondary" disabled={busy} style={styles.flex} />
-            </View>
-          </View>
-        ) : (
-          <View style={styles.actionRow}>
-            <Button
-              label={action.label}
-              accessibilityLabel={action.a11y}
-              onPress={onPrimary}
-              icon={action.icon}
-              loading={busy}
-              disabled={actionsDisabled}
-              variant={variant === "inProgress" ? "secondary" : "primary"}
-              style={styles.flex}
-              testID={`task-action-${task.id}`}
-            />
-          </View>
-        )}
+        <View style={styles.actionRow}>
+          <Button
+            label={action.label}
+            accessibilityLabel={action.a11y}
+            onPress={onPrimary}
+            icon={action.icon}
+            loading={busy}
+            disabled={actionsDisabled}
+            variant={variant === "inProgress" ? "secondary" : "primary"}
+            style={styles.flex}
+            testID={`task-action-${task.id}`}
+          />
+        </View>
       </View>
     </View>
   );
@@ -264,10 +224,5 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12.5 },
   urgentBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   urgentText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
-  details: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 6, paddingTop: 8, gap: 6 },
-  description: { fontSize: 14, lineHeight: 20 },
   actionRow: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4 },
-  confirm: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
-  confirmLabel: { fontSize: 14, fontWeight: "700" },
-  confirmButtons: { flexDirection: "row", gap: 8 },
 });

@@ -16,6 +16,7 @@ import {
   fetchCompletedPage,
   fetchMyWork,
   fetchTask,
+  fetchTaskActivity,
   loadWorkQueue,
   normalizeTask,
   startTask,
@@ -212,12 +213,54 @@ describe("mutations", () => {
     expect(mockPost).toHaveBeenNthCalledWith(2, "/tasks/t2/claim", {});
   });
 
-  it("adds a comment with the value encoded in the query string", async () => {
-    mockPost.mockResolvedValueOnce({});
+  it("posts a note in the JSON body (never in the URL) and returns the stored comment", async () => {
+    mockPost.mockResolvedValueOnce({ data: { id: "c1", comment: "needs 2 & more", user_id: "u1", created_at: "2026-10-12T17:00:00Z" } });
 
-    await addTaskComment("t1", "needs 2 & more");
+    const stored = await addTaskComment("t1", "  needs 2 & more  ");
 
-    expect(mockPost).toHaveBeenCalledWith("/tasks/t1/comments?comment=needs%202%20%26%20more", {});
+    expect(mockPost).toHaveBeenCalledWith("/tasks/t1/comments", { comment: "needs 2 & more" });
+    expect(stored).toMatchObject({ id: "c1", comment: "needs 2 & more" });
+  });
+
+  it("reports whether the completion note was stored", async () => {
+    mockPost.mockResolvedValueOnce({ data: { id: "t1", status: "completed" }, meta: { replayed: false, note_saved: false } });
+    const result = await completeTask("t1", "  left at desk ");
+
+    expect(mockPost).toHaveBeenCalledWith("/tasks/t1/complete", { note: "left at desk" });
+    expect(result.noteSaved).toBe(false);
+
+    mockPost.mockResolvedValueOnce({ data: { id: "t1", status: "completed" }, meta: { replayed: false } });
+    expect((await completeTask("t1")).noteSaved).toBeNull();
+  });
+});
+
+describe("task activity contract", () => {
+  it("returns the authoritative task and only well-formed persisted events", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: {
+        task: { id: "t1", title: "Towels", status: "in_progress", rooms: { room_number: "214", floor: 2 } },
+        events: [
+          { id: "created", kind: "created", at: "2026-10-12T16:00:00Z", actor_id: "u2", actor_name: "Front Desk" },
+          { id: "comment-1", kind: "comment", at: "2026-10-12T16:20:00Z", actor_id: "u2", actor_name: "Front Desk", text: "Leave outside" },
+          { id: "bogus", kind: "teleported", at: "2026-10-12T16:30:00Z" },
+          { id: "no-time", kind: "started" },
+        ],
+      },
+      meta: { truncated: true },
+    });
+
+    const activity = await fetchTaskActivity("t1");
+
+    expect(mockGet).toHaveBeenCalledWith("/tasks/t1/activity");
+    expect(activity.task).toMatchObject({ id: "t1", room_number: "214", room_floor: 2 });
+    expect(activity.events.map((e) => e.id)).toEqual(["created", "comment-1"]);
+    expect(activity.events[1]).toMatchObject({ kind: "comment", text: "Leave outside", actor_name: "Front Desk" });
+    expect(activity.truncated).toBe(true);
+  });
+
+  it("fails loudly when the server sends no task", async () => {
+    mockGet.mockResolvedValueOnce({ data: {} });
+    await expect(fetchTaskActivity("t1")).rejects.toThrow();
   });
 });
 

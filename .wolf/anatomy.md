@@ -728,3 +728,11 @@
 - `TaskCard.tsx` - themed card, one action; `LegacyTaskCard.tsx` - previous card for other roles. `TasksHeader.tsx` - title/date/sync/summary/segments. `AddTaskSheet.tsx` - interim AI add flow. `StaffTasksScreen.tsx` - previous screen for non-housekeeper roles.
 ## apps/mobile/lib/tasks/
 - `workQueue.ts` (pure layout policy + fetchDoneToday), `useWorkQueue.ts` (queue state, refresh, mutations). `app/(app)/tasks/history.tsx` - basic completed list.
+
+- apps/mobile/components/tasks/TaskDetailSheet.tsx — Task Detail bottom sheet (real fields only, context-aware actions, activity preview) (~2.5k tok)
+- apps/mobile/components/tasks/CompleteTaskSheet.tsx — completion confirmation + optional note; noteFailed phase (~1.5k tok)
+- apps/mobile/components/tasks/ActivityNotesSheet.tsx — persisted activity feed + note composer (~2k tok)
+- apps/mobile/components/tasks/ActivityFeed.tsx — chronological/grouped event rows (~1k tok)
+- apps/mobile/lib/tasks/taskActions.ts — primaryAction/canAddNote/conflictReason display rules (~0.6k tok)
+- apps/mobile/lib/tasks/taskDisplay.ts — place/status labels, hotel-day grouping, formatWhen (~0.7k tok)
+- apps/mobile/lib/tasks/useTaskActivity.ts — GET /tasks/{id}/activity hook (~0.6k tok)

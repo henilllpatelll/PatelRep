@@ -1659,6 +1659,12 @@ class CompleteTaskRequest(SanitizedBaseModel):
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
+class TaskCommentRequest(SanitizedBaseModel):
+    """Optional JSON body for POST /tasks/{id}/comments (the ``comment`` query param still works)."""
+
+    comment: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
 class WorkOrderPreview(SanitizedBaseModel):
     title: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     category: Literal[

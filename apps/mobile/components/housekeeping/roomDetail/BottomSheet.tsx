@@ -21,6 +21,10 @@ interface Props {
    */
   scrollKey?: string | null;
   testID?: string;
+  /** Show the small drag handle above the title (Tasks sheets). */
+  grabber?: boolean;
+  /** Taller sheet for long feeds. */
+  tall?: boolean;
 }
 
 /**
@@ -29,7 +33,7 @@ interface Props {
  * keyboard, closes from the backdrop and the Android back button, and scrolls
  * rather than clipping under large text.
  */
-export function BottomSheet({ visible, title, onClose, children, footer, scrollKey, testID }: Props) {
+export function BottomSheet({ visible, title, onClose, children, footer, scrollKey, testID, grabber = false, tall = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -68,9 +72,11 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
           accessibilityViewIsModal
           style={[
             styles.sheet,
+            tall && styles.sheetTall,
             { backgroundColor: theme.surface, borderColor: theme.border, paddingBottom: insets.bottom + 12 },
           ]}
         >
+          {grabber ? <View style={[styles.grabber, { backgroundColor: theme.border }]} /> : null}
           <View style={styles.header}>
             <Text
               ref={titleRef}
@@ -116,6 +122,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     paddingTop: 8,
   },
+  sheetTall: { maxHeight: "94%", minHeight: "60%" },
+  grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, marginBottom: 2 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, minHeight: 52 },
   title: { flex: 1, fontSize: 18, fontWeight: "900", letterSpacing: -0.2 },
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: -10 },

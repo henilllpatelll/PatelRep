@@ -33240,6 +33240,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-12T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2015",
+      "timestamp": "2026-10-13T17:00:00.000Z",
+      "error_message": "AttributeError: 'Body' object has no attribute 'comment' when add_task_comment was called directly in tests",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "Optional Body() param left as a FieldInfo default when the handler is invoked directly (not through FastAPI).",
+      "fix": "Check isinstance(body, TaskCommentRequest) instead of `body is not None`.",
+      "tags": [
+        "api",
+        "tasks",
+        "comments"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-13T17:00:00.000Z"
     }
   ]
 }

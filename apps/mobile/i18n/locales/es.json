@@ -1384,12 +1384,119 @@
         "startFailed": "No se pudo iniciar esta tarea. Inténtalo de nuevo.",
         "startConflict": "Esta tarea cambió. Se actualizó tu lista.",
         "completeFailed": "No se pudo completar esta tarea. Sigue en tu lista.",
-        "completeConflict": "Esta tarea cambió. Se actualizó tu lista."
+        "completeConflict": "Esta tarea cambió. Se actualizó tu lista.",
+        "completed": "Tarea completada"
       },
       "add": {
         "button": "Agregar tarea",
         "sheetTitle": "Agregar una tarea",
         "close": "Cerrar"
+      },
+      "sheet": {
+        "detailTitle": "Detalles de la tarea",
+        "activityTitle": "Actividad y notas",
+        "completeTitle": "¿Completar esta tarea?",
+        "close": "Cerrar",
+        "instructions": "Instrucciones",
+        "details": "Detalles",
+        "activity": "Actividad",
+        "showMore": "Ver más",
+        "showLess": "Ver menos",
+        "you": "Tú",
+        "unassigned": "Sin asignar",
+        "overdue": "Vencida",
+        "floor": "Piso {{floor}}",
+        "subtitle": "{{type}} · {{status}}",
+        "field": {
+          "location": "Ubicación",
+          "due": "Vence",
+          "assignedTo": "Asignada a",
+          "createdBy": "Creada por",
+          "started": "Iniciada",
+          "completed": "Completada",
+          "guestRequest": "Solicitud de huésped"
+        },
+        "guestRequestLinked": "Vinculada a una solicitud de huésped",
+        "status": {
+          "open": "Sin iniciar",
+          "in_progress": "En curso",
+          "escalated": "Escalada",
+          "completed": "Completada",
+          "cancelled": "Cancelada",
+          "available": "Disponible"
+        },
+        "priorityUrgent": "Urgente",
+        "action": {
+          "start": "Iniciar tarea",
+          "claim": "Tomar e iniciar",
+          "complete": "Completar tarea",
+          "addNote": "Agregar nota",
+          "viewAll": "Ver toda la actividad",
+          "openRoom": "Abrir habitación {{room}}",
+          "openRoomA11y": "Abrir la habitación {{room}} en Mis habitaciones"
+        },
+        "readOnly": {
+          "completed": "Esta tarea está completada. Los detalles son de solo lectura.",
+          "cancelled": "Esta tarea fue cancelada. Los detalles son de solo lectura.",
+          "other": "Puedes ver esta tarea, pero no modificarla."
+        },
+        "reason": {
+          "completed": "Esta tarea ya fue completada.",
+          "cancelled": "Un supervisor canceló esta tarea.",
+          "reassigned": "Esta tarea ahora está asignada a otra persona.",
+          "claimed": "Otra persona tomó esta tarea primero.",
+          "unavailable": "Esta tarea ya no está disponible para ti.",
+          "changed": "Esta tarea cambió. Revísala e inténtalo de nuevo.",
+          "failed": "Algo salió mal. Inténtalo de nuevo.",
+          "uncertain": "No pudimos confirmarlo. Revisa tu conexión e inténtalo de nuevo.",
+          "offline": "Sin conexión. Vuelve a conectarte para continuar."
+        },
+        "activityLoading": "Cargando actividad…",
+        "activityError": "No se pudo cargar la actividad.",
+        "activityStale": "Mostrando la última actividad cargada.",
+        "activityTruncated": "Mostrando las notas más recientes.",
+        "complete": {
+          "body": "Confirma que la tarea ya se terminó.",
+          "noteLabel": "Nota de cierre (opcional)",
+          "notePlaceholder": "¿Algo que el equipo deba saber?",
+          "confirm": "Confirmar y completar",
+          "back": "Volver",
+          "count": "{{count}}/{{max}}",
+          "tooLong": "Las notas pueden tener hasta {{max}} caracteres.",
+          "done": "Tarea completada",
+          "noteFailedTitle": "Tarea completada",
+          "noteFailedBody": "No se guardó tu nota. Inténtalo de nuevo u omítela.",
+          "saveNote": "Guardar nota",
+          "skipNote": "Omitir nota",
+          "noteSaved": "Nota guardada",
+          "noteA11y": "Nota de cierre, opcional"
+        },
+        "notes": {
+          "subtitle": "{{place}} · {{title}}",
+          "today": "Hoy",
+          "yesterday": "Ayer",
+          "addLabel": "Agregar nota",
+          "placeholder": "Escribe una actualización para tu equipo…",
+          "post": "Publicar nota",
+          "empty": "Aún no hay actividad.",
+          "emptyNotes": "Aún no hay notas. Agrega una para informar a tu equipo.",
+          "needText": "Escribe una nota primero.",
+          "tooLong": "Las notas pueden tener hasta {{max}} caracteres.",
+          "readOnly": "No se pueden agregar notas a esta tarea.",
+          "postFailed": "Tu nota no se publicó. Sigue aquí; inténtalo de nuevo.",
+          "inputA11y": "Nota para tu equipo"
+        },
+        "event": {
+          "created": "Tarea creada",
+          "claimed": "Tarea tomada",
+          "started": "Tarea iniciada",
+          "completed": "Tarea completada",
+          "cancelled": "Tarea cancelada",
+          "system_note": "Actualización",
+          "by": "{{name}}",
+          "a11y": "{{time}}, {{what}}"
+        },
+        "room": "Habitación {{room}}"
       }
     },
     "completeFailed": "No se pudo marcar la tarea como hecha. Sigue en tu lista — inténtalo de nuevo.",

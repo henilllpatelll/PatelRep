@@ -5,9 +5,9 @@ import { api } from "@/lib/api/client";
      GET  /tasks/mine           My Work     (assigned to me, active)
      GET  /tasks/available      Available   (open, unassigned housekeeping pool; housekeeper only)
      GET  /tasks/mine/completed History     (my completed tasks, newest first)
-     GET  /tasks/{id}           Detail      (with comments)
-     POST /tasks/{id}/start | /claim | /complete
-     POST /tasks/{id}/comments
+     GET  /tasks/{id}/activity  Detail      (authoritative task + persisted activity feed)
+     POST /tasks/{id}/start | /claim | /complete   (complete accepts an optional { note })
+     POST /tasks/{id}/comments  body { comment }
      POST /ai/tasks/confirm     body is a JSON ARRAY of previews
    Membership, ordering and authorization are decided by the server; the client only
    normalises rows into `Task` and follows cursors until nothing is left. */
@@ -43,6 +43,8 @@ export interface Task {
   room_id: string | null;
   /** Verified room number from the linked room row — never derived from free text. */
   room_number: string | null;
+  /** Floor of the linked room, when known. */
+  room_floor: number | null;
   /** Free-text, non-room location ("Pool deck"). Not a verified room. */
   location_text: string | null;
   due_at: string | null;
@@ -125,6 +127,7 @@ export function normalizeTask(raw: RawRecord): Task {
     created_by_name: displayName(raw.creator_profile),
     room_id: str(raw.room_id),
     room_number: str(rooms?.room_number) ?? str(raw.room_number),
+    room_floor: typeof rooms?.floor === "number" ? rooms.floor : null,
     location_text: str(raw.location_text),
     due_at: str(raw.due_at),
     created_at: str(raw.created_at),
@@ -236,12 +239,59 @@ export interface TaskMutationResult {
   task: Task;
   /** The server had already applied this transition; nothing was written again. */
   replayed: boolean;
+  /** Completion only: whether the optional completion note was stored (null = no note sent / not reported). */
+  noteSaved: boolean | null;
 }
 
 async function mutate(path: string, body: unknown): Promise<TaskMutationResult> {
-  const res = await api.post<{ data: RawRecord; meta?: { replayed?: boolean } }>(path, body);
+  const res = await api.post<{ data: RawRecord; meta?: { replayed?: boolean; note_saved?: boolean } }>(path, body);
   if (!res?.data) throw new Error("Unexpected empty response from the task service");
-  return { task: normalizeTask(res.data), replayed: res.meta?.replayed === true };
+  return {
+    task: normalizeTask(res.data),
+    replayed: res.meta?.replayed === true,
+    noteSaved: typeof res.meta?.note_saved === "boolean" ? res.meta.note_saved : null,
+  };
+}
+
+/** One persisted thing that happened to a task. Everything here comes from stored rows. */
+export type TaskActivityKind = "created" | "claimed" | "started" | "completed" | "cancelled" | "comment" | "system_note";
+
+export interface TaskActivityEvent {
+  id: string;
+  kind: TaskActivityKind;
+  at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  /** Comment text (comment / system_note only). */
+  text: string | null;
+}
+
+const ACTIVITY_KINDS: readonly TaskActivityKind[] = ["created", "claimed", "started", "completed", "cancelled", "comment", "system_note"];
+
+export interface TaskActivity {
+  task: Task;
+  events: TaskActivityEvent[];
+  /** Older comments exist that were not returned. */
+  truncated: boolean;
+}
+
+/** The task as it is right now, plus its activity feed (oldest first). */
+export async function fetchTaskActivity(taskId: string): Promise<TaskActivity> {
+  const res = await api.get<{ data?: { task?: RawRecord; events?: RawRecord[] }; meta?: { truncated?: boolean } }>(
+    `/tasks/${taskId}/activity`,
+  );
+  if (!res?.data?.task) throw new Error("Unexpected empty response from the task service");
+  const events: TaskActivityEvent[] = (res.data.events ?? [])
+    .filter((e) => ACTIVITY_KINDS.includes(e.kind as TaskActivityKind) && typeof e.at === "string")
+    .map((e) => ({
+      id: String(e.id ?? ""),
+      kind: e.kind as TaskActivityKind,
+      at: e.at as string,
+      actor_id: str(e.actor_id),
+      actor_name: str(e.actor_name),
+      text: str(e.text),
+    }));
+  return { task: normalizeTask(res.data.task), events, truncated: res.meta?.truncated === true };
 }
 
 /** Start a task already assigned to me. Throws ApiError on 403/404/409 — never resolves on failure. */
@@ -254,9 +304,15 @@ export const claimTask = (taskId: string) => mutate(`/tasks/${taskId}/claim`, {}
 export const completeTask = (taskId: string, note?: string) =>
   mutate(`/tasks/${taskId}/complete`, note && note.trim() ? { note: note.trim() } : {});
 
-export async function addTaskComment(taskId: string, comment: string): Promise<void> {
-  await api.post(`/tasks/${taskId}/comments?comment=${encodeURIComponent(comment)}`, {});
+/** Post a note. The text goes in the JSON body (not the URL); the server trims and validates it. */
+export async function addTaskComment(taskId: string, comment: string): Promise<TaskComment> {
+  const res = await api.post<{ data?: RawRecord | null }>(`/tasks/${taskId}/comments`, { comment: comment.trim() });
+  if (!res?.data) throw new Error("Unexpected empty response from the task service");
+  return normalizeComment(res.data);
 }
+
+/** Longest note / completion note the API accepts. */
+export const TASK_NOTE_MAX = 2000;
 
 export interface CreateTasksResult {
   tasks: Task[];

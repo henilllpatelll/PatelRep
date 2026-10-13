@@ -1384,12 +1384,119 @@
         "startFailed": "Couldn't start this task. Try again.",
         "startConflict": "This task changed. Your list was refreshed.",
         "completeFailed": "Couldn't complete this task. It is still on your list.",
-        "completeConflict": "This task changed. Your list was refreshed."
+        "completeConflict": "This task changed. Your list was refreshed.",
+        "completed": "Task completed"
       },
       "add": {
         "button": "Add task",
         "sheetTitle": "Add a task",
         "close": "Close"
+      },
+      "sheet": {
+        "detailTitle": "Task details",
+        "activityTitle": "Activity & notes",
+        "completeTitle": "Complete this task?",
+        "close": "Close",
+        "instructions": "Instructions",
+        "details": "Details",
+        "activity": "Activity",
+        "showMore": "Show more",
+        "showLess": "Show less",
+        "you": "You",
+        "unassigned": "Not assigned yet",
+        "overdue": "Overdue",
+        "floor": "Floor {{floor}}",
+        "subtitle": "{{type}} · {{status}}",
+        "field": {
+          "location": "Location",
+          "due": "Due",
+          "assignedTo": "Assigned to",
+          "createdBy": "Created by",
+          "started": "Started",
+          "completed": "Completed",
+          "guestRequest": "Guest request"
+        },
+        "guestRequestLinked": "Linked to a guest request",
+        "status": {
+          "open": "Not started",
+          "in_progress": "In progress",
+          "escalated": "Escalated",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "available": "Available"
+        },
+        "priorityUrgent": "Urgent",
+        "action": {
+          "start": "Start task",
+          "claim": "Claim & start",
+          "complete": "Complete task",
+          "addNote": "Add note",
+          "viewAll": "View all activity",
+          "openRoom": "Open room {{room}}",
+          "openRoomA11y": "Open room {{room}} in My Rooms"
+        },
+        "readOnly": {
+          "completed": "This task is complete. Details are read-only.",
+          "cancelled": "This task was cancelled. Details are read-only.",
+          "other": "You can view this task but can't change it."
+        },
+        "reason": {
+          "completed": "This task was already completed.",
+          "cancelled": "A supervisor cancelled this task.",
+          "reassigned": "This task is now assigned to someone else.",
+          "claimed": "Someone else claimed this task first.",
+          "unavailable": "This task is no longer available to you.",
+          "changed": "This task changed. Review it and try again.",
+          "failed": "Something went wrong. Please try again.",
+          "uncertain": "We couldn't confirm that. Check your connection, then try again.",
+          "offline": "You're offline. Reconnect to continue."
+        },
+        "activityLoading": "Loading activity…",
+        "activityError": "Couldn't load activity.",
+        "activityStale": "Showing the last loaded activity.",
+        "activityTruncated": "Showing the most recent notes.",
+        "complete": {
+          "body": "Confirm that the task has been finished.",
+          "noteLabel": "Completion note (optional)",
+          "notePlaceholder": "Anything the team should know?",
+          "confirm": "Confirm complete",
+          "back": "Go back",
+          "count": "{{count}}/{{max}}",
+          "tooLong": "Notes can be up to {{max}} characters.",
+          "done": "Task completed",
+          "noteFailedTitle": "Task completed",
+          "noteFailedBody": "Your note wasn't saved. Try again, or skip it.",
+          "saveNote": "Save note",
+          "skipNote": "Skip note",
+          "noteSaved": "Note saved",
+          "noteA11y": "Completion note, optional"
+        },
+        "notes": {
+          "subtitle": "{{place}} · {{title}}",
+          "today": "Today",
+          "yesterday": "Yesterday",
+          "addLabel": "Add note",
+          "placeholder": "Write an update for your team…",
+          "post": "Post note",
+          "empty": "No activity yet.",
+          "emptyNotes": "No notes yet. Add one to update your team.",
+          "needText": "Write a note first.",
+          "tooLong": "Notes can be up to {{max}} characters.",
+          "readOnly": "Notes can't be added to this task.",
+          "postFailed": "Your note wasn't posted. It's still here — try again.",
+          "inputA11y": "Note for your team"
+        },
+        "event": {
+          "created": "Task created",
+          "claimed": "Task claimed",
+          "started": "Task started",
+          "completed": "Task completed",
+          "cancelled": "Task cancelled",
+          "system_note": "Update",
+          "by": "{{name}}",
+          "a11y": "{{time}}, {{what}}"
+        },
+        "room": "Room {{room}}"
       }
     },
     "completeFailed": "Couldn't mark this task done. It is still on your list — try again.",

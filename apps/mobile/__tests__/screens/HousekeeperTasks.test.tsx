@@ -53,9 +53,10 @@ let mockPending: Array<{ type: string }> = [];
 jest.mock("@/stores/appStore", () => ({
   useAppStore: () => ({
     isOnline: mockOnline,
-    user: { role: mockRole, language_pref: mockLanguage },
+    user: { id: "me", role: mockRole, language_pref: mockLanguage },
     hotelTimezone: "America/Chicago",
     pendingActions: mockPending,
+    myRooms: [],
   }),
 }));
 
@@ -105,6 +106,12 @@ function serve(options: Serve = {}) {
     if (path.startsWith("/tasks/mine/completed")) return { data: options.completed ?? [], meta: { has_more: false } };
     if (path.startsWith("/tasks/mine")) return { data: options.mine ?? MINE, meta: { has_more: false, ...options.mineMeta } };
     if (path.startsWith("/tasks/available")) return { data: options.pool ?? POOL, meta: { has_more: false } };
+    const activity = /^\/tasks\/([^/]+)\/activity$/.exec(path);
+    if (activity) {
+      const found = [...MINE, ...POOL].find((candidate) => candidate.id === activity[1]);
+      if (!found) throw Object.assign(new Error("HTTP 404"), { status: 404 });
+      return { data: { task: found, events: [] }, meta: { truncated: false } };
+    }
     throw new Error(`unexpected GET ${path}`);
   });
 }
@@ -218,40 +225,42 @@ describe("Housekeeper Tasks — My Work", () => {
 
   it("requires confirmation before completing and only then calls the complete endpoint", async () => {
     mockApiPost.mockResolvedValue({ data: { ...MINE[1], status: "completed" }, meta: { replayed: false } });
-    const { getByLabelText, getByText, queryByText } = await ready();
+    const { getByLabelText, getByText, queryByText, getByTestId } = await ready();
 
     fireEvent.press(getByLabelText("Complete Replace iron"));
-    expect(getByText("Mark this task done?")).toBeTruthy();
+    expect(getByText("Complete this task?")).toBeTruthy();
     expect(mockApiPost).not.toHaveBeenCalled();
 
-    fireEvent.press(getByText("Cancel"));
-    expect(queryByText("Mark this task done?")).toBeNull();
+    fireEvent.press(getByTestId("complete-back"));
+    expect(queryByText("Complete this task?")).toBeNull();
     expect(mockApiPost).not.toHaveBeenCalled();
 
     fireEvent.press(getByLabelText("Complete Replace iron"));
-    fireEvent.press(getByText("Yes, complete"));
+    fireEvent.press(getByTestId("complete-confirm"));
 
     await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith("/tasks/iron/complete", {}));
-    await waitFor(() => expect(queryByText("Mark this task done?")).toBeNull());
+    await waitFor(() => expect(queryByText("Complete this task?")).toBeNull());
+    await waitFor(() => expect(getByTestId("tasks-success")).toBeTruthy());
   });
 
   it("keeps the task and reports failure when completion is rejected (never a false success)", async () => {
     mockApiPost.mockRejectedValue(failure(500));
-    const { getByLabelText, getByText } = await ready();
+    const { getByLabelText, getByText, getByTestId, queryByTestId } = await ready();
 
     fireEvent.press(getByLabelText("Complete Replace iron"));
-    fireEvent.press(getByText("Yes, complete"));
+    fireEvent.press(getByTestId("complete-confirm"));
 
     await waitFor(() => expect(getByText("Couldn't complete this task. It is still on your list.")).toBeTruthy());
     expect(getByText("Replace iron")).toBeTruthy();
+    expect(queryByTestId("tasks-success")).toBeNull();
   });
 
-  it("opens inline details from the card body without competing with the action", async () => {
+  it("opens the Task Detail sheet from the card body without competing with the action", async () => {
     const { getByLabelText, getByText } = await ready();
 
     fireEvent.press(getByLabelText("Show details for Replace iron"));
 
-    expect(getByText("No extra details.")).toBeTruthy();
+    await waitFor(() => expect(getByText("Task details")).toBeTruthy());
     expect(mockApiPost).not.toHaveBeenCalled();
   });
 

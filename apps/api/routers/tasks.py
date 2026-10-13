@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from typing import Literal, Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CreateTaskRequest,
     CreateTaskScheduleRequest,
+    TaskCommentRequest,
     UpdateTaskRequest,
     UpdateTaskScheduleRequest,
 )
@@ -609,9 +610,19 @@ async def delete_task(
 @router.post("/{task_id}/comments")
 async def add_task_comment(
     task_id: str,
-    comment: str = Query(..., min_length=1, max_length=2000),
+    comment: Optional[str] = Query(None, max_length=2000),
     current_user: CurrentUser = Depends(get_current_user),
+    body: Optional[TaskCommentRequest] = Body(default=None),
 ):
+    """Add a note to a task. Text comes from the JSON body (mobile) or the legacy ``comment``
+    query parameter (web). It is trimmed; blank notes are rejected."""
+    text = body.comment if isinstance(body, TaskCommentRequest) else (comment if isinstance(comment, str) else None)
+    text = text.strip() if text else ""
+    if not text:
+        raise HTTPException(status_code=422, detail="A note can not be empty")
+    if len(text) > 2000:
+        raise HTTPException(status_code=422, detail="A note can be at most 2000 characters")
+
     task = (
         supabase.table("tasks")
         .select("id, status, task_type, assigned_to, created_by")
@@ -620,7 +631,7 @@ async def add_task_comment(
         .maybe_single()
         .execute()
     )
-    if not task.data:
+    if not task or not task.data:
         raise HTTPException(status_code=404, detail="Task not found")
     if current_user.role in ASSIGNMENT_BOUND_ROLES and not _assignment_bound_may_access(
         task.data, current_user.user_id
@@ -634,7 +645,7 @@ async def add_task_comment(
                 "task_id": task_id,
                 "tenant_id": current_user.hotel_id,
                 "user_id": current_user.user_id,
-                "comment": comment,
+                "comment": text,
             }
         )
         .execute()

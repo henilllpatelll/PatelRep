@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -9,10 +9,14 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { AddTaskSheet } from "@/components/tasks/AddTaskSheet";
+import { ActivityNotesSheet } from "@/components/tasks/ActivityNotesSheet";
+import { CompleteTaskSheet, type CompletePhase } from "@/components/tasks/CompleteTaskSheet";
+import { TaskDetailSheet } from "@/components/tasks/TaskDetailSheet";
 import { TaskCard, type TaskCardVariant } from "@/components/tasks/TaskCard";
 import { TasksHeader, type Segment, type SummaryValue, type SyncKey } from "@/components/tasks/TasksHeader";
 import { resolveTimeZone } from "@/lib/housekeeping/hotelTime";
-import type { Task } from "@/lib/api/tasks";
+import { addTaskComment, type Task } from "@/lib/api/tasks";
+import { conflictReason, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
 import { buildWorkBuckets } from "@/lib/tasks/workQueue";
 import { useWorkQueue, type ListState, type MutationResult } from "@/lib/tasks/useWorkQueue";
 
@@ -33,7 +37,32 @@ function dateLabel(now: Date, zone: string | null, language: string): string {
   });
 }
 
-function messageKey(action: "start" | "claim" | "complete", result: Extract<MutationResult, { ok: false }>): string | null {
+type Failure = Extract<MutationResult, { ok: false }>;
+type Sheet = "detail" | "complete" | "notes";
+/** Where a sheet was opened from, so closing it lands back where the employee was. */
+type Origin = "list" | "detail";
+
+const SPECIFIC_REASONS = new Set(["completed", "cancelled", "reassigned", "claimed", "unavailable"]);
+
+/** Plain-language reason for a refused/failed lifecycle request (sheet or list), or null when nothing should be said. */
+function failureText(
+  t: (key: string) => string,
+  action: TaskAction,
+  failure: Failure,
+  viewer: Viewer,
+): string | null {
+  if (failure.code === "busy") return null;
+  if (failure.code === "offline") return t("tasks.hk.sheet.reason.offline");
+  if (failure.code === "conflict" && failure.current !== undefined) {
+    const reason = conflictReason(action, failure.current, viewer);
+    if (SPECIFIC_REASONS.has(reason)) return t(`tasks.hk.sheet.reason.${reason}`);
+  }
+  if (failure.uncertain) return t("tasks.hk.sheet.reason.uncertain");
+  const key = messageKey(action, failure);
+  return key ? t(key) : null;
+}
+
+function messageKey(action: "start" | "claim" | "complete", result: Failure): string | null {
   if (result.code === "busy") return null;
   if (result.code === "offline") return "tasks.hk.msg.offline";
   if (action === "claim") return result.code === "conflict" ? "tasks.hk.msg.claimConflict" : "tasks.hk.msg.claimFailed";
@@ -57,18 +86,29 @@ export function HousekeeperTasksScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
-  const { isOnline, hotelTimezone, pendingActions } = useAppStore();
+  const { isOnline, hotelTimezone, pendingActions, user, myRooms } = useAppStore();
   const zone = hotelTimezone ?? null;
+  const viewer = useMemo<Viewer>(() => ({ userId: user?.id ?? null, role: user?.role ?? null }), [user?.id, user?.role]);
 
-  const queue = useWorkQueue({ isOnline, timeZone: zone });
+  const queue = useWorkQueue({ isOnline, timeZone: zone, userId: viewer.userId });
   const { mine, available, done } = queue;
 
   const [segment, setSegment] = useState<Segment>("mine");
   const [laterOpen, setLaterOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+
+  // One sheet at a time: opening another replaces it, so sheets never stack or fight over gestures.
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [sheetTask, setSheetTask] = useState<Task | null>(null);
+  const [origin, setOrigin] = useState<Origin>("list");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [completeNote, setCompleteNote] = useState("");
+  const [completePhase, setCompletePhase] = useState<CompletePhase>("confirm");
+  const [completeError, setCompleteError] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
+  const completeLock = useRef(false);
 
   // Relative labels ("12m overdue") re-evaluate on data changes and once a minute.
   const [tick, setTick] = useState(0);
@@ -103,33 +143,177 @@ export function HousekeeperTasksScreen() {
           ? "stale"
           : "synced";
 
+  // A success line clears itself; it never needs dismissing.
+  useEffect(() => {
+    if (!success) return;
+    const id = setTimeout(() => setSuccess(null), 4000);
+    return () => clearTimeout(id);
+  }, [success]);
+
+  const closeSheets = useCallback(() => {
+    setSheet(null);
+    setSheetTask(null);
+    setNotice(null);
+    setCompleteNote("");
+    setCompleteError(null);
+    setCompletePhase("confirm");
+  }, []);
+
+  const openDetails = useCallback(
+    (task: Task) => {
+      if (sheet) return; // repeated taps never open a second sheet
+      setSheetTask(task);
+      setNotice(null);
+      setOrigin("list");
+      setSheet("detail");
+    },
+    [sheet],
+  );
+
+  // The lists are re-read after every change; an open sheet follows its task.
+  useEffect(() => {
+    if (!sheetTask) return;
+    const fresher = [...mine.tasks, ...available.tasks].find((candidate) => candidate.id === sheetTask.id);
+    if (fresher && fresher !== sheetTask) setSheetTask(fresher);
+  }, [mine.tasks, available.tasks]);
+
+  const adoptRefreshed = useCallback((task: Task) => {
+    setSheetTask((current) => (current && current.id === task.id ? task : current));
+  }, []);
+
+  /** Start / claim from a card button or from the detail sheet — one code path for both. */
   const run = useCallback(
-    async (action: "start" | "claim" | "complete", task: Task) => {
+    async (action: "start" | "claim", task: Task, fromSheet: boolean) => {
       setMessage(null);
+      setNotice(null);
       const result = await queue[action](task.id);
       if (result.ok) {
-        if (action === "complete") setConfirmingId(null);
+        if (fromSheet && result.task) setSheetTask(result.task);
         return;
       }
-      const key = messageKey(action, result);
-      if (key) setMessage(t(key));
-      if (action === "complete") setConfirmingId(null);
+      const text = failureText(t, action, result, viewer);
+      if (fromSheet) {
+        if (result.current) setSheetTask(result.current);
+        if (result.current === null) {
+          closeSheets();
+          if (text) setMessage(text);
+        } else if (text) {
+          setNotice(text);
+        }
+      } else if (text) {
+        setMessage(text);
+      }
     },
-    [queue, t],
+    [queue, t, viewer, closeSheets],
+  );
+
+  const openComplete = useCallback(
+    (task: Task, from: Origin) => {
+      if (sheet && sheet !== "detail") return;
+      setSheetTask(task);
+      setOrigin(from);
+      setCompleteNote("");
+      setCompleteError(null);
+      setCompletePhase("confirm");
+      setNotice(null);
+      setSheet("complete");
+    },
+    [sheet],
   );
 
   const onPrimary = useCallback(
     (task: Task, variant: TaskCardVariant) => {
+      if (sheet) return;
       if (variant === "inProgress") {
-        setConfirmingId(task.id); // completion is never one accidental tap
+        openComplete(task, "list"); // completion is never one accidental tap
       } else if (variant === "available") {
-        void run("claim", task);
+        void run("claim", task, false);
       } else {
-        void run("start", task);
+        void run("start", task, false);
       }
     },
-    [run],
+    [run, openComplete, sheet],
   );
+
+  const backFromComplete = useCallback(() => {
+    if (completing) return;
+    setCompleteError(null);
+    setCompleteNote("");
+    setCompletePhase("confirm");
+    if (origin === "detail") setSheet("detail");
+    else closeSheets();
+  }, [completing, origin, closeSheets]);
+
+  const finishCompleted = useCallback(() => {
+    closeSheets();
+    setSuccess(t("tasks.hk.msg.completed"));
+  }, [closeSheets, t]);
+
+  const confirmComplete = useCallback(async () => {
+    if (!sheetTask || completeLock.current) return;
+    completeLock.current = true;
+    setCompleting(true);
+    setCompleteError(null);
+    try {
+      const note = completeNote.trim();
+      const result = await queue.complete(sheetTask.id, note || undefined);
+      if (result.ok) {
+        if (note && result.noteSaved === false) {
+          // Completed, but the note was not stored: say so and keep the note for a retry.
+          if (result.task) setSheetTask(result.task);
+          setCompletePhase("noteFailed");
+        } else {
+          finishCompleted();
+        }
+        return;
+      }
+      if (result.current) setSheetTask(result.current);
+      const text = failureText(t, "complete", result, viewer);
+      if (text) setCompleteError(text);
+    } finally {
+      completeLock.current = false;
+      setCompleting(false);
+    }
+  }, [sheetTask, completeNote, queue, viewer, t, finishCompleted]);
+
+  const retryCompletionNote = useCallback(async () => {
+    if (!sheetTask || completeLock.current || !completeNote.trim()) return;
+    completeLock.current = true;
+    setCompleting(true);
+    setCompleteError(null);
+    try {
+      await addTaskComment(sheetTask.id, completeNote);
+      finishCompleted();
+    } catch {
+      setCompleteError(t("tasks.hk.sheet.notes.postFailed"));
+    } finally {
+      completeLock.current = false;
+      setCompleting(false);
+    }
+  }, [sheetTask, completeNote, t, finishCompleted]);
+
+  const openNotes = useCallback(
+    (task: Task, from: Origin) => {
+      if (sheet && sheet !== "detail") return;
+      setSheetTask(task);
+      setOrigin(from);
+      setSheet("notes");
+    },
+    [sheet],
+  );
+
+  const closeNotes = useCallback(() => {
+    if (origin === "detail") setSheet("detail");
+    else closeSheets();
+  }, [origin, closeSheets]);
+
+  const canOpenRoom = !!sheetTask?.room_id && (myRooms ?? []).some((room) => room.id === sheetTask.room_id);
+  const openRoom = useCallback(() => {
+    const roomId = sheetTask?.room_id;
+    if (!roomId) return;
+    closeSheets();
+    router.push(`/(app)/my-rooms/${roomId}` as never);
+  }, [sheetTask?.room_id, closeSheets]);
 
   const list: ListState = segment === "mine" ? mine : available;
   const nothingElse = !buckets.nextUp && buckets.inProgress.length === 0 && buckets.upNext.length === 0;
@@ -206,12 +390,8 @@ export function HousekeeperTasksScreen() {
         language={language}
         busy={queue.busyIds.has(task.id)}
         actionsDisabled={!isOnline}
-        expanded={expandedId === task.id}
-        confirming={confirmingId === task.id}
-        onToggleDetails={() => setExpandedId((id) => (id === task.id ? null : task.id))}
+        onOpenDetails={() => openDetails(task)}
         onPrimary={() => onPrimary(task, variant)}
-        onConfirm={() => void run("complete", task)}
-        onCancelConfirm={() => setConfirmingId(null)}
       />
     );
   };
@@ -277,6 +457,17 @@ export function HousekeeperTasksScreen() {
     </View>
   ) : null;
 
+  const successBanner = success ? (
+    <View style={[styles.banner, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]} accessibilityRole="alert" accessibilityLiveRegion="polite" testID="tasks-success">
+      <Ionicons name="checkmark-circle" size={16} color={theme.status.clean} />
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerText, { color: theme.status.clean }]}>
+        {success}
+      </Text>
+    </View>
+  ) : null;
+
+  const detailBusy = !!sheetTask && queue.busyIds.has(sheetTask.id);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <TasksHeader
@@ -285,10 +476,7 @@ export function HousekeeperTasksScreen() {
         summary={summary}
         segment={segment}
         counts={counts}
-        onSegmentChange={(next) => {
-          setSegment(next);
-          setConfirmingId(null);
-        }}
+        onSegmentChange={(next) => setSegment(next)}
         onOpenHistory={() => router.push("/(app)/tasks/history" as never)}
         topInset={insets.top}
       />
@@ -298,6 +486,7 @@ export function HousekeeperTasksScreen() {
         renderItem={renderRow}
         ListHeaderComponent={
           <View style={styles.banners}>
+            {successBanner}
             {messageBanner}
             {banner}
           </View>
@@ -321,6 +510,49 @@ export function HousekeeperTasksScreen() {
           {t("tasks.hk.add.button")}
         </Text>
       </Pressable>
+      <TaskDetailSheet
+        visible={sheet === "detail"}
+        task={sheetTask}
+        viewer={viewer}
+        zone={zone}
+        language={language}
+        now={now}
+        busy={detailBusy}
+        offline={!isOnline}
+        notice={notice}
+        canOpenRoom={canOpenRoom}
+        onClose={closeSheets}
+        onTaskRefreshed={adoptRefreshed}
+        onAction={(action) => sheetTask && void run(action, sheetTask, true)}
+        onRequestComplete={() => sheetTask && openComplete(sheetTask, "detail")}
+        onOpenNotes={() => sheetTask && openNotes(sheetTask, "detail")}
+        onOpenRoom={openRoom}
+      />
+      <CompleteTaskSheet
+        visible={sheet === "complete"}
+        task={sheetTask}
+        phase={completePhase}
+        note={completeNote}
+        onNoteChange={setCompleteNote}
+        busy={completing}
+        offline={!isOnline}
+        error={completeError}
+        onConfirm={() => void confirmComplete()}
+        onBack={backFromComplete}
+        onRetryNote={() => void retryCompletionNote()}
+        onSkipNote={finishCompleted}
+      />
+      <ActivityNotesSheet
+        visible={sheet === "notes"}
+        task={sheetTask}
+        viewer={viewer}
+        zone={zone}
+        language={language}
+        now={now}
+        offline={!isOnline}
+        onClose={closeNotes}
+        onTaskRefreshed={adoptRefreshed}
+      />
       <AddTaskSheet
         visible={addOpen}
         isOnline={isOnline}

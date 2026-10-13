@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { claimTask, completeTask, fetchAvailable, fetchMyWork, startTask, type Task } from "@/lib/api/tasks";
+import { claimTask, completeTask, fetchAvailable, fetchMyWork, fetchTask, startTask, type Task } from "@/lib/api/tasks";
 import { fetchDoneToday, type DoneToday } from "@/lib/tasks/workQueue";
 
 /* ─── Server-authoritative queue state for the Housekeeper Tasks screen ───────
@@ -23,7 +23,22 @@ export interface ListState {
 }
 
 export type MutationCode = "offline" | "busy" | "conflict" | "failed";
-export type MutationResult = { ok: true } | { ok: false; code: MutationCode };
+export type MutationResult =
+  | {
+      ok: true;
+      /** The authoritative task after the change. */
+      task: Task | null;
+      /** Completion only: false means the task is done but the optional note was NOT stored. */
+      noteSaved: boolean | null;
+    }
+  | {
+      ok: false;
+      code: MutationCode;
+      /** The task as the server now reports it (null = can no longer be read). Set after a refusal. */
+      current?: Task | null;
+      /** No answer came back, so the request may or may not have landed; state was re-read before reporting. */
+      uncertain?: boolean;
+    };
 
 const INITIAL: ListState = { tasks: [], status: "loading", stale: false, truncated: false };
 
@@ -35,9 +50,11 @@ function httpStatus(error: unknown): number | null {
 interface Options {
   isOnline: boolean;
   timeZone: string | null;
+  /** Signed-in employee; lets a transition that landed with a lost reply be recognised as success. */
+  userId?: string | null;
 }
 
-export function useWorkQueue({ isOnline, timeZone }: Options) {
+export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
   const [mine, setMine] = useState<ListState>(INITIAL);
   const [available, setAvailable] = useState<ListState>(INITIAL);
   const [done, setDone] = useState<{ value: DoneToday | null; failed: boolean }>({ value: null, failed: false });
@@ -165,18 +182,46 @@ export function useWorkQueue({ isOnline, timeZone }: Options) {
       return next;
     });
 
+  const userRef = useRef(userId);
+  userRef.current = userId;
+  const isMineNow = (task: Task) => !!userRef.current && task.assigned_to === userRef.current;
+
+  /**
+   * Run one lifecycle request under a per-task lock.
+   * - Success only ever comes from a real server response.
+   * - A definitive refusal (403/404/409) re-reads the task so the caller can explain why.
+   * - No HTTP status at all (timeout / dropped connection) is an uncertain outcome: the task is re-read
+   *   first, and if `landed` says the change did happen it counts as success; otherwise the failure is
+   *   reported as uncertain so the UI can invite a retry (every lifecycle verb is replay-safe server-side).
+   * Every outcome ends with a list reconcile.
+   */
   const mutate = useCallback(
-    async (id: string, run: () => Promise<void>): Promise<MutationResult> => {
+    async (
+      id: string,
+      run: () => Promise<{ task: Task | null; noteSaved: boolean | null }>,
+      landed: (task: Task) => boolean,
+    ): Promise<MutationResult> => {
       if (!onlineRef.current) return { ok: false, code: "offline" };
       if (locks.current.has(id)) return { ok: false, code: "busy" };
       locks.current.add(id);
       setBusy(id, true);
       try {
-        await run();
-        return { ok: true };
+        const outcome = await run();
+        return { ok: true, task: outcome.task, noteSaved: outcome.noteSaved };
       } catch (error) {
         const status = httpStatus(error);
-        return { ok: false, code: status === 403 || status === 404 || status === 409 ? "conflict" : "failed" };
+        let current: Task | null | undefined;
+        try {
+          current = await fetchTask(id);
+        } catch (readError) {
+          const readStatus = httpStatus(readError);
+          current = readStatus === 404 || readStatus === 403 ? null : undefined;
+        }
+        if (status === null && current && landed(current)) {
+          return { ok: true, task: current, noteSaved: null };
+        }
+        if (status === 403 || status === 404 || status === 409) return { ok: false, code: "conflict", current };
+        return { ok: false, code: "failed", current, uncertain: status === null };
       } finally {
         locks.current.delete(id);
         if (mounted.current) setBusy(id, false);
@@ -197,33 +242,49 @@ export function useWorkQueue({ isOnline, timeZone }: Options) {
 
   const start = useCallback(
     (id: string) =>
-      mutate(id, async () => {
-        const { task } = await startTask(id);
-        seq.current.mine += 1; // drop any older list response still in flight
-        upsertMine(task);
-      }),
+      mutate(
+        id,
+        async () => {
+          const { task } = await startTask(id);
+          seq.current.mine += 1; // drop any older list response still in flight
+          upsertMine(task);
+          return { task, noteSaved: null };
+        },
+        (task) => task.status === "in_progress" && isMineNow(task),
+      ),
     [mutate],
   );
 
   const claim = useCallback(
     (id: string) =>
-      mutate(id, async () => {
-        const { task } = await claimTask(id);
-        seq.current.mine += 1;
-        seq.current.available += 1;
-        setAvailable((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== id) }));
-        upsertMine(task);
-      }),
+      mutate(
+        id,
+        async () => {
+          const { task } = await claimTask(id);
+          seq.current.mine += 1;
+          seq.current.available += 1;
+          setAvailable((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== id) }));
+          upsertMine(task);
+          return { task, noteSaved: null };
+        },
+        (task) => task.status === "in_progress" && isMineNow(task),
+      ),
     [mutate],
   );
 
+  /** `note` is optional; the server stores it with the completion and says whether it did. */
   const complete = useCallback(
-    (id: string) =>
-      mutate(id, async () => {
-        await completeTask(id);
-        seq.current.mine += 1;
-        setMine((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== id) }));
-      }),
+    (id: string, note?: string) =>
+      mutate(
+        id,
+        async () => {
+          const { task, noteSaved } = await completeTask(id, note);
+          seq.current.mine += 1;
+          setMine((prev) => ({ ...prev, tasks: prev.tasks.filter((t) => t.id !== id) }));
+          return { task, noteSaved: note && note.trim() ? noteSaved : null };
+        },
+        (task) => task.status === "completed",
+      ),
     [mutate],
   );
 
