@@ -12,8 +12,13 @@ from core.database import supabase
 from core.roles import ASSIGNMENT_BOUND_ROLES, FLOOR_STAFF_ROLES, MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
 from datetime import datetime, timedelta, timezone
 import logging
+import httpx
 
 logger = logging.getLogger(__name__)
+
+BATCH_TASK_LIMIT = 20
+SHORT_TEXT_LIMIT = 120
+BATCH_TASK_TYPES = ("housekeeping", "engineering", "guest_request", "lost_found", "general")
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -58,6 +63,93 @@ def _record_task_audit(current_user: CurrentUser, task: dict, action: str, new_s
         ).execute()
     except Exception:  # noqa: BLE001 - audit must not mask the committed transition
         logger.error("TASK_AUDIT_WRITE_FAILED task=%s action=%s", task.get("id"), action, exc_info=True)
+
+
+TASK_EVENT_TEXT = {
+    "task_assigned": ("New task assigned to you", "Open Tasks to see what needs doing."),
+    "task_assigned_urgent": ("Urgent task assigned to you", "Open Tasks now: this one is urgent."),
+    "task_reassigned": ("A task was reassigned", "A task is no longer on your list."),
+    "task_cancelled": ("A task was cancelled", "A task on your list was cancelled."),
+    "task_blocker_resolved": ("Problem resolved", "A reported problem was resolved. You can continue the task."),
+}
+
+
+async def _push_task_event(row: dict, recipient_id: str) -> None:
+    """Best-effort Expo push for a notification row that was just written. ``push_sent`` is set only when
+    Expo accepted the message (an "ok" ticket); no token, a refusal or a timeout leaves the in-app row as the
+    only delivery, and nothing here claims the device received it."""
+    try:
+        profile = (
+            supabase.table("user_profiles")
+            .select("expo_push_token")
+            .eq("id", recipient_id)
+            .eq("tenant_id", row["tenant_id"])
+            .maybe_single()
+            .execute()
+        )
+        token = (profile.data or {}).get("expo_push_token") if profile else None
+        if not token:
+            return
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            response = await client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json={"to": token, "title": row["title"], "body": row["body"], "data": {**row["data"], "type": row["type"]}},
+            )
+        ticket = ((response.json() or {}).get("data") or {}) if response.status_code == 200 else {}
+        if isinstance(ticket, list):
+            ticket = ticket[0] if ticket else {}
+        if ticket.get("status") == "ok" and row.get("id"):
+            supabase.table("notifications").update(
+                {"push_sent": True, "push_sent_at": datetime.now(timezone.utc).isoformat(), "expo_push_ticket": ticket.get("id")}
+            ).eq("id", row["id"]).eq("tenant_id", row["tenant_id"]).execute()
+    except Exception:  # noqa: BLE001 - push is an extra; the in-app notification already exists
+        logger.warning("TASK_PUSH_FAILED notification=%s", row.get("id"), exc_info=True)
+
+
+async def notify_task_event(current_user: CurrentUser, recipient_id: Optional[str], event: str, task: dict) -> bool:
+    """In-app notification plus a best-effort push for one task event. Generic wording only: no task title,
+    room, guest or note text leaves the database through a lock-screen alert. Never notifies the actor,
+    writes at most one UNREAD row per (person, event, task) so a retried mutation cannot double-alert, and
+    never fails the committed mutation. Returns True only when a row was actually written."""
+    if not recipient_id or str(recipient_id) == current_user.user_id or not task.get("id"):
+        return False
+    title, body = TASK_EVENT_TEXT[event]
+    try:
+        existing = (
+            supabase.table("notifications")
+            .select("id")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("user_id", str(recipient_id))
+            .eq("type", event)
+            .eq("is_read", False)
+            .contains("data", {"task_id": str(task["id"])})
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            return False
+        written = (
+            supabase.table("notifications")
+            .insert(
+                {
+                    "tenant_id": current_user.hotel_id,
+                    "user_id": str(recipient_id),
+                    "type": event,
+                    "title": title,
+                    "body": body,
+                    "data": {"task_id": str(task["id"])},
+                    "is_read": False,
+                }
+            )
+            .execute()
+        )
+        row = (written.data or [None])[0]
+        if row:
+            await _push_task_event(row, str(recipient_id))
+        return True
+    except Exception:  # noqa: BLE001 - the task change is already committed
+        logger.error("TASK_NOTIFY_FAILED task=%s event=%s", task.get("id"), event, exc_info=True)
+        return False
 
 
 def _assignment_bound_may_access(task: dict, user_id: str) -> bool:
@@ -450,7 +542,15 @@ async def create_task(
             if replayed:
                 return _task_create_response(replayed, replayed=True)
         raise
-    return _task_create_response(result.data[0] if result.data else None, hotel_id=current_user.hotel_id)
+    created = result.data[0] if result.data else None
+    if created and created.get("assigned_to"):
+        await notify_task_event(
+            current_user,
+            created["assigned_to"],
+            "task_assigned_urgent" if created.get("priority") == "urgent" else "task_assigned",
+            created,
+        )
+    return _task_create_response(created, hotel_id=current_user.hotel_id)
 
 
 @router.post("/schedules")
@@ -742,6 +842,22 @@ async def update_task(
         update_data["escalated_at"] = datetime.now(timezone.utc).isoformat()
 
     blocker_before = None
+    previous_assignee = None
+    if "assigned_to" in update_data or request.status == "cancelled":
+        try:
+            before = (
+                supabase.table("tasks")
+                .select("assigned_to")
+                .eq("id", task_id)
+                .eq("tenant_id", current_user.hotel_id)
+                .limit(1)
+                .execute()
+                .data
+                or []
+            )
+            previous_assignee = before[0].get("assigned_to") if before else None
+        except Exception:  # noqa: BLE001 - notifications are best-effort
+            logger.error("TASK_PREVIOUS_ASSIGNEE_LOOKUP_FAILED task=%s", task_id, exc_info=True)
     if "assigned_to" in update_data:
         try:
             blocker_before = get_active_blocker(task_id, current_user.hotel_id)
@@ -796,6 +912,17 @@ async def update_task(
         except Exception:  # noqa: BLE001 - the task update already committed
             logger.error("TASK_BLOCKER_AUTOCLOSE_FAILED task=%s", task_id, exc_info=True)
 
+    if "assigned_to" in update_data and update_data["assigned_to"] != previous_assignee:
+        await notify_task_event(
+            current_user,
+            update_data["assigned_to"],
+            "task_assigned_urgent" if task.get("priority") == "urgent" else "task_assigned",
+            task,
+        )
+        await notify_task_event(current_user, previous_assignee, "task_reassigned", task)
+    elif request.status == "cancelled":
+        await notify_task_event(current_user, task.get("assigned_to"), "task_cancelled", task)
+
     if isinstance(notes, str) and notes.strip():
         supabase.table("task_comments").insert(
             {
@@ -813,6 +940,9 @@ async def update_task(
 async def delete_task(
     task_id: str, current_user: CurrentUser = Depends(get_current_user)
 ):
+    # Deleting a record is a management action: floor staff may report and finish work, never erase it.
+    if current_user.role in FLOOR_STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to delete tasks")
     result = (
         supabase.table("tasks")
         .delete()
@@ -879,7 +1009,23 @@ async def batch_create_tasks(
     tasks: list[dict], current_user: CurrentUser = Depends(get_current_user)
 ):
     """Batch create multiple tasks (used after AI copilot confirmation)."""
+    # Floor staff create one task at a time through POST /tasks (which pins assignment to themselves).
+    if current_user.role in FLOOR_STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to create tasks in bulk")
+    if len(tasks) > BATCH_TASK_LIMIT:
+        raise HTTPException(status_code=422, detail=f"At most {BATCH_TASK_LIMIT} tasks can be created at once")
     sla = {"urgent": 60, "normal": 240, "low": 480}
+    for t in tasks:
+        # Validate everything first so a bad row never leaves a half-created batch behind.
+        title = t.get("title")
+        if not isinstance(title, str) or not title.strip() or len(title) > SHORT_TEXT_LIMIT:
+            raise HTTPException(status_code=422, detail="Each task needs a title")
+        if t.get("priority", "normal") not in sla:
+            raise HTTPException(status_code=422, detail="Invalid priority")
+        if t.get("task_type", "general") not in BATCH_TASK_TYPES:
+            raise HTTPException(status_code=422, detail="Invalid task type")
+        if t.get("room_id"):
+            _ensure_tenant_row("rooms", str(t["room_id"]), current_user.hotel_id, "Room")
     created = []
     for t in tasks:
         priority = t.get("priority", "normal")

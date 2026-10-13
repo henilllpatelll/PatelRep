@@ -29,7 +29,8 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => {
   const { useEffect } = jest.requireActual("react");
   return {
-    router: { push: (...args: unknown[]) => mockPush(...args), back: jest.fn() },
+    router: { push: (...args: unknown[]) => mockPush(...args), back: jest.fn(), setParams: jest.fn() },
+    useLocalSearchParams: () => ({}),
     useFocusEffect: (callback: () => void) => {
       useEffect(callback, [callback]);
     },

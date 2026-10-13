@@ -15,6 +15,7 @@ import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { setupPushNotifications } from "@/lib/notifications";
+import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 import { listNotifications } from "@/lib/api/notifications";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -152,12 +153,21 @@ export default function AppLayout() {
         .catch(console.warn);
     }
 
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    // A task alert opens that task (re-read as this signed-in person); anything else keeps its old route.
+    const openFromResponse = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data as {
         type?: string;
         url?: string;
         requestId?: string;
+        task_id?: string;
       };
+
+      const linkedTask = taskIdFromNotification(data);
+      if (linkedTask) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push({ pathname: "/(app)/tasks" as any, params: { taskId: linkedTask } });
+        return;
+      }
 
       if (data.url) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,7 +186,19 @@ export default function AppLayout() {
       } else if (data.type === "room_inspection") {
         router.push("/(app)/inspect" as never);
       }
-    });
+    };
+
+    // Cold start: the app was opened BY the tap, which never reaches the listener. Handle it once, then
+    // clear it so the next launch does not replay the same tap.
+    Notifications.getLastNotificationResponseAsync()
+      .then((last) => {
+        if (!last || !taskIdFromNotification(last.notification.request.content.data)) return;
+        openFromResponse(last);
+        return Notifications.clearLastNotificationResponseAsync?.();
+      })
+      .catch(console.warn);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(openFromResponse);
 
     return () => subscription.remove();
   }, [isAuthenticated, loadPendingActions, user?.role]);

@@ -1444,8 +1444,8 @@
           "introAi": "Confirm these details before creating.",
           "introManual": "Fill in the details, then create the task.",
           "lowConfidence": "We weren't sure about some details. Please check them.",
-          "extraTasks_one": "Your description mentioned {{count}} more task. Add it separately after this one.",
-          "extraTasks_other": "Your description mentioned {{count}} more tasks. Add them separately after this one.",
+          "extraTasks": "Your description mentioned {{count}} more task. Add it separately after this one.",
+          "extraTasks_plural": "Your description mentioned {{count}} more tasks. Add them separately after this one.",
           "create": "Create task",
           "back": "Back to edit",
           "fixErrors": "Check the highlighted details."
@@ -1729,6 +1729,11 @@
           "not_available": "Your report is saved. No supervisor is available to alert right now."
         },
         "saved": "Your report has been saved."
+      },
+      "link": {
+        "unavailable": "That task isn't available to you anymore.",
+        "retry": "Couldn't open that task. Check your connection and try again.",
+        "offline": "Connect to the internet to open that task."
       },
       "offline": {
         "sheet": {

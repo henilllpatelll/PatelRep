@@ -39,6 +39,7 @@ from routers.tasks import (
     profile_names,
     public_blocker,
     resolve_active_blocker,
+    notify_task_event,
 )
 
 logger = logging.getLogger(__name__)
@@ -126,8 +127,8 @@ def _place(task: dict) -> str:
 
 
 def _notify_supervisors(current_user: CurrentUser, task: dict, blocker: dict, reporter_name: Optional[str]) -> tuple:
-    """Write an in-app notification (the existing push worker picks up ``push_sent = false`` rows)
-    for the supervisors who own this kind of work. Returns (notification_status, recipient_count);
+    """Write an in-app notification (no push is sent from here: the Notifications screen and its
+    unread badge are the delivery) for the supervisors who own this kind of work. Returns (notification_status, recipient_count);
     "queued" only ever means notification rows were actually written."""
     primary = ("chief_engineer",) if task.get("task_type") == "engineering" else ("housekeeping_supervisor",)
     written = 0
@@ -343,6 +344,8 @@ async def resolve_blocker(
         return _response(task_id, settled, current_user, replayed=True)
     task = _load_task(task_id, current_user.hotel_id)
     _record_task_audit(current_user, task, "task.blocker_resolved", {"blocker_id": closed["id"], "resolution": "resolved"})
+    # The person the problem was reported for learns they can carry on (generic alert, never a duplicate).
+    await notify_task_event(current_user, task.get("assigned_to"), "task_blocker_resolved", task)
     return _response(task_id, closed, current_user, replayed=False)
 
 

@@ -1444,8 +1444,8 @@
           "introAi": "Confirma estos detalles antes de crear la tarea.",
           "introManual": "Completa los detalles y crea la tarea.",
           "lowConfidence": "No estábamos seguros de algunos detalles. Por favor revísalos.",
-          "extraTasks_one": "Tu descripción mencionó {{count}} tarea más. Agrégala por separado después de esta.",
-          "extraTasks_other": "Tu descripción mencionó {{count}} tareas más. Agrégalas por separado después de esta.",
+          "extraTasks": "Tu descripción mencionó {{count}} tarea más. Agrégala por separado después de esta.",
+          "extraTasks_plural": "Tu descripción mencionó {{count}} tareas más. Agrégalas por separado después de esta.",
           "create": "Crear tarea",
           "back": "Volver a editar",
           "fixErrors": "Revisa los detalles marcados."
@@ -1729,6 +1729,11 @@
           "not_available": "Tu reporte se guardó. No hay un supervisor disponible para avisar ahora."
         },
         "saved": "Tu reporte se guardó."
+      },
+      "link": {
+        "unavailable": "Esa tarea ya no está disponible para ti.",
+        "retry": "No se pudo abrir esa tarea. Revisa tu conexión e inténtalo de nuevo.",
+        "offline": "Conéctate a internet para abrir esa tarea."
       },
       "offline": {
         "sheet": {

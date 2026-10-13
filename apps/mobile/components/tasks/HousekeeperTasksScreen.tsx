@@ -17,7 +17,8 @@ import { TaskCard, type TaskCardVariant } from "@/components/tasks/TaskCard";
 import { TaskSyncSheet } from "@/components/tasks/TaskSyncSheet";
 import { TasksHeader, type Segment, type SummaryValue } from "@/components/tasks/TasksHeader";
 import { formatHotelTime, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
-import { addTaskComment, TASK_NOTE_MAX, type BlockerReason, type Task } from "@/lib/api/tasks";
+import { addTaskComment, fetchTask, TASK_NOTE_MAX, type BlockerReason, type Task } from "@/lib/api/tasks";
+import { linkFailureOutcome } from "@/lib/tasks/taskLink";
 import { validateBlockerDraft } from "@/lib/tasks/blockers";
 import { newRequestId } from "@/lib/tasks/addTask/draft";
 import { conflictReason, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
@@ -100,7 +101,13 @@ function Skeleton() {
   );
 }
 
-export function HousekeeperTasksScreen() {
+interface HousekeeperTasksScreenProps {
+  /** A task a tapped notification pointed at. Only an id: the screen re-reads it as the signed-in person. */
+  linkedTaskId?: string | null;
+  onLinkHandled?: () => void;
+}
+
+export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: HousekeeperTasksScreenProps = {}) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -208,6 +215,39 @@ export function HousekeeperTasksScreen() {
     },
     [sheet],
   );
+
+  // A tapped notification: fetch the task as THIS signed-in person and open it only if the server still shows
+  // it to them. Nothing is read from the cache, so another account's data can never surface here.
+  const handledLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedTaskId) {
+      handledLink.current = null; // a later tap on the same task is a new request
+      return;
+    }
+    if (!viewer.userId || handledLink.current === linkedTaskId) return;
+    handledLink.current = linkedTaskId;
+    const forUser = viewer.userId;
+    const finish = () => onLinkHandled?.();
+    if (!isOnline) {
+      setMessage(t("tasks.hk.link.offline"));
+      finish();
+      return;
+    }
+    fetchTask(linkedTaskId)
+      .then((task) => {
+        if (useAppStore.getState().user?.id !== forUser) return; // the account changed while we were asking
+        setMessage(null);
+        setSheetTask(task);
+        setNotice(null);
+        setOrigin("list");
+        setSheet("detail");
+      })
+      .catch((error) => {
+        if (useAppStore.getState().user?.id !== forUser) return;
+        setMessage(t(linkFailureOutcome(error) === "retry" ? "tasks.hk.link.retry" : "tasks.hk.link.unavailable"));
+      })
+      .finally(finish);
+  }, [linkedTaskId, viewer.userId, isOnline, t, onLinkHandled]);
 
   // The lists are re-read after every change; an open sheet follows its task.
   useEffect(() => {

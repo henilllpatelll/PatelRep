@@ -31,7 +31,8 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => {
   const { useEffect } = jest.requireActual("react");
   return {
-    router: { push: (...args: unknown[]) => mockPush(...args), back: jest.fn() },
+    router: { push: (...args: unknown[]) => mockPush(...args), back: jest.fn(), setParams: jest.fn() },
+    useLocalSearchParams: () => ({}),
     useFocusEffect: (callback: () => void) => {
       useEffect(callback, [callback]);
     },
@@ -69,6 +70,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { normalizeTask } from "@/lib/api/tasks";
 import TasksRoute from "@/app/(app)/tasks";
+import { REFRESH_COOLDOWN_MS } from "@/lib/tasks/useWorkQueue";
 
 const NOW = Date.now();
 const at = (minutes: number) => new Date(NOW + minutes * 60000).toISOString();
@@ -467,15 +469,27 @@ describe("Housekeeper Tasks — loading, errors and refresh", () => {
     const screen = await ready();
     expect(gets("/tasks/mine?")).toBe(1); // focus
 
+    // Returning to the app right after a load reuses what is on screen: no request storm.
+    await act(async () => {
+      appStateHandler("active");
+    });
+    expect(gets("/tasks/mine?")).toBe(1);
+
+    // Once the cooldown has passed, coming back to the foreground re-reads the lists.
+    const realNow = Date.now();
+    const clock = jest.spyOn(Date, "now").mockReturnValue(realNow + REFRESH_COOLDOWN_MS + 1000);
     await act(async () => {
       appStateHandler("active");
     });
     await waitFor(() => expect(gets("/tasks/mine?")).toBe(2)); // foreground
 
+    // Pull-to-refresh never waits for the cooldown.
+    clock.mockReturnValue(realNow + REFRESH_COOLDOWN_MS + 1001);
     await act(async () => {
       await screen.UNSAFE_getByType(ScrollView).props.refreshControl.props.onRefresh();
     });
     expect(gets("/tasks/mine?")).toBe(3); // pull-to-refresh
+    clock.mockRestore();
     spy.mockImplementation((() => ({ remove: jest.fn() })) as never);
   });
 

@@ -28,7 +28,8 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-router", () => {
   const { useEffect } = jest.requireActual("react");
   return {
-    router: { push: jest.fn(), back: jest.fn() },
+    router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
+    useLocalSearchParams: () => ({}),
     useFocusEffect: (callback: () => void) => {
       useEffect(callback, [callback]);
     },

@@ -64,6 +64,9 @@ export type MutationResult =
       errorCode?: string;
     };
 
+/** Focus / foreground refreshes closer together than this reuse what is on screen (pull-to-refresh never waits). */
+export const REFRESH_COOLDOWN_MS = 15_000;
+
 const INITIAL: ListState = { tasks: [], status: "loading", stale: false, truncated: false, syncedAt: null, fromCache: false };
 
 function httpStatus(error: unknown): number | null {
@@ -101,6 +104,9 @@ export function useWorkQueue({ isOnline, timeZone, userId = null, scope = null }
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const mounted = useRef(true);
+  // When My Work last loaded for real. Focus / foreground refreshes within REFRESH_COOLDOWN_MS of it are skipped
+  // so tab flicking, a permission dialog or a notification-shade pull cannot fire a request storm.
+  const lastMineOk = useRef(0);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -130,6 +136,7 @@ export function useWorkQueue({ isOnline, timeZone, userId = null, scope = null }
           const result = await fetchMyWork();
           if (!mounted.current || token !== seq.current.mine) return;
           const forScope = scopeRef.current;
+          lastMineOk.current = Date.now();
           setMine({ tasks: result.tasks, status: "ready", stale: false, truncated: result.truncated, syncedAt: new Date().toISOString(), fromCache: false });
           if (forScope) void saveMyWork(forScope, result.tasks, result.truncated, zoneRef.current);
         } catch {
@@ -221,6 +228,10 @@ export function useWorkQueue({ isOnline, timeZone, userId = null, scope = null }
     await Promise.all([loadMine(), loadAvailable(), loadDone()]);
   }, [loadMine, loadAvailable, loadDone]);
   refreshAllRef.current = refreshAll;
+  const refreshIfDue = useCallback(async () => {
+    if (Date.now() - lastMineOk.current < REFRESH_COOLDOWN_MS) return;
+    await refreshAll();
+  }, [refreshAll]);
 
   // A saved change was confirmed (or refused) by the server: re-read the lists, which are the truth.
   const settledTick = useTaskOutbox((state) => state.settledTick);
@@ -243,18 +254,18 @@ export function useWorkQueue({ isOnline, timeZone, userId = null, scope = null }
   // Refresh whenever the screen gains focus, and when the app returns to the foreground.
   useFocusEffect(
     useCallback(() => {
-      void refreshAll();
-    }, [refreshAll]),
+      void refreshIfDue();
+    }, [refreshIfDue]),
   );
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active") return;
       // Saved completions first (cheap no-op when nothing is due), then re-read the lists.
       void useTaskOutbox.getState().flush();
-      void refreshAll();
+      void refreshIfDue();
     });
     return () => sub.remove();
-  }, [refreshAll]);
+  }, [refreshIfDue]);
 
   // Coming back online: reconcile immediately rather than waiting for the next focus.
   const wasOnline = useRef(isOnline);
