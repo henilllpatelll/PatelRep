@@ -98,7 +98,7 @@ describe("buildWorkBuckets", () => {
   });
 
   it("has no Next Up and no sections for an empty list", () => {
-    expect(buildWorkBuckets([], NOW)).toEqual({ nextUp: null, inProgress: [], upNext: [], later: [], remaining: 0 });
+    expect(buildWorkBuckets([], NOW)).toEqual({ needsAttention: [], nextUp: null, inProgress: [], upNext: [], later: [], remaining: 0, started: 0 });
   });
 });
 

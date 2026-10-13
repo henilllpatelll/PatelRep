@@ -60,6 +60,8 @@ export function sortWork(tasks: Task[], now: Date): Task[] {
 }
 
 export interface WorkBuckets {
+  /** Tasks with an active reported problem, in work order. Unfinished work: shown once, here, never also below. */
+  needsAttention: Task[];
   /** Highest-priority task not yet started; excluded from the lists below. */
   nextUp: Task | null;
   /** Everything started, longest-running first. */
@@ -68,18 +70,24 @@ export interface WorkBuckets {
   upNext: Task[];
   /** The rest: later-due or unscheduled lower-priority work. */
   later: Task[];
-  /** Assigned and not yet started (includes Next Up). */
+  /** Assigned and not yet started (includes Next Up and any blocked, unstarted task). */
   remaining: number;
+  /** Everything with status in_progress, blocked or not — what the "In progress" summary counts. */
+  started: number;
 }
 
 export function buildWorkBuckets(tasks: Task[], now: Date): WorkBuckets {
   const active = tasks.filter((task) => task.status !== "completed" && task.status !== "cancelled");
   const sorted = sortWork(active, now);
 
-  const inProgress = sorted
+  // A blocked task keeps its status (and so its counts) but is listed once, in Needs attention.
+  const needsAttention = sorted.filter((task) => task.blocker !== null);
+  const listed = sorted.filter((task) => task.blocker === null);
+
+  const inProgress = listed
     .filter((task) => task.status === "in_progress")
     .sort((a, b) => (time(a.started_at) ?? NO_TIME) - (time(b.started_at) ?? NO_TIME) || (a.id < b.id ? -1 : 1));
-  const actionable = sorted.filter((task) => task.status === "open" || task.status === "escalated");
+  const actionable = listed.filter((task) => task.status === "open" || task.status === "escalated");
 
   const [nextUp = null, ...rest] = actionable;
   const upNext: Task[] = [];
@@ -89,7 +97,9 @@ export function buildWorkBuckets(tasks: Task[], now: Date): WorkBuckets {
     const soon = isOverdue(task, now) || task.priority === "urgent" || (due !== null && due - now.getTime() <= UP_NEXT_WINDOW_MS);
     (soon ? upNext : later).push(task);
   }
-  return { nextUp, inProgress, upNext, later, remaining: actionable.length };
+  const blockedNotStarted = needsAttention.filter((task) => task.status !== "in_progress").length;
+  const started = sorted.filter((task) => task.status === "in_progress").length;
+  return { needsAttention, nextUp, inProgress, upNext, later, remaining: actionable.length + blockedNotStarted, started };
 }
 
 export interface DoneToday {

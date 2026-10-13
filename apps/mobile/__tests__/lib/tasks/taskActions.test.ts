@@ -62,7 +62,7 @@ describe("task display", () => {
 
   const NOW = new Date("2026-10-13T03:30:00Z"); // 10:30 PM on Oct 12 in Chicago, still Oct 13 in UTC
   it("groups the feed by the HOTEL's day, not the device's", () => {
-    const event = (id: string, at: string): TaskActivityEvent => ({ id, kind: "comment", at, actor_id: null, actor_name: null, text: id });
+    const event = (id: string, at: string): TaskActivityEvent => ({ id, kind: "comment", at, actor_id: null, actor_name: null, text: id, reason: null, resolution: null });
     const groups = groupByDay(
       [event("a", "2026-10-10T20:00:00Z"), event("b", "2026-10-12T14:00:00Z"), event("c", "2026-10-13T02:00:00Z")],
       NOW,

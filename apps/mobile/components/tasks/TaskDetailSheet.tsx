@@ -9,6 +9,7 @@ import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import type { Task } from "@/lib/api/tasks";
 import { canAddNote, isMine, primaryAction, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
+import { canReportBlocker, notificationKey } from "@/lib/tasks/blockers";
 import { formatWhen, placeLabel, shortPlace, statusLabel } from "@/lib/tasks/taskDisplay";
 import { isOverdue } from "@/lib/tasks/workQueue";
 import { useTaskActivity } from "@/lib/tasks/useTaskActivity";
@@ -37,6 +38,8 @@ interface Props {
   onTaskRefreshed: (task: Task) => void;
   onAction: (action: Exclude<TaskAction, "complete">) => void;
   onRequestComplete: () => void;
+  /** Open "Unable to complete?" for this task (nothing is sent until the employee submits). */
+  onRequestBlocker: () => void;
   onOpenNotes: () => void;
   onOpenRoom: () => void;
 }
@@ -56,6 +59,7 @@ export function TaskDetailSheet({
   onTaskRefreshed,
   onAction,
   onRequestComplete,
+  onRequestBlocker,
   onOpenNotes,
   onOpenRoom,
 }: Props) {
@@ -105,8 +109,42 @@ export function TaskDetailSheet({
   if (completedText) rows.push({ key: "completed", label: t("tasks.hk.sheet.field.completed"), value: completedText });
   if (task.guest_request) rows.push({ key: "guest", label: t("tasks.hk.sheet.field.guestRequest"), value: t("tasks.hk.sheet.guestRequestLinked") });
 
+  const reportable = canReportBlocker(task, viewer);
+  const unableButton = reportable ? (
+    <Button
+      label={t("tasks.hk.sheet.action.unableToComplete")}
+      onPress={onRequestBlocker}
+      variant="ghost"
+      icon="alert-circle-outline"
+      disabled={busy}
+      testID="detail-unable"
+    />
+  ) : null;
+
   const footer = (
     <>
+      {action === "resume" ? (
+        <>
+          <Button
+            label={t("tasks.hk.sheet.action.resume")}
+            accessibilityLabel={t("tasks.hk.action.resumeA11y", { title: task.title })}
+            onPress={() => onAction("resume")}
+            icon="play"
+            size="lg"
+            loading={busy}
+            disabled={actionsDisabled}
+            testID="detail-resume"
+          />
+          <Button
+            label={t("tasks.hk.sheet.action.viewActivity")}
+            onPress={onOpenNotes}
+            variant="secondary"
+            icon="time-outline"
+            disabled={busy}
+            testID="detail-view-activity"
+          />
+        </>
+      ) : null}
       {action === "start" ? (
         <Button
           label={t("tasks.hk.sheet.action.start")}
@@ -119,6 +157,7 @@ export function TaskDetailSheet({
           testID="detail-start"
         />
       ) : null}
+      {action === "start" ? unableButton : null}
       {action === "claim" ? (
         <Button
           label={t("tasks.hk.sheet.action.claim")}
@@ -152,6 +191,7 @@ export function TaskDetailSheet({
               testID="detail-add-note"
             />
           ) : null}
+          {unableButton}
         </>
       ) : null}
     </>
@@ -198,6 +238,52 @@ export function TaskDetailSheet({
         <View style={[styles.notice, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]} accessibilityRole="alert">
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeText, { color: theme.status.dirty }]}>
             {notice}
+          </Text>
+        </View>
+      ) : null}
+
+      {task.blocker ? (
+        <View
+          style={[styles.blockerPanel, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
+          accessible
+          accessibilityLabel={t("tasks.hk.blocker.panel.a11y", {
+            reason: t(`tasks.hk.blocker.reason.${task.blocker.reason}`),
+            time: formatWhen(task.blocker.reported_at, now, zone, language) ?? "",
+          })}
+          testID="detail-blocker"
+        >
+          <View style={styles.blockerHead}>
+            <Ionicons name="alert-circle-outline" size={18} color={theme.status.pickup} />
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.blockerTitle, { color: theme.status.pickup }]}>
+              {t("tasks.hk.blocker.panel.title")}
+            </Text>
+          </View>
+          {(
+            [
+              ["reason", t(`tasks.hk.blocker.reason.${task.blocker.reason}`)],
+              [
+                "reportedBy",
+                task.blocker.reported_by && task.blocker.reported_by === viewer.userId
+                  ? t("tasks.hk.sheet.you")
+                  : task.blocker.reported_by_name,
+              ],
+              ["reportedAt", formatWhen(task.blocker.reported_at, now, zone, language)],
+              ["details", task.blocker.details],
+            ] as Array<[string, string | null]>
+          )
+            .filter(([, value]) => !!value)
+            .map(([key, value]) => (
+              <View key={key} style={styles.blockerRow}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.detailLabel, { color: theme.textMuted }]}>
+                  {t(`tasks.hk.blocker.panel.${key}`)}
+                </Text>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.detailValue, { color: theme.textPrimary }]} testID={`detail-blocker-${key}`}>
+                  {value}
+                </Text>
+              </View>
+            ))}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockerNotify, { color: theme.textSecondary }]} testID="detail-blocker-notify">
+            {t(notificationKey(task.blocker.notification_status))}
           </Text>
         </View>
       ) : null}
@@ -325,6 +411,11 @@ const styles = StyleSheet.create({
   urgentText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
   title: { fontSize: 22, lineHeight: 28, fontWeight: "800", letterSpacing: -0.2 },
   subtitle: { fontSize: 13.5 },
+  blockerPanel: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
+  blockerHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  blockerTitle: { fontSize: 15, fontWeight: "800" },
+  blockerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 14 },
+  blockerNotify: { fontSize: 13, lineHeight: 18, paddingTop: 2 },
   notice: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   noticeText: { fontSize: 13.5, fontWeight: "600", lineHeight: 19 },
   section: { gap: 8 },

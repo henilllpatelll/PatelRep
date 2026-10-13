@@ -24,6 +24,9 @@ export function placeLabel(task: Task, t: Translate): string | null {
 /** Friendly status; an unclaimed pool task reads "Available" rather than "Not started". */
 export function statusLabel(task: Task, viewer: Viewer, t: Translate): string {
   if (isClaimable(task, viewer)) return t("tasks.hk.sheet.status.available");
+  if (task.blocker && (task.status === "open" || task.status === "in_progress" || task.status === "escalated")) {
+    return t("tasks.hk.sheet.status.blocked");
+  }
   return t(`tasks.hk.sheet.status.${task.status}`);
 }
 

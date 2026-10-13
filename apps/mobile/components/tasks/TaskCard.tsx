@@ -27,7 +27,7 @@ const TYPE_ICON: Record<Task["task_type"], IconName> = {
   general: "clipboard-outline",
 };
 
-export type TaskCardVariant = "hero" | "inProgress" | "queue" | "available";
+export type TaskCardVariant = "hero" | "inProgress" | "queue" | "available" | "blocked";
 
 export interface TaskCardProps {
   task: Task;
@@ -90,14 +90,20 @@ export function TaskCard({
         ? t("tasks.hk.card.due", { time: dueTime })
         : null;
 
+  const blocker = task.blocker;
+  const blockerReason = blocker ? t(`tasks.hk.blocker.reason.${blocker.reason}`) : null;
+  const reportedTime = blocker ? formatHotelTime(blocker.reported_at, zone, language) : null;
+
   const action =
-    variant === "inProgress"
+    variant === "blocked"
+      ? { label: t("tasks.hk.action.viewDetails"), a11y: t("tasks.hk.action.viewDetailsA11y", { title: task.title }), icon: "eye-outline" as IconName }
+      : variant === "inProgress"
       ? { label: t("tasks.hk.action.complete"), a11y: t("tasks.hk.action.completeA11y", { title: task.title }), icon: "checkmark" as IconName }
       : variant === "available"
         ? { label: t("tasks.hk.action.claim"), a11y: t("tasks.hk.action.claimA11y", { title: task.title }), icon: "hand-left-outline" as IconName }
         : { label: t("tasks.hk.action.start"), a11y: t("tasks.hk.action.startA11y", { title: task.title }), icon: "play" as IconName };
 
-  const railColor = late !== null ? theme.status.dirty : urgent ? theme.status.pickup : theme.border;
+  const railColor = late !== null ? theme.status.dirty : urgent || blocker ? theme.status.pickup : theme.border;
   const lateText = late !== null ? durationLabel(t, late, "tasks.hk.card.overdueBy", "tasks.hk.card.overdueByHours") : null;
   const mutedColor = theme.textMuted;
 
@@ -161,6 +167,25 @@ export function TaskCard({
             {task.title}
           </Text>
 
+          {blocker && blockerReason ? (
+            <View
+              style={[styles.blockerRow, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
+              accessible
+              accessibilityLabel={t("tasks.hk.blocker.panel.a11y", { reason: blockerReason, time: reportedTime ?? "" })}
+              testID={`task-blocker-${task.id}`}
+            >
+              <Ionicons name="alert-circle-outline" size={15} color={theme.status.pickup} />
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockerReason, { color: theme.status.pickup }]}>
+                {blockerReason}
+              </Text>
+              {reportedTime ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockerTime, { color: theme.textSecondary }]}>
+                  {t("tasks.hk.card.reportedAt", { time: reportedTime })}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
           <View style={styles.metaRow}>
             {urgent ? (
               <View style={[styles.urgentBadge, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
@@ -192,11 +217,11 @@ export function TaskCard({
           <Button
             label={action.label}
             accessibilityLabel={action.a11y}
-            onPress={onPrimary}
+            onPress={variant === "blocked" ? onOpenDetails : onPrimary}
             icon={action.icon}
             loading={busy}
-            disabled={actionsDisabled}
-            variant={variant === "inProgress" ? "secondary" : "primary"}
+            disabled={variant === "blocked" ? false : actionsDisabled}
+            variant={variant === "inProgress" || variant === "blocked" ? "secondary" : "primary"}
             style={styles.flex}
             testID={`task-action-${task.id}`}
           />
@@ -220,6 +245,9 @@ const styles = StyleSheet.create({
   late: { fontSize: 12.5, fontWeight: "700" },
   title: { fontSize: 16, fontWeight: "700", lineHeight: 21 },
   titleHero: { fontSize: 19, lineHeight: 25 },
+  blockerRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, alignSelf: "flex-start" },
+  blockerReason: { fontSize: 13, fontWeight: "800" },
+  blockerTime: { fontSize: 12.5 },
   metaRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
   meta: { fontSize: 12.5 },
   urgentBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },

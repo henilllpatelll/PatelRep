@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { claimTask, completeTask, fetchAvailable, fetchMyWork, fetchTask, startTask, type Task } from "@/lib/api/tasks";
+import {
+  claimTask,
+  completeTask,
+  fetchAvailable,
+  fetchMyWork,
+  fetchTask,
+  reportBlocker,
+  resumeTask,
+  startTask,
+  type BlockerReport,
+  type Task,
+} from "@/lib/api/tasks";
 import { fetchDoneToday, type DoneToday } from "@/lib/tasks/workQueue";
 
 /* ─── Server-authoritative queue state for the Housekeeper Tasks screen ───────
@@ -38,6 +49,8 @@ export type MutationResult =
       current?: Task | null;
       /** No answer came back, so the request may or may not have landed; state was re-read before reporting. */
       uncertain?: boolean;
+      /** The server's machine-readable reason (e.g. blocker_already_active, task_blocked), when it gave one. */
+      errorCode?: string;
     };
 
 const INITIAL: ListState = { tasks: [], status: "loading", stale: false, truncated: false };
@@ -220,8 +233,10 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
         if (status === null && current && landed(current)) {
           return { ok: true, task: current, noteSaved: null };
         }
-        if (status === 403 || status === 404 || status === 409) return { ok: false, code: "conflict", current };
-        return { ok: false, code: "failed", current, uncertain: status === null };
+        const rawCode = (error as { code?: unknown } | null)?.code;
+        const errorCode = typeof rawCode === "string" ? rawCode : undefined;
+        if (status === 403 || status === 404 || status === 409) return { ok: false, code: "conflict", current, errorCode };
+        return { ok: false, code: "failed", current, uncertain: status === null, errorCode };
       } finally {
         locks.current.delete(id);
         if (mounted.current) setBusy(id, false);
@@ -288,6 +303,41 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
     [mutate],
   );
 
+  /**
+   * "Unable to complete?": the server stores the report (reporter + server time) and the task stays
+   * assigned and unfinished. `draft.clientRequestId` makes a retry safe: it can never report twice.
+   */
+  const reportProblem = useCallback(
+    (id: string, draft: BlockerReport) =>
+      mutate(
+        id,
+        async () => {
+          const { task } = await reportBlocker(id, draft);
+          seq.current.mine += 1;
+          upsertMine(task);
+          return { task, noteSaved: null };
+        },
+        (task) => !!task.blocker && task.blocker.reason === draft.reason && task.blocker.reported_by === userRef.current,
+      ),
+    [mutate],
+  );
+
+  /** Clear my own blocker; `blockerId` pins the report I was looking at so a stale screen can not overwrite a newer one. */
+  const resume = useCallback(
+    (id: string, blockerId: string) =>
+      mutate(
+        id,
+        async () => {
+          const { task } = await resumeTask(id, blockerId);
+          seq.current.mine += 1;
+          upsertMine(task);
+          return { task, noteSaved: null };
+        },
+        (task) => task.blocker === null && isMineNow(task),
+      ),
+    [mutate],
+  );
+
   return {
     mine,
     available,
@@ -301,5 +351,7 @@ export function useWorkQueue({ isOnline, timeZone, userId = null }: Options) {
     start,
     claim,
     complete,
+    reportProblem,
+    resume,
   };
 }

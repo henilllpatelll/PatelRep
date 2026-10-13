@@ -1337,7 +1337,8 @@
         "later": "MÁS TARDE",
         "available": "DISPONIBLES",
         "showLater": "Mostrar tareas para más tarde",
-        "hideLater": "Ocultar tareas para más tarde"
+        "hideLater": "Ocultar tareas para más tarde",
+        "needsAttention": "REQUIERE ATENCIÓN"
       },
       "action": {
         "start": "Iniciar tarea",
@@ -1348,7 +1349,10 @@
         "completeA11y": "Completar {{title}}",
         "openDetails": "Mostrar detalles de {{title}}",
         "hideDetails": "Ocultar detalles de {{title}}",
-        "working": "Procesando"
+        "working": "Procesando",
+        "viewDetails": "Ver detalles",
+        "viewDetailsA11y": "Ver detalles de {{title}}",
+        "resumeA11y": "Reanudar {{title}}"
       },
       "card": {
         "room": "HAB. {{room}}",
@@ -1362,7 +1366,8 @@
         "created": "Creada {{time}}",
         "confirm": "¿Marcar esta tarea como hecha?",
         "confirmYes": "Sí, completar",
-        "noDescription": "Sin detalles adicionales."
+        "noDescription": "Sin detalles adicionales.",
+        "reportedAt": "Reportado {{time}}"
       },
       "empty": {
         "myTitle": "Estás al día.",
@@ -1385,7 +1390,10 @@
         "startConflict": "Esta tarea cambió. Se actualizó tu lista.",
         "completeFailed": "No se pudo completar esta tarea. Sigue en tu lista.",
         "completeConflict": "Esta tarea cambió. Se actualizó tu lista.",
-        "completed": "Tarea completada"
+        "completed": "Tarea completada",
+        "resumeFailed": "No se pudo reanudar esta tarea. Inténtalo de nuevo.",
+        "resumeConflict": "Esta tarea cambió. Se actualizó tu lista.",
+        "resumed": "Tarea reanudada"
       },
       "add": {
         "button": "Agregar tarea",
@@ -1579,7 +1587,8 @@
           "escalated": "Escalada",
           "completed": "Completada",
           "cancelled": "Cancelada",
-          "available": "Disponible"
+          "available": "Disponible",
+          "blocked": "Requiere atención"
         },
         "priorityUrgent": "Urgente",
         "action": {
@@ -1589,7 +1598,10 @@
           "addNote": "Agregar nota",
           "viewAll": "Ver toda la actividad",
           "openRoom": "Abrir habitación {{room}}",
-          "openRoomA11y": "Abrir la habitación {{room}} en Mis habitaciones"
+          "openRoomA11y": "Abrir la habitación {{room}} en Mis habitaciones",
+          "unableToComplete": "¿No puedes completarla?",
+          "resume": "Reanudar tarea",
+          "viewActivity": "Ver actividad"
         },
         "readOnly": {
           "completed": "Esta tarea está completada. Los detalles son de solo lectura.",
@@ -1605,7 +1617,9 @@
           "changed": "Esta tarea cambió. Revísala e inténtalo de nuevo.",
           "failed": "Algo salió mal. Inténtalo de nuevo.",
           "uncertain": "No pudimos confirmarlo. Revisa tu conexión e inténtalo de nuevo.",
-          "offline": "Sin conexión. Vuelve a conectarte para continuar."
+          "offline": "Sin conexión. Vuelve a conectarte para continuar.",
+          "blocked": "Esta tarea tiene un problema reportado. Reanúdala primero.",
+          "blockerExists": "Ya se reportó un problema en esta tarea."
         },
         "activityLoading": "Cargando actividad…",
         "activityError": "No se pudo cargar la actividad.",
@@ -1650,9 +1664,69 @@
           "cancelled": "Tarea cancelada",
           "system_note": "Actualización",
           "by": "{{name}}",
-          "a11y": "{{time}}, {{what}}"
+          "a11y": "{{time}}, {{what}}",
+          "blocker_reported": "No se pudo completar: {{reason}}",
+          "blocker_resolved": "Problema resuelto",
+          "resolution": {
+            "resumed": "Tarea reanudada",
+            "resolved": "Problema resuelto por un supervisor",
+            "completed": "Cerrado al completar la tarea",
+            "reassigned": "Cerrado al reasignar la tarea"
+          }
         },
         "room": "Habitación {{room}}"
+      },
+      "blocker": {
+        "title": "¿No puedes completarla?",
+        "prompt": "¿Qué te impidió terminar?",
+        "reasonsA11y": "Motivo",
+        "detailsLabel": "Detalles adicionales",
+        "detailsLabelOther": "Describe qué pasó",
+        "placeholder": "Describe qué pasó…",
+        "detailsA11y": "Detalles adicionales",
+        "send": "Enviar aviso",
+        "sending": "Enviando aviso",
+        "cancel": "Cancelar",
+        "count": "{{count}}/{{max}}",
+        "offline": "Para enviar se necesita conexión. Lo que escribiste se queda aquí hasta que vuelvas a estar en línea.",
+        "reason": {
+          "guest_unavailable": "Huésped no disponible",
+          "do_not_disturb": "No molestar",
+          "missing_supplies": "Faltan suministros",
+          "access_issue": "Problema de acceso",
+          "assistance_needed": "Necesito ayuda",
+          "equipment_issue": "Problema con el equipo",
+          "other": "Otro"
+        },
+        "validation": {
+          "reasonRequired": "Elige qué te lo impidió.",
+          "detailsRequired": "Se requiere una descripción para Otro.",
+          "detailsTooLong": "Los detalles pueden tener hasta {{max}} caracteres."
+        },
+        "error": {
+          "failed": "No se pudo enviar tu aviso. Lo que escribiste sigue aquí — inténtalo de nuevo.",
+          "uncertain": "No pudimos confirmar que se envió. Revisa tu conexión y envíalo de nuevo — no se reportará dos veces.",
+          "alreadyReported": "Ya se reportó un problema en esta tarea.",
+          "closed": "Esta tarea ya terminó, por lo que no se puede reportar un problema.",
+          "reassigned": "Esta tarea ahora está asignada a otra persona.",
+          "changed": "Esta tarea cambió. Revísala e inténtalo de nuevo.",
+          "unavailable": "Esta tarea ya no está disponible para ti."
+        },
+        "panel": {
+          "title": "Requiere atención",
+          "reason": "Motivo",
+          "reportedBy": "Reportado por",
+          "reportedAt": "Reportado",
+          "details": "Detalles",
+          "a11y": "Requiere atención: {{reason}}, reportado {{time}}"
+        },
+        "notify": {
+          "pending": "Tu reporte se guardó.",
+          "queued": "Tu reporte se guardó y se avisó a tu supervisor.",
+          "failed": "Tu reporte se guardó, pero no pudimos avisar a un supervisor.",
+          "not_available": "Tu reporte se guardó. No hay un supervisor disponible para avisar ahora."
+        },
+        "saved": "Tu reporte se guardó."
       }
     },
     "completeFailed": "No se pudo marcar la tarea como hecha. Sigue en tu lista — inténtalo de nuevo.",

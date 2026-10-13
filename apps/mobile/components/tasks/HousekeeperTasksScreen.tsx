@@ -12,10 +12,13 @@ import { AddTaskSheet, type CreatedTask } from "@/components/tasks/AddTaskSheet"
 import { ActivityNotesSheet } from "@/components/tasks/ActivityNotesSheet";
 import { CompleteTaskSheet, type CompletePhase } from "@/components/tasks/CompleteTaskSheet";
 import { TaskDetailSheet } from "@/components/tasks/TaskDetailSheet";
+import { UnableToCompleteSheet } from "@/components/tasks/UnableToCompleteSheet";
 import { TaskCard, type TaskCardVariant } from "@/components/tasks/TaskCard";
 import { TasksHeader, type Segment, type SummaryValue, type SyncKey } from "@/components/tasks/TasksHeader";
 import { resolveTimeZone } from "@/lib/housekeeping/hotelTime";
-import { addTaskComment, type Task } from "@/lib/api/tasks";
+import { addTaskComment, type BlockerReason, type Task } from "@/lib/api/tasks";
+import { validateBlockerDraft } from "@/lib/tasks/blockers";
+import { newRequestId } from "@/lib/tasks/addTask/draft";
 import { conflictReason, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
 import { buildWorkBuckets } from "@/lib/tasks/workQueue";
 import { useWorkQueue, type ListState, type MutationResult } from "@/lib/tasks/useWorkQueue";
@@ -25,7 +28,7 @@ const CLOCK_TICK_MS = 60_000;
 
 type Row =
   | { key: string; kind: "intro" }
-  | { key: string; kind: "header"; section: "nextUp" | "inProgress" | "upNext" | "later" | "available"; count?: number; toggle?: boolean; open?: boolean }
+  | { key: string; kind: "header"; section: "needsAttention" | "nextUp" | "inProgress" | "upNext" | "later" | "available"; count?: number; toggle?: boolean; open?: boolean }
   | { key: string; kind: "card"; task: Task; variant: TaskCardVariant };
 
 function dateLabel(now: Date, zone: string | null, language: string): string {
@@ -38,11 +41,20 @@ function dateLabel(now: Date, zone: string | null, language: string): string {
 }
 
 type Failure = Extract<MutationResult, { ok: false }>;
-type Sheet = "detail" | "complete" | "notes";
+type Sheet = "detail" | "complete" | "notes" | "blocker";
+
+/** An unsent "Unable to complete?" form. Kept in memory (this session only) until it is sent or cancelled. */
+interface BlockerDraft {
+  taskId: string;
+  reason: BlockerReason | null;
+  details: string;
+  /** Idempotency key, reused by every resend of this draft so a retry can never report twice. */
+  requestId: string;
+}
 /** Where a sheet was opened from, so closing it lands back where the employee was. */
 type Origin = "list" | "detail";
 
-const SPECIFIC_REASONS = new Set(["completed", "cancelled", "reassigned", "claimed", "unavailable"]);
+const SPECIFIC_REASONS = new Set(["completed", "cancelled", "reassigned", "claimed", "unavailable", "blocked"]);
 
 /** Plain-language reason for a refused/failed lifecycle request (sheet or list), or null when nothing should be said. */
 function failureText(
@@ -62,9 +74,10 @@ function failureText(
   return key ? t(key) : null;
 }
 
-function messageKey(action: "start" | "claim" | "complete", result: Failure): string | null {
+function messageKey(action: TaskAction, result: Failure): string | null {
   if (result.code === "busy") return null;
   if (result.code === "offline") return "tasks.hk.msg.offline";
+  if (action === "resume") return result.code === "conflict" ? "tasks.hk.msg.resumeConflict" : "tasks.hk.msg.resumeFailed";
   if (action === "claim") return result.code === "conflict" ? "tasks.hk.msg.claimConflict" : "tasks.hk.msg.claimFailed";
   if (action === "start") return result.code === "conflict" ? "tasks.hk.msg.startConflict" : "tasks.hk.msg.startFailed";
   return result.code === "conflict" ? "tasks.hk.msg.completeConflict" : "tasks.hk.msg.completeFailed";
@@ -110,6 +123,10 @@ export function HousekeeperTasksScreen() {
   const [completeError, setCompleteError] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const completeLock = useRef(false);
+  const [blockerDraft, setBlockerDraft] = useState<BlockerDraft | null>(null);
+  const [blockerError, setBlockerError] = useState<string | null>(null);
+  const [blockerSending, setBlockerSending] = useState(false);
+  const blockerLock = useRef(false);
 
   // Relative labels ("12m overdue") re-evaluate on data changes and once a minute.
   const [tick, setTick] = useState(0);
@@ -125,11 +142,11 @@ export function HousekeeperTasksScreen() {
 
   const summary = {
     remaining: { value: mineKnown ? buckets.remaining : null, atLeast: mine.truncated } as SummaryValue,
-    inProgress: { value: mineKnown ? buckets.inProgress.length : null } as SummaryValue,
+    inProgress: { value: mineKnown ? buckets.started : null } as SummaryValue,
     doneToday: { value: done.value ? done.value.count : null, atLeast: done.value?.atLeast } as SummaryValue,
   };
   const counts = {
-    mine: mineKnown ? buckets.remaining + buckets.inProgress.length : null,
+    mine: mineKnown ? buckets.remaining + buckets.started : null,
     available: availableKnown ? available.tasks.length : null,
   };
 
@@ -158,6 +175,7 @@ export function HousekeeperTasksScreen() {
     setCompleteNote("");
     setCompleteError(null);
     setCompletePhase("confirm");
+    setBlockerError(null);
   }, []);
 
   const openDetails = useCallback(
@@ -184,10 +202,12 @@ export function HousekeeperTasksScreen() {
 
   /** Start / claim from a card button or from the detail sheet — one code path for both. */
   const run = useCallback(
-    async (action: "start" | "claim", task: Task, fromSheet: boolean) => {
+    async (action: "start" | "claim" | "resume", task: Task, fromSheet: boolean) => {
       setMessage(null);
       setNotice(null);
-      const result = await queue[action](task.id);
+      if (action === "resume" && !task.blocker) return;
+      const result =
+        action === "resume" && task.blocker ? await queue.resume(task.id, task.blocker.id) : await queue[action === "resume" ? "start" : action](task.id);
       if (result.ok) {
         if (fromSheet && result.task) setSheetTask(result.task);
         return;
@@ -293,6 +313,88 @@ export function HousekeeperTasksScreen() {
     }
   }, [sheetTask, completeNote, t, finishCompleted]);
 
+  /** Open "Unable to complete?" from Task Detail. The task is not touched until the employee sends. */
+  const openBlocker = useCallback(
+    (task: Task) => {
+      if (sheet && sheet !== "detail") return;
+      setSheetTask(task);
+      setBlockerError(null);
+      setBlockerDraft((draft) =>
+        draft && draft.taskId === task.id ? draft : { taskId: task.id, reason: null, details: "", requestId: newRequestId() },
+      );
+      setSheet("blocker");
+    },
+    [sheet],
+  );
+
+  const leaveBlocker = useCallback(() => {
+    if (blockerSending) return;
+    setBlockerError(null);
+    setSheet("detail");
+  }, [blockerSending]);
+
+  const cancelBlocker = useCallback(() => {
+    if (blockerSending) return;
+    setBlockerDraft(null);
+    leaveBlocker();
+  }, [blockerSending, leaveBlocker]);
+
+  const submitBlocker = useCallback(async () => {
+    if (!sheetTask || !blockerDraft || blockerLock.current) return;
+    if (validateBlockerDraft(blockerDraft.reason, blockerDraft.details) !== null || !blockerDraft.reason) return;
+    if (!isOnline) {
+      setBlockerError(t("tasks.hk.blocker.offline"));
+      return;
+    }
+    blockerLock.current = true;
+    setBlockerSending(true);
+    setBlockerError(null);
+    try {
+      const result = await queue.reportProblem(sheetTask.id, {
+        reason: blockerDraft.reason,
+        details: blockerDraft.details,
+        clientRequestId: blockerDraft.requestId,
+      });
+      if (result.ok) {
+        // The server stored it: only now is it "reported". Back to the task, which shows the saved report.
+        if (result.task) setSheetTask(result.task);
+        setBlockerDraft(null);
+        setSheet("detail");
+        return;
+      }
+      if (result.code === "offline") {
+        setBlockerError(t("tasks.hk.blocker.offline"));
+        return;
+      }
+      if (result.current) setSheetTask(result.current);
+      const fixed: Record<string, string> = {
+        blocker_already_active: "alreadyReported",
+        task_closed: "closed",
+        task_changed: "changed",
+        not_assignee: "reassigned",
+      };
+      const key = result.code === "conflict" && result.errorCode ? fixed[result.errorCode] : undefined;
+      if (key || result.current === null) {
+        // The form can not succeed as written: say why and return to the task as the server has it.
+        setBlockerDraft(null);
+        const text = t(`tasks.hk.blocker.error.${key ?? "unavailable"}`);
+        if (result.current === null) {
+          closeSheets();
+          setMessage(text);
+        } else {
+          setNotice(text);
+          setSheet("detail");
+        }
+        return;
+      }
+      // Network trouble or a server error: keep everything typed; resending is safe (same request id).
+      setBlockerError(t(result.uncertain ? "tasks.hk.blocker.error.uncertain" : "tasks.hk.blocker.error.failed"));
+    } finally {
+      blockerLock.current = false;
+      setBlockerSending(false);
+    }
+  }, [sheetTask, blockerDraft, isOnline, queue, t, closeSheets]);
+
   const openNotes = useCallback(
     (task: Task, from: Origin) => {
       if (sheet && sheet !== "detail") return;
@@ -330,6 +432,11 @@ export function HousekeeperTasksScreen() {
       return out;
     }
     const out: Row[] = [];
+    if (buckets.needsAttention.length > 0) {
+      // First, so unfinished work with a problem is never buried; each task is listed once, here.
+      out.push({ key: "h-attn", kind: "header", section: "needsAttention", count: buckets.needsAttention.length });
+      for (const task of buckets.needsAttention) out.push({ key: `b-${task.id}`, kind: "card", task, variant: "blocked" });
+    }
     if (buckets.nextUp) {
       out.push({ key: "h-next", kind: "header", section: "nextUp" });
       out.push({ key: `n-${buckets.nextUp.id}`, kind: "card", task: buckets.nextUp, variant: "hero" });
@@ -554,6 +661,7 @@ export function HousekeeperTasksScreen() {
         onTaskRefreshed={adoptRefreshed}
         onAction={(action) => sheetTask && void run(action, sheetTask, true)}
         onRequestComplete={() => sheetTask && openComplete(sheetTask, "detail")}
+        onRequestBlocker={() => sheetTask && openBlocker(sheetTask)}
         onOpenNotes={() => sheetTask && openNotes(sheetTask, "detail")}
         onOpenRoom={openRoom}
       />
@@ -581,6 +689,20 @@ export function HousekeeperTasksScreen() {
         offline={!isOnline}
         onClose={closeNotes}
         onTaskRefreshed={adoptRefreshed}
+      />
+      <UnableToCompleteSheet
+        visible={sheet === "blocker"}
+        task={sheetTask}
+        reason={blockerDraft && sheetTask && blockerDraft.taskId === sheetTask.id ? blockerDraft.reason : null}
+        details={blockerDraft && sheetTask && blockerDraft.taskId === sheetTask.id ? blockerDraft.details : ""}
+        onReasonChange={(reason) => setBlockerDraft((draft) => (draft ? { ...draft, reason } : draft))}
+        onDetailsChange={(details) => setBlockerDraft((draft) => (draft ? { ...draft, details } : draft))}
+        busy={blockerSending}
+        offline={!isOnline}
+        error={blockerError}
+        onSubmit={() => void submitBlocker()}
+        onClose={leaveBlocker}
+        onCancel={cancelBlocker}
       />
       <AddTaskSheet
         visible={addOpen}

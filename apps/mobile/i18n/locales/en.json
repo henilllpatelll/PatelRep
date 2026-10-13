@@ -1337,7 +1337,8 @@
         "later": "LATER",
         "available": "AVAILABLE",
         "showLater": "Show later tasks",
-        "hideLater": "Hide later tasks"
+        "hideLater": "Hide later tasks",
+        "needsAttention": "NEEDS ATTENTION"
       },
       "action": {
         "start": "Start task",
@@ -1348,7 +1349,10 @@
         "completeA11y": "Complete {{title}}",
         "openDetails": "Show details for {{title}}",
         "hideDetails": "Hide details for {{title}}",
-        "working": "Working"
+        "working": "Working",
+        "viewDetails": "View details",
+        "viewDetailsA11y": "View details for {{title}}",
+        "resumeA11y": "Resume {{title}}"
       },
       "card": {
         "room": "ROOM {{room}}",
@@ -1362,7 +1366,8 @@
         "created": "Created {{time}}",
         "confirm": "Mark this task done?",
         "confirmYes": "Yes, complete",
-        "noDescription": "No extra details."
+        "noDescription": "No extra details.",
+        "reportedAt": "Reported {{time}}"
       },
       "empty": {
         "myTitle": "You're all caught up.",
@@ -1385,7 +1390,10 @@
         "startConflict": "This task changed. Your list was refreshed.",
         "completeFailed": "Couldn't complete this task. It is still on your list.",
         "completeConflict": "This task changed. Your list was refreshed.",
-        "completed": "Task completed"
+        "completed": "Task completed",
+        "resumeFailed": "Couldn't resume this task. Try again.",
+        "resumeConflict": "This task changed. Your list was refreshed.",
+        "resumed": "Task resumed"
       },
       "add": {
         "button": "Add task",
@@ -1579,7 +1587,8 @@
           "escalated": "Escalated",
           "completed": "Completed",
           "cancelled": "Cancelled",
-          "available": "Available"
+          "available": "Available",
+          "blocked": "Needs attention"
         },
         "priorityUrgent": "Urgent",
         "action": {
@@ -1589,7 +1598,10 @@
           "addNote": "Add note",
           "viewAll": "View all activity",
           "openRoom": "Open room {{room}}",
-          "openRoomA11y": "Open room {{room}} in My Rooms"
+          "openRoomA11y": "Open room {{room}} in My Rooms",
+          "unableToComplete": "Unable to complete?",
+          "resume": "Resume task",
+          "viewActivity": "View activity"
         },
         "readOnly": {
           "completed": "This task is complete. Details are read-only.",
@@ -1605,7 +1617,9 @@
           "changed": "This task changed. Review it and try again.",
           "failed": "Something went wrong. Please try again.",
           "uncertain": "We couldn't confirm that. Check your connection, then try again.",
-          "offline": "You're offline. Reconnect to continue."
+          "offline": "You're offline. Reconnect to continue.",
+          "blocked": "This task has a reported problem. Resume it first.",
+          "blockerExists": "A problem was already reported on this task."
         },
         "activityLoading": "Loading activity…",
         "activityError": "Couldn't load activity.",
@@ -1650,9 +1664,69 @@
           "cancelled": "Task cancelled",
           "system_note": "Update",
           "by": "{{name}}",
-          "a11y": "{{time}}, {{what}}"
+          "a11y": "{{time}}, {{what}}",
+          "blocker_reported": "Couldn't complete: {{reason}}",
+          "blocker_resolved": "Problem cleared",
+          "resolution": {
+            "resumed": "Task resumed",
+            "resolved": "Problem resolved by a supervisor",
+            "completed": "Closed when the task was completed",
+            "reassigned": "Closed when the task was reassigned"
+          }
         },
         "room": "Room {{room}}"
+      },
+      "blocker": {
+        "title": "Unable to complete?",
+        "prompt": "What prevented you from finishing?",
+        "reasonsA11y": "Reason",
+        "detailsLabel": "Additional details",
+        "detailsLabelOther": "Describe what happened",
+        "placeholder": "Describe what happened…",
+        "detailsA11y": "Additional details",
+        "send": "Send update",
+        "sending": "Sending update",
+        "cancel": "Cancel",
+        "count": "{{count}}/{{max}}",
+        "offline": "Sending needs a connection. What you wrote stays here until you're back online.",
+        "reason": {
+          "guest_unavailable": "Guest unavailable",
+          "do_not_disturb": "Do Not Disturb",
+          "missing_supplies": "Missing supplies",
+          "access_issue": "Access problem",
+          "assistance_needed": "Need assistance",
+          "equipment_issue": "Equipment issue",
+          "other": "Other"
+        },
+        "validation": {
+          "reasonRequired": "Choose what prevented you.",
+          "detailsRequired": "A description is required for Other.",
+          "detailsTooLong": "Details can be up to {{max}} characters."
+        },
+        "error": {
+          "failed": "Couldn't send your update. What you wrote is still here — try again.",
+          "uncertain": "We couldn't confirm it was sent. Check your connection and send again — it won't be reported twice.",
+          "alreadyReported": "A problem was already reported on this task.",
+          "closed": "This task is already finished, so a problem can't be reported.",
+          "reassigned": "This task is now assigned to someone else.",
+          "changed": "This task changed. Review it and try again.",
+          "unavailable": "This task is no longer available to you."
+        },
+        "panel": {
+          "title": "Needs attention",
+          "reason": "Reason",
+          "reportedBy": "Reported by",
+          "reportedAt": "Reported",
+          "details": "Details",
+          "a11y": "Needs attention: {{reason}}, reported {{time}}"
+        },
+        "notify": {
+          "pending": "Your report has been saved.",
+          "queued": "Your report is saved and your supervisor has been alerted.",
+          "failed": "Your report is saved, but we couldn't alert a supervisor.",
+          "not_available": "Your report is saved. No supervisor is available to alert right now."
+        },
+        "saved": "Your report has been saved."
       }
     },
     "completeFailed": "Couldn't mark this task done. It is still on your list — try again.",

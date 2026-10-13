@@ -7,6 +7,8 @@ import { api } from "@/lib/api/client";
      GET  /tasks/mine/completed History     (my completed tasks, newest first)
      GET  /tasks/{id}/activity  Detail      (authoritative task + persisted activity feed)
      POST /tasks/{id}/start | /claim | /complete   (complete accepts an optional { note })
+     POST /tasks/{id}/blockers  body { reason, details?, client_request_id }   "Unable to Complete?"
+     POST /tasks/{id}/resume    body { blocker_id }                           assignee clears their own blocker
      POST /tasks/{id}/comments  body { comment }
      POST /tasks                Add Task (client_request_id = idempotency key; reply meta.replayed)
      GET  /rooms/directory      Room picker (id, number, floor only)
@@ -20,6 +22,33 @@ export type TaskType = "housekeeping" | "engineering" | "guest_request" | "lost_
 
 /** Reserved for the offline phase: a mutation that has been queued but not yet confirmed. */
 export type TaskSyncState = "synced" | "pending" | "failed";
+
+/** Why a task could not be finished. Stable backend values; the app shows localized labels. */
+export const BLOCKER_REASONS = [
+  "guest_unavailable",
+  "do_not_disturb",
+  "missing_supplies",
+  "access_issue",
+  "assistance_needed",
+  "equipment_issue",
+  "other",
+] as const;
+export type BlockerReason = (typeof BLOCKER_REASONS)[number];
+
+/** What the supervisor alert actually did. "queued" means notification rows were written, never more. */
+export type BlockerNotificationStatus = "pending" | "queued" | "failed" | "not_available";
+
+/** A reported problem on a task. A task is "blocked" while it has one active; its status never changes. */
+export interface TaskBlocker {
+  id: string;
+  reason: BlockerReason;
+  details: string | null;
+  reported_by: string | null;
+  reported_by_name: string | null;
+  reported_at: string | null;
+  status: "active" | "resolved";
+  notification_status: BlockerNotificationStatus;
+}
 
 export interface TaskComment {
   id: string;
@@ -57,6 +86,8 @@ export interface Task {
   is_ai_created: boolean;
   /** Minimal link to a guest request (id + status only); null when none. */
   guest_request: { id: string; status: string | null } | null;
+  /** The task's active "Unable to Complete" report, or null. Derived from stored blocker rows. */
+  blocker: TaskBlocker | null;
   /** Present on detail reads only. */
   comments?: TaskComment[];
   sync_state?: TaskSyncState;
@@ -109,6 +140,27 @@ function normalizeComment(raw: RawRecord): TaskComment {
   };
 }
 
+const NOTIFICATION_STATUSES: readonly BlockerNotificationStatus[] = ["pending", "queued", "failed", "not_available"];
+
+export function normalizeBlocker(raw: unknown): TaskBlocker | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as RawRecord;
+  const id = str(record.id);
+  if (!id || !BLOCKER_REASONS.includes(record.reason as BlockerReason)) return null;
+  return {
+    id,
+    reason: record.reason as BlockerReason,
+    details: str(record.details),
+    reported_by: str(record.reported_by),
+    reported_by_name: str(record.reported_by_name),
+    reported_at: str(record.reported_at),
+    status: record.status === "resolved" ? "resolved" : "active",
+    notification_status: NOTIFICATION_STATUSES.includes(record.notification_status as BlockerNotificationStatus)
+      ? (record.notification_status as BlockerNotificationStatus)
+      : "pending",
+  };
+}
+
 /** Backend task row (with its `rooms`, profile and comment joins) -> client `Task`. */
 export function normalizeTask(raw: RawRecord): Task {
   const rooms = raw.rooms && typeof raw.rooms === "object" ? (raw.rooms as RawRecord) : null;
@@ -137,6 +189,7 @@ export function normalizeTask(raw: RawRecord): Task {
     completed_at: str(raw.completed_at),
     is_ai_created: raw.is_ai_created === true,
     guest_request: guest && str(guest.id) ? { id: String(guest.id), status: str(guest.status) } : null,
+    blocker: ((blocker) => (blocker && blocker.status === "active" ? blocker : null))(normalizeBlocker(raw.blocker)),
   };
   if (Array.isArray(raw.task_comments)) {
     task.comments = (raw.task_comments as RawRecord[])
@@ -256,7 +309,18 @@ async function mutate(path: string, body: unknown): Promise<TaskMutationResult> 
 }
 
 /** One persisted thing that happened to a task. Everything here comes from stored rows. */
-export type TaskActivityKind = "created" | "claimed" | "started" | "completed" | "cancelled" | "comment" | "system_note";
+export type TaskActivityKind =
+  | "created"
+  | "claimed"
+  | "started"
+  | "completed"
+  | "cancelled"
+  | "comment"
+  | "system_note"
+  | "blocker_reported"
+  | "blocker_resolved";
+/** How a blocker was closed. */
+export type BlockerResolution = "resumed" | "resolved" | "completed" | "reassigned";
 
 export interface TaskActivityEvent {
   id: string;
@@ -264,11 +328,26 @@ export interface TaskActivityEvent {
   at: string;
   actor_id: string | null;
   actor_name: string | null;
-  /** Comment text (comment / system_note only). */
+  /** Comment text, blocker details (blocker_reported) or a supervisor's note (blocker_resolved). */
   text: string | null;
+  /** blocker_reported only. */
+  reason: BlockerReason | null;
+  /** blocker_resolved only. */
+  resolution: BlockerResolution | null;
 }
 
-const ACTIVITY_KINDS: readonly TaskActivityKind[] = ["created", "claimed", "started", "completed", "cancelled", "comment", "system_note"];
+const ACTIVITY_KINDS: readonly TaskActivityKind[] = [
+  "created",
+  "claimed",
+  "started",
+  "completed",
+  "cancelled",
+  "comment",
+  "system_note",
+  "blocker_reported",
+  "blocker_resolved",
+];
+const RESOLUTIONS: readonly BlockerResolution[] = ["resumed", "resolved", "completed", "reassigned"];
 
 export interface TaskActivity {
   task: Task;
@@ -292,6 +371,8 @@ export async function fetchTaskActivity(taskId: string): Promise<TaskActivity> {
       actor_id: str(e.actor_id),
       actor_name: str(e.actor_name),
       text: str(e.text),
+      reason: BLOCKER_REASONS.includes(e.reason as BlockerReason) ? (e.reason as BlockerReason) : null,
+      resolution: RESOLUTIONS.includes(e.resolution as BlockerResolution) ? (e.resolution as BlockerResolution) : null,
     }));
   return { task: normalizeTask(res.data.task), events, truncated: res.meta?.truncated === true };
 }
@@ -305,6 +386,44 @@ export const claimTask = (taskId: string) => mutate(`/tasks/${taskId}/claim`, {}
 /** Complete a task. The completion time is set by the server. Throws ApiError on any failure. */
 export const completeTask = (taskId: string, note?: string) =>
   mutate(`/tasks/${taskId}/complete`, note && note.trim() ? { note: note.trim() } : {});
+
+export interface BlockerMutationResult {
+  task: Task;
+  blocker: TaskBlocker | null;
+  /** The server already had this report / the blocker was already closed; nothing was written again. */
+  replayed: boolean;
+}
+
+async function mutateBlocker(path: string, body: unknown): Promise<BlockerMutationResult> {
+  const res = await api.post<{ data?: { task?: RawRecord; blocker?: RawRecord | null }; meta?: { replayed?: boolean } }>(path, body);
+  if (!res?.data?.task) throw new Error("Unexpected empty response from the task service");
+  return { task: normalizeTask(res.data.task), blocker: normalizeBlocker(res.data.blocker), replayed: res.meta?.replayed === true };
+}
+
+/** The most the API accepts in a blocker's additional details. */
+export const BLOCKER_DETAILS_MAX = 1000;
+
+export interface BlockerReport {
+  reason: BlockerReason;
+  details?: string;
+  /** Idempotency key: a retry of the same submission returns the report the first attempt stored. */
+  clientRequestId: string;
+}
+
+/**
+ * Report why a task assigned to me can not be finished. The task itself is not changed (it stays
+ * assigned and unfinished). Resolves only with the server's stored report; throws ApiError otherwise
+ * (`code`: blocker_already_active, task_closed, not_assignee, task_changed).
+ */
+export const reportBlocker = (taskId: string, report: BlockerReport) =>
+  mutateBlocker(`/tasks/${taskId}/blockers`, {
+    reason: report.reason,
+    ...(report.details && report.details.trim() ? { details: report.details.trim() } : {}),
+    client_request_id: report.clientRequestId,
+  });
+
+/** Clear my own blocker and carry on. `blockerId` pins the report I was looking at (stale screens get blocker_changed). */
+export const resumeTask = (taskId: string, blockerId: string) => mutateBlocker(`/tasks/${taskId}/resume`, { blocker_id: blockerId });
 
 /** Post a note. The text goes in the JSON body (not the URL); the server trims and validates it. */
 export async function addTaskComment(taskId: string, comment: string): Promise<TaskComment> {

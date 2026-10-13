@@ -25,10 +25,19 @@ function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent;
   const time = formatHotelTime(event.at, zone, language) ?? "";
   const actor = actorLabel(event, viewer, t);
   const isNote = event.kind === "comment";
-  const what = isNote ? (event.text ?? "") : t(`tasks.hk.sheet.event.${event.kind}`);
+  const isBlockerEvent = event.kind === "blocker_reported" || event.kind === "blocker_resolved";
+  const what = isNote
+    ? (event.text ?? "")
+    : event.kind === "blocker_reported"
+      ? t("tasks.hk.sheet.event.blocker_reported", { reason: t(`tasks.hk.blocker.reason.${event.reason ?? "other"}`) })
+      : event.kind === "blocker_resolved"
+        ? t(`tasks.hk.sheet.event.resolution.${event.resolution ?? "resolved"}`)
+        : t(`tasks.hk.sheet.event.${event.kind}`);
+  // The reporter's details / a supervisor's resolution note, shown under the persisted blocker event.
+  const detail = isBlockerEvent ? event.text : null;
   const a11y = isNote
     ? `${time}, ${actor ? `${actor}: ` : ""}${what}`
-    : `${time}, ${what}${actor ? `, ${actor}` : ""}`;
+    : `${time}, ${what}${actor ? `, ${actor}` : ""}${detail ? `. ${detail}` : ""}`;
 
   return (
     <View style={styles.row} accessible accessibilityLabel={a11y} testID={`activity-${event.id}`}>
@@ -53,6 +62,11 @@ function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent;
             {actor ? <Text style={{ color: theme.textMuted }}>{` · ${actor}`}</Text> : null}
           </Text>
         )}
+        {detail ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.note, { color: theme.textSecondary }]}>
+            {detail}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
