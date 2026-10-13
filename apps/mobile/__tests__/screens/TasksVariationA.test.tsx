@@ -91,7 +91,7 @@ jest.mock("@/stores/appStore", () => ({
 }));
 
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
-import TasksScreen from "@/app/(app)/tasks";
+import { StaffTasksScreen as TasksScreen } from "@/components/tasks/StaffTasksScreen";
 
 function renderScreen() {
   return render(

@@ -1301,6 +1301,97 @@
     "claimStart": "Claim & start",
     "unclaimedTag": "Up for grabs",
     "claimFailed": "Someone else already claimed this task",
+    "hk": {
+      "title": "My Tasks",
+      "sync": {
+        "synced": "Synced",
+        "syncing": "Syncing",
+        "offline": "Offline",
+        "pending": "Pending changes",
+        "stale": "Not up to date"
+      },
+      "history": "Completed history",
+      "historyTitle": "Completed tasks",
+      "historyEmpty": "No completed tasks yet.",
+      "historyLoadMore": "Load more",
+      "historyFailed": "Couldn't load completed tasks.",
+      "summary": {
+        "label": "Work summary",
+        "remaining": "Remaining",
+        "inProgress": "In progress",
+        "doneToday": "Done today",
+        "unavailable": "unavailable",
+        "atLeast": "at least {{count}}"
+      },
+      "segments": {
+        "label": "Task lists",
+        "myWork": "My Work",
+        "available": "Available",
+        "myWorkA11y": "My Work, {{count}} tasks",
+        "availableA11y": "Available, {{count}} tasks"
+      },
+      "sections": {
+        "nextUp": "NEXT UP",
+        "inProgress": "IN PROGRESS",
+        "upNext": "UP NEXT",
+        "later": "LATER",
+        "available": "AVAILABLE",
+        "showLater": "Show later tasks",
+        "hideLater": "Hide later tasks"
+      },
+      "action": {
+        "start": "Start task",
+        "claim": "Claim & Start",
+        "complete": "Complete",
+        "startA11y": "Start {{title}}",
+        "claimA11y": "Claim and start {{title}}",
+        "completeA11y": "Complete {{title}}",
+        "openDetails": "Show details for {{title}}",
+        "hideDetails": "Hide details for {{title}}",
+        "working": "Working"
+      },
+      "card": {
+        "room": "ROOM {{room}}",
+        "urgent": "URGENT",
+        "overdueBy": "{{minutes}}m overdue",
+        "overdueByHours": "{{hours}}h {{minutes}}m overdue",
+        "due": "Due {{time}}",
+        "startedAgo": "Started {{minutes}}m ago",
+        "startedAgoHours": "Started {{hours}}h {{minutes}}m ago",
+        "startedJustNow": "Started just now",
+        "created": "Created {{time}}",
+        "confirm": "Mark this task done?",
+        "confirmYes": "Yes, complete",
+        "noDescription": "No extra details."
+      },
+      "empty": {
+        "myTitle": "You're all caught up.",
+        "myBody": "No assigned tasks right now. Check Available for additional work.",
+        "viewAvailable": "View Available",
+        "availableTitle": "Nothing available right now.",
+        "availableBody": "New unassigned housekeeping tasks will appear here."
+      },
+      "availableIntro": "These tasks are not assigned yet. Claim one when you're ready to work on it.",
+      "error": {
+        "loadTitle": "Couldn't refresh tasks.",
+        "staleBanner": "Couldn't refresh tasks. Showing your last loaded list.",
+        "incomplete": "This list may be incomplete. Pull down to refresh."
+      },
+      "msg": {
+        "offline": "You're offline. Reconnect to change tasks.",
+        "claimConflict": "That task is no longer available. Your list was refreshed.",
+        "claimFailed": "Couldn't claim this task. Try again.",
+        "startFailed": "Couldn't start this task. Try again.",
+        "startConflict": "This task changed. Your list was refreshed.",
+        "completeFailed": "Couldn't complete this task. It is still on your list.",
+        "completeConflict": "This task changed. Your list was refreshed."
+      },
+      "add": {
+        "button": "Add task",
+        "sheetTitle": "Add a task",
+        "close": "Close"
+      }
+    },
     "completeFailed": "Couldn't mark this task done. It is still on your list — try again.",
     "loadFailed": "Couldn't load your tasks.",
     "refreshFailed": "Couldn't refresh — showing your last loaded tasks.",

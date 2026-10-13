@@ -6,13 +6,21 @@ const OPERATIONS_SOURCES = {
   roomDetail: "../../components/housekeeping/roomDetail/NeedsAttentionView.tsx",
   workOrderDetail: "../../app/(app)/work-orders/[woId].tsx",
   scheduling: "../../app/(app)/scheduling/index.tsx",
-  tasks: "../../app/(app)/tasks/index.tsx",
+  // The Tasks route is a thin role switch; the audited surfaces are the screens and cards behind it.
+  tasks: [
+    "../../components/tasks/HousekeeperTasksScreen.tsx",
+    "../../components/tasks/TaskCard.tsx",
+    "../../components/tasks/TasksHeader.tsx",
+    "../../components/tasks/AddTaskSheet.tsx",
+    "../../components/tasks/StaffTasksScreen.tsx",
+    "../../components/tasks/LegacyTaskCard.tsx",
+  ],
 } as const;
 
 const sources = Object.fromEntries(
   Object.entries(OPERATIONS_SOURCES).map(([name, path]) => [
     name,
-    readFileSync(resolve(__dirname, path), "utf8"),
+    (Array.isArray(path) ? path : [path]).map((file) => readFileSync(resolve(__dirname, file), "utf8")).join("\n"),
   ]),
 ) as Record<keyof typeof OPERATIONS_SOURCES, string>;
 

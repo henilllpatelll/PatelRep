@@ -33207,6 +33207,39 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-12T12:00:00.000Z"
+    },
+    {
+      "id": "bug-2013",
+      "timestamp": "2026-10-12T15:00:00.000Z",
+      "error_message": "Refresh after a task mutation returned the pre-mutation list (stale response overwrote newer state)",
+      "file": "apps/mobile/lib/tasks/useWorkQueue.ts",
+      "root_cause": "In-flight de-duplication returned the still-running request even after a mutation had invalidated it, so the post-mutation refresh reused an older response.",
+      "fix": "Track the token of each in-flight request; reuse it only while it is still current, otherwise start a new one.",
+      "tags": [
+        "mobile",
+        "tasks",
+        "race",
+        "refresh"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2014",
+      "timestamp": "2026-10-12T15:00:00.000Z",
+      "error_message": "OperationsSemanticOnColor 'tasks' audit failed after moving the Tasks screen out of app/(app)/tasks/index.tsx",
+      "file": "apps/mobile/__tests__/components/OperationsSemanticOnColor.test.ts",
+      "root_cause": "The audit read one hard-coded route file; the route became a thin role switch.",
+      "fix": "Audit the list of task component files (screens, cards, header, sheet) instead.",
+      "tags": [
+        "mobile",
+        "tests",
+        "tasks"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-12T15:00:00.000Z"
     }
   ]
 }

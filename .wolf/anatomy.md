@@ -722,3 +722,9 @@
 - `task_lifecycle.py` - GET /tasks/mine|available|mine/completed (cursor, deterministic sort), POST /tasks/{id}/start|complete (replay-safe, audited). Include before tasks.router. (~4k tok)
 ## apps/mobile/lib/api/
 - `tasks.ts` - Task model + normalizeTask, fetchMyWork/Available/CompletedPage/Task, start/claim/complete, addTaskComment, createTasks (array body). (~3k tok)
+
+## apps/mobile/components/tasks/ (Housekeeper Tasks Phase 2)
+- `HousekeeperTasksScreen.tsx` - redesigned queue (header, segments, Next Up/In Progress/Up Next/Later, Available, empty/error/stale states, Add task). (~4k tok)
+- `TaskCard.tsx` - themed card, one action; `LegacyTaskCard.tsx` - previous card for other roles. `TasksHeader.tsx` - title/date/sync/summary/segments. `AddTaskSheet.tsx` - interim AI add flow. `StaffTasksScreen.tsx` - previous screen for non-housekeeper roles.
+## apps/mobile/lib/tasks/
+- `workQueue.ts` (pure layout policy + fetchDoneToday), `useWorkQueue.ts` (queue state, refresh, mutations). `app/(app)/tasks/history.tsx` - basic completed list.

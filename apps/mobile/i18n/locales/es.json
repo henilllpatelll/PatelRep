@@ -1301,6 +1301,97 @@
     "claimStart": "Tomar y empezar",
     "unclaimedTag": "Disponible",
     "claimFailed": "Otra persona ya tomó esta tarea",
+    "hk": {
+      "title": "Mis tareas",
+      "sync": {
+        "synced": "Sincronizado",
+        "syncing": "Sincronizando",
+        "offline": "Sin conexión",
+        "pending": "Cambios pendientes",
+        "stale": "Desactualizado"
+      },
+      "history": "Historial completado",
+      "historyTitle": "Tareas completadas",
+      "historyEmpty": "Aún no hay tareas completadas.",
+      "historyLoadMore": "Cargar más",
+      "historyFailed": "No se pudieron cargar las tareas completadas.",
+      "summary": {
+        "label": "Resumen de trabajo",
+        "remaining": "Pendientes",
+        "inProgress": "En curso",
+        "doneToday": "Hechas hoy",
+        "unavailable": "no disponible",
+        "atLeast": "al menos {{count}}"
+      },
+      "segments": {
+        "label": "Listas de tareas",
+        "myWork": "Mi trabajo",
+        "available": "Disponibles",
+        "myWorkA11y": "Mi trabajo, {{count}} tareas",
+        "availableA11y": "Disponibles, {{count}} tareas"
+      },
+      "sections": {
+        "nextUp": "SIGUIENTE",
+        "inProgress": "EN CURSO",
+        "upNext": "PRÓXIMAS",
+        "later": "MÁS TARDE",
+        "available": "DISPONIBLES",
+        "showLater": "Mostrar tareas para más tarde",
+        "hideLater": "Ocultar tareas para más tarde"
+      },
+      "action": {
+        "start": "Iniciar tarea",
+        "claim": "Tomar e iniciar",
+        "complete": "Completar",
+        "startA11y": "Iniciar {{title}}",
+        "claimA11y": "Tomar e iniciar {{title}}",
+        "completeA11y": "Completar {{title}}",
+        "openDetails": "Mostrar detalles de {{title}}",
+        "hideDetails": "Ocultar detalles de {{title}}",
+        "working": "Procesando"
+      },
+      "card": {
+        "room": "HAB. {{room}}",
+        "urgent": "URGENTE",
+        "overdueBy": "{{minutes}} min de retraso",
+        "overdueByHours": "{{hours}} h {{minutes}} min de retraso",
+        "due": "Vence {{time}}",
+        "startedAgo": "Iniciada hace {{minutes}} min",
+        "startedAgoHours": "Iniciada hace {{hours}} h {{minutes}} min",
+        "startedJustNow": "Iniciada ahora mismo",
+        "created": "Creada {{time}}",
+        "confirm": "¿Marcar esta tarea como hecha?",
+        "confirmYes": "Sí, completar",
+        "noDescription": "Sin detalles adicionales."
+      },
+      "empty": {
+        "myTitle": "Estás al día.",
+        "myBody": "No tienes tareas asignadas por ahora. Revisa Disponibles para más trabajo.",
+        "viewAvailable": "Ver Disponibles",
+        "availableTitle": "No hay nada disponible por ahora.",
+        "availableBody": "Las nuevas tareas de limpieza sin asignar aparecerán aquí."
+      },
+      "availableIntro": "Estas tareas aún no están asignadas. Toma una cuando estés listo para trabajar en ella.",
+      "error": {
+        "loadTitle": "No se pudieron actualizar las tareas.",
+        "staleBanner": "No se pudieron actualizar las tareas. Se muestra tu última lista cargada.",
+        "incomplete": "Esta lista puede estar incompleta. Desliza hacia abajo para actualizar."
+      },
+      "msg": {
+        "offline": "Sin conexión. Vuelve a conectarte para cambiar tareas.",
+        "claimConflict": "Esa tarea ya no está disponible. Se actualizó tu lista.",
+        "claimFailed": "No se pudo tomar esta tarea. Inténtalo de nuevo.",
+        "startFailed": "No se pudo iniciar esta tarea. Inténtalo de nuevo.",
+        "startConflict": "Esta tarea cambió. Se actualizó tu lista.",
+        "completeFailed": "No se pudo completar esta tarea. Sigue en tu lista.",
+        "completeConflict": "Esta tarea cambió. Se actualizó tu lista."
+      },
+      "add": {
+        "button": "Agregar tarea",
+        "sheetTitle": "Agregar una tarea",
+        "close": "Cerrar"
+      }
+    },
     "completeFailed": "No se pudo marcar la tarea como hecha. Sigue en tu lista — inténtalo de nuevo.",
     "loadFailed": "No se pudieron cargar tus tareas.",
     "refreshFailed": "No se pudo actualizar — se muestran tus últimas tareas cargadas.",
