@@ -257,16 +257,27 @@ async def test_no_device_token_means_in_app_only(db, expo):
 
 
 @pytest.mark.asyncio
-async def test_a_housekeeper_cannot_delete_any_task_but_a_manager_can(db):
-    from fastapi import HTTPException
+async def test_only_managers_can_delete_tasks(db):
+    """The gate is the route dependency, so assert it on the app, not by calling the handler."""
+    from fastapi.testclient import TestClient
+    from jose import jwt
 
+    from core.config import settings
+    from main import app
+
+    def headers(role, user_id):
+        payload = {"sub": user_id, "role": role, "email": "x@example.com", "aud": "authenticated", "hotel_id": HOTEL}
+        return {"Authorization": f"Bearer {jwt.encode(payload, settings.supabase_jwt_secret, algorithm='HS256')}", "X-Forwarded-For": "192.0.2.79"}
+
+    client = TestClient(app)
     db.rows["tasks"].append(make_task("t1"))
-    with pytest.raises(HTTPException) as caught:
-        await tasks_router.delete_task("t1", user("housekeeper", ME))
-    assert caught.value.status_code == 403
+    for role in ("housekeeper", "engineer", "front_desk"):
+        response = client.delete("/v1/tasks/t1", headers=headers(role, ME))
+        assert response.status_code == 403, role
     assert [t["id"] for t in db.rows["tasks"]] == ["t1"]
 
-    await tasks_router.delete_task("t1", user("housekeeping_supervisor", SUP))
+    response = client.delete("/v1/tasks/t1", headers=headers("housekeeping_supervisor", SUP))
+    assert response.status_code == 204
     assert db.rows["tasks"] == []
 
 

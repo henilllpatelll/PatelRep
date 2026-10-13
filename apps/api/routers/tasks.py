@@ -938,11 +938,11 @@ async def update_task(
 
 @router.delete("/{task_id}", status_code=204)
 async def delete_task(
-    task_id: str, current_user: CurrentUser = Depends(get_current_user)
+    task_id: str,
+    # Deleting a record is a management action (the web app only offers it to managers): floor staff and
+    # line roles may report and finish work, never erase it.
+    current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES)),
 ):
-    # Deleting a record is a management action: floor staff may report and finish work, never erase it.
-    if current_user.role in FLOOR_STAFF_ROLES:
-        raise HTTPException(status_code=403, detail="Not authorized to delete tasks")
     result = (
         supabase.table("tasks")
         .delete()
