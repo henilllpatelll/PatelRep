@@ -62,7 +62,7 @@ jobs:
           VERSION_BUMP: ${{ inputs.version_bump }}
           RESULT_DIR: ${{ runner.temp }}/production-incident-reentry
       - name: Upload exact re-entry authorization
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-incident-reentry
           path: ${{ runner.temp }}/production-incident-reentry/context.json
