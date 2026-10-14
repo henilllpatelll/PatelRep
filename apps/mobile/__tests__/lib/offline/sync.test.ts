@@ -9,6 +9,7 @@ jest.mock("@/lib/offline/db", () => ({
   deleteSyncQueueItem: jest.fn(),
   incrementSyncQueueAttempts: jest.fn(),
   upsertRooms: jest.fn(),
+  clearRoomsCache: jest.fn(),
 }));
 jest.mock("@react-native-community/netinfo", () => ({
   default: { fetch: jest.fn().mockResolvedValue({ isConnected: true }) },
@@ -16,6 +17,8 @@ jest.mock("@react-native-community/netinfo", () => ({
 
 import { api } from "@/lib/api/client";
 import { setQueueOwner } from "@/lib/offline/queueOwner";
+import { resetRoomsRequestState } from "@/lib/housekeeping/roomsRequest";
+import { useAppStore } from "@/stores/appStore";
 import { getPendingSyncQueue, deleteSyncQueueItem, incrementSyncQueueAttempts, upsertRooms } from "@/lib/offline/db";
 
 const mockApi = api as unknown as {
@@ -31,6 +34,12 @@ const mockUpsertRooms = upsertRooms as jest.Mock;
 beforeEach(() => {
   jest.clearAllMocks();
   setQueueOwner("hotel-1:user-1");
+  resetRoomsRequestState();
+  useAppStore.setState({
+    user: { id: "user-1", tenant_id: "hotel-1", role: "housekeeper" } as never,
+    hotelTimezone: "America/Chicago",
+    myRooms: [],
+  });
   mockDeleteSyncQueueItem.mockResolvedValue(undefined);
   mockIncrementSyncQueueAttempts.mockResolvedValue(undefined);
   mockUpsertRooms.mockResolvedValue(undefined);
@@ -157,9 +166,33 @@ describe("refreshRooms", () => {
 
     await refreshRooms();
 
-    expect(mockUpsertRooms).toHaveBeenCalledWith(rooms);
+    // Replaces that shift date's cache with exactly what the server sent.
+    expect(mockUpsertRooms).toHaveBeenCalledWith(rooms, { replaceDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
     // Ensure it was NOT called with the wrapper object
-    expect(mockUpsertRooms).not.toHaveBeenCalledWith({ data: rooms });
+    expect(mockUpsertRooms).not.toHaveBeenCalledWith({ data: rooms }, expect.anything());
+    expect(useAppStore.getState().myRooms).toEqual(rooms);
+  });
+
+  it("does nothing when nobody is signed in", async () => {
+    useAppStore.setState({ user: null });
+
+    await refreshRooms();
+
+    expect(mockApi.get).not.toHaveBeenCalled();
+    expect(mockUpsertRooms).not.toHaveBeenCalled();
+  });
+
+  it("drops the answer if a different person signed in while the request was out", async () => {
+    let resolveGet: (value: unknown) => void = () => undefined;
+    mockApi.get.mockImplementation(() => new Promise((resolve) => { resolveGet = resolve; }));
+
+    const pending = refreshRooms();
+    useAppStore.setState({ user: { id: "user-2", tenant_id: "hotel-2", role: "housekeeper" } as never, myRooms: [] });
+    resolveGet({ data: [{ id: "r1", room_number: "101" }] });
+    await pending;
+
+    expect(useAppStore.getState().myRooms).toEqual([]);
+    expect(mockUpsertRooms).not.toHaveBeenCalled();
   });
 });
 

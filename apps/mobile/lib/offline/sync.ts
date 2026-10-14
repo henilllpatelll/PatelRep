@@ -5,14 +5,11 @@ import {
   deleteSyncQueueItem,
   getPendingSyncQueue,
   incrementSyncQueueAttempts,
-  upsertRooms,
 } from "@/lib/offline/db";
 import { getQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
-import { localDate } from "@/lib/utils/date";
-import type { Room } from "@/stores/appStore";
 
 let _syncInProgress = false;
 let _syncOnConnectInProgress = false;
@@ -90,10 +87,10 @@ export async function flushSyncQueue(): Promise<void> {
   }
 }
 
+/** Reconnect refresh: the store owns the one scoped, date-correct, ordered room refresh. */
 export async function refreshRooms(): Promise<void> {
   try {
-    const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
-    await upsertRooms(result.data);
+    await useAppStore.getState().refreshRooms();
   } catch (err) {
     console.warn("Failed to refresh rooms:", err);
   }

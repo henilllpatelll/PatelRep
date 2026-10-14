@@ -11,7 +11,14 @@ export interface ShiftSession {
   break_seconds: number;
 }
 
-function uuidv4(): string {
+/** What GET /shifts/current knows: the open shift, or (when none) the last one that ended. */
+export interface ShiftState {
+  current: ShiftSession | null;
+  /** The caller's most recently ended shift; only sent when nothing is open. */
+  lastEnded: ShiftSession | null;
+}
+
+export function newShiftId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
@@ -22,15 +29,32 @@ function uuidv4(): string {
   });
 }
 
-export async function getCurrentShift(): Promise<ShiftSession | null> {
-  const result = await api.get<{ data: ShiftSession | null }>("/shifts/current");
-  return result.data;
+/** Read-only. Never starts a shift. */
+export async function getShiftState(): Promise<ShiftState> {
+  const result = await api.get<{ data: ShiftSession | null; meta?: { last_ended?: ShiftSession | null } }>(
+    "/shifts/current",
+  );
+  return { current: result.data ?? null, lastEnded: result.data ? null : (result.meta?.last_ended ?? null) };
 }
 
-/** Idempotent — safe to call whenever no open shift session was found. */
-export async function startShift(startedAt: Date = new Date()): Promise<ShiftSession | null> {
+export async function getCurrentShift(): Promise<ShiftSession | null> {
+  return (await getShiftState()).current;
+}
+
+export interface StartShiftOptions {
+  /** Client-generated idempotency key; reuse it when retrying the same tap. */
+  id?: string;
+  startedAt?: Date;
+}
+
+/**
+ * Idempotent per id. If the person already has an open shift (another device)
+ * the server returns that shift instead of creating a second one. Call this only
+ * from an explicit "Start shift" action — never from a screen mounting.
+ */
+export async function startShift({ id, startedAt = new Date() }: StartShiftOptions = {}): Promise<ShiftSession | null> {
   const result = await api.post<{ data: ShiftSession | null }>("/shifts/start", {
-    id: uuidv4(),
+    id: id ?? newShiftId(),
     started_at: startedAt.toISOString(),
   });
   return result.data;
@@ -41,5 +65,11 @@ export async function endShift(endedAt: Date = new Date()): Promise<ShiftSession
   const result = await api.post<{ data: ShiftSession | null }>("/shifts/end", {
     ended_at: endedAt.toISOString(),
   });
+  return result.data;
+}
+
+/** Idempotent on the server: starting a break while on one, or resuming while not, changes nothing. */
+export async function setShiftBreak(action: "start" | "end"): Promise<ShiftSession | null> {
+  const result = await api.post<{ data: ShiftSession | null }>("/shifts/break", { action });
   return result.data;
 }

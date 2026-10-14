@@ -30,7 +30,8 @@ function formatClockTime(date: Date): string {
 interface Props {
   visible: boolean;
   room: Room;
-  elapsedSec: number;
+  /** Seconds since the verified clean-session start; null when unknown (no clock is shown). */
+  elapsedSec: number | null;
   /** The room to start next once this one's confirmed — the queue entry right
    *  after this room, if there is one. Drives the "Up next" footer. */
   nextUp?: SmartQueueEntry | null;
@@ -136,7 +137,9 @@ export default function HoldToConfirmSheet({ visible, room, elapsedSec, nextUp, 
             <Text style={[styles.title, { color: theme.textPrimary }]}>
               {t("home.holdConfirm.title", { room: room.room_number })}
             </Text>
-            <Text style={[styles.elapsed, { color: theme.status.ready }]}>{formatClock(elapsedSec)}</Text>
+            {elapsedSec !== null ? (
+              <Text style={[styles.elapsed, { color: theme.status.ready }]}>{formatClock(elapsedSec)}</Text>
+            ) : null}
           </View>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("home.holdConfirm.subtitle")}</Text>
 

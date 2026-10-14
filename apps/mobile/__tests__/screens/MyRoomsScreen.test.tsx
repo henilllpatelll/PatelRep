@@ -1,5 +1,6 @@
 import React from "react";
 import { FlatList } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import type { Room } from "@/stores/appStore";
 
@@ -90,6 +91,8 @@ import { api } from "@/lib/api/client";
 import { getRoomsByDate } from "@/lib/offline/db";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
+import { resetRoomsRequestState } from "@/lib/housekeeping/roomsRequest";
+import { resetRoomsStatus } from "@/stores/roomsStatusStore";
 import MyRoomsScreen from "@/app/(app)/my-rooms";
 
 const mockApiGet = api.get as jest.Mock;
@@ -136,8 +139,14 @@ function setRooms(rooms: Room[]) {
   mockApiGet.mockResolvedValue({ data: rooms, meta: META });
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
+  // Module-level room status/request state would otherwise leak between tests.
+  resetRoomsStatus();
+  resetRoomsRequestState();
+  await AsyncStorage.clear();
+  // The offline cache is only trusted for the person it was written for.
+  await AsyncStorage.setItem("@patelrep/rooms_cache_scope", "hotel-1:user-1");
   mockLanguage = "en";
   mockStore.isOnline = true;
   mockStore.pendingActions = [];

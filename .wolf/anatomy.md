@@ -747,3 +747,13 @@
 - apps/mobile/lib/tasks/addTask/submit.ts — createTask outcome classifier (rejected/forbidden/unconfirmed/offline), taskDestination, useCreateTask double-tap lock (~1k tok)
 - apps/mobile/lib/tasks/addTask/rooms.ts, draftMemory.ts, useVoiceInput.ts — room directory cache/search, per-hotel+user in-memory draft, expo-speech-recognition hook (no audio saved) (~2k tok)
 - apps/api: POST /tasks gains client_request_id (= task id, idempotent) + ai_suggested; GET /rooms/directory; services/ai/task_parser.py normalize_due_at + hotel-zone prompt
+## Housekeeper Mobile Home v2 — Phase 1 (foundation)
+- apps/mobile/lib/housekeeping/homeModel.ts — pure Home view model: progress (mutually exclusive buckets), overlapping alerts, active room timing, structured attention items (stable ids + destinations), end-of-shift readiness; built on buildDashboard (~4.6k tok)
+- apps/mobile/lib/housekeeping/homeRecommendation.ts — deterministic "what next" from the dashboard (active session > supervisor sequence > rush > reclean > standard); reason codes + timing, never AI (~1.4k tok)
+- apps/mobile/lib/housekeeping/homeSync.ts — Home sync summary from real queue rows (pending/failed/conflict/offline/stale) (~0.8k tok)
+- apps/mobile/lib/housekeeping/homeBriefing.ts — briefing plan/headline from the model; AI wording kept only if it agrees with Home's first room (~0.9k tok)
+- apps/mobile/lib/housekeeping/shiftLifecycle.ts + useShiftLifecycle.ts — unknown/not_started/active/on_break/ending/ended state; explicit start/end/break, idempotent, never auto-starts (~2.5k tok)
+- apps/mobile/lib/housekeeping/useHousekeeperHome.ts — composes rooms + sessions + shift + notes + sync into the model for Home (~2k tok)
+- apps/mobile/lib/housekeeping/roomsRequest.ts (shared in-flight + seq guard), roomsCache.ts (cache stamped with tenant:user), roomsFreshness.ts (board state/freshness/date rules), stores/roomsStatusStore.ts (status shared by Home + My Rooms)
+- apps/mobile/components/home/ShiftControlCard.tsx — explicit Start shift / break / resume / retry controls
+- apps/api/routers/shifts.py — GET /shifts/current now adds meta.last_ended; /shifts/end clamps ended_at >= started_at

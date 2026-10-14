@@ -1,7 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
-import { clearRoomsCache, upsertRooms } from "@/lib/offline/db";
+import { clearRoomsCache } from "@/lib/offline/db";
+import { writeRoomsCache } from "@/lib/housekeeping/roomsCache";
+import { acceptRoomsResult, fetchMyRooms } from "@/lib/housekeeping/roomsRequest";
+import { useRoomsStatus } from "@/stores/roomsStatusStore";
 import { clearAllTaskCaches, taskScope } from "@/lib/tasks/offline/taskCache";
 import { getQueueOwner, setQueueOwner } from "@/lib/offline/queueOwner";
 import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
@@ -190,13 +193,32 @@ export const useAppStore = create<AppState>((set, get) => ({
   hotelTimezone: null,
   setHotelTimezone: (hotelTimezone) => set({ hotelTimezone }),
   refreshRooms: async () => {
+    const owner = get().user;
+    if (!owner) return;
+    const scope = `${owner.tenant_id}:${owner.id}`;
+    const isSamePerson = () => {
+      const now = get().user;
+      return Boolean(now && `${now.tenant_id}:${now.id}` === scope);
+    };
     try {
-      const shiftDate = currentShiftDate(get().hotelTimezone);
-      const result = await api.get<{ data: Room[]; meta?: { timezone?: string | null; shift_date?: string | null } }>(
-        `/housekeeping/my-rooms?date=${shiftDate}`,
-      );
-      set({ myRooms: result.data, ...(result.meta?.timezone ? { hotelTimezone: result.meta.timezone } : {}) });
-      await upsertRooms(result.data, { replaceDate: result.meta?.shift_date ?? shiftDate });
+      const result = await fetchMyRooms(scope, currentShiftDate(get().hotelTimezone));
+      // Signed out / switched hotel while the request was out, or a newer answer already landed.
+      if (!isSamePerson() || !acceptRoomsResult(result.seq)) return;
+      const answeredDate = result.shiftDate ?? result.requestedDate;
+      set({ myRooms: result.rooms, ...(result.timezone ? { hotelTimezone: result.timezone } : {}) });
+      const status = useRoomsStatus.getState();
+      if (status.scope === scope) {
+        status.patch({
+          fetchError: null,
+          usingCache: false,
+          lastRefreshAt: Date.now(),
+          confirmedEmpty: result.rooms.length === 0,
+          serverShiftDate: answeredDate,
+          answeredForDate: result.requestedDate,
+          loading: false,
+        });
+      }
+      await writeRoomsCache(scope, result.rooms, answeredDate);
     } catch {
       // Silently preserve local state on refresh failure.
     }

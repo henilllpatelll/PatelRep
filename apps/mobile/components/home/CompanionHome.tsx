@@ -13,6 +13,7 @@ import { ProgressBar } from "@/components/shared/evening";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { SmartQueueEntry } from "@/lib/ai/briefing";
+import { elapsedSeconds } from "@/lib/housekeeping/cleaningTimer";
 import type { ShiftSnapshot } from "@/lib/ai/companion";
 import { useHousekeeperAccent, useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
@@ -71,13 +72,10 @@ function getFocusSubtitle(room: Room, roomType: string | null, t: Translate): st
   return roomType ?? t("home.focus.floor", { floor: room.floor });
 }
 
-/** Seconds since the room's last status change — a reasonable proxy for "clean
- *  started" since updated_at is written at the moment a room enters IN_PROGRESS. */
-function getElapsedSeconds(room: Room, now: number = Date.now()): number {
-  if (room.status !== "IN_PROGRESS" || !room.updated_at) return 0;
-  const started = new Date(room.updated_at).getTime();
-  if (Number.isNaN(started)) return 0;
-  return Math.max(0, Math.floor((now - started) / 1000));
+/** Seconds since the clean session started, or null when the start is unknown.
+ *  Never derived from the room's updated_at — a note or work order touches that too. */
+function getElapsedSeconds(startedAt: string | null | undefined, now: number = Date.now()): number | null {
+  return elapsedSeconds(startedAt, now);
 }
 
 function formatClock(totalSeconds: number): string {
@@ -92,8 +90,11 @@ export function FocusCard({
   t,
   onStart,
   onResume,
+  startedAt = null,
 }: {
   entry: SmartQueueEntry;
+  /** Authoritative clean-session start for the room being cleaned; null/absent = unknown, so no timer is shown. */
+  startedAt?: string | null;
   /** A different room mid-clean, surfaced as a gentle resume link */
   inProgressRoom: Room | null;
   t: Translate;
@@ -108,18 +109,19 @@ export function FocusCard({
   const targetMinutes = entry.estimateMinutes;
   const startLabel = inProgress ? t("rooms.detail.primary.markClean") : t("home.startWith", { room: room.room_number });
 
-  const [elapsedSec, setElapsedSec] = useState(() => getElapsedSeconds(room));
+  const [elapsedSec, setElapsedSec] = useState(() => (inProgress ? getElapsedSeconds(startedAt) : null));
   useEffect(() => {
     if (!inProgress) {
-      setElapsedSec(0);
+      setElapsedSec(null);
       return;
     }
-    setElapsedSec(getElapsedSeconds(room));
-    const id = setInterval(() => setElapsedSec(getElapsedSeconds(room)), 1000);
+    setElapsedSec(getElapsedSeconds(startedAt));
+    if (!startedAt) return;
+    const id = setInterval(() => setElapsedSec(getElapsedSeconds(startedAt)), 1000);
     return () => clearInterval(id);
-  }, [inProgress, room.updated_at, room.id]);
+  }, [inProgress, startedAt, room.id]);
 
-  const elapsedMinutes = elapsedSec / 60;
+  const elapsedMinutes = (elapsedSec ?? 0) / 60;
   const paceMinutes = Math.round(targetMinutes - elapsedMinutes);
   const progressPct = targetMinutes > 0 ? Math.min(100, Math.max(0, (elapsedMinutes / targetMinutes) * 100)) : 0;
 
@@ -146,7 +148,7 @@ export function FocusCard({
               {getFocusSubtitle(room, roomType, t)}
             </Text>
           </View>
-          {inProgress ? (
+          {inProgress && elapsedSec !== null ? (
             <View style={styles.focusElapsedStack}>
               <Text style={[styles.focusElapsedClock, { color: theme.shell.ink }]}>{formatClock(elapsedSec)}</Text>
               <Text
@@ -162,7 +164,7 @@ export function FocusCard({
             </View>
           ) : null}
         </View>
-        {inProgress ? (
+        {inProgress && elapsedSec !== null ? (
           <View style={[styles.focusProgressTrack, { backgroundColor: theme.shell.raised }]}>
             <View
               style={[

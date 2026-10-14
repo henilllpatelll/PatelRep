@@ -1,6 +1,6 @@
 import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 
@@ -102,6 +102,19 @@ const EN: Record<string, string> = {
   "home.holdConfirm.releaseHint": "Release to cancel",
   "home.holdConfirm.openRoom": "Open room to finish checklist",
   "home.endOfShift.roomsCleaned": "{{count}} rooms cleaned",
+  "home.endOfShift.roomsCompleted": "{{count}} rooms completed",
+  "home.endOfShift.needsConnection": "Connect to the internet to clock out.",
+  "home.shift.start": "Start shift",
+  "home.shift.startNew": "Start a new shift",
+  "home.shift.notStartedTitle": "Your shift hasn't started",
+  "home.shift.notStartedBody": "Start your shift when you're ready.",
+  "home.shift.endedAt": "Shift ended at {{time}}",
+  "home.shift.activeSince": "On shift since {{time}}",
+  "home.shift.takeBreak": "Take a break",
+  "home.shift.onBreak": "On break",
+  "home.shift.resume": "Resume shift",
+  "home.shift.unknown": "Can't check your shift right now",
+  "home.shift.retry": "Try again",
   "home.endOfShift.shiftDuration": "{{duration}} on shift",
   "home.endOfShift.clockOut": "Clock out",
   "home.endOfShift.clockedOut": "Clocked out. Nice work today.",
@@ -147,17 +160,47 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 
 let mockRoomsForRequest = mockRooms;
-const mockEndShift = jest.fn().mockResolvedValue({ data: { id: "shift-1", status: "ended" } });
+const endedShiftRow = () => ({
+  data: {
+    id: "shift-1",
+    status: "ended",
+    started_at: new Date(Date.now() - 3600_000).toISOString(),
+    ended_at: new Date().toISOString(),
+    on_break_since: null,
+    break_seconds: 0,
+  },
+});
+const mockEndShift = jest.fn(() => Promise.resolve(endedShiftRow()));
+let mockShiftCurrentFails = false;
+let mockBreakOn = false;
+const mockShiftBreak = jest.fn((path: string, body: { action: "start" | "end" }) => {
+  mockBreakOn = body.action === "start";
+  return Promise.resolve({
+    data: {
+      id: "shift-1",
+      status: mockBreakOn ? "on_break" : "active",
+      started_at: new Date(Date.now() - 3600_000).toISOString(),
+      ended_at: null,
+      on_break_since: mockBreakOn ? new Date().toISOString() : null,
+      break_seconds: 0,
+    },
+  });
+});
+const mockStartShift = jest.fn().mockResolvedValue({ data: { id: "shift-new", status: "active", started_at: new Date().toISOString() } });
+let mockShiftCurrent: { data: unknown; meta?: unknown } = { data: null, meta: { last_ended: null } };
 
 jest.mock("@/lib/api/client", () => ({
   api: {
     get: jest.fn((path: string) => {
-      if (path.startsWith("/shifts/current")) return Promise.resolve({ data: null });
+      if (path.startsWith("/shifts/current")) {
+        return mockShiftCurrentFails ? Promise.reject(new Error("network down")) : Promise.resolve(mockShiftCurrent);
+      }
       if (path.startsWith("/clean-sessions")) return Promise.resolve({ data: null });
       return Promise.resolve({ data: mockRoomsForRequest });
     }),
-    post: jest.fn((path: string) => {
-      if (path.startsWith("/shifts/start")) return Promise.resolve({ data: null });
+    post: jest.fn((path: string, body?: { action: "start" | "end" }) => {
+      if (path.startsWith("/shifts/break")) return mockShiftBreak(path, body as { action: "start" | "end" });
+      if (path.startsWith("/shifts/start")) return mockStartShift(path);
       if (path.startsWith("/shifts/end")) return mockEndShift();
       return Promise.reject(new Error("ai offline"));
     }),
@@ -174,18 +217,23 @@ jest.mock("@/lib/api/notifications", () => ({
 
 jest.mock("@/lib/offline/db", () => ({
   getRooms: jest.fn().mockResolvedValue(mockRooms),
+  getRoomsByDate: jest.fn().mockResolvedValue([]),
   upsertRooms: jest.fn().mockResolvedValue(undefined),
+  clearRoomsCache: jest.fn().mockResolvedValue(undefined),
+  getSyncQueueSummary: jest.fn().mockResolvedValue([]),
 }));
 
 const mockEnqueueAction = jest.fn().mockResolvedValue(undefined);
 const mockRefreshRooms = jest.fn().mockResolvedValue(undefined);
 let mockStoreRooms: typeof mockRooms = mockRooms;
+let mockIsOnline = true;
 
 function mockAppState() {
   return {
     user: { id: "user-1", tenant_id: "hotel-1", full_name: "Maria Vega", role: "housekeeper" },
-    isOnline: true,
+    isOnline: mockIsOnline,
     myRooms: mockStoreRooms,
+    pendingActions: [],
     setMyRooms: mockSetMyRooms,
     refreshRooms: mockRefreshRooms,
     enqueueAction: mockEnqueueAction,
@@ -203,6 +251,8 @@ jest.mock("@/stores/appStore", () => {
 });
 
 import HousekeeperHomeScreen from "@/app/(app)/home";
+import { resetRoomsRequestState } from "@/lib/housekeeping/roomsRequest";
+import { resetRoomsStatus } from "@/stores/roomsStatusStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import type { ChecklistItem, LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 
@@ -235,6 +285,16 @@ function seedSession(roomId: string, checked: boolean): void {
 
 describe("HousekeeperHomeScreen", () => {
   beforeEach(() => {
+    resetRoomsStatus();
+    resetRoomsRequestState();
+    mockRoomsForRequest = mockRooms;
+    mockIsOnline = true;
+    mockShiftCurrent = { data: null, meta: { last_ended: null } };
+    mockStartShift.mockClear();
+    mockShiftBreak.mockClear();
+    mockBreakOn = false;
+    mockEndShift.mockReset().mockImplementation(() => Promise.resolve(endedShiftRow()));
+    mockShiftCurrentFails = false;
     mockListNotifications.mockReset().mockResolvedValue({ data: [] });
     mockMarkRead.mockReset().mockResolvedValue(undefined);
     mockStoreRooms = mockRooms;
@@ -316,6 +376,7 @@ describe("HousekeeperHomeScreen", () => {
         <FocusCard
           entry={{ room, position: 1, estimateMinutes: 25, etaMinutes: 25 }}
           inProgressRoom={null}
+          startedAt="2026-05-26T12:00:00.000Z"
           t={(key: string, values?: Record<string, unknown>) => {
             const template = EN[key] ?? key;
             if (!values) return template;
@@ -466,6 +527,7 @@ describe("HousekeeperHomeScreen", () => {
 
   it("shows the empty-board state instead of the misleading 'all done' copy when nothing is assigned yet", async () => {
     mockStoreRooms = [];
+    mockRoomsForRequest = [];
 
     const { getByTestId, getByText, queryByTestId, getAllByText } = render(
       <ThemeProvider>
@@ -490,6 +552,12 @@ describe("HousekeeperHomeScreen", () => {
       { id: "room-101", room_number: "101", floor: 1, status: "INSPECTED", risk_level: null, dnd_flag: false, guest_name: null, predicted_ready_at: null, vip_flag: false, checkin_time: null },
     ];
 
+    mockRoomsForRequest = mockStoreRooms;
+    mockShiftCurrent = {
+      data: { id: "shift-1", status: "active", started_at: new Date(Date.now() - 3600_000).toISOString(), ended_at: null, on_break_since: null, break_seconds: 0 },
+      meta: { last_ended: null },
+    };
+
     const { getByTestId, getByText, queryByTestId } = render(
       <ThemeProvider>
         <ToastProvider>
@@ -500,9 +568,11 @@ describe("HousekeeperHomeScreen", () => {
 
     await waitFor(() => expect(getByTestId("end-of-shift-state")).toBeTruthy());
     expect(getByText("That's a wrap — every room handled. Be proud of today.")).toBeTruthy();
-    expect(getByText("2 rooms cleaned")).toBeTruthy();
+    // Completed (submitted + inspected) — not claimed as "cleaned by you".
+    expect(getByText("2 rooms completed")).toBeTruthy();
     expect(queryByTestId("empty-board-state")).toBeNull();
 
+    await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
     fireEvent.press(getByTestId("clock-out-button"));
 
     await waitFor(() => expect(mockEndShift).toHaveBeenCalled());
@@ -551,5 +621,137 @@ describe("HousekeeperHomeScreen", () => {
     await waitFor(() => expect(getByTestId("hold-confirm-button")).toBeTruthy());
     expect(getByText("Checklist 2 of 2")).toBeTruthy();
     expect(queryByTestId("hold-confirm-open-room")).toBeNull();
+  });
+  describe("shift lifecycle", () => {
+    const doneRooms = () => [
+      { id: "room-108", room_number: "108", floor: 1, status: "CLEAN", risk_level: null, dnd_flag: false, guest_name: null, predicted_ready_at: null, vip_flag: false, checkin_time: null },
+      { id: "room-101", room_number: "101", floor: 1, status: "INSPECTED", risk_level: null, dnd_flag: false, guest_name: null, predicted_ready_at: null, vip_flag: false, checkin_time: null },
+    ];
+    const activeShift = (overrides: Record<string, unknown> = {}) => ({
+      id: "shift-1",
+      status: "active",
+      started_at: new Date(Date.now() - 3600_000).toISOString(),
+      ended_at: null,
+      on_break_since: null,
+      break_seconds: 0,
+      ...overrides,
+    });
+    const renderHome = () =>
+      render(
+        <ThemeProvider>
+          <ToastProvider>
+            <HousekeeperHomeScreen />
+          </ToastProvider>
+        </ThemeProvider>,
+      );
+
+    it("never starts a shift when Home opens — Start shift is an explicit tap", async () => {
+      const { getByTestId, queryByTestId } = renderHome();
+
+      await waitFor(() => expect(getByTestId("shift-start")).toBeTruthy());
+      expect(mockStartShift).not.toHaveBeenCalled();
+
+      fireEvent.press(getByTestId("shift-start"));
+      await waitFor(() => expect(mockStartShift).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(queryByTestId("shift-start")).toBeNull());
+      await waitFor(() => expect(getByTestId("shift-control-active")).toBeTruthy());
+    });
+
+    it("does not start another shift when Home reopens after clock-out", async () => {
+      const endedAt = new Date().toISOString();
+      mockShiftCurrent = {
+        data: null,
+        meta: { last_ended: activeShift({ id: "shift-0", status: "ended", started_at: new Date(Date.now() - 60_000).toISOString(), ended_at: endedAt }) },
+      };
+
+      const { getByTestId, getByText, queryByTestId } = renderHome();
+
+      await waitFor(() => expect(getByTestId("shift-control-ended")).toBeTruthy());
+      expect(getByText(/Shift ended at/)).toBeTruthy();
+      expect(queryByTestId("shift-start")).toBeNull();
+      expect(mockStartShift).not.toHaveBeenCalled();
+      // Starting again is still possible, but only on purpose.
+      expect(getByTestId("shift-start-new")).toBeTruthy();
+    });
+
+    it("does not guess when the shift cannot be read — no clock-in, no clock-out", async () => {
+      mockShiftCurrentFails = true;
+
+      const { getByTestId, queryByTestId } = renderHome();
+
+      await waitFor(() => expect(getByTestId("shift-control-unknown")).toBeTruthy());
+      expect(queryByTestId("shift-start")).toBeNull();
+      expect(mockStartShift).not.toHaveBeenCalled();
+      expect(mockEndShift).not.toHaveBeenCalled();
+    });
+
+    it("sends one clock-out for a double tap and only claims success after the server confirms", async () => {
+      mockStoreRooms = doneRooms() as typeof mockRooms;
+      mockRoomsForRequest = mockStoreRooms;
+      mockShiftCurrent = { data: activeShift(), meta: { last_ended: null } };
+      type EndRow = ReturnType<typeof endedShiftRow>;
+      let resolveEnd: (value: EndRow) => void = () => undefined;
+      mockEndShift.mockImplementationOnce(() => new Promise<EndRow>((resolve) => { resolveEnd = resolve; }));
+
+      const { getByTestId, getByText, queryByText } = renderHome();
+
+      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
+      fireEvent.press(getByTestId("clock-out-button"));
+      fireEvent.press(getByTestId("clock-out-button"));
+
+      await waitFor(() => expect(mockEndShift).toHaveBeenCalledTimes(1));
+      // Still waiting on the server: not clocked out yet.
+      expect(queryByText("Clocked out. Nice work today.")).toBeNull();
+
+      await act(async () => {
+        resolveEnd(endedShiftRow());
+      });
+      await waitFor(() => expect(getByText("Clocked out. Nice work today.")).toBeTruthy());
+      expect(mockEndShift).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the shift open and offers clock-out again when the server rejects it", async () => {
+      mockStoreRooms = doneRooms() as typeof mockRooms;
+      mockRoomsForRequest = mockStoreRooms;
+      mockShiftCurrent = { data: activeShift(), meta: { last_ended: null } };
+      mockEndShift.mockRejectedValueOnce(new Error("server error"));
+
+      const { getByTestId, queryByText } = renderHome();
+
+      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
+      fireEvent.press(getByTestId("clock-out-button"));
+
+      await waitFor(() => expect(mockEndShift).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
+      expect(queryByText("Clocked out. Nice work today.")).toBeNull();
+    });
+
+    it("does not offer clock-out while offline (the server cannot confirm it)", async () => {
+      mockStoreRooms = doneRooms() as typeof mockRooms;
+      mockRoomsForRequest = mockStoreRooms;
+      mockIsOnline = false;
+      mockShiftCurrent = { data: activeShift(), meta: { last_ended: null } };
+
+      const { getByTestId, queryByTestId } = renderHome();
+
+      await waitFor(() => expect(getByTestId("end-of-shift-state")).toBeTruthy());
+      expect(queryByTestId("clock-out-button")).toBeNull();
+      expect(getByTestId("clock-out-hint")).toBeTruthy();
+      expect(mockEndShift).not.toHaveBeenCalled();
+    });
+
+    it("takes a break and resumes through the shifts API", async () => {
+      mockShiftCurrent = { data: activeShift(), meta: { last_ended: null } };
+      const { getByTestId, queryByTestId } = renderHome();
+
+      await waitFor(() => expect(getByTestId("shift-break")).toBeTruthy());
+      fireEvent.press(getByTestId("shift-break"));
+      await waitFor(() => expect(getByTestId("shift-resume")).toBeTruthy());
+      expect(queryByTestId("shift-break")).toBeNull();
+
+      fireEvent.press(getByTestId("shift-resume"));
+      await waitFor(() => expect(getByTestId("shift-break")).toBeTruthy());
+      expect(mockShiftBreak).toHaveBeenCalledTimes(2);
+    });
   });
 });

@@ -33264,7 +33264,11 @@
       "file": "apps/mobile/lib/tasks/addTask/draft.ts",
       "root_cause": "The roomRequired check lived in an else-if after the place branch, so any place location skipped it.",
       "fix": "Run the guest_request room check after the location branches whenever no earlier location error was set.",
-      "tags": ["mobile", "tasks", "validation"],
+      "tags": [
+        "mobile",
+        "tasks",
+        "validation"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-13T20:00:00.000Z"
@@ -33276,10 +33280,96 @@
       "file": "apps/api/services/ai/task_parser.py",
       "root_cause": "try_fast_path matched 'room N needs ...' before any time handling; parse_nl_tasks used date.today() and nothing validated the model's due_at.",
       "fix": "Skip the fast path when a time/day word is present; prompt carries hotel-local date/time/zone; normalize_due_at() re-validates and flags due_unresolved.",
-      "tags": ["api", "ai", "tasks", "timezone"],
+      "tags": [
+        "api",
+        "ai",
+        "tasks",
+        "timezone"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-13T20:10:00.000Z"
+    },
+    {
+      "id": "bug-2018",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Home called startShift() whenever /shifts/current returned no open shift, so reopening Home after clock-out silently started a new shift",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "loadShiftSession() did getCurrentShift() ?? startShift() on mount, focus and foreground.",
+      "fix": "Home only reads shift state; Start shift is an explicit action in useShiftLifecycle; GET /shifts/current now returns meta.last_ended so 'ended' is distinguishable from 'never started'.",
+      "tags": [
+        "mobile",
+        "shifts",
+        "lifecycle"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2019",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Home focus-card timer derived from room.updated_at, resetting on notes/work orders",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "updated_at changes on any room write, not only clean start.",
+      "fix": "FocusCard/HoldToConfirmSheet take the clean session's startedAt; unknown start shows no timer.",
+      "tags": [
+        "mobile",
+        "home",
+        "timer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2020",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "buildShiftSnapshot counted OOO/OUT_OF_SERVICE rooms as done and used a different ranking than My Rooms",
+      "file": "apps/mobile/lib/ai/companion.ts",
+      "root_cause": "DONE_STATUSES included unavailable statuses; Home used buildSmartQueue directly.",
+      "fix": "Snapshot derived from buildDashboard progress; Home recommendation derived from the same dashboard.",
+      "tags": [
+        "mobile",
+        "home",
+        "progress"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2021",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Smart-queue routing assumed the pilot hotel's building split (suffix 01-16 = A, 17-39 = B) for every property",
+      "file": "apps/mobile/lib/ai/briefing.ts",
+      "root_cause": "getBuilding() inferred a building from the room-number suffix.",
+      "fix": "Only room.building (verified metadata) adds a crossing cost; removed unused pilot-specific buildBuildingGroups.",
+      "tags": [
+        "mobile",
+        "routing",
+        "multi-property"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2022",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Room refreshes from Home, the store and reconnect sync could overlap and an older response could overwrite newer rooms; sync refresh never pruned prior-date rows",
+      "file": "apps/mobile/stores/appStore.ts",
+      "root_cause": "Three independent fetch paths with no sequencing or scope check; sync.refreshRooms used localDate() and no replaceDate.",
+      "fix": "All paths use roomsRequest (shared in-flight + sequence guard + scope check); cache is stamped with tenant:user and replaced per shift date.",
+      "tags": [
+        "mobile",
+        "offline",
+        "rooms",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
     }
   ]
 }

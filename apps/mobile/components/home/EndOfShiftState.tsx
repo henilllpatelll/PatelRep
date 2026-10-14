@@ -21,6 +21,10 @@ interface Props {
   clockedOutLabel: string;
   clockedOut: boolean;
   clockingOut: boolean;
+  /** Clock-out is only offered when the shift is open and the server can be reached. */
+  canClockOut?: boolean;
+  /** Why clock-out is unavailable (e.g. offline), shown in place of the button. */
+  clockOutHint?: string | null;
   onClockOut: () => void;
   /** AI recap card — null until fetchShiftRecap resolves (or fails and falls
    *  back to the local heuristic, which still returns a real value). */
@@ -57,6 +61,8 @@ export function EndOfShiftState({
   clockedOutLabel,
   clockedOut,
   clockingOut,
+  canClockOut = true,
+  clockOutHint = null,
   onClockOut,
   aiRecap,
   aiRecapLoading,
@@ -152,6 +158,12 @@ export function EndOfShiftState({
           <Ionicons name="checkmark-circle-outline" size={16} color={theme.status.ready} />
           <Text style={[styles.clockedOutText, { color: theme.status.ready }]}>{clockedOutLabel}</Text>
         </View>
+      ) : !canClockOut ? (
+        clockOutHint ? (
+          <Text style={[styles.subMessage, { color: theme.shell.ink2 }]} testID="clock-out-hint">
+            {clockOutHint}
+          </Text>
+        ) : null
       ) : (
         <Button
           label={clockOutLabel}

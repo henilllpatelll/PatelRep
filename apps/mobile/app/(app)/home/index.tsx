@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AppState,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,9 +11,6 @@ import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { listNotifications, markRead, type AppNotification } from "@/lib/api/notifications";
-import { endShift, getCurrentShift, startShift, type ShiftSession } from "@/lib/api/shifts";
-import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
@@ -25,15 +21,21 @@ import { FocusCard, NeedsYouRow, ShiftProgressCard, type NeedsYouItem } from "@/
 import { EmptyBoardState } from "@/components/home/EmptyBoardState";
 import { EndOfShiftState } from "@/components/home/EndOfShiftState";
 import HoldToConfirmSheet from "@/components/home/HoldToConfirmSheet";
+import { ShiftControlCard } from "@/components/home/ShiftControlCard";
 import { SupervisorHome } from "@/components/home/SupervisorHome";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
-import { buildLocalBriefing, buildSmartQueue, estimateCleanMinutes, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
+import { fetchShiftBriefing, type ShiftBriefing, type SmartQueueEntry } from "@/lib/ai/briefing";
 import { fetchShiftRecap, type ShiftRecap } from "@/lib/ai/shiftRecap";
-import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
+import { getCompanionCheckin, getGreetingKey, snapshotFromDashboard } from "@/lib/ai/companion";
 import { listItems, type LostFoundItem } from "@/lib/api/lostFound";
+import { elapsedSeconds } from "@/lib/housekeeping/cleaningTimer";
+import { buildBriefingFromModel, reconcileBriefing } from "@/lib/housekeeping/homeBriefing";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { workedSeconds } from "@/lib/housekeeping/shiftLifecycle";
+import { useHousekeeperHome } from "@/lib/housekeeping/useHousekeeperHome";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -46,164 +48,112 @@ function formatClockTime(date: Date): string {
 }
 
 export default function HousekeeperHomeScreen() {
+  const user = useAppStore((state) => state.user);
+  const effectiveRole = user?.effective_role ?? user?.role;
+
+  if (String(effectiveRole) === "engineer") {
+    return <EngineerHome name={user?.full_name ?? "Engineer"} />;
+  }
+  if (effectiveRole === "housekeeping_supervisor") {
+    return <SupervisorHome name={user?.full_name ?? "Supervisor"} />;
+  }
+  if (effectiveRole === "front_desk") {
+    return <FrontDeskHomeScreen name={user?.full_name ?? "Front Desk"} />;
+  }
+  if (effectiveRole === "gm") {
+    return <GMHomeScreen name={user?.full_name ?? "GM"} />;
+  }
+  return <HousekeeperHome enabled={effectiveRole === "housekeeper"} />;
+}
+
+function HousekeeperHome({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
-  const effectiveRole = user?.effective_role ?? user?.role;
-  const isEngineer = String(effectiveRole) === "engineer";
-  const [loading, setLoading] = useState(myRooms.length === 0);
+  const home = useHousekeeperHome({ enabled });
+  const { model, data, rooms, shift, acknowledgeSupervisorNote, refresh: refreshHome } = home;
+  const { lifecycle } = model;
+  const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
+  const locale = language === "es" ? "es-MX" : "en-US";
+
   const [refreshing, setRefreshing] = useState(false);
-  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [aiBriefing, setAiBriefing] = useState<ShiftBriefing | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  const [supervisorNote, setSupervisorNote] = useState<AppNotification | null>(null);
-  const [shiftSession, setShiftSession] = useState<ShiftSession | null>(null);
   const [holdConfirmRoom, setHoldConfirmRoom] = useState<Room | null>(null);
-  const [clockingOut, setClockingOut] = useState(false);
-  const [clockedOut, setClockedOut] = useState(false);
   const [shiftRecap, setShiftRecap] = useState<ShiftRecap | null>(null);
   const [shiftRecapLoading, setShiftRecapLoading] = useState(false);
   const [todaysFoundItems, setTodaysFoundItems] = useState<LostFoundItem[]>([]);
-  const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
 
-  // Best-effort — the shift timeline degrades to a plain progress bar when
-  // this hasn't resolved yet (offline, or the request failed).
-  const loadShiftSession = useCallback(async () => {
-    if (!isOnline) return;
-    try {
-      const existing = await getCurrentShift();
-      setShiftSession(existing ?? (await startShift()));
-    } catch {
-      // Leave shiftSession as-is; ShiftProgressCard falls back to the plain bar.
-    }
-  }, [isOnline]);
-
-  const loadSupervisorNote = useCallback(async () => {
-    if (!isOnline) return;
-    try {
-      const result = await listNotifications(false);
-      const note = result.data.find((n) => n.type === "direct_message" || n.type === "broadcast");
-      setSupervisorNote(note ?? null);
-    } catch {
-      // Best-effort — Home should never block on a notifications fetch failure.
-    }
-  }, [isOnline]);
-
-  const acknowledgeSupervisorNote = useCallback(async () => {
-    if (!supervisorNote) return;
-    const id = supervisorNote.id;
-    setSupervisorNote(null);
-    try {
-      await markRead(id);
-    } catch {
-      // Leave it dismissed locally; it will reappear on the next unread fetch if the write failed.
-    }
-  }, [supervisorNote]);
-
-  const loadRooms = useCallback(async () => {
-    if (isOnline) {
-      try {
-        const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
-        setMyRooms(result.data);
-        await upsertRooms(result.data);
-        setLastCheckedAt(new Date());
-      } catch {
-        const cached = (await getRoomsByDate(localDate())) as Room[];
-        setMyRooms(cached);
-      }
-    } else {
-      const cached = (await getRoomsByDate(localDate())) as Room[];
-      setMyRooms(cached);
-    }
-    setLoading(false);
-  }, [isOnline, setMyRooms]);
-
-  useEffect(() => {
-    if (effectiveRole !== "housekeeper") return;
-    void loadRooms();
-    void loadSupervisorNote();
-    void loadShiftSession();
-    const interval = setInterval(() => {
-      void loadRooms();
-      void loadSupervisorNote();
-    }, 45_000);
-    const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        void loadRooms();
-        void loadSupervisorNote();
-        void loadShiftSession();
-      }
-    });
-    return () => {
-      clearInterval(interval);
-      sub.remove();
-    };
-  }, [effectiveRole, loadRooms, loadSupervisorNote, loadShiftSession]);
-
-  // Refresh room counts when navigating back from the room detail screen
-  // so the home counter reflects the latest status immediately.
+  // Refresh room counts and the shift when navigating back from the room detail screen
+  // so the home counter reflects the latest status immediately. Reads only — never starts a shift.
+  const { refresh: refreshShift } = shift;
   useFocusEffect(
     useCallback(() => {
-      if (effectiveRole === "housekeeper") void refreshRooms();
-    }, [effectiveRole, refreshRooms]),
+      if (!enabled) return;
+      void refreshRooms();
+      void refreshShift();
+    }, [enabled, refreshRooms, refreshShift]),
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadRooms();
-    setRefreshing(false);
-  }, [loadRooms]);
+    try {
+      await refreshHome();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshHome]);
+
+  const boardState = model.board.state;
+  const boardUsable = boardState === "ready" || boardState === "empty";
 
   // Earliest upcoming VIP arrival — a real, calendar-backed marker for the
   // shift timeline (never a fabricated/scheduled time we don't have data for).
   const nextVipArrival = useMemo(() => {
     const now = Date.now();
-    const times = myRooms
+    const times = rooms
       .filter((room) => room.vip_flag && room.checkin_time)
       .map((room) => new Date(room.checkin_time as string).getTime())
       .filter((time) => Number.isFinite(time) && time > now);
     return times.length > 0 ? new Date(Math.min(...times)) : null;
-  }, [myRooms]);
+  }, [rooms]);
   const shiftStart = useMemo(() => {
-    if (!shiftSession?.started_at) return null;
-    const date = new Date(shiftSession.started_at);
+    if (!lifecycle.startedAt) return null;
+    const date = new Date(lifecycle.startedAt);
     return Number.isNaN(date.getTime()) ? null : date;
-  }, [shiftSession]);
+  }, [lifecycle.startedAt]);
 
-  const openWorkOrderRooms = useMemo(
-    () => myRooms.filter((room) => room.open_work_order_id),
-    [myRooms],
-  );
-
-  const smartQueue = useMemo(() => buildSmartQueue(myRooms), [myRooms]);
+  // The plan and "start with" line come from the same model as the focus card; AI wording is
+  // kept only while it agrees with that order (it can never reorder work or override access).
   const localBriefing = useMemo(
-    () => (myRooms.length > 0 ? buildLocalBriefing(myRooms, t) : null),
-    [myRooms, t],
+    () => (rooms.length > 0 ? buildBriefingFromModel(model, t) : null),
+    [rooms.length, model, t],
   );
-  const briefing = aiBriefing ?? localBriefing;
+  const briefing = aiBriefing && localBriefing ? reconcileBriefing(aiBriefing, localBriefing) : localBriefing;
   const snapshot = useMemo(
-    () => buildShiftSnapshot(myRooms, language === "es" ? "es-MX" : "en-US"),
-    [myRooms, language],
+    () => snapshotFromDashboard(model.dashboard, locale),
+    [model.dashboard, locale],
   );
   const companionCheckin = useMemo(() => getCompanionCheckin(snapshot, t), [snapshot, t]);
+  const showBoard = boardState === "ready" || boardState === "empty";
 
   // Fires once per shift when the board clears — mirrors requestAiBriefing's
   // fetch-with-local-fallback pattern, just for the end-of-shift recap instead.
   useEffect(() => {
-    if (snapshot.stage !== "done" || shiftRecap || shiftRecapLoading || myRooms.length === 0) return;
+    if (!showBoard || snapshot.stage !== "done" || shiftRecap || shiftRecapLoading || rooms.length === 0) return;
     setShiftRecapLoading(true);
-    void fetchShiftRecap(myRooms, language, t, isOnline).then((result) => {
+    void fetchShiftRecap(rooms, language, t, isOnline).then((result) => {
       setShiftRecap(result);
       setShiftRecapLoading(false);
     });
-  }, [snapshot.stage, shiftRecap, shiftRecapLoading, myRooms, language, t, isOnline]);
+  }, [showBoard, snapshot.stage, shiftRecap, shiftRecapLoading, rooms, language, t, isOnline]);
 
   // Real "before you clock out" signals — today's lost & found items this
   // housekeeper logged, surfaced once the board is clear.
   useEffect(() => {
-    if (snapshot.stage !== "done" || !isOnline || !user?.id) return;
+    if (!showBoard || snapshot.stage !== "done" || !isOnline || !user?.id) return;
     listItems()
       .then((res) => {
         const today = localDate();
@@ -214,36 +164,47 @@ export default function HousekeeperHomeScreen() {
         );
       })
       .catch(() => {});
-  }, [snapshot.stage, isOnline, user?.id]);
+  }, [showBoard, snapshot.stage, isOnline, user?.id]);
+
   const shiftDurationLabel = useMemo(() => {
-    if (!shiftStart) return null;
-    const totalMinutes = Math.max(0, Math.round((Date.now() - shiftStart.getTime()) / 60000));
+    const worked = workedSeconds(lifecycle, new Date());
+    if (worked === null) return null;
+    const totalMinutes = Math.max(0, Math.round(worked / 60));
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  }, [shiftStart]);
-  // Snapshotted when the sheet opens rather than ticking live — it's a short-lived
-  // modal, not worth a second interval alongside FocusCard's own elapsed timer.
-  const holdConfirmElapsedSec = useMemo(() => {
-    if (!holdConfirmRoom?.updated_at) return 0;
-    const started = new Date(holdConfirmRoom.updated_at).getTime();
-    return Number.isNaN(started) ? 0 : Math.max(0, Math.floor((Date.now() - started) / 1000));
-  }, [holdConfirmRoom]);
-  const firstEntry = getStartEntry(smartQueue);
-  const inProgressRoom = useMemo(
-    () => myRooms.find((room) => room.status === "IN_PROGRESS") ?? null,
-    [myRooms],
+  }, [lifecycle]);
+
+  // The recommendation is the dashboard's own answer (active session, then the
+  // supervisor sequence / rush / reclean / standard queue, never a restricted room).
+  const recommendation = model.recommendation;
+  const focusEntry: SmartQueueEntry | null = useMemo(
+    () =>
+      recommendation
+        ? {
+            room: recommendation.room,
+            position: 1,
+            estimateMinutes: recommendation.timing.estimateMinutes,
+            etaMinutes: recommendation.timing.estimateMinutes,
+          }
+        : null,
+    [recommendation],
   );
-  // The room actively being cleaned always leads the focus card — matching the
-  // "Right now" design intent, a flagged note or open work order shouldn't hide
-  // the live timer on a room the housekeeper already has open.
-  const focusEntry = useMemo(() => {
-    if (inProgressRoom) {
-      const minutes = estimateCleanMinutes(inProgressRoom);
-      return { room: inProgressRoom, position: 1, estimateMinutes: minutes, etaMinutes: minutes };
-    }
-    return firstEntry;
-  }, [inProgressRoom, firstEntry]);
+  const nextUpEntry: SmartQueueEntry | null = useMemo(() => {
+    const next = model.dashboard.upNext[0];
+    if (!next) return null;
+    return { room: next.room, position: 1, estimateMinutes: next.estimateMinutes, etaMinutes: next.estimateMinutes };
+  }, [model.dashboard.upNext]);
+
+  // Snapshotted when the sheet opens rather than ticking live — it's a short-lived
+  // modal. Derived from the verified session start, never the room's updated_at.
+  const holdConfirmElapsedSec = useMemo(() => {
+    if (!holdConfirmRoom) return null;
+    const active = model.activeRoom;
+    if (!active || active.room.id !== holdConfirmRoom.id) return null;
+    return elapsedSeconds(active.startedAt, Date.now());
+  }, [holdConfirmRoom, model.activeRoom]);
+
   const openRoom = useCallback((room: Room) => {
     router.push(`/(app)/my-rooms/${room.id}`);
   }, []);
@@ -272,23 +233,34 @@ export default function HousekeeperHomeScreen() {
     [myRooms, setMyRooms, refreshRooms],
   );
 
+  const reportShiftResult = useCallback(
+    (result: Awaited<ReturnType<typeof shift.start>>, failureKey: string) => {
+      if (result.ok) return;
+      if (result.reason === "offline") toast.error(t("home.shift.needsConnection"));
+      else if (result.reason === "failed") toast.error(t(failureKey));
+    },
+    [shift, toast, t],
+  );
+  const handleStartShift = useCallback(async () => {
+    reportShiftResult(await shift.start(), "home.shift.actionFailed");
+  }, [shift, reportShiftResult]);
+  const handleBreak = useCallback(
+    async (action: "start" | "end") => {
+      reportShiftResult(await (action === "start" ? shift.startBreak() : shift.endBreak()), "home.shift.actionFailed");
+    },
+    [shift, reportShiftResult],
+  );
+  // Clock-out is claimed only after the server confirms; a second tap shares the first request.
   const handleClockOut = useCallback(async () => {
-    setClockingOut(true);
-    try {
-      await endShift();
-      setClockedOut(true);
-    } catch (err: unknown) {
-      toast.error((err as Error).message ?? t("home.endOfShift.clockOutFailed"));
-    } finally {
-      setClockingOut(false);
-    }
-  }, [toast, t]);
+    reportShiftResult(await shift.end(), "home.endOfShift.clockOutFailed");
+  }, [shift, reportShiftResult]);
 
   // Real, actionable signals only — never a fabricated inbox. An explicit
   // supervisor message leads (it's a direct instruction, not an inferred
   // signal), then priority mirrors the companion tip's (attention > DND >
   // arrivals); capped at three so the stack stays scannable, matching the
   // "Right now" design direction.
+  const supervisorNote = model.supervisorInstruction;
   const needsYouItems = useMemo(() => {
     const items: NeedsYouItem[] = [];
     if (supervisorNote) {
@@ -339,36 +311,37 @@ export default function HousekeeperHomeScreen() {
   }, [snapshot, t, openMyRooms, supervisorNote, acknowledgeSupervisorNote]);
 
   const requestAiBriefing = useCallback(async () => {
-    if (briefingLoading || myRooms.length === 0) return;
+    if (briefingLoading || rooms.length === 0) return;
     setBriefingLoading(true);
-    const result = await fetchShiftBriefing(myRooms, language, t, isOnline);
+    const result = await fetchShiftBriefing(rooms, language, t, isOnline);
     setAiBriefing(result);
     setBriefingLoading(false);
-  }, [briefingLoading, myRooms, language, t, isOnline]);
+  }, [briefingLoading, rooms, language, t, isOnline]);
 
-  if (isEngineer) {
-    return <EngineerHome name={user?.full_name ?? "Engineer"} />;
-  }
-
-  if (effectiveRole === "housekeeping_supervisor") {
-    return <SupervisorHome name={user?.full_name ?? "Supervisor"} />;
-  }
-
-  if (effectiveRole === "front_desk") {
-    return <FrontDeskHomeScreen name={user?.full_name ?? "Front Desk"} />;
-  }
-
-  if (effectiveRole === "gm") {
-    return <GMHomeScreen name={user?.full_name ?? "GM"} />;
-  }
-
-  if (loading) {
+  if (boardState === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <StateBlock status="loading" />
       </View>
     );
   }
+
+  // Sync status: only what the queues really hold, and how old the room list is.
+  const syncLine = (() => {
+    const { sync } = model;
+    if (sync.status === "attention") return t("home.sync.attention");
+    if (!isOnline) return t("common.offline");
+    if (sync.pending > 0) return t("home.sync.pending", { count: sync.pending });
+    if (sync.status === "stale") {
+      const at = formatHotelTime(sync.lastRefreshAt, model.timeZone, language);
+      return at ? t("home.sync.stale", { time: at }) : t("home.sync.staleNoTime");
+    }
+    return null;
+  })();
+
+  // Clock-out needs the server's confirmation, so offline it is explained rather than offered.
+  const clockOutHint =
+    !isOnline && lifecycle.state !== "ended" && lifecycle.state !== "ending" ? t("home.endOfShift.needsConnection") : null;
 
   return (
     <View style={[styles.companionContainer, { backgroundColor: theme.background }]}>
@@ -395,24 +368,61 @@ export default function HousekeeperHomeScreen() {
               <IconButton icon="notifications-outline" />
             </View>
           </View>
+          {syncLine ? (
+            <Text style={[styles.syncLine, { color: theme.textMuted }]} testID="home-sync-line">
+              {syncLine}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.companionBody}>
-          {focusEntry ? (
+          <ShiftControlCard
+            lifecycle={lifecycle}
+            timeZone={model.timeZone}
+            language={language}
+            t={t}
+            onStart={() => void handleStartShift()}
+            onStartBreak={() => void handleBreak("start")}
+            onEndBreak={() => void handleBreak("end")}
+            onRetry={() => void shift.refresh()}
+          />
+
+          {boardState === "unavailable" || boardState === "stale_date" ? (
+            boardState === "stale_date" ? (
+              <View testID="board-stale-date">
+                <StateBlock status="loading" />
+                <Text style={[styles.syncLine, { color: theme.textMuted, textAlign: "center" }]}>
+                  {t("home.board.updatingDay")}
+                </Text>
+              </View>
+            ) : (
+              <View testID="board-unavailable">
+                <StateBlock
+                  status="error"
+                  errorMessage={`${t("home.board.unavailableTitle")}. ${t(isOnline ? "home.board.unavailableBody" : "home.board.offlineBody")}`}
+                  onRetry={() => void refreshHome()}
+                  retryLabel={t("home.board.retry")}
+                />
+              </View>
+            )
+          ) : null}
+
+          {showBoard && focusEntry ? (
             <FocusCard
               entry={focusEntry}
-              inProgressRoom={inProgressRoom}
+              inProgressRoom={null}
+              startedAt={recommendation?.kind === "continue" ? recommendation.timing.startedAt : null}
               t={t}
               onStart={openOrConfirmRoom}
               onResume={openRoom}
             />
           ) : null}
 
-          {snapshot.stage !== "done" ? (
+          {showBoard && snapshot.stage !== "done" ? (
             <ShiftProgressCard snapshot={snapshot} t={t} shiftStart={shiftStart} nextVipArrival={nextVipArrival} />
           ) : null}
 
-          {needsYouItems.length > 0 || (briefing && snapshot.stage !== "done") ? (
+          {showBoard && (needsYouItems.length > 0 || (briefing && snapshot.stage !== "done")) ? (
             <View style={styles.needsSection}>
               <View style={styles.needsSectionHeader}>
                 <Text style={[styles.needsSectionTitle, { color: theme.textMuted }]}>{t("home.needsYou.title")}</Text>
@@ -464,13 +474,13 @@ export default function HousekeeperHomeScreen() {
             </View>
           ) : null}
 
-          {snapshot.stage === "empty" ? (
+          {boardState === "empty" ? (
             <EmptyBoardState
               message={companionCheckin.message}
               hint={t("home.pullToRefresh")}
               waitingLabel={
-                lastCheckedAt
-                  ? t("home.emptyBoard.waiting", { time: formatClockTime(lastCheckedAt) })
+                data.lastUpdated
+                  ? t("home.emptyBoard.waiting", { time: formatClockTime(data.lastUpdated) })
                   : null
               }
               actions={[
@@ -492,28 +502,30 @@ export default function HousekeeperHomeScreen() {
             />
           ) : null}
 
-          {snapshot.stage === "done" ? (
+          {showBoard && snapshot.stage === "done" ? (
             <EndOfShiftState
               message={companionCheckin.message}
               subMessage={t("home.allDone")}
-              roomsCleanedLabel={t("home.endOfShift.roomsCleaned", { count: snapshot.done })}
+              roomsCleanedLabel={t("home.endOfShift.roomsCompleted", { count: model.progress.completed })}
               shiftDurationLabel={
                 shiftDurationLabel ? t("home.endOfShift.shiftDuration", { duration: shiftDurationLabel }) : null
               }
               clockOutLabel={t("home.endOfShift.clockOut")}
               clockedOutLabel={t("home.endOfShift.clockedOut")}
-              clockedOut={clockedOut}
-              clockingOut={clockingOut}
+              clockedOut={lifecycle.state === "ended"}
+              clockingOut={lifecycle.state === "ending"}
+              canClockOut={lifecycle.canEnd || lifecycle.state === "ending"}
+              clockOutHint={clockOutHint}
               onClockOut={() => void handleClockOut()}
               aiRecap={shiftRecap}
               aiRecapLoading={shiftRecapLoading}
               aiRecapKicker={t("home.endOfShift.recapKicker")}
               aiRecapFootNoteAi={t("ai.briefing.sourceAi")}
               aiRecapFootNoteLocal={t("ai.briefing.sourceLocal")}
-              handoffRooms={openWorkOrderRooms.map((room) => ({
-                roomNumber: room.room_number,
-                workOrderId: room.open_work_order_id as string,
-                title: room.open_work_order_title ?? null,
+              handoffRooms={model.endOfShift.handoffs.map((handoff) => ({
+                roomNumber: handoff.roomNumber,
+                workOrderId: handoff.workOrderId,
+                title: handoff.title,
               }))}
               foundItemsCount={todaysFoundItems.length}
               onOpenWorkOrder={(workOrderId) =>
@@ -528,7 +540,7 @@ export default function HousekeeperHomeScreen() {
             />
           ) : null}
 
-          {snapshot.stage !== "empty" ? (
+          {showBoard && boardState !== "empty" ? (
             <Button
               label={t("home.openMyRooms")}
               onPress={openMyRooms}
@@ -544,7 +556,7 @@ export default function HousekeeperHomeScreen() {
           visible
           room={holdConfirmRoom}
           elapsedSec={holdConfirmElapsedSec}
-          nextUp={firstEntry && firstEntry.room.id !== holdConfirmRoom.id ? firstEntry : null}
+          nextUp={nextUpEntry && nextUpEntry.room.id !== holdConfirmRoom.id ? nextUpEntry : null}
           onClose={() => setHoldConfirmRoom(null)}
           onConfirmed={handleRoomConfirmed}
         />
@@ -671,6 +683,11 @@ function GMHomeScreen({ name }: { name: string }) {
 }
 
 const styles = StyleSheet.create({
+  syncLine: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
+  },
   container: {
     flex: 1,
   },

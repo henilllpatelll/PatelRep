@@ -117,7 +117,9 @@
       "beforeClockOut": "Antes de marcar salida",
       "handoff": "Entregar {{room}} · {{title}}",
       "handoffGeneric": "orden de trabajo abierta",
-      "foundItems": "Objetos perdidos · {{count}} artículo registrado hoy"
+      "foundItems": "Objetos perdidos · {{count}} artículo registrado hoy",
+      "roomsCompleted": "{{count}} cuartos completados",
+      "needsConnection": "Conéctate a internet para marcar salida."
     },
     "companion": {
       "kicker": "Contigo",
@@ -198,6 +200,36 @@
       "guestRequests": "Solicitudes de huéspedes",
       "alertsTitle": "Alertas IA",
       "alertsHint": "Abre la pestaña Alertas para ver las alertas de riesgo generadas por IA."
+    },
+    "shift": {
+      "notStartedTitle": "Tu turno no ha comenzado",
+      "notStartedBody": "Inicia tu turno cuando estés listo. Tus cuartos están abajo.",
+      "start": "Iniciar turno",
+      "startNew": "Iniciar un turno nuevo",
+      "activeSince": "En turno desde las {{time}}",
+      "onBreak": "En descanso",
+      "takeBreak": "Tomar un descanso",
+      "resume": "Reanudar turno",
+      "endedAt": "Turno terminado a las {{time}}",
+      "ending": "Marcando salida…",
+      "unknown": "No se puede revisar tu turno ahora",
+      "retry": "Intentar de nuevo",
+      "carriedOver": "Este turno empezó un día anterior. Marca salida si ya terminó.",
+      "needsConnection": "Necesitas conexión para hacer eso.",
+      "actionFailed": "No se pudo actualizar tu turno — intenta de nuevo."
+    },
+    "board": {
+      "unavailableTitle": "No se pueden cargar tus cuartos",
+      "unavailableBody": "No pudimos conectar con el servidor, así que no sabemos qué tienes asignado. Intenta de nuevo.",
+      "offlineBody": "Estás sin conexión y este teléfono no tiene cuartos guardados para hoy.",
+      "retry": "Intentar de nuevo",
+      "updatingDay": "Cargando los cuartos de hoy…"
+    },
+    "sync": {
+      "attention": "Algunos cambios necesitan atención en Mis cuartos",
+      "pending": "{{count}} guardados en este teléfono, sin enviar",
+      "stale": "Mostrando cuartos guardados — última actualización {{time}}",
+      "staleNoTime": "Mostrando cuartos guardados — sin actualizar aún"
     }
   },
   "rooms": {

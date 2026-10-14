@@ -1,22 +1,24 @@
 import type { Room } from "@/stores/appStore";
-import { buildSmartQueue } from "@/lib/ai/briefing";
-import { getRoomQueueBucket, isArrivalSoon } from "@/lib/housekeeping/roomWorkflow";
+import { isArrivalSoon } from "@/lib/housekeeping/roomWorkflow";
+import { buildDashboard, type DashboardModel, type SessionMap } from "@/lib/housekeeping/myRoomsDashboard";
 
 /* ─── Shift companion ────────────────────────────────────────────────────────
    The calm, supportive layer behind the Home tab. Everything here is
-   deterministic and on-device: it reads the same room data the queue uses and
-   turns it into a check-in message, one gentle tip, and glance analytics.
-   The paid AI briefing stays a separate, explicit action (lib/ai/briefing). */
-
-const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
+   deterministic and on-device: it reads the same dashboard model My Rooms
+   renders and turns it into a check-in message, one gentle tip, and glance
+   analytics. The paid AI briefing stays a separate, explicit action
+   (lib/ai/briefing). */
 
 export type ShiftStage = "empty" | "fresh" | "early" | "mid" | "late" | "done";
 
 export interface ShiftSnapshot {
+  /** Serviceable rooms: assigned minus out-of-order/out-of-service (those are never "cleaned"). */
   total: number;
+  /** Submitted for inspection or inspected. */
   done: number;
   remaining: number;
   pct: number;
+  /** Rooms needing follow-up that is not a guest/front-desk hold (DND and declined service are counted separately). */
   attention: number;
   arrivals: number;
   dndCount: number;
@@ -27,19 +29,34 @@ export interface ShiftSnapshot {
   stage: ShiftStage;
 }
 
-export function buildShiftSnapshot(rooms: Room[], locale: string, now: Date = new Date()): ShiftSnapshot {
-  const total = rooms.length;
-  const done = rooms.filter((room) => DONE_STATUSES.has(room.status)).length;
-  const remaining = Math.max(0, total - done);
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+const HOLD_REASONS = new Set(["dnd", "do_not_service", "service_declined", "come_back_later"]);
 
-  const queue = buildSmartQueue(rooms, now);
-  const minutesLeft = queue.reduce((sum, entry) => sum + entry.estimateMinutes, 0);
+/** Shift snapshot for rooms + sessions, via the same dashboard My Rooms builds. */
+export function buildShiftSnapshot(
+  rooms: Room[],
+  locale: string,
+  now: Date = new Date(),
+  sessions: SessionMap = {},
+): ShiftSnapshot {
+  return snapshotFromDashboard(buildDashboard(rooms, sessions, now), locale, now);
+}
 
-  const open = rooms.filter((room) => !DONE_STATUSES.has(room.status));
-  const attention = rooms.filter((room) => getRoomQueueBucket(room, now) === "needs_attention").length;
-  const arrivals = open.filter((room) => isArrivalSoon(room, now)).length;
-  const dndCount = open.filter((room) => room.dnd_flag).length;
+/**
+ * Derived from the My Rooms dashboard so Home and My Rooms can never disagree:
+ * an out-of-service room is not "done", an inspected room is not double counted,
+ * and a failed or empty list is the caller's concern (see homeModel).
+ */
+export function snapshotFromDashboard(dashboard: DashboardModel, locale: string, now: Date = new Date()): ShiftSnapshot {
+  const p = dashboard.progress;
+  const total = p.serviceable;
+  const done = p.completed;
+  const remaining = p.remaining;
+
+  const minutesLeft = [...dashboard.current, ...dashboard.upNext].reduce((sum, entry) => sum + entry.estimateMinutes, 0);
+  const open = [...dashboard.current, ...dashboard.upNext, ...dashboard.attention];
+  const attention = dashboard.attention.filter((entry) => !HOLD_REASONS.has(entry.attention ?? "")).length;
+  const arrivals = open.filter((entry) => isArrivalSoon(entry.room, now)).length;
+  const dndCount = open.filter((entry) => entry.room.dnd_flag).length;
 
   const finishByLabel =
     minutesLeft > 0
@@ -50,11 +67,11 @@ export function buildShiftSnapshot(rooms: Room[], locale: string, now: Date = ne
   if (total === 0) stage = "empty";
   else if (remaining === 0) stage = "done";
   else if (done === 0) stage = "fresh";
-  else if (pct < 40) stage = "early";
-  else if (pct < 75) stage = "mid";
+  else if (p.percent < 40) stage = "early";
+  else if (p.percent < 75) stage = "mid";
   else stage = "late";
 
-  return { total, done, remaining, pct, attention, arrivals, dndCount, minutesLeft, finishByLabel, stage };
+  return { total, done, remaining, pct: p.percent, attention, arrivals, dndCount, minutesLeft, finishByLabel, stage };
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;

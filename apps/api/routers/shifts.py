@@ -31,6 +31,29 @@ def _get_open_shift(hotel_id: str, user_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
+def _get_last_ended_shift(hotel_id: str, user_id: str) -> dict | None:
+    result = (
+        supabase.table("hk_shift_sessions")
+        .select("*")
+        .eq("tenant_id", hotel_id)
+        .eq("user_id", user_id)
+        .eq("status", "ended")
+        .order("ended_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    rows = result.data or []
+    return rows[0] if rows else None
+
+
+def _parse_ts(value) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
 # ---------------------------------------------------------------------------
 # GET /shifts/current
 # ---------------------------------------------------------------------------
@@ -39,7 +62,21 @@ def _get_open_shift(hotel_id: str, user_id: str) -> dict | None:
 async def get_current_shift(
     current_user: CurrentUser = Depends(require_role(*SHIFT_ROLES)),
 ):
-    return {"data": _get_open_shift(current_user.hotel_id, current_user.user_id)}
+    """
+    The caller's open shift (``data``), or null when none is open.
+
+    ``meta.last_ended`` carries the caller's most recently ended shift whenever
+    ``data`` is null, so a client can tell "never clocked in" from "already
+    clocked out" and never has to start a shift just to find out. ``data`` keeps
+    its original shape for existing consumers.
+    """
+    shift = _get_open_shift(current_user.hotel_id, current_user.user_id)
+    if shift:
+        return {"data": shift, "meta": {"last_ended": None}}
+    return {
+        "data": None,
+        "meta": {"last_ended": _get_last_ended_shift(current_user.hotel_id, current_user.user_id)},
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -175,19 +212,23 @@ async def end_shift(
     if not shift:
         return {"data": None}  # idempotent — already ended
 
+    # A skewed device clock must never produce a shift that ends before it began.
+    ended_at = request.ended_at if request.ended_at.tzinfo else request.ended_at.replace(tzinfo=timezone.utc)
+    started_at = _parse_ts(shift.get("started_at"))
+    if started_at and ended_at < started_at:
+        ended_at = started_at
+
     break_seconds = int(shift.get("break_seconds") or 0)
     if shift["status"] == "on_break" and shift.get("on_break_since"):
-        try:
-            since = datetime.fromisoformat(str(shift["on_break_since"]).replace("Z", "+00:00"))
-            break_seconds += max(0, int((request.ended_at - since).total_seconds()))
-        except (ValueError, TypeError):
-            pass
+        since = _parse_ts(shift["on_break_since"])
+        if since:
+            break_seconds += max(0, int((ended_at - since).total_seconds()))
 
     result = (
         supabase.table("hk_shift_sessions")
         .update({
             "status": "ended",
-            "ended_at": request.ended_at.isoformat(),
+            "ended_at": ended_at.isoformat(),
             "on_break_since": None,
             "break_seconds": break_seconds,
         })

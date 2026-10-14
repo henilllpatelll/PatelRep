@@ -396,12 +396,12 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | settings_activity.py | /v1/settings/activity | GET | gm | require_role('gm') [L303] |
 | settings_activity.py | /v1/settings/activity/export | GET | gm | require_role('gm') [L329] |
 | settings_activity.py | /v1/settings/activity/{event_id} | GET | gm | require_role('gm') [L392] |
-| shifts.py | /v1/shifts/current | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L40] |
-| shifts.py | /v1/shifts/roster | GET | gm, housekeeping_supervisor | require_role(*ASSIGNMENT_SUPERVISOR_ROLES) [L52] |
-| shifts.py | /v1/shifts/start | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L91] |
-| shifts.py | /v1/shifts/break | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L127] |
-| shifts.py | /v1/shifts/end | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L172] |
-| shifts.py | /v1/shifts/history | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L208] |
+| shifts.py | /v1/shifts/current | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L63] |
+| shifts.py | /v1/shifts/roster | GET | gm, housekeeping_supervisor | require_role(*ASSIGNMENT_SUPERVISOR_ROLES) [L89] |
+| shifts.py | /v1/shifts/start | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L128] |
+| shifts.py | /v1/shifts/break | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L164] |
+| shifts.py | /v1/shifts/end | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L209] |
+| shifts.py | /v1/shifts/history | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L249] |
 | sop.py | /v1/sop/documents | GET | none |  |
 | sop.py | /v1/sop/documents | POST | engineer, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer') [L81] |
 | sop.py | /v1/sop/documents/{document_id} | GET | none |  |

@@ -117,7 +117,9 @@
       "beforeClockOut": "Before you clock out",
       "handoff": "Hand over {{room}} · {{title}}",
       "handoffGeneric": "open work order",
-      "foundItems": "Lost & found · {{count}} item logged today"
+      "foundItems": "Lost & found · {{count}} item logged today",
+      "roomsCompleted": "{{count}} rooms completed",
+      "needsConnection": "Connect to the internet to clock out."
     },
     "companion": {
       "kicker": "With you",
@@ -198,6 +200,36 @@
       "guestRequests": "Guest requests",
       "alertsTitle": "AI Alerts",
       "alertsHint": "Open the Alerts tab to see AI-powered risk alerts for your property."
+    },
+    "shift": {
+      "notStartedTitle": "Your shift hasn't started",
+      "notStartedBody": "Start your shift when you're ready. Your rooms are below.",
+      "start": "Start shift",
+      "startNew": "Start a new shift",
+      "activeSince": "On shift since {{time}}",
+      "onBreak": "On break",
+      "takeBreak": "Take a break",
+      "resume": "Resume shift",
+      "endedAt": "Shift ended at {{time}}",
+      "ending": "Clocking out…",
+      "unknown": "Can't check your shift right now",
+      "retry": "Try again",
+      "carriedOver": "This shift started on an earlier day. Clock out if it's over.",
+      "needsConnection": "You need a connection to do that.",
+      "actionFailed": "Couldn't update your shift — try again."
+    },
+    "board": {
+      "unavailableTitle": "Can't load your rooms",
+      "unavailableBody": "We couldn't reach the server, so we can't tell what's assigned to you. Try again.",
+      "offlineBody": "You're offline and this phone has no saved rooms for today.",
+      "retry": "Try again",
+      "updatingDay": "Loading today's rooms…"
+    },
+    "sync": {
+      "attention": "Some changes need attention in My Rooms",
+      "pending": "{{count}} saved on this phone, not sent yet",
+      "stale": "Showing saved rooms — last updated {{time}}",
+      "staleNoTime": "Showing saved rooms — not updated yet"
     }
   },
   "rooms": {
