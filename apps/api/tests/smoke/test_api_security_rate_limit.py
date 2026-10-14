@@ -80,6 +80,35 @@ def test_ai_routes_have_stricter_rate_limit_tier():
     assert second.headers["X-RateLimit-Limit"] == "1"
 
 
+def test_ready_probe_is_isolated_from_anonymous_api_bucket():
+    """Release smoke polls /ready; ordinary anonymous API traffic from the same IP must not 429 it."""
+    probe_app = FastAPI()
+
+    @probe_app.get("/v1/tasks")
+    async def tasks():
+        return {"data": []}
+
+    @probe_app.get("/ready")
+    async def ready():
+        return {"status": "ready"}
+
+    probe_app.add_middleware(
+        RateLimitMiddleware,
+        enabled=True,
+        default_rule=RateLimitRule(limit=3, window_seconds=60),
+        anonymous_rule=RateLimitRule(limit=2, window_seconds=60),
+        health_rule=RateLimitRule(limit=5, window_seconds=60),
+    )
+    client = TestClient(probe_app)
+    headers = {"X-Forwarded-For": "203.0.113.30"}
+
+    assert client.get("/v1/tasks", headers=headers).status_code == 200
+    assert client.get("/v1/tasks", headers=headers).status_code == 200
+    assert client.get("/v1/tasks", headers=headers).status_code == 429
+
+    assert client.get("/ready", headers=headers).status_code == 200
+
+
 def test_security_headers_treat_forwarded_https_as_secure():
     response = TestClient(app).get("/health", headers={"X-Forwarded-Proto": "https"})
 
