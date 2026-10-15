@@ -322,7 +322,6 @@ describe("Settings home sign out", () => {
 
 describe("Settings destination screens", () => {
   const shells = [
-    ["Notifications", NotificationSettings],
     ["Help & Support", HelpScreen],
     ["About PatelRep", AboutScreen],
   ] as const;

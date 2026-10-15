@@ -198,7 +198,7 @@ async def test_manual_checkout_marks_departure_dirty_and_notifies_assignee(monke
     assert db.inserts[0][1]["to_status"] == "DIRTY"
     assert db.rows["notifications"][0]["user_id"] == "hk-1"
     assert db.rows["notifications"][0]["type"] == "room_checked_out"
-    assert push_calls == [("hk-1", "214", "room-1")]
+    assert push_calls == [("hotel-a", "hk-1", "214", "room-1", "notifications-1")]
 
 
 @pytest.mark.asyncio

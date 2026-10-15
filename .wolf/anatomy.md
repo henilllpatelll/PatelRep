@@ -764,6 +764,15 @@
 - apps/mobile/lib/housekeeping/homeAttention.ts — Attention Center model: one bucket per item (urgent/access/messages/other), filter counts that add up, attentionAction() = where a tap goes (~1.5k tok)
 - apps/mobile/lib/housekeeping/homeSheets.ts — pure resolvers for the Home drawers: resolveRoomActions / resolveWhyRoom / resolveIssueDetails / buildProgressDetails, all re-read from the live HomeModel (~2.3k tok)
 - apps/mobile/lib/housekeeping/notificationLinks.ts — task link via taskLink contract, room link only if on the person's own list, sender only if record has one
+- apps/mobile/lib/notifications/index.ts — foreground handler + re-exports (setupPushNotifications, syncPushRegistration, unregisterPushToken, savePushTokenToProfile)
+- apps/mobile/lib/notifications/{channels,permissions}.ts — Android channels (alerts HIGH / updates DEFAULT, created before the prompt); OS permission state mapping, one-time prompt, open device settings
+- apps/mobile/lib/notifications/registration.ts — install id, per-person single-flight push registration (24h dedupe), sign-out revoke + badge clear
+- apps/mobile/lib/notifications/deepLink.ts — closed allowlist turning a push payload into a validated target (task/room/work order), role + UUID gated
+- apps/mobile/lib/notifications/lifecycle.ts — hooks: single tap listener (cold start + dedupe), registration lifecycle, exact unread badge polling (foreground only)
+- apps/mobile/lib/notifications/useNotificationPreferences.ts — race-safe coalescing preference writes, rollback on failure, per-person cache
+- apps/mobile/lib/notifications/usePushPermission.ts — OS permission hook (refresh on foreground, enable)
+- apps/api/services/notify.py — central push policy: event registry, categories, critical list, opt-out + role-dormancy rules, push_devices register/revoke, Expo batch send + ticket handling
+- supabase/migrations/213_notification_preferences_and_push_devices.sql — notification_preferences + push_devices (additive, RLS read-own / API-only)
 - apps/mobile/stores/homeBridgeStore.ts — Home publishes its HomeModel here; the Attention Center route reads it (no second fetch/poll)
 - apps/mobile/components/home/{HomeSheetHost,RoomActionsSheet,RecommendationSheet,IssueDetailsSheet,SupervisorMessageSheet,ShiftProgressSheet,sheetParts}.tsx — Home drawers on the shared roomDetail/BottomSheet; HomeSheetHost = one drawer at a time, delayed unmount, focus return
 - apps/mobile/components/home/AttentionCenterScreen.tsx + app/(app)/attention/index.tsx — full-screen "Needs attention" (hidden route, not a tab)

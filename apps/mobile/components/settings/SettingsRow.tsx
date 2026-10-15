@@ -21,6 +21,8 @@ interface SettingsRowProps {
   /** Renders an on/off switch instead of a chevron; pressing the row toggles it. */
   switchValue?: boolean;
   onSwitchChange?: (next: boolean) => void;
+  /** Spoken after the label, e.g. what a double tap will do. */
+  accessibilityHint?: string;
 }
 
 /** One navigation row inside a SettingsSection: icon tile, label + subtitle, optional badge, chevron. */
@@ -36,6 +38,7 @@ export function SettingsRow({
   disabled,
   switchValue,
   onSwitchChange,
+  accessibilityHint,
 }: SettingsRowProps) {
   const theme = useTheme();
   const fg = destructive ? theme.status.dirty : theme.textPrimary;
@@ -49,6 +52,7 @@ export function SettingsRow({
       accessibilityRole={isSwitch ? "switch" : "button"}
       accessibilityState={isSwitch ? { checked: switchValue, disabled: !!disabled } : { disabled: !!disabled }}
       accessibilityLabel={a11yLabel}
+      accessibilityHint={accessibilityHint}
       testID={testID}
       android_ripple={{ color: theme.borderSubtle }}
       style={({ pressed }) => [

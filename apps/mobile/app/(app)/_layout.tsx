@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Tabs, router, usePathname } from "expo-router";
-import * as Notifications from "expo-notifications";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,21 +13,18 @@ import { CopilotBubble, BUBBLE_RIGHT_INSET, type CopilotBubbleState } from "@/co
 import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
-import { setupPushNotifications } from "@/lib/notifications";
-import { resolveNotificationLink } from "@/lib/housekeeping/notificationLinks";
-import { taskIdFromNotification } from "@/lib/tasks/taskLink";
-import { listNotifications } from "@/lib/api/notifications";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { AppLockGate } from "@/components/security/AppLockGate";
 import { useAppLockStore } from "@/stores/appLockStore";
+import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
 
 export default function AppLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
+  const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);
   // cardOpen is the logical intent (drives the X button / bubble tap / voice
@@ -149,7 +145,6 @@ export default function AppLayout() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    setupPushNotifications().catch(console.warn);
     loadPendingActions().catch(console.warn);
     // Saved task completions for this person + hotel (isolated per scope; flushed when online).
     useTaskOutbox.getState().hydrate().catch(console.warn);
@@ -161,76 +156,13 @@ export default function AppLayout() {
         .then(() => useCleanSessionStore.getState().flush())
         .catch(console.warn);
     }
-
-    // A task alert opens that task (re-read as this signed-in person); anything else keeps its old route.
-    const openFromResponse = (response: Notifications.NotificationResponse) => {
-      const data = response.notification.request.content.data as {
-        type?: string;
-        url?: string;
-        requestId?: string;
-        task_id?: string;
-        room_id?: string;
-      };
-
-      const linkedTask = taskIdFromNotification(data);
-      if (linkedTask) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.push({ pathname: "/(app)/tasks" as any, params: { taskId: linkedTask } });
-        return;
-      }
-
-      if (data.url) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        router.push(data.url as any);
-        return;
-      }
-
-      // A room alert opens that room only if it is on this person's own list; otherwise nothing opens.
-      const roomLink = resolveNotificationLink({ type: data.type ?? "", data: data as Record<string, unknown> }, useAppStore.getState().myRooms);
-      if (roomLink.kind === "room") {
-        router.push(`/(app)/my-rooms/${roomLink.roomId}` as never);
-        return;
-      }
-
-      if (data.type === "task_assigned") {
-        router.push("/(app)/tasks" as never);
-      } else if (data.type === "guest_request" && data.requestId) {
-        router.push({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          pathname: "/(app)/guest-requests/[requestId]" as any,
-          params: { requestId: data.requestId },
-        });
-      } else if (data.type === "room_inspection") {
-        router.push("/(app)/inspect" as never);
-      }
-    };
-
-    // Cold start: the app was opened BY the tap, which never reaches the listener. Handle it once, then
-    // clear it so the next launch does not replay the same tap.
-    Notifications.getLastNotificationResponseAsync()
-      .then((last) => {
-        if (!last || !taskIdFromNotification(last.notification.request.content.data)) return;
-        openFromResponse(last);
-        return Notifications.clearLastNotificationResponseAsync?.();
-      })
-      .catch(console.warn);
-
-    const subscription = Notifications.addNotificationResponseReceivedListener(openFromResponse);
-
-    return () => subscription.remove();
   }, [isAuthenticated, loadPendingActions, user?.role]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const poll = () => {
-      listNotifications(false)
-        .then((res) => setUnreadCount(res.data?.length ?? 0))
-        .catch(() => {});
-    };
-    poll();
-    const id = setInterval(poll, 60_000);
-    return () => clearInterval(id);
-  }, [isAuthenticated, setUnreadCount]);
+  // Push: register this phone for this person (once per person, not per role change), open validated
+  // notification taps from every app state through the single listener, and keep the inbox badge exact.
+  usePushRegistration(isAuthenticated ? user?.id : undefined);
+  useNotificationResponses(isAuthenticated, effectiveRole);
+  useUnreadBadge(isAuthenticated);
 
   if (isLoading || !user) return null;
 

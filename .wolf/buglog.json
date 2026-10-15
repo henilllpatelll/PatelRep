@@ -33421,6 +33421,74 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-14T23:30:00.000Z"
+    },
+    {
+      "id": "bug-2026",
+      "timestamp": "2026-10-15T12:00:00.000Z",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T12:00:00.000Z",
+      "error_message": "Notification bell badge capped at 20 unread",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "The badge was `listNotifications(false).data.length`, and GET /notifications is limited to 20 rows.",
+      "fix": "New exact GET /notifications/unread-count (count=exact); mobile useUnreadBadge polls it only while foregrounded and mirrors it to the OS badge; appStore.setUser resets unreadCount on account change.",
+      "tags": [
+        "notifications",
+        "badge",
+        "mobile",
+        "api"
+      ]
+    },
+    {
+      "id": "bug-2027",
+      "timestamp": "2026-10-15T12:00:00.000Z",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T12:00:00.000Z",
+      "error_message": "Two notification tap listeners, each router.push(data.url) with no validation",
+      "file": "apps/mobile/app/_layout.tsx",
+      "root_cause": "Root layout and (app) layout both registered response listeners; the root one ran before sign-in and navigated to any `url` string in a push payload; double navigation on taps.",
+      "fix": "Single listener (lib/notifications/lifecycle.ts) with a closed route allowlist + UUID check + role gate (deepLink.ts) and tap de-duplication; root listener removed.",
+      "tags": [
+        "notifications",
+        "deep-link",
+        "security",
+        "mobile"
+      ]
+    },
+    {
+      "id": "bug-2028",
+      "timestamp": "2026-10-15T12:00:00.000Z",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T12:00:00.000Z",
+      "error_message": "Android channel created after the permission request, every channel MAX importance; push token registered on every launch/role change",
+      "file": "apps/mobile/lib/notifications/index.ts (old lib/notifications.ts)",
+      "root_cause": "registerForPushNotifications requested permission first, created a single MAX 'default' channel after, and the layout effect re-ran setupPushNotifications whenever user.role changed.",
+      "fix": "channels.ts creates alerts(HIGH)/updates(DEFAULT) before the prompt; registration is once per person with single-flight + 24h dedupe; the OS prompt is automatic only once, never re-asked after denial.",
+      "tags": [
+        "notifications",
+        "android",
+        "push-token",
+        "mobile"
+      ]
+    },
+    {
+      "id": "bug-2029",
+      "timestamp": "2026-10-15T12:00:00.000Z",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T12:00:00.000Z",
+      "error_message": "Only one Expo push token per employee (user_profiles.expo_push_token): a second phone overwrote the first; push sent from four separate inline code paths with no shared policy",
+      "file": "apps/api/routers/{tasks,rooms,housekeeping,work_orders}.py",
+      "root_cause": "Each producer queried the profile token and called exp.host itself.",
+      "fix": "push_devices table (migration 213) + services/notify.send_push as the only sender; tests/test_notification_policy.py fails if any other module contains exp.host or an unclassified notification type is written.",
+      "tags": [
+        "notifications",
+        "push",
+        "multi-device",
+        "api"
+      ]
     }
   ]
 }

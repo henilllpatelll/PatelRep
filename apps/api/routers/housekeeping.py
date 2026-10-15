@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import re
-import httpx
 from uuid import uuid4
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from typing import Optional
@@ -17,6 +16,7 @@ from models.requests import (
 )
 from core.database import supabase
 from services.reclean_corrections import load_reclean_details
+from services.notify import send_push
 from services.settings_audit import record_settings_event
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 from services.opera_pdf import parse_hk_details, parse_task_sheet
@@ -975,30 +975,19 @@ async def get_assignments(
 # POST /housekeeping/assignments
 # ---------------------------------------------------------------------------
 
-async def _send_assignment_push(housekeeper_id: str, room_number: str, room_id: str = "") -> None:
-    """Fire-and-forget push notification to housekeeper on room assignment."""
-    try:
-        profile = supabase.table("user_profiles") \
-            .select("expo_push_token") \
-            .eq("id", housekeeper_id) \
-            .maybe_single().execute()
-        token = (profile.data or {}).get("expo_push_token")
-        if not token:
-            logger.debug("No push token for housekeeper=%s, skipping push", housekeeper_id)
-            return
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            await client.post("https://exp.host/--/api/v2/push/send", json={
-                "to": token,
-                "title": "Room Assigned",
-                "body": f"Room {room_number} has been assigned to you",
-                "data": {
-                    "type": "room_assignment",
-                    "room_number": room_number,
-                    "url": f"/(app)/my-rooms/{room_id}" if room_id else "/(app)/my-rooms",
-                },
-            })
-    except Exception:
-        pass  # Never block assignment response on push failure
+async def _send_assignment_push(tenant_id: str, housekeeper_id: str, room_number: str, room_id: str = "") -> None:
+    """Fire-and-forget push to the housekeeper on room assignment (policy in services/notify.py)."""
+    await send_push(
+        tenant_id=tenant_id,
+        recipient_ids=[housekeeper_id],
+        event_type="room_assignment",
+        title="Room Assigned",
+        body=f"Room {room_number} has been assigned to you",
+        data={
+            "room_number": room_number,
+            "url": f"/(app)/my-rooms/{room_id}" if room_id else "/(app)/my-rooms",
+        },
+    )
 
 
 @router.post("/assignments")
@@ -1117,7 +1106,7 @@ async def create_assignments(
             .eq("tenant_id", current_user.hotel_id) \
             .maybe_single().execute()
         room_number = (room_info.data or {}).get("room_number", "")
-        asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number, str(a.room_id)))
+        asyncio.create_task(_send_assignment_push(current_user.hotel_id, str(a.housekeeper_id), room_number, str(a.room_id)))
 
     return {"data": result.data}
 

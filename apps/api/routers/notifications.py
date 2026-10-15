@@ -1,8 +1,87 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
+from models.requests import SetNotificationPreferenceRequest
+from services.notify import CATEGORIES, categories_for_roles, critical_category_keys, roles_in_play
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+
+def _caller_roles(current_user: CurrentUser) -> set[str]:
+    """Roles the caller acts in today (JWT role, active role rows and any schedule override). Decided on the
+    server for every request; a stored preference never widens it."""
+    return {current_user.role} | roles_in_play(current_user.hotel_id, [current_user.user_id]).get(current_user.user_id, set())
+
+
+@router.get("/preferences")
+async def get_notification_preferences(current_user: CurrentUser = Depends(get_current_user)):
+    """The push categories relevant to the caller's current role(s), with their saved on/off state (a
+    category with no saved row is on). Opt-outs saved under an earlier role are kept but not listed."""
+    visible = categories_for_roles(_caller_roles(current_user))
+    critical = critical_category_keys()
+    saved = (
+        supabase.table("notification_preferences")
+        .select("category, enabled")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("user_id", current_user.user_id)
+        .execute()
+        .data
+        or []
+    )
+    enabled_by_key = {row["category"]: bool(row["enabled"]) for row in saved}
+    return {
+        "data": {
+            "categories": [
+                {"key": c.key, "enabled": enabled_by_key.get(c.key, True), "has_critical": c.key in critical}
+                for c in visible
+            ]
+        }
+    }
+
+
+@router.put("/preferences/{category}")
+async def set_notification_preference(
+    category: str,
+    body: SetNotificationPreferenceRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Save one on/off preference for the caller. The person comes from the JWT only; an unknown category is
+    a 404 and a category that is not relevant to the caller's role is a 403. Idempotent."""
+    definition = CATEGORIES.get(category)
+    if definition is None:
+        raise HTTPException(status_code=404, detail="Unknown notification category")
+    if not (_caller_roles(current_user) & set(definition.roles)):
+        raise HTTPException(status_code=403, detail="This notification category does not apply to your role")
+    now = datetime.now(timezone.utc).isoformat()
+    supabase.table("notification_preferences").upsert(
+        {
+            "tenant_id": current_user.hotel_id,
+            "user_id": current_user.user_id,
+            "category": category,
+            "enabled": body.enabled,
+            "updated_at": now,
+        },
+        on_conflict="tenant_id,user_id,category",
+    ).execute()
+    return {"data": {"key": category, "enabled": body.enabled}}
+
+
+@router.get("/unread-count")
+async def unread_count(current_user: CurrentUser = Depends(get_current_user)):
+    """Exact number of unread inbox rows for the caller (the list endpoint is capped, so counting its rows
+    undercounts past the cap)."""
+    result = (
+        supabase.table("notifications")
+        .select("id", count="exact")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("user_id", current_user.user_id)
+        .eq("is_read", False)
+        .limit(1)
+        .execute()
+    )
+    return {"data": {"count": int(result.count or 0)}}
 
 
 @router.get("")

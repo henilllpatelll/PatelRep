@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from core.config import settings
 from core.database import supabase
+from services.notify import pick_override_role, register_device, revoke_device
 from services.settings_audit import record_settings_event
 from core.roles import ALL_ROLES, GM_ONLY_ROLES, LEGACY_MODULE_ALIASES, unsupported_modules
 from middleware.auth import CurrentUser, get_current_user, require_role
@@ -209,20 +210,16 @@ async def update_push_token(
     body: UpdatePushTokenRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Register or update the caller's Expo push token. Called on every login.
+    """Register the caller's phone for push. One person can have several phones (push_devices).
 
     A token identifies a physical device. If someone else on a shared phone registered it earlier, their
-    row is detached first, so alerts meant for the previous employee can never reach the next one.
+    registration is detached first, so alerts meant for the previous employee can never reach the next one.
+    The caller is always the JWT identity; the body can only name a token for that identity.
     """
-    supabase.table("user_profiles")\
-        .update({"expo_push_token": None})\
-        .eq("expo_push_token", body.token)\
-        .neq("id", current_user.user_id)\
-        .execute()
-    supabase.table("user_profiles")\
-        .update({"expo_push_token": body.token})\
-        .eq("id", current_user.user_id)\
-        .execute()
+    register_device(
+        current_user.hotel_id, current_user.user_id, body.token,
+        installation_id=body.installation_id, platform=body.platform, app_version=body.app_version,
+    )
     return {"data": {"success": True}}
 
 
@@ -231,13 +228,9 @@ async def revoke_push_token(
     body: UpdatePushTokenRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Called on sign-out: detach this device's token from the caller. Only clears the caller's own row,
-    and only when it still holds this device's token, so a newer device of theirs keeps working."""
-    supabase.table("user_profiles")\
-        .update({"expo_push_token": None})\
-        .eq("id", current_user.user_id)\
-        .eq("expo_push_token", body.token)\
-        .execute()
+    """Called on sign-out: detach this device's token from the caller. Only the caller's own registration
+    for exactly this token is revoked, so their other phones keep working and nobody else is touched."""
+    revoke_device(current_user.hotel_id, current_user.user_id, body.token)
     return {"data": {"success": True}}
 
 
@@ -389,10 +382,6 @@ async def remove_own_avatar(current_user: CurrentUser = Depends(get_current_user
 @router.get("/me/effective-role")
 async def get_effective_role(current_user: CurrentUser = Depends(get_current_user)):
     """Returns today's effective role for the caller, applying any day-of-week schedule override."""
-    today = date_type.today()
-    # Python weekday(): 0=Mon…6=Sun → our DB convention: 0=Sun, 1=Mon…6=Sat
-    db_day = (today.weekday() + 1) % 7
-
     result = supabase.table("staff_role_schedules")\
         .select("id, override_role, days_of_week, start_date, end_date")\
         .eq("hotel_id", current_user.hotel_id)\
@@ -400,18 +389,9 @@ async def get_effective_role(current_user: CurrentUser = Depends(get_current_use
         .eq("is_active", True)\
         .execute()
 
-    effective_role = current_user.role
-    schedule_id = None
-
-    for s in (result.data or []):
-        if s.get("start_date") and date_type.fromisoformat(s["start_date"]) > today:
-            continue
-        if s.get("end_date") and date_type.fromisoformat(s["end_date"]) < today:
-            continue
-        if db_day in (s.get("days_of_week") or []):
-            effective_role = s["override_role"]
-            schedule_id = s["id"]
-            break
+    # Shared with notification delivery so the role a person sees and the role alerts are judged by agree.
+    override_role, schedule_id = pick_override_role(result.data or [], date_type.today())
+    effective_role = override_role or current_user.role
 
     # Look up custom role assignment for this user
     ur_result = supabase.table("user_roles")\

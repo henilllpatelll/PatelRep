@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { ThemeProvider as NavigationThemeProvider } from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
-import * as Notifications from "expo-notifications";
 import NetInfo from "@react-native-community/netinfo";
 import { useFonts } from "expo-font";
 import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
@@ -45,7 +44,6 @@ export default function RootLayout() {
 }
 
 function RootChrome() {
-  const router = useRouter();
   const { setUser, setIsOnline, setIsLoading, isLoading } = useAppStore();
   const { mode, isHydrated } = useAppearancePreference();
   const theme = useTheme();
@@ -147,32 +145,8 @@ function RootChrome() {
     return () => unsubscribe();
   }, []);
 
-  // Notification deep link handler — dual-path for backgrounded AND killed states
-  useEffect(() => {
-    // Path 1: Killed state — app cold-started by tapping a notification.
-    // addNotificationResponseReceivedListener is NOT called in this case.
-    // Must check getLastNotificationResponseAsync() once on mount.
-    Notifications.getLastNotificationResponseAsync().then((lastResponse) => {
-      if (lastResponse) {
-        const url = lastResponse.notification.request.content.data?.url as
-          | string
-          | undefined;
-        if (url) router.push(url as never);
-      }
-    });
-
-    // Path 2: Backgrounded or foregrounded — standard listener.
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const url = response.notification.request.content.data?.url as
-          | string
-          | undefined;
-        if (url) router.push(url as never);
-      }
-    );
-
-    return () => subscription.remove();
-  }, []);
+  // Notification taps are handled in one place, once the person is signed in: (app)/_layout.tsx via
+  // lib/notifications/lifecycle.ts, which validates the payload before navigating.
 
   if (!isHydrated) return null;
 

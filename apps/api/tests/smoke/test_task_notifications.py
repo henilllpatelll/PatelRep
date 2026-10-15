@@ -13,6 +13,7 @@ from models.requests import CreateTaskRequest, ReportTaskBlockerRequest, Resolve
 from routers import task_blockers as blockers
 from routers import task_lifecycle as lifecycle
 from routers import tasks as tasks_router
+from services import notify
 
 from .fake_supabase import FakeDB
 
@@ -66,10 +67,13 @@ def db(monkeypatch):
             ],
             "notifications": [],
             "notification_deliveries": [],
+            "push_devices": [],
+            "notification_preferences": [],
+            "staff_role_schedules": [],
             "rooms": [],
         },
     )
-    for module in (blockers, lifecycle, tasks_router):
+    for module in (blockers, lifecycle, tasks_router, notify):
         monkeypatch.setattr(module, "supabase", database)
     return database
 
@@ -183,7 +187,7 @@ class _FakeExpo:
     """Stands in for httpx.AsyncClient; records what would be sent to Expo."""
 
     sent = []
-    reply = {"data": {"status": "ok", "id": "ticket-1"}}
+    reply = {"data": [{"status": "ok", "id": "ticket-1"}]}
     status = 200
 
     def __init__(self, *args, **kwargs):
@@ -211,14 +215,17 @@ class _FakeExpo:
 @pytest.fixture
 def expo(monkeypatch):
     _FakeExpo.sent = []
-    _FakeExpo.reply = {"data": {"status": "ok", "id": "ticket-1"}}
+    _FakeExpo.reply = {"data": [{"status": "ok", "id": "ticket-1"}]}
     _FakeExpo.status = 200
-    monkeypatch.setattr(tasks_router.httpx, "AsyncClient", _FakeExpo)
+    monkeypatch.setattr(notify.httpx, "AsyncClient", _FakeExpo)
     return _FakeExpo
 
 
 def _give_token(db, user_id, token="ExponentPushToken[abc]"):
-    next(p for p in db.rows["user_profiles"] if p["id"] == user_id)["expo_push_token"] = token
+    db.rows["push_devices"].append(
+        {"id": f"dev-{len(db.rows['push_devices']) + 1}", "tenant_id": HOTEL, "user_id": user_id,
+         "expo_push_token": token, "revoked_at": None}
+    )
 
 
 @pytest.mark.asyncio
@@ -228,22 +235,29 @@ async def test_push_is_sent_with_generic_text_and_marked_sent_only_when_expo_acc
     await tasks_router.update_task("t1", UpdateTaskRequest(assigned_to=OTHER_HK), user("housekeeping_supervisor", SUP))
 
     assert len(expo.sent) == 1
-    payload = expo.sent[0][1]
+    payload = expo.sent[0][1][0]
     assert payload["to"] == "ExponentPushToken[abc]" and payload["data"] == {"task_id": "t1", "type": "task_assigned"}
+    assert payload["channelId"] == "updates"
     assert "Jane" not in payload["title"] + payload["body"]
     row = sent(db, "task_assigned")[0]
     assert row["push_sent"] is True and row["expo_push_ticket"] == "ticket-1"
+    # Expo accepting the message is recorded as queued, never as delivered.
+    assert [(d["channel"], d["status"]) for d in db.rows["notification_deliveries"]] == [("push", "queued")]
 
 
 @pytest.mark.asyncio
 async def test_a_refused_push_leaves_the_in_app_alert_and_does_not_claim_delivery(db, expo):
     _give_token(db, OTHER_HK)
-    expo.reply = {"data": {"status": "error", "message": "DeviceNotRegistered"}}
+    expo.reply = {"data": [{"status": "error", "message": "gone", "details": {"error": "DeviceNotRegistered"}}]}
     db.rows["tasks"].append(make_task("t1"))
     await tasks_router.update_task("t1", UpdateTaskRequest(assigned_to=OTHER_HK), user("housekeeping_supervisor", SUP))
 
     row = sent(db, "task_assigned")[0]
     assert row.get("push_sent") in (None, False) and "expo_push_ticket" not in row
+    # The dead install is detached so it is never messaged again.
+    assert db.rows["push_devices"][0]["revoked_at"] is not None
+    assert db.rows["push_devices"][0]["revoke_reason"] == "device_not_registered"
+    assert [(d["channel"], d["status"]) for d in db.rows["notification_deliveries"]] == [("push", "failed")]
 
 
 @pytest.mark.asyncio

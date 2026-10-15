@@ -162,7 +162,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const changed = (previous?.id ?? null) !== (user?.id ?? null) || (previous?.tenant_id ?? null) !== (user?.tenant_id ?? null);
     if (changed && previous) {
       // A different person/hotel on this device must never see the last user's rooms.
-      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null, pendingActions: [] });
+      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null, pendingActions: [], unreadCount: 0 });
       void clearRoomsCache().catch(() => undefined);
       // ...nor the last user's cached tasks, history or counts (their unsent completions stay isolated in the task outbox).
       void clearAllTaskCaches().catch(() => undefined);

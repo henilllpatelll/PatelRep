@@ -1546,7 +1546,17 @@ class ReissueInvitationRequest(SanitizedBaseModel):
 
 # --- Push Token ---
 class UpdatePushTokenRequest(SanitizedBaseModel):
-    token: str = Field(min_length=1, max_length=512)
+    # Only Expo push tokens are accepted, so an arbitrary string is never forwarded to the push provider.
+    token: str = Field(min_length=1, max_length=512, pattern=r"^Expo(nent)?PushToken\[[A-Za-z0-9_\-]{1,300}\]$")
+    # Added in Settings Phase 4. Older app builds send only `token` and are registered as an install with
+    # no id; an install id is a label for replacing a rotated token, never proof of identity.
+    installation_id: Optional[str] = Field(default=None, min_length=8, max_length=100, pattern=r"^[A-Za-z0-9_.:-]+$")
+    platform: Optional[Literal["ios", "android"]] = None
+    app_version: Optional[str] = Field(default=None, max_length=40)
+
+
+class SetNotificationPreferenceRequest(SanitizedBaseModel):
+    enabled: bool
 
 
 class UpdateOwnProfileRequest(SanitizedBaseModel):
