@@ -2572,6 +2572,28 @@
       "noteTooLong": "Los detalles son demasiado largos."
     }
   },
+  "settings": {
+    "title": "Ajustes",
+    "back": "Atrás",
+    "staffFallback": "Personal",
+    "notConfigured": "Esta sección aún no está configurada. Llegará en una próxima actualización.",
+    "connection": {
+      "online": "En línea",
+      "offline": "Sin conexión",
+      "syncing": "Sincronizando"
+    },
+    "sections": {
+      "account": "Cuenta",
+      "preferences": "Preferencias",
+      "support": "App y soporte"
+    },
+    "personal": { "title": "Información personal", "subtitle": "Nombre y datos de la cuenta" },
+    "security": { "title": "Seguridad e inicio de sesión", "subtitle": "Contraseña y seguridad del dispositivo" },
+    "notifications": { "title": "Notificaciones", "subtitle": "Alertas y recordatorios de trabajo", "inbox": "Bandeja de notificaciones" },
+    "sync": { "title": "Sin conexión y sincronización", "offline": "Sin conexión — los cambios se guardan" },
+    "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
+    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" }
+  },
   "profile": {
     "me": "Yo",
     "preferences": "Preferencias",

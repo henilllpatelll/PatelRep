@@ -2572,6 +2572,28 @@
       "noteTooLong": "Details are too long."
     }
   },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "staffFallback": "Staff",
+    "notConfigured": "This section isn't set up yet. It's coming in an upcoming update.",
+    "connection": {
+      "online": "Online",
+      "offline": "Offline",
+      "syncing": "Syncing"
+    },
+    "sections": {
+      "account": "Account",
+      "preferences": "Preferences",
+      "support": "App & support"
+    },
+    "personal": { "title": "Personal Information", "subtitle": "Name and account details" },
+    "security": { "title": "Security & Sign-in", "subtitle": "Password and device security" },
+    "notifications": { "title": "Notifications", "subtitle": "Work alerts and reminders", "inbox": "Notification inbox" },
+    "sync": { "title": "Offline & Sync", "offline": "Offline — changes are saved" },
+    "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
+    "about": { "title": "About PatelRep", "subtitle": "Version and app information" }
+  },
   "profile": {
     "me": "Me",
     "preferences": "Preferences",

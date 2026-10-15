@@ -72,6 +72,7 @@ describe("app-wide theme source inventory", () => {
         "app/_layout.tsx",
         "app/(app)/_layout.tsx",
         "app/(app)/profile/index.tsx",
+        "app/(app)/profile/appearance.tsx",
         "app/(app)/copilot/index.tsx",
         "components/shared/tokens.ts",
         "components/ui/Button.tsx",
@@ -164,8 +165,8 @@ describe("protected theme exceptions and integration links", () => {
     );
   });
 
-  it("keeps the real Profile appearance selector radio-semantic and direct", () => {
-    const profileSource = source("app/(app)/profile/index.tsx");
+  it("keeps the real Settings appearance selector radio-semantic and direct", () => {
+    const profileSource = source("app/(app)/profile/appearance.tsx");
 
     expect(profileSource).toContain('accessibilityRole="radiogroup"');
     expect(profileSource).toContain('accessibilityRole="radio"');
