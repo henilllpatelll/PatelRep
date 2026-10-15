@@ -330,27 +330,31 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       await waitFor(() => expect(getByTestId("focus-mark-clean")).toBeTruthy());
       fireEvent.press(getByTestId("focus-mark-clean"));
 
-      // Required items still open on the server-snapshotted checklist: the sheet routes to the
-      // detail screen instead of exposing a shortcut around the gate.
-      await waitFor(() => expect(getByTestId("hold-confirm-open-room")).toBeTruthy());
-      expect(getByText("Checklist 0 of 2")).toBeTruthy();
-      expect(queryByTestId("hold-confirm-button")).toBeNull();
+      // Required items still open on the server-snapshotted checklist: the sheet says what is unfinished
+      // and routes to the detail screen instead of exposing a shortcut around the gate.
+      await waitFor(() => expect(getByTestId("mark-clean-blocked-checklist_incomplete")).toBeTruthy());
+      expect(getByText(/0 of 2 done/)).toBeTruthy();
+      expect(getByTestId("mark-clean-missing")).toBeTruthy();
+      expect(queryByTestId("mark-clean-hold")).toBeNull();
+      expect(queryByTestId("mark-clean-tap")).toBeNull();
 
-      fireEvent.press(getByTestId("hold-confirm-open-room"));
+      fireEvent.press(getByTestId("mark-clean-open-room"));
       const { router } = require("expo-router");
       expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-108");
     });
 
-    it("enables the hold-to-confirm button once every required checklist item is done", async () => {
+    it("offers the hold-to-confirm and its tap alternative once every required checklist item is done", async () => {
       seedSession("room-108", true, { startedAt: startedMinutesAgo(5) });
       const { getByTestId, getByText, queryByTestId } = renderHome();
 
       await waitFor(() => expect(getByTestId("focus-mark-clean")).toBeTruthy());
       fireEvent.press(getByTestId("focus-mark-clean"));
 
-      await waitFor(() => expect(getByTestId("hold-confirm-button")).toBeTruthy());
-      expect(getByText("Checklist 2 of 2")).toBeTruthy();
-      expect(queryByTestId("hold-confirm-open-room")).toBeNull();
+      await waitFor(() => expect(getByTestId("mark-clean-hold")).toBeTruthy());
+      expect(getByText("2 of 2 required items")).toBeTruthy();
+      expect(getByTestId("mark-clean-new-status")).toBeTruthy();
+      expect(getByTestId("mark-clean-tap")).toBeTruthy();
+      expect(queryByTestId("mark-clean-open-room")).toBeNull();
     });
 
     it("does not offer the quick Mark Clean for a departure clean", async () => {
@@ -851,24 +855,33 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
   describe("end of shift and clocked out", () => {
     const doneRooms = () => [makeRoom("108", { status: "CLEAN" }), makeRoom("101", { status: "INSPECTED" })];
 
-    it("shows the end-of-shift state with real stats and clocks out through the shifts API", async () => {
-      setRooms(doneRooms());
-      const { getByTestId, getByText, queryByTestId } = renderHome();
+    async function openReview(screen: ReturnType<typeof renderHome>) {
+      await waitFor(() => expect(screen.getByTestId("all-handled")).toBeTruthy());
+      fireEvent.press(screen.getByTestId("review-shift"));
+      await waitFor(() => expect(screen.getByTestId("finish-shift-sheet")).toBeTruthy());
+    }
 
-      await waitFor(() => expect(getByTestId("end-of-shift-state")).toBeTruthy());
-      expect(getByText("That's a wrap — every room handled. Be proud of today.")).toBeTruthy();
+    it("offers the review when every room is handled, and clocks out through the shifts API only from inside it", async () => {
+      setRooms(doneRooms());
+      const screen = renderHome();
+      const { getByTestId, getByText, queryByTestId } = screen;
+
+      await waitFor(() => expect(getByTestId("all-handled")).toBeTruthy());
+      // Home itself never clocks anyone out.
+      expect(queryByTestId("clock-out-button")).toBeNull();
+      expect(mockEndShift).not.toHaveBeenCalled();
       // Completed (submitted + inspected) — not claimed as "cleaned by you".
       expect(getByText("2 rooms completed")).toBeTruthy();
-      expect(queryByTestId("board-empty")).toBeNull();
 
-      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
-      fireEvent.press(getByTestId("clock-out-button"));
+      await openReview(screen);
+      expect(getByTestId("review-completed")).toBeTruthy();
+      expect(mockEndShift).not.toHaveBeenCalled();
 
+      fireEvent.press(getByTestId("finish-shift-clock-out"));
       await waitFor(() => expect(mockEndShift).toHaveBeenCalled());
       await waitFor(() => expect(getByTestId("shift-control-ended")).toBeTruthy());
       expect(getByText("Shift complete")).toBeTruthy();
-      expect(getByText("Clocked out. Nice work today.")).toBeTruthy();
-      expect(queryByTestId("clock-out-button")).toBeNull();
+      expect(getByTestId("clocked-out-summary-open")).toBeTruthy();
     });
 
     it("sends one clock-out for a double tap and only claims success after the server confirms", async () => {
@@ -877,11 +890,12 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       let resolveEnd: (value: EndRow) => void = () => undefined;
       mockEndShift.mockImplementationOnce(() => new Promise<EndRow>((resolve) => { resolveEnd = resolve; }));
 
-      const { getByTestId, getByText, queryByText, queryByTestId } = renderHome();
+      const screen = renderHome();
+      const { getByTestId, getByText, queryByText, queryByTestId } = screen;
+      await openReview(screen);
 
-      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
-      fireEvent.press(getByTestId("clock-out-button"));
-      fireEvent.press(getByTestId("clock-out-button"));
+      fireEvent.press(getByTestId("finish-shift-clock-out"));
+      fireEvent.press(getByTestId("finish-shift-clock-out"));
 
       await waitFor(() => expect(mockEndShift).toHaveBeenCalledTimes(1));
       // Still waiting on the server: not clocked out yet.
@@ -895,29 +909,37 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(mockEndShift).toHaveBeenCalledTimes(1);
     });
 
-    it("keeps the shift open and offers clock-out again when the server rejects it", async () => {
+    it("keeps the shift open, says so, and offers clock-out again when the server rejects it", async () => {
       setRooms(doneRooms());
       mockEndShift.mockRejectedValueOnce(new Error("server error"));
 
-      const { getByTestId, queryByText } = renderHome();
+      const screen = renderHome();
+      const { getByTestId, queryByText } = screen;
+      await openReview(screen);
 
-      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
-      fireEvent.press(getByTestId("clock-out-button"));
+      fireEvent.press(getByTestId("finish-shift-clock-out"));
 
       await waitFor(() => expect(mockEndShift).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(getByTestId("clock-out-button")).toBeTruthy());
+      await waitFor(() => expect(getByTestId("finish-shift-error")).toBeTruthy());
+      expect(getByTestId("finish-shift-clock-out").props.accessibilityState?.disabled).not.toBe(true);
       expect(queryByText("Shift complete")).toBeNull();
+
+      // A safe retry succeeds.
+      fireEvent.press(getByTestId("finish-shift-clock-out"));
+      await waitFor(() => expect(getByTestId("shift-control-ended")).toBeTruthy());
+      expect(mockEndShift).toHaveBeenCalledTimes(2);
     });
 
-    it("does not offer clock-out while offline (the server cannot confirm it)", async () => {
+    it("does not clock out while offline (the server cannot confirm it) and says why", async () => {
       setRooms(doneRooms());
       mockIsOnline = false;
 
-      const { getByTestId, queryByTestId } = renderHome();
+      const screen = renderHome();
+      const { getByTestId } = screen;
+      await openReview(screen);
 
-      await waitFor(() => expect(getByTestId("end-of-shift-state")).toBeTruthy());
-      expect(queryByTestId("clock-out-button")).toBeNull();
-      expect(getByTestId("clock-out-hint")).toBeTruthy();
+      expect(getByTestId("finish-shift-offline")).toBeTruthy();
+      fireEvent.press(getByTestId("finish-shift-clock-out"));
       expect(mockEndShift).not.toHaveBeenCalled();
     });
 
@@ -933,10 +955,11 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
 
       await waitFor(() => expect(getByTestId("shift-control-ended")).toBeTruthy());
       expect(getByText("Shift complete")).toBeTruthy();
-      expect(getByText(/Shift ended at \d{1,2}:\d{2}/)).toBeTruthy();
+      expect(getByText(/Clocked out at \d{1,2}:\d{2}/)).toBeTruthy();
       expect(getByText("2 rooms completed")).toBeTruthy();
       expect(queryByTestId("shift-start")).toBeNull();
       expect(queryByTestId("focus-card")).toBeNull();
+      expect(queryByTestId("all-handled")).toBeNull();
       expect(mockStartShift).not.toHaveBeenCalled();
       // Starting again is possible, but only on purpose.
       expect(getByTestId("shift-start-new")).toBeTruthy();
@@ -944,6 +967,28 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       fireEvent.press(getByTestId("clocked-out-rooms"));
       const { router } = require("expo-router");
       expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms");
+    });
+
+    it("opens the shift summary from the clocked-out Home, with no AI request made for it", async () => {
+      setRooms(doneRooms());
+      mockShiftCurrent = {
+        data: null,
+        meta: { last_ended: activeShift({ id: "shift-0", status: "ended", started_at: new Date(Date.now() - 3600_000).toISOString(), ended_at: new Date().toISOString() }) },
+      };
+      const { api } = require("@/lib/api/client");
+      const { getByTestId, getByText, queryByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("clocked-out-summary-open")).toBeTruthy());
+      api.post.mockClear();
+
+      fireEvent.press(getByTestId("clocked-out-summary-open"));
+      await waitFor(() => expect(getByTestId("shift-summary-sheet")).toBeTruthy());
+      expect(getByTestId("summary-clock-in")).toBeTruthy();
+      expect(getByTestId("summary-clock-out")).toBeTruthy();
+      expect(getByTestId("summary-submitted")).toBeTruthy();
+      expect(getByText("Add AI recap")).toBeTruthy();
+      expect(queryByTestId("summary-recap")).toBeNull();
+      // Opening Home or its summary never buys a recap.
+      expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/ai/"), expect.anything());
     });
   });
 
@@ -1046,14 +1091,21 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(flat(more.props.style).minHeight).toBeGreaterThanOrEqual(48);
     });
 
-    it("keeps the AI briefing available but out of the way of the work", async () => {
+    it("keeps the shift briefing in a drawer, out of the way of the work and free until asked", async () => {
+      const { api } = require("@/lib/api/client");
       const { getByTestId, queryByTestId } = renderHome();
-      await waitFor(() => expect(getByTestId("briefing-toggle")).toBeTruthy());
+      await waitFor(() => expect(getByTestId("briefing-open")).toBeTruthy());
+      // Nothing competes with the room to clean on Home, and nothing is bought by looking.
       expect(queryByTestId("ai-briefing-card")).toBeNull();
-      fireEvent.press(getByTestId("briefing-toggle"));
-      expect(getByTestId("ai-briefing-card")).toBeTruthy();
-      expect(getByTestId("briefing-refresh")).toBeTruthy();
+      expect(queryByTestId("briefing-toggle")).toBeNull();
+      expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/ai/"), expect.anything());
+
+      fireEvent.press(getByTestId("briefing-open"));
+      await waitFor(() => expect(getByTestId("briefing-sheet")).toBeTruthy());
+      expect(getByTestId("briefing-source")).toBeTruthy();
+      expect(getByTestId("briefing-new")).toBeTruthy();
       expect(getByTestId("briefing-ask-ai")).toBeTruthy();
+      expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/ai/"), expect.anything());
     });
 
     it("leaves room under the content for the floating Copilot", async () => {
@@ -1127,7 +1179,8 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       fireEvent.press(getByTestId("focus-more"));
       expect(getByTestId("room-actions-sheet")).toBeTruthy();
       fireEvent.press(getByTestId("focus-why"));
-      expect(getByTestId("why-sheet")).toBeTruthy();
+      // The first drawer slides away before the second appears, so two native modals never overlap.
+      await waitFor(() => expect(getByTestId("why-sheet")).toBeTruthy());
       expect(queryByTestId("room-actions-sheet")).toBeNull();
     });
 
@@ -1238,7 +1291,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(getByText("Habitación 112")).toBeTruthy();
       expect(getByText("Reportar problema de acceso")).toBeTruthy();
       fireEvent.press(getByTestId("focus-why"));
-      expect(getByText("¿Por qué la habitación 112 sigue?")).toBeTruthy();
+      await waitFor(() => expect(getByText("¿Por qué la habitación 112 sigue?")).toBeTruthy());
     });
   });
 

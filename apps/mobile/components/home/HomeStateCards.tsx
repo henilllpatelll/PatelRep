@@ -2,19 +2,30 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Kicker, MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
+import { Kicker, LinkButton, MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import type { HomeModel, RecentSubmission } from "@/lib/housekeeping/homeModel";
 import type { ConnectionNotice } from "@/lib/housekeeping/homeState";
 import { describeNotice } from "@/lib/housekeeping/homeText";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
 import { workedSeconds } from "@/lib/housekeeping/shiftLifecycle";
+import { formatDuration } from "@/lib/housekeeping/shiftReview";
 import { useTheme } from "@/lib/theme/useTheme";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /* ─── Connection notice (State 7 with cached rooms) ─────────────────────────── */
 
-export function ConnectionNoticeBanner({ notice, t, ctx }: { notice: ConnectionNotice; t: Translate; ctx: TextContext }) {
+export function ConnectionNoticeBanner({
+  notice,
+  t,
+  ctx,
+  onOpenSync,
+}: {
+  notice: ConnectionNotice;
+  t: Translate;
+  ctx: TextContext;
+  onOpenSync?: () => void;
+}) {
   const theme = useTheme();
   const copy = describeNotice(notice, t, ctx);
   const icon = notice.kind === "offline" ? "cloud-offline-outline" : "time-outline";
@@ -34,6 +45,7 @@ export function ConnectionNoticeBanner({ notice, t, ctx }: { notice: ConnectionN
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerBody, { color: theme.textSecondary }]}>
           {copy.body}
         </Text>
+        {onOpenSync ? <LinkButton label={t("home.header.syncOpen")} onPress={onOpenSync} testID="notice-sync-status" /> : null}
       </View>
     </View>
   );
@@ -45,10 +57,12 @@ export function SubmissionBanner({
   submission,
   t,
   onDismiss,
+  onOpenSync,
 }: {
   submission: RecentSubmission;
   t: Translate;
   onDismiss: () => void;
+  onOpenSync?: () => void;
 }) {
   const theme = useTheme();
   const kind = submission.inspected ? "inspected" : submission.confirmed ? "submitted" : "queued";
@@ -75,6 +89,7 @@ export function SubmissionBanner({
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerBody, { color: theme.textSecondary }]}>
           {body}
         </Text>
+        {kind === "queued" && onOpenSync ? <LinkButton label={t("home.header.syncOpen")} onPress={onOpenSync} testID="submission-sync-status" /> : null}
       </View>
       {kind !== "queued" ? (
         <Pressable
@@ -285,38 +300,80 @@ export function DataUnavailableState({
   );
 }
 
+/* ─── All assigned work handled ─────────────────────────────────────────────── */
+
+/**
+ * Every room is accounted for. This only offers the review; clocking out is a
+ * separate, deliberate step inside it, and nothing here changes the shift.
+ */
+export function AllHandledCard({
+  model,
+  t,
+  onReview,
+}: {
+  model: HomeModel;
+  t: Translate;
+  onReview: () => void;
+}) {
+  const theme = useTheme();
+  const { progress, endOfShift } = model;
+  const lines: string[] = [t("home.endOfShift.roomsCompleted", { count: progress.completed })];
+  if (endOfShift.exceptions.length > 0) lines.push(t("home.clockedOut.exceptions", { count: endOfShift.exceptions.length }));
+  if (endOfShift.handoffs.length > 0) lines.push(t("home.clockedOut.handoffs", { count: endOfShift.handoffs.length }));
+  if (model.sync.pending > 0) lines.push(t("home.sync.pending", { count: model.sync.pending }));
+
+  return (
+    <Card style={styles.stateCard} testID="all-handled">
+      <View style={styles.titleRow}>
+        <Ionicons name="checkmark-circle" size={24} color={theme.status.ready} />
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.stateTitle, { color: theme.textPrimary }]}>
+          {t("home.allHandled.title")}
+        </Text>
+      </View>
+      <View style={styles.list}>
+        {lines.map((line) => (
+          <Text key={line} maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.stateBody, { color: theme.textSecondary }]}>
+            {line}
+          </Text>
+        ))}
+      </View>
+      <Button label={t("home.allHandled.review")} onPress={onReview} size="lg" testID="review-shift" />
+    </Card>
+  );
+}
+
 /* ─── State 9: clocked out ──────────────────────────────────────────────────── */
 
 export function ClockedOutState({
   model,
   t,
   ctx,
+  onViewSummary,
   onViewRooms,
   onStartNew,
+  onOpenSync,
 }: {
   model: HomeModel;
   t: Translate;
   ctx: TextContext;
+  onViewSummary: () => void;
   onViewRooms: () => void;
   onStartNew: () => void;
+  onOpenSync: () => void;
 }) {
   const theme = useTheme();
   const { lifecycle, progress, endOfShift } = model;
   const usable = model.board.state === "ready" || model.board.state === "empty";
   const endedAt = formatClock(lifecycle.endedAt, ctx);
   const worked = workedSeconds(lifecycle, new Date());
-  const minutes = worked === null ? null : Math.max(0, Math.round(worked / 60));
-  const duration = minutes === null ? null : minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`;
+  const duration = worked === null ? null : formatDuration(worked);
 
+  // Recorded facts only: never "cleaned by you" for a room that is merely inspected.
   const lines: string[] = [];
   if (usable) {
     lines.push(t("home.endOfShift.roomsCompleted", { count: progress.completed }));
-    if (progress.confirmedByYou > 0 && progress.confirmedByYou < progress.completed) {
-      lines.push(t("home.clockedOut.confirmedByYou", { count: progress.confirmedByYou }));
-    }
     if (endOfShift.exceptions.length > 0) lines.push(t("home.clockedOut.exceptions", { count: endOfShift.exceptions.length }));
     if (endOfShift.handoffs.length > 0) lines.push(t("home.clockedOut.handoffs", { count: endOfShift.handoffs.length }));
-    if (model.sync.pending > 0) lines.push(t("home.sync.pending", { count: model.sync.pending }));
   }
 
   return (
@@ -329,13 +386,10 @@ export function ClockedOutState({
       </View>
       {endedAt ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.stateBody, { color: theme.textSecondary }]} testID="clocked-out-at">
-          {t("home.shift.endedAt", { time: endedAt })}
+          {t("home.shift.clockedOutAt", { time: endedAt })}
           {duration ? ` · ${t("home.endOfShift.shiftDuration", { duration })}` : ""}
         </Text>
       ) : null}
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.stateBody, { color: theme.textSecondary }]}>
-        {t("home.endOfShift.clockedOut")}
-      </Text>
       {lines.length > 0 ? (
         <View style={styles.list} testID="clocked-out-summary">
           {lines.map((line) => (
@@ -345,6 +399,15 @@ export function ClockedOutState({
           ))}
         </View>
       ) : null}
+      {model.sync.pending > 0 || model.sync.failed > 0 || model.sync.conflicts > 0 ? (
+        <View style={[styles.note, { backgroundColor: theme.status.pickupSoft }]} testID="clocked-out-sync">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerBody, { color: theme.textPrimary }]}>
+            {t("home.clockedOut.unsent", { count: model.sync.pending + model.sync.failed + model.sync.conflicts })}
+          </Text>
+          <LinkButton label={t("home.header.syncOpen")} onPress={onOpenSync} testID="clocked-out-sync-status" />
+        </View>
+      ) : null}
+      <Button label={t("home.clockedOut.viewSummary")} onPress={onViewSummary} testID="clocked-out-summary-open" />
       <Button label={t("home.clockedOut.viewRooms")} onPress={onViewRooms} variant="secondary" testID="clocked-out-rooms" />
       <Button
         label={t("home.shift.startNew")}

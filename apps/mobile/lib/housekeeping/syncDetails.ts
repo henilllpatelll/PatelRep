@@ -37,6 +37,10 @@ export interface SyncRow {
   state: SyncState;
   /** Checklist edits batched into one row. */
   count?: number;
+  /** When the change was saved on this device (ISO), when the queue knows it. */
+  savedAt?: string | null;
+  /** Why it is stuck, as a code (a conflict or last-error code), never the typed content. */
+  reason?: string | null;
 }
 
 /** Mirrors the queue's own retry ceiling (lib/offline/db.ts). */
@@ -47,17 +51,32 @@ function sessionRows(sessions: Record<string, LocalCleanSession>): SyncRow[] {
   for (const [roomId, session] of Object.entries(sessions)) {
     if (session.completionConfirmed) continue;
     if (session.conflict) {
-      rows.push({ key: `session-${roomId}-conflict`, roomId, kind: session.completeRequestedAt ? "completion" : "checklist", state: "conflict" });
+      rows.push({
+        key: `session-${roomId}-conflict`,
+        roomId,
+        kind: session.completeRequestedAt ? "completion" : "checklist",
+        state: "conflict",
+        savedAt: session.updatedAt,
+        reason: session.conflict.code,
+      });
       continue;
     }
     if (!hasPendingSync(session)) continue;
     const retrying = Boolean(session.lastError);
-    if (!session.startConfirmed) rows.push({ key: `session-${roomId}-start`, roomId, kind: "start", state: retrying ? "retrying" : "pending" });
+    const reason = session.lastError?.code ?? null;
+    if (!session.startConfirmed) rows.push({ key: `session-${roomId}-start`, roomId, kind: "start", state: retrying ? "retrying" : "pending", savedAt: session.startedAt, reason });
     const edits = Object.keys(session.pendingItems).length;
-    if (edits > 0) rows.push({ key: `session-${roomId}-checklist`, roomId, kind: "checklist", state: retrying ? "retrying" : "pending", count: edits });
-    if (session.linen?.pending) rows.push({ key: `session-${roomId}-linen`, roomId, kind: "linen", state: session.linen.failed ? "failed" : "pending" });
+    if (edits > 0) rows.push({ key: `session-${roomId}-checklist`, roomId, kind: "checklist", state: retrying ? "retrying" : "pending", count: edits, savedAt: session.updatedAt, reason });
+    if (session.linen?.pending) rows.push({ key: `session-${roomId}-linen`, roomId, kind: "linen", state: session.linen.failed ? "failed" : "pending", savedAt: session.updatedAt });
     if (session.completeRequestedAt) {
-      rows.push({ key: `session-${roomId}-complete`, roomId, kind: "completion", state: session.completionUnsure || retrying ? "retrying" : "pending" });
+      rows.push({
+        key: `session-${roomId}-complete`,
+        roomId,
+        kind: "completion",
+        state: session.completionUnsure || retrying ? "retrying" : "pending",
+        savedAt: session.completeRequestedAt,
+        reason: session.completionUnsure ? "COMPLETION_UNSURE" : reason,
+      });
     }
   }
   return rows;
@@ -76,6 +95,7 @@ function actionRows(actions: OfflineAction[]): SyncRow[] {
     roomId: action.type === "room_status" ? action.entityId : null,
     kind: ACTION_KIND[action.type] ?? "other",
     state: "pending" as SyncState,
+    savedAt: action.createdAt ?? null,
   }));
 }
 
@@ -85,6 +105,7 @@ function queueRows(rows: SyncQueueSummaryRow[]): SyncRow[] {
     roomId: row.room_id,
     kind: row.entity_type === "work_order" ? (row.action === "create" ? "work_order" : "work_order_update") : row.entity_type === "task" ? "task" : "other",
     state: row.attempts >= MAX_SYNC_ATTEMPTS ? "failed" : row.attempts > 0 ? "retrying" : "pending",
+    savedAt: row.created_at ?? null,
   }));
 }
 
@@ -95,6 +116,8 @@ function outboxRows(entries: Record<string, OutboxEntry>): SyncRow[] {
     roomId: entry.task.room_id,
     kind: "task" as SyncKind,
     state: (entry.state === "conflict" ? "conflict" : entry.state === "failed" ? "failed" : entry.attempts > 0 ? "retrying" : "pending") as SyncState,
+    savedAt: entry.queuedAt,
+    reason: entry.conflict?.reason ?? null,
   }));
 }
 

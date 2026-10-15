@@ -199,6 +199,17 @@ export function useShiftLifecycle({ enabled, scope, shiftDate, timeZone, isOnlin
         return { ok: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        // The answer may have been lost after the server ended the shift. Ask before
+        // calling it a failure, so a retry cannot leave the screen disagreeing with the server.
+        try {
+          const state = await getShiftState();
+          if (scopeRef.current === myScope && state.current === null && state.lastEnded?.ended_at) {
+            setServer({ ...state, serverConfirmed: true, lastFetchFailed: false });
+            return { ok: true };
+          }
+        } catch {
+          // Still unreachable: the shift stays as it was, and the person can try again.
+        }
         setLastError(message);
         return { ok: false, reason: "failed", message };
       } finally {

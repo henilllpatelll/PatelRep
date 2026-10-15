@@ -172,6 +172,49 @@ describe("useShiftLifecycle", () => {
     expect(result.current.lifecycle.state).toBe("ended");
   });
 
+  it("treats a lost clock-out answer as ended only when the server then shows the shift closed", async () => {
+    mockGetShiftState.mockResolvedValueOnce({ current: shift(), lastEnded: null });
+    const { result } = setup();
+    await waitFor(() => expect(result.current.lifecycle.state).toBe("active"));
+    // The request timed out, but the server did end the shift.
+    mockEndShift.mockRejectedValue(new Error("timeout"));
+    mockGetShiftState.mockResolvedValue({ current: null, lastEnded: shift({ status: "ended", ended_at: new Date().toISOString() }) });
+
+    await act(async () => {
+      expect(await result.current.end()).toEqual({ ok: true });
+    });
+    expect(result.current.lifecycle.state).toBe("ended");
+    expect(result.current.lastError).toBeNull();
+  });
+
+  it("stays on shift when the answer was lost and the server cannot be asked either", async () => {
+    mockGetShiftState.mockResolvedValueOnce({ current: shift(), lastEnded: null });
+    const { result } = setup();
+    await waitFor(() => expect(result.current.lifecycle.state).toBe("active"));
+    mockEndShift.mockRejectedValue(new Error("timeout"));
+    mockGetShiftState.mockRejectedValue(new Error("still down"));
+
+    await act(async () => {
+      expect(await result.current.end()).toMatchObject({ ok: false, reason: "failed" });
+    });
+    expect(result.current.lifecycle.state).toBe("active");
+    expect(result.current.lifecycle.canEnd).toBe(true);
+  });
+
+  it("does not call a failed clock-out ended just because an older shift ended earlier", async () => {
+    mockGetShiftState.mockResolvedValueOnce({ current: shift(), lastEnded: null });
+    const { result } = setup();
+    await waitFor(() => expect(result.current.lifecycle.state).toBe("active"));
+    mockEndShift.mockRejectedValue(new Error("server error"));
+    // The shift is still open on the server.
+    mockGetShiftState.mockResolvedValue({ current: shift(), lastEnded: shift({ id: "old", status: "ended", ended_at: new Date().toISOString() }) });
+
+    await act(async () => {
+      expect(await result.current.end()).toMatchObject({ ok: false });
+    });
+    expect(result.current.lifecycle.state).toBe("active");
+  });
+
   it("cannot clock out offline — the server must confirm it", async () => {
     mockGetShiftState.mockResolvedValue({ current: shift(), lastEnded: null });
     const { result, rerender } = setup();

@@ -18,6 +18,8 @@ interface Props {
   topInset: number;
   t: Translate;
   onOpenNotifications: () => void;
+  /** Opens the Sync Status drawer. */
+  onOpenSync: () => void;
 }
 
 /**
@@ -25,7 +27,7 @@ interface Props {
  * status, the notifications entry (with its unread count) and one honest line
  * about what is saved and sent.
  */
-export function HomeHeader({ meta, greeting, status, sync, unreadCount, topInset, t, onOpenNotifications }: Props) {
+export function HomeHeader({ meta, greeting, status, sync, unreadCount, topInset, t, onOpenNotifications, onOpenSync }: Props) {
   const theme = useTheme();
   const toneColor: Record<SyncTone, string> = {
     ok: theme.status.ready,
@@ -76,12 +78,19 @@ export function HomeHeader({ meta, greeting, status, sync, unreadCount, topInset
           ) : null}
         </Pressable>
       </View>
-      <View style={styles.syncRow} accessible accessibilityLabel={sync.text} testID="home-sync-line">
+      <Pressable
+        onPress={onOpenSync}
+        accessibilityRole="button"
+        accessibilityLabel={`${sync.text}. ${t("home.header.syncOpen")}`}
+        style={({ pressed }) => [styles.syncRow, pressed && { opacity: 0.6 }]}
+        testID="home-sync-line"
+      >
         <Ionicons name={sync.icon} size={14} color={toneColor[sync.tone]} />
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.syncText, { color: theme.textMuted }]} numberOfLines={2}>
           {sync.text}
         </Text>
-      </View>
+        <Ionicons name="chevron-forward" size={12} color={theme.textMuted} />
+      </Pressable>
     </View>
   );
 }
@@ -113,6 +122,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   badgeText: { fontSize: 11, fontWeight: "800" },
-  syncRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  syncRow: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: MIN_TARGET - 8 },
   syncText: { fontSize: 12, lineHeight: 16, flexShrink: 1 },
 });

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { AccessibilityInfo, findNodeHandle, Platform } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IssueDetailsSheet } from "@/components/home/IssueDetailsSheet";
 import { RecommendationSheet } from "@/components/home/RecommendationSheet";
 import { RoomActionsSheet } from "@/components/home/RoomActionsSheet";
@@ -18,66 +17,9 @@ import type { TextContext, Translate } from "@/lib/housekeeping/myRoomsText";
 import { useToast } from "@/lib/theme/useToast";
 import type { MarkReadResult } from "@/stores/homeBridgeStore";
 
-/** Long enough for the slide-out to finish before the sheet's content is dropped. */
-const CLOSE_MS = 280;
-/** Screen readers need a beat after a modal closes before focus can move back. */
-const FOCUS_RETURN_MS = 120;
+import type { HomeSheetState } from "@/components/home/useHomeSheet";
 
-/** Which drawer is open, and for what. Ids only: the content is always re-read from the live model. */
-export type HomeSheetState =
-  | { kind: "roomActions"; roomId: string }
-  | { kind: "why"; roomId: string | null }
-  | { kind: "issue"; itemId: string }
-  | { kind: "message" }
-  | { kind: "progress" };
-
-/**
- * One drawer at a time. Opening replaces whatever was open; closing animates
- * out, then gives screen-reader focus back to the control that opened it.
- */
-export function useHomeSheet() {
-  const [sheet, setSheet] = useState<HomeSheetState | null>(null);
-  const [visible, setVisible] = useState(false);
-  const trigger = useRef<unknown>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-      if (focusTimer.current) clearTimeout(focusTimer.current);
-    },
-    [],
-  );
-
-  const open = useCallback((next: HomeSheetState, opener?: RefObject<unknown>) => {
-    if (timer.current) clearTimeout(timer.current);
-    trigger.current = opener?.current ?? null;
-    setSheet(next);
-    setVisible(true);
-  }, []);
-
-  const close = useCallback(() => {
-    setVisible(false);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      setSheet(null);
-      const target = trigger.current;
-      trigger.current = null;
-      if (!target || Platform.OS === "web") return;
-      focusTimer.current = setTimeout(() => {
-        try {
-          const node = findNodeHandle(target as never);
-          if (node) AccessibilityInfo.setAccessibilityFocus(node);
-        } catch {
-          // Focus return is a courtesy; never let it break the screen.
-        }
-      }, FOCUS_RETURN_MS);
-    }, CLOSE_MS);
-  }, []);
-
-  return { sheet, visible, open, close };
-}
+export { useHomeSheet, type HomeSheetState } from "@/components/home/useHomeSheet";
 
 export interface HomeSheetGo {
   /** The room screen, as Home's primary action opens it. */
@@ -236,5 +178,8 @@ export function HomeSheetHost({ model, sheet, visible, onClose, role, isOnline, 
           onOpenMyRooms={then(go.openMyRooms)}
         />
       );
+    default:
+      // The shift, sync, summary, briefing and Mark Clean drawers belong to Home (see HomeServiceSheets).
+      return null;
   }
 }

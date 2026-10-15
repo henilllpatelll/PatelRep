@@ -216,7 +216,9 @@
       "retry": "Intentar de nuevo",
       "carriedOver": "Este turno empezó un día anterior. Marca salida si ya terminó.",
       "needsConnection": "Necesitas conexión para hacer eso.",
-      "actionFailed": "No se pudo actualizar tu turno — intenta de nuevo."
+      "actionFailed": "No se pudo actualizar tu turno — intenta de nuevo.",
+      "finish": "Terminar turno",
+      "clockedOutAt": "Salió a las {{time}}"
     },
     "board": {
       "unavailableTitle": "No se pueden cargar tus cuartos",
@@ -255,7 +257,8 @@
       "notifications": "Notificaciones",
       "notificationsUnread": "Notificaciones, {{count}} sin leer",
       "notificationsUnread_plural": "Notificaciones, {{count}} sin leer",
-      "fallbackName": "ahí"
+      "fallbackName": "ahí",
+      "syncOpen": "Estado de sincronización"
     },
     "notice": {
       "lastUpdated": "Última actualización {{time}}.",
@@ -379,11 +382,15 @@
       "exceptions_plural": "{{count}} cuartos pendientes para el siguiente turno (No Molestar o servicio rechazado)",
       "handoffs": "{{count}} orden de trabajo abierta por entregar",
       "handoffs_plural": "{{count}} órdenes de trabajo abiertas por entregar",
-      "viewRooms": "Ver cuartos completados"
+      "viewRooms": "Ver cuartos completados",
+      "viewSummary": "Ver resumen del turno",
+      "unsent": "{{count}} cambio sigue en este teléfono y aún no se ha enviado.",
+      "unsent_plural": "{{count}} cambios siguen en este teléfono y aún no se han enviado."
     },
     "briefing": {
       "show": "Mostrar resumen del turno",
-      "hide": "Ocultar resumen del turno"
+      "hide": "Ocultar resumen del turno",
+      "open": "Resumen del turno"
     },
     "message": {
       "markRead": "Marcar como leído",
@@ -561,6 +568,291 @@
       "onBreak": "En descanso",
       "onBreakSince": "En descanso desde las {{time}}",
       "openMyRooms": "Abrir Mis habitaciones"
+    },
+    "allHandled": {
+      "title": "Todo el trabajo asignado está atendido",
+      "review": "Revisar y terminar el turno"
+    },
+    "review": {
+      "title": "Termina tu turno",
+      "lead": "Revisa tu trabajo antes de marcar la salida.",
+      "startedAt": "Inicio {{time}}",
+      "breakTime": "{{duration}} de descanso",
+      "rowTitle": "Habitación {{room}} — {{label}}",
+      "sectionToday": "Tu turno",
+      "sectionHandoffs": "Pendientes por revisar",
+      "handoffsHint": "Toca uno para abrirlo. Marcar la salida no borra ninguno.",
+      "clockOut": "Marcar salida",
+      "clockOutAnyway": "Marcar salida de todos modos",
+      "returnHome": "Volver al inicio",
+      "needsConnection": "Conéctate a internet para marcar la salida. No se pierde nada de lo guardado en este teléfono.",
+      "endedTitle": "Tu salida ya está marcada",
+      "endedBody": "El servidor no muestra un turno abierto para ti. No necesitas hacer nada más aquí.",
+      "totals": {
+        "completed": "{{count}} habitación enviada o inspeccionada",
+        "completed_plural": "{{count}} habitaciones enviadas o inspeccionadas",
+        "unavailable": "{{count}} habitación no disponible",
+        "unavailable_plural": "{{count}} habitaciones no disponibles",
+        "exceptions": "{{count}} habitación con excepción documentada",
+        "exceptions_plural": "{{count}} habitaciones con excepción documentada",
+        "remaining": "{{count}} habitación por limpiar",
+        "remaining_plural": "{{count}} habitaciones por limpiar"
+      },
+      "sync": {
+        "none": "0 cambios esperando sincronización",
+        "waiting": "{{count}} cambio esperando sincronización",
+        "waiting_plural": "{{count}} cambios esperando sincronización",
+        "unverified": "No se puede confirmar qué está esperando sincronización",
+        "open": "Abrir estado de sincronización"
+      },
+      "warnings": {
+        "boardUnverified": "No se pudo confirmar la lista de habitaciones de hoy, así que no se muestran los totales.",
+        "activeRoom": "La habitación {{room}} aún se está limpiando.",
+        "roomsRemaining": "{{count}} habitación no se ha empezado.",
+        "roomsRemaining_plural": "{{count}} habitaciones no se han empezado.",
+        "pendingSync": "Algunos cambios están guardados en este teléfono y aún no llegan al servidor. Se quedan aquí y se envían cuando haya conexión.",
+        "syncUnverified": "Este teléfono no pudo leer todo lo que guarda, así que no se puede confirmar que \"no hay nada pendiente\".",
+        "syncProblem": "Un cambio guardado no fue aceptado o no se pudo enviar. Tu trabajo se conserva; avisa a tu supervisor antes de irte."
+      },
+      "labels": {
+        "maintenance": "Mantenimiento",
+        "inProgress": "Limpieza en curso",
+        "toClean": "Sin empezar",
+        "followUp": "Requiere seguimiento",
+        "tasks": "{{count}} tarea abierta",
+        "tasks_plural": "{{count}} tareas abiertas",
+        "lostFound": "Objetos perdidos: {{count}} artículo registrado hoy",
+        "lostFound_plural": "Objetos perdidos: {{count}} artículos registrados hoy"
+      },
+      "details": {
+        "maintenance": "Orden de trabajo abierta vinculada",
+        "maintenanceTitled": "Orden de trabajo abierta: {{title}}",
+        "exception": "Excepción de servicio documentada",
+        "attention": "Abre la habitación para ver qué se necesita",
+        "inProgress": "Termina o entrega esta habitación",
+        "toClean": "Por limpiar",
+        "tasks": "Asignadas a ti",
+        "lostFound": "Revisa lo que registraste"
+      },
+      "errors": {
+        "offline": "Necesitas conexión para marcar la salida. Sigues con el turno abierto.",
+        "failed": "No se pudo marcar tu salida. Sigues con el turno abierto — inténtalo de nuevo.",
+        "not_allowed": "Tu turno no se puede cerrar ahora. Cierra esto y revisa el inicio."
+      }
+    },
+    "summary": {
+      "title": "Resumen del turno",
+      "done": "Listo",
+      "sectionTimes": "Horarios",
+      "clockIn": "Entrada",
+      "clockOut": "Salida",
+      "unknownTime": "Sin registro",
+      "breaks": "Descansos",
+      "onShift": "Tiempo en turno",
+      "sectionRooms": "Habitaciones",
+      "submitted": "Enviadas (esperan inspección)",
+      "inspected": "Inspeccionadas",
+      "unavailable": "Fuera de servicio",
+      "roomsUnavailable": "No se pudo confirmar la lista de habitaciones de hoy, así que no se muestran los totales.",
+      "sectionLeftOpen": "Pendientes",
+      "sectionExceptions": "Excepciones documentadas",
+      "sectionHandoffs": "Entregas",
+      "syncWaiting": "{{count}} cambio aún sin enviar",
+      "syncWaiting_plural": "{{count}} cambios aún sin enviar",
+      "syncUnverified": "No se pudo confirmar que todo se envió",
+      "syncHint": "Tu resumen no es definitivo hasta que esto llegue al servidor.",
+      "sectionRecap": "Resumen con IA",
+      "recapAiLabel": "Escrito por IA a partir de la lista de hoy",
+      "recapOptional": "Opcional. Tu resumen de arriba está completo sin esto.",
+      "recapUnavailable": "El resumen con IA no está disponible ahora. Tu resumen de arriba no cambia.",
+      "recapOffline": "Conéctate a internet para pedir un resumen con IA.",
+      "recapRequest": "Agregar resumen con IA"
+    },
+    "syncSheet": {
+      "title": "Estado de sincronización",
+      "retry": "Reintentar sincronización",
+      "retrying": "Sincronizando…",
+      "retryBlock": {
+        "offline": "Sin conexión. Los cambios se quedan en este teléfono y se envían al reconectar.",
+        "nothing": "No hay nada pendiente de enviar.",
+        "conflicts_only": "Estos cambios requieren atención en sus habitaciones; reintentar aquí no los reenvía."
+      },
+      "status": {
+        "synced": {
+          "title": "Todo está sincronizado",
+          "body": "Todos tus cambios llegaron al servidor."
+        },
+        "pending": {
+          "title": "Cambios esperando sincronización",
+          "body": "Guardados en este teléfono. El servidor aún no los confirma."
+        },
+        "syncing": {
+          "title": "Sincronizando…",
+          "body": "Enviando tus cambios guardados en orden."
+        },
+        "offline_cached": {
+          "title": "Sin conexión",
+          "body": "Se muestran las últimas habitaciones guardadas. Los cambios se quedan aquí y se envían al reconectar."
+        },
+        "offline": {
+          "title": "Sin conexión",
+          "body": "Este teléfono aún no tiene la lista de habitaciones de hoy. Los cambios se quedan aquí y se envían al reconectar."
+        },
+        "stale": {
+          "title": "La lista puede estar desactualizada",
+          "body": "Tus cambios se enviaron, pero las habitaciones mostradas son más antiguas de lo debido."
+        },
+        "unknown": {
+          "title": "Aún sin actualizar",
+          "body": "Las habitaciones no se han actualizado desde que abriste la app."
+        },
+        "failed": {
+          "title": "Algunos cambios no se enviaron",
+          "body": "Se conservan en este teléfono. Inténtalo de nuevo o avisa a tu supervisor."
+        },
+        "conflict": {
+          "title": "Un cambio requiere tu atención",
+          "body": "El servidor no aceptó un cambio guardado. Tu trabajo se conserva; abre la habitación para resolverlo."
+        }
+      },
+      "lastSync": "Última sincronización correcta: {{time}}",
+      "neverSynced": "Ninguna sincronización correcta desde que abriste la app.",
+      "unreadable": "Este teléfono no pudo leer todo lo que guarda, así que no se puede confirmar que \"no hay nada pendiente\".",
+      "waiting": "{{count}} cambio en espera",
+      "waiting_plural": "{{count}} cambios en espera",
+      "waitingHint": "Guardados en este teléfono. Cada uno se confirma solo cuando el servidor lo tiene.",
+      "nothingWaiting": "No hay nada pendiente de enviar.",
+      "run": {
+        "offline": "Sin conexión, así que no se envió nada.",
+        "failed": "La sincronización no pudo terminar. Tus cambios siguen guardados en este teléfono.",
+        "conflicts": "El servidor no aceptó {{count}} cambio. Tu trabajo se conserva.",
+        "conflicts_plural": "El servidor no aceptó {{count}} cambios. Tu trabajo se conserva.",
+        "itemsFailed": "{{count}} cambio aún no se pudo enviar. Se conserva en este teléfono.",
+        "itemsFailed_plural": "{{count}} cambios aún no se pudieron enviar. Se conservan en este teléfono.",
+        "partial": "Algunos cambios siguen en espera ({{count}}). Inténtalo de nuevo en un momento.",
+        "done": "Todo se envió y fue confirmado."
+      },
+      "rowStates": {
+        "pending": "Esperando envío",
+        "syncing": "Enviando…",
+        "retrying": "Se reintentará",
+        "failed": "No enviado",
+        "conflict": "Requiere atención"
+      },
+      "savedAt": "Guardado en este teléfono a las {{time}}",
+      "openRoom": "Abrir habitación",
+      "openTasks": "Abrir tareas",
+      "reasons": {
+        "retrying": "Se intentó y se volverá a intentar.",
+        "generic": "No se pudo enviar. Se conserva en este teléfono.",
+        "COMPLETION_UNSURE": "Aún no hay respuesta del servidor. Lo revisaremos antes de volver a enviar.",
+        "SESSION_ABANDONED": "El servidor cerró esta sesión de limpieza.",
+        "SESSION_GONE": "El servidor ya no tiene esta sesión de limpieza.",
+        "ROOM_STATE_CHANGED": "La habitación cambió mientras trabajabas.",
+        "ROOM_NOT_ASSIGNED": "Esta habitación ya no está asignada a ti.",
+        "ROOM_IN_USE": "Otra camarera está limpiando esta habitación.",
+        "DND_ACTIVE": "No molestar está activo en esta habitación.",
+        "SERVICE_DECLINED": "El huésped rechazó el servicio.",
+        "completed": "La tarea ya estaba completada.",
+        "cancelled": "La tarea fue cancelada.",
+        "reassigned": "La tarea ahora es de otra persona.",
+        "claimed": "Otra persona tomó la tarea.",
+        "unavailable": "La tarea ya no está disponible para ti.",
+        "blocked": "La tarea está bloqueada.",
+        "changed": "La tarea cambió mientras se guardaba esto.",
+        "forbidden": "Ya no tienes acceso a esto.",
+        "rejected": "El servidor no aceptó este cambio.",
+        "expired": "Este cambio es demasiado antiguo para enviarse."
+      }
+    },
+    "markClean": {
+      "title": "¿Terminar la habitación {{room}}?",
+      "titleGeneric": "¿Terminar habitación?",
+      "backHome": "Volver al inicio",
+      "holdCta": "Mantén para confirmar limpia",
+      "holdHint": "Mantén presionado para confirmar. Suéltalo antes para cancelar.",
+      "releaseHint": "Suelta para cancelar",
+      "tapInstead": "¿No puedes mantener? Toca para confirmar",
+      "tapCta": "Confirmar limpia",
+      "tapA11y": "Confirmar que la habitación {{room}} está limpia",
+      "checklistComplete": "Lista de verificación obligatoria completa",
+      "checklistCount": "{{done}} de {{total}} elementos obligatorios",
+      "newStatusLabel": "Nuevo estado",
+      "newStatusClean": "Limpia",
+      "newStatusQueued": "Limpia, cuando el servidor lo confirme",
+      "nextStepLabel": "Siguiente paso",
+      "nextStepInspection": "Inspección",
+      "offlineNotice": "Sin conexión. Esto se guardará en este teléfono y se enviará al reconectar. La habitación no está limpia hasta que el servidor lo confirme.",
+      "loading": "Cargando la lista de esta habitación…",
+      "stillOpen": "Pendiente",
+      "andMore": "y {{count}} más",
+      "finishChecklist": "Terminar lista de verificación",
+      "openRoom": "Abrir habitación",
+      "failed": "No se pudo terminar esta habitación. No se cambió nada. Abre la habitación para revisar.",
+      "blocked": {
+        "not_assigned": {
+          "title": "Esta habitación no está en tu lista",
+          "body": "Fue reasignada o la lista cambió, así que no se puede terminar desde aquí."
+        },
+        "already_done": {
+          "title": "La habitación {{room}} ya fue enviada",
+          "body": "Está esperando inspección o ya fue inspeccionada."
+        },
+        "restricted": {
+          "body": "No se puede entrar a esta habitación ahora (No molestar o servicio rechazado). Ábrela para ver por qué."
+        },
+        "not_in_progress": {
+          "body": "Esta habitación no está en curso, así que no se puede marcar como limpia."
+        },
+        "departure": {
+          "body": "Las habitaciones de salida necesitan el conteo de sábanas. Abre la habitación para agregarlo y terminar."
+        },
+        "no_session": {
+          "body": "Este teléfono no tiene una sesión de limpieza para esta habitación. Abre la habitación para continuar."
+        },
+        "conflict": {
+          "body": "No se aceptó un cambio guardado de esta habitación. Abre la habitación para resolverlo; tu avance se conserva."
+        },
+        "already_pending": {
+          "body": "La habitación {{room}} ya está terminada en este teléfono y espera enviarse."
+        },
+        "checklist_incomplete": {
+          "body": "Aún hay elementos obligatorios abiertos ({{done}} de {{total}} listos). Termínalos primero."
+        }
+      }
+    },
+    "postComplete": {
+      "confirmedHeading": "Habitación {{room}} enviada",
+      "queuedHeading": "Habitación {{room}} guardada en este dispositivo",
+      "confirmedTitle": "Habitación {{room}} enviada",
+      "confirmedBody": "Lista para inspección.",
+      "queuedTitle": "Habitación {{room}} guardada en este dispositivo",
+      "queuedBody": "La finalización espera sincronizarse. No está confirmada como limpia hasta que el servidor la tenga.",
+      "upNext": "Sigue",
+      "noneNext": "No hay otra habitación lista para empezar ahora.",
+      "openRoom": "Abrir habitación {{room}}",
+      "syncStatus": "Ver estado de sincronización",
+      "backHome": "Volver al inicio"
+    },
+    "briefingSheet": {
+      "title": "Resumen del turno",
+      "newBriefing": "Nuevo resumen",
+      "sourceAi": "Escrito por IA a partir de tu lista de habitaciones",
+      "sourceLocal": "Planeado en este teléfono con tus asignaciones",
+      "offline": "Sin conexión. Este plan viene de tus asignaciones guardadas.",
+      "unavailable": "El resumen con IA no está disponible ahora. Este plan viene de tus asignaciones.",
+      "planTitle": "Plan sugerido",
+      "planHint": "Unos {{minutes}} min de limpieza en total. Son estimados, no plazos.",
+      "emptyPlan": "No hay habitaciones listas para empezar ahora.",
+      "watchTitle": "Para tener en cuenta",
+      "reasons": {
+        "active": "Continuar la limpieza activa",
+        "rush": "Prioridad solicitada",
+        "reclean": "Relimpieza solicitada",
+        "arrival": "Llega un huésped pronto",
+        "arrivalAt": "Llegada a las {{time}}",
+        "queue": "Sigue en tu orden"
+      }
     }
   },
   "rooms": {

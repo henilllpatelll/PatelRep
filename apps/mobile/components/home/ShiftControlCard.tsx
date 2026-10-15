@@ -14,14 +14,16 @@ interface Props {
   t: Translate;
   onStartBreak: () => void;
   onRetry: () => void;
+  /** Opens the Finish Shift review. Clocking out happens only inside it. */
+  onFinish: () => void;
 }
 
 /**
  * The in-shift row: since when, and the explicit "take a break" tap. Start,
  * resume and the clocked-out summary have their own state cards (HomeStateCards);
- * Home never starts a shift by itself. Clock-out lives in the end-of-shift summary.
+ * Home never starts a shift by itself. Clock-out lives in the Finish Shift review.
  */
-export function ShiftControlCard({ lifecycle, timeZone, language, t, onStartBreak, onRetry }: Props) {
+export function ShiftControlCard({ lifecycle, timeZone, language, t, onStartBreak, onRetry, onFinish }: Props) {
   const theme = useTheme();
   const time = (iso: string | null) => (iso ? formatHotelTime(iso, timeZone, language) : null);
 
@@ -54,6 +56,19 @@ export function ShiftControlCard({ lifecycle, timeZone, language, t, onStartBrea
           </Text>
         ) : null}
       </View>
+      <TouchableOpacity
+        onPress={onFinish}
+        disabled={!lifecycle.canEnd}
+        accessibilityRole="button"
+        accessibilityLabel={t("home.shift.finish")}
+        activeOpacity={0.8}
+        style={styles.breakButton}
+        testID="shift-finish"
+      >
+        <Text style={[styles.breakText, { color: lifecycle.canEnd ? theme.textSecondary : theme.textDisabled }]}>
+          {t("home.shift.finish")}
+        </Text>
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={onStartBreak}
         disabled={!lifecycle.canStartBreak}

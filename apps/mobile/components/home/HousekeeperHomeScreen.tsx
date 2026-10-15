@@ -1,18 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppStore, type Room } from "@/stores/appStore";
-import { AIBriefingCard } from "@/components/shared/evening";
+import { useAppStore } from "@/stores/appStore";
 import { StateBlock } from "@/components/ui/StateBlock";
-import { Button } from "@/components/ui/Button";
 import { CurrentRoomCard } from "@/components/home/CurrentRoomCard";
-import { EndOfShiftState } from "@/components/home/EndOfShiftState";
-import HoldToConfirmSheet from "@/components/home/HoldToConfirmSheet";
 import { HomeHeader } from "@/components/home/HomeHeader";
+import { HomeServiceSheets, type HomeServiceGo } from "@/components/home/HomeServiceSheets";
 import { HomeSheetHost, useHomeSheet, type HomeSheetGo } from "@/components/home/HomeSheetHost";
 import {
+  AllHandledCard,
   BeforeShiftState,
   ClockedOutState,
   ConnectionNoticeBanner,
@@ -22,18 +20,12 @@ import {
   ShiftStartNudge,
   SubmissionBanner,
 } from "@/components/home/HomeStateCards";
-import { LinkButton, MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
+import { LinkButton, MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { NeedsAttentionPreview } from "@/components/home/NeedsAttentionPreview";
 import { ShiftControlCard } from "@/components/home/ShiftControlCard";
 import { ShiftProgressSummary } from "@/components/home/ShiftProgressSummary";
 import { UpNextPreview } from "@/components/home/UpNextPreview";
-import { fetchShiftBriefing, type ShiftBriefing } from "@/lib/ai/briefing";
-import { fetchShiftRecap, type ShiftRecap } from "@/lib/ai/shiftRecap";
-import { getCompanionCheckin, snapshotFromDashboard } from "@/lib/ai/companion";
-import { listItems, type LostFoundItem } from "@/lib/api/lostFound";
-import { elapsedSeconds } from "@/lib/housekeeping/cleaningTimer";
 import { attentionAction } from "@/lib/housekeeping/homeAttention";
-import { buildBriefingFromModel, reconcileBriefing } from "@/lib/housekeeping/homeBriefing";
 import {
   buildAttentionPreview,
   canQuickMarkClean,
@@ -44,18 +36,13 @@ import {
   type AttentionPreviewItem,
   type HomeDestinations,
 } from "@/lib/housekeeping/homeState";
-import {
-  dayPartOf,
-  describeSync,
-  firstNameOf,
-  headerMeta,
-  shiftStatusLine,
-} from "@/lib/housekeeping/homeText";
+import { dayPartOf, describeSync, firstNameOf, headerMeta, shiftStatusLine } from "@/lib/housekeeping/homeText";
 import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
-import { workedSeconds } from "@/lib/housekeeping/shiftLifecycle";
 import { useHousekeeperHome } from "@/lib/housekeeping/useHousekeeperHome";
-import { localDate } from "@/lib/utils/date";
+import { useShiftBriefing } from "@/lib/housekeeping/useShiftBriefing";
+import { useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
+import { useSyncRun } from "@/lib/housekeeping/useSyncRun";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -72,33 +59,34 @@ interface Props {
 /**
  * The housekeeper's "My Shift" Home. Everything it shows comes from the shared
  * HomeModel (via resolveHomeState); this component only wires actions and lays
- * out the cards for whichever of the nine states applies.
+ * out the cards for whichever of the nine states applies. Marking a room clean,
+ * finishing the shift, sync status, the shift summary and the AI briefing are
+ * drawers opened from here, one at a time.
  */
 export function HousekeeperHome({ enabled, destinations }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
-  const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
+  const { user, isOnline, setMyRooms, refreshRooms } = useAppStore();
+  const lastSyncedAt = useAppStore((state) => state.lastSyncedAt) ?? null;
   const unreadCount = useAppStore((state) => state.unreadCount) ?? 0;
   const home = useHousekeeperHome({ enabled });
-  const { model, data, rooms, shift, markSupervisorNoteRead, refresh: refreshHome } = home;
+  const { model, rooms, shift, markSupervisorNoteRead, refresh: refreshHome } = home;
   const { lifecycle } = model;
   const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
-  const locale = language === "es" ? "es-MX" : "en-US";
   const ctx = useMemo(() => ({ language, timeZone: model.timeZone }), [language, model.timeZone]);
+  const scope = user ? `${user.tenant_id}:${user.id}` : null;
 
   const [refreshing, setRefreshing] = useState(false);
   const refreshingRef = useRef(false);
-  const [aiBriefing, setAiBriefing] = useState<ShiftBriefing | null>(null);
-  const [briefingLoading, setBriefingLoading] = useState(false);
-  const [briefingOpen, setBriefingOpen] = useState(false);
-  const [holdConfirmRoom, setHoldConfirmRoom] = useState<Room | null>(null);
-  const [shiftRecap, setShiftRecap] = useState<ShiftRecap | null>(null);
-  const [shiftRecapLoading, setShiftRecapLoading] = useState(false);
-  const [todaysFoundItems, setTodaysFoundItems] = useState<LostFoundItem[]>([]);
   const [dismissedSubmission, setDismissedSubmission] = useState<string | null>(null);
   const sheets = useHomeSheet();
+
+  // Paid AI is opt-in: both hooks only ever act on an explicit request from a drawer.
+  const briefing = useShiftBriefing({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
+  const recap = useShiftRecap({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
+  const syncRun = useSyncRun(refreshHome);
 
   // Refresh room counts and the shift when navigating back from the room detail screen
   // so Home reflects the latest status immediately. Reads only — never starts a shift.
@@ -140,6 +128,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
     navigate("/(app)/my-rooms");
   }, [navigate]);
   const openAttentionCenter = useCallback(() => navigate("/(app)/attention"), [navigate]);
+  const openSync = useCallback(() => sheets.open({ kind: "sync" }), [sheets]);
   const openAttentionItem = useCallback(
     (row: AttentionPreviewItem) => {
       const { target } = attentionAction(row.item);
@@ -170,6 +159,16 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
     }),
     [navigate, openRoom, openMyRooms],
   );
+  const serviceGo = useMemo<HomeServiceGo>(
+    () => ({
+      openRoom,
+      openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
+      openTasks: () => navigate("/(app)/tasks"),
+      openLostFound: () => navigate("/(app)/lost-found"),
+      openCopilot: () => navigate("/(app)/copilot"),
+    }),
+    [navigate, openRoom],
+  );
 
   /* ─── Derived view ─────────────────────────────────────────────────────── */
 
@@ -183,76 +182,21 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
     return buildAttentionPreview(model, undefined, onScreen);
   }, [model, view.lead, upNext]);
   const submission = useMemo(() => submissionFor(model), [model]);
-  const snapshot = useMemo(() => snapshotFromDashboard(model.dashboard, locale), [model.dashboard, locale]);
-  const companionCheckin = useMemo(() => getCompanionCheckin(snapshot, t), [snapshot, t]);
   const showWork = WORK_KINDS.has(view.kind);
 
-  const localBriefing = useMemo(
-    () => (rooms.length > 0 ? buildBriefingFromModel(model, t) : null),
-    [rooms.length, model, t],
-  );
-  const briefing = aiBriefing && localBriefing ? reconcileBriefing(aiBriefing, localBriefing) : localBriefing;
-
-  // Fires once per shift when the board clears — fetch-with-local-fallback for the end-of-shift recap.
-  useEffect(() => {
-    if (!view.allDone || shiftRecap || shiftRecapLoading || rooms.length === 0) return;
-    setShiftRecapLoading(true);
-    void fetchShiftRecap(rooms, language, t, isOnline).then((result) => {
-      setShiftRecap(result);
-      setShiftRecapLoading(false);
-    });
-  }, [view.allDone, shiftRecap, shiftRecapLoading, rooms, language, t, isOnline]);
-
-  // Real "before you clock out" signals: today's lost & found items this housekeeper logged.
-  useEffect(() => {
-    if (!view.allDone || !isOnline || !user?.id) return;
-    listItems()
-      .then((res) => {
-        const today = localDate();
-        setTodaysFoundItems(
-          (res.data ?? []).filter(
-            (item) => item.found_by === user.id && (item.created_at ?? "").slice(0, 10) === today,
-          ),
-        );
-      })
-      .catch(() => {});
-  }, [view.allDone, isOnline, user?.id]);
-
-  const shiftDurationLabel = useMemo(() => {
-    const worked = workedSeconds(lifecycle, new Date());
-    if (worked === null) return null;
-    const totalMinutes = Math.max(0, Math.round(worked / 60));
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  }, [lifecycle]);
-
-  const nextUpEntry = useMemo(() => {
-    const next = upNext ?? model.dashboard.upNext[0];
-    if (!next) return null;
-    return { room: next.room, position: 1, estimateMinutes: next.estimateMinutes, etaMinutes: next.estimateMinutes };
-  }, [upNext, model.dashboard.upNext]);
-
-  // Snapshotted when the sheet opens rather than ticking live. Derived from the verified session start.
-  const holdConfirmElapsedSec = useMemo(() => {
-    if (!holdConfirmRoom) return null;
-    const active = model.activeRoom;
-    if (!active || active.room.id !== holdConfirmRoom.id) return null;
-    return elapsedSeconds(active.startedAt, Date.now());
-  }, [holdConfirmRoom, model.activeRoom]);
-
+  // Quick Mark Clean opens the protected confirmation; the sheet re-checks everything when it opens and again when confirming.
   const handleMarkClean = useCallback(() => {
-    if (model.activeRoom && canQuickMarkClean(model)) setHoldConfirmRoom(model.activeRoom.room);
-  }, [model]);
+    if (model.activeRoom && canQuickMarkClean(model)) sheets.open({ kind: "markClean", roomId: model.activeRoom.room.id });
+  }, [model, sheets]);
 
+  // The server confirmed the completion: show it now, then let the next refresh settle the rest.
   const handleRoomConfirmed = useCallback(
     (roomId: string) => {
-      setHoldConfirmRoom(null);
       const updatedAt = new Date().toISOString();
-      setMyRooms(myRooms.map((r) => (r.id === roomId ? { ...r, status: "CLEAN", updated_at: updatedAt } : r)));
+      setMyRooms(useAppStore.getState().myRooms.map((r) => (r.id === roomId ? { ...r, status: "CLEAN", updated_at: updatedAt } : r)));
       void refreshRooms();
     },
-    [myRooms, setMyRooms, refreshRooms],
+    [setMyRooms, refreshRooms],
   );
 
   /* ─── Shift actions ────────────────────────────────────────────────────── */
@@ -274,18 +218,6 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
     },
     [shift, reportShiftResult],
   );
-  // Clock-out is claimed only after the server confirms; a second tap shares the first request.
-  const handleClockOut = useCallback(async () => {
-    reportShiftResult(await shift.end(), "home.endOfShift.clockOutFailed");
-  }, [shift, reportShiftResult]);
-
-  const requestAiBriefing = useCallback(async () => {
-    if (briefingLoading || rooms.length === 0) return;
-    setBriefingLoading(true);
-    const result = await fetchShiftBriefing(rooms, language, t, isOnline);
-    setAiBriefing(result);
-    setBriefingLoading(false);
-  }, [briefingLoading, rooms, language, t, isOnline]);
 
   /* ─── Render ───────────────────────────────────────────────────────────── */
 
@@ -358,10 +290,11 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
           topInset={insets.top}
           t={t}
           onOpenNotifications={openNotifications}
+          onOpenSync={openSync}
         />
 
         <View style={styles.body}>
-          {view.notice ? <ConnectionNoticeBanner notice={view.notice} t={t} ctx={ctx} /> : null}
+          {view.notice ? <ConnectionNoticeBanner notice={view.notice} t={t} ctx={ctx} onOpenSync={openSync} /> : null}
 
           {view.kind === "unavailable" ? (
             <DataUnavailableState t={t} offline={!isOnline} retrying={refreshing} onRetry={() => void onRefresh()} />
@@ -386,8 +319,10 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
               model={model}
               t={t}
               ctx={ctx}
+              onViewSummary={() => sheets.open({ kind: "summary" })}
               onViewRooms={openCompletedRooms}
               onStartNew={() => void handleStartShift()}
+              onOpenSync={openSync}
             />
           ) : null}
 
@@ -414,12 +349,18 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
                   t={t}
                   onStartBreak={() => void handleBreak("start")}
                   onRetry={() => void shift.refresh()}
+                  onFinish={() => sheets.open({ kind: "finishShift" })}
                 />
               ) : null}
               {view.startNudge ? <ShiftStartNudge model={model} t={t} onStart={() => void handleStartShift()} /> : null}
 
               {view.kind === "submitted" && submission && submissionKey !== dismissedSubmission ? (
-                <SubmissionBanner submission={submission} t={t} onDismiss={() => setDismissedSubmission(submissionKey)} />
+                <SubmissionBanner
+                  submission={submission}
+                  t={t}
+                  onDismiss={() => setDismissedSubmission(submissionKey)}
+                  onOpenSync={openSync}
+                />
               ) : null}
 
               {view.kind === "attention" ? (
@@ -431,48 +372,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
               ) : view.allDone ? (
                 <>
                   {attentionCard}
-                  <EndOfShiftState
-                    message={companionCheckin.message}
-                    subMessage={t("home.allDone")}
-                    roomsCleanedLabel={t("home.endOfShift.roomsCompleted", { count: model.progress.completed })}
-                    shiftDurationLabel={
-                      shiftDurationLabel ? t("home.endOfShift.shiftDuration", { duration: shiftDurationLabel }) : null
-                    }
-                    clockOutLabel={t("home.endOfShift.clockOut")}
-                    clockedOutLabel={t("home.endOfShift.clockedOut")}
-                    clockedOut={lifecycle.state === "ended"}
-                    clockingOut={lifecycle.state === "ending"}
-                    canClockOut={lifecycle.canEnd || lifecycle.state === "ending"}
-                    clockOutHint={
-                      !isOnline && lifecycle.state !== "ended" && lifecycle.state !== "ending"
-                        ? t("home.endOfShift.needsConnection")
-                        : null
-                    }
-                    onClockOut={() => void handleClockOut()}
-                    aiRecap={shiftRecap}
-                    aiRecapLoading={shiftRecapLoading}
-                    aiRecapKicker={t("home.endOfShift.recapKicker")}
-                    aiRecapFootNoteAi={t("ai.briefing.sourceAi")}
-                    aiRecapFootNoteLocal={t("ai.briefing.sourceLocal")}
-                    handoffRooms={model.endOfShift.handoffs.map((handoff) => ({
-                      roomNumber: handoff.roomNumber,
-                      workOrderId: handoff.workOrderId,
-                      title: handoff.title,
-                    }))}
-                    foundItemsCount={todaysFoundItems.length}
-                    onOpenWorkOrder={(workOrderId) =>
-                      router.push({ pathname: "/(app)/work-orders/[woId]", params: { woId: workOrderId } } as never)
-                    }
-                    onOpenLostFound={() => navigate("/(app)/lost-found")}
-                    beforeClockOutLabel={t("home.endOfShift.beforeClockOut")}
-                    handoffLabel={(room) =>
-                      t("home.endOfShift.handoff", {
-                        room: room.roomNumber,
-                        title: room.title ?? t("home.endOfShift.handoffGeneric"),
-                      })
-                    }
-                    foundItemsLabel={(count) => t("home.endOfShift.foundItems", { count })}
-                  />
+                  <AllHandledCard model={model} t={t} onReview={() => sheets.open({ kind: "finishShift" })} />
                 </>
               ) : (
                 <>
@@ -485,49 +385,17 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
               {upNext ? (
                 <UpNextPreview entry={upNext} t={t} ctx={ctx} onOpenRoom={openRoom} onViewRoute={openMyRooms} />
               ) : null}
-
-              {briefing && !view.allDone ? (
-                <View style={styles.briefing}>
-                  <LinkButton
-                    label={t(briefingOpen ? "home.briefing.hide" : "home.briefing.show")}
-                    icon={briefingOpen ? "chevron-up" : "sparkles-outline"}
-                    expanded={briefingOpen}
-                    onPress={() => setBriefingOpen((open) => !open)}
-                    testID="briefing-toggle"
-                  />
-                  {briefingOpen ? (
-                    <AIBriefingCard
-                      kicker={t("ai.briefing.kicker")}
-                      headline={briefing.headline}
-                      planLabel={t("ai.briefing.planLabel")}
-                      plan={briefing.plan}
-                      watchouts={briefing.watchouts}
-                      loading={briefingLoading}
-                      footNote={`${briefing.source === "ai" ? t("ai.briefing.sourceAi") : t("ai.briefing.sourceLocal")} · ${t("ai.briefing.estTotal", { minutes: briefing.estimatedMinutes })}`}
-                    >
-                      <View style={styles.briefingActions}>
-                        <Button
-                          label={t("ai.briefing.refresh")}
-                          onPress={() => void requestAiBriefing()}
-                          variant="secondary"
-                          size="sm"
-                          icon="sparkles"
-                          loading={briefingLoading}
-                          testID="briefing-refresh"
-                        />
-                        <Button
-                          label={t("home.askAI")}
-                          onPress={() => navigate("/(app)/copilot")}
-                          variant="secondary"
-                          size="sm"
-                          testID="briefing-ask-ai"
-                        />
-                      </View>
-                    </AIBriefingCard>
-                  ) : null}
-                </View>
-              ) : null}
             </>
+          ) : null}
+
+          {/* A quiet, optional extra: the plan lives in a drawer, never in competition with the room to clean. */}
+          {showWork && !view.allDone && rooms.length > 0 ? (
+            <LinkButton
+              label={t("home.briefing.open")}
+              icon="sparkles-outline"
+              onPress={() => sheets.open({ kind: "briefing" })}
+              testID="briefing-open"
+            />
           ) : null}
         </View>
       </ScrollView>
@@ -546,17 +414,26 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
         go={go}
         markNoteRead={markSupervisorNoteRead}
       />
-
-      {holdConfirmRoom ? (
-        <HoldToConfirmSheet
-          visible
-          room={holdConfirmRoom}
-          elapsedSec={holdConfirmElapsedSec}
-          nextUp={nextUpEntry && nextUpEntry.room.id !== holdConfirmRoom.id ? nextUpEntry : null}
-          onClose={() => setHoldConfirmRoom(null)}
-          onConfirmed={handleRoomConfirmed}
-        />
-      ) : null}
+      <HomeServiceSheets
+        model={model}
+        sheet={sheets.sheet}
+        visible={sheets.visible}
+        epoch={sheets.epoch}
+        onClose={sheets.close}
+        onOpenSheet={sheets.open}
+        isOnline={isOnline}
+        language={language}
+        userId={user?.id}
+        lastSyncedAt={lastSyncedAt}
+        t={t}
+        ctx={ctx}
+        go={serviceGo}
+        shift={shift}
+        briefing={briefing}
+        recap={recap}
+        syncRun={syncRun}
+        onRoomConfirmed={handleRoomConfirmed}
+      />
     </View>
   );
 }
@@ -568,6 +445,4 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1 },
   body: { paddingHorizontal: 18, paddingTop: 10, gap: 14 },
-  briefing: { gap: 8 },
-  briefingActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, minHeight: MIN_TARGET - 4 },
 });
