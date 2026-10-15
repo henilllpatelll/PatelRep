@@ -194,6 +194,52 @@ function buildActiveRoom(dashboard: DashboardModel, now: Date): ActiveRoomView |
   };
 }
 
+/* ─── Recent submission ─────────────────────────────────────────────────────── */
+
+/** How long after finishing a room Home keeps saying so. */
+export const RECENT_SUBMISSION_WINDOW_MS = 10 * 60_000;
+
+export interface RecentSubmission {
+  roomId: string;
+  roomNumber: string;
+  /** When the room was finished (server time once confirmed, device time before). */
+  at: string;
+  /** The server confirmed the completion. False = saved on this device, still to send. */
+  confirmed: boolean;
+  /** An inspector has since passed it. Distinct from the housekeeper's own submission. */
+  inspected: boolean;
+}
+
+/**
+ * The room this person finished most recently, if it was just now. Only rooms
+ * with a local clean session count: a room that merely shows CLEAN on the board
+ * was not necessarily finished by this person.
+ */
+function buildRecentSubmission(dashboard: DashboardModel, sessions: SessionMap, now: Date): RecentSubmission | null {
+  let best: { submission: RecentSubmission; ms: number } | null = null;
+  for (const entry of dashboard.all) {
+    const session = sessions[entry.room.id];
+    if (!session) continue;
+    const confirmed = session.completionConfirmed;
+    const at = confirmed ? (session.endedAt ?? session.completeRequestedAt) : session.completeRequestedAt;
+    if (!at) continue;
+    const ms = Date.parse(at);
+    if (Number.isNaN(ms) || now.getTime() - ms > RECENT_SUBMISSION_WINDOW_MS) continue;
+    if (best && ms <= best.ms) continue;
+    best = {
+      ms,
+      submission: {
+        roomId: entry.room.id,
+        roomNumber: entry.room.room_number,
+        at,
+        confirmed,
+        inspected: confirmed && entry.category === "inspected",
+      },
+    };
+  }
+  return best?.submission ?? null;
+}
+
 /* ─── Attention items ───────────────────────────────────────────────────────── */
 
 export type AttentionKind =
@@ -493,6 +539,14 @@ export interface HomeModel {
   alerts: HomeAlerts;
   activeRoom: ActiveRoomView | null;
   recommendation: Recommendation | null;
+  /**
+   * The next room to start, ignoring a room that is only waiting to send its
+   * completion (it is done as far as the person is concerned). Equals
+   * `recommendation` unless the active room is "completing".
+   */
+  nextRoom: Recommendation | null;
+  /** A room finished in the last few minutes. */
+  recentSubmission: RecentSubmission | null;
   /** Why there is nothing to recommend, when there isn't. */
   noRecommendation: NoRecommendationReason | null;
   attention: AttentionItem[];
@@ -530,6 +584,10 @@ export function buildHomeModel(input: HomeModelInput): HomeModel {
 
   const progress = buildProgress(dashboard, sessions);
   const recommendation = buildRecommendation(dashboard, rankedAt);
+  const hasCompleting = dashboard.current.some((e) => e.session?.state === "completing");
+  const nextRoom = hasCompleting
+    ? buildRecommendation({ ...dashboard, current: dashboard.current.filter((e) => e.session?.state !== "completing") }, rankedAt)
+    : recommendation;
   const note = input.supervisorNote
     ? {
         id: input.supervisorNote.id,
@@ -556,6 +614,8 @@ export function buildHomeModel(input: HomeModelInput): HomeModel {
     alerts: buildAlerts(dashboard, sync, rankedAt),
     activeRoom: buildActiveRoom(dashboard, now),
     recommendation,
+    nextRoom,
+    recentSubmission: buildRecentSubmission(dashboard, sessions, now),
     noRecommendation: recommendation ? null : whyNoRecommendation(dashboard, boardState === "ready" || boardState === "empty"),
     attention: buildAttentionItems({ dashboard, sessions, note, sync }),
     supervisorInstruction: note,

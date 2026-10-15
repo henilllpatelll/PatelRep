@@ -755,5 +755,9 @@
 - apps/mobile/lib/housekeeping/shiftLifecycle.ts + useShiftLifecycle.ts — unknown/not_started/active/on_break/ending/ended state; explicit start/end/break, idempotent, never auto-starts (~2.5k tok)
 - apps/mobile/lib/housekeeping/useHousekeeperHome.ts — composes rooms + sessions + shift + notes + sync into the model for Home (~2k tok)
 - apps/mobile/lib/housekeeping/roomsRequest.ts (shared in-flight + seq guard), roomsCache.ts (cache stamped with tenant:user), roomsFreshness.ts (board state/freshness/date rules), stores/roomsStatusStore.ts (status shared by Home + My Rooms)
-- apps/mobile/components/home/ShiftControlCard.tsx — explicit Start shift / break / resume / retry controls
+- apps/mobile/components/home/ShiftControlCard.tsx — in-shift row only (since / take a break / unknown / ending)
+- apps/mobile/components/home/HousekeeperHomeScreen.tsx — housekeeper "My Shift" Home container: wires actions, lays out cards per resolveHomeState kind
+- apps/mobile/components/home/{HomeHeader,CurrentRoomCard,ShiftProgressSummary,NeedsAttentionPreview,UpNextPreview,HomeStateCards,homeUi}.tsx — Home presentation (header+bell+sync line, Right Now card, progress, attention preview, up next, before-shift/break/empty/unavailable/clocked-out/submission/notice cards)
+- apps/mobile/lib/housekeeping/homeState.ts — pure nine-state resolver, attention preview ranking, up-next, progress counts, HomeDestinations (Phase 3 hooks)
+- apps/mobile/lib/housekeeping/homeText.ts — hotel-local greeting/meta, honest sync wording, recommendation + attention copy
 - apps/api/routers/shifts.py — GET /shifts/current now adds meta.last_ended; /shifts/end clamps ended_at >= started_at

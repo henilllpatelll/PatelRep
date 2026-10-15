@@ -12,47 +12,18 @@ interface Props {
   timeZone: string | null;
   language: string;
   t: Translate;
-  onStart: () => void;
   onStartBreak: () => void;
-  onEndBreak: () => void;
   onRetry: () => void;
 }
 
 /**
- * The explicit shift controls. Home never starts a shift by itself: every
- * clock-in, break and resume is a tap on a button here. Clock-out lives in the
- * end-of-shift summary. Shows nothing while a clock-out is the only thing left.
+ * The in-shift row: since when, and the explicit "take a break" tap. Start,
+ * resume and the clocked-out summary have their own state cards (HomeStateCards);
+ * Home never starts a shift by itself. Clock-out lives in the end-of-shift summary.
  */
-export function ShiftControlCard({ lifecycle, timeZone, language, t, onStart, onStartBreak, onEndBreak, onRetry }: Props) {
+export function ShiftControlCard({ lifecycle, timeZone, language, t, onStartBreak, onRetry }: Props) {
   const theme = useTheme();
   const time = (iso: string | null) => (iso ? formatHotelTime(iso, timeZone, language) : null);
-
-  if (lifecycle.state === "not_started") {
-    return (
-      <Card style={styles.card} testID="shift-control-not-started">
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("home.shift.notStartedTitle")}</Text>
-        <Text style={[styles.body, { color: theme.textSecondary }]}>{t("home.shift.notStartedBody")}</Text>
-        <Button label={t("home.shift.start")} onPress={onStart} disabled={!lifecycle.canStart} loading={lifecycle.busy} testID="shift-start" />
-      </Card>
-    );
-  }
-
-  if (lifecycle.state === "ended") {
-    const at = time(lifecycle.endedAt);
-    return (
-      <Card style={styles.card} testID="shift-control-ended">
-        {at ? <Text style={[styles.body, { color: theme.textSecondary }]}>{t("home.shift.endedAt", { time: at })}</Text> : null}
-        <Button
-          label={t("home.shift.startNew")}
-          variant="secondary"
-          onPress={onStart}
-          disabled={!lifecycle.canStart}
-          loading={lifecycle.busy}
-          testID="shift-start-new"
-        />
-      </Card>
-    );
-  }
 
   if (lifecycle.state === "unknown") {
     return (
@@ -67,15 +38,6 @@ export function ShiftControlCard({ lifecycle, timeZone, language, t, onStart, on
     return (
       <Card style={styles.card} testID="shift-control-ending">
         <Text style={[styles.body, { color: theme.textSecondary }]}>{t("home.shift.ending")}</Text>
-      </Card>
-    );
-  }
-
-  if (lifecycle.state === "on_break") {
-    return (
-      <Card style={styles.card} testID="shift-control-break">
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("home.shift.onBreak")}</Text>
-        <Button label={t("home.shift.resume")} onPress={onEndBreak} disabled={!lifecycle.canEndBreak} loading={lifecycle.busy} testID="shift-resume" />
       </Card>
     );
   }
