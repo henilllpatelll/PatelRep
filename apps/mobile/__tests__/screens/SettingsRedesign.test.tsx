@@ -61,6 +61,9 @@ jest.mock("expo-constants", () => ({
   __esModule: true,
   default: { expoConfig: { version: "1.0.0" } },
 }));
+jest.mock("@/lib/app/appInfo", () => ({
+  getAppInfo: () => ({ name: "PatelRep", version: "1.0.0", build: "1", updateId: null }),
+}));
 
 jest.mock("@/i18n", () => ({
   get language() {
@@ -368,14 +371,10 @@ describe("Settings home sign out", () => {
 });
 
 describe("Settings destination screens", () => {
-  const shells = [
-    ["About PatelRep", AboutScreen],
-  ] as const;
-
-  it.each(shells)("%s has its own title, a back button, and an honest not-configured notice", (title, Screen) => {
-    const { getByTestId } = render(<Screen />);
-    expect(getByTestId("settings-title").props.children).toBe(title);
-    expect(getByTestId("settings-not-configured")).toBeTruthy();
+  it("About PatelRep has its own title, a back button, and no placeholder notice", () => {
+    const { getByTestId, queryByTestId } = render(<AboutScreen />);
+    expect(getByTestId("settings-title").props.children).toBe("About PatelRep");
+    expect(queryByTestId("settings-not-configured")).toBeNull();
     expect(getByTestId("settings-back").props.accessibilityLabel).toBe("Back");
   });
 
@@ -538,6 +537,8 @@ describe("Settings route registration", () => {
       "profile/my-reports",
       "profile/diagnostics",
       "profile/about",
+      "profile/whats-new",
+      "profile/licenses",
     ]) {
       expect(HIDDEN_APP_ROUTES).toContain(name);
     }

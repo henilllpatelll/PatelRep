@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
@@ -12,6 +11,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { getAppInfo } from "@/lib/app/appInfo";
 import { useSyncOverview } from "@/lib/offline/useSyncOverview";
 import { useOwnProfile } from "@/lib/settings/useOwnProfile";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
@@ -29,7 +29,7 @@ export default function SettingsHomeScreen() {
   const { user, name, roleLabel, hotelName, connection } = useSettingsIdentity(overview);
   // Refreshes the short-lived photo URL and mirrors the latest display name into the user store.
   const { profile } = useOwnProfile();
-  const appVersion = Constants.expoConfig?.version ?? "dev";
+  const appVersion = getAppInfo().version;
   const [signOutOpen, setSignOutOpen] = useState(false);
 
   const appearanceLabel = t(`profile.appearance.${preference}`);
@@ -194,9 +194,11 @@ export default function SettingsHomeScreen() {
         <SettingsRow first icon="log-out-outline" label={t("profile.signOut")} onPress={() => setSignOutOpen(true)} destructive testID="row-sign-out" />
       </SettingsSection>
 
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.version, { color: theme.textDisabled }]}>
-        {t("profile.appVersion", { version: appVersion })}
-      </Text>
+      {appVersion ? (
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.version, { color: theme.textDisabled }]}>
+          {t("profile.appVersion", { version: appVersion })}
+        </Text>
+      ) : null}
       <SignOutSheet visible={signOutOpen} onClose={() => setSignOutOpen(false)} />
     </SettingsScreen>
   );

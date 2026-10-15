@@ -2741,7 +2741,6 @@
     "title": "Settings",
     "back": "Back",
     "staffFallback": "Staff",
-    "notConfigured": "This section isn't set up yet. It's coming in an upcoming update.",
     "connection": {
       "online": "Online",
       "offline": "Offline",
@@ -2762,6 +2761,10 @@
       "subtitle": "Name and account details",
       "changePhoto": "Change photo",
       "removePhoto": "Remove photo",
+      "removeTitle": "Remove your profile photo?",
+      "removeBody": "Your photo will be removed and your initials will show instead. You can add a new photo any time.",
+      "removeConfirm": "Remove photo",
+      "keepPhoto": "Keep photo",
       "chooseFromLibrary": "Choose from library",
       "takePhoto": "Take photo",
       "photoA11y": "Profile photo. Double tap to change.",
@@ -2922,6 +2925,46 @@
     },
     "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
     "about": { "title": "About PatelRep", "subtitle": "Version and app information" }
+  },
+  "about": {
+    "tagline": "Property operations, simplified.",
+    "versionLine": "Version {{version}}",
+    "version": "App version",
+    "build": "Build number",
+    "updateId": "Update ID",
+    "unavailable": "Unavailable",
+    "contactSupport": "Contact Support",
+    "opensInBrowser": "Opens in your browser · needs internet",
+    "opensInBrowserHint": "Opens in your web browser",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "sections": {
+      "application": "Application information",
+      "product": "Product",
+      "support": "Support",
+      "legal": "Legal & privacy"
+    },
+    "whatsNew": {
+      "title": "What’s New",
+      "rowSubtitle": "Changes in version {{version}}",
+      "headline": "What’s New in PatelRep",
+      "version": "Version {{version}}",
+      "emptyTitle": "Release notes aren’t available for this version.",
+      "sections": { "features": "New features", "improvements": "Improvements", "fixes": "Fixes" }
+    },
+    "licenses": {
+      "title": "Open-source licenses",
+      "rowSubtitle": "Works offline",
+      "intro": "PatelRep is built with open-source software. These {{count}} packages are the ones PatelRep uses directly; each relies on further packages that carry their own notices.",
+      "expandHint": "Shows the license text",
+      "collapseHint": "Hides the license text",
+      "noText": "This package does not include a separate license file. It is released under the {{license}} license.",
+      "emptyTitle": "License notices aren’t available."
+    },
+    "errors": {
+      "offline": "You’re offline. Connect to the internet to open the {{page}}.",
+      "failed": "We couldn’t open the {{page}}. Try again."
+    }
   },
   "profile": {
     "me": "Me",
@@ -3624,6 +3667,7 @@
       "none": "Your hotel hasn't added a support contact yet.",
       "noneHint": "Please contact your department manager or the front desk for assistance.",
       "loadError": "Couldn't load your hotel's contacts. Check your connection and try again.",
+      "callFailed": "This phone couldn't start the call. Dial the number directly.",
       "retry": "Try again"
     },
     "reports": {

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SimpleConfirmSheet } from "@/components/security/SimpleConfirmSheet";
 import { Button } from "@/components/ui/Button";
+import { getAppInfo } from "@/lib/app/appInfo";
 import { signOutOtherDevices } from "@/lib/auth/signOut";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -49,8 +49,8 @@ export default function DevicesScreen() {
 
   const platformName = Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : String(Platform.OS);
   const signedIn = formatSignedIn(signedInAt, i18n?.language ?? "en");
-  const version = Constants.expoConfig?.version ?? "dev";
-  const deviceLine = `${platformName} ${String(Platform.Version)} · PatelRep v${version}`;
+  const version = getAppInfo().version;
+  const deviceLine = `${platformName} ${String(Platform.Version)}${version ? ` · PatelRep v${version}` : ""}`;
 
   async function confirm() {
     if (busy) return;

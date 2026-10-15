@@ -2741,7 +2741,6 @@
     "title": "Ajustes",
     "back": "Atrás",
     "staffFallback": "Personal",
-    "notConfigured": "Esta sección aún no está configurada. Llegará en una próxima actualización.",
     "connection": {
       "online": "En línea",
       "offline": "Sin conexión",
@@ -2762,6 +2761,10 @@
       "subtitle": "Nombre y datos de la cuenta",
       "changePhoto": "Cambiar foto",
       "removePhoto": "Quitar foto",
+      "removeTitle": "¿Quitar tu foto de perfil?",
+      "removeBody": "Se quitará tu foto y se mostrarán tus iniciales. Puedes agregar una foto nueva cuando quieras.",
+      "removeConfirm": "Quitar foto",
+      "keepPhoto": "Conservar foto",
       "chooseFromLibrary": "Elegir de la galería",
       "takePhoto": "Tomar foto",
       "photoA11y": "Foto de perfil. Toca dos veces para cambiarla.",
@@ -2922,6 +2925,46 @@
     },
     "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
     "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" }
+  },
+  "about": {
+    "tagline": "Operaciones del hotel, simplificadas.",
+    "versionLine": "Versión {{version}}",
+    "version": "Versión de la app",
+    "build": "Número de compilación",
+    "updateId": "ID de actualización",
+    "unavailable": "No disponible",
+    "contactSupport": "Contactar con soporte",
+    "opensInBrowser": "Se abre en el navegador · requiere internet",
+    "opensInBrowserHint": "Se abre en tu navegador web",
+    "privacy": "Política de privacidad",
+    "terms": "Términos del servicio",
+    "sections": {
+      "application": "Información de la aplicación",
+      "product": "Producto",
+      "support": "Soporte",
+      "legal": "Legal y privacidad"
+    },
+    "whatsNew": {
+      "title": "Novedades",
+      "rowSubtitle": "Cambios de la versión {{version}}",
+      "headline": "Novedades de PatelRep",
+      "version": "Versión {{version}}",
+      "emptyTitle": "Las notas de la versión no están disponibles para esta versión.",
+      "sections": { "features": "Nuevas funciones", "improvements": "Mejoras", "fixes": "Correcciones" }
+    },
+    "licenses": {
+      "title": "Licencias de código abierto",
+      "rowSubtitle": "Funciona sin conexión",
+      "intro": "PatelRep está creado con software de código abierto. Estos {{count}} paquetes son los que PatelRep usa directamente; cada uno depende de otros paquetes que tienen sus propios avisos.",
+      "expandHint": "Muestra el texto de la licencia",
+      "collapseHint": "Oculta el texto de la licencia",
+      "noText": "Este paquete no incluye un archivo de licencia aparte. Se distribuye bajo la licencia {{license}}.",
+      "emptyTitle": "Los avisos de licencia no están disponibles."
+    },
+    "errors": {
+      "offline": "Sin conexión. Conéctate a internet para abrir: {{page}}.",
+      "failed": "No pudimos abrir: {{page}}. Inténtalo de nuevo."
+    }
   },
   "profile": {
     "me": "Yo",
@@ -3624,6 +3667,7 @@
       "none": "Tu hotel aún no ha agregado un contacto de soporte.",
       "noneHint": "Por favor comunícate con tu gerente de departamento o con recepción para recibir ayuda.",
       "loadError": "No se pudieron cargar los contactos de tu hotel. Revisa tu conexión e inténtalo de nuevo.",
+      "callFailed": "Este teléfono no pudo iniciar la llamada. Marca el número directamente.",
       "retry": "Intentar de nuevo"
     },
     "reports": {

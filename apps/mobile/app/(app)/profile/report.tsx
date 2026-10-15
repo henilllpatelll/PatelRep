@@ -59,6 +59,7 @@ export default function ReportProblemScreen() {
   const [discardOpen, setDiscardOpen] = useState(false);
   const busy = useRef(false);
   const dirtyRef = useRef(false);
+  const discarding = useRef(false);
 
   // Restore this person's unsent draft (never another person's: the key carries person + hotel).
   useEffect(() => {
@@ -126,12 +127,18 @@ export default function ReportProblemScreen() {
   }
 
   async function discard() {
-    if (scope) await clearDraft(scope);
-    dirtyRef.current = false;
-    setDraft({ area: null, message: "", blocking: false, includeDiagnostics: false, requestId: newRequestId() });
-    setTouched(false);
-    setProblem(null);
-    setDiscardOpen(false);
+    if (discarding.current) return;
+    discarding.current = true;
+    try {
+      if (scope) await clearDraft(scope);
+      dirtyRef.current = false;
+      setDraft({ area: null, message: "", blocking: false, includeDiagnostics: false, requestId: newRequestId() });
+      setTouched(false);
+      setProblem(null);
+      setDiscardOpen(false);
+    } finally {
+      discarding.current = false;
+    }
   }
 
   if (done) {

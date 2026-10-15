@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Platform } from "react-native";
-import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
+import { getAppInfo } from "@/lib/app/appInfo";
 import { useSyncOverview } from "@/lib/offline/useSyncOverview";
 import { buildDiagnostics, type DiagnosticEntry } from "@/lib/support/diagnostics";
 import { useAppStore } from "@/stores/appStore";
@@ -11,13 +11,13 @@ export function useDiagnostics(): { entries: DiagnosticEntry[]; ready: boolean }
   const { i18n } = useTranslation();
   const user = useAppStore((s) => s.user);
   const { overview } = useSyncOverview();
-  const build = Platform.OS === "ios" ? Constants.expoConfig?.ios?.buildNumber : Constants.expoConfig?.android?.versionCode;
+  const { version, build } = getAppInfo();
   const role = user?.effective_role ?? user?.role ?? null;
 
   const entries = useMemo(
     () =>
       buildDiagnostics({
-        appVersion: Constants.expoConfig?.version ?? null,
+        appVersion: version,
         build: build ?? null,
         platform: Platform.OS,
         osVersion: Platform.Version,
@@ -30,7 +30,7 @@ export function useDiagnostics(): { entries: DiagnosticEntry[]; ready: boolean }
         failed: overview.reliable ? overview.attention : null,
         syncStatus: overview.status,
       }),
-    [build, role, i18n.language, overview],
+    [version, build, role, i18n.language, overview],
   );
   return { entries, ready: overview.reliable };
 }

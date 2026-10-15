@@ -26,6 +26,7 @@ export function ContactSheet({ visible, onClose }: { visible: boolean; onClose: 
   const { t } = useTranslation();
   const theme = useTheme();
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [callFailed, setCallFailed] = useState(false);
 
   const load = useCallback(() => {
     let live = true;
@@ -39,6 +40,9 @@ export function ContactSheet({ visible, onClose }: { visible: boolean; onClose: 
   }, []);
 
   useEffect(() => (visible ? load() : undefined), [visible, load]);
+  useEffect(() => {
+    if (!visible) setCallFailed(false);
+  }, [visible]);
 
   const roleLabel = (role: string) => {
     const key = `staff.roles.${role}`;
@@ -87,10 +91,18 @@ export function ContactSheet({ visible, onClose }: { visible: boolean; onClose: 
             <Button
               label={t("help.contact.call", { phone: state.kind === "ready" ? state.data.hotel.phone : "" })}
               icon="call"
-              onPress={() => void Linking.openURL(`tel:${phone}`).catch(() => undefined)}
+              onPress={() => {
+                setCallFailed(false);
+                void Linking.openURL(`tel:${phone}`).catch(() => setCallFailed(true));
+              }}
               accessibilityLabel={`${t("help.contact.hotelLine")}: ${state.kind === "ready" ? state.data.hotel.phone : ""}`}
               testID="contact-call"
             />
+          ) : null}
+          {callFailed ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="alert" style={[styles.body, { color: theme.status.dirty }]} testID="contact-call-error">
+              {t("help.contact.callFailed")}
+            </Text>
           ) : null}
         </View>
       ) : (

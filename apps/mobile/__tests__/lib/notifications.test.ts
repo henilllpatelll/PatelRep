@@ -33,6 +33,7 @@ jest.mock("expo-constants", () => ({
   __esModule: true,
   default: { expoConfig: { version: "1.4.0", extra: { eas: { projectId: "proj-1" } } } },
 }));
+jest.mock("@/lib/app/appInfo", () => ({ getAppInfo: () => ({ name: "PatelRep", version: "1.4.0", build: "7", updateId: null }) }));
 jest.mock("react-native", () => ({ Platform: { OS: "android" }, Linking: { openSettings: jest.fn() } }));
 
 import AsyncStorage from "@react-native-async-storage/async-storage";

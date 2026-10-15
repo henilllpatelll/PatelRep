@@ -517,12 +517,31 @@ describe("Profile photo", () => {
       avatar_url: "https://signed.test/a.jpg",
       has_uploaded_avatar: true,
     });
+    fireEvent.press(getByTestId("photo-remove"));
+    // Nothing is removed until the person confirms.
+    expect(mockApiDelete).not.toHaveBeenCalled();
+    expect(getByTestId("photo-remove-sheet")).toBeTruthy();
     await act(async () => {
-      fireEvent.press(getByTestId("photo-remove"));
+      fireEvent.press(getByTestId("photo-remove-confirm"));
     });
+    expect(mockApiDelete).toHaveBeenCalledTimes(1);
     expect(mockApiDelete).toHaveBeenCalledWith("/staff/me/avatar");
     await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith("Photo removed"));
     expect(queryByTestId("avatar-image")).toBeNull();
+  });
+
+  it("keeps the photo when removal is not confirmed", async () => {
+    const { getByTestId, queryByTestId } = await openPhotoSheet({
+      ...PROFILE,
+      avatar_url: "https://signed.test/a.jpg",
+      has_uploaded_avatar: true,
+    });
+    fireEvent.press(getByTestId("photo-remove"));
+    fireEvent.press(getByTestId("photo-remove-keep"));
+    expect(getByTestId("photo-actions")).toBeTruthy();
+    expect(queryByTestId("photo-remove-sheet")).toBeNull();
+    expect(mockApiDelete).not.toHaveBeenCalled();
+    expect(mockToast.success).not.toHaveBeenCalled();
   });
 });
 

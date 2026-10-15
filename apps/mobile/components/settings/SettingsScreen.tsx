@@ -45,7 +45,7 @@ export function SettingsScreen({ title, back, children }: SettingsScreenProps) {
         <Text
           maxFontSizeMultiplier={1.4}
           accessibilityRole="header"
-          numberOfLines={1}
+          numberOfLines={2}
           style={[styles.title, { color: theme.textPrimary }]}
           testID="settings-title"
         >

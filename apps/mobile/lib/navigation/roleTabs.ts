@@ -113,6 +113,8 @@ export const HIDDEN_APP_ROUTES = [
   "profile/my-reports",
   "profile/diagnostics",
   "profile/about",
+  "profile/whats-new",
+  "profile/licenses",
 ];
 
 export function getTabsForRole(role: UserRole): RoleTabDef[] {

@@ -117,6 +117,7 @@ export default function PersonalInformationScreen() {
   }
 
   async function removePhoto() {
+    if (photoBusy) return;
     setPhotoSheet(false);
     setPhotoBusy("removing");
     try {

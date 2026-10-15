@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { getAppInfo } from "@/lib/app/appInfo";
 import { Platform } from "react-native";
 import { api } from "@/lib/api/client";
 import { ensureNotificationChannels } from "./channels";
@@ -58,11 +59,12 @@ export async function getExpoPushToken(): Promise<string | null> {
 
 export async function savePushTokenToProfile(token: string): Promise<void> {
   const platform = Platform.OS === "ios" || Platform.OS === "android" ? Platform.OS : undefined;
+  const appVersion = getAppInfo().version;
   await api.patch("/staff/me/push-token", {
     token,
     installation_id: await getInstallationId(),
     ...(platform ? { platform } : {}),
-    ...(Constants.expoConfig?.version ? { app_version: String(Constants.expoConfig.version) } : {}),
+    ...(appVersion ? { app_version: appVersion } : {}),
   });
   // Remembered only so sign-out can detach this device (the token is not a credential).
   await AsyncStorage.setItem(PUSH_TOKEN_KEY, token).catch(() => undefined);

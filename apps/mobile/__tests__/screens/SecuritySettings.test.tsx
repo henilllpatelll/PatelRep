@@ -42,6 +42,9 @@ jest.mock("expo-router", () => ({
   },
 }));
 jest.mock("expo-constants", () => ({ __esModule: true, default: { expoConfig: { version: "1.0.0" } } }));
+jest.mock("@/lib/app/appInfo", () => ({
+  getAppInfo: () => ({ name: "PatelRep", version: "1.0.0", build: "1", updateId: null }),
+}));
 jest.mock("expo-secure-store", () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 6,
   getItemAsync: jest.fn(async (k: string) => (mockSecure.has(k) ? (mockSecure.get(k) as string) : null)),

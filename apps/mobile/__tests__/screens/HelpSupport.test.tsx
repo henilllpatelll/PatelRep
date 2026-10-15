@@ -127,6 +127,18 @@ describe("Help & Support home", () => {
     expect(mockOpenURL).toHaveBeenCalledWith("tel:5125550100");
   });
 
+  it("tells the person when the phone could not start the call, instead of failing silently", async () => {
+    mockOpenURL.mockRejectedValueOnce(new Error("no telephony"));
+    const { getByTestId, findByTestId, queryByTestId } = render(<HelpScreen />);
+    fireEvent.press(getByTestId("row-contact"));
+    await findByTestId("contact-call");
+    expect(queryByTestId("contact-call-error")).toBeNull();
+    await act(async () => {
+      fireEvent.press(getByTestId("contact-call"));
+    });
+    expect((await findByTestId("contact-call-error")).props.children).toBe("This phone couldn't start the call. Dial the number directly.");
+  });
+
   it("says plainly when the hotel has set up no contact, and never invents one", async () => {
     mockContacts.mockResolvedValue({ hotel: { name: "Lone Star Inn", phone: null }, contacts: [] });
     const { getByTestId, findByTestId, queryByTestId, findByText } = render(<HelpScreen />);
@@ -330,6 +342,24 @@ describe("Report a Problem", () => {
     });
     expect(r.getByTestId("report-message").props.value).toBe("");
     expect(await AsyncStorage.getItem("@patelrep/mobile/report-draft:hotel-1:user-1")).toBeNull();
+  });
+
+  it("discards a draft once even if Discard is pressed twice", async () => {
+    await AsyncStorage.setItem(
+      "@patelrep/mobile/report-draft:hotel-1:user-1",
+      JSON.stringify({ area: "sync", message: "Saved earlier but never sent", blocking: false, includeDiagnostics: false, requestId: "req-9" }),
+    );
+    const removeSpy = jest.spyOn(AsyncStorage, "removeItem");
+    const r = render(<ReportScreen />);
+    await waitFor(() => expect(r.getByTestId("report-message").props.value).toBe("Saved earlier but never sent"));
+    removeSpy.mockClear();
+    fireEvent.press(r.getByTestId("report-discard"));
+    await act(async () => {
+      fireEvent.press(r.getByTestId("report-discard-confirm"));
+      fireEvent.press(r.getByTestId("report-discard-confirm"));
+    });
+    expect(removeSpy.mock.calls.filter(([key]) => String(key).includes("report-draft"))).toHaveLength(1);
+    expect(r.getByTestId("report-message").props.value).toBe("");
   });
 
   it("never loads another person's draft", async () => {
