@@ -65,7 +65,7 @@ export function OccupancyImportModal({ date, onClose }: { date?: string; onClose
   </div></div>
 }
 
-function UploadContent({ tab, file, inputRef, onFile, t }: { tab: ImportKind; file: File | null; inputRef: React.RefObject<HTMLInputElement>; onFile: (file?: File) => void; t: any }) {
+function UploadContent({ tab, file, inputRef, onFile, t }: { tab: ImportKind; file: File | null; inputRef: React.RefObject<HTMLInputElement | null>; onFile: (file?: File) => void; t: any }) {
   const label = tab === 'hk-details' ? t('housekeeping.occupancyImport.hkDropzoneLabel') : t('housekeeping.occupancyImport.taskSheetDropzoneLabel')
   const description = tab === 'hk-details' ? t('housekeeping.occupancyImport.hkDetailsDescription') : t('housekeeping.occupancyImport.taskSheetDescription')
   const inputId = `opera-${tab}-file`
