@@ -74,6 +74,12 @@
         }
       ],
       "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow PatelRep to use Face ID to unlock the app."
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {

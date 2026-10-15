@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, waitFor, within } from "@testing-library/react-native";
-import { Alert, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { makeTranslator as mockMakeTranslator } from "../helpers/i18n";
 import { HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 
@@ -66,6 +66,13 @@ jest.mock("@/i18n", () => ({
   changeLanguage: jest.fn(),
 }));
 
+jest.mock("@/components/security/SignOutSheet", () => ({
+  SignOutSheet: ({ visible }: { visible: boolean }) => {
+    const { View } = require("react-native");
+    return visible ? <View testID="signout-sheet-mock" /> : null;
+  },
+}));
+
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     auth: { signOut: jest.fn() },
@@ -103,20 +110,21 @@ jest.mock("@/stores/appStore", () => {
     flushQueue: mockFlushQueue,
     unreadCount: mockUnread,
   });
-  return { useAppStore: Object.assign(() => buildState(), { getState: () => buildState() }) };
+  return {
+    useAppStore: Object.assign((selector?: (s: ReturnType<typeof buildState>) => unknown) => (selector ? selector(buildState()) : buildState()), {
+      getState: () => buildState(),
+    }),
+  };
 });
 
 import SettingsHome from "@/app/(app)/profile";
-import SecurityScreen from "@/app/(app)/profile/security";
 import NotificationSettings from "@/app/(app)/profile/notifications";
 import AppearanceScreen from "@/app/(app)/profile/appearance";
 import LanguageScreen from "@/app/(app)/profile/language";
 import SyncScreen from "@/app/(app)/profile/sync";
 import HelpScreen from "@/app/(app)/profile/help";
 import AboutScreen from "@/app/(app)/profile/about";
-import { supabase } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
-import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 
 const ALL_ROLES = [
   ["housekeeper", "Housekeeper"],
@@ -303,55 +311,17 @@ describe("Settings home", () => {
 });
 
 describe("Settings home sign out", () => {
-  const entry = (taskId: string) => ({ taskId, userId: "user-1", tenantId: "hotel-1", op: "complete", state: "pending" });
-
-  afterEach(() => {
-    useTaskOutbox.setState({ scope: null, entries: {}, hydrated: false });
-    jest.restoreAllMocks();
-  });
-
-  it("warns, names how many completions are unsynced, and signs out only after confirmation", async () => {
-    useTaskOutbox.setState({
-      scope: "hotel-1:user-1",
-      hydrated: true,
-      entries: { "t-1": entry("t-1"), "t-2": entry("t-2") } as never,
-    });
-    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
-    const { getByTestId } = render(<SettingsHome />);
-
+  it("opens the sign-out confirmation instead of signing out immediately", () => {
+    const { getByTestId, queryByTestId } = render(<SettingsHome />);
+    expect(queryByTestId("signout-sheet-mock")).toBeNull();
     fireEvent.press(getByTestId("row-sign-out"));
-
-    expect(alert).toHaveBeenCalledTimes(1);
-    const [title, message, buttons] = alert.mock.calls[0];
-    expect(title).toBe("Task completions not synced");
-    expect(String(message)).toContain("2 task completions");
-    expect(supabase.auth.signOut).not.toHaveBeenCalled();
-    expect(buttons?.map((b) => b.text)).toEqual(["Cancel", "Sign out anyway"]);
-
-    await buttons?.[1].onPress?.();
-    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
-    expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
-  });
-
-  it("uses the plain confirmation when nothing is waiting, and ignores another account's entries", () => {
-    useTaskOutbox.setState({
-      scope: "hotel-1:someone-else",
-      hydrated: true,
-      entries: { "t-9": { ...entry("t-9"), userId: "someone-else" } } as never,
-    });
-    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
-    const { getByTestId } = render(<SettingsHome />);
-
-    fireEvent.press(getByTestId("row-sign-out"));
-
-    expect(alert.mock.calls[0][0]).toBe("Sign out");
-    expect(alert.mock.calls[0][1]).toBe("Are you sure?");
+    expect(getByTestId("signout-sheet-mock")).toBeTruthy();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });
 
 describe("Settings destination screens", () => {
   const shells = [
-    ["Security & Sign-in", SecurityScreen],
     ["Notifications", NotificationSettings],
     ["Help & Support", HelpScreen],
     ["About PatelRep", AboutScreen],
@@ -365,14 +335,14 @@ describe("Settings destination screens", () => {
   });
 
   it("back goes to the previous screen when there is history", () => {
-    const { getByTestId } = render(<SecurityScreen />);
+    const { getByTestId } = render(<HelpScreen />);
     fireEvent.press(getByTestId("settings-back"));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it("back falls back to the Settings root after a deep link with no history", () => {
     mockCanGoBack = false;
-    const { getByTestId } = render(<SecurityScreen />);
+    const { getByTestId } = render(<HelpScreen />);
     fireEvent.press(getByTestId("settings-back"));
     expect(mockBack).not.toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith("/(app)/profile");
@@ -453,6 +423,8 @@ describe("Settings route registration", () => {
     for (const name of [
       "profile/personal",
       "profile/security",
+      "profile/change-password",
+      "profile/devices",
       "profile/notifications",
       "profile/appearance",
       "profile/language",

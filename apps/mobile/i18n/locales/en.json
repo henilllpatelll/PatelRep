@@ -18,17 +18,75 @@
     "login": "Log In",
     "email": "Email address",
     "password": "Password",
-    "magicLink": "Send Magic Link",
-    "magicLinkSent": "Check your email for a login link",
-    "signInWith": "Sign in with email/password",
-    "propertySubtitle": "v2 - {{property}}",
+    "passwordForm": {
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "requirements": "Use at least {{min}} characters. A longer passphrase is stronger. You can paste from a password manager.",
+      "errors": {
+        "currentRequired": "Enter your current password.",
+        "tooShort": "Use at least {{min}} characters.",
+        "mismatch": "The two passwords don't match.",
+        "same": "Choose a password different from your current one.",
+        "invalidCredentials": "Your current password isn't right.",
+        "weakPassword": "That password is too easy to guess. Try a longer passphrase.",
+        "samePassword": "Choose a password different from your current one.",
+        "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
+        "offline": "Can't reach the server. Check your connection and try again.",
+        "session": "Your session expired. Please sign in again.",
+        "reauthRequired": "For your security, sign out and sign in again, then retry.",
+        "emailNotConfirmed": "Your email hasn't been confirmed yet.",
+        "linkExpired": "This link has expired. Request a new one.",
+        "generic": "We couldn't update your password. Please try again."
+      }
+    },
+    "magicLink": "Email me a sign-in link",
+    "magicLinkSent": "If that email belongs to a PatelRep account, a sign-in link is on its way. Check your inbox.",
     "signInEyebrow": "Sign in",
     "welcomeBack": "Welcome back.",
     "startShift": "Sign in to start your shift.",
-    "signInWithPhone": "Sign in with phone",
-    "newTo": "New to PatelRep?",
-    "getInviteLink": "Get the invite link",
-    "errorTitle": "Error"
+    "errorTitle": "Error",
+    "staffSignIn": "Staff sign-in",
+    "magicLinkIntro": "We'll email you a link that signs you in on this phone.",
+    "signInWithEmailLink": "Email me a sign-in link instead",
+    "signInWithPassword": "Sign in with password instead",
+    "forgotPassword": "Forgot password?",
+    "inviteNotice": "New employee? Ask your hotel administrator for an invitation.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "back": "Back",
+    "errors": {
+      "emailRequired": "Enter your email address.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Enter your password.",
+      "invalidCredentials": "That email or password isn't right. Please try again.",
+      "emailNotConfirmed": "Your email hasn't been confirmed yet. Check your inbox for the invitation.",
+      "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
+      "offline": "Can't reach the server. Check your connection and try again.",
+      "generic": "We couldn't sign you in. Please try again."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "body": "Enter the email address you sign in with and we'll send you a link to choose a new password.",
+      "sentBody": "Check your email for next steps.",
+      "sentNote": "If that address belongs to a PatelRep account, a reset link is on its way. The link works once and expires soon.",
+      "send": "Send reset link"
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "body": "Pick a password you don't use anywhere else. A passphrase of a few words works well.",
+      "save": "Save password",
+      "doneTitle": "Password updated",
+      "doneBody": "Your new password is saved. Use it the next time you sign in.",
+      "continue": "Continue"
+    },
+    "callback": {
+      "expiredTitle": "This link has expired",
+      "expiredBody": "Sign-in and reset links work once and expire quickly. Go back and request a new one.",
+      "failedTitle": "We couldn't use this link",
+      "failedBody": "The link may be incomplete or already used. Go back and try again.",
+      "backToSignIn": "Back to sign in"
+    }
   },
   "tabs": {
     "home": "Home",
@@ -2571,6 +2629,113 @@
       "empty": "Choose at least one item or describe what you need.",
       "noteTooLong": "Details are too long."
     }
+  },
+  "security": {
+    "sections": {
+      "password": "Password",
+      "protection": "App protection",
+      "devices": "Device sessions",
+      "actions": "Account security"
+    },
+    "password": {
+      "title": "Change password",
+      "subtitle": "Choose a new password",
+      "intro": "Enter your current password, then choose a new one. You'll stay signed in on this phone.",
+      "save": "Save password",
+      "saved": "Password updated"
+    },
+    "biometric": {
+      "title": "Biometric app lock",
+      "faceId": "Face ID",
+      "touchId": "Touch ID",
+      "face": "Face unlock",
+      "fingerprint": "Fingerprint",
+      "generic": "Biometrics",
+      "on": "On — unlock with biometrics or your phone passcode",
+      "off": "Off — require {{name}} to open PatelRep",
+      "checking": "Checking this device…",
+      "notEnrolled": "Set up Face ID, a fingerprint or a screen lock in your phone's settings first.",
+      "unsupported": "Not available on this device.",
+      "note": "App lock protects PatelRep on this phone. It isn't a new sign-in: your account stays signed in and unsent work keeps syncing.",
+      "setupTitle": "Protect PatelRep with {{name}}?",
+      "setupBody": "When PatelRep opens or after you've been away, you'll need {{name}} (or your phone passcode) to see rooms, tasks and guest information. Your biometric data stays with your phone and is never shared with PatelRep.",
+      "enable": "Enable",
+      "enablePrompt": "Confirm it's you to turn on app lock",
+      "disablePrompt": "Confirm it's you to turn off app lock",
+      "enabled": "App lock is on",
+      "disabled": "App lock is off",
+      "cancelled": "Cancelled. App lock was not turned on.",
+      "authFailed": "We couldn't verify you. Please try again."
+    },
+    "lockAfter": {
+      "title": "Lock after inactivity",
+      "needsLock": "Turn on app lock to choose when it locks",
+      "options": {
+        "immediately": "Immediately",
+        "m1": "After 1 minute",
+        "m5": "After 5 minutes",
+        "m15": "After 15 minutes",
+        "m30": "After 30 minutes"
+      }
+    },
+    "devices": {
+      "title": "Your devices",
+      "subtitle": "This phone and other sessions",
+      "thisDevice": "This device",
+      "current": "Current",
+      "signedIn": "Signed in {{when}}",
+      "note": "PatelRep can't list your other devices. If you've signed in somewhere you no longer use, you can sign out of every other device below. You'll stay signed in here."
+    },
+    "others": {
+      "title": "Sign out of other devices",
+      "subtitle": "Keep this phone signed in",
+      "offline": "Connect to the internet to do this.",
+      "confirmTitle": "Sign out of other devices?",
+      "confirmBody": "Every other phone or browser signed in to your account will be signed out. You'll stay signed in on this phone. An other device may stay open briefly until its current access expires.",
+      "confirm": "Sign out other devices",
+      "done": "Other devices were signed out",
+      "errors": {
+        "offline": "Can't reach the server. Check your connection and try again.",
+        "session": "Your session expired. Please sign in again.",
+        "generic": "We couldn't sign out your other devices. Please try again."
+      }
+    },
+    "signOut": {
+      "title": "Sign out of this phone?",
+      "body": "You'll be signed out on this phone only. Your other devices stay signed in.",
+      "unsyncedTitle": "{{count}} change(s) not synced yet",
+      "unsyncedBody": "They stay saved on this phone under your account and are sent the next time you sign in here with a connection. They won't sync while you're signed out.",
+      "offlineNote": "You're offline right now.",
+      "viewDetails": "View details",
+      "failed": "We couldn't sign you out. Please try again."
+    },
+    "unsynced": {
+      "title": "Unsynced changes",
+      "intro": "{{count}} change(s) saved on this phone haven't reached the server yet.",
+      "none": "Everything on this phone is synced.",
+      "waiting": "Waiting to sync",
+      "needsAttention": "{{count}} need(s) attention",
+      "since": "since {{when}}",
+      "categories": {
+        "roomUpdates": "Room updates",
+        "taskCompletions": "Task completions",
+        "workOrders": "Work orders",
+        "logbook": "Logbook entries",
+        "cleaningSessions": "Cleaning sessions"
+      }
+    },
+    "errors": {
+      "saveFailed": "Couldn't save that setting. Please try again."
+    }
+  },
+  "lock": {
+    "title": "PatelRep is locked",
+    "body": "Unlock with biometrics or your phone passcode to continue.",
+    "unlock": "Unlock",
+    "prompt": "Unlock PatelRep",
+    "cancelled": "Unlock cancelled. Tap Unlock to try again.",
+    "failed": "We couldn't verify you. Tap Unlock to try again.",
+    "unavailable": "This phone has no biometrics or passcode set up for unlocking. Sign out and sign in again to continue."
   },
   "settings": {
     "title": "Settings",

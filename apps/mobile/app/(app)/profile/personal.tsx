@@ -30,6 +30,7 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore } from "@/stores/appStore";
+import { runWithoutAppLock } from "@/stores/appLockStore";
 
 const MAX_FONT_SCALE = 1.4;
 const AVATAR_SIZE = 96;
@@ -88,14 +89,14 @@ export default function PersonalInformationScreen() {
       let result: ImagePicker.ImagePickerResult;
       const options = { allowsEditing: true, aspect: [1, 1] as [number, number], quality: 1 };
       if (source === "camera") {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        const permission = await runWithoutAppLock(() => ImagePicker.requestCameraPermissionsAsync());
         if (!permission.granted) {
           toast.error(t("settings.personal.cameraDenied"));
           return;
         }
-        result = await ImagePicker.launchCameraAsync(options);
+        result = await runWithoutAppLock(() => ImagePicker.launchCameraAsync(options));
       } else {
-        result = await ImagePicker.launchImageLibraryAsync(options);
+        result = await runWithoutAppLock(() => ImagePicker.launchImageLibraryAsync(options));
       }
       const picked = result.assets?.[0]?.uri;
       if (result.canceled || !picked) return;

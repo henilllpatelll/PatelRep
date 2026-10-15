@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -16,18 +16,38 @@ interface SettingsRowProps {
   trailing?: string | null;
   first?: boolean;
   testID?: string;
+  /** Greys the row out and ignores presses (feature unavailable right now). */
+  disabled?: boolean;
+  /** Renders an on/off switch instead of a chevron; pressing the row toggles it. */
+  switchValue?: boolean;
+  onSwitchChange?: (next: boolean) => void;
 }
 
 /** One navigation row inside a SettingsSection: icon tile, label + subtitle, optional badge, chevron. */
-export function SettingsRow({ icon, label, subtitle, onPress, destructive, trailing, first, testID }: SettingsRowProps) {
+export function SettingsRow({
+  icon,
+  label,
+  subtitle,
+  onPress,
+  destructive,
+  trailing,
+  first,
+  testID,
+  disabled,
+  switchValue,
+  onSwitchChange,
+}: SettingsRowProps) {
   const theme = useTheme();
   const fg = destructive ? theme.status.dirty : theme.textPrimary;
+  const isSwitch = switchValue !== undefined;
   const a11yLabel = [label, subtitle, trailing].filter(Boolean).join(", ");
+  const press = isSwitch ? () => onSwitchChange?.(!switchValue) : onPress;
   return (
     <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole="button"
+      onPress={press}
+      disabled={!press || disabled}
+      accessibilityRole={isSwitch ? "switch" : "button"}
+      accessibilityState={isSwitch ? { checked: switchValue, disabled: !!disabled } : { disabled: !!disabled }}
       accessibilityLabel={a11yLabel}
       testID={testID}
       android_ripple={{ color: theme.borderSubtle }}
@@ -35,6 +55,7 @@ export function SettingsRow({ icon, label, subtitle, onPress, destructive, trail
         styles.row,
         !first && { borderTopColor: theme.borderSubtle, borderTopWidth: StyleSheet.hairlineWidth },
         pressed && { backgroundColor: theme.surfaceMuted },
+        disabled && { opacity: 0.5 },
       ]}
     >
       <View style={[styles.iconTile, { backgroundColor: destructive ? theme.status.dirtySoft : theme.primarySoft }]}>
@@ -57,7 +78,18 @@ export function SettingsRow({ icon, label, subtitle, onPress, destructive, trail
           </Text>
         </View>
       ) : null}
-      {onPress && !destructive ? <Ionicons name="chevron-forward" size={16} color={theme.textDisabled} /> : null}
+      {isSwitch ? (
+        <Switch
+          value={switchValue}
+          onValueChange={onSwitchChange}
+          disabled={disabled}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          trackColor={{ true: theme.primaryAction, false: theme.border }}
+          testID={testID ? `${testID}-switch` : undefined}
+        />
+      ) : null}
+      {onPress && !destructive && !isSwitch ? <Ionicons name="chevron-forward" size={16} color={theme.textDisabled} /> : null}
     </Pressable>
   );
 }

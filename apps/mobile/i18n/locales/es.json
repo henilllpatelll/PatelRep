@@ -18,17 +18,75 @@
     "login": "Iniciar sesión",
     "email": "Correo electrónico",
     "password": "Contraseña",
-    "magicLink": "Enviar enlace mágico",
-    "magicLinkSent": "Revisa tu correo para el enlace de acceso",
-    "signInWith": "Iniciar sesión con correo/contraseña",
-    "propertySubtitle": "v2 - {{property}}",
+    "passwordForm": {
+      "current": "Contraseña actual",
+      "new": "Nueva contraseña",
+      "confirm": "Confirma la nueva contraseña",
+      "requirements": "Usa al menos {{min}} caracteres. Una frase más larga es más segura. Puedes pegar desde un administrador de contraseñas.",
+      "errors": {
+        "currentRequired": "Ingresa tu contraseña actual.",
+        "tooShort": "Usa al menos {{min}} caracteres.",
+        "mismatch": "Las dos contraseñas no coinciden.",
+        "same": "Elige una contraseña distinta a la actual.",
+        "invalidCredentials": "Tu contraseña actual no es correcta.",
+        "weakPassword": "Esa contraseña es muy fácil de adivinar. Prueba una frase más larga.",
+        "samePassword": "Elige una contraseña distinta a la actual.",
+        "rateLimited": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+        "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+        "reauthRequired": "Por tu seguridad, cierra sesión, vuelve a iniciarla e inténtalo otra vez.",
+        "emailNotConfirmed": "Tu correo aún no está confirmado.",
+        "linkExpired": "Este enlace venció. Solicita uno nuevo.",
+        "generic": "No pudimos actualizar tu contraseña. Inténtalo de nuevo."
+      }
+    },
+    "magicLink": "Envíame un enlace de acceso",
+    "magicLinkSent": "Si ese correo pertenece a una cuenta de PatelRep, te llegará un enlace de acceso. Revisa tu bandeja de entrada.",
     "signInEyebrow": "Iniciar sesión",
     "welcomeBack": "Te damos la bienvenida.",
     "startShift": "Inicia sesión para comenzar tu turno.",
-    "signInWithPhone": "Iniciar sesión con teléfono",
-    "newTo": "¿Primera vez en PatelRep?",
-    "getInviteLink": "Obtén el enlace de invitación",
-    "errorTitle": "Error"
+    "errorTitle": "Error",
+    "staffSignIn": "Acceso del personal",
+    "magicLinkIntro": "Te enviaremos por correo un enlace que inicia sesión en este teléfono.",
+    "signInWithEmailLink": "Mejor envíame un enlace por correo",
+    "signInWithPassword": "Mejor iniciar sesión con contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "inviteNotice": "¿Eres nuevo? Pide una invitación al administrador de tu hotel.",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "back": "Atrás",
+    "errors": {
+      "emailRequired": "Ingresa tu correo electrónico.",
+      "emailInvalid": "Ingresa un correo electrónico válido.",
+      "passwordRequired": "Ingresa tu contraseña.",
+      "invalidCredentials": "El correo o la contraseña no son correctos. Inténtalo de nuevo.",
+      "emailNotConfirmed": "Tu correo aún no está confirmado. Revisa tu bandeja de entrada para la invitación.",
+      "rateLimited": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+      "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+      "generic": "No pudimos iniciar tu sesión. Inténtalo de nuevo."
+    },
+    "forgot": {
+      "title": "Restablece tu contraseña",
+      "body": "Ingresa el correo con el que inicias sesión y te enviaremos un enlace para elegir una nueva contraseña.",
+      "sentBody": "Revisa tu correo para los siguientes pasos.",
+      "sentNote": "Si esa dirección pertenece a una cuenta de PatelRep, te llegará un enlace para restablecerla. El enlace funciona una sola vez y vence pronto.",
+      "send": "Enviar enlace"
+    },
+    "reset": {
+      "title": "Elige una nueva contraseña",
+      "body": "Elige una contraseña que no uses en otro lugar. Una frase de varias palabras funciona bien.",
+      "save": "Guardar contraseña",
+      "doneTitle": "Contraseña actualizada",
+      "doneBody": "Tu nueva contraseña está guardada. Úsala la próxima vez que inicies sesión.",
+      "continue": "Continuar"
+    },
+    "callback": {
+      "expiredTitle": "Este enlace venció",
+      "expiredBody": "Los enlaces de acceso y restablecimiento funcionan una vez y vencen rápido. Vuelve y solicita uno nuevo.",
+      "failedTitle": "No pudimos usar este enlace",
+      "failedBody": "Puede estar incompleto o ya se usó. Vuelve e inténtalo de nuevo.",
+      "backToSignIn": "Volver a iniciar sesión"
+    }
   },
   "tabs": {
     "home": "Inicio",
@@ -2571,6 +2629,113 @@
       "empty": "Elige al menos un artículo o describe lo que necesitas.",
       "noteTooLong": "Los detalles son demasiado largos."
     }
+  },
+  "security": {
+    "sections": {
+      "password": "Contraseña",
+      "protection": "Protección de la app",
+      "devices": "Sesiones de dispositivos",
+      "actions": "Seguridad de la cuenta"
+    },
+    "password": {
+      "title": "Cambiar contraseña",
+      "subtitle": "Elige una nueva contraseña",
+      "intro": "Ingresa tu contraseña actual y luego elige una nueva. Seguirás con la sesión iniciada en este teléfono.",
+      "save": "Guardar contraseña",
+      "saved": "Contraseña actualizada"
+    },
+    "biometric": {
+      "title": "Bloqueo biométrico",
+      "faceId": "Face ID",
+      "touchId": "Touch ID",
+      "face": "Desbloqueo facial",
+      "fingerprint": "Huella digital",
+      "generic": "Biometría",
+      "on": "Activado: desbloquea con biometría o el código del teléfono",
+      "off": "Desactivado: pedir {{name}} para abrir PatelRep",
+      "checking": "Revisando este dispositivo…",
+      "notEnrolled": "Primero configura Face ID, una huella o un bloqueo de pantalla en los ajustes del teléfono.",
+      "unsupported": "No disponible en este dispositivo.",
+      "note": "El bloqueo protege PatelRep en este teléfono. No es un nuevo inicio de sesión: tu cuenta sigue activa y el trabajo sin enviar se sigue sincronizando.",
+      "setupTitle": "¿Proteger PatelRep con {{name}}?",
+      "setupBody": "Al abrir PatelRep o después de un tiempo fuera, necesitarás {{name}} (o el código del teléfono) para ver habitaciones, tareas e información de huéspedes. Tus datos biométricos se quedan en tu teléfono y nunca se comparten con PatelRep.",
+      "enable": "Activar",
+      "enablePrompt": "Confirma que eres tú para activar el bloqueo",
+      "disablePrompt": "Confirma que eres tú para desactivar el bloqueo",
+      "enabled": "El bloqueo está activado",
+      "disabled": "El bloqueo está desactivado",
+      "cancelled": "Cancelado. El bloqueo no se activó.",
+      "authFailed": "No pudimos verificarte. Inténtalo de nuevo."
+    },
+    "lockAfter": {
+      "title": "Bloquear tras inactividad",
+      "needsLock": "Activa el bloqueo para elegir cuándo se bloquea",
+      "options": {
+        "immediately": "Inmediatamente",
+        "m1": "Tras 1 minuto",
+        "m5": "Tras 5 minutos",
+        "m15": "Tras 15 minutos",
+        "m30": "Tras 30 minutos"
+      }
+    },
+    "devices": {
+      "title": "Tus dispositivos",
+      "subtitle": "Este teléfono y otras sesiones",
+      "thisDevice": "Este dispositivo",
+      "current": "Actual",
+      "signedIn": "Sesión iniciada {{when}}",
+      "note": "PatelRep no puede mostrar tus otros dispositivos. Si iniciaste sesión en un lugar que ya no usas, puedes cerrar la sesión en todos los demás dispositivos aquí abajo. Seguirás con la sesión iniciada aquí."
+    },
+    "others": {
+      "title": "Cerrar sesión en otros dispositivos",
+      "subtitle": "Mantiene este teléfono con sesión",
+      "offline": "Conéctate a internet para hacerlo.",
+      "confirmTitle": "¿Cerrar sesión en otros dispositivos?",
+      "confirmBody": "Se cerrará la sesión de todos los demás teléfonos o navegadores con tu cuenta. Seguirás con la sesión iniciada en este teléfono. Otro dispositivo puede seguir abierto un momento hasta que venza su acceso actual.",
+      "confirm": "Cerrar otras sesiones",
+      "done": "Se cerró la sesión en los otros dispositivos",
+      "errors": {
+        "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+        "generic": "No pudimos cerrar la sesión en tus otros dispositivos. Inténtalo de nuevo."
+      }
+    },
+    "signOut": {
+      "title": "¿Cerrar sesión en este teléfono?",
+      "body": "Solo se cerrará la sesión en este teléfono. Tus otros dispositivos siguen con sesión iniciada.",
+      "unsyncedTitle": "{{count}} cambio(s) sin sincronizar",
+      "unsyncedBody": "Se quedan guardados en este teléfono bajo tu cuenta y se envían la próxima vez que inicies sesión aquí con conexión. No se sincronizarán mientras no tengas sesión.",
+      "offlineNote": "Ahora estás sin conexión.",
+      "viewDetails": "Ver detalles",
+      "failed": "No pudimos cerrar tu sesión. Inténtalo de nuevo."
+    },
+    "unsynced": {
+      "title": "Cambios sin sincronizar",
+      "intro": "{{count}} cambio(s) guardados en este teléfono aún no llegan al servidor.",
+      "none": "Todo en este teléfono está sincronizado.",
+      "waiting": "Esperando sincronizar",
+      "needsAttention": "{{count}} requiere(n) atención",
+      "since": "desde {{when}}",
+      "categories": {
+        "roomUpdates": "Actualizaciones de habitaciones",
+        "taskCompletions": "Tareas completadas",
+        "workOrders": "Órdenes de trabajo",
+        "logbook": "Entradas de bitácora",
+        "cleaningSessions": "Sesiones de limpieza"
+      }
+    },
+    "errors": {
+      "saveFailed": "No se pudo guardar el ajuste. Inténtalo de nuevo."
+    }
+  },
+  "lock": {
+    "title": "PatelRep está bloqueado",
+    "body": "Desbloquea con biometría o el código de tu teléfono para continuar.",
+    "unlock": "Desbloquear",
+    "prompt": "Desbloquear PatelRep",
+    "cancelled": "Desbloqueo cancelado. Toca Desbloquear para intentarlo de nuevo.",
+    "failed": "No pudimos verificarte. Toca Desbloquear para intentarlo de nuevo.",
+    "unavailable": "Este teléfono no tiene biometría ni código configurado para desbloquear. Cierra sesión e inicia de nuevo para continuar."
   },
   "settings": {
     "title": "Ajustes",

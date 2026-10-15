@@ -25,6 +25,7 @@ import { supabase, toAppRole } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
 import { deferAuthHydration } from "@/lib/auth/deferAuthHydration";
+import { useRecoveryStore } from "@/lib/auth/recoveryStore";
 import {
   ThemeProvider,
   useAppearancePreference,
@@ -62,7 +63,9 @@ function RootChrome() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Set synchronously so the (auth) layout never redirects before the reset screen opens.
+      if (event === "PASSWORD_RECOVERY") useRecoveryStore.getState().setPending(true);
       deferAuthHydration(async () => {
         try {
           if (session?.user) {

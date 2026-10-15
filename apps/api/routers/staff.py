@@ -209,10 +209,34 @@ async def update_push_token(
     body: UpdatePushTokenRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Register or update the caller's Expo push token. Called on every login."""
+    """Register or update the caller's Expo push token. Called on every login.
+
+    A token identifies a physical device. If someone else on a shared phone registered it earlier, their
+    row is detached first, so alerts meant for the previous employee can never reach the next one.
+    """
+    supabase.table("user_profiles")\
+        .update({"expo_push_token": None})\
+        .eq("expo_push_token", body.token)\
+        .neq("id", current_user.user_id)\
+        .execute()
     supabase.table("user_profiles")\
         .update({"expo_push_token": body.token})\
         .eq("id", current_user.user_id)\
+        .execute()
+    return {"data": {"success": True}}
+
+
+@router.post("/me/push-token/revoke")
+async def revoke_push_token(
+    body: UpdatePushTokenRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Called on sign-out: detach this device's token from the caller. Only clears the caller's own row,
+    and only when it still holds this device's token, so a newer device of theirs keeps working."""
+    supabase.table("user_profiles")\
+        .update({"expo_push_token": None})\
+        .eq("id", current_user.user_id)\
+        .eq("expo_push_token", body.token)\
         .execute()
     return {"data": {"success": True}}
 

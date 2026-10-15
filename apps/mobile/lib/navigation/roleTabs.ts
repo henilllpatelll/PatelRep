@@ -101,6 +101,8 @@ export const HIDDEN_APP_ROUTES = [
   "logbook/new",
   "profile/personal",
   "profile/security",
+  "profile/change-password",
+  "profile/devices",
   "profile/notifications",
   "profile/appearance",
   "profile/language",

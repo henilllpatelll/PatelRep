@@ -1,12 +1,12 @@
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
-import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { entriesForCurrentUser, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
+import { SignOutSheet } from "@/components/security/SignOutSheet";
 import { monoFont } from "@/components/shared/tokens";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { SettingsRow } from "@/components/settings/SettingsRow";
@@ -28,6 +28,7 @@ export default function SettingsHomeScreen() {
   // Refreshes the short-lived photo URL and mirrors the latest display name into the user store.
   const { profile } = useOwnProfile();
   const appVersion = Constants.expoConfig?.version ?? "dev";
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   const appearanceLabel = t(`profile.appearance.${preference}`);
   const languageLabel = i18n.language === "es" ? "Español" : "English";
@@ -36,26 +37,6 @@ export default function SettingsHomeScreen() {
     : pendingCount > 0
       ? t("profile.pendingChanges", { count: pendingCount })
       : t("profile.upToDate");
-
-  function signOut() {
-    // Task completions saved on this phone that the server has not confirmed (pending or refused alike).
-    const unsyncedTasks = Object.keys(entriesForCurrentUser(useTaskOutbox.getState())).length;
-    const confirmSignOut = async () => {
-      await supabase.auth.signOut({ scope: "local" });
-      router.replace("/(auth)/login" as never);
-    };
-    if (unsyncedTasks > 0) {
-      Alert.alert(t("profile.signOutUnsyncedTitle"), t("profile.signOutUnsynced", { count: unsyncedTasks }), [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("profile.signOutAnyway"), style: "destructive", onPress: confirmSignOut },
-      ]);
-      return;
-    }
-    Alert.alert(t("profile.signOutTitle"), t("profile.signOutConfirm"), [
-      { text: t("common.cancel"), style: "cancel" },
-      { text: t("profile.signOut"), style: "destructive", onPress: confirmSignOut },
-    ]);
-  }
 
   return (
     <SettingsScreen title={t("settings.title")}>
@@ -199,12 +180,13 @@ export default function SettingsHomeScreen() {
       </SettingsSection>
 
       <SettingsSection>
-        <SettingsRow first icon="log-out-outline" label={t("profile.signOut")} onPress={signOut} destructive testID="row-sign-out" />
+        <SettingsRow first icon="log-out-outline" label={t("profile.signOut")} onPress={() => setSignOutOpen(true)} destructive testID="row-sign-out" />
       </SettingsSection>
 
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.version, { color: theme.textDisabled }]}>
         {t("profile.appVersion", { version: appVersion })}
       </Text>
+      <SignOutSheet visible={signOutOpen} onClose={() => setSignOutOpen(false)} />
     </SettingsScreen>
   );
 }

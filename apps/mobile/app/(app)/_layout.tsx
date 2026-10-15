@@ -21,6 +21,8 @@ import { listNotifications } from "@/lib/api/notifications";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
+import { AppLockGate } from "@/components/security/AppLockGate";
+import { useAppLockStore } from "@/stores/appLockStore";
 
 export default function AppLayout() {
   const { t } = useTranslation();
@@ -50,6 +52,12 @@ export default function AppLayout() {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isLoading]);
+
+  // Load this person's app-lock choice (and lock on cold start if they turned it on).
+  useEffect(() => {
+    if (user?.id) void useAppLockStore.getState().hydrate(user.id);
+    else useAppLockStore.getState().reset();
+  }, [user?.id]);
 
   // Leaving the screen entirely (not a user dismiss) resets instantly —
   // no point animating a card shut on a screen the user is already leaving.
@@ -228,6 +236,7 @@ export default function AppLayout() {
 
   return (
     <ToastProvider>
+      <AppLockGate>
       <View style={styles.root}>
         <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
           <OfflineBanner />
@@ -317,6 +326,7 @@ export default function AppLayout() {
           </Animated.View>
         ) : null}
       </View>
+      </AppLockGate>
     </ToastProvider>
   );
 }
