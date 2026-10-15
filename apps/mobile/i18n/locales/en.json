@@ -2847,11 +2847,25 @@
     "me": "Me",
     "preferences": "Preferences",
     "language": "Language",
+    "languageScreen": {
+      "intro": "Choose the language PatelRep uses for you.",
+      "englishHint": "English (US)",
+      "spanishHint": "Spanish",
+      "pending": "Saving to your account…",
+      "failed": "Changed on this phone, but not saved to your account yet.",
+      "retry": "Retry",
+      "selected": "Selected"
+    },
     "appearance": {
       "label": "Appearance",
       "system": "System",
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "intro": "Choose how PatelRep looks on this phone.",
+      "systemHint": "Follows your phone’s setting",
+      "lightHint": "Always use the light look",
+      "darkHint": "Always use the dark look",
+      "note": "Applies right away and stays on this phone."
     },
     "notifications": "Notifications",
     "notificationsUnread": "{{count}} unread",

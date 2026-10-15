@@ -167,21 +167,18 @@ describe("protected theme exceptions and integration links", () => {
 
   it("keeps the real Settings appearance selector radio-semantic and direct", () => {
     const profileSource = source("app/(app)/profile/appearance.tsx");
+    const rowSource = source("components/settings/SettingsChoiceRow.tsx");
 
     expect(profileSource).toContain('accessibilityRole="radiogroup"');
-    expect(profileSource).toContain('accessibilityRole="radio"');
-    expect(profileSource).toContain(
-      "accessibilityState={{ selected: active }}",
-    );
     expect(profileSource).toContain(
       "onPress={() => void setPreference(option.value)}",
     );
     expect(profileSource).toContain(
       "testID={`appearance-${option.value}`}",
     );
-    expect(profileSource).toMatch(
-      /segment:\s*\{[\s\S]*?minHeight:\s*44/,
-    );
+    expect(rowSource).toContain('accessibilityRole="radio"');
+    expect(rowSource).toContain("accessibilityState={{ selected }}");
+    expect(rowSource).toMatch(/row:\s*\{[\s\S]*?minHeight:\s*56/);
   });
 
   it("keeps role navigation delegated to the existing authoritative matrix", () => {

@@ -2847,11 +2847,25 @@
     "me": "Yo",
     "preferences": "Preferencias",
     "language": "Idioma",
+    "languageScreen": {
+      "intro": "Elige el idioma que PatelRep usa para ti.",
+      "englishHint": "Inglés (EE. UU.)",
+      "spanishHint": "Español",
+      "pending": "Guardando en tu cuenta…",
+      "failed": "Cambiado en este teléfono, pero aún no se guardó en tu cuenta.",
+      "retry": "Reintentar",
+      "selected": "Seleccionado"
+    },
     "appearance": {
       "label": "Apariencia",
       "system": "Sistema",
       "light": "Claro",
-      "dark": "Oscuro"
+      "dark": "Oscuro",
+      "intro": "Elige cómo se ve PatelRep en este teléfono.",
+      "systemHint": "Sigue la configuración del teléfono",
+      "lightHint": "Usar siempre el modo claro",
+      "darkHint": "Usar siempre el modo oscuro",
+      "note": "Se aplica al instante y se queda en este teléfono."
     },
     "notifications": "Notificaciones",
     "notificationsUnread": "{{count}} sin leer",

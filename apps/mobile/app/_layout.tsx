@@ -31,6 +31,12 @@ import {
 } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { getNavigationTheme } from "@/lib/theme/navigationTheme";
+import {
+  clearActiveLanguageUser,
+  hydrateLanguageForUser,
+  restoreDeviceLanguage,
+  retryPendingLanguageSync,
+} from "@/lib/language/languageSync";
 
 // Must be at module scope — calling inside a component or useEffect is too late.
 SplashScreen.preventAutoHideAsync();
@@ -105,10 +111,15 @@ function RootChrome() {
             } catch {
               setUser(baseUser);
             }
+            // This person's own language (pending local choice > account > cached > device). Only a
+            // real saved profile counts as the account preference, not the "en" fallback above.
+            await hydrateLanguageForUser(baseUser.id, profile ? baseUser.language_pref : null).catch(() => undefined);
           } else {
+            clearActiveLanguageUser();
             setUser(null);
           }
           } else {
+            clearActiveLanguageUser();
             setUser(null);
           }
         } finally {
@@ -133,12 +144,18 @@ function RootChrome() {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Before anyone signs in, show the language this phone last used.
+  useEffect(() => {
+    void restoreDeviceLanguage().catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const online = !!state.isConnected;
       setIsOnline(online);
       if (online) {
         syncOnConnect();
+        void retryPendingLanguageSync().catch(() => undefined);
       }
     });
 

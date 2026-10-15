@@ -1,8 +1,17 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { SettingsChoiceRow } from "@/components/settings/SettingsChoiceRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
+import { SettingsSection } from "@/components/settings/SettingsSection";
 import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
+import type { AppearancePreference } from "@/lib/theme/appearance";
 import { useTheme } from "@/lib/theme/useTheme";
+
+const OPTIONS: { value: AppearancePreference; icon: "phone-portrait-outline" | "sunny-outline" | "moon-outline" }[] = [
+  { value: "system", icon: "phone-portrait-outline" },
+  { value: "light", icon: "sunny-outline" },
+  { value: "dark", icon: "moon-outline" },
+];
 
 export default function AppearanceSettingsScreen() {
   const { t } = useTranslation();
@@ -10,67 +19,37 @@ export default function AppearanceSettingsScreen() {
   const { preference, setPreference } = useAppearancePreference();
   return (
     <SettingsScreen title={t("profile.appearance.label")} back>
-      <View
-        style={[styles.segmented, { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle }]}
-        accessibilityRole="radiogroup"
-        accessibilityLabel={t("profile.appearance.label")}
-        testID="appearance-segmented"
-      >
-        {(
-          [
-            { value: "system" as const, label: t("profile.appearance.system") },
-            { value: "light" as const, label: t("profile.appearance.light") },
-            { value: "dark" as const, label: t("profile.appearance.dark") },
-          ]
-        ).map((option) => {
-          const active = preference === option.value;
-          return (
-            <TouchableOpacity
+      <Text maxFontSizeMultiplier={1.4} style={[styles.intro, { color: theme.textMuted }]}>
+        {t("profile.appearance.intro")}
+      </Text>
+      <SettingsSection testID="appearance-options">
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t("profile.appearance.label")}
+          testID="appearance-group"
+        >
+          {OPTIONS.map((option, index) => (
+            <SettingsChoiceRow
               key={option.value}
-              style={[styles.segment, active && { backgroundColor: theme.primaryAction }]}
+              first={index === 0}
+              icon={option.icon}
+              label={t(`profile.appearance.${option.value}`)}
+              hint={t(`profile.appearance.${option.value}Hint`)}
+              selected={preference === option.value}
               onPress={() => void setPreference(option.value)}
-              activeOpacity={0.85}
-              accessibilityRole="radio"
-              accessibilityLabel={option.label}
-              accessibilityState={{ selected: active }}
               testID={`appearance-${option.value}`}
-            >
-              <Text
-                maxFontSizeMultiplier={1.4}
-                style={[styles.segmentText, { color: active ? theme.onPrimary : theme.textSecondary }]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+            />
+          ))}
+        </View>
+      </SettingsSection>
+      <Text maxFontSizeMultiplier={1.4} style={[styles.note, { color: theme.textMuted }]}>
+        {t("profile.appearance.note")}
+      </Text>
     </SettingsScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  segmented: {
-    flexDirection: "row",
-    alignSelf: "stretch",
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 2,
-    gap: 2,
-  },
-  segment: {
-    minHeight: 44,
-    flex: 1,
-    minWidth: 0,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: "700",
-    textAlign: "center",
-  },
+  intro: { fontSize: 14, lineHeight: 20, paddingHorizontal: 4 },
+  note: { fontSize: 12.5, lineHeight: 17, paddingHorizontal: 4 },
 });

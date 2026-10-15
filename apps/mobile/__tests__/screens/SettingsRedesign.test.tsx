@@ -21,7 +21,10 @@ const mockBack = jest.fn();
 const mockFlushQueue = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: mockMakeTranslator(() => mockLanguage) }),
+  useTranslation: () => ({
+    t: mockMakeTranslator(() => mockLanguage),
+    i18n: { language: mockLanguage },
+  }),
 }));
 
 jest.mock("@expo/vector-icons", () => ({
@@ -64,6 +67,14 @@ jest.mock("@/i18n", () => ({
     return mockLanguage;
   },
   changeLanguage: jest.fn(),
+}));
+
+const mockSelectLanguage = jest.fn().mockResolvedValue(undefined);
+let mockSyncState: "idle" | "pending" | "failed" = "idle";
+jest.mock("@/lib/language/languageSync", () => ({
+  selectLanguage: (...args: unknown[]) => mockSelectLanguage(...args),
+  retryPendingLanguageSync: jest.fn().mockResolvedValue(undefined),
+  useLanguageSyncStore: (selector: (s: { syncState: string }) => unknown) => selector({ syncState: mockSyncState }),
 }));
 
 jest.mock("@/components/security/SignOutSheet", () => ({
@@ -147,7 +158,7 @@ beforeEach(() => {
   mockPending = 0;
   mockUnread = 3;
   mockCanGoBack = true;
-  [mockSetPreference, mockPush, mockReplace, mockBack, mockFlushQueue].forEach((m) => m.mockClear());
+  [mockSetPreference, mockPush, mockReplace, mockBack, mockFlushQueue, mockSelectLanguage].forEach((m) => m.mockClear());
 });
 
 describe("Settings home", () => {
@@ -298,7 +309,7 @@ describe("Settings home", () => {
       expect(row.props.accessibilityRole).toBe("button");
       expect(row.props.accessibilityLabel).toBeTruthy();
       const style = StyleSheet.flatten(
-        typeof row.props.style === "function" ? row.props.style({ pressed: false }) : row.props.style,
+        typeof row.props.style === "function" ? row.props.style : row.props.style,
       );
       expect(style.minHeight).toBeGreaterThanOrEqual(44);
     }
@@ -362,17 +373,19 @@ describe("Settings destination screens", () => {
     const { getByRole, getByTestId, getByText } = render(<AppearanceScreen />);
     expect(getByTestId("settings-title").props.children).toBe("Appearance");
     expect(getByText("System")).toBeTruthy();
-    const group = getByTestId("appearance-segmented");
+    const group = getByTestId("appearance-group");
     expect(group.props.accessibilityRole).toBe("radiogroup");
 
     for (const [name, value, selected] of [
-      ["System", "system", true],
-      ["Light", "light", false],
-      ["Dark", "dark", false],
+      [/^System/, "system", true],
+      [/^Light/, "light", false],
+      [/^Dark/, "dark", false],
     ] as const) {
       const radio = getByRole("radio", { name });
       expect(radio.props.accessibilityState).toEqual({ selected });
       expect(StyleSheet.flatten(radio.props.style).minHeight).toBeGreaterThanOrEqual(44);
+      // The selected option is also marked with a check, not only a colour.
+      expect(!!within(radio).queryByTestId("icon-checkmark-circle")).toBe(selected);
       fireEvent.press(getByTestId(`appearance-${value}`));
     }
     expect(mockSetPreference).toHaveBeenNthCalledWith(1, "system");
@@ -383,23 +396,40 @@ describe("Settings destination screens", () => {
   it("Appearance renders Spanish choices without English fallback", () => {
     mockLanguage = "es";
     const { getByRole, queryByText } = render(<AppearanceScreen />);
-    expect(getByRole("radio", { name: "Sistema" })).toBeTruthy();
-    expect(getByRole("radio", { name: "Claro" })).toBeTruthy();
-    expect(getByRole("radio", { name: "Oscuro" })).toBeTruthy();
+    expect(getByRole("radio", { name: /^Sistema/ })).toBeTruthy();
+    expect(getByRole("radio", { name: /^Claro/ })).toBeTruthy();
+    expect(getByRole("radio", { name: /^Oscuro/ })).toBeTruthy();
     expect(queryByText("Light")).toBeNull();
   });
 
-  it("Language keeps the English/Español radio group and hides the English name under Spanish", () => {
+  it("Language lists each language in its own name with a check on the selected one", () => {
     const en = render(<LanguageScreen />);
-    expect(en.getByRole("radio", { name: "English" }).props.accessibilityState).toEqual({ selected: true });
-    expect(en.getByRole("radio", { name: "Español" }).props.accessibilityState).toEqual({ selected: false });
+    expect(en.getByRole("radio", { name: /^English/ }).props.accessibilityState).toEqual({ selected: true });
+    expect(en.getByRole("radio", { name: /^Espa\u00f1ol/ }).props.accessibilityState).toEqual({ selected: false });
+    expect(en.getByTestId("icon-checkmark-circle")).toBeTruthy();
+    expect(en.queryAllByTestId("icon-checkmark-circle")).toHaveLength(1);
     expect(StyleSheet.flatten(en.getByTestId("language-en").props.style).minHeight).toBeGreaterThanOrEqual(44);
     en.unmount();
 
     mockLanguage = "es";
     const es = render(<LanguageScreen />);
-    expect(es.getByText("Inglés")).toBeTruthy();
-    expect(es.queryByText("English")).toBeNull();
+    expect(es.getByRole("radio", { name: /^English/ }).props.accessibilityState).toEqual({ selected: false });
+    expect(es.getByRole("radio", { name: /^Espa\u00f1ol/ }).props.accessibilityState).toEqual({ selected: true });
+  });
+
+  it("Language saves the pick for the signed-in person and shows an unsaved notice with Retry", () => {
+    const { getByTestId, queryByTestId, rerender } = render(<LanguageScreen />);
+    fireEvent.press(getByTestId("language-es"));
+    expect(mockSelectLanguage).toHaveBeenCalledWith("user-1", "es");
+    fireEvent.press(getByTestId("language-en")); // already selected: no write
+    expect(mockSelectLanguage).toHaveBeenCalledTimes(1);
+
+    expect(queryByTestId("language-sync-notice")).toBeNull();
+    mockSyncState = "failed";
+    rerender(<LanguageScreen />);
+    expect(getByTestId("language-sync-notice")).toBeTruthy();
+    expect(getByTestId("language-retry")).toBeTruthy();
+    mockSyncState = "idle";
   });
 
   it("Offline & Sync keeps the pending count and a working Sync now action", async () => {
