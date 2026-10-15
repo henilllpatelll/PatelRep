@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { listMyReports, type MyReport } from "@/lib/api/support";
 import { SUPPORT_ROUTES } from "@/lib/support/faq";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 type State = { kind: "loading" } | { kind: "error" } | { kind: "ready"; reports: MyReport[] };
 
 function formatDate(iso: string, language: string): string {
@@ -56,7 +56,7 @@ export default function MyReportsScreen() {
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="alert" style={[styles.body, { color: theme.status.dirty }]} testID="reports-error">
             {t("help.reports.loadError")}
           </Text>
-          <Button label={t("help.reports.retry")} variant="secondary" size="sm" onPress={() => void load()} testID="reports-retry" />
+          <Button label={t("help.reports.retry")} variant="secondary" size="md" onPress={() => void load()} testID="reports-retry" />
         </View>
       ) : state.reports.length === 0 ? (
         <View style={styles.stack} testID="reports-empty">

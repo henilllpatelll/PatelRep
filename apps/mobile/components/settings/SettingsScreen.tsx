@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MIN_TOUCH } from "@/lib/settings/a11y";
 import { useTheme } from "@/lib/theme/useTheme";
 
 interface SettingsScreenProps {
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  back: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginLeft: -4 },
+  back: { width: MIN_TOUCH, height: MIN_TOUCH, alignItems: "center", justifyContent: "center", marginLeft: -4 },
   title: { flex: 1, fontSize: 24, fontWeight: "700", paddingHorizontal: 6 },
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 20 },
 });

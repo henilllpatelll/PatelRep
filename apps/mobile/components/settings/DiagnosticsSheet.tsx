@@ -6,8 +6,8 @@ import { useTextContext } from "@/components/housekeeping/useTextContext";
 import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { diagnosticsToText, type DiagnosticEntry, type DiagnosticKey } from "@/lib/support/diagnostics";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 /** One human-readable value per diagnostic field. */
 export function useDiagnosticDisplay() {

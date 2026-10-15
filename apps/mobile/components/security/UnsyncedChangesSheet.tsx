@@ -4,8 +4,8 @@ import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { totalPending, useUnsyncedSummary, type PendingCategory } from "@/lib/auth/pendingWork";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 function formatWhen(iso: string | null, language: string): string | null {
   if (!iso) return null;

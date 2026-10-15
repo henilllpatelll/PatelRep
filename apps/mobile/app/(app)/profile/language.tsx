@@ -7,6 +7,7 @@ import { normalizeLanguage, type AppLanguage } from "@/lib/language/languagePref
 import { retryPendingLanguageSync, selectLanguage, useLanguageSyncStore } from "@/lib/language/languageSync";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { MIN_TOUCH, SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 // Each language is named in itself, so it stays readable whatever the app is set to.
 const OPTIONS: { code: AppLanguage; label: string; hintKey: string }[] = [
@@ -28,7 +29,7 @@ export default function LanguageSettingsScreen() {
 
   return (
     <SettingsScreen title={t("profile.language")} back>
-      <Text maxFontSizeMultiplier={1.4} style={[styles.intro, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textMuted }]}>
         {t("profile.languageScreen.intro")}
       </Text>
       <SettingsSection testID="language-options">
@@ -49,7 +50,7 @@ export default function LanguageSettingsScreen() {
       {syncState !== "idle" ? (
         <View style={styles.notice} accessibilityLiveRegion="polite" testID="language-sync-notice">
           <Text
-            maxFontSizeMultiplier={1.4}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
             style={[styles.noticeText, { color: syncState === "failed" ? theme.status.dirty : theme.textMuted }]}
           >
             {syncState === "failed" ? t("profile.languageScreen.failed") : t("profile.languageScreen.pending")}
@@ -63,7 +64,7 @@ export default function LanguageSettingsScreen() {
               style={styles.retry}
               testID="language-retry"
             >
-              <Text maxFontSizeMultiplier={1.4} style={[styles.retryText, { color: theme.primary }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.retryText, { color: theme.primary }]}>
                 {t("profile.languageScreen.retry")}
               </Text>
             </Pressable>
@@ -78,6 +79,6 @@ const styles = StyleSheet.create({
   intro: { fontSize: 14, lineHeight: 20, paddingHorizontal: 4 },
   notice: { gap: 4, paddingHorizontal: 4 },
   noticeText: { fontSize: 13, lineHeight: 18 },
-  retry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
+  retry: { minHeight: MIN_TOUCH, justifyContent: "center", alignSelf: "flex-start" },
   retryText: { fontSize: 14, fontWeight: "700" },
 });

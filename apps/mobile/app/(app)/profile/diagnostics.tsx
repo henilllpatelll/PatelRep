@@ -6,8 +6,8 @@ import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { Button } from "@/components/ui/Button";
 import { useDiagnostics } from "@/lib/support/useDiagnostics";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 export default function DiagnosticsScreen() {
   const { t } = useTranslation();

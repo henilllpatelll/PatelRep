@@ -14,6 +14,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore } from "@/stores/appStore";
 import { runWithoutAppLock, useAppLockStore } from "@/stores/appLockStore";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 /** Biometric name as the platform calls it. */
 function biometricName(cap: BiometricCapability | null, t: (k: string) => string): string {
@@ -172,7 +173,7 @@ export default function SecuritySettingsScreen() {
           testID="row-lock-after"
         />
       </SettingsSection>
-      <Text maxFontSizeMultiplier={1.4} style={[styles.note, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.note, { color: theme.textMuted }]}>
         {t("security.biometric.note")}
       </Text>
 

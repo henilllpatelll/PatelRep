@@ -5,8 +5,8 @@ import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { getSupportContacts, type SupportContacts } from "@/lib/api/support";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 /** Only dial something that looks like a phone number; never build a link from arbitrary text. */
 export function dialableNumber(phone: string | null | undefined): string | null {
@@ -70,7 +70,7 @@ export function ContactSheet({ visible, onClose }: { visible: boolean; onClose: 
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="alert" style={[styles.body, { color: theme.status.dirty }]} testID="contact-error">
             {t("help.contact.loadError")}
           </Text>
-          <Button label={t("help.contact.retry")} variant="secondary" size="sm" onPress={() => void load()} testID="contact-retry" />
+          <Button label={t("help.contact.retry")} variant="secondary" size="md" onPress={() => void load()} testID="contact-retry" />
         </View>
       ) : hasContacts ? (
         <View style={styles.stack}>

@@ -10,8 +10,8 @@ import type { SyncRunResult } from "@/lib/housekeeping/syncRunner";
 import { type CategoryKey, type OverviewCategory } from "@/lib/offline/syncOverview";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 interface Props {
   visible: boolean;
@@ -148,7 +148,7 @@ function ChangeRow({ row, onOpenRoom, onOpenTasks }: { row: SyncRow; onOpenRoom:
           label={t(action === "room" ? "home.syncSheet.openRoom" : "home.syncSheet.openTasks")}
           onPress={() => (action === "room" && row.roomId ? onOpenRoom(row.roomId) : onOpenTasks())}
           variant="secondary"
-          size="sm"
+          size="md"
           testID="sync-changes-row-action"
         />
       ) : null}

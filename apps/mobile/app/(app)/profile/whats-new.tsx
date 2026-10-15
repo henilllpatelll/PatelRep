@@ -7,8 +7,8 @@ import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { getAppInfo } from "@/lib/app/appInfo";
 import { RELEASE_NOTE_SECTIONS, findReleaseNotes, formatReleaseDate, localized } from "@/lib/app/releaseNotes";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 /** Release notes for the installed version, bundled with the app (so they also work offline). */
 export default function WhatsNewScreen() {

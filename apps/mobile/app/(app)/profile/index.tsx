@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { useAppStore } from "@/stores/appStore";
@@ -17,14 +16,14 @@ import { useOwnProfile } from "@/lib/settings/useOwnProfile";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 export default function SettingsHomeScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { preference } = useAppearancePreference();
-  const { unreadCount } = useAppStore();
+  const unreadCount = useAppStore((s) => s.unreadCount);
   const { overview } = useSyncOverview();
   const { user, name, roleLabel, hotelName, connection } = useSettingsIdentity(overview);
   // Refreshes the short-lived photo URL and mirrors the latest display name into the user store.
@@ -51,26 +50,18 @@ export default function SettingsHomeScreen() {
 
   return (
     <SettingsScreen title={t("settings.title")}>
-      <Pressable
-        onPress={() => router.push("/(app)/profile/personal")}
-        accessibilityRole="button"
-        accessibilityLabel={[name, roleLabel, hotelName, connection.text, t("settings.personal.title")]
-          .filter(Boolean)
-          .join(", ")}
-        style={({ pressed }) => [
-          styles.identity,
-          {
-            backgroundColor: pressed ? theme.surfaceMuted : theme.surface,
-            borderColor: theme.border,
-          },
-        ]}
+      {/* Who is signed in. Informational: Personal Information is one row below, so this is not a second way in. */}
+      <View
+        accessible
+        accessibilityLabel={[name, roleLabel, hotelName, connection.text].filter(Boolean).join(", ")}
+        style={[styles.identity, { backgroundColor: theme.surface, borderColor: theme.border }]}
         testID="settings-identity"
       >
         <Avatar name={name} size={56} uri={profile?.avatar_url ?? user?.avatar_url ?? null} />
         <View style={styles.identityText}>
           <Text
             maxFontSizeMultiplier={MAX_FONT_SCALE}
-            numberOfLines={1}
+            numberOfLines={2}
             style={[styles.name, { color: theme.textPrimary }]}
             testID="identity-name"
           >
@@ -88,7 +79,7 @@ export default function SettingsHomeScreen() {
           {hotelName ? (
             <Text
               maxFontSizeMultiplier={MAX_FONT_SCALE}
-              numberOfLines={1}
+              numberOfLines={2}
               style={[styles.hotel, { color: theme.textMuted }]}
               testID="identity-hotel"
             >
@@ -102,8 +93,7 @@ export default function SettingsHomeScreen() {
             </Text>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
-      </Pressable>
+      </View>
 
       <SettingsSection title={t("settings.sections.account")}>
         <SettingsRow

@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { faqsForRole } from "@/lib/support/faq";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 export default function FaqScreen() {
   const { t } = useTranslation();
@@ -54,7 +54,7 @@ export default function FaqScreen() {
                     <Button
                       label={t(item.action.labelKey)}
                       variant="secondary"
-                      size="sm"
+                      size="md"
                       onPress={() => (item.action?.kind === "contact" ? setContactOpen(true) : item.action && router.push(item.action.route as never))}
                       testID={`faq-${item.id}-action`}
                     />

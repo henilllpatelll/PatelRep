@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { LOCK_TIMEOUTS_MS, type LockTimeoutMs } from "@/lib/security/appLockPrefs";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 export function timeoutLabelKey(ms: LockTimeoutMs): string {
   return `security.lockAfter.options.${ms === 0 ? "immediately" : `m${ms / 60_000}`}`;
@@ -37,7 +38,7 @@ export function LockTimeoutSheet({
             style={[styles.row, { borderColor: selected ? theme.primaryAction : theme.border, backgroundColor: theme.surface }]}
             testID={`lock-timeout-${ms}`}
           >
-            <Text maxFontSizeMultiplier={1.4} style={[styles.label, { color: theme.textPrimary }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textPrimary }]}>
               {t(timeoutLabelKey(ms))}
             </Text>
             {selected ? <Ionicons name="checkmark-circle" size={22} color={theme.primaryAction} /> : null}

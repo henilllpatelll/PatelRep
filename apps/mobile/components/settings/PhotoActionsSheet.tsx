@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 interface PhotoActionsSheetProps {
   visible: boolean;
@@ -31,7 +32,7 @@ export function PhotoActionsSheet({ visible, hasPhoto, onChooseLibrary, onTakePh
   if (confirmingRemove) {
     return (
       <BottomSheet visible={visible} title={t("settings.personal.removeTitle")} onClose={onClose} testID="photo-remove-sheet">
-        <Text maxFontSizeMultiplier={1.4} style={[styles.body, { color: theme.textSecondary }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]}>
           {t("settings.personal.removeBody")}
         </Text>
         <View style={styles.actions}>

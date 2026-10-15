@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 interface EditFieldSheetProps {
   visible: boolean;
@@ -54,13 +54,14 @@ export function EditFieldSheet({
       inFlight.current = false;
     }
     // Re-seed only when the sheet opens, never while the user is typing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const clean = normalize(draft);
   const validationError = validate(draft);
   const unchanged = clean === normalize(value);
-  const shownError = error ?? (draft !== value ? validationError : null);
+  // An untouched, valid value shows no message; an untouched value that is already over the limit (a long full
+  // name used as the starting point) explains why Save is off instead of leaving it silently disabled.
+  const shownError = error ?? (draft !== value || clean.length > maxLength ? validationError : null);
 
   async function save() {
     if (inFlight.current) return;

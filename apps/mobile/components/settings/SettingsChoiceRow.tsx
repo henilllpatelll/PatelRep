@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const MAX_FONT_SCALE = 1.4;
 
 interface SettingsChoiceRowProps {
   label: string;

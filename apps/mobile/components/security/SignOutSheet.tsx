@@ -9,8 +9,8 @@ import { totalPending, useUnsyncedSummary } from "@/lib/auth/pendingWork";
 import { signOutThisDevice } from "@/lib/auth/signOut";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 /**
  * "Sign out" confirmation for THIS device. States plainly what happens, and when work is still saved
@@ -77,7 +77,7 @@ export function SignOutSheet({ visible, onClose }: { visible: boolean; onClose: 
               {t("security.signOut.unsyncedBody")}
               {!isOnline ? ` ${t("security.signOut.offlineNote")}` : ""}
             </Text>
-            <Button label={t("security.signOut.viewDetails")} variant="ghost" size="sm" onPress={() => setDetailsOpen(true)} testID="signout-details" />
+            <Button label={t("security.signOut.viewDetails")} variant="ghost" size="md" onPress={() => setDetailsOpen(true)} testID="signout-details" />
           </View>
         ) : null}
         {failed ? (

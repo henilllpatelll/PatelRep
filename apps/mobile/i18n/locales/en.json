@@ -2967,8 +2967,6 @@
     }
   },
   "profile": {
-    "me": "Me",
-    "preferences": "Preferences",
     "language": "Language",
     "languageScreen": {
       "intro": "Choose the language PatelRep uses for you.",
@@ -2976,8 +2974,7 @@
       "spanishHint": "Spanish",
       "pending": "Saving to your account…",
       "failed": "Changed on this phone, but not saved to your account yet.",
-      "retry": "Retry",
-      "selected": "Selected"
+      "retry": "Retry"
     },
     "appearance": {
       "label": "Appearance",
@@ -2990,28 +2987,11 @@
       "darkHint": "Always use the dark look",
       "note": "Applies right away and stays on this phone."
     },
-    "notifications": "Notifications",
     "notificationsUnread": "{{count}} unread",
     "myWork": "My work",
     "schedule": "My schedule",
     "sopLibrary": "SOP Library",
-    "dataSync": "Data & sync",
-    "offlineChanges": "Offline changes",
-    "upToDate": "Up to date",
-    "pendingChanges": "{{count}} waiting to sync",
-    "syncNow": "Sync now",
-    "connection": {
-      "online": "Online — everything is synced",
-      "offline": "Offline — your changes are saved and will sync later",
-      "pending": "Online — {{count}} change(s) syncing soon"
-    },
-    "account": "Account",
     "signOut": "Sign out",
-    "signOutTitle": "Sign out",
-    "signOutConfirm": "Are you sure?",
-    "signOutUnsyncedTitle": "Task completions not synced",
-    "signOutUnsynced": "{{count}} task completion hasn't reached your manager yet. It stays saved on this phone and sends the next time you sign in here with this account and a connection.",
-    "signOutUnsynced_plural": "{{count}} task completions haven't reached your manager yet. They stay saved on this phone and send the next time you sign in here with this account and a connection.",
     "signOutAnyway": "Sign out anyway",
     "appVersion": "PatelRep v{{version}}"
   },
@@ -3627,7 +3607,7 @@
       },
       "description": "What went wrong?",
       "placeholder": "Describe what happened and what you were trying to do.",
-      "count": "{{count}} / {{max}}",
+      "count": "{{count}}\u00a0/\u00a0{{max}}",
       "blocking": "This is stopping me from working",
       "guestWarning": "Please don't include guest names, phone numbers or reservation details.",
       "diagnostics": "Include technical diagnostics",

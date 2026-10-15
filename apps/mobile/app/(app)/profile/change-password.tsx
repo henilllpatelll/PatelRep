@@ -7,6 +7,7 @@ import { changePassword } from "@/lib/auth/passwordChange";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation();
@@ -14,7 +15,7 @@ export default function ChangePasswordScreen() {
   const toast = useToast();
   return (
     <SettingsScreen title={t("security.password.title")} back>
-      <Text maxFontSizeMultiplier={1.4} style={[styles.intro, { color: theme.textSecondary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textSecondary }]}>
         {t("security.password.intro")}
       </Text>
       <PasswordForm

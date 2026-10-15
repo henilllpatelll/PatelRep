@@ -8,8 +8,8 @@ import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { loadLicenses } from "@/lib/app/licenses";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 /** Notices for the open-source packages PatelRep ships directly. Bundled, so it works offline. */
 export default function LicensesScreen() {

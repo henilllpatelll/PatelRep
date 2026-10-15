@@ -9,6 +9,9 @@ import { authenticate, type AuthResult } from "@/lib/security/biometrics";
 import { useTheme } from "@/lib/theme/useTheme";
 import { runWithoutAppLock, useAppLockStore } from "@/stores/appLockStore";
 
+/** The product name is a brand, not translated copy. */
+const BRAND_NAME = "PatelRep";
+
 /**
  * Covers the whole app while locked. Shows no names, rooms or guest data. The OS prompt (biometric,
  * with the device passcode as its own fallback) is offered once automatically and then only on request,
@@ -40,7 +43,6 @@ export function LockScreen() {
   useEffect(() => {
     void unlock();
     // Offer the prompt once when the lock appears; afterwards only on the button.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const message =
@@ -63,7 +65,7 @@ export function LockScreen() {
           <Ionicons name="lock-closed" size={30} color={theme.shell.ink} />
         </View>
         <Text accessibilityRole="header" style={[styles.brand, { color: theme.shell.ink }]}>
-          PatelRep
+          {BRAND_NAME}
         </Text>
         <Text style={[styles.title, { color: theme.shell.ink }]}>{t("lock.title")}</Text>
         <Text style={[styles.body, { color: theme.shell.ink2 }]}>{t("lock.body")}</Text>

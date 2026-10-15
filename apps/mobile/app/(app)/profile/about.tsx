@@ -14,8 +14,8 @@ import { openExternalUrl, readLegalLinks, type OpenLinkResult } from "@/lib/app/
 import { findReleaseNotes } from "@/lib/app/releaseNotes";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 const appIcon = require("../../../assets/icon.png");
 
 type LinkKey = "privacy" | "terms";
@@ -141,7 +141,7 @@ export default function AboutScreen() {
             </Text>
             <Button
               label={t("common.retry")}
-              size="sm"
+              size="md"
               variant="secondary"
               onPress={() => void openLink(failedLink.key, failedLink.url)}
               testID="about-link-retry"

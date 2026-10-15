@@ -11,8 +11,8 @@ import { useNotificationPreferences, type PreferenceItem } from "@/lib/notificat
 import { usePushPermission } from "@/lib/notifications/usePushPermission";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { MIN_TOUCH, SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -269,7 +269,7 @@ function Notice({ icon, text, testID }: { icon: IconName; text: string; testID: 
 const styles = StyleSheet.create({
   loading: { minHeight: 72, alignItems: "center", justifyContent: "center" },
   errorBox: { padding: 14, gap: 10 },
-  retry: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", paddingHorizontal: 14, borderWidth: 1, borderRadius: 12 },
+  retry: { alignSelf: "flex-start", minHeight: MIN_TOUCH, justifyContent: "center", paddingHorizontal: 14, borderWidth: 1, borderRadius: 12 },
   retryText: { fontSize: 14, fontWeight: "700" },
   statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 4, minHeight: 24 },
   statusText: { flex: 1, fontSize: 13, lineHeight: 18 },

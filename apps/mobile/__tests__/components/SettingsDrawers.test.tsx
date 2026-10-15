@@ -177,6 +177,23 @@ describe("edit sheet keeps its place while saving", () => {
   });
 });
 
+describe("edit sheet validation messages", () => {
+  const base = { visible: true, title: "Edit", label: "Name", maxLength: 10, normalize: (s: string) => s.trim(), onSave: jest.fn(), onClose: jest.fn() };
+  const validate = (draft: string) => (draft.trim().length > 10 ? "Too long" : draft.trim() ? null : "Required");
+
+  it("says nothing about an untouched valid value", () => {
+    const { queryByTestId, getByTestId } = render(<EditFieldSheet {...base} value="Maria" validate={validate} />);
+    expect(queryByTestId("edit-field-error")).toBeNull();
+    expect(getByTestId("edit-field-save").props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it("explains an untouched value that is already too long, so Save is not silently off", () => {
+    const { getByTestId } = render(<EditFieldSheet {...base} value="Maria Guadalupe Hernandez" validate={validate} />);
+    expect(getByTestId("edit-field-error").props.children).toBe("Too long");
+    expect(getByTestId("edit-field-error").props.accessibilityRole).toBe("alert");
+  });
+});
+
 describe("Spanish drawers", () => {
   it("never show a raw translation key", () => {
     mockLanguage = "es";

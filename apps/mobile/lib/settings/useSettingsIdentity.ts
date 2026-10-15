@@ -27,7 +27,9 @@ function fallbackRoleLabel(role: string) {
 export function useSettingsIdentity(overview?: SyncOverview) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { user, isOnline, pendingActions } = useAppStore();
+  const user = useAppStore((s) => s.user);
+  const isOnline = useAppStore((s) => s.isOnline);
+  const pendingActions = useAppStore((s) => s.pendingActions);
   const [hotelName, setHotelName] = useState<string | null>(null);
   const pendingCount = pendingActions.length;
 

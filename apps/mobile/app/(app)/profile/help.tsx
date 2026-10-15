@@ -8,6 +8,7 @@ import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SUPPORT_ROUTES } from "@/lib/support/faq";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 export default function HelpScreen() {
   const { t } = useTranslation();
@@ -17,7 +18,7 @@ export default function HelpScreen() {
 
   return (
     <SettingsScreen title={t("settings.help.title")} back>
-      <Text maxFontSizeMultiplier={1.4} style={[styles.intro, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textMuted }]}>
         {t("help.intro")}
       </Text>
 

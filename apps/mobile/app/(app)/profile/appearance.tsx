@@ -6,6 +6,7 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
 import type { AppearancePreference } from "@/lib/theme/appearance";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 const OPTIONS: { value: AppearancePreference; icon: "phone-portrait-outline" | "sunny-outline" | "moon-outline" }[] = [
   { value: "system", icon: "phone-portrait-outline" },
@@ -19,7 +20,7 @@ export default function AppearanceSettingsScreen() {
   const { preference, setPreference } = useAppearancePreference();
   return (
     <SettingsScreen title={t("profile.appearance.label")} back>
-      <Text maxFontSizeMultiplier={1.4} style={[styles.intro, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textMuted }]}>
         {t("profile.appearance.intro")}
       </Text>
       <SettingsSection testID="appearance-options">
@@ -42,7 +43,7 @@ export default function AppearanceSettingsScreen() {
           ))}
         </View>
       </SettingsSection>
-      <Text maxFontSizeMultiplier={1.4} style={[styles.note, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.note, { color: theme.textMuted }]}>
         {t("profile.appearance.note")}
       </Text>
     </SettingsScreen>

@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 interface SettingsSectionProps {
   title?: string;
@@ -14,7 +15,7 @@ export function SettingsSection({ title, children, testID }: SettingsSectionProp
     <View style={styles.wrap} testID={testID}>
       {title ? (
         <Text
-          maxFontSizeMultiplier={1.4}
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
           accessibilityRole="header"
           style={[styles.title, { color: theme.textMuted }]}
         >

@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 interface SimpleConfirmSheetProps {
   visible: boolean;
@@ -52,11 +53,11 @@ export function SimpleConfirmSheet({
         </View>
       }
     >
-      <Text maxFontSizeMultiplier={1.4} style={[styles.body, { color: theme.textSecondary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]}>
         {body}
       </Text>
       {error ? (
-        <Text maxFontSizeMultiplier={1.4} accessibilityRole="alert" style={[styles.error, { color: theme.status.dirty }]} testID={`${testID}-error`}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="alert" style={[styles.error, { color: theme.status.dirty }]} testID={`${testID}-error`}>
           {error}
         </Text>
       ) : null}

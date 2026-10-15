@@ -13,8 +13,8 @@ import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { useSyncOverview } from "@/lib/offline/useSyncOverview";
 import type { CategoryKey, OverviewCategory, OverviewStatus } from "@/lib/offline/syncOverview";
 import { useTheme } from "@/lib/theme/useTheme";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 type Tone = "ok" | "info" | "warn" | "alert" | "muted";

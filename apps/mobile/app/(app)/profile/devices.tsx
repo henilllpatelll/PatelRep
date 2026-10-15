@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore } from "@/stores/appStore";
+import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
 function formatSignedIn(iso: string | null | undefined, language: string): string | null {
   if (!iso) return null;
@@ -77,27 +78,27 @@ export default function DevicesScreen() {
         </View>
         <View style={styles.text}>
           <View style={styles.titleRow}>
-            <Text maxFontSizeMultiplier={1.4} style={[styles.title, { color: theme.textPrimary }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]}>
               {t("security.devices.thisDevice")}
             </Text>
             <View style={[styles.badge, { backgroundColor: theme.primarySoft }]}>
-              <Text maxFontSizeMultiplier={1.4} style={[styles.badgeText, { color: theme.primary }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badgeText, { color: theme.primary }]}>
                 {t("security.devices.current")}
               </Text>
             </View>
           </View>
-          <Text maxFontSizeMultiplier={1.4} style={[styles.meta, { color: theme.textMuted }]} testID="device-platform">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]} testID="device-platform">
             {deviceLine}
           </Text>
           {signedIn ? (
-            <Text maxFontSizeMultiplier={1.4} style={[styles.meta, { color: theme.textMuted }]} testID="device-signed-in">
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]} testID="device-signed-in">
               {t("security.devices.signedIn", { when: signedIn })}
             </Text>
           ) : null}
         </View>
       </View>
 
-      <Text maxFontSizeMultiplier={1.4} style={[styles.explain, { color: theme.textSecondary }]} testID="devices-note">
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.explain, { color: theme.textSecondary }]} testID="devices-note">
         {t("security.devices.note")}
       </Text>
 
@@ -113,7 +114,7 @@ export default function DevicesScreen() {
         testID="devices-signout-others"
       />
       {!isOnline ? (
-        <Text maxFontSizeMultiplier={1.4} style={[styles.explain, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.explain, { color: theme.textMuted }]}>
           {t("security.others.offline")}
         </Text>
       ) : null}

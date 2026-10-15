@@ -31,8 +31,8 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore } from "@/stores/appStore";
 import { runWithoutAppLock } from "@/stores/appLockStore";
+import { MIN_TOUCH, SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 const AVATAR_SIZE = 96;
 const UNKNOWN = "—";
 
@@ -40,7 +40,8 @@ export default function PersonalInformationScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
-  const { user, isOnline } = useAppStore();
+  const user = useAppStore((s) => s.user);
+  const isOnline = useAppStore((s) => s.isOnline);
   const { roleLabel, hotelName } = useSettingsIdentity();
   const { profile, status, reload, adopt } = useOwnProfile();
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
@@ -203,7 +204,7 @@ export default function PersonalInformationScreen() {
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeBody, styles.noticeText, { color: theme.textSecondary }]}>
             {t("settings.personal.loadFailed")}
           </Text>
-          <Button label={t("common.retry")} size="sm" variant="secondary" onPress={() => void reload()} testID="personal-retry" />
+          <Button label={t("common.retry")} size="md" variant="secondary" onPress={() => void reload()} testID="personal-retry" />
         </View>
       ) : null}
 
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  photoLinkPress: { minHeight: 44, justifyContent: "center" },
+  photoLinkPress: { minHeight: MIN_TOUCH, justifyContent: "center" },
   photoLink: { fontSize: 14.5, fontWeight: "700", minHeight: 22 },
   notice: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 14, padding: 14 },
   noticeText: { flex: 1, minWidth: 0 },

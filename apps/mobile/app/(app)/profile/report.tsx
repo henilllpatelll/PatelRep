@@ -29,8 +29,8 @@ import { SUPPORT_ROUTES } from "@/lib/support/faq";
 import { useDiagnostics } from "@/lib/support/useDiagnostics";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
+import { MIN_TOUCH, SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 
-const MAX_FONT_SCALE = 1.4;
 type SubmitProblem = "failed" | "offline" | "rateLimited" | null;
 
 /** The screen that opened this form, if it passed a plain app path. Nothing else is read from the caller. */
@@ -223,11 +223,12 @@ export default function ReportProblemScreen() {
           ]}
           testID="report-message"
         />
-        <View style={styles.meta}>
+        <View style={styles.metaStack}>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
             {t("help.report.guestWarning")}
           </Text>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
+          {/* Its own line, so a long warning (Spanish, large text) can never squeeze the counter into wrapping. */}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, styles.counter, { color: theme.textMuted }]}>
             {t("help.report.count", { count: draft.message.length, max: MAX_REPORT_LENGTH })}
           </Text>
         </View>
@@ -254,7 +255,7 @@ export default function ReportProblemScreen() {
         />
       </SettingsSection>
       {draft.includeDiagnostics ? (
-        <Button label={t("help.report.viewDiagnostics")} variant="ghost" size="sm" onPress={() => setDiagOpen(true)} testID="report-view-diagnostics" />
+        <Button label={t("help.report.viewDiagnostics")} variant="ghost" size="md" onPress={() => setDiagOpen(true)} testID="report-view-diagnostics" />
       ) : null}
 
       {problem ? (
@@ -278,7 +279,7 @@ export default function ReportProblemScreen() {
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted, flex: 1 }]} testID="report-draft-note">
             {t("help.report.draftNote")}
           </Text>
-          <Button label={t("help.report.discard.discard")} variant="ghost" size="sm" onPress={() => setDiscardOpen(true)} disabled={submitting} testID="report-discard" />
+          <Button label={t("help.report.discard.discard")} variant="ghost" size="md" onPress={() => setDiscardOpen(true)} disabled={submitting} testID="report-discard" />
         </View>
       ) : null}
 
@@ -317,11 +318,12 @@ const styles = StyleSheet.create({
   field: { gap: 8 },
   label: { fontSize: 15, fontWeight: "700", paddingHorizontal: 4 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8 },
+  chip: { minHeight: MIN_TOUCH, flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8 },
   chipText: { fontSize: 14, fontWeight: "600" },
   input: { minHeight: 130, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, lineHeight: 21 },
-  meta: { flexDirection: "row", justifyContent: "space-between", gap: 12, paddingHorizontal: 4 },
   hint: { fontSize: 12.5, lineHeight: 17 },
+  metaStack: { gap: 4, paddingHorizontal: 4 },
+  counter: { alignSelf: "flex-end" },
   error: { fontSize: 13, lineHeight: 18, fontWeight: "600", paddingHorizontal: 4 },
   problem: { paddingHorizontal: 4 },
   problemText: { fontSize: 13.5, lineHeight: 19, fontWeight: "600" },

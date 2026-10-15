@@ -201,7 +201,11 @@ describe("Settings home", () => {
     expect(getByTestId("identity-role").props.children).toBe("Housekeeper");
     await waitFor(() => expect(getByTestId("identity-hotel").props.children).toBe("Lone Star Inn"));
     expect(getByText("Online · All synced")).toBeTruthy();
-    expect(within(getByTestId("settings-identity")).getByTestId("icon-chevron-forward")).toBeTruthy();
+    // Informational: Personal Information is its own row, so the card is not a second way in.
+    const card = getByTestId("settings-identity");
+    expect(within(card).queryByTestId("icon-chevron-forward")).toBeNull();
+    expect(card.props.accessibilityRole).toBeUndefined();
+    expect(card.props.accessibilityLabel).toBe("Maria Vega, Housekeeper, Lone Star Inn, Online · All synced");
   });
 
   it("shows Offline, pending, Syncing and needs-attention connection states", () => {
@@ -306,10 +310,9 @@ describe("Settings home", () => {
     expect(getByTestId("row-personal")).toBeTruthy();
   });
 
-  it("navigates to every destination from its row and from the identity card", () => {
+  it("navigates to every destination from its row", () => {
     const { getByTestId } = render(<SettingsHome />);
     const expected: Record<string, string> = {
-      "settings-identity": "/(app)/profile/personal",
       "row-personal": "/(app)/profile/personal",
       "row-security": "/(app)/profile/security",
       "row-notifications": "/(app)/profile/notifications",
