@@ -184,6 +184,57 @@ async def test_too_many_mobile_reports_in_an_hour_are_refused(db):
     assert err.value.status_code == 429
 
 
+@pytest.mark.asyncio
+async def test_labelling_a_mobile_report_as_web_does_not_skip_the_diagnostics_allowlist(db):
+    ctx = {"app_version": "1.2.3", "access_token": "secret-token", "guest_name": "Jane Guest"}
+    await feedback_router.submit_feedback(report(source="web", client_request_id=None, area=None, client_context=ctx), current_user=HK)
+    row = db.tables["feedback_submissions"][0]
+    assert row["client_context"] == {"app_version": "1.2.3"}
+    assert row["source"] == "mobile"
+
+
+@pytest.mark.asyncio
+async def test_the_mobile_area_or_retry_id_marks_a_report_mobile_even_when_labelled_web(db):
+    await feedback_router.submit_feedback(
+        report(source="web", client_context={"access_token": "t"}), current_user=HK
+    )
+    row = db.tables["feedback_submissions"][0]
+    assert row["client_context"] == {} and row["source"] == "mobile" and row["area"] == "tasks"
+
+
+@pytest.mark.asyncio
+async def test_the_hourly_cap_cannot_be_dodged_by_labelling_reports_web(db):
+    for _ in range(feedback_router.MOBILE_REPORTS_PER_HOUR):
+        db.tables["feedback_submissions"].append(
+            {"id": "x", "tenant_id": "hotel-1", "user_id": "hk-1", "source": "mobile", "created_at": "9999-01-01T00:00:00Z"}
+        )
+    with pytest.raises(HTTPException) as err:
+        await feedback_router.submit_feedback(
+            CreateFeedbackRequest(message="plain web form", client_context={"timezone": "America/Chicago"}), current_user=HK
+        )
+    assert err.value.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_the_cap_counts_only_the_signed_in_person_in_their_hotel(db):
+    for _ in range(feedback_router.MOBILE_REPORTS_PER_HOUR):
+        db.tables["feedback_submissions"].append(
+            {"id": "x", "tenant_id": "hotel-1", "user_id": "someone-else", "source": "web", "created_at": "9999-01-01T00:00:00Z"}
+        )
+    await feedback_router.submit_feedback(CreateFeedbackRequest(message="fine"), current_user=HK)
+    assert len(db.tables["feedback_submissions"]) == feedback_router.MOBILE_REPORTS_PER_HOUR + 1
+
+
+@pytest.mark.asyncio
+async def test_a_normal_web_report_keeps_its_free_form_context_and_web_source(db):
+    await feedback_router.submit_feedback(
+        CreateFeedbackRequest(message="slow", client_context={"room_id": "room-214", "screen": "room-board"}), current_user=HK
+    )
+    row = db.tables["feedback_submissions"][0]
+    assert row["client_context"] == {"room_id": "room-214", "screen": "room-board"}
+    assert "source" not in row  # column default 'web'
+
+
 def test_the_request_model_ignores_any_user_or_tenant_the_client_sends():
     parsed = CreateFeedbackRequest(message="hi", user_id="someone-else", tenant_id="hotel-2")
     assert not hasattr(parsed, "user_id") and not hasattr(parsed, "tenant_id")

@@ -109,7 +109,7 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | feedback.py | /v1/feedback | POST | none |  |
 | feedback.py | /v1/feedback/mine | GET | none |  |
 | feedback.py | /v1/feedback/mine/{feedback_id} | GET | none |  |
-| feedback.py | /v1/feedback | GET | gm | require_role('gm') [L253] |
+| feedback.py | /v1/feedback | GET | gm | require_role('gm') [L268] |
 | guest_requests.py | /v1/guest-requests | POST | none |  |
 | guest_requests.py | /v1/guest-requests/{request_id}/transition | POST | role-restricted (inline, see source) | gate: if request.status == 'cancelled' and current_user.role not in MANAGER_ROLES: raise HTTPException(...) [L211]; inline: current_user.role not in MANAGER_ROLES [L211] |
 | guest_requests.py | /v1/guest-requests/{request_id}/create-work-order | POST | front_desk, gm, housekeeping_supervisor | require_role(*WORK_ORDER_BRIDGE_ROLES) [L275] |

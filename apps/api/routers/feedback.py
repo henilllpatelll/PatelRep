@@ -31,6 +31,8 @@ MOBILE_DIAGNOSTIC_KEYS = (
     "sync_status",
     "source_screen",
 )
+# Per person, across every source: a client can label a report "web" or "mobile" however it likes, so the
+# cap must not depend on the label.
 MOBILE_REPORTS_PER_HOUR = 10
 OWN_REPORT_COLUMNS = "id, category, area, severity, message, status, source, created_at, updated_at"
 
@@ -47,6 +49,21 @@ def _allowlisted_context(context: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(value, str):
             clean[key] = value[:80]
     return clean
+
+
+def _is_mobile_report(request: CreateFeedbackRequest) -> bool:
+    """Mobile diagnostics rules apply to anything that declares itself mobile OR carries a mobile-only field.
+
+    `source` is client-supplied, so it can only ADD protections, never remove them: a report that sets the mobile
+    area / retry id, or any allow-listed diagnostic key (the browser form never sends these), is treated as mobile
+    and stored as such even when it says source="web".
+    """
+    return (
+        request.source == "mobile"
+        or request.area is not None
+        or request.client_request_id is not None
+        or any(key in request.client_context for key in MOBILE_DIAGNOSTIC_KEYS)
+    )
 
 
 def _feedback_summary(row: dict[str, Any]) -> str:
@@ -128,14 +145,13 @@ def _existing_by_request_id(current_user: CurrentUser, client_request_id: str) -
     return (found.data or [None])[0]
 
 
-def _enforce_mobile_report_cap(current_user: CurrentUser) -> None:
+def _enforce_report_cap(current_user: CurrentUser) -> None:
     since = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     recent = (
         supabase.table("feedback_submissions")
         .select("id")
         .eq("tenant_id", current_user.hotel_id)
         .eq("user_id", current_user.user_id)
-        .eq("source", "mobile")
         .gte("created_at", since)
         .execute()
     )
@@ -148,14 +164,13 @@ async def submit_feedback(
     request: CreateFeedbackRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    is_mobile = request.source == "mobile"
+    is_mobile = _is_mobile_report(request)
     if request.client_request_id:
         # A retry of a report the server already accepted returns that report instead of filing another.
         existing = _existing_by_request_id(current_user, str(request.client_request_id))
         if existing:
             return {"data": _safe_row(existing), "meta": {"replayed": True}}
-    if is_mobile:
-        _enforce_mobile_report_cap(current_user)
+    _enforce_report_cap(current_user)
 
     payload = {
         "tenant_id": current_user.hotel_id,

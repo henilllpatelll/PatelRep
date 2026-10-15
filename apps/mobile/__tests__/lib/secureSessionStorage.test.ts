@@ -55,7 +55,7 @@ describe("secureSessionStorage", () => {
     await storage.setItem(KEY, bigSession);
 
     for (const [, value] of mockSecure) expect(value.length).toBeLessThanOrEqual(CHUNK_SIZE);
-    expect(mockSecure.get(`${KEY}.n`)).toBe(String(Math.ceil(bigSession.length / CHUNK_SIZE)));
+    expect(mockSecure.get(`${KEY}.n`)).toMatch(new RegExp(`^g[0-9a-z]+:${Math.ceil(bigSession.length / CHUNK_SIZE)}$`));
     expect(await storage.getItem(KEY)).toBe(bigSession);
     // Never written to plaintext storage.
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();
@@ -65,7 +65,8 @@ describe("secureSessionStorage", () => {
     await storage.setItem(KEY, bigSession);
     await storage.setItem(KEY, "short");
     expect(await storage.getItem(KEY)).toBe("short");
-    expect([...mockSecure.keys()].filter((k) => k.startsWith(`${KEY}.`)).sort()).toEqual([`${KEY}.0`, `${KEY}.n`]);
+    const gen = (mockSecure.get(`${KEY}.n`) as string).split(":")[0];
+    expect([...mockSecure.keys()].filter((k) => k.startsWith(`${KEY}.`)).sort()).toEqual([`${KEY}.${gen}.0`, `${KEY}.n`]);
 
     await storage.removeItem(KEY);
     expect(mockSecure.size).toBe(0);
@@ -104,7 +105,8 @@ describe("secureSessionStorage", () => {
 
   it("treats a damaged secure copy as absent rather than returning half a session", async () => {
     await storage.setItem(KEY, bigSession);
-    mockSecure.delete(`${KEY}.1`);
+    const gen = (mockSecure.get(`${KEY}.n`) as string).split(":")[0];
+    mockSecure.delete(`${KEY}.${gen}.1`);
     expect(await storage.getItem(KEY)).toBeNull();
   });
 
@@ -113,6 +115,61 @@ describe("secureSessionStorage", () => {
     await expect(storage.setItem(KEY, bigSession)).rejects.toThrow();
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();
     expect(mockLegacy.size).toBe(0);
+  });
+
+  it("a write that fails part-way leaves the previous session readable and no orphan chunks", async () => {
+    const SecureStore = jest.requireMock("expo-secure-store");
+    await storage.setItem(KEY, bigSession);
+    const before = new Map(mockSecure);
+    const next = JSON.stringify({ access_token: "b".repeat(4000), refresh_token: "r2" });
+    let writes = 0;
+    SecureStore.setItemAsync.mockImplementationOnce(async (k: string, v: string) => { writes += 1; mockSecure.set(k, v); });
+    SecureStore.setItemAsync.mockImplementationOnce(async () => { throw new Error("interrupted"); });
+    await expect(storage.setItem(KEY, next)).rejects.toThrow("interrupted");
+    expect(writes).toBe(1);
+    expect(await storage.getItem(KEY)).toBe(bigSession);
+    expect(new Map(mockSecure)).toEqual(before);
+  });
+
+  it("an interrupted pointer publish keeps the old session; a completed one switches and cleans up", async () => {
+    const SecureStore = jest.requireMock("expo-secure-store");
+    await storage.setItem(KEY, bigSession);
+    const next = JSON.stringify({ access_token: "c".repeat(3000), refresh_token: "r3" });
+    const realSet = SecureStore.setItemAsync.getMockImplementation();
+    SecureStore.setItemAsync.mockImplementation(async (k: string, v: string) => {
+      if (k === `${KEY}.n`) throw new Error("killed before publish");
+      return realSet(k, v);
+    });
+    await expect(storage.setItem(KEY, next)).rejects.toThrow();
+    expect(await storage.getItem(KEY)).toBe(bigSession);
+
+    SecureStore.setItemAsync.mockImplementation(realSet);
+    await storage.setItem(KEY, next);
+    expect(await storage.getItem(KEY)).toBe(next);
+    const gen = (mockSecure.get(`${KEY}.n`) as string).split(":")[0];
+    for (const k of mockSecure.keys()) expect(k === `${KEY}.n` || k.startsWith(`${KEY}.${gen}.`)).toBe(true);
+  });
+
+  it("a crash after publish but before old-chunk cleanup still reads the new session", async () => {
+    await storage.setItem(KEY, bigSession);
+    const oldGen = (mockSecure.get(`${KEY}.n`) as string).split(":")[0];
+    const orphan = `${KEY}.${oldGen}.0`;
+    const next = "fresh-session";
+    await storage.setItem(KEY, next);
+    mockSecure.set(orphan, "stale"); // as if cleanup never ran
+    expect(await storage.getItem(KEY)).toBe(next);
+  });
+
+  it("reads a session written in the previous (count-only) layout, and upgrades it on the next write", async () => {
+    const parts = bigSession.match(new RegExp(`.{1,${CHUNK_SIZE}}`, "gs")) as string[];
+    parts.forEach((p, i) => mockSecure.set(`${KEY}.${i}`, p));
+    mockSecure.set(`${KEY}.n`, String(parts.length));
+    expect(await storage.getItem(KEY)).toBe(bigSession);
+
+    await storage.setItem(KEY, "rotated");
+    expect(await storage.getItem(KEY)).toBe("rotated");
+    expect(mockSecure.has(`${KEY}.0`)).toBe(false);
+    expect(mockSecure.has(`${KEY}.${parts.length - 1}`)).toBe(false);
   });
 
   it("passes straight through to AsyncStorage on web (no Keychain exists there)", async () => {

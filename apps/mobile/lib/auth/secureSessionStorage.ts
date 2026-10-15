@@ -26,45 +26,89 @@ const OPTIONS: SecureStore.SecureStoreOptions = {
 };
 
 const countKey = (key: string) => `${key}.n`;
-const chunkKey = (key: string, i: number) => `${key}.${i}`;
+const MAX_CHUNKS = 64;
+
+/**
+ * Where a stored value lives. The pointer (`<key>.n`) is the single atomic switch:
+ *  - legacy layout: "<count>" with chunks `<key>.<i>` (written by the first secure-storage builds);
+ *  - current layout: "g<generation>:<count>" with chunks `<key>.g<generation>.<i>`.
+ * A write puts the new value under a NEW generation, then flips the pointer, then deletes the old
+ * generation. The live value is never overwritten in place, so a failed or interrupted write leaves the
+ * previous session readable.
+ */
+interface Layout {
+  generation: string | null;
+  count: number;
+}
+
+const chunkKey = (key: string, layout: Layout, i: number) =>
+  layout.generation === null ? `${key}.${i}` : `${key}.${layout.generation}.${i}`;
+
+function parsePointer(raw: string): Layout {
+  const legacy = /^\d+$/.exec(raw);
+  const current = /^(g[0-9a-z]+):(\d+)$/.exec(raw);
+  const generation = current ? current[1] : null;
+  const count = Number.parseInt(current ? current[2] : legacy ? raw : "", 10);
+  if (!(legacy || current) || !Number.isInteger(count) || count < 1 || count > MAX_CHUNKS) {
+    throw new Error("secure-session: corrupt chunk count");
+  }
+  return { generation, count };
+}
+
+async function readLayout(key: string): Promise<Layout | null> {
+  const raw = await SecureStore.getItemAsync(countKey(key), OPTIONS);
+  return raw === null ? null : parsePointer(raw);
+}
 
 async function readSecure(key: string): Promise<string | null> {
-  const rawCount = await SecureStore.getItemAsync(countKey(key), OPTIONS);
-  if (rawCount === null) return null;
-  const count = Number.parseInt(rawCount, 10);
-  if (!Number.isInteger(count) || count < 1 || count > 64) throw new Error("secure-session: corrupt chunk count");
+  const layout = await readLayout(key);
+  if (layout === null) return null;
   const parts: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const part = await SecureStore.getItemAsync(chunkKey(key, i), OPTIONS);
+  for (let i = 0; i < layout.count; i += 1) {
+    const part = await SecureStore.getItemAsync(chunkKey(key, layout, i), OPTIONS);
     if (part === null) throw new Error("secure-session: missing chunk");
     parts.push(part);
   }
   return parts.join("");
 }
 
-async function removeSecure(key: string): Promise<void> {
-  const rawCount = await SecureStore.getItemAsync(countKey(key), OPTIONS).catch(() => null);
-  const count = rawCount ? Number.parseInt(rawCount, 10) : 0;
-  await SecureStore.deleteItemAsync(countKey(key), OPTIONS);
-  for (let i = 0; i < (Number.isInteger(count) ? Math.min(count, 64) : 0); i += 1) {
-    await SecureStore.deleteItemAsync(chunkKey(key, i), OPTIONS);
+async function deleteChunks(key: string, layout: Layout): Promise<void> {
+  for (let i = 0; i < layout.count; i += 1) {
+    await SecureStore.deleteItemAsync(chunkKey(key, layout, i), OPTIONS).catch(() => undefined);
   }
 }
 
+async function removeSecure(key: string): Promise<void> {
+  const layout = await readLayout(key).catch(() => null);
+  await SecureStore.deleteItemAsync(countKey(key), OPTIONS);
+  if (layout) await deleteChunks(key, layout);
+}
+
+let generationCounter = 0;
+const nextGeneration = () => {
+  generationCounter += 1;
+  return `g${Date.now().toString(36)}${generationCounter.toString(36)}`;
+};
+
 async function writeSecure(key: string, value: string): Promise<void> {
-  const previous = await SecureStore.getItemAsync(countKey(key), OPTIONS).catch(() => null);
+  const previous = await readLayout(key).catch(() => null);
   const chunks: string[] = [];
   for (let i = 0; i < value.length; i += CHUNK_SIZE) chunks.push(value.slice(i, i + CHUNK_SIZE));
   if (chunks.length === 0) chunks.push("");
-  for (let i = 0; i < chunks.length; i += 1) {
-    await SecureStore.setItemAsync(chunkKey(key, i), chunks[i], OPTIONS);
+  if (chunks.length > MAX_CHUNKS) throw new Error("secure-session: value too large");
+
+  const next: Layout = { generation: nextGeneration(), count: chunks.length };
+  try {
+    for (let i = 0; i < chunks.length; i += 1) {
+      await SecureStore.setItemAsync(chunkKey(key, next, i), chunks[i], OPTIONS);
+    }
+    // Publish: from here the new value is live. Until this succeeds the old value is untouched.
+    await SecureStore.setItemAsync(countKey(key), `${next.generation}:${next.count}`, OPTIONS);
+  } catch (error) {
+    await deleteChunks(key, next); // best effort; the previous value stays the live one
+    throw error;
   }
-  await SecureStore.setItemAsync(countKey(key), String(chunks.length), OPTIONS);
-  // A shorter value than before leaves stale trailing chunks; drop them.
-  const oldCount = previous ? Number.parseInt(previous, 10) : 0;
-  for (let i = chunks.length; i < (Number.isInteger(oldCount) ? Math.min(oldCount, 64) : 0); i += 1) {
-    await SecureStore.deleteItemAsync(chunkKey(key, i), OPTIONS);
-  }
+  if (previous) await deleteChunks(key, previous);
 }
 
 const secureSessionStorage = {

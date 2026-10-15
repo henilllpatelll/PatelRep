@@ -14,6 +14,7 @@ const mockIsEnrolled = jest.fn();
 const mockSupportedTypes = jest.fn();
 const mockAuthenticate = jest.fn();
 const mockSupabaseSignOut = jest.fn();
+const mockSyncPush = jest.fn();
 const mockUnregisterPush = jest.fn();
 const mockSecure = new Map<string, string>();
 let mockSessionSignedIn: string | null = "2026-10-12T15:30:00Z";
@@ -71,7 +72,10 @@ jest.mock("@/components/housekeeping/roomDetail/BottomSheet", () => ({
     ) : null;
   },
 }));
-jest.mock("@/lib/notifications", () => ({ unregisterPushToken: (...a: unknown[]) => mockUnregisterPush(...a) }));
+jest.mock("@/lib/notifications", () => ({
+  unregisterPushToken: (...a: unknown[]) => mockUnregisterPush(...a),
+  syncPushRegistration: (...a: unknown[]) => mockSyncPush(...a),
+}));
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     auth: {
@@ -130,8 +134,9 @@ beforeEach(async () => {
   mockSessionSignedIn = "2026-10-12T15:30:00Z";
   Platform.OS = "ios";
   mockSecure.clear();
-  [mockToast.success, mockToast.error, mockToast.info, mockPush, mockReplace, mockBack, mockHasHardware, mockIsEnrolled, mockSupportedTypes, mockAuthenticate, mockSupabaseSignOut, mockUnregisterPush].forEach((m) => m.mockReset());
+  [mockToast.success, mockToast.error, mockToast.info, mockPush, mockReplace, mockBack, mockHasHardware, mockIsEnrolled, mockSupportedTypes, mockAuthenticate, mockSupabaseSignOut, mockUnregisterPush, mockSyncPush].forEach((m) => m.mockReset());
   mockSupabaseSignOut.mockResolvedValue({ error: null });
+  mockSyncPush.mockResolvedValue(true);
   mockUnregisterPush.mockResolvedValue(undefined);
   mockAuthenticate.mockResolvedValue({ success: true });
   supportFace();
@@ -504,6 +509,23 @@ describe("Sign out sheet", () => {
     fireEvent.press(getByTestId("signout-cancel"));
     expect(onClose).toHaveBeenCalled();
     expect(mockSupabaseSignOut).not.toHaveBeenCalled();
+  });
+
+  it("a failed sign-out changes nothing: in-flight cleaning work and app lock survive, push is re-attached", async () => {
+    mockSupabaseSignOut.mockResolvedValue({ error: { status: 500, message: "network down" } });
+    seedAliceWork();
+    await lock().setEnabled(true);
+    const { getByTestId } = render(<SignOutSheet visible onClose={jest.fn()} />);
+    await act(async () => {
+      fireEvent.press(getByTestId("signout-confirm"));
+    });
+    await waitFor(() => expect(getByTestId("signout-error")).toBeTruthy());
+    expect(useCleanSessionStore.getState().scope).toBe("hotel-1:alice");
+    expect(Object.keys(useCleanSessionStore.getState().sessions)).toEqual(["r9"]);
+    expect(lock().enabled).toBe(true);
+    expect(mockSyncPush).toHaveBeenCalledWith("alice", { force: true });
+    expect(appStore.getState().pendingActions).toHaveLength(3);
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it("warns that work cannot sync while signed out when the phone is offline", () => {
