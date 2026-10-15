@@ -1,6 +1,7 @@
 import type { Room } from "@/stores/appStore";
 import { isDepartureClean, isArrivalSoon } from "@/lib/housekeeping/roomWorkflow";
 import { elapsedSeconds } from "@/lib/housekeeping/cleaningTimer";
+import { estimateBasisOf, type EstimateBasis } from "@/lib/housekeeping/cleaningEstimate";
 import { getSequenceOrder, type DashboardModel, type RoomEntry } from "@/lib/housekeeping/myRoomsDashboard";
 
 /**
@@ -33,6 +34,8 @@ export type RecommendationPriority = "active" | "sequenced" | "rush" | "reclean"
 export interface RecommendationTiming {
   /** An estimate from the room type, never a deadline. */
   estimateMinutes: number;
+  /** Whether the estimate is the hotel's room-type baseline or the app's general fallback. */
+  estimateBasis: EstimateBasis;
   neededBy: string | null;
   neededByOverdue: boolean;
   /** Only the front desk's verified checkout; a scheduled time is not one. */
@@ -92,6 +95,7 @@ function timingFor(entry: RoomEntry, now: Date): RecommendationTiming {
   const startedAt = session && session.state !== "missing" ? session.startedAt : null;
   return {
     estimateMinutes: entry.estimateMinutes,
+    estimateBasis: estimateBasisOf(room),
     neededBy: entry.neededBy,
     neededByOverdue: entry.rush?.overdue ?? false,
     checkoutVerifiedAt: room.actual_checkout_at ?? null,
@@ -137,6 +141,14 @@ export function buildRecommendation(dashboard: DashboardModel, now: Date): Recom
     alsoApplies: reasons.slice(1),
     timing: timingFor(next, now),
   };
+}
+
+/**
+ * The recommendation for the room that follows the one being cleaned: the head of Up Next, ranked by the
+ * same rules as everything else. Used to explain the "Up next" card while a room is open.
+ */
+export function recommendNext(dashboard: DashboardModel, now: Date): Recommendation | null {
+  return buildRecommendation({ ...dashboard, current: [] }, now);
 }
 
 export function whyNoRecommendation(dashboard: DashboardModel, boardUsable: boolean): NoRecommendationReason {

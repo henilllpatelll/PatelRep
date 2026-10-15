@@ -4,6 +4,8 @@ import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
+import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
+import { isAssistantRole } from "@/lib/ai/fab";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { CurrentRoomCard } from "@/components/home/CurrentRoomCard";
 import { HomeHeader } from "@/components/home/HomeHeader";
@@ -76,6 +78,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
   const { user, isOnline, setMyRooms, refreshRooms } = useAppStore();
   const lastSyncedAt = useAppStore((state) => state.lastSyncedAt) ?? null;
   const unreadCount = useAppStore((state) => state.unreadCount) ?? 0;
+  const assistant = useAssistantOptional();
   const home = useHousekeeperHome({ enabled });
   const { model, rooms, shift, markSupervisorNoteRead, refresh: refreshHome } = home;
   const { lifecycle } = model;
@@ -170,12 +173,17 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       roomAction: (roomId, action) => navigate(`/(app)/my-rooms/${roomId}?action=${action}&from=home`),
       openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
       openMyRooms,
+      askAboutRoom:
+        assistant && isAssistantRole(user?.effective_role ?? user?.role)
+          ? (roomId, roomNumber, live) =>
+              assistant.openAssistant({ contextType: live ? "cleaningSession" : "room", entityId: roomId, label: roomNumber })
+          : undefined,
       openLink: (link) => {
         if (link.kind === "room") openRoom(link.roomId);
         else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
       },
     }),
-    [navigate, openRoom, openMyRooms],
+    [navigate, openRoom, openMyRooms, assistant, user?.effective_role, user?.role],
   );
   const serviceGo = useMemo<HomeServiceGo>(
     () => ({
@@ -183,9 +191,10 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
       openTasks: () => navigate("/(app)/tasks"),
       openLostFound: () => navigate("/(app)/lost-found"),
-      openCopilot: () => navigate("/(app)/copilot"),
+      // The shared assistant, about the shift: the same conversation the floating button opens, and no second briefing request.
+      openCopilot: () => (assistant ? assistant.openAssistant({ contextType: "shift" }) : navigate("/(app)/copilot")),
     }),
-    [navigate, openRoom],
+    [navigate, openRoom, assistant],
   );
 
   /* ─── Derived view ─────────────────────────────────────────────────────── */
@@ -401,7 +410,14 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
               )}
 
               {upNext ? (
-                <UpNextPreview entry={upNext} t={t} ctx={ctx} onOpenRoom={openRoom} onViewRoute={openMyRooms} />
+                <UpNextPreview
+                  entry={upNext}
+                  t={t}
+                  ctx={ctx}
+                  onOpenRoom={openRoom}
+                  onViewRoute={openMyRooms}
+                  onWhy={(roomId, opener) => sheets.open({ kind: "why", roomId }, opener)}
+                />
               ) : null}
             </>
           ) : null}

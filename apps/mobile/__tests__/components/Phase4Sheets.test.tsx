@@ -107,6 +107,30 @@ describe("ShiftBriefingSheet and summary", () => {
     expect(onNew).toHaveBeenCalledTimes(1);
   });
 
+  it("says plainly when AI help is used up, keeps the complete local plan, and cannot be asked again", () => {
+    const { getByTestId, queryByTestId } = wrap(
+      <ShiftBriefingSheet visible plan={buildBriefingPlan(model, NOW)} briefing={buildBriefingFromModel(model, t)} status="credits" online t={t} ctx={ctx}
+        onNewBriefing={jest.fn()} onAskAi={jest.fn()} onOpenRoom={jest.fn()} onClose={jest.fn()} />,
+    );
+    expect(getByTestId("briefing-credits")).toBeTruthy();
+    expect(queryByTestId("briefing-unavailable")).toBeNull();
+    expect(getByTestId("briefing-plan-208")).toBeTruthy();
+    expect(getByTestId("briefing-new").props.accessibilityState.disabled).toBe(true);
+  });
+
+  it("marks the order as verified data, shows when the rooms were last updated, and asks about the shift", () => {
+    const onAsk = jest.fn();
+    const { getByTestId, getByText } = wrap(
+      <ShiftBriefingSheet visible plan={buildBriefingPlan(model, NOW)} briefing={buildBriefingFromModel(model, t)} status="idle" online t={t} ctx={ctx}
+        updatedAt="2026-10-14T14:45:00.000Z" onNewBriefing={jest.fn()} onAskAi={onAsk} onOpenRoom={jest.fn()} onClose={jest.fn()} />,
+    );
+    expect(getByTestId("briefing-plan-source").props.children).toMatch(/not from AI/);
+    expect(getByTestId("briefing-updated").props.children).toMatch(/Rooms last updated/);
+    expect(getByText("Ask about my shift")).toBeTruthy();
+    fireEvent.press(getByTestId("briefing-ask-ai"));
+    expect(onAsk).toHaveBeenCalledTimes(1);
+  });
+
   it("summary has no recap until requested", () => {
     const ended = build([room("101", { status: "CLEAN" })], { shift: "ended" });
     const onRecap = jest.fn();

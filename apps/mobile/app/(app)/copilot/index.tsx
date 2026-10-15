@@ -32,6 +32,8 @@ import { chatQuickActions, roomIssueHref } from "@/lib/ai/quickActions";
 import { MAX_MESSAGE_CHARS } from "@/lib/ai/useAssistantConversation";
 import { useAnnounceReplies } from "@/lib/ai/useAssistantA11y";
 import { useQuickActions } from "@/lib/ai/useQuickActions";
+import { useRoomQuestions } from "@/lib/ai/useRoomQuestions";
+import { RoomQuestionList } from "@/components/ai/RoomQuestionList";
 import { isSpeechAvailable } from "@/lib/voice/speechModule";
 import { useAppStore } from "@/stores/appStore";
 
@@ -111,6 +113,7 @@ export default function CopilotScreen() {
     requestFocus();
   }, [setDraft, setPendingHint, requestFocus, t]);
   const runQuick = useQuickActions({ onPickRoom: () => setRoomsOpen(true) });
+  const roomQuestions = useRoomQuestions();
   useAnnounceReplies(messages, t("assistant.thread.problem"));
 
   const confirmItem = useMemo(() => {
@@ -209,6 +212,7 @@ export default function CopilotScreen() {
               onReviewAction={(messageId, actionId) => setConfirmFor({ messageId, actionId })}
               onOpenRoom={openRoom}
               onOpenMyRooms={() => router.push("/(app)/my-rooms" as never)}
+              onOpenHref={(href) => router.push(href as never)}
             />
           )}
           ListHeaderComponent={<ContextChip context={context} label={contextLabel} onClear={clearContext} />}
@@ -220,9 +224,10 @@ export default function CopilotScreen() {
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.emptyTitle, { color: darkTheme.textPrimary }]}>
                 {t("assistant.screen.empty")}
               </Text>
+              {housekeeper && roomQuestions.ids.length > 0 ? <RoomQuestionList ids={roomQuestions.ids} onAsk={roomQuestions.run} variant="chips" palette={darkTheme} /> : null}
               <View style={styles.chips}>
                 {housekeeper
-                  ? quickActions.map((action) => (
+                  ? (roomQuestions.ids.length > 0 ? [] : quickActions).map((action) => (
                       <Pressable
                         key={action.id}
                         accessibilityRole="button"

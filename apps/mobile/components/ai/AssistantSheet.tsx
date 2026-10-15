@@ -10,12 +10,14 @@ import { AssistantMessageView } from "@/components/ai/AssistantMessageView";
 import { ContextChip } from "@/components/ai/ContextChip";
 import { usePalette } from "@/components/ai/palette";
 import { RoomPickerPanel } from "@/components/ai/RoomPickerPanel";
+import { RoomQuestionList } from "@/components/ai/RoomQuestionList";
 import { VoiceCapturePanel } from "@/components/voice/VoiceCapturePanel";
 import { useAssistant } from "@/lib/ai/AssistantProvider";
 import { sheetQuickActions, roomIssueHref } from "@/lib/ai/quickActions";
 import { MAX_MESSAGE_CHARS } from "@/lib/ai/useAssistantConversation";
 import { useAnnounceReplies } from "@/lib/ai/useAssistantA11y";
 import { useQuickActions } from "@/lib/ai/useQuickActions";
+import { useRoomQuestions } from "@/lib/ai/useRoomQuestions";
 import { isSpeechAvailable } from "@/lib/voice/speechModule";
 import { useAppStore } from "@/stores/appStore";
 
@@ -67,6 +69,7 @@ export function AssistantSheet() {
     requestFocus();
   }, [setDraft, setPendingHint, setSheetView, requestFocus, t]);
   const runQuick = useQuickActions({ onPickRoom: () => setSheetView("rooms") });
+  const roomQuestions = useRoomQuestions();
   useAnnounceReplies(messages, t("assistant.thread.problem"));
 
   const target = useMemo(() => {
@@ -89,6 +92,14 @@ export function AssistantSheet() {
     closeAssistant();
     router.push("/(app)/my-rooms" as never);
   }, [closeAssistant]);
+  const openHref = useCallback(
+    (href: string) => {
+      if (!href) return;
+      closeAssistant();
+      router.push(href as never);
+    },
+    [closeAssistant],
+  );
 
   const recent = messages.slice(-RECENT_MESSAGES);
   const lastId = messages[messages.length - 1]?.id ?? null;
@@ -190,10 +201,11 @@ export function AssistantSheet() {
           {recent.length === 0 ? (
             <>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heading, { color: theme.textPrimary }]}>
-                {t("assistant.sheet.heading")}
+                {t(roomQuestions.ids.length > 0 ? "assistant.roomQ.heading" : "assistant.sheet.heading")}
               </Text>
+              {roomQuestions.ids.length > 0 ? <RoomQuestionList ids={roomQuestions.ids} onAsk={roomQuestions.run} variant="rows" /> : null}
               <View style={styles.actions}>
-                {actions.map((action) => (
+                {(roomQuestions.ids.length > 0 ? [] : actions).map((action) => (
                   <Pressable
                     key={action.id}
                     accessibilityRole="button"
@@ -223,6 +235,7 @@ export function AssistantSheet() {
                   onOpenRoom={openRoom}
                   onExpand={expandAssistant}
                   onOpenMyRooms={openMyRooms}
+                  onOpenHref={openHref}
                 />
               ))}
               {sending ? (
@@ -234,7 +247,8 @@ export function AssistantSheet() {
                 </View>
               ) : (
                 <View style={styles.chips}>
-                  {actions.map((action) => (
+                  {roomQuestions.ids.length > 0 ? <RoomQuestionList ids={roomQuestions.ids} onAsk={roomQuestions.run} variant="chips" /> : null}
+                  {(roomQuestions.ids.length > 0 ? [] : actions).map((action) => (
                     <Pressable
                       key={action.id}
                       accessibilityRole="button"

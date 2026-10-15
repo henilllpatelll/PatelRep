@@ -201,7 +201,7 @@ export function describeRecommendation(rec: Recommendation, t: Translate, ctx: T
   const reasons = [rec.reason, ...rec.alsoApplies];
   const reasonLines = reasons.map((reason) => reasonLine(reason, rec, t, ctx));
   // The typical length is an estimate from the room type, never a promise.
-  const estimate = t("home.why.estimate", { minutes: rec.timing.estimateMinutes });
+  const estimate = t(rec.timing.estimateBasis === "room_type" ? "home.why.estimate" : "home.why.estimateGeneral", { minutes: rec.timing.estimateMinutes });
   const why = [...reasonLines, estimate];
 
   let headline: string | null = null;

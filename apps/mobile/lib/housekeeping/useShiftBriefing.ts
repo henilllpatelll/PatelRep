@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchShiftBriefing, type ShiftBriefing } from "@/lib/ai/briefing";
+import { CopilotFailure, toCopilotFailure } from "@/lib/ai/contract";
 import { briefingCache, briefingCacheKey, notifyBriefingChange } from "@/lib/ai/shiftBriefingSource";
 import type { Room } from "@/stores/appStore";
 
-export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable";
+/** "credits" = the hotel's AI allowance (or rate limit) is used up; the local plan is complete without it. */
+export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable" | "credits";
 
 export interface BriefingController {
   /** The AI's answer, when there is a fresh one. The deterministic plan never depends on it. */
@@ -11,6 +13,14 @@ export interface BriefingController {
   status: AiRequestStatus;
   /** A deliberate request. With `force` it skips the stored answer ("New briefing"). */
   request: (options?: { force?: boolean }) => Promise<void>;
+}
+
+function failureKindOf(error: unknown): string {
+  try {
+    return toCopilotFailure(error).kind;
+  } catch {
+    return "unknown";
+  }
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -61,7 +71,7 @@ export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, 
         async () => {
           const answer = await fetchShiftBriefing(current, lang, translate, true);
           // fetchShiftBriefing falls back to a local plan on any failure; that is not an AI answer.
-          if (answer.source !== "ai") throw new Error("ai unavailable");
+          if (answer.source !== "ai") throw new CopilotFailure(answer.failure ?? "unavailable", "ai unavailable");
           return answer;
         },
         { force: options?.force },
@@ -71,9 +81,10 @@ export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, 
       if (keyRef.current !== myKey) return;
       setAi(result);
       setStatus("idle");
-    } catch {
+    } catch (error) {
       if (keyRef.current !== myKey) return;
-      setStatus("unavailable");
+      const kind = failureKindOf(error);
+      setStatus(kind === "credit_limit" || kind === "rate_limited" ? "credits" : "unavailable");
     }
   }, []);
 

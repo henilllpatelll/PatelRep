@@ -154,12 +154,17 @@ def resolve_trusted_context(db: Any, hotel_id: str, user_id: str, role: Optional
         if not room:
             raise HTTPException(status_code=404, detail=NOT_FOUND)
         if role == "housekeeper":
-            assigned = (
-                db.table("room_assignments").select("id")
-                .eq("tenant_id", hotel_id).eq("room_id", room_id).eq("assigned_to", user_id)
-                .limit(1).execute()
+            # Only the room's CURRENT assignment counts: a housekeeper it was reassigned away from, or who had
+            # it on an earlier day, no longer has business with it (the room list drops it the same way).
+            recent = (
+                db.table("room_assignments").select("assigned_to, assignment_date")
+                .eq("tenant_id", hotel_id).eq("room_id", room_id)
+                .order("assignment_date", desc=True).limit(10).execute()
             ).data or []
-            if not assigned:
+            latest = max((str(row.get("assignment_date") or "") for row in recent), default=None)
+            if latest is None or not any(
+                row.get("assigned_to") == user_id and str(row.get("assignment_date") or "") == latest for row in recent
+            ):
                 raise HTTPException(status_code=404, detail=NOT_FOUND)
         trusted["room_id"] = room[0]["id"]
         trusted["room_number"] = room[0].get("room_number")

@@ -1,4 +1,5 @@
 import { api } from "@/lib/api/client";
+import { toCopilotFailure, type CopilotFailureKind } from "@/lib/ai/contract";
 import type { Room } from "@/stores/appStore";
 import {
   getBeforeEnterWarnings,
@@ -14,6 +15,8 @@ export interface ShiftBriefing {
   watchouts: string[];
   estimatedMinutes: number;
   source: "ai" | "local";
+  /** Why the AI could not answer, when this local plan stands in for a request that failed. */
+  failure?: CopilotFailureKind;
 }
 
 export interface SmartQueueEntry {
@@ -237,6 +240,14 @@ function toBriefingPayload(rooms: Room[], now: Date) {
   }));
 }
 
+function failureKind(error: unknown): CopilotFailureKind {
+  try {
+    return toCopilotFailure(error).kind;
+  } catch {
+    return "unknown";
+  }
+}
+
 /** Ask the backend AI for a briefing; falls back to the local heuristic on
  *  any failure or timeout. Never throws. */
 export async function fetchShiftBriefing(
@@ -266,37 +277,7 @@ export async function fetchShiftBriefing(
       estimatedMinutes: Number(data.estimated_minutes) || 0,
       source: "ai",
     };
-  } catch {
-    return buildLocalBriefing(rooms, t, now);
+  } catch (error) {
+    return { ...buildLocalBriefing(rooms, t, now), failure: failureKind(error) };
   }
-}
-
-export interface RoomInsight {
-  lines: Array<{ key: string; text: string }>;
-  etaMinutes: number;
-}
-
-/** Per-room insight for the detail screen — deterministic, instant, offline-safe. */
-export function buildRoomInsight(room: Room, allRooms: Room[], t: Translate, now: Date = new Date()): RoomInsight {
-  const lines: Array<{ key: string; text: string }> = [];
-  const eta = estimateCleanMinutes(room);
-
-  const queue = buildSmartQueue(allRooms, now);
-  const entry = queue.find((candidate) => candidate.room.id === room.id);
-  if (entry) {
-    lines.push({ key: "position", text: t("ai.insight.position", { position: entry.position, count: queue.length }) });
-  }
-  lines.push({ key: "eta", text: t("ai.insight.eta", { minutes: eta }) });
-
-  if (isArrivalSoon(room, now)) {
-    lines.push({ key: "arrival", text: t("ai.insight.arrival") });
-  }
-  if (room.clean_type === "DEP" && room.actual_checkout_at) {
-    lines.push({ key: "checkedOut", text: t("ai.insight.checkedOut") });
-  }
-  if (room.risk_level === "HIGH") {
-    lines.push({ key: "risk", text: t("ai.insight.risk") });
-  }
-
-  return { lines: lines.slice(0, 4), etaMinutes: eta };
 }

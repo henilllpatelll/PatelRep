@@ -17,7 +17,8 @@ import { useAppStore } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { SectionHeader } from "@/components/shared/evening";
 import { StateBlock } from "@/components/ui/StateBlock";
-import { CompactRoomRow, CurrentRoomCard, MyRoomCard } from "@/components/housekeeping/MyRoomCards";
+import { CompactRoomRow, CurrentRoomCard, MyRoomCard, WhyNextLink } from "@/components/housekeeping/MyRoomCards";
+import { RecommendationSheet } from "@/components/home/RecommendationSheet";
 import { MyRoomsHeader, type SyncIndicator } from "@/components/housekeeping/MyRoomsHeader";
 import { hasPendingSync } from "@/lib/housekeeping/cleanSession";
 import {
@@ -36,7 +37,9 @@ import {
   isRouteEmpty,
   type ListItem,
 } from "@/lib/housekeeping/myRoomsItems";
-import { formatClock } from "@/lib/housekeeping/myRoomsText";
+import { formatClock, type Translate } from "@/lib/housekeeping/myRoomsText";
+import { freshnessView, resolveDashboardWhy } from "@/lib/housekeeping/homeSheets";
+import { resolveFreshness } from "@/lib/housekeeping/roomsFreshness";
 import { formatShiftDate } from "@/lib/housekeeping/hotelTime";
 import { useActiveSessionRestore, useMyRoomsData } from "@/lib/housekeeping/useMyRoomsData";
 
@@ -53,6 +56,8 @@ export default function MyRoomsScreen() {
   const [tab, setTab] = useState<DashboardTab>(getLastTab);
   const [query, setQuery] = useState("");
   const [floorOverrides, setFloorOverrides] = useState<Record<string, boolean>>({});
+  // "Why next?" is open for this room id (null = closed). The explanation is re-read from the live dashboard on every render.
+  const [whyFor, setWhyFor] = useState<string | null>(null);
 
   // Sessions belong to one signed-in user; ignore records from another scope.
   const sessionScope = useCleanSessionStore((state) => state.scope);
@@ -94,6 +99,13 @@ export default function MyRoomsScreen() {
   const openRoom = useCallback((roomId: string) => {
     router.push(`/(app)/my-rooms/${roomId}`);
   }, []);
+  const openRoomFromWhy = useCallback(
+    (roomId: string) => {
+      setWhyFor(null);
+      openRoom(roomId);
+    },
+    [openRoom],
+  );
 
   const toggleFloor = useCallback((key: string, expanded: boolean) => {
     setFloorOverrides((prev) => ({ ...prev, [key]: !expanded }));
@@ -216,6 +228,9 @@ export default function MyRoomsScreen() {
         return (
           <View style={styles.item}>
             <MyRoomCard entry={item.entry} position={item.position} onPress={() => openRoom(item.entry.room.id)} />
+            {item.key.startsWith("next-") && item.position === 1 ? (
+              <WhyNextLink roomNumber={item.entry.room.room_number} onPress={() => setWhyFor(item.entry.room.id)} />
+            ) : null}
           </View>
         );
       case "row":
@@ -332,6 +347,24 @@ export default function MyRoomsScreen() {
     );
   }
 
+  const whyView =
+    whyFor === null
+      ? null
+      : resolveDashboardWhy(
+          model,
+          whyFor,
+          freshnessView(
+            resolveFreshness({
+              lastRefreshAt: data.lastUpdated ? data.lastUpdated.getTime() : null,
+              fetchFailed: Boolean(data.fetchError),
+              hasRooms: myRooms.length > 0,
+              now: Date.now(),
+            }),
+            isOnline,
+            data.lastUpdated ? data.lastUpdated.toISOString() : null,
+          ),
+        );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
@@ -348,6 +381,17 @@ export default function MyRoomsScreen() {
         windowSize={9}
         removeClippedSubviews
       />
+      {whyView ? (
+        <RecommendationSheet
+          visible
+          view={whyView}
+          t={t as Translate}
+          ctx={{ language, timeZone: data.timeZone }}
+          onOpenRoom={openRoomFromWhy}
+          onOpenMyRooms={() => setWhyFor(null)}
+          onClose={() => setWhyFor(null)}
+        />
+      ) : null}
     </View>
   );
 }

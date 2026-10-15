@@ -26,7 +26,9 @@ export interface ActionItem {
 export type LocalCard =
   | { type: "nextRoom"; room: PublishedNextRoom }
   /** Home has not ranked the person's rooms yet (or has nothing left to recommend). */
-  | { type: "noRoomOrder" };
+  | { type: "noRoomOrder" }
+  /** A fact about one of the person's own rooms, read from the phone; `href` is the screen that does the next step. */
+  | { type: "roomAnswer"; roomId: string; href?: string; label?: string };
 
 export interface AssistantMessage {
   id: string;

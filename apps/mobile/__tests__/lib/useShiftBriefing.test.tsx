@@ -30,6 +30,32 @@ beforeEach(() => {
 });
 
 describe("useShiftBriefing", () => {
+  it("reports used-up AI help as credits, not as a generic failure, and does not store it as an answer", async () => {
+    mockFetchBriefing.mockResolvedValue({ ...localOnly, failure: "credit_limit" });
+    const { result } = setup();
+    await act(async () => {
+      await result.current.request();
+    });
+    expect(result.current.status).toBe("credits");
+    expect(result.current.ai).toBeNull();
+  });
+
+  it("treats a rate limit the same way, and any other failure as unavailable", async () => {
+    mockFetchBriefing.mockResolvedValueOnce({ ...localOnly, failure: "rate_limited" });
+    const { result } = setup();
+    await act(async () => {
+      await result.current.request();
+    });
+    expect(result.current.status).toBe("credits");
+
+    mockFetchBriefing.mockResolvedValueOnce({ ...localOnly, failure: "unavailable" });
+    await act(async () => {
+      await result.current.request({ force: true });
+    });
+    expect(result.current.status).toBe("unavailable");
+  });
+
+
   it("never asks the AI on its own: mounting, re-rendering and refreshing cost nothing", async () => {
     const { rerender } = setup();
     rerender({ scope: "hotel-1:user-1", shiftDate: "2026-10-14", language: "en", rooms: [...rooms], isOnline: true, t });

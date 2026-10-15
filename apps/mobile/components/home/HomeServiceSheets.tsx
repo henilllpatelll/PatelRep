@@ -236,6 +236,7 @@ export function HomeServiceSheets({
           ctx={ctx}
           onNewBriefing={() => void briefing.request({ force: true })}
           onAskAi={then(go.openCopilot)}
+          updatedAt={model.board.lastRefreshAt}
           onOpenRoom={then(go.openRoom)}
           onClose={onClose}
         />

@@ -33794,6 +33794,56 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2048",
+      "error_message": "A housekeeper a room was reassigned away from (or who had it on an earlier day) could still use it as assistant context",
+      "file": "apps/api/services/ai/authorization.py",
+      "root_cause": "resolve_trusted_context accepted ANY room_assignments row for the user, not the room's current assignment",
+      "fix": "Only the latest assignment_date counts; the user must hold an assignment on that latest date. Tests for reassigned / still-assigned added",
+      "tags": [
+        "api",
+        "ai",
+        "authorization",
+        "reassignment"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T23:30:00Z",
+      "timestamp": "2026-10-15T23:30:00Z"
+    },
+    {
+      "id": "bug-2049",
+      "error_message": "buildRoomInsight ranked rooms with the legacy smart queue ('#N of M in your smart order') with no callers",
+      "file": "apps/mobile/lib/ai/briefing.ts",
+      "root_cause": "Dead code from the old insight card; a second ordering that could disagree with the supervisor sequence if ever revived",
+      "fix": "Removed buildRoomInsight/RoomInsight (traced consumers: none); buildSmartQueue stays (it is the dashboard's within-tier routing)",
+      "tags": [
+        "mobile",
+        "ai",
+        "ordering",
+        "dead-code"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T23:30:00Z",
+      "timestamp": "2026-10-15T23:30:00Z"
+    },
+    {
+      "id": "bug-2050",
+      "error_message": "Briefing headline claimed 'it's the fastest path through your list' for what is just the supervisor's first room",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Unverifiable optimisation claim in deterministic copy",
+      "fix": "Reworded to 'it's first in your route' (en + es)",
+      "tags": [
+        "mobile",
+        "copy",
+        "briefing"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T23:30:00Z",
+      "timestamp": "2026-10-15T23:30:00Z"
     }
   ]
 }

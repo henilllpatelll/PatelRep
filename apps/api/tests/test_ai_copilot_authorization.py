@@ -189,6 +189,27 @@ def test_housekeeper_cannot_use_unassigned_room_context(db):
     assert exc.value.status_code == 404
 
 
+def test_housekeeper_loses_room_context_when_the_room_is_reassigned(db):
+    db.rows["room_assignments"] = [
+        {"id": "ra-old", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": "2026-10-14"},
+        {"id": "ra-new", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": OTHER_HK_ID, "assignment_date": "2026-10-15"},
+    ]
+    with pytest.raises(HTTPException) as exc:
+        authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": ROOM})
+    assert exc.value.status_code == 404
+    # The new assignee, and a supervisor, still get it.
+    assert authz.resolve_trusted_context(db, HOTEL, OTHER_HK_ID, "housekeeper", {"room_id": ROOM})["room_number"] == "412"
+    assert authz.resolve_trusted_context(db, HOTEL, OTHER_HK_ID, "housekeeping_supervisor", {"room_id": ROOM})["room_id"] == ROOM
+
+
+def test_housekeeper_keeps_room_context_when_the_current_assignment_is_theirs(db):
+    db.rows["room_assignments"] = [
+        {"id": "ra-old", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": OTHER_HK_ID, "assignment_date": "2026-10-14"},
+        {"id": "ra-new", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": "2026-10-15"},
+    ]
+    assert authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": ROOM})["room_id"] == ROOM
+
+
 def test_cross_tenant_room_context_is_indistinguishable_from_missing(db):
     with pytest.raises(HTTPException) as foreign:
         authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": FOREIGN_ROOM})

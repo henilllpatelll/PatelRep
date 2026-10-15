@@ -63,6 +63,11 @@ export function useAssistant(): AssistantApi {
   return api;
 }
 
+/** For screens that offer the assistant but must keep working without it (tests, or a layout without the provider). */
+export function useAssistantOptional(): AssistantApi | null {
+  return useContext(AssistantContext);
+}
+
 const COPILOT_ROUTE = /^\/copilot(\/|$)/;
 
 export function AssistantProvider({ children }: { children: ReactNode }) {

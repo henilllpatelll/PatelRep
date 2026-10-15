@@ -22,6 +22,8 @@ interface Props {
   onClose: () => void;
   /** The screen sequences the hand-off so the next sheet opens reliably. */
   onSelect: (target: ReportTarget) => void;
+  /** Ask the assistant about this room. Absent when this person has no assistant. */
+  onAsk?: () => void;
 }
 
 const ICONS: Record<ReportTarget, React.ComponentProps<typeof Ionicons>["name"]> = {
@@ -88,8 +90,9 @@ function Row({
  * what this person may do is listed, and an unavailable row says why. The forms
  * themselves are not mounted here, so opening the hub costs nothing.
  */
-export function ReportMoreSheet({ visible, room, actions, hasFlags, isOnline, pendingCount, onClose, onSelect }: Props) {
+export function ReportMoreSheet({ visible, room, actions, hasFlags, isOnline, pendingCount, onClose, onSelect, onAsk }: Props) {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const ordered: Array<{ target: ReportTarget; disabledReason: string | null }> = actions.map((action) => ({
     target: action.id,
@@ -113,6 +116,26 @@ export function ReportMoreSheet({ visible, room, actions, hasFlags, isOnline, pe
           onPress={() => onSelect(target)}
         />
       ))}
+      {onAsk ? (
+        <Pressable
+          onPress={onAsk}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("rooms.work.more.ask.title", { room: room.room_number })}. ${t("rooms.work.more.ask.hint")}`}
+          style={[styles.row, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+          testID="more-ask"
+        >
+          <Ionicons name="sparkles-outline" size={22} color={theme.textSecondary} />
+          <View style={styles.copy}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]}>
+              {t("rooms.work.more.ask.title", { room: room.room_number })}
+            </Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
+              {t("rooms.work.more.ask.hint")}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+        </Pressable>
+      ) : null}
     </BottomSheet>
   );
 }

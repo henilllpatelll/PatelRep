@@ -275,6 +275,7 @@
       "staleTitle": "Showing saved rooms"
     },
     "why": {
+      "estimateGeneral": "No time is set for this room type. A general clean takes about {{minutes}} min (an estimate, not a deadline).",
       "activeSession": "You're already cleaning this room.",
       "sequence": "Your supervisor put it first in your route.",
       "sequenceAt": "Stop {{position}} in your supervisor's route.",
@@ -339,6 +340,8 @@
       "whyA11y": "Why room {{room}} is recommended"
     },
     "upNext": {
+      "why": "Why this room?",
+      "whyA11y": "Why is room {{room}} next?",
       "kicker": "Up next",
       "a11y": "Up next, room {{room}}",
       "viewRoute": "View route"
@@ -446,6 +449,11 @@
       "unavailable": "We can't load your rooms right now."
     },
     "roomActions": {
+      "sectionAssist": "Assistance",
+      "ask": {
+        "title": "Ask about Room {{room}}",
+        "hint": "Opens the assistant about this room. Nothing is sent until you ask."
+      },
       "title": "Room {{room}}",
       "sectionGo": "Go to",
       "sectionReport": "Report or add",
@@ -480,6 +488,13 @@
       }
     },
     "whySheet": {
+      "viewAll": "View all my rooms",
+      "offline": "You're offline. This is based on the rooms last saved on this phone. Room access is checked again when you open the room.",
+      "stale": "Your rooms haven't refreshed recently. Pull down on Home to update them. Access is checked again when you open the room.",
+      "cached": "Showing the rooms saved on this phone. Access is checked again when you open the room.",
+      "accessClear": "No access restriction is recorded for this room.",
+      "noOverride": "This doesn't override room access rules. The front desk, the guest and your supervisor still decide when a room can be entered.",
+      "updatedAt": "Rooms last updated {{time}}.",
       "title": "Why Room {{room}} next?",
       "because": "Because",
       "open": "Open Room {{room}}",
@@ -840,6 +855,10 @@
       "backHome": "Back to Home"
     },
     "briefingSheet": {
+      "askShift": "Ask about my shift",
+      "credits": "AI help has reached its limit for now. The plan below comes from your assigned rooms and is complete without it.",
+      "planSource": "Order and reasons come from your supervisor's route and today's room data, not from AI.",
+      "updatedAt": "Rooms last updated {{time}}.",
       "title": "Shift briefing",
       "newBriefing": "New briefing",
       "sourceAi": "Written by AI from your room list",
@@ -861,6 +880,27 @@
     }
   },
   "rooms": {
+    "help": {
+      "needHelp": "Need help?",
+      "needHelpRoom": "Need help with this room?",
+      "askAi": "Ask AI",
+      "askAbout": "Ask about Room {{room}}",
+      "reportIssue": "Report an issue"
+    },
+    "readiness": {
+      "estimateRoomType": "Typical clean for this room type: about {{minutes}} min",
+      "estimateGeneral": "General estimate: about {{minutes}} min (none set for this room type)",
+      "workOrderOpen": "Open work order: {{label}}",
+      "workOrderNone": "No open work order on record"
+    },
+    "guidance": {
+      "restricted": "This room has an active access restriction. Wait for it to clear.",
+      "pending": "Some changes on this phone haven't reached the server yet.",
+      "itemsLeft": "{{count}} checklist item remaining.",
+      "itemsLeft_plural": "{{count}} checklist items remaining.",
+      "workOrder": "A maintenance follow-up is recorded for this room.",
+      "next": "Your route puts this room next."
+    },
     "title": "My Rooms",
     "status": {
       "DIRTY": "Vacant Dirty",
@@ -1254,6 +1294,8 @@
         "a11y": "Current room {{room}}, in progress, {{minutes}} minutes elapsed, checklist {{done}} of {{total}}, resume"
       },
       "card": {
+        "whyNext": "Why next?",
+        "whyNextA11y": "Why is room {{room}} next?",
         "review": "Review",
         "rush": "RUSH",
         "neededBy": "Needed by {{time}}",
@@ -1593,6 +1635,10 @@
         "pending_plural": "{{count}} changes are saved on this device and waiting to sync."
       },
       "more": {
+        "ask": {
+          "title": "Ask about Room {{room}}",
+          "hint": "Opens the assistant about this room"
+        },
         "title": "Report / More — Room {{room}}",
         "reported": "Reported",
         "disabled": {
@@ -2996,6 +3042,35 @@
     "appVersion": "PatelRep v{{version}}"
   },
   "assistant": {
+    "roomQ": {
+      "heading": "Ask about this room",
+      "suggested": "Suggested questions",
+      "gone": "That room is no longer on your list, so I can't tell you about it. Open My Rooms to see your current rooms.",
+      "sopPrefill": "How do I clean room {{room}}? ",
+      "q": {
+        "checklistLeft": "What's left on my checklist?",
+        "reportProblem": "How do I report a problem?",
+        "openWorkOrders": "Are there open work orders?",
+        "findProcedure": "Find a cleaning procedure"
+      },
+      "open": {
+        "reportProblem": "Open the issue form",
+        "openWorkOrders": "Open the work order"
+      },
+      "checklist": {
+        "none": "No cleaning is open on this room, so there's no checklist yet. It loads when you start cleaning.",
+        "allDone": "Every checklist item is ticked. Finish the clean yourself when you're ready.",
+        "left": "{{count}} checklist item left ({{required}} required).",
+        "left_plural": "{{count}} checklist items left ({{required}} required).",
+        "names": "Next up: {{names}}.",
+        "pending": "Some ticks on this phone haven't reached the server yet."
+      },
+      "report": "Use Report an issue for maintenance or damage. It opens the form on this room, and nothing is sent until you submit it.",
+      "workOrder": {
+        "open": "There's an open work order on record for this room: {{label}}",
+        "none": "No open work order is on record for this room in your list. It shows what was last loaded, so something filed a moment ago may not appear yet."
+      }
+    },
     "fab": {
       "label": "Open assistant",
       "hint": "Opens the housekeeping assistant. Double tap and hold to speak."
@@ -3537,7 +3612,7 @@
     "briefing": {
       "kicker": "AI Shift Briefing",
       "planLabel": "Suggested order",
-      "startWith": "Start with room {{room}} — it's the fastest path through your list.",
+      "startWith": "Start with room {{room}} — it's first in your route.",
       "startVip": "Start with room {{room}} — VIP guest, get it perfect early.",
       "startArrival": "Start with room {{room}} — the next guest arrives soon.",
       "allClear": "All caught up. Every assigned room is handled.",

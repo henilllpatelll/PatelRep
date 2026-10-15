@@ -275,6 +275,7 @@
       "staleTitle": "Mostrando cuartos guardados"
     },
     "why": {
+      "estimateGeneral": "No hay un tiempo definido para este tipo de habitación. Una limpieza general toma unos {{minutes}} min (es un estimado, no un plazo).",
       "activeSession": "Ya estás limpiando este cuarto.",
       "sequence": "Tu supervisor lo puso primero en tu ruta.",
       "sequenceAt": "Parada {{position}} en la ruta de tu supervisor.",
@@ -333,12 +334,14 @@
       "openRoom": "Abrir cuarto",
       "openRoomShort": "Abrir cuarto",
       "primaryA11y": "{{action}}, cuarto {{room}}",
-      "why": "¿Por qué este cuarto?",
+      "why": "¿Por qué esta habitación?",
       "more": "Más",
       "moreA11y": "Más acciones para la habitación {{room}}",
       "whyA11y": "Por qué se recomienda la habitación {{room}}"
     },
     "upNext": {
+      "why": "¿Por qué esta habitación?",
+      "whyA11y": "¿Por qué sigue la habitación {{room}}?",
       "kicker": "Sigue",
       "a11y": "Sigue, cuarto {{room}}",
       "viewRoute": "Ver ruta"
@@ -446,6 +449,11 @@
       "unavailable": "No podemos cargar tus habitaciones ahora."
     },
     "roomActions": {
+      "sectionAssist": "Asistencia",
+      "ask": {
+        "title": "Preguntar sobre la habitación {{room}}",
+        "hint": "Abre el asistente sobre esta habitación. No se envía nada hasta que preguntes."
+      },
       "title": "Habitación {{room}}",
       "sectionGo": "Ir a",
       "sectionReport": "Reportar o agregar",
@@ -480,6 +488,13 @@
       }
     },
     "whySheet": {
+      "viewAll": "Ver todas mis habitaciones",
+      "offline": "No tienes conexión. Esto se basa en las habitaciones guardadas por última vez en este teléfono. El acceso se vuelve a revisar al abrir la habitación.",
+      "stale": "Tus habitaciones no se han actualizado hace un rato. Desliza hacia abajo en Inicio para actualizar. El acceso se vuelve a revisar al abrir la habitación.",
+      "cached": "Se muestran las habitaciones guardadas en este teléfono. El acceso se vuelve a revisar al abrir la habitación.",
+      "accessClear": "No hay ninguna restricción de acceso registrada para esta habitación.",
+      "noOverride": "Esto no cambia las reglas de acceso. Recepción, el huésped y tu supervisor siguen decidiendo cuándo se puede entrar.",
+      "updatedAt": "Habitaciones actualizadas a las {{time}}.",
       "title": "¿Por qué la habitación {{room}} sigue?",
       "because": "Porque",
       "open": "Abrir habitación {{room}}",
@@ -840,6 +855,10 @@
       "backHome": "Volver al inicio"
     },
     "briefingSheet": {
+      "askShift": "Preguntar sobre mi turno",
+      "credits": "La ayuda de IA llegó a su límite por ahora. El plan de abajo viene de tus habitaciones asignadas y está completo sin ella.",
+      "planSource": "El orden y los motivos vienen de la ruta de tu supervisor y de los datos de hoy, no de la IA.",
+      "updatedAt": "Habitaciones actualizadas a las {{time}}.",
       "title": "Resumen del turno",
       "newBriefing": "Nuevo resumen",
       "sourceAi": "Escrito por IA a partir de tu lista de habitaciones",
@@ -861,6 +880,27 @@
     }
   },
   "rooms": {
+    "help": {
+      "needHelp": "¿Necesitas ayuda?",
+      "needHelpRoom": "¿Necesitas ayuda con esta habitación?",
+      "askAi": "Preguntar a la IA",
+      "askAbout": "Preguntar sobre la habitación {{room}}",
+      "reportIssue": "Reportar un problema"
+    },
+    "readiness": {
+      "estimateRoomType": "Limpieza típica de este tipo de habitación: unos {{minutes}} min",
+      "estimateGeneral": "Estimado general: unos {{minutes}} min (no hay uno definido para este tipo de habitación)",
+      "workOrderOpen": "Orden de trabajo abierta: {{label}}",
+      "workOrderNone": "No hay ninguna orden de trabajo abierta registrada"
+    },
+    "guidance": {
+      "restricted": "Esta habitación tiene una restricción de acceso activa. Espera a que se quite.",
+      "pending": "Algunos cambios en este teléfono todavía no llegan al servidor.",
+      "itemsLeft": "Falta {{count}} punto de la lista.",
+      "itemsLeft_plural": "Faltan {{count}} puntos de la lista.",
+      "workOrder": "Hay un seguimiento de mantenimiento registrado para esta habitación.",
+      "next": "Tu ruta pone esta habitación de siguiente."
+    },
     "title": "Mis Cuartos",
     "status": {
       "DIRTY": "Vacante Sucio",
@@ -1254,6 +1294,8 @@
         "a11y": "Habitación actual {{room}}, en curso, {{minutes}} minutos transcurridos, lista {{done}} de {{total}}, continuar"
       },
       "card": {
+        "whyNext": "¿Por qué sigue?",
+        "whyNextA11y": "¿Por qué sigue la habitación {{room}}?",
         "review": "Revisar",
         "rush": "URGENTE",
         "neededBy": "Necesaria a las {{time}}",
@@ -1593,6 +1635,10 @@
         "pending_plural": "{{count}} cambios están guardados en este dispositivo y esperan sincronizarse."
       },
       "more": {
+        "ask": {
+          "title": "Preguntar sobre la habitación {{room}}",
+          "hint": "Abre el asistente sobre esta habitación"
+        },
         "title": "Reportar / Más — Habitación {{room}}",
         "reported": "Reportado",
         "disabled": {
@@ -2996,6 +3042,35 @@
     "appVersion": "PatelRep v{{version}}"
   },
   "assistant": {
+    "roomQ": {
+      "heading": "Pregunta sobre esta habitación",
+      "suggested": "Preguntas sugeridas",
+      "gone": "Esa habitación ya no está en tu lista, así que no puedo decirte nada de ella. Abre Mis habitaciones para ver las actuales.",
+      "sopPrefill": "¿Cómo limpio la habitación {{room}}? ",
+      "q": {
+        "checklistLeft": "¿Qué me falta en la lista?",
+        "reportProblem": "¿Cómo reporto un problema?",
+        "openWorkOrders": "¿Hay órdenes de trabajo abiertas?",
+        "findProcedure": "Buscar un procedimiento de limpieza"
+      },
+      "open": {
+        "reportProblem": "Abrir el formulario",
+        "openWorkOrders": "Abrir la orden de trabajo"
+      },
+      "checklist": {
+        "none": "No hay una limpieza abierta en esta habitación, así que todavía no hay lista. Se carga cuando empiezas a limpiar.",
+        "allDone": "Todos los puntos de la lista están marcados. Termina la limpieza tú cuando estés listo.",
+        "left": "Falta {{count}} punto de la lista ({{required}} obligatorios).",
+        "left_plural": "Faltan {{count}} puntos de la lista ({{required}} obligatorios).",
+        "names": "Siguen: {{names}}.",
+        "pending": "Algunas marcas en este teléfono todavía no llegan al servidor."
+      },
+      "report": "Usa Reportar un problema para mantenimiento o daños. Abre el formulario de esta habitación y no se envía nada hasta que lo envíes.",
+      "workOrder": {
+        "open": "Hay una orden de trabajo abierta registrada para esta habitación: {{label}}",
+        "none": "No hay ninguna orden de trabajo abierta registrada para esta habitación en tu lista. Muestra lo último cargado, así que algo reportado hace un momento puede no aparecer todavía."
+      }
+    },
     "fab": {
       "label": "Abrir asistente",
       "hint": "Abre el asistente de limpieza. Toque dos veces y mantenga para hablar."
@@ -3558,7 +3633,7 @@
     "briefing": {
       "kicker": "Resumen IA del turno",
       "planLabel": "Orden sugerido",
-      "startWith": "Empieza con el cuarto {{room}} — es la ruta más rápida de tu lista.",
+      "startWith": "Empieza con la habitación {{room}}: es la primera de tu ruta.",
       "startVip": "Empieza con el cuarto {{room}} — huésped VIP, déjalo perfecto temprano.",
       "startArrival": "Empieza con el cuarto {{room}} — el próximo huésped llega pronto.",
       "allClear": "Todo al día. Todos tus cuartos asignados están atendidos.",

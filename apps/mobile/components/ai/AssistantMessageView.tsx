@@ -23,6 +23,8 @@ interface Props {
   /** Where "Read in the full assistant" and the My Rooms link on a limitation go. */
   onExpand?: () => void;
   onOpenMyRooms?: () => void;
+  /** A screen a room answer points to (the issue form, a work order). The caller closes the sheet and navigates. */
+  onOpenHref?: (href: string) => void;
 }
 
 function timeOf(at: number): string {
@@ -34,7 +36,7 @@ function timeOf(at: number): string {
 }
 
 /** One entry in the conversation, for every assistant surface: text, where it came from, and what can be done next. */
-export function AssistantMessageView({ message, conversation, compact, palette, onReviewAction, onOpenRoom, onExpand, onOpenMyRooms }: Props) {
+export function AssistantMessageView({ message, conversation, compact, palette, onReviewAction, onOpenRoom, onExpand, onOpenMyRooms, onOpenHref }: Props) {
   const { t } = useTranslation();
   const theme = usePalette(palette);
   const styles = useMemo(() => makeStyles(theme), [theme]);
@@ -100,6 +102,19 @@ export function AssistantMessageView({ message, conversation, compact, palette, 
         <Pressable accessibilityRole="button" onPress={onOpenMyRooms} style={styles.more} testID="assistant-open-my-rooms">
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.moreText}>
             {t("assistant.room.openMyRooms")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {message.local?.type === "roomAnswer" && message.local.href && message.local.label && onOpenHref ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onOpenHref(message.local?.type === "roomAnswer" ? (message.local.href ?? "") : "")}
+          style={styles.more}
+          testID="assistant-room-answer-open"
+        >
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.moreText}>
+            {message.local.label}
           </Text>
         </Pressable>
       ) : null}
