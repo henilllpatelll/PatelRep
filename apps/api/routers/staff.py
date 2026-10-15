@@ -379,6 +379,51 @@ async def remove_own_avatar(current_user: CurrentUser = Depends(get_current_user
     return {"data": _own_profile_payload(current_user, {**row, "avatar_path": None})}
 
 
+# Who a person should turn to first, by their own role. Names and job titles only: the app is given the hotel's
+# business phone line, never anyone's personal phone or email.
+SUPPORT_CONTACT_ROLES = {
+    "housekeeper": ("housekeeping_supervisor", "gm"),
+    "inspector": ("housekeeping_supervisor", "gm"),
+    "housekeeping_supervisor": ("gm",),
+    "engineer": ("chief_engineer", "gm"),
+    "chief_engineer": ("gm",),
+    "front_desk": ("gm", "housekeeping_supervisor"),
+    "gm": (),
+}
+
+
+@router.get("/me/support-contacts")
+async def get_support_contacts(current_user: CurrentUser = Depends(get_current_user)):
+    wanted = SUPPORT_CONTACT_ROLES.get(current_user.role, ())
+    hotel = supabase.table("tenants").select("name, phone").eq("id", current_user.hotel_id).execute()
+    hotel_row = (hotel.data or [{}])[0]
+    contacts: list[dict] = []
+    if wanted:
+        role_rows = (
+            supabase.table("user_roles")
+            .select("user_id, role")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("is_active", True)
+            .in_("role", list(wanted))
+            .execute()
+        ).data or []
+        role_rows = [r for r in role_rows if r.get("user_id") and r["user_id"] != current_user.user_id]
+        if role_rows:
+            profiles = (
+                supabase.table("user_profiles")
+                .select("id, full_name, preferred_name")
+                .eq("tenant_id", current_user.hotel_id)
+                .in_("id", [r["user_id"] for r in role_rows])
+                .execute()
+            ).data or []
+            names = {p["id"]: (p.get("preferred_name") or p.get("full_name")) for p in profiles}
+            rank = {role: index for index, role in enumerate(wanted)}
+            for r in sorted(role_rows, key=lambda r: rank.get(r["role"], 99)):
+                if names.get(r["user_id"]):
+                    contacts.append({"name": names[r["user_id"]], "role": r["role"]})
+    return {"data": {"hotel": {"name": hotel_row.get("name"), "phone": hotel_row.get("phone") or None}, "contacts": contacts[:5]}}
+
+
 @router.get("/me/effective-role")
 async def get_effective_role(current_user: CurrentUser = Depends(get_current_user)):
     """Returns today's effective role for the caller, applying any day-of-week schedule override."""

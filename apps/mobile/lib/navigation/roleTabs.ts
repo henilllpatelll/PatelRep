@@ -108,6 +108,10 @@ export const HIDDEN_APP_ROUTES = [
   "profile/language",
   "profile/sync",
   "profile/help",
+  "profile/faq",
+  "profile/report",
+  "profile/my-reports",
+  "profile/diagnostics",
   "profile/about",
 ];
 

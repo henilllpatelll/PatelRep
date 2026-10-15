@@ -55,6 +55,8 @@ export function SettingsScreen({ title, back, children }: SettingsScreenProps) {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         {children}
       </ScrollView>

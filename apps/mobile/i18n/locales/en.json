@@ -3432,5 +3432,252 @@
     "category": "Category",
     "pages": "Pages",
     "added": "Added"
+  },
+  "help": {
+    "intro": "Need help? Find an answer or report a problem.",
+    "sections": {
+      "getHelp": "Get help",
+      "support": "Support information"
+    },
+    "rows": {
+      "faq": {
+        "title": "Frequently Asked Questions",
+        "subtitle": "Answers to common questions"
+      },
+      "report": {
+        "title": "Report a Problem",
+        "subtitle": "Tell us what's not working"
+      },
+      "contact": {
+        "title": "Contact Your Supervisor",
+        "subtitle": "Get help from your hotel team"
+      },
+      "reports": {
+        "title": "My Reports",
+        "subtitle": "Problems you've reported"
+      },
+      "diagnostics": {
+        "title": "App Diagnostics",
+        "subtitle": "Information that helps troubleshoot problems"
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "intro": "Tap a question to see the answer.",
+      "actions": {
+        "sync": "Open Offline & Sync",
+        "report": "Report a Problem",
+        "language": "Open Language",
+        "appearance": "Open Appearance",
+        "security": "Open Security & Sign-in",
+        "contact": "Contact Your Supervisor"
+      },
+      "items": {
+        "assignmentsMissing": {
+          "q": "Why aren't my assignments showing?",
+          "a": "Your supervisor assigns rooms and tasks, so they show up once they've been assigned to you. Pull down on the list to refresh it. If you're offline you'll see the last list saved on this phone. If it's still empty, ask your supervisor or report a problem."
+        },
+        "refreshWork": {
+          "q": "How do I refresh my work?",
+          "a": "Pull down on a list to refresh it. Lists also refresh when your phone reconnects. When you're offline you'll see what was last saved on this phone."
+        },
+        "useOffline": {
+          "q": "Can I use PatelRep without internet?",
+          "a": "Some of it. Cleaning sessions, task updates and some work-order updates are saved on your phone and sent when you're back online. Other screens need a connection and may show the last information saved. Offline & Sync shows what is waiting."
+        },
+        "syncChanges": {
+          "q": "How do I sync my saved changes?",
+          "a": "They sync on their own when your phone reconnects. To try right now, open Offline & Sync and tap Sync Now."
+        },
+        "taskPending": {
+          "q": "Why is a task still showing as pending?",
+          "a": "A change stays pending until the server confirms it. If you're offline or the signal is weak, it waits on your phone. Open Offline & Sync to see what is waiting or needs attention."
+        },
+        "changeLanguage": {
+          "q": "How do I change the app language?",
+          "a": "Go to Settings, then Language, and choose English or Español. It changes right away and is saved to your account."
+        },
+        "darkMode": {
+          "q": "How do I switch between light and dark mode?",
+          "a": "Go to Settings, then Appearance. Choose Light, Dark, or System to follow your phone's setting."
+        },
+        "forgotPassword": {
+          "q": "What should I do if I forget my password?",
+          "a": "On the sign-in screen tap \"Forgot password?\" and follow the email we send you. If you're signed in and want to change it, open Security & Sign-in."
+        },
+        "noAccess": {
+          "q": "Why can't I access a certain screen?",
+          "a": "Screens depend on your role. If you need access to something, ask your supervisor or manager."
+        },
+        "contactSupervisor": {
+          "q": "How do I contact my supervisor?",
+          "a": "Open Help & Support and tap Contact Your Supervisor. You'll see who to ask and your hotel's phone number, if your hotel has added one."
+        },
+        "signOutUnsynced": {
+          "q": "What happens to unsynced work when I sign out?",
+          "a": "Saved changes stay on this phone under your account and are sent after you sign in again here. Other people who sign in can't see or send them. Sync before you sign out when you can, and don't delete the app while changes are waiting."
+        },
+        "hkReclean": {
+          "q": "What is a reclean request?",
+          "a": "A supervisor or inspector asked for a room to be cleaned again. It shows in My Rooms with what needs to be fixed."
+        },
+        "hkSessionSync": {
+          "q": "Why hasn't my finished room synced?",
+          "a": "Starting, checklist progress and finishing a room are saved on your phone and sent in order when you're online. Until the server confirms, the room shows as waiting. Check Offline & Sync."
+        },
+        "inspMissing": {
+          "q": "Why don't I see rooms to inspect?",
+          "a": "Rooms show up once they're ready for inspection. If you expect one and it isn't there, pull down to refresh, then ask your supervisor."
+        },
+        "inspSubmit": {
+          "q": "My inspection didn't submit",
+          "a": "An inspection needs a connection to be saved. Check that you're online and try again. If it keeps failing, report a problem."
+        },
+        "engWorkOrders": {
+          "q": "Why doesn't a work order show its latest status?",
+          "a": "Work orders update when the list refreshes, so pull down to refresh. Updates you make offline are saved on your phone and sent when you reconnect."
+        },
+        "engUpdates": {
+          "q": "My work-order update hasn't saved",
+          "a": "Updates made offline wait on your phone until the server confirms them. Check Offline & Sync. If one needs attention, open the work order and try again."
+        },
+        "supVisibility": {
+          "q": "Why can't I see a housekeeper's rooms?",
+          "a": "Refresh the list first. Then check that the assignment was saved for the right day. If a room is still missing, report a problem."
+        },
+        "supTeam": {
+          "q": "Why isn't a team update showing?",
+          "a": "Updates reach you once the housekeeper's phone has sent them. If they were offline, their changes appear after their phone reconnects."
+        },
+        "fdGuestRequests": {
+          "q": "Where do I find guest requests?",
+          "a": "Guest requests are in the Guest Requests screen. New ones appear when your phone is online and the list refreshes."
+        },
+        "fdRoomStatus": {
+          "q": "A room status looks wrong",
+          "a": "Room statuses change when housekeeping or inspection updates reach the server. If a phone was offline, an update can arrive late. If it still looks wrong, report a problem."
+        },
+        "gmAccess": {
+          "q": "Why can't someone see a screen?",
+          "a": "Access depends on each person's role. You can review and change roles in Staff."
+        },
+        "gmAdmin": {
+          "q": "Where do I manage the property?",
+          "a": "Property settings, staff and reports are in the PatelRep web app. The mobile app is built for day-to-day work."
+        }
+      }
+    },
+    "report": {
+      "title": "Report a Problem",
+      "intro": "Tell us what happened so we can help.",
+      "area": "What is it about?",
+      "areas": {
+        "assignments": "Assignments or Rooms",
+        "tasks": "Tasks",
+        "housekeeping": "Housekeeping",
+        "inspections": "Inspections",
+        "work_orders": "Work Orders",
+        "notifications": "Notifications",
+        "account": "Account or Sign-in",
+        "sync": "Offline or Sync",
+        "other": "Other"
+      },
+      "description": "What went wrong?",
+      "placeholder": "Describe what happened and what you were trying to do.",
+      "count": "{{count}} / {{max}}",
+      "blocking": "This is stopping me from working",
+      "guestWarning": "Please don't include guest names, phone numbers or reservation details.",
+      "diagnostics": "Include technical diagnostics",
+      "diagnosticsHint": "Helps us troubleshoot. You can review exactly what is sent.",
+      "viewDiagnostics": "View diagnostics",
+      "submit": "Submit Report",
+      "submitting": "Submitting…",
+      "errors": {
+        "empty": "Please describe what happened.",
+        "tooShort": "Please add a little more detail (at least {{min}} characters).",
+        "noArea": "Choose what the problem is about."
+      },
+      "failed": "Your report wasn't sent. Your text is saved on this phone. Try again.",
+      "offline": "You're offline, so the report can't be sent yet. Your text is saved on this phone as an unsent draft.",
+      "rateLimited": "You've sent several reports recently. Please try again in a little while.",
+      "retry": "Retry",
+      "draftNote": "Unsent draft saved on this phone",
+      "success": {
+        "title": "Report Submitted",
+        "body": "Your report has been sent to the support team.",
+        "reference": "Reference: {{id}}",
+        "done": "Done",
+        "view": "View My Reports"
+      },
+      "discard": {
+        "title": "Discard this report?",
+        "body": "What you wrote has not been sent.",
+        "keep": "Keep Editing",
+        "discard": "Discard Draft"
+      }
+    },
+    "contact": {
+      "title": "Contact Your Supervisor",
+      "intro": "These are the people to ask first at your hotel.",
+      "hotelLine": "Hotel phone",
+      "call": "Call {{phone}}",
+      "none": "Your hotel hasn't added a support contact yet.",
+      "noneHint": "Please contact your department manager or the front desk for assistance.",
+      "loadError": "Couldn't load your hotel's contacts. Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "reports": {
+      "title": "My Reports",
+      "empty": "You haven't submitted any reports yet.",
+      "emptyAction": "Report a Problem",
+      "loadError": "Couldn't load your reports. Check your connection and try again.",
+      "retry": "Try again",
+      "submitted": "Submitted {{date}}",
+      "status": {
+        "open": "Open",
+        "reviewing": "In review",
+        "closed": "Closed"
+      },
+      "statusLabel": "Status: {{status}}",
+      "detail": "Report",
+      "blockingYes": "Marked as stopping work",
+      "noReply": "No reply has been added to this report."
+    },
+    "diagnostics": {
+      "title": "App Diagnostics",
+      "intro": "This is the information we can share to help troubleshoot a problem. Nothing is sent unless you choose to share it.",
+      "fieldsTitle": "What would be shared",
+      "neverTitle": "Never included",
+      "never": "Your password or sign-in details, guest names or phone numbers, reservations, room notes, or the contents of your saved changes.",
+      "share": "Share Diagnostics",
+      "shareHint": "Opens your phone's share menu. You choose where it goes.",
+      "previewTitle": "Share Diagnostics",
+      "previewIntro": "Exactly these details will be shared:",
+      "cancel": "Cancel",
+      "checking": "Still checking saved changes. Sync details are left out until that finishes.",
+      "yes": "Yes",
+      "no": "No",
+      "fields": {
+        "app_version": "App version",
+        "build": "Build",
+        "platform": "Platform",
+        "os_version": "System version",
+        "role": "Role",
+        "language": "Language",
+        "online": "Connected",
+        "last_synced_at": "Last confirmed sync",
+        "pending_changes": "Changes waiting",
+        "failed_changes": "Changes needing attention",
+        "sync_status": "Sync status"
+      },
+      "syncStatuses": {
+        "saved": "All saved",
+        "waiting": "Waiting",
+        "syncing": "Syncing",
+        "attention": "Needs attention",
+        "offline": "Offline",
+        "unavailable": "Unavailable"
+      }
+    }
   }
 }

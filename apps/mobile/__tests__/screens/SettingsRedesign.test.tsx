@@ -369,7 +369,6 @@ describe("Settings home sign out", () => {
 
 describe("Settings destination screens", () => {
   const shells = [
-    ["Help & Support", HelpScreen],
     ["About PatelRep", AboutScreen],
   ] as const;
 
@@ -534,6 +533,10 @@ describe("Settings route registration", () => {
       "profile/language",
       "profile/sync",
       "profile/help",
+      "profile/faq",
+      "profile/report",
+      "profile/my-reports",
+      "profile/diagnostics",
       "profile/about",
     ]) {
       expect(HIDDEN_APP_ROUTES).toContain(name);

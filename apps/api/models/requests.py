@@ -547,6 +547,10 @@ class CreateFeedbackRequest(SanitizedBaseModel):
     category: Literal["bug", "confusing", "missing_feature", "too_slow", "other"] = "other"
     severity: Literal["blocking", "annoying", "idea"] = "annoying"
     message: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    # Mobile "Report a problem": which part of the app it is about, and a retry-safe request id.
+    source: Literal["web", "mobile"] = "web"
+    area: Optional[Literal["assignments", "tasks", "housekeeping", "inspections", "work_orders", "notifications", "account", "sync", "other"]] = None
+    client_request_id: Optional[UUID4] = None
     page_url: Optional[str] = Field(default=None, max_length=2048)
     pathname: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     user_agent: Optional[str] = Field(default=None, max_length=512)

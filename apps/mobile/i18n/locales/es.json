@@ -3432,5 +3432,252 @@
     "category": "Categoría",
     "pages": "Páginas",
     "added": "Agregado"
+  },
+  "help": {
+    "intro": "¿Necesitas ayuda? Encuentra una respuesta o reporta un problema.",
+    "sections": {
+      "getHelp": "Obtener ayuda",
+      "support": "Información de soporte"
+    },
+    "rows": {
+      "faq": {
+        "title": "Preguntas frecuentes",
+        "subtitle": "Respuestas a dudas comunes"
+      },
+      "report": {
+        "title": "Reportar un problema",
+        "subtitle": "Cuéntanos qué no funciona"
+      },
+      "contact": {
+        "title": "Contactar a tu supervisor",
+        "subtitle": "Recibe ayuda de tu equipo del hotel"
+      },
+      "reports": {
+        "title": "Mis reportes",
+        "subtitle": "Problemas que has reportado"
+      },
+      "diagnostics": {
+        "title": "Diagnóstico de la app",
+        "subtitle": "Información que ayuda a resolver problemas"
+      }
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "intro": "Toca una pregunta para ver la respuesta.",
+      "actions": {
+        "sync": "Abrir Sin conexión y sincronización",
+        "report": "Reportar un problema",
+        "language": "Abrir Idioma",
+        "appearance": "Abrir Apariencia",
+        "security": "Abrir Seguridad e inicio de sesión",
+        "contact": "Contactar a tu supervisor"
+      },
+      "items": {
+        "assignmentsMissing": {
+          "q": "¿Por qué no aparecen mis asignaciones?",
+          "a": "Tu supervisor asigna las habitaciones y tareas, así que aparecen cuando te las asignan. Desliza hacia abajo en la lista para actualizar. Si no tienes conexión, verás la última lista guardada en este teléfono. Si sigue vacía, pregunta a tu supervisor o reporta un problema."
+        },
+        "refreshWork": {
+          "q": "¿Cómo actualizo mi trabajo?",
+          "a": "Desliza hacia abajo en una lista para actualizarla. Las listas también se actualizan cuando tu teléfono se reconecta. Sin conexión verás lo último guardado en este teléfono."
+        },
+        "useOffline": {
+          "q": "¿Puedo usar PatelRep sin internet?",
+          "a": "En parte. Las limpiezas, las actualizaciones de tareas y algunas actualizaciones de órdenes de trabajo se guardan en tu teléfono y se envían cuando vuelves a tener conexión. Otras pantallas necesitan conexión y pueden mostrar la última información guardada. Sin conexión y sincronización muestra lo que está en espera."
+        },
+        "syncChanges": {
+          "q": "¿Cómo sincronizo mis cambios guardados?",
+          "a": "Se sincronizan solos cuando tu teléfono se reconecta. Para intentarlo ahora, abre Sin conexión y sincronización y toca Sincronizar ahora."
+        },
+        "taskPending": {
+          "q": "¿Por qué una tarea sigue como pendiente?",
+          "a": "Un cambio sigue pendiente hasta que el servidor lo confirma. Si no tienes conexión o la señal es débil, espera en tu teléfono. Abre Sin conexión y sincronización para ver qué está en espera o necesita atención."
+        },
+        "changeLanguage": {
+          "q": "¿Cómo cambio el idioma de la app?",
+          "a": "Ve a Ajustes, luego Idioma, y elige English o Español. Cambia al instante y se guarda en tu cuenta."
+        },
+        "darkMode": {
+          "q": "¿Cómo cambio entre modo claro y oscuro?",
+          "a": "Ve a Ajustes, luego Apariencia. Elige Claro, Oscuro o Sistema para seguir la configuración de tu teléfono."
+        },
+        "forgotPassword": {
+          "q": "¿Qué hago si olvidé mi contraseña?",
+          "a": "En la pantalla de inicio de sesión toca \"¿Olvidaste tu contraseña?\" y sigue el correo que te enviamos. Si ya iniciaste sesión y quieres cambiarla, abre Seguridad e inicio de sesión."
+        },
+        "noAccess": {
+          "q": "¿Por qué no puedo entrar a una pantalla?",
+          "a": "Las pantallas dependen de tu puesto. Si necesitas acceso a algo, pregunta a tu supervisor o gerente."
+        },
+        "contactSupervisor": {
+          "q": "¿Cómo contacto a mi supervisor?",
+          "a": "Abre Ayuda y soporte y toca Contactar a tu supervisor. Verás a quién preguntar y el teléfono del hotel, si tu hotel lo agregó."
+        },
+        "signOutUnsynced": {
+          "q": "¿Qué pasa con el trabajo sin sincronizar si cierro sesión?",
+          "a": "Los cambios guardados se quedan en este teléfono, en tu cuenta, y se envían cuando vuelvas a iniciar sesión aquí. Otras personas que inicien sesión no pueden verlos ni enviarlos. Sincroniza antes de cerrar sesión cuando puedas y no borres la app mientras haya cambios en espera."
+        },
+        "hkReclean": {
+          "q": "¿Qué es una solicitud de relimpieza?",
+          "a": "Un supervisor o inspector pidió que se limpie otra vez una habitación. Aparece en Mis habitaciones con lo que hay que corregir."
+        },
+        "hkSessionSync": {
+          "q": "¿Por qué no se sincronizó la habitación que terminé?",
+          "a": "Iniciar, avanzar en la lista y terminar una habitación se guardan en tu teléfono y se envían en orden cuando hay conexión. Hasta que el servidor lo confirme, la habitación aparece en espera. Revisa Sin conexión y sincronización."
+        },
+        "inspMissing": {
+          "q": "¿Por qué no veo habitaciones para inspeccionar?",
+          "a": "Las habitaciones aparecen cuando están listas para inspección. Si esperas una y no está, desliza hacia abajo para actualizar y luego pregunta a tu supervisor."
+        },
+        "inspSubmit": {
+          "q": "Mi inspección no se envió",
+          "a": "Una inspección necesita conexión para guardarse. Verifica que tengas conexión e inténtalo de nuevo. Si sigue fallando, reporta un problema."
+        },
+        "engWorkOrders": {
+          "q": "¿Por qué una orden de trabajo no muestra su estado más reciente?",
+          "a": "Las órdenes se actualizan cuando se actualiza la lista; desliza hacia abajo. Las actualizaciones que haces sin conexión se guardan en tu teléfono y se envían al reconectarte."
+        },
+        "engUpdates": {
+          "q": "Mi actualización de la orden de trabajo no se guardó",
+          "a": "Las actualizaciones hechas sin conexión esperan en tu teléfono hasta que el servidor las confirme. Revisa Sin conexión y sincronización. Si una necesita atención, abre la orden de trabajo e inténtalo de nuevo."
+        },
+        "supVisibility": {
+          "q": "¿Por qué no veo las habitaciones de una camarera?",
+          "a": "Primero actualiza la lista. Luego verifica que la asignación se guardó para el día correcto. Si la habitación sigue sin aparecer, reporta un problema."
+        },
+        "supTeam": {
+          "q": "¿Por qué no aparece una actualización del equipo?",
+          "a": "Las actualizaciones te llegan cuando el teléfono de la camarera las envió. Si estaba sin conexión, sus cambios aparecen cuando su teléfono se reconecta."
+        },
+        "fdGuestRequests": {
+          "q": "¿Dónde encuentro las solicitudes de huéspedes?",
+          "a": "Están en la pantalla Solicitudes de huéspedes. Las nuevas aparecen cuando tu teléfono tiene conexión y la lista se actualiza."
+        },
+        "fdRoomStatus": {
+          "q": "El estado de una habitación se ve mal",
+          "a": "Los estados cambian cuando las actualizaciones de limpieza o inspección llegan al servidor. Si un teléfono estaba sin conexión, una actualización puede llegar tarde. Si sigue mal, reporta un problema."
+        },
+        "gmAccess": {
+          "q": "¿Por qué alguien no ve una pantalla?",
+          "a": "El acceso depende del puesto de cada persona. Puedes revisar y cambiar los puestos en Personal."
+        },
+        "gmAdmin": {
+          "q": "¿Dónde administro la propiedad?",
+          "a": "Los ajustes de la propiedad, el personal y los reportes están en la app web de PatelRep. La app móvil está pensada para el trabajo diario."
+        }
+      }
+    },
+    "report": {
+      "title": "Reportar un problema",
+      "intro": "Cuéntanos qué pasó para poder ayudarte.",
+      "area": "¿Sobre qué es?",
+      "areas": {
+        "assignments": "Asignaciones o habitaciones",
+        "tasks": "Tareas",
+        "housekeeping": "Limpieza",
+        "inspections": "Inspecciones",
+        "work_orders": "Órdenes de trabajo",
+        "notifications": "Notificaciones",
+        "account": "Cuenta o inicio de sesión",
+        "sync": "Sin conexión o sincronización",
+        "other": "Otro"
+      },
+      "description": "¿Qué salió mal?",
+      "placeholder": "Describe qué pasó y qué intentabas hacer.",
+      "count": "{{count}} / {{max}}",
+      "blocking": "Esto no me deja trabajar",
+      "guestWarning": "Por favor no incluyas nombres de huéspedes, teléfonos ni datos de reservaciones.",
+      "diagnostics": "Incluir diagnóstico técnico",
+      "diagnosticsHint": "Nos ayuda a resolver el problema. Puedes revisar exactamente qué se envía.",
+      "viewDiagnostics": "Ver diagnóstico",
+      "submit": "Enviar reporte",
+      "submitting": "Enviando…",
+      "errors": {
+        "empty": "Por favor describe qué pasó.",
+        "tooShort": "Agrega un poco más de detalle (al menos {{min}} caracteres).",
+        "noArea": "Elige sobre qué es el problema."
+      },
+      "failed": "Tu reporte no se envió. Tu texto está guardado en este teléfono. Inténtalo de nuevo.",
+      "offline": "No tienes conexión, así que el reporte aún no se puede enviar. Tu texto está guardado en este teléfono como borrador sin enviar.",
+      "rateLimited": "Enviaste varios reportes hace poco. Inténtalo de nuevo en un rato.",
+      "retry": "Reintentar",
+      "draftNote": "Borrador sin enviar guardado en este teléfono",
+      "success": {
+        "title": "Reporte enviado",
+        "body": "Tu reporte se envió al equipo de soporte.",
+        "reference": "Referencia: {{id}}",
+        "done": "Listo",
+        "view": "Ver mis reportes"
+      },
+      "discard": {
+        "title": "¿Descartar este reporte?",
+        "body": "Lo que escribiste no se ha enviado.",
+        "keep": "Seguir editando",
+        "discard": "Descartar borrador"
+      }
+    },
+    "contact": {
+      "title": "Contactar a tu supervisor",
+      "intro": "Estas son las personas a quienes preguntar primero en tu hotel.",
+      "hotelLine": "Teléfono del hotel",
+      "call": "Llamar al {{phone}}",
+      "none": "Tu hotel aún no ha agregado un contacto de soporte.",
+      "noneHint": "Por favor comunícate con tu gerente de departamento o con recepción para recibir ayuda.",
+      "loadError": "No se pudieron cargar los contactos de tu hotel. Revisa tu conexión e inténtalo de nuevo.",
+      "retry": "Intentar de nuevo"
+    },
+    "reports": {
+      "title": "Mis reportes",
+      "empty": "Aún no has enviado ningún reporte.",
+      "emptyAction": "Reportar un problema",
+      "loadError": "No se pudieron cargar tus reportes. Revisa tu conexión e inténtalo de nuevo.",
+      "retry": "Intentar de nuevo",
+      "submitted": "Enviado {{date}}",
+      "status": {
+        "open": "Abierto",
+        "reviewing": "En revisión",
+        "closed": "Cerrado"
+      },
+      "statusLabel": "Estado: {{status}}",
+      "detail": "Reporte",
+      "blockingYes": "Marcado como que impide trabajar",
+      "noReply": "Todavía no se agregó una respuesta a este reporte."
+    },
+    "diagnostics": {
+      "title": "Diagnóstico de la app",
+      "intro": "Esta es la información que podemos compartir para ayudar a resolver un problema. No se envía nada a menos que decidas compartirla.",
+      "fieldsTitle": "Qué se compartiría",
+      "neverTitle": "Nunca se incluye",
+      "never": "Tu contraseña o datos de inicio de sesión, nombres o teléfonos de huéspedes, reservaciones, notas de habitaciones ni el contenido de tus cambios guardados.",
+      "share": "Compartir diagnóstico",
+      "shareHint": "Abre el menú de compartir de tu teléfono. Tú eliges a dónde va.",
+      "previewTitle": "Compartir diagnóstico",
+      "previewIntro": "Se compartirán exactamente estos datos:",
+      "cancel": "Cancelar",
+      "checking": "Aún se están revisando los cambios guardados. Los datos de sincronización se omiten hasta que termine.",
+      "yes": "Sí",
+      "no": "No",
+      "fields": {
+        "app_version": "Versión de la app",
+        "build": "Compilación",
+        "platform": "Plataforma",
+        "os_version": "Versión del sistema",
+        "role": "Puesto",
+        "language": "Idioma",
+        "online": "Con conexión",
+        "last_synced_at": "Última sincronización confirmada",
+        "pending_changes": "Cambios en espera",
+        "failed_changes": "Cambios que requieren atención",
+        "sync_status": "Estado de sincronización"
+      },
+      "syncStatuses": {
+        "saved": "Todo guardado",
+        "waiting": "En espera",
+        "syncing": "Sincronizando",
+        "attention": "Requiere atención",
+        "offline": "Sin conexión",
+        "unavailable": "No disponible"
+      }
+    }
   }
 }
