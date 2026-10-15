@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
 import { IconButton, Mono } from "@/components/shared/mobileHandoff";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
-import { listNotifications, markAllRead, type AppNotification } from "@/lib/api/notifications";
+import { SupervisorMessageSheet, type MarkReadError, type MessageDetails } from "@/components/home/SupervisorMessageSheet";
+import { listNotifications, markAllRead, markRead, type AppNotification } from "@/lib/api/notifications";
+import { resolveNotificationLink, senderOf, type NotificationLink } from "@/lib/housekeeping/notificationLinks";
+import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 
 function timeLabel(iso: string): string {
@@ -49,7 +53,15 @@ function groupByTime(notifications: AppNotification[]): Array<{ when: string; it
 
 export default function NotificationsScreen() {
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const myRooms = useAppStore((state) => state.myRooms);
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  const setUnreadCount = useAppStore((state) => state.setUnreadCount);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState<MarkReadError>(null);
+  const [markAllError, setMarkAllError] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +71,8 @@ export default function NotificationsScreen() {
     try {
       const res = await listNotifications(false);
       setNotifications(res.data);
+      // The unread list IS the unread count: set from what the server returned, never cleared by merely viewing.
+      setUnreadCount?.(res.data.length);
     } catch {
       setNotifications([]);
     } finally {
@@ -76,15 +90,67 @@ export default function NotificationsScreen() {
 
   const handleMarkAll = useCallback(async () => {
     setMarkingAll(true);
+    setMarkAllError(false);
     try {
       await markAllRead();
       setNotifications([]);
+      setUnreadCount?.(0);
+    } catch {
+      // Nothing was recorded: the list and the unread count stay as they were.
+      setMarkAllError(true);
     } finally {
       setMarkingAll(false);
     }
   }, []);
 
   const groups = groupByTime(notifications);
+
+  const selected = notifications.find((item) => item.id === selectedId) ?? null;
+  const details = useMemo<MessageDetails | null>(
+    () =>
+      selected
+        ? {
+            id: selected.id,
+            title: selected.title,
+            body: selected.body,
+            createdAt: selected.created_at ?? null,
+            sender: senderOf(selected),
+            link: resolveNotificationLink(selected, myRooms),
+          }
+        : null,
+    [selected, myRooms],
+  );
+
+  const openDetails = useCallback((id: string) => {
+    setSelectedId(id);
+    setMarkError(null);
+    setSheetOpen(true);
+  }, []);
+  const closeDetails = useCallback(() => setSheetOpen(false), []);
+
+  // Marking read is a server write: the row leaves the unread list only after the server accepted it.
+  const handleMarkRead = useCallback(async () => {
+    if (!selected || marking) return;
+    setMarking(true);
+    setMarkError(null);
+    try {
+      await markRead(selected.id);
+      setNotifications((current) => current.filter((item) => item.id !== selected.id));
+      const count = useAppStore.getState().unreadCount;
+      if (typeof count === "number") setUnreadCount?.(Math.max(0, count - 1));
+      setSheetOpen(false);
+    } catch {
+      setMarkError(useAppStore.getState().isOnline === false ? "offline" : "failed");
+    } finally {
+      setMarking(false);
+    }
+  }, [selected, marking, setUnreadCount]);
+
+  const openLink = useCallback((link: Exclude<NotificationLink, { kind: "none" }>) => {
+    setSheetOpen(false);
+    if (link.kind === "room") router.push(`/(app)/my-rooms/${link.roomId}` as never);
+    else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -102,6 +168,12 @@ export default function NotificationsScreen() {
           style={styles.markReadBtn}
         />
       </View>
+
+      {markAllError ? (
+        <Text accessibilityRole="alert" style={[styles.error, { color: theme.status.dirty }]} testID="mark-all-error">
+          {t("home.message.markAllFailed")}
+        </Text>
+      ) : null}
 
       {loading ? (
         <View style={styles.center}>
@@ -131,24 +203,48 @@ export default function NotificationsScreen() {
               <Text style={[styles.groupTitle, { color: theme.textMuted }]}>{group.when}</Text>
               <View style={styles.stack}>
                 {group.items.map((item) => (
-                  <Card key={item.id} style={styles.row}>
-                    <IconButton icon={iconForType(item.type)} tone={toneForType(item.type)} size={38} />
-                    <View style={styles.rowBody}>
-                      <View style={styles.rowLine}>
-                        <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{item.title}</Text>
-                        <Mono style={[styles.rowTime, { color: theme.textDisabled }]}>
-                          {timeLabel(item.created_at)}
-                        </Mono>
+                  <Pressable
+                    key={item.id}
+                    onPress={() => openDetails(item.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.title}. ${item.body}`}
+                    accessibilityHint={t("home.message.openHint")}
+                    testID={`notification-${item.id}`}
+                  >
+                    <Card style={styles.row}>
+                      <IconButton icon={iconForType(item.type)} tone={toneForType(item.type)} size={38} />
+                      <View style={styles.rowBody}>
+                        <View style={styles.rowLine}>
+                          <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{item.title}</Text>
+                          <Mono style={[styles.rowTime, { color: theme.textDisabled }]}>
+                            {timeLabel(item.created_at)}
+                          </Mono>
+                        </View>
+                        <Text style={[styles.rowSub, { color: theme.textMuted }]} numberOfLines={3}>
+                          {item.body}
+                        </Text>
                       </View>
-                      <Text style={[styles.rowSub, { color: theme.textMuted }]}>{item.body}</Text>
-                    </View>
-                  </Card>
+                    </Card>
+                  </Pressable>
                 ))}
               </View>
             </View>
           ))}
         </ScrollView>
       )}
+
+      <SupervisorMessageSheet
+        visible={sheetOpen}
+        message={details}
+        marking={marking}
+        error={markError}
+        language={i18n.language}
+        timeZone={hotelTimezone ?? null}
+        t={t as never}
+        onMarkRead={() => void handleMarkRead()}
+        onOpenLink={openLink}
+        onClose={closeDetails}
+      />
     </View>
   );
 }
@@ -170,4 +266,5 @@ const styles = StyleSheet.create({
   rowTime: { fontSize: 10.5 },
   rowSub: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
   empty: { padding: 24, alignItems: "center" },
+  error: { paddingHorizontal: 18, paddingTop: 10, fontSize: 13 },
 });

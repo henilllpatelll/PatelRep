@@ -53,60 +53,10 @@
     "logbook": "Logbook"
   },
   "home": {
-    "shiftSuffix": "Day shift",
     "greetingMorning": "Good morning, {{name}}.",
     "greetingAfternoon": "Good afternoon, {{name}}.",
     "greetingEvening": "Good evening, {{name}}.",
-    "heroProgress": "{{done}} of {{total}} rooms done",
-    "minutesLeft": "~{{minutes}}m left",
-    "finishBy": "on track for {{time}}",
     "openMyRooms": "Open My Rooms",
-    "emptyBoard": {
-      "waiting": "waiting · last checked {{time}}",
-      "myRoomsHint": "view assignments",
-      "askAiHint": "ask a question"
-    },
-    "signal": {
-      "review": "{{count}} waiting on review",
-      "dnd": "{{count}} DND",
-      "arrivals": "{{count}} arriving soon",
-      "vip": "{{count}} VIP"
-    },
-    "focus": {
-      "kicker": "Start here",
-      "inProgressKicker": "In progress",
-      "estMinutes": "~{{minutes}} min",
-      "target": "target {{time}}",
-      "underPace": "{{minutes}}m under pace",
-      "overPace": "{{minutes}}m over pace",
-      "more": "More options",
-      "resume": "Resume {{room}}",
-      "inProgress": "in progress",
-      "floor": "Floor {{floor}}"
-    },
-    "shiftCard": {
-      "title": "Your shift",
-      "vipAt": "{{time}} VIP"
-    },
-    "needsYou": {
-      "title": "Needs you",
-      "reviewSubtitle": "Flagged rooms waiting on a supervisor look.",
-      "dndSubtitle": "Skip them for now — they'll clear on their own.",
-      "arrivalsSubtitle": "Already first in your cleaning plan.",
-      "gotIt": "Got it"
-    },
-    "holdConfirm": {
-      "title": "Room {{room}} clean?",
-      "subtitle": "This moves it to Clean and lets your supervisor know it's ready for inspection.",
-      "checklistStatus": "Checklist {{done}} of {{total}}",
-      "cta": "Hold to confirm…",
-      "confirming": "Confirming…",
-      "releaseHint": "Release to cancel",
-      "openRoom": "Open room to finish checklist",
-      "nextUp": "Up next · {{room}}",
-      "nextUpMinutes": "~{{minutes}}m",
-      "startBy": "start by {{time}}"
-    },
     "endOfShift": {
       "roomsCleaned": "{{count}} rooms cleaned",
       "shiftDuration": "{{duration}} on shift",
@@ -117,7 +67,9 @@
       "beforeClockOut": "Before you clock out",
       "handoff": "Hand over {{room}} · {{title}}",
       "handoffGeneric": "open work order",
-      "foundItems": "Lost & found · {{count}} item logged today"
+      "foundItems": "Lost & found · {{count}} item logged today",
+      "roomsCompleted": "{{count}} rooms completed",
+      "needsConnection": "Connect to the internet to clock out."
     },
     "companion": {
       "kicker": "With you",
@@ -133,10 +85,7 @@
       "tipVip": "{{count}} VIP room(s) still ahead — a little extra polish goes a long way.",
       "tipBreather": "Good moment for water and a breath. The board can wait two minutes."
     },
-    "startWith": "Start with {{room}}",
     "askAI": "Ask AI",
-    "allDone": "All assigned rooms are done.",
-    "pullToRefresh": "Pull to refresh if your supervisor adds more.",
     "engineer": {
       "shiftMeta": "Maintenance shift",
       "summary": "{{open}} in the queue · {{bench}} on your bench",
@@ -198,6 +147,659 @@
       "guestRequests": "Guest requests",
       "alertsTitle": "AI Alerts",
       "alertsHint": "Open the Alerts tab to see AI-powered risk alerts for your property."
+    },
+    "shift": {
+      "notStartedTitle": "Your shift hasn't started",
+      "notStartedBody": "Start your shift when you're ready. Your rooms are below.",
+      "start": "Start shift",
+      "startNew": "Start a new shift",
+      "activeSince": "On shift since {{time}}",
+      "onBreak": "On break",
+      "takeBreak": "Take a break",
+      "resume": "Resume shift",
+      "endedAt": "Shift ended at {{time}}",
+      "ending": "Clocking out…",
+      "unknown": "Can't check your shift right now",
+      "retry": "Try again",
+      "carriedOver": "This shift started on an earlier day. Clock out if it's over.",
+      "needsConnection": "You need a connection to do that.",
+      "actionFailed": "Couldn't update your shift — try again.",
+      "finish": "Finish shift",
+      "clockedOutAt": "Clocked out at {{time}}"
+    },
+    "board": {
+      "unavailableTitle": "Can't load your rooms",
+      "unavailableBody": "We couldn't reach the server, so we can't tell what's assigned to you. Try again.",
+      "offlineBody": "You're offline and this phone has no saved rooms for today.",
+      "retry": "Try again",
+      "updatingDay": "Loading today's rooms…"
+    },
+    "sync": {
+      "attention": "Some changes need attention in My Rooms",
+      "pending": "{{count}} saved on this phone, not sent yet",
+      "stale": "Showing saved rooms — last updated {{time}}",
+      "staleNoTime": "Showing saved rooms — not updated yet",
+      "offline": "Offline",
+      "offlineAt": "Offline · last updated {{time}}",
+      "offlinePending": "Offline · {{count}} saved on this phone, not sent yet",
+      "synced": "All changes synced · {{time}}",
+      "syncedNoTime": "All changes synced",
+      "unknown": "Not updated yet",
+      "checking": "Checking what's saved on this phone…"
+    },
+    "header": {
+      "part": {
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening"
+      },
+      "shift": {
+        "unknown": "Shift status not confirmed",
+        "notStarted": "Your shift hasn't started.",
+        "active": "Your shift is underway.",
+        "onBreak": "You're on break.",
+        "ending": "Clocking out…",
+        "ended": "Your shift is complete."
+      },
+      "notifications": "Notifications",
+      "notificationsUnread": "Notifications, {{count}} unread",
+      "notificationsUnread_plural": "Notifications, {{count}} unread",
+      "fallbackName": "there",
+      "syncOpen": "Sync status"
+    },
+    "notice": {
+      "lastUpdated": "Last updated {{time}}.",
+      "notUpdated": "Not updated yet.",
+      "offlineTitle": "You're offline",
+      "offlineBody": "Showing the rooms saved on this phone. Your work is kept and will send when you're back online.",
+      "failedTitle": "Couldn't refresh",
+      "failedBody": "Showing the rooms saved on this phone.",
+      "staleTitle": "Showing saved rooms"
+    },
+    "why": {
+      "activeSession": "You're already cleaning this room.",
+      "sequence": "Your supervisor put it first in your route.",
+      "sequenceAt": "Stop {{position}} in your supervisor's route.",
+      "rush": "Rush priority",
+      "reclean": "An inspector asked for corrections.",
+      "arrival": "A guest is arriving soon.",
+      "checkoutVerified": "The front desk confirmed checkout.",
+      "checkoutVerifiedAt": "The front desk confirmed checkout at {{time}}.",
+      "queue": "It's next in your cleaning order.",
+      "estimate": "A typical clean takes about {{minutes}} min (an estimate, not a deadline)."
+    },
+    "attention": {
+      "kicker": "Needs your attention",
+      "viewAll": "View all ({{count}})",
+      "viewAllA11y": "View all, {{count}} more need attention",
+      "viewAllA11y_plural": "View all, {{count}} more need attention",
+      "rowTitle": "Room {{room}} · {{label}}",
+      "retryAt": "Retry at {{time}}",
+      "sessionMissing": "This room is marked in progress but this phone has no cleaning session for it.",
+      "sessionUnassigned": "You have unsent work for a room that is no longer on your list.",
+      "syncConflict": "The server didn't accept a saved change. Your work is kept.",
+      "syncFailed": "A saved change couldn't be sent. Your work is kept.",
+      "codes": {
+        "rush_overdue": "Rush overdue",
+        "supervisor_message": "Message from your supervisor",
+        "sync_conflict": "Change not accepted",
+        "sync_failed": "Change not sent",
+        "session_missing": "Session missing",
+        "session_unassigned": "Unsent work"
+      }
+    },
+    "progress": {
+      "kicker": "Your progress",
+      "headline": "{{done}} of {{total}} completed",
+      "noneServiceable": "No rooms to clean today",
+      "toClean": "To clean",
+      "inProgress": "In progress",
+      "needAttention": "Need attention",
+      "detail": "{{submitted}} submitted · {{inspected}} inspected",
+      "unavailable": "{{count}} out of service",
+      "waiting": "{{count}} waiting to send",
+      "viewDetails": "View shift details"
+    },
+    "current": {
+      "kickerActive": "Right now — in progress",
+      "kickerMissing": "Right now — needs recovery",
+      "kickerConflict": "Right now — needs review",
+      "kickerRecommended": "Right now — recommended",
+      "missingBody": "This room is marked in progress, but this phone has no cleaning session for it. Open the room to recover it.",
+      "conflictBody": "Some changes weren't accepted. Your work is saved. Open the room to review.",
+      "elapsed": "elapsed",
+      "elapsedA11y": "{{time}} elapsed",
+      "checklist": "Cleaning checklist: {{done}} of {{total}}",
+      "savedOnPhone": "Saved on this phone",
+      "continue": "Continue cleaning",
+      "openRoom": "Open room",
+      "openRoomShort": "Open room",
+      "primaryA11y": "{{action}}, room {{room}}",
+      "why": "Why this room?",
+      "more": "More",
+      "moreA11y": "More actions for room {{room}}",
+      "whyA11y": "Why room {{room}} is recommended"
+    },
+    "upNext": {
+      "kicker": "Up next",
+      "a11y": "Up next, room {{room}}",
+      "viewRoute": "View route"
+    },
+    "submitted": {
+      "queuedTitle": "Room {{room}} finished",
+      "queuedBody": "Saved on this phone, not sent yet. It isn't confirmed until it sends.",
+      "submittedTitle": "Room {{room}} submitted",
+      "submittedBody": "Confirmed and counted as Clean. An inspector will check it.",
+      "inspectedTitle": "Room {{room}} inspected",
+      "inspectedBody": "It passed inspection."
+    },
+    "before": {
+      "title": "Ready for your shift?",
+      "assigned": "{{count}} room assigned today",
+      "assigned_plural": "{{count}} rooms assigned today",
+      "instructions": "Good to know",
+      "rush": "{{count}} rush room",
+      "rush_plural": "{{count}} rush rooms",
+      "vip": "{{count}} VIP room",
+      "vip_plural": "{{count}} VIP rooms",
+      "reclean": "{{count}} reclean to finish",
+      "reclean_plural": "{{count}} recleans to finish",
+      "review": "Review assignments",
+      "nudge": "You're working, but your shift hasn't started."
+    },
+    "break": {
+      "since": "On break since {{time}}",
+      "summary": "{{done}} of {{total}} rooms completed. Your rooms stay as you left them."
+    },
+    "empty": {
+      "title": "No rooms assigned yet",
+      "body": "Your supervisor hasn't assigned rooms to you for today. Refresh to check again.",
+      "checked": "Last checked {{time}}",
+      "refresh": "Refresh assignments"
+    },
+    "unavailable": {
+      "title": "Couldn't load your shift.",
+      "body": "Your current assignments are unavailable. Try again.",
+      "offlineBody": "You're offline and this phone has no saved rooms for today. Your current assignments are unavailable."
+    },
+    "clockedOut": {
+      "title": "Shift complete",
+      "confirmedByYou": "{{count}} confirmed from your cleaning",
+      "exceptions": "{{count}} room left for the next shift (DND or declined)",
+      "exceptions_plural": "{{count}} rooms left for the next shift (DND or declined)",
+      "handoffs": "{{count}} open work order to hand over",
+      "handoffs_plural": "{{count}} open work orders to hand over",
+      "viewRooms": "View completed rooms",
+      "viewSummary": "View shift summary",
+      "unsent": "{{count}} change is still on this phone and not sent yet.",
+      "unsent_plural": "{{count}} changes are still on this phone and not sent yet."
+    },
+    "briefing": {
+      "show": "Show shift briefing",
+      "hide": "Hide shift briefing",
+      "open": "Shift briefing"
+    },
+    "message": {
+      "markRead": "Mark as read",
+      "marking": "Marking as read…",
+      "markedRead": "Marked as read",
+      "failed": "Couldn't mark it as read. It's still unread — try again.",
+      "offline": "Marking as read needs a connection. It's still unread.",
+      "readOnlyHint": "This only marks the message as read. It isn't sent back to your supervisor.",
+      "from": "From {{sender}}",
+      "sent": "Sent {{time}}",
+      "viewRoom": "View Room {{room}}",
+      "viewTask": "View task",
+      "fallbackTitle": "Message",
+      "noneTitle": "No unread message",
+      "noneBody": "There's nothing unread here any more.",
+      "openHint": "Opens the full message",
+      "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again."
+    },
+    "attentionCenter": {
+      "title": "Needs attention",
+      "backA11y": "Back to Home",
+      "filter": {
+        "all": "All",
+        "urgent": "Urgent",
+        "access": "Access",
+        "messages": "Messages",
+        "other": "Other"
+      },
+      "filterA11y": "{{label}}, {{count}}",
+      "priority": {
+        "critical": "Urgent",
+        "warning": "Action needed"
+      },
+      "details": "Details",
+      "action": {
+        "readMessage": "Read message",
+        "viewDetails": "View details",
+        "reviewCorrections": "Review corrections",
+        "openRoom": "Open room",
+        "viewRoom": "View room",
+        "openMyRooms": "Open My Rooms"
+      },
+      "emptyTitle": "Nothing needs your attention",
+      "emptyBody": "Rooms and messages that need you will show up here.",
+      "notReadyTitle": "Open Home first",
+      "notReadyBody": "This list is built from your Home screen, which hasn't loaded yet.",
+      "goHome": "Go to Home",
+      "unavailable": "We can't load your rooms right now."
+    },
+    "roomActions": {
+      "title": "Room {{room}}",
+      "sectionGo": "Go to",
+      "sectionReport": "Report or add",
+      "formsHint": "These open the form on the room screen. Nothing is sent until you submit it there.",
+      "continueHint": "Back to your checklist",
+      "openHint": "Status, instructions and everything about the room",
+      "openRestrictedHint": "You can look at the room, but entry is restricted.",
+      "restricted": "Entry to this room is restricted right now. You can open it to read why, but you can't start cleaning.",
+      "missingTitle": "Room no longer on your list",
+      "missingBody": "It was reassigned or your list changed. Pull down on Home to refresh.",
+      "rows": {
+        "note": {
+          "title": "Add room note",
+          "hint": "Share something the next person should know"
+        },
+        "issue": {
+          "title": "Report maintenance issue",
+          "hint": "Creates a work order"
+        },
+        "supplies": {
+          "title": "Request supplies",
+          "hint": "Towels, linens, amenities"
+        },
+        "exception": {
+          "title": "Report access problem",
+          "hint": "DND, guest inside, come back later"
+        },
+        "info": {
+          "title": "Room information",
+          "hint": "Status, instructions and history"
+        }
+      }
+    },
+    "whySheet": {
+      "title": "Why Room {{room}} next?",
+      "because": "Because",
+      "open": "Open Room {{room}}",
+      "changed": "Your next room changed. Room {{room}} is first now.",
+      "noneTitle": "Nothing to recommend right now",
+      "noneBody": "No room is ready to start. Check what needs your attention, or open My Rooms.",
+      "openMyRooms": "Open My Rooms"
+    },
+    "issue": {
+      "waitNotice": "You can't start this room from here. It's cleared by the guest, the front desk or your supervisor.",
+      "checkoutScheduled": "Scheduled checkout: {{time}}",
+      "checkoutConfirmed": "The front desk confirmed checkout at {{time}}.",
+      "checkoutNotConfirmed": "The front desk hasn't confirmed checkout. A scheduled time isn't confirmation.",
+      "correctionsUnavailable": "The inspector's correction list isn't on this phone yet. Open the room to see it.",
+      "supervisorNote": "Supervisor note: {{note}}",
+      "viewRoom": "View room details",
+      "viewRoomHint": "See the room, its status and instructions",
+      "viewWorkOrder": "View work order",
+      "addNote": "Add note",
+      "addNoteHint": "Opens the room note form",
+      "resolvedTitle": "This issue has cleared",
+      "resolvedBody": "Nothing more to do here. Your list has been updated.",
+      "kind": {
+        "dnd": {
+          "headline": "Do not disturb",
+          "body": "This room has an active DND. Don't enter."
+        },
+        "declined": {
+          "headline": "Guest declined service",
+          "body": "The guest doesn't want service. Don't enter unless the front desk or your supervisor says otherwise."
+        },
+        "come_back_later": {
+          "headline": "Come back later",
+          "body": "The guest asked you to return later. Try again at the retry time."
+        },
+        "guest_inside": {
+          "headline": "Guest is inside",
+          "body": "Don't enter while a guest is in the room."
+        },
+        "access": {
+          "headline": "Access problem",
+          "body": "A problem getting into this room was reported."
+        },
+        "checkout": {
+          "headline": "Checkout not confirmed",
+          "body": "Don't enter until the front desk confirms the guest has left."
+        },
+        "maintenance": {
+          "headline": "Maintenance work open",
+          "body": "Engineering handles this. You can't resolve it from here."
+        },
+        "reclean": {
+          "headline": "Inspector asked for corrections",
+          "body": "Fix what the inspector flagged, then submit the room again."
+        },
+        "rush": {
+          "headline": "Rush deadline passed",
+          "body": "This room was needed by a set time. Open it and tell your supervisor if you can't finish."
+        },
+        "session": {
+          "headline": "Cleaning session needs recovery",
+          "body": "This phone and the server disagree about this room. Open it to recover your work."
+        },
+        "sync": {
+          "headline": "A saved change didn't go through",
+          "body": "Your work is kept on this phone."
+        },
+        "other": {
+          "headline": "Needs a look",
+          "body": "Open the room for the details."
+        }
+      }
+    },
+    "progressSheet": {
+      "title": "Your shift",
+      "completed": "Completed",
+      "unavailable": "Unavailable",
+      "assigned": "Total assigned",
+      "sectionRooms": "Where your rooms are",
+      "reconcile": "These add up to your {{count}} assigned rooms.",
+      "sectionFlags": "Also flagged",
+      "flagsHint": "A room can have more than one flag, so these don't add up to the totals above.",
+      "flagRush": "Rush",
+      "flagReclean": "Reclean",
+      "flagArrivals": "Arriving soon",
+      "waiting": "Finished on this phone and waiting to send: {{count}}. Counted as in progress until the server confirms.",
+      "unavailableNote": "Out-of-service rooms are never counted as cleaned.",
+      "started": "Shift started {{time}}",
+      "notStarted": "Shift not started",
+      "shiftUnknown": "Checking your shift…",
+      "onBreak": "On break",
+      "onBreakSince": "On break since {{time}}",
+      "openMyRooms": "Open My Rooms"
+    },
+    "allHandled": {
+      "title": "All assigned work handled",
+      "review": "Review & finish shift"
+    },
+    "review": {
+      "title": "Finish your shift",
+      "lead": "Review your work before clocking out.",
+      "startedAt": "Started {{time}}",
+      "breakTime": "{{duration}} on break",
+      "rowTitle": "Room {{room}} — {{label}}",
+      "sectionToday": "Your shift",
+      "sectionHandoffs": "Handoffs to review",
+      "handoffsHint": "Tap one to open it. Clocking out does not clear any of these.",
+      "clockOut": "Clock out",
+      "clockOutAnyway": "Clock out anyway",
+      "returnHome": "Return to Home",
+      "needsConnection": "Connect to the internet to clock out. Nothing saved on this phone is lost.",
+      "endedTitle": "Your shift is already clocked out",
+      "endedBody": "The server shows no open shift for you. Nothing else is needed here.",
+      "totals": {
+        "completed": "{{count}} room submitted or inspected",
+        "completed_plural": "{{count}} rooms submitted or inspected",
+        "unavailable": "{{count}} room unavailable",
+        "unavailable_plural": "{{count}} rooms unavailable",
+        "exceptions": "{{count}} room left through a documented exception",
+        "exceptions_plural": "{{count}} rooms left through documented exceptions",
+        "remaining": "{{count}} room still to clean",
+        "remaining_plural": "{{count}} rooms still to clean"
+      },
+      "sync": {
+        "none": "0 changes waiting to sync",
+        "waiting": "{{count}} change waiting to sync",
+        "waiting_plural": "{{count}} changes waiting to sync",
+        "unverified": "Can't confirm what is waiting to sync",
+        "open": "Open sync status"
+      },
+      "warnings": {
+        "boardUnverified": "Today's room list could not be confirmed, so room totals are not shown.",
+        "activeRoom": "Room {{room}} is still being cleaned.",
+        "roomsRemaining": "{{count}} room has not been started.",
+        "roomsRemaining_plural": "{{count}} rooms have not been started.",
+        "pendingSync": "Some changes are saved on this phone and have not reached the server yet. They stay on this phone and send when you are online.",
+        "syncUnverified": "This phone could not read everything it is holding, so \"nothing waiting\" can't be confirmed.",
+        "syncProblem": "A saved change was not accepted or could not be sent. Your work is kept; tell your supervisor before you leave."
+      },
+      "labels": {
+        "maintenance": "Maintenance",
+        "inProgress": "Cleaning in progress",
+        "toClean": "Not started",
+        "followUp": "Needs follow-up",
+        "tasks": "{{count}} open task",
+        "tasks_plural": "{{count}} open tasks",
+        "lostFound": "Lost & found: {{count}} item logged today",
+        "lostFound_plural": "Lost & found: {{count}} items logged today"
+      },
+      "details": {
+        "maintenance": "Open work order linked",
+        "maintenanceTitled": "Open work order: {{title}}",
+        "exception": "Service exception documented",
+        "attention": "Open this room to see what is needed",
+        "inProgress": "Finish or hand over this room",
+        "toClean": "Still to clean",
+        "tasks": "Assigned to you",
+        "lostFound": "Review what you logged"
+      },
+      "errors": {
+        "offline": "You need a connection to clock out. You are still clocked in.",
+        "failed": "Couldn't clock you out. You are still clocked in — try again.",
+        "not_allowed": "Your shift can't be clocked out right now. Close this and check Home."
+      }
+    },
+    "summary": {
+      "title": "Shift summary",
+      "done": "Done",
+      "sectionTimes": "Times",
+      "clockIn": "Clocked in",
+      "clockOut": "Clocked out",
+      "unknownTime": "Not recorded",
+      "breaks": "Breaks",
+      "onShift": "Time on shift",
+      "sectionRooms": "Rooms",
+      "submitted": "Submitted (waiting for inspection)",
+      "inspected": "Inspected",
+      "unavailable": "Out of service",
+      "roomsUnavailable": "Today's room list could not be confirmed, so room totals are not shown.",
+      "sectionLeftOpen": "Left open",
+      "sectionExceptions": "Documented exceptions",
+      "sectionHandoffs": "Handoffs",
+      "syncWaiting": "{{count}} change still not sent",
+      "syncWaiting_plural": "{{count}} changes still not sent",
+      "syncUnverified": "Couldn't confirm everything was sent",
+      "syncHint": "Your summary is not final until these reach the server.",
+      "sectionRecap": "AI recap",
+      "recapAiLabel": "Written by AI from today's room list",
+      "recapOptional": "Optional. Your summary above is complete without it.",
+      "recapUnavailable": "The AI recap isn't available right now. Your summary above is unaffected.",
+      "recapOffline": "Connect to the internet to ask for an AI recap.",
+      "recapRequest": "Add AI recap"
+    },
+    "syncSheet": {
+      "title": "Sync status",
+      "retry": "Retry sync",
+      "retrying": "Syncing…",
+      "retryBlock": {
+        "offline": "You're offline. Changes stay on this phone and send when you reconnect.",
+        "nothing": "Nothing is waiting to send.",
+        "conflicts_only": "These changes need attention in their rooms; retrying here won't resend them."
+      },
+      "status": {
+        "synced": {
+          "title": "Everything is synced",
+          "body": "Every change you made has reached the server."
+        },
+        "pending": {
+          "title": "Changes waiting to sync",
+          "body": "Saved on this phone. Not confirmed by the server yet."
+        },
+        "syncing": {
+          "title": "Syncing…",
+          "body": "Sending your saved changes in order."
+        },
+        "offline_cached": {
+          "title": "You're offline",
+          "body": "Showing the last rooms this phone saved. Changes are kept here and send when you reconnect."
+        },
+        "offline": {
+          "title": "You're offline",
+          "body": "This phone has no saved room list for today yet. Changes are kept here and send when you reconnect."
+        },
+        "stale": {
+          "title": "Room list may be out of date",
+          "body": "Your changes are sent, but the rooms shown are older than they should be."
+        },
+        "unknown": {
+          "title": "Not updated yet",
+          "body": "Rooms haven't been refreshed since opening the app."
+        },
+        "failed": {
+          "title": "Some changes didn't send",
+          "body": "They are kept on this phone. Try again, or tell your supervisor."
+        },
+        "conflict": {
+          "title": "A change needs your attention",
+          "body": "The server didn't accept a saved change. Your work is kept; open the room to sort it out."
+        }
+      },
+      "lastSync": "Last successful sync: {{time}}",
+      "neverSynced": "No successful sync yet since opening the app.",
+      "unreadable": "This phone couldn't read everything it is holding, so \"nothing waiting\" can't be confirmed.",
+      "waiting": "{{count}} change waiting",
+      "waiting_plural": "{{count}} changes waiting",
+      "waitingHint": "Saved on this phone. Each is confirmed only when the server has it.",
+      "nothingWaiting": "Nothing is waiting to send.",
+      "run": {
+        "offline": "You're offline, so nothing was sent.",
+        "failed": "Sync couldn't finish. Your changes are still saved on this phone.",
+        "conflicts": "{{count}} change was not accepted by the server. Your work is kept.",
+        "conflicts_plural": "{{count}} changes were not accepted by the server. Your work is kept.",
+        "itemsFailed": "{{count}} change still couldn't be sent. It is kept on this phone.",
+        "itemsFailed_plural": "{{count}} changes still couldn't be sent. They are kept on this phone.",
+        "partial": "Some changes are still waiting ({{count}}). Try again in a moment.",
+        "done": "Everything was sent and confirmed."
+      },
+      "rowStates": {
+        "pending": "Waiting to send",
+        "syncing": "Sending…",
+        "retrying": "Will retry",
+        "failed": "Not sent",
+        "conflict": "Needs attention"
+      },
+      "savedAt": "Saved on this phone at {{time}}",
+      "openRoom": "Open room",
+      "openTasks": "Open tasks",
+      "reasons": {
+        "retrying": "Tried and will try again.",
+        "generic": "It couldn't be sent. It is kept on this phone.",
+        "COMPLETION_UNSURE": "No answer from the server yet. We'll check before sending again.",
+        "SESSION_ABANDONED": "The server closed this cleaning session.",
+        "SESSION_GONE": "The server no longer has this cleaning session.",
+        "ROOM_STATE_CHANGED": "The room changed while you were working.",
+        "ROOM_NOT_ASSIGNED": "This room is no longer assigned to you.",
+        "ROOM_IN_USE": "Another housekeeper is cleaning this room.",
+        "DND_ACTIVE": "Do Not Disturb is active on this room.",
+        "SERVICE_DECLINED": "The guest declined service.",
+        "completed": "The task was already completed.",
+        "cancelled": "The task was cancelled.",
+        "reassigned": "The task now belongs to someone else.",
+        "claimed": "Someone else took the task.",
+        "unavailable": "The task is no longer available to you.",
+        "blocked": "The task is blocked.",
+        "changed": "The task changed while this was saved.",
+        "forbidden": "You no longer have access to this.",
+        "rejected": "The server didn't accept this change.",
+        "expired": "This change is too old to send."
+      }
+    },
+    "markClean": {
+      "title": "Finish room {{room}}?",
+      "titleGeneric": "Finish room?",
+      "backHome": "Back to Home",
+      "holdCta": "Hold to confirm clean",
+      "holdHint": "Press and hold to confirm. Release early to cancel.",
+      "releaseHint": "Release to cancel",
+      "tapInstead": "Can't hold? Tap to confirm",
+      "tapCta": "Confirm clean",
+      "tapA11y": "Confirm room {{room}} is clean",
+      "checklistComplete": "Required checklist complete",
+      "checklistCount": "{{done}} of {{total}} required items",
+      "newStatusLabel": "New status",
+      "newStatusClean": "Clean",
+      "newStatusQueued": "Clean, once the server confirms",
+      "nextStepLabel": "Next step",
+      "nextStepInspection": "Inspection",
+      "offlineNotice": "You're offline. This will be saved on this phone and sent when you reconnect. The room isn't Clean until the server confirms.",
+      "loading": "Loading this room's checklist…",
+      "stillOpen": "Still open",
+      "andMore": "and {{count}} more",
+      "finishChecklist": "Finish checklist",
+      "openRoom": "Open room",
+      "failed": "Couldn't finish this room. Nothing was changed. Open the room to check.",
+      "blocked": {
+        "not_assigned": {
+          "title": "This room isn't on your list",
+          "body": "It was reassigned or the list changed, so it can't be finished from here."
+        },
+        "already_done": {
+          "title": "Room {{room}} is already submitted",
+          "body": "It is waiting for inspection or has been inspected."
+        },
+        "restricted": {
+          "body": "This room can't be entered right now (Do Not Disturb or declined service). Open it to see why."
+        },
+        "not_in_progress": {
+          "body": "This room isn't in progress, so it can't be marked clean."
+        },
+        "departure": {
+          "body": "Departure rooms need their linen counts. Open the room to add them and finish."
+        },
+        "no_session": {
+          "body": "This phone has no cleaning session for this room. Open the room to continue."
+        },
+        "conflict": {
+          "body": "A saved change for this room wasn't accepted. Open the room to sort it out; your progress is kept."
+        },
+        "already_pending": {
+          "body": "Room {{room}} is already finished on this phone and waiting to send."
+        },
+        "checklist_incomplete": {
+          "body": "Required checklist items are still open ({{done}} of {{total}} done). Finish them first."
+        }
+      }
+    },
+    "postComplete": {
+      "confirmedHeading": "Room {{room}} submitted",
+      "queuedHeading": "Room {{room}} saved on this device",
+      "confirmedTitle": "Room {{room}} submitted",
+      "confirmedBody": "Ready for inspection.",
+      "queuedTitle": "Room {{room}} saved on this device",
+      "queuedBody": "Completion waiting to sync. It isn't confirmed as Clean until the server has it.",
+      "upNext": "Up next",
+      "noneNext": "No other room is ready to start right now.",
+      "openRoom": "Open room {{room}}",
+      "syncStatus": "View sync status",
+      "backHome": "Back to Home"
+    },
+    "briefingSheet": {
+      "title": "Shift briefing",
+      "newBriefing": "New briefing",
+      "sourceAi": "Written by AI from your room list",
+      "sourceLocal": "Planned on this phone from your assignments",
+      "offline": "You're offline. This plan comes from your saved assignments.",
+      "unavailable": "The AI briefing isn't available right now. This plan comes from your assignments.",
+      "planTitle": "Suggested plan",
+      "planHint": "About {{minutes}} min of cleaning in all. Estimates, not deadlines.",
+      "emptyPlan": "No rooms are ready to start right now.",
+      "watchTitle": "Things to watch",
+      "reasons": {
+        "active": "Continue active cleaning",
+        "rush": "Rush requested",
+        "reclean": "Reclean requested",
+        "arrival": "Guest arrival soon",
+        "arrivalAt": "Arrival at {{time}}",
+        "queue": "Next in your order"
+      }
     }
   },
   "rooms": {
@@ -469,7 +1071,8 @@
           "NO_CHECKLIST_OFFLINE": "Connect once to download this hotel's cleaning checklist before starting offline."
         },
         "completingUnsure": "We didn't get an answer from the server. Nothing is lost — we'll check with the server before sending again."
-      }
+      },
+      "actionUnavailable": "That action isn't available for this room right now."
     },
     "detailActions": {
       "title": "Actions",

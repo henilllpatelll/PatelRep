@@ -5,44 +5,47 @@ import {
   deleteSyncQueueItem,
   getPendingSyncQueue,
   incrementSyncQueueAttempts,
-  upsertRooms,
 } from "@/lib/offline/db";
 import { getQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
-import { localDate } from "@/lib/utils/date";
-import type { Room } from "@/stores/appStore";
 
 let _syncInProgress = false;
-let _syncOnConnectInProgress = false;
+let _syncOnConnectRun: Promise<void> | null = null;
 
-export async function syncOnConnect(): Promise<void> {
-  // Guard against concurrent calls — NetInfo fires multiple times on Android.
-  // Two concurrent withTransactionAsync on the same connection destroy each other.
-  if (_syncOnConnectInProgress) return;
-  _syncOnConnectInProgress = true;
-  try {
-    const state = await NetInfo.fetch();
-    if (!state.isConnected) return;
-    // Clean sessions replay first (start -> checklist -> complete, in order); the
-    // generic queue then skips room_status entries a session owns.
-    await flushSessions();
-    // Saved task completions go through their own per-user outbox (identity re-checked on every item).
-    await flushTaskOutbox();
-    // Flush both queues: appStore queue (logbook, room status, etc.) + SQLite queue
-    await useAppStore.getState().flushQueue();
-    await flushSyncQueue();
-    // Only refresh rooms for housekeepers and supervisors (API endpoint requires it)
-    const user = useAppStore.getState().user;
-    if (user && (user.role === "housekeeper" || user.role === "housekeeping_supervisor")) {
-      await refreshRooms();
-    }
-    // "Last sync" only moves when the round-trip left nothing waiting.
-    if ((await countPendingChanges()) === 0) useAppStore.getState().setLastSyncedAt(new Date().toISOString());
-  } finally {
-    _syncOnConnectInProgress = false;
+/**
+ * One sync at a time, app-wide. NetInfo fires several times on Android and two
+ * concurrent withTransactionAsync on the same connection destroy each other, so
+ * a call made while one is running joins it (and resolves when it does) rather
+ * than starting another or returning early.
+ */
+export function syncOnConnect(): Promise<void> {
+  if (_syncOnConnectRun) return _syncOnConnectRun;
+  _syncOnConnectRun = runSyncOnConnect().finally(() => {
+    _syncOnConnectRun = null;
+  });
+  return _syncOnConnectRun;
+}
+
+async function runSyncOnConnect(): Promise<void> {
+  const state = await NetInfo.fetch();
+  if (!state.isConnected) return;
+  // Clean sessions replay first (start -> checklist -> complete, in order); the
+  // generic queue then skips room_status entries a session owns.
+  await flushSessions();
+  // Saved task completions go through their own per-user outbox (identity re-checked on every item).
+  await flushTaskOutbox();
+  // Flush both queues: appStore queue (logbook, room status, etc.) + SQLite queue
+  await useAppStore.getState().flushQueue();
+  await flushSyncQueue();
+  // Only refresh rooms for housekeepers and supervisors (API endpoint requires it)
+  const user = useAppStore.getState().user;
+  if (user && (user.role === "housekeeper" || user.role === "housekeeping_supervisor")) {
+    await refreshRooms();
   }
+  // "Last sync" only moves when the round-trip left nothing waiting.
+  if ((await countPendingChanges()) === 0) useAppStore.getState().setLastSyncedAt(new Date().toISOString());
 }
 
 export async function flushSyncQueue(): Promise<void> {
@@ -90,10 +93,10 @@ export async function flushSyncQueue(): Promise<void> {
   }
 }
 
+/** Reconnect refresh: the store owns the one scoped, date-correct, ordered room refresh. */
 export async function refreshRooms(): Promise<void> {
   try {
-    const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
-    await upsertRooms(result.data);
+    await useAppStore.getState().refreshRooms();
   } catch (err) {
     console.warn("Failed to refresh rooms:", err);
   }

@@ -104,7 +104,8 @@ describe("buildSyncRows", () => {
       actions: [],
       queue: [{ id: 1, entity_type: "work_order", action: "create", entity_id: null, room_id: "room-1", attempts: 0 }],
     });
-    expect(Object.keys(rows[0]).sort()).toEqual(["key", "kind", "roomId", "state"]);
+    // Kind, room, state and when it was saved: never what was typed.
+    expect(Object.keys(rows[0]).sort()).toEqual(["key", "kind", "roomId", "savedAt", "state"]);
   });
 });
 

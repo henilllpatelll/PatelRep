@@ -346,6 +346,8 @@ export interface SyncQueueSummaryRow {
   /** Only the room, never the payload: the sync sheet must not show what was typed. */
   room_id: string | null;
   attempts: number;
+  /** When the change was saved on this device (ISO), when the row has it. */
+  created_at?: string | null;
 }
 
 /** Everything the signed-in person still has queued, including items that ran out of retries (they stay visible, not hidden). */
@@ -353,8 +355,8 @@ export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
   const owner = getQueueOwner();
   if (!owner) return [];
   const db = await getDb();
-  const rows = await db.getAllAsync<{ id: number; entity_type: string; action: string; entity_id: string | null; payload: string; attempts: number }>(
-    "SELECT id, entity_type, action, entity_id, payload, attempts FROM sync_queue WHERE owner_scope = ? ORDER BY created_at ASC LIMIT 100",
+  const rows = await db.getAllAsync<{ id: number; entity_type: string; action: string; entity_id: string | null; payload: string; attempts: number; created_at: string | null }>(
+    "SELECT id, entity_type, action, entity_id, payload, attempts, created_at FROM sync_queue WHERE owner_scope = ? ORDER BY created_at ASC LIMIT 100",
     [owner]
   );
   return rows.map((row) => {
@@ -365,8 +367,23 @@ export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
     } catch {
       roomId = null;
     }
-    return { id: row.id, entity_type: row.entity_type, action: row.action, entity_id: row.entity_id, room_id: roomId, attempts: row.attempts };
+    return { id: row.id, entity_type: row.entity_type, action: row.action, entity_id: row.entity_id, room_id: roomId, attempts: row.attempts, created_at: row.created_at ?? null };
   });
+}
+
+/**
+ * The person asked to retry: give items that ran out of automatic retries
+ * another go. Only this person's own rows; nothing is re-created or edited, so
+ * each is replayed exactly as it was saved.
+ */
+export async function resetFailedSyncQueueAttempts(): Promise<void> {
+  const owner = getQueueOwner();
+  if (!owner) return;
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE sync_queue SET attempts = 0 WHERE owner_scope = ? AND attempts >= ${MAX_SYNC_ATTEMPTS}`,
+    [owner]
+  );
 }
 
 export async function incrementSyncQueueAttempts(id: number): Promise<void> {

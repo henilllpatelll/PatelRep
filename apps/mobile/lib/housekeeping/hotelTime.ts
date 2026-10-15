@@ -175,3 +175,16 @@ export function formatShiftDate(ymd: string | null | undefined, language?: strin
 export function currentShiftDate(zone: string | null | undefined, now: Date = new Date()): string {
   return isValidTimeZone(zone) ? (hotelDateKey(now, zone) ?? localDate()) : localDate();
 }
+
+/**
+ * Calendar date (YYYY-MM-DD) of an instant on the SAME basis `currentShiftDate`
+ * uses: the hotel's zone once known, the device's own zone before that. Use it
+ * to compare a timestamp with the shift date; mixing the two bases would call a
+ * shift "yesterday's" for a few hours each evening.
+ */
+export function shiftDateKeyOf(value: string | Date | null | undefined, zone: string | null | undefined): string | null {
+  if (isValidTimeZone(zone)) return hotelDateKey(value, zone);
+  const date = parse(value);
+  if (!date) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}

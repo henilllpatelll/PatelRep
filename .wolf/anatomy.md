@@ -747,3 +747,23 @@
 - apps/mobile/lib/tasks/addTask/submit.ts — createTask outcome classifier (rejected/forbidden/unconfirmed/offline), taskDestination, useCreateTask double-tap lock (~1k tok)
 - apps/mobile/lib/tasks/addTask/rooms.ts, draftMemory.ts, useVoiceInput.ts — room directory cache/search, per-hotel+user in-memory draft, expo-speech-recognition hook (no audio saved) (~2k tok)
 - apps/api: POST /tasks gains client_request_id (= task id, idempotent) + ai_suggested; GET /rooms/directory; services/ai/task_parser.py normalize_due_at + hotel-zone prompt
+## Housekeeper Mobile Home v2 — Phase 1 (foundation)
+- apps/mobile/lib/housekeeping/homeModel.ts — pure Home view model: progress (mutually exclusive buckets), overlapping alerts, active room timing, structured attention items (stable ids + destinations), end-of-shift readiness; built on buildDashboard (~4.6k tok)
+- apps/mobile/lib/housekeeping/homeRecommendation.ts — deterministic "what next" from the dashboard (active session > supervisor sequence > rush > reclean > standard); reason codes + timing, never AI (~1.4k tok)
+- apps/mobile/lib/housekeeping/homeSync.ts — Home sync summary from real queue rows (pending/failed/conflict/offline/stale) (~0.8k tok)
+- apps/mobile/lib/housekeeping/homeBriefing.ts — briefing plan/headline from the model; AI wording kept only if it agrees with Home's first room (~0.9k tok)
+- apps/mobile/lib/housekeeping/shiftLifecycle.ts + useShiftLifecycle.ts — unknown/not_started/active/on_break/ending/ended state; explicit start/end/break, idempotent, never auto-starts (~2.5k tok)
+- apps/mobile/lib/housekeeping/useHousekeeperHome.ts — composes rooms + sessions + shift + notes + sync into the model for Home (~2k tok)
+- apps/mobile/lib/housekeeping/roomsRequest.ts (shared in-flight + seq guard), roomsCache.ts (cache stamped with tenant:user), roomsFreshness.ts (board state/freshness/date rules), stores/roomsStatusStore.ts (status shared by Home + My Rooms)
+- apps/mobile/components/home/ShiftControlCard.tsx — in-shift row only (since / take a break / unknown / ending)
+- apps/mobile/components/home/HousekeeperHomeScreen.tsx — housekeeper "My Shift" Home container: wires actions, lays out cards per resolveHomeState kind
+- apps/mobile/components/home/{HomeHeader,CurrentRoomCard,ShiftProgressSummary,NeedsAttentionPreview,UpNextPreview,HomeStateCards,homeUi}.tsx — Home presentation (header+bell+sync line, Right Now card, progress, attention preview, up next, before-shift/break/empty/unavailable/clocked-out/submission/notice cards)
+- apps/mobile/lib/housekeeping/homeState.ts — pure nine-state resolver, attention preview ranking, up-next, progress counts, HomeDestinations (Phase 3 hooks)
+- apps/mobile/lib/housekeeping/homeText.ts — hotel-local greeting/meta, honest sync wording, recommendation + attention copy
+- apps/api/routers/shifts.py — GET /shifts/current now adds meta.last_ended; /shifts/end clamps ended_at >= started_at
+- apps/mobile/lib/housekeeping/homeAttention.ts — Attention Center model: one bucket per item (urgent/access/messages/other), filter counts that add up, attentionAction() = where a tap goes (~1.5k tok)
+- apps/mobile/lib/housekeeping/homeSheets.ts — pure resolvers for the Home drawers: resolveRoomActions / resolveWhyRoom / resolveIssueDetails / buildProgressDetails, all re-read from the live HomeModel (~2.3k tok)
+- apps/mobile/lib/housekeeping/notificationLinks.ts — task link via taskLink contract, room link only if on the person's own list, sender only if record has one
+- apps/mobile/stores/homeBridgeStore.ts — Home publishes its HomeModel here; the Attention Center route reads it (no second fetch/poll)
+- apps/mobile/components/home/{HomeSheetHost,RoomActionsSheet,RecommendationSheet,IssueDetailsSheet,SupervisorMessageSheet,ShiftProgressSheet,sheetParts}.tsx — Home drawers on the shared roomDetail/BottomSheet; HomeSheetHost = one drawer at a time, delayed unmount, focus return
+- apps/mobile/components/home/AttentionCenterScreen.tsx + app/(app)/attention/index.tsx — full-screen "Needs attention" (hidden route, not a tab)

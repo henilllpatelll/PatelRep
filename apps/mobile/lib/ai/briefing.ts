@@ -49,29 +49,36 @@ export function estimateCleanMinutes(room: Room): number {
 // are penalised proportionally to the walking detour they cause.
 const FLOOR_TRAVEL_COST = 15;
 
-// Buildings share no internal corridor — staff must cross the outdoor courtyard.
-// Cost is set above the maximum within-building room spread so the algorithm
-// always prefers finishing one building before starting the other.
+// Buildings share no internal corridor — staff must cross open ground between
+// them. Cost is set above the maximum within-building room spread so the
+// algorithm prefers finishing one building before starting the other.
 const BUILDING_CROSS_COST = 50;
 
 function roomSuffix(room: Room): number {
   const digits = room.room_number.replace(/\D/g, "");
   const n = parseInt(digits, 10) || 0;
-  // Last two digits give the in-floor corridor position for standard numbering
-  // (101-116 = Building A, 117-139 = Building B in the pilot hotel).
+  // The last two digits are the in-floor corridor position for standard
+  // floor-prefixed numbering; it only orders rooms WITHIN a floor and building.
   const suffix = n % 100;
   return suffix > 0 ? suffix : n;
 }
 
-// Building A: suffix 01-16 (rooms x01-x16). Building B: suffix 17-39 (rooms x17-x39).
-function getBuilding(room: Room): "A" | "B" {
-  return roomSuffix(room) <= 16 ? "A" : "B";
+/**
+ * The building the property reports for the room (rooms.building). Buildings
+ * are never inferred from room numbers: a hotel with no topology data, or a
+ * room with none recorded, has no building, and no crossing penalty is applied.
+ */
+function getBuilding(room: Room): string | null {
+  const value = room.building?.trim();
+  return value ? value.toLowerCase() : null;
 }
 
 function roomProximityDistance(a: Room, b: Room): number {
   const floorDiff = Math.abs((a.floor || 0) - (b.floor || 0));
   const posDiff = Math.abs(roomSuffix(a) - roomSuffix(b));
-  const buildingCross = getBuilding(a) !== getBuilding(b) ? BUILDING_CROSS_COST : 0;
+  const buildingA = getBuilding(a);
+  const buildingB = getBuilding(b);
+  const buildingCross = buildingA !== null && buildingB !== null && buildingA !== buildingB ? BUILDING_CROSS_COST : 0;
   return floorDiff * FLOOR_TRAVEL_COST + posDiff + buildingCross;
 }
 

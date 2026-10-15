@@ -91,7 +91,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return buckets
 
     def _route_rule(self, path: str) -> RateLimitRule:
-        if path == "/health":
+        if path in HEALTH_PATHS:
             return self.health_rule
         if path.startswith("/v1/ai/") or path == "/v1/sop/query":
             return self.ai_rule
@@ -176,6 +176,9 @@ def _prune(hits: Deque[float], now: float, window_seconds: int) -> None:
         hits.popleft()
 
 
+HEALTH_PATHS = frozenset({"/health", "/ready"})
+
+
 def min_rule(left: RateLimitRule, right: RateLimitRule) -> RateLimitRule:
     left_rate = left.limit / left.window_seconds
     right_rate = right.limit / right.window_seconds
@@ -183,7 +186,7 @@ def min_rule(left: RateLimitRule, right: RateLimitRule) -> RateLimitRule:
 
 
 def path_tier(path: str) -> str:
-    if path == "/health":
+    if path in HEALTH_PATHS:
         return "health"
     if path.startswith("/v1/ai/") or path == "/v1/sop/query":
         return "ai"

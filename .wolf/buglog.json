@@ -33264,7 +33264,11 @@
       "file": "apps/mobile/lib/tasks/addTask/draft.ts",
       "root_cause": "The roomRequired check lived in an else-if after the place branch, so any place location skipped it.",
       "fix": "Run the guest_request room check after the location branches whenever no earlier location error was set.",
-      "tags": ["mobile", "tasks", "validation"],
+      "tags": [
+        "mobile",
+        "tasks",
+        "validation"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-13T20:00:00.000Z"
@@ -33276,10 +33280,147 @@
       "file": "apps/api/services/ai/task_parser.py",
       "root_cause": "try_fast_path matched 'room N needs ...' before any time handling; parse_nl_tasks used date.today() and nothing validated the model's due_at.",
       "fix": "Skip the fast path when a time/day word is present; prompt carries hotel-local date/time/zone; normalize_due_at() re-validates and flags due_unresolved.",
-      "tags": ["api", "ai", "tasks", "timezone"],
+      "tags": [
+        "api",
+        "ai",
+        "tasks",
+        "timezone"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-13T20:10:00.000Z"
+    },
+    {
+      "id": "bug-2018",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Home called startShift() whenever /shifts/current returned no open shift, so reopening Home after clock-out silently started a new shift",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "loadShiftSession() did getCurrentShift() ?? startShift() on mount, focus and foreground.",
+      "fix": "Home only reads shift state; Start shift is an explicit action in useShiftLifecycle; GET /shifts/current now returns meta.last_ended so 'ended' is distinguishable from 'never started'.",
+      "tags": [
+        "mobile",
+        "shifts",
+        "lifecycle"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2019",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Home focus-card timer derived from room.updated_at, resetting on notes/work orders",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "updated_at changes on any room write, not only clean start.",
+      "fix": "FocusCard/HoldToConfirmSheet take the clean session's startedAt; unknown start shows no timer.",
+      "tags": [
+        "mobile",
+        "home",
+        "timer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2020",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "buildShiftSnapshot counted OOO/OUT_OF_SERVICE rooms as done and used a different ranking than My Rooms",
+      "file": "apps/mobile/lib/ai/companion.ts",
+      "root_cause": "DONE_STATUSES included unavailable statuses; Home used buildSmartQueue directly.",
+      "fix": "Snapshot derived from buildDashboard progress; Home recommendation derived from the same dashboard.",
+      "tags": [
+        "mobile",
+        "home",
+        "progress"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2021",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Smart-queue routing assumed the pilot hotel's building split (suffix 01-16 = A, 17-39 = B) for every property",
+      "file": "apps/mobile/lib/ai/briefing.ts",
+      "root_cause": "getBuilding() inferred a building from the room-number suffix.",
+      "fix": "Only room.building (verified metadata) adds a crossing cost; removed unused pilot-specific buildBuildingGroups.",
+      "tags": [
+        "mobile",
+        "routing",
+        "multi-property"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2022",
+      "timestamp": "2026-10-14T21:00:00.000Z",
+      "error_message": "Room refreshes from Home, the store and reconnect sync could overlap and an older response could overwrite newer rooms; sync refresh never pruned prior-date rows",
+      "file": "apps/mobile/stores/appStore.ts",
+      "root_cause": "Three independent fetch paths with no sequencing or scope check; sync.refreshRooms used localDate() and no replaceDate.",
+      "fix": "All paths use roomsRequest (shared in-flight + sequence guard + scope check); cache is stamped with tenant:user and replaced per shift date.",
+      "tags": [
+        "mobile",
+        "offline",
+        "rooms",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2023",
+      "timestamp": "2026-10-14T22:30:00.000Z",
+      "error_message": "Housekeeper Home mixed languages: Spanish date line with English cards (or the reverse) after the Profile language toggle",
+      "file": "apps/mobile/components/home/HousekeeperHomeScreen.tsx",
+      "root_cause": "Home derived its text language from user.language_pref, but the rest of the app (and t()) follow i18next; the toggle changes i18next at once while the local user record lags.",
+      "fix": "Home and the Attention Center take the language from i18n.resolvedLanguage like My Rooms and Room Detail; regression test added.",
+      "tags": [
+        "mobile",
+        "i18n",
+        "home"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T22:30:00.000Z"
+    },
+    {
+      "id": "bug-2024",
+      "timestamp": "2026-10-14T22:30:00.000Z",
+      "error_message": "Visual audit: Mark Clean hold label was hardcoded white (about 3.1:1 on the dark accent); notice/submission banners were one accessible group that hid their own buttons from VoiceOver; Shift row crushed its status text at 360px",
+      "file": "apps/mobile/components/home/MarkCleanConfirmationSheet.tsx",
+      "root_cause": "Hardcoded colour instead of theme.onPrimary; accessible wrapper around interactive children; non-wrapping flex row.",
+      "fix": "Use theme.onPrimary; banners are live regions (no accessible group); row wraps. Hold gesture is skipped under reduced motion (tap confirm is primary).",
+      "tags": [
+        "mobile",
+        "a11y",
+        "contrast",
+        "home"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T22:30:00.000Z"
+    },
+    {
+      "id": "bug-2025",
+      "timestamp": "2026-10-14T23:30:00.000Z",
+      "error_message": "Concurrent clock-out could overwrite an already-ended shift's ended_at; a break racing clock-out could reopen it; client reported 'clocked out' after a null end even if another device had started a new shift",
+      "file": "apps/api/routers/shifts.py",
+      "root_cause": "end/break updated by id+tenant only (read-then-write, no status guard); client treated any reread after a null end as success.",
+      "fix": "end is a compare-and-swap (status/break_seconds/on_break_since guard, 3 re-reads, optional shift_id so a newer shift is never ended); break update refuses ended rows; client classifies the reread (ended / other_active / still_open / unresolved) and only claims success when the intended shift's own ended record is proven.",
+      "tags": [
+        "shifts",
+        "concurrency",
+        "multi-device",
+        "mobile",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T23:30:00.000Z"
     }
   ]
 }

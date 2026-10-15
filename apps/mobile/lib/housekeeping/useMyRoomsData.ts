@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { api } from "@/lib/api/client";
-import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 import { currentShiftDate, isValidTimeZone } from "@/lib/housekeeping/hotelTime";
+import { readRoomsCache, writeRoomsCache } from "@/lib/housekeeping/roomsCache";
+import {
+  boardIsWrongDay,
+  isWrongDay,
+  resolveBoardState,
+  resolveFreshness,
+  roomShiftDate,
+  type BoardState,
+  type Freshness,
+} from "@/lib/housekeeping/roomsFreshness";
+import { acceptRoomsResult, fetchMyRooms } from "@/lib/housekeeping/roomsRequest";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
+import { useRoomsStatus } from "@/stores/roomsStatusStore";
 
 const POLL_MS = 45_000;
 const TZ_KEY_PREFIX = "@patelrep/hotel_timezone/";
-
-interface MyRoomsResponse {
-  data: Room[];
-  meta?: { timezone?: string | null; shift_date?: string | null };
-}
 
 export interface MyRoomsData {
   loading: boolean;
@@ -27,40 +32,60 @@ export interface MyRoomsData {
   timeZone: string | null;
   /** Calendar date the listed rooms belong to, in hotel time. */
   shiftDate: string;
+  /** The hotel's calendar date right now; differs from `shiftDate` after midnight until a refresh lands. */
+  expectedShiftDate: string;
+  /** Shift date the server resolved for the last answer, and the calendar date it was requested for. */
+  serverShiftDate: string | null;
+  answeredForDate: string | null;
   /**
    * The clock the suggested route was last ranked at. It only moves when data
    * is refreshed, so arrival-time tiers cannot reshuffle the list while the
    * attendant is scrolling or tapping.
    */
   rankedAt: Date;
+  /** The server has answered at least once for this person since the app opened. */
+  hasConfirmedFetch: boolean;
+  /** The latest request succeeded and the server said there are no assignments. */
+  confirmedEmpty: boolean;
+  freshness: Freshness;
+  boardState: BoardState;
   refresh: () => Promise<void>;
+}
+
+function signatureOf(rooms: Room[]): string {
+  return rooms.map((room) => room.id).sort().join("|");
 }
 
 /**
  * Loads /housekeeping/my-rooms into the app store (the single room source of
  * truth), falls back to the offline cache, and keeps it fresh on an interval
  * and on foreground. A failed fetch is reported, never turned into "no rooms".
+ *
+ * Every screen using this hook shares one request path (overlapping refreshes
+ * join one request, late responses are dropped) and one status record, so Home
+ * and My Rooms always agree on what is loaded and how fresh it is.
  */
-export function useMyRoomsData(): MyRoomsData {
+export function useMyRoomsData({ enabled = true }: { enabled?: boolean } = {}): MyRoomsData {
   const { isOnline, myRooms, setMyRooms, hotelTimezone, setHotelTimezone, user } = useAppStore();
   const tenantId = user?.tenant_id ?? null;
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [usingCache, setUsingCache] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [rankedAt, setRankedAt] = useState(() => new Date());
+  const scope = user ? `${user.tenant_id}:${user.id}` : null;
+  const status = useRoomsStatus();
 
   const roomsRef = useRef<Room[]>(myRooms);
   roomsRef.current = myRooms;
-  const inFlight = useRef<Promise<void> | null>(null);
+  const scopeRef = useRef<string | null>(scope);
+  scopeRef.current = scope;
   // Re-rank the suggested route only for deliberate refreshes (open, foreground,
   // pull-to-refresh) or when the set of assigned rooms changes — not on every poll.
   const forceRank = useRef(true);
-  const roomSignature = useRef("");
 
   const zoneRef = useRef<string | null>(hotelTimezone ?? null);
   zoneRef.current = hotelTimezone ?? null;
+
+  // A different person or hotel starts from a clean status.
+  useEffect(() => {
+    useRoomsStatus.getState().ensureScope(scope);
+  }, [scope]);
 
   // Offline cold start: the hotel's zone was cached the last time we were online.
   useEffect(() => {
@@ -72,70 +97,84 @@ export function useMyRoomsData(): MyRoomsData {
       .catch(() => undefined);
   }, [tenantId, setHotelTimezone]);
 
-  const readCache = useCallback(async (): Promise<Room[]> => {
-    try {
-      return (await getRoomsByDate(currentShiftDate(zoneRef.current))) as Room[];
-    } catch (err) {
-      console.warn("[my-rooms] cache read failed", err);
-      return [];
-    }
-  }, []);
+  const loadRooms: (retryOnRollover?: boolean) => Promise<void> = useCallback(
+    (retryOnRollover = true): Promise<void> =>
+      (async () => {
+        if (!scope || !enabled) return;
+        const patch = useRoomsStatus.getState().patch;
+        const expectedDate = currentShiftDate(zoneRef.current);
 
-  const loadRooms = useCallback((): Promise<void> => {
-    // Overlapping polls/pull-to-refresh share one request.
-    if (inFlight.current) return inFlight.current;
-    const run = (async () => {
-      if (isOnline) {
+        const fallBackToCache = async () => {
+          // A server answer for a day that is over no longer describes today.
+          const answered = useRoomsStatus.getState().answeredForDate;
+          if (answered !== null && answered !== expectedDate) patch({ answeredForDate: null, serverShiftDate: null });
+          // Keep what is already on screen — unless it is another day's list or empty.
+          const current = roomsRef.current;
+          if (current.length > 0 && !isWrongDay(current, expectedDate)) return;
+          const cached = await readRoomsCache(scope, expectedDate);
+          if (scopeRef.current !== scope) return;
+          if (cached.length > 0 || current.length > 0) setMyRooms(cached);
+        };
+
+        if (!isOnline) {
+          patch({ fetchError: null, usingCache: true, confirmedEmpty: false, loading: false });
+          await fallBackToCache();
+          return;
+        }
+
         try {
-          const shiftDate = currentShiftDate(zoneRef.current);
-          const result = await api.get<MyRoomsResponse>(`/housekeeping/my-rooms?date=${shiftDate}`);
-          setMyRooms(result.data);
-          const zone = result.meta?.timezone;
-          if (isValidTimeZone(zone)) {
-            if (zone !== zoneRef.current) setHotelTimezone?.(zone);
-            if (tenantId) void AsyncStorage.setItem(TZ_KEY_PREFIX + tenantId, zone).catch(() => undefined);
+          const result = await fetchMyRooms(scope, expectedDate);
+          if (scopeRef.current !== scope) return; // signed out / switched hotel mid-request
+          if (!acceptRoomsResult(result.seq)) return; // a newer answer was already applied
+          const answeredDate = result.shiftDate ?? result.requestedDate;
+          // The hotel's day rolled over while this request was out: it answers a day that is over.
+          if (result.requestedDate !== currentShiftDate(zoneRef.current)) {
+            if (retryOnRollover) await loadRooms(false);
+            return;
           }
-          setFetchError(null);
-          setUsingCache(false);
-          const now = new Date();
-          setLastUpdated(now);
-          const signature = result.data.map((room) => room.id).sort().join("|");
-          if (forceRank.current || signature !== roomSignature.current) setRankedAt(now);
+
+          const now = Date.now();
+          const rankNow = forceRank.current || signatureOf(result.rooms) !== signatureOf(roomsRef.current);
+          setMyRooms(result.rooms);
+          if (isValidTimeZone(result.timezone)) {
+            if (result.timezone !== zoneRef.current) setHotelTimezone?.(result.timezone);
+            if (tenantId) void AsyncStorage.setItem(TZ_KEY_PREFIX + tenantId, result.timezone).catch(() => undefined);
+          }
           forceRank.current = false;
-          roomSignature.current = signature;
-          try {
-            await upsertRooms(result.data, { replaceDate: result.meta?.shift_date ?? shiftDate });
-          } catch (err) {
-            console.warn("[my-rooms] cache write failed", err);
-          }
+          patch({
+            fetchError: null,
+            usingCache: false,
+            lastRefreshAt: now,
+            confirmedEmpty: result.rooms.length === 0,
+            serverShiftDate: answeredDate,
+            answeredForDate: result.requestedDate,
+            loading: false,
+            ...(rankNow ? { rankedAt: now } : {}),
+          });
+          await writeRoomsCache(scope, result.rooms, answeredDate);
         } catch (err: unknown) {
-          setFetchError(err instanceof Error ? err.message : String(err));
-          setUsingCache(true);
-          // Keep what is already on screen; only reach for the cache when empty.
-          if (roomsRef.current.length === 0) {
-            const cached = await readCache();
-            if (cached.length > 0) setMyRooms(cached);
-          }
+          if (scopeRef.current !== scope) return;
+          patch({
+            fetchError: err instanceof Error ? err.message : String(err),
+            usingCache: true,
+            confirmedEmpty: false,
+            loading: false,
+          });
+          await fallBackToCache();
         }
-      } else {
-        setFetchError(null);
-        setUsingCache(true);
-        if (roomsRef.current.length === 0) {
-          const cached = await readCache();
-          if (cached.length > 0) setMyRooms(cached);
-        }
-      }
-      setLoading(false);
-    })().finally(() => {
-      inFlight.current = null;
-    });
-    inFlight.current = run;
-    return run;
-  }, [isOnline, setMyRooms, setHotelTimezone, tenantId, readCache]);
+      })(),
+    [enabled, isOnline, scope, setMyRooms, setHotelTimezone, tenantId],
+  );
 
   useEffect(() => {
+    if (!enabled) return;
     void loadRooms();
-    const interval = setInterval(() => { void loadRooms(); }, POLL_MS);
+    const interval = setInterval(() => {
+      // A sibling screen refreshed moments ago; one poll per interval is enough.
+      const last = useRoomsStatus.getState().lastRefreshAt;
+      if (last !== null && Date.now() - last < POLL_MS / 2) return;
+      void loadRooms();
+    }, POLL_MS);
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         forceRank.current = true;
@@ -146,28 +185,46 @@ export function useMyRoomsData(): MyRoomsData {
       clearInterval(interval);
       sub.remove();
     };
-  }, [loadRooms]);
+  }, [enabled, loadRooms]);
 
   const refresh = useCallback(async () => {
-    setRefreshing(true);
+    useRoomsStatus.getState().patch({ refreshing: true });
     forceRank.current = true;
     try {
       await loadRooms();
     } finally {
-      setRefreshing(false);
+      useRoomsStatus.getState().patch({ refreshing: false });
     }
   }, [loadRooms]);
 
-  const shiftDate = myRooms[0]?.assignment_date?.slice(0, 10) ?? currentShiftDate(hotelTimezone);
+  const expectedShiftDate = currentShiftDate(hotelTimezone);
+  const shiftDate = (myRooms[0] ? roomShiftDate(myRooms[0]) : null) ?? status.serverShiftDate ?? expectedShiftDate;
   return {
-    loading,
-    refreshing,
-    fetchError,
-    usingCache,
-    lastUpdated,
+    loading: status.loading,
+    refreshing: status.refreshing,
+    fetchError: status.fetchError,
+    usingCache: status.usingCache,
+    lastUpdated: status.lastRefreshAt === null ? null : new Date(status.lastRefreshAt),
     timeZone: hotelTimezone ?? null,
     shiftDate,
-    rankedAt,
+    expectedShiftDate,
+    serverShiftDate: status.serverShiftDate,
+    answeredForDate: status.answeredForDate,
+    rankedAt: new Date(status.rankedAt),
+    hasConfirmedFetch: status.lastRefreshAt !== null,
+    confirmedEmpty: status.confirmedEmpty,
+    freshness: resolveFreshness({
+      lastRefreshAt: status.lastRefreshAt,
+      fetchFailed: status.fetchError !== null,
+      hasRooms: myRooms.length > 0,
+      now: Date.now(),
+    }),
+    boardState: resolveBoardState({
+      loading: status.loading && myRooms.length === 0,
+      roomCount: myRooms.length,
+      wrongDay: boardIsWrongDay(myRooms, expectedShiftDate, status.serverShiftDate, status.answeredForDate),
+      confirmedEmpty: status.confirmedEmpty,
+    }),
     refresh,
   };
 }
