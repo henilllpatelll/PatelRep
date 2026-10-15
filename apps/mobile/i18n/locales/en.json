@@ -2745,7 +2745,12 @@
     "connection": {
       "online": "Online",
       "offline": "Offline",
-      "syncing": "Syncing"
+      "syncing": "Syncing",
+      "onlineSynced": "Online · All synced",
+      "pending": "Online · {{count}} pending",
+      "offlinePending": "Offline · {{count}} pending",
+      "attention": "1 needs attention",
+      "attention_plural": "{{count}} need attention"
     },
     "sections": {
       "account": "Account",
@@ -2839,7 +2844,82 @@
       "channelAlerts": "Work alerts",
       "channelUpdates": "Updates"
     },
-    "sync": { "title": "Offline & Sync", "offline": "Offline — changes are saved" },
+    "sync": {
+      "title": "Offline & Sync",
+      "offline": "Offline — changes are saved",
+      "status": {
+        "saved": {
+          "title": "All Changes Saved",
+          "body": "Your work is up to date."
+        },
+        "waiting": {
+          "title": "Waiting to Sync",
+          "body": "Your changes are saved on this device and will sync when possible."
+        },
+        "syncing": {
+          "title": "Syncing",
+          "body": "Saving your latest changes."
+        },
+        "attention": {
+          "title": "Some Changes Need Attention",
+          "body": "Some updates could not be saved. Review the details below."
+        },
+        "offline": {
+          "title": "You're Offline",
+          "body": "You're offline. Your saved work will sync when you're connected."
+        },
+        "unavailable": {
+          "title": "Status Unavailable",
+          "body": "We can't confirm your sync status right now. Your work stays saved on this device."
+        }
+      },
+      "connection": "Connection",
+      "connOnline": "Online",
+      "connOffline": "Offline",
+      "lastConfirmed": "All changes confirmed: {{time}}",
+      "lastUnknown": "Last sync time unavailable",
+      "lastLabel": "Last confirmed sync",
+      "pendingCount": "{{count}} change waiting to sync",
+      "pendingCount_plural": "{{count}} changes waiting to sync",
+      "noPending": "No changes waiting",
+      "attentionCount": "{{count}} item needs attention",
+      "attentionCount_plural": "{{count}} items need attention",
+      "noAttention": "Nothing needs attention",
+      "savedWork": "Saved work",
+      "categories": {
+        "rooms": "Rooms",
+        "tasks": "Tasks & Work Orders",
+        "sessions": "Housekeeping Sessions",
+        "other": "Other Saved Work"
+      },
+      "categoryState": {
+        "synced": "All synced",
+        "waiting": "{{count}} waiting",
+        "attention": "{{count}} need attention"
+      },
+      "syncNow": "Sync Now",
+      "syncingNow": "Syncing…",
+      "retrySync": "Retry Sync",
+      "offlineInfo": "Supported work is saved on this device while you're offline and syncs when the app can connect to PatelRep.",
+      "drawer": {
+        "title": "Unsynced Changes",
+        "empty": "All caught up. You have no changes waiting to sync.",
+        "intro": "Saved on this device. Each change is confirmed only when the server has it.",
+        "needsYou": "Needs your attention",
+        "errorTitle": "Unable to Sync"
+      },
+      "row": {
+        "saved": "All changes saved",
+        "waiting": "{{count}} change pending",
+        "waiting_plural": "{{count}} changes pending",
+        "syncing": "Syncing…",
+        "attention": "{{count}} item needs attention",
+        "attention_plural": "{{count}} items need attention",
+        "unavailable": "Status unavailable",
+        "offline": "Offline · {{count}} pending"
+      },
+      "viewDetails": "View Details"
+    },
     "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
     "about": { "title": "About PatelRep", "subtitle": "Version and app information" }
   },

@@ -1,12 +1,13 @@
 const mockSyncOnConnect = jest.fn();
 const mockLoadSyncRows = jest.fn();
 const mockResetFailed = jest.fn();
+const mockResetActions = jest.fn();
 let mockOnline = true;
 
 jest.mock("@/lib/offline/sync", () => ({ syncOnConnect: () => mockSyncOnConnect() }));
 jest.mock("@/lib/offline/db", () => ({ resetFailedSyncQueueAttempts: () => mockResetFailed() }));
 jest.mock("@/lib/housekeeping/syncDetails", () => ({ loadSyncRows: () => mockLoadSyncRows() }));
-jest.mock("@/stores/appStore", () => ({ useAppStore: { getState: () => ({ isOnline: mockOnline }) } }));
+jest.mock("@/stores/appStore", () => ({ useAppStore: { getState: () => ({ isOnline: mockOnline, resetFailedActions: () => mockResetActions() }) } }));
 
 import { isSyncRunning, runSyncNow } from "@/lib/housekeeping/syncRunner";
 
@@ -14,6 +15,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockOnline = true;
   mockResetFailed.mockResolvedValue(undefined);
+  mockResetActions.mockResolvedValue(undefined);
   mockSyncOnConnect.mockResolvedValue(undefined);
   mockLoadSyncRows.mockResolvedValue({ rows: [], complete: true });
 });
@@ -29,9 +31,10 @@ describe("runSyncNow", () => {
   it("runs the app's own single flush, after giving out-of-retries items another go", async () => {
     const order: string[] = [];
     mockResetFailed.mockImplementation(async () => void order.push("reset"));
+    mockResetActions.mockImplementation(async () => void order.push("reset-actions"));
     mockSyncOnConnect.mockImplementation(async () => void order.push("sync"));
     const result = await runSyncNow();
-    expect(order).toEqual(["reset", "sync"]);
+    expect(order).toEqual(["reset", "reset-actions", "sync"]);
     expect(result).toEqual({ ran: true, remaining: 0, failed: 0, conflicts: 0, verified: true });
   });
 

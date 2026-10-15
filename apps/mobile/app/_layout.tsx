@@ -31,6 +31,7 @@ import {
 } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { getNavigationTheme } from "@/lib/theme/navigationTheme";
+import { hydrateLastSynced } from "@/lib/offline/lastSync";
 import {
   clearActiveLanguageUser,
   hydrateLanguageForUser,
@@ -113,6 +114,7 @@ function RootChrome() {
             }
             // This person's own language (pending local choice > account > cached > device). Only a
             // real saved profile counts as the account preference, not the "en" fallback above.
+            void hydrateLastSynced().catch(() => undefined);
             await hydrateLanguageForUser(baseUser.id, profile ? baseUser.language_pref : null).catch(() => undefined);
           } else {
             clearActiveLanguageUser();

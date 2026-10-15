@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { MAX_SYNC_ATTEMPTS } from "@/lib/housekeeping/syncDetails";
+import { getSyncQueueSummary, type SyncQueueSummaryRow } from "@/lib/offline/db";
 import { entriesForCurrentUser, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { taskScope } from "@/lib/tasks/offline/taskCache";
-import { useAppStore, type OfflineAction } from "@/stores/appStore";
+import { MAX_ACTION_ATTEMPTS, useAppStore, type OfflineAction } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 
@@ -47,6 +49,8 @@ export function summarizePendingWork(input: {
   outbox: ReturnType<typeof entriesForCurrentUser>;
   sessionScope: string | null;
   sessions: Record<string, LocalCleanSession>;
+  /** The signed-in person's rows in the work-order SQLite queue (already owner-scoped by the db module). */
+  queue?: SyncQueueSummaryRow[];
 }): PendingCategory[] {
   const byKey = new Map<PendingCategoryKey, PendingCategory>();
   const add = (key: PendingCategoryKey, at: string | null, attention: boolean) => {
@@ -60,7 +64,10 @@ export function summarizePendingWork(input: {
   for (const action of input.actions) {
     // An action stamped with another owner is never this person's to see.
     if (action.owner && input.userScope && action.owner !== input.userScope) continue;
-    add(ACTION_CATEGORY[action.type] ?? "roomUpdates", action.createdAt ?? null, false);
+    add(ACTION_CATEGORY[action.type] ?? "roomUpdates", action.createdAt ?? null, (action.attempts ?? 0) >= MAX_ACTION_ATTEMPTS);
+  }
+  for (const row of input.queue ?? []) {
+    add(row.entity_type === "task" ? "taskCompletions" : "workOrders", row.created_at ?? null, row.attempts >= MAX_SYNC_ATTEMPTS);
   }
   if (input.userScope && input.outboxScope === input.userScope) {
     for (const entry of Object.values(input.outbox)) {
@@ -85,6 +92,17 @@ export function useUnsyncedSummary(): PendingCategory[] {
   const outboxEntries = useTaskOutbox((s) => s.entries);
   const sessionScope = useCleanSessionStore((s) => s.scope);
   const sessions = useCleanSessionStore((s) => s.sessions);
+  const [queue, setQueue] = useState<SyncQueueSummaryRow[]>([]);
+  // The work-order queue lives in SQLite, so it is read once per change of who is signed in or what is queued.
+  useEffect(() => {
+    let live = true;
+    getSyncQueueSummary()
+      .then((rows) => live && setQueue(rows))
+      .catch(() => live && setQueue([]));
+    return () => {
+      live = false;
+    };
+  }, [user?.id, actions]);
   return useMemo(
     () =>
       summarizePendingWork({
@@ -94,7 +112,8 @@ export function useUnsyncedSummary(): PendingCategory[] {
         outbox: entriesForCurrentUser({ scope: outboxScope, entries: outboxEntries }),
         sessionScope,
         sessions,
+        queue,
       }),
-    [user, actions, outboxScope, outboxEntries, sessionScope, sessions],
+    [user, actions, outboxScope, outboxEntries, sessionScope, sessions, queue],
   );
 }

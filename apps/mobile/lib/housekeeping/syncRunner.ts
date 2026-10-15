@@ -29,6 +29,7 @@ export function runSyncNow(): Promise<SyncRunResult> {
     try {
       // The person asked: items that ran out of automatic retries get another go.
       await resetFailedSyncQueueAttempts().catch(() => undefined);
+      await useAppStore.getState().resetFailedActions().catch(() => undefined);
       await syncOnConnect();
       const { rows, complete } = await loadSyncRows();
       const weight = (row: { count?: number }) => row.count ?? 1;

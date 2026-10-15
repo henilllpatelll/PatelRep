@@ -2745,7 +2745,12 @@
     "connection": {
       "online": "En línea",
       "offline": "Sin conexión",
-      "syncing": "Sincronizando"
+      "syncing": "Sincronizando",
+      "onlineSynced": "En línea · Todo sincronizado",
+      "pending": "En línea · {{count}} pendientes",
+      "offlinePending": "Sin conexión · {{count}} pendientes",
+      "attention": "1 requiere atención",
+      "attention_plural": "{{count}} requieren atención"
     },
     "sections": {
       "account": "Cuenta",
@@ -2839,7 +2844,82 @@
       "channelAlerts": "Alertas de trabajo",
       "channelUpdates": "Actualizaciones"
     },
-    "sync": { "title": "Sin conexión y sincronización", "offline": "Sin conexión — los cambios se guardan" },
+    "sync": {
+      "title": "Sin conexión y sincronización",
+      "offline": "Sin conexión — los cambios se guardan",
+      "status": {
+        "saved": {
+          "title": "Todos los cambios guardados",
+          "body": "Tu trabajo está al día."
+        },
+        "waiting": {
+          "title": "Esperando sincronización",
+          "body": "Tus cambios están guardados en este dispositivo y se sincronizarán en cuanto sea posible."
+        },
+        "syncing": {
+          "title": "Sincronizando",
+          "body": "Guardando tus últimos cambios."
+        },
+        "attention": {
+          "title": "Algunos cambios requieren atención",
+          "body": "No se pudieron guardar algunas actualizaciones. Revisa los detalles abajo."
+        },
+        "offline": {
+          "title": "Sin conexión",
+          "body": "Estás sin conexión. Tu trabajo guardado se sincronizará cuando te conectes."
+        },
+        "unavailable": {
+          "title": "Estado no disponible",
+          "body": "Ahora no podemos confirmar el estado de la sincronización. Tu trabajo sigue guardado en este dispositivo."
+        }
+      },
+      "connection": "Conexión",
+      "connOnline": "En línea",
+      "connOffline": "Sin conexión",
+      "lastConfirmed": "Todos los cambios confirmados: {{time}}",
+      "lastUnknown": "Hora de la última sincronización no disponible",
+      "lastLabel": "Última sincronización confirmada",
+      "pendingCount": "{{count}} cambio esperando sincronizarse",
+      "pendingCount_plural": "{{count}} cambios esperando sincronizarse",
+      "noPending": "No hay cambios en espera",
+      "attentionCount": "{{count}} elemento requiere atención",
+      "attentionCount_plural": "{{count}} elementos requieren atención",
+      "noAttention": "Nada requiere atención",
+      "savedWork": "Trabajo guardado",
+      "categories": {
+        "rooms": "Habitaciones",
+        "tasks": "Tareas y órdenes de trabajo",
+        "sessions": "Sesiones de limpieza",
+        "other": "Otro trabajo guardado"
+      },
+      "categoryState": {
+        "synced": "Todo sincronizado",
+        "waiting": "{{count}} en espera",
+        "attention": "{{count}} requieren atención"
+      },
+      "syncNow": "Sincronizar ahora",
+      "syncingNow": "Sincronizando…",
+      "retrySync": "Reintentar sincronización",
+      "offlineInfo": "El trabajo compatible se guarda en este dispositivo sin conexión y se sincroniza cuando la app pueda conectarse a PatelRep.",
+      "drawer": {
+        "title": "Cambios sin sincronizar",
+        "empty": "Todo al día. No tienes cambios esperando sincronizarse.",
+        "intro": "Guardados en este dispositivo. Cada cambio se confirma solo cuando el servidor lo tiene.",
+        "needsYou": "Requiere tu atención",
+        "errorTitle": "No se pudo sincronizar"
+      },
+      "row": {
+        "saved": "Todos los cambios guardados",
+        "waiting": "{{count}} cambio pendiente",
+        "waiting_plural": "{{count}} cambios pendientes",
+        "syncing": "Sincronizando…",
+        "attention": "{{count}} elemento requiere atención",
+        "attention_plural": "{{count}} elementos requieren atención",
+        "unavailable": "Estado no disponible",
+        "offline": "Sin conexión · {{count}} pendientes"
+      },
+      "viewDetails": "Ver detalles"
+    },
     "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
     "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" }
   },

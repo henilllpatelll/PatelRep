@@ -69,6 +69,28 @@ jest.mock("@/i18n", () => ({
   changeLanguage: jest.fn(),
 }));
 
+const mockRunSync = jest.fn().mockResolvedValue(undefined);
+let mockAttention = 0;
+let mockSyncing = false;
+// The real aggregation (syncOverview) fed by the same online/pending knobs the other Settings tests use.
+jest.mock("@/lib/offline/useSyncOverview", () => ({
+  useSyncOverview: () => {
+    const { buildOverview } = jest.requireActual("@/lib/offline/syncOverview");
+    const rows = [
+      ...Array.from({ length: mockPending }, (_, i) => ({ key: `p-${i}`, roomId: null, kind: "room_status", state: "pending" })),
+      ...Array.from({ length: mockAttention }, (_, i) => ({ key: `f-${i}`, roomId: "room-9", kind: "completion", state: "failed" })),
+    ];
+    return {
+      overview: buildOverview({ rows, complete: true, loaded: true, online: mockOnline, syncing: mockSyncing, lastSyncedAt: "2026-10-15T15:42:00.000Z", role: mockRole }),
+      syncing: mockSyncing,
+      lastRun: null,
+      runSync: mockRunSync,
+      clearLastRun: jest.fn(),
+      refresh: jest.fn(),
+    };
+  },
+}));
+
 const mockSelectLanguage = jest.fn().mockResolvedValue(undefined);
 let mockSyncState: "idle" | "pending" | "failed" = "idle";
 jest.mock("@/lib/language/languageSync", () => ({
@@ -118,6 +140,7 @@ jest.mock("@/stores/appStore", () => {
       payload: {},
       createdAt: "2026-06-11",
     })),
+    myRooms: [{ id: "room-9", room_number: "215" }],
     flushQueue: mockFlushQueue,
     unreadCount: mockUnread,
   });
@@ -156,6 +179,8 @@ beforeEach(() => {
   mockFullName = "Maria Vega";
   mockOnline = true;
   mockPending = 0;
+  mockAttention = 0;
+  mockSyncing = false;
   mockUnread = 3;
   mockCanGoBack = true;
   [mockSetPreference, mockPush, mockReplace, mockBack, mockFlushQueue, mockSelectLanguage].forEach((m) => m.mockClear());
@@ -172,11 +197,11 @@ describe("Settings home", () => {
     expect(getByText("Maria Vega")).toBeTruthy();
     expect(getByTestId("identity-role").props.children).toBe("Housekeeper");
     await waitFor(() => expect(getByTestId("identity-hotel").props.children).toBe("Lone Star Inn"));
-    expect(getByText("Online")).toBeTruthy();
+    expect(getByText("Online · All synced")).toBeTruthy();
     expect(within(getByTestId("settings-identity")).getByTestId("icon-chevron-forward")).toBeTruthy();
   });
 
-  it("shows Offline and Syncing connection states", () => {
+  it("shows Offline, pending, Syncing and needs-attention connection states", () => {
     mockOnline = false;
     const offline = render(<SettingsHome />);
     expect(offline.getByText("Offline")).toBeTruthy();
@@ -185,7 +210,18 @@ describe("Settings home", () => {
     mockOnline = true;
     mockPending = 2;
     const pending = render(<SettingsHome />);
-    expect(pending.getByText("Syncing")).toBeTruthy();
+    expect(pending.getByText("Online · 2 pending")).toBeTruthy();
+    pending.unmount();
+
+    mockSyncing = true;
+    const syncing = render(<SettingsHome />);
+    expect(syncing.getByText("Syncing")).toBeTruthy();
+    syncing.unmount();
+
+    mockSyncing = false;
+    mockAttention = 1;
+    const attention = render(<SettingsHome />);
+    expect(attention.getByText("1 needs attention")).toBeTruthy();
   });
 
   it.each(ALL_ROLES)("is reachable and complete for the %s role", (role, label) => {
@@ -235,18 +271,18 @@ describe("Settings home", () => {
     const dark = render(<SettingsHome />);
     expect(dark.getByTestId("row-appearance").props.accessibilityLabel).toBe("Appearance, Dark");
     expect(dark.getByTestId("row-language").props.accessibilityLabel).toBe("Language, English");
-    expect(dark.getByTestId("row-sync").props.accessibilityLabel).toBe("Offline & Sync, Up to date");
+    expect(dark.getByTestId("row-sync").props.accessibilityLabel).toBe("Offline & Sync, All changes saved");
     dark.unmount();
 
     mockPending = 2;
     const pending = render(<SettingsHome />);
-    expect(pending.getByTestId("row-sync").props.accessibilityLabel).toBe("Offline & Sync, 2 waiting to sync");
+    expect(pending.getByTestId("row-sync").props.accessibilityLabel).toBe("Offline & Sync, 2 changes pending");
     pending.unmount();
 
     mockOnline = false;
     const offline = render(<SettingsHome />);
     expect(offline.getByTestId("row-sync").props.accessibilityLabel).toBe(
-      "Offline & Sync, Offline — changes are saved",
+      "Offline & Sync, Offline · 2 pending",
     );
   });
 
@@ -432,18 +468,57 @@ describe("Settings destination screens", () => {
     mockSyncState = "idle";
   });
 
-  it("Offline & Sync keeps the pending count and a working Sync now action", async () => {
+  it("Offline & Sync shows the pending count, the Rooms category and runs the real Sync now", async () => {
     mockPending = 2;
     const { getByText, getByTestId } = render(<SyncScreen />);
-    expect(getByText("2 waiting to sync")).toBeTruthy();
+    expect(getByTestId("sync-summary-title").props.children).toBe("Waiting to Sync");
+    expect(getByText("2 changes waiting to sync")).toBeTruthy();
+    expect(within(getByTestId("sync-category-rooms")).getByText("2 waiting")).toBeTruthy();
     fireEvent.press(getByTestId("sync-now"));
-    await waitFor(() => expect(mockFlushQueue).toHaveBeenCalled());
+    await waitFor(() => expect(mockRunSync).toHaveBeenCalledTimes(1));
   });
 
-  it("Offline & Sync shows Up to date with no action when nothing is pending", () => {
-    const { getByText, queryByTestId } = render(<SyncScreen />);
-    expect(getByText("Up to date")).toBeTruthy();
-    expect(queryByTestId("sync-now")).toBeNull();
+  it("Offline & Sync says All Changes Saved only when nothing is waiting", () => {
+    const { getByTestId, getByText } = render(<SyncScreen />);
+    expect(getByTestId("sync-summary-title").props.children).toBe("All Changes Saved");
+    expect(getByText("No changes waiting")).toBeTruthy();
+    expect(getByText("Nothing needs attention")).toBeTruthy();
+  });
+
+  it("Offline & Sync is calm offline, red only for work that needs attention, and blocks Sync Now offline", () => {
+    mockOnline = false;
+    mockPending = 1;
+    const offline = render(<SyncScreen />);
+    expect(offline.getByTestId("sync-summary-title").props.children).toBe("You're Offline");
+    expect(offline.getByTestId("sync-offline-info")).toBeTruthy();
+    expect(offline.getByTestId("sync-now").props.accessibilityState?.disabled).toBe(true);
+    offline.unmount();
+
+    mockOnline = true;
+    mockAttention = 1;
+    const attention = render(<SyncScreen />);
+    expect(attention.getByTestId("sync-summary-title").props.children).toBe("Some Changes Need Attention");
+    expect(attention.getByText("1 item needs attention")).toBeTruthy();
+    expect(attention.getByText("Retry Sync")).toBeTruthy();
+  });
+
+  it("Offline & Sync opens the Unsynced Changes drawer with the real rows and no delete action", () => {
+    mockPending = 1;
+    mockAttention = 1;
+    const { getByTestId, getAllByTestId, queryByText } = render(<SyncScreen />);
+    fireEvent.press(getByTestId("sync-pending"));
+    expect(getByTestId("sync-changes-sheet")).toBeTruthy();
+    expect(getAllByTestId("sync-changes-row").length).toBe(2);
+    expect(getByTestId("sync-changes-row-action")).toBeTruthy(); // View Room, only for the refused change
+    expect(queryByText(/delete|clear|discard/i)).toBeNull();
+  });
+
+  it("Offline & Sync renders in Spanish", () => {
+    mockLanguage = "es";
+    mockPending = 2;
+    const { getByTestId, getByText } = render(<SyncScreen />);
+    expect(getByTestId("sync-summary-title").props.children).toBe("Esperando sincronización");
+    expect(getByText("Sincronizar ahora")).toBeTruthy();
   });
 });
 

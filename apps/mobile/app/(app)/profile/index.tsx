@@ -12,6 +12,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { useSyncOverview } from "@/lib/offline/useSyncOverview";
 import { useOwnProfile } from "@/lib/settings/useOwnProfile";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
@@ -24,7 +25,8 @@ export default function SettingsHomeScreen() {
   const theme = useTheme();
   const { preference } = useAppearancePreference();
   const { unreadCount } = useAppStore();
-  const { user, name, roleLabel, hotelName, isOnline, pendingCount, connection } = useSettingsIdentity();
+  const { overview } = useSyncOverview();
+  const { user, name, roleLabel, hotelName, connection } = useSettingsIdentity(overview);
   // Refreshes the short-lived photo URL and mirrors the latest display name into the user store.
   const { profile } = useOwnProfile();
   const appVersion = Constants.expoConfig?.version ?? "dev";
@@ -32,11 +34,20 @@ export default function SettingsHomeScreen() {
 
   const appearanceLabel = t(`profile.appearance.${preference}`);
   const languageLabel = i18n.language === "es" ? "Español" : "English";
-  const syncSubtitle = !isOnline
-    ? t("settings.sync.offline")
-    : pendingCount > 0
-      ? t("profile.pendingChanges", { count: pendingCount })
-      : t("profile.upToDate");
+  const syncSubtitle =
+    overview.attention > 0
+      ? t("settings.sync.row.attention", { count: overview.attention })
+      : overview.status === "syncing"
+        ? t("settings.sync.row.syncing")
+        : !overview.online
+          ? overview.pending > 0
+            ? t("settings.sync.row.offline", { count: overview.pending })
+            : t("settings.sync.offline")
+          : overview.pending > 0
+            ? t("settings.sync.row.waiting", { count: overview.pending })
+            : overview.status === "unavailable"
+              ? t("settings.sync.row.unavailable")
+              : t("settings.sync.row.saved");
 
   return (
     <SettingsScreen title={t("settings.title")}>
