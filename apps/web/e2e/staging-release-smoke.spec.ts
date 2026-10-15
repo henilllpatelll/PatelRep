@@ -14,6 +14,20 @@ const mobileOnlyRoles = [
   ['engineer', 'staging-engineer@patelrep.test'],
 ] as const
 
+// A freshly deployed staging web service can take longer than a test's 45s budget to render /login the
+// first time (cold start). Warm it once, with its own generous budget, so the first role test is not
+// charged for that; the per-test assertions and timeouts below stay unchanged.
+test.beforeAll(async ({ browser }) => {
+  test.setTimeout(180_000)
+  const page = await browser.newPage({ baseURL: process.env.PLAYWRIGHT_BASE_URL })
+  try {
+    await page.goto('/login', { timeout: 150_000 })
+    await expect(page.locator('#email-pw').or(page.locator('input[type="email"]')).first()).toBeVisible({ timeout: 150_000 })
+  } finally {
+    await page.close()
+  }
+})
+
 async function submitLogin(page: Page, email: string) {
   if (!password) throw new Error('STAGING_FIXTURE_PASSWORD is required for staging release smoke.')
   const failures: string[] = []
