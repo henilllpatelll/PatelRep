@@ -53,60 +53,10 @@
     "logbook": "Logbook"
   },
   "home": {
-    "shiftSuffix": "Day shift",
     "greetingMorning": "Good morning, {{name}}.",
     "greetingAfternoon": "Good afternoon, {{name}}.",
     "greetingEvening": "Good evening, {{name}}.",
-    "heroProgress": "{{done}} of {{total}} rooms done",
-    "minutesLeft": "~{{minutes}}m left",
-    "finishBy": "on track for {{time}}",
     "openMyRooms": "Open My Rooms",
-    "emptyBoard": {
-      "waiting": "waiting · last checked {{time}}",
-      "myRoomsHint": "view assignments",
-      "askAiHint": "ask a question"
-    },
-    "signal": {
-      "review": "{{count}} waiting on review",
-      "dnd": "{{count}} DND",
-      "arrivals": "{{count}} arriving soon",
-      "vip": "{{count}} VIP"
-    },
-    "focus": {
-      "kicker": "Start here",
-      "inProgressKicker": "In progress",
-      "estMinutes": "~{{minutes}} min",
-      "target": "target {{time}}",
-      "underPace": "{{minutes}}m under pace",
-      "overPace": "{{minutes}}m over pace",
-      "more": "More options",
-      "resume": "Resume {{room}}",
-      "inProgress": "in progress",
-      "floor": "Floor {{floor}}"
-    },
-    "shiftCard": {
-      "title": "Your shift",
-      "vipAt": "{{time}} VIP"
-    },
-    "needsYou": {
-      "title": "Needs you",
-      "reviewSubtitle": "Flagged rooms waiting on a supervisor look.",
-      "dndSubtitle": "Skip them for now — they'll clear on their own.",
-      "arrivalsSubtitle": "Already first in your cleaning plan.",
-      "gotIt": "Got it"
-    },
-    "holdConfirm": {
-      "title": "Room {{room}} clean?",
-      "subtitle": "This moves it to Clean and lets your supervisor know it's ready for inspection.",
-      "checklistStatus": "Checklist {{done}} of {{total}}",
-      "cta": "Hold to confirm…",
-      "confirming": "Confirming…",
-      "releaseHint": "Release to cancel",
-      "openRoom": "Open room to finish checklist",
-      "nextUp": "Up next · {{room}}",
-      "nextUpMinutes": "~{{minutes}}m",
-      "startBy": "start by {{time}}"
-    },
     "endOfShift": {
       "roomsCleaned": "{{count}} rooms cleaned",
       "shiftDuration": "{{duration}} on shift",
@@ -135,10 +85,7 @@
       "tipVip": "{{count}} VIP room(s) still ahead — a little extra polish goes a long way.",
       "tipBreather": "Good moment for water and a breath. The board can wait two minutes."
     },
-    "startWith": "Start with {{room}}",
     "askAI": "Ask AI",
-    "allDone": "All assigned rooms are done.",
-    "pullToRefresh": "Pull to refresh if your supervisor adds more.",
     "engineer": {
       "shiftMeta": "Maintenance shift",
       "summary": "{{open}} in the queue · {{bench}} on your bench",
@@ -247,7 +194,7 @@
         "evening": "Evening"
       },
       "shift": {
-        "unknown": "Checking your shift…",
+        "unknown": "Shift status not confirmed",
         "notStarted": "Your shift hasn't started.",
         "active": "Your shift is underway.",
         "onBreak": "You're on break.",

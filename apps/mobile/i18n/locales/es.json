@@ -53,60 +53,10 @@
     "logbook": "Bitácora"
   },
   "home": {
-    "shiftSuffix": "Turno de día",
     "greetingMorning": "Buenos días, {{name}}.",
     "greetingAfternoon": "Buenas tardes, {{name}}.",
     "greetingEvening": "Buenas noches, {{name}}.",
-    "heroProgress": "{{done}} de {{total}} cuartos listos",
-    "minutesLeft": "~{{minutes}}m restantes",
-    "finishBy": "terminarías a las {{time}}",
     "openMyRooms": "Abrir Mis cuartos",
-    "emptyBoard": {
-      "waiting": "esperando · última revisión {{time}}",
-      "myRoomsHint": "ver asignaciones",
-      "askAiHint": "haz una pregunta"
-    },
-    "signal": {
-      "review": "{{count}} en espera de revisión",
-      "dnd": "{{count}} con No Molestar",
-      "arrivals": "{{count}} llegan pronto",
-      "vip": "{{count}} VIP"
-    },
-    "focus": {
-      "kicker": "Empieza aquí",
-      "inProgressKicker": "En curso",
-      "estMinutes": "~{{minutes}} min",
-      "target": "objetivo {{time}}",
-      "underPace": "{{minutes}}m antes de lo previsto",
-      "overPace": "{{minutes}}m atrasada",
-      "more": "Más opciones",
-      "resume": "Continuar {{room}}",
-      "inProgress": "en curso",
-      "floor": "Piso {{floor}}"
-    },
-    "shiftCard": {
-      "title": "Tu turno",
-      "vipAt": "{{time}} VIP"
-    },
-    "needsYou": {
-      "title": "Pendientes",
-      "reviewSubtitle": "Cuartos marcados que esperan revisión de tu supervisora.",
-      "dndSubtitle": "Sáltalos por ahora — se liberarán solos.",
-      "arrivalsSubtitle": "Ya están primero en tu plan de limpieza.",
-      "gotIt": "Entendido"
-    },
-    "holdConfirm": {
-      "title": "¿Cuarto {{room}} limpio?",
-      "subtitle": "Esto lo mueve a Limpio y avisa a tu supervisora que está listo para inspección.",
-      "checklistStatus": "Lista {{done}} de {{total}}",
-      "cta": "Mantén presionado para confirmar…",
-      "confirming": "Confirmando…",
-      "releaseHint": "Suelta para cancelar",
-      "openRoom": "Abrir cuarto para terminar la lista",
-      "nextUp": "Sigue · {{room}}",
-      "nextUpMinutes": "~{{minutes}}m",
-      "startBy": "empieza a las {{time}}"
-    },
     "endOfShift": {
       "roomsCleaned": "{{count}} cuartos limpiados",
       "shiftDuration": "{{duration}} de turno",
@@ -135,10 +85,7 @@
       "tipVip": "Quedan {{count}} cuarto(s) VIP — un toque extra de detalle rinde mucho.",
       "tipBreather": "Buen momento para agua y respirar. El tablero puede esperar dos minutos."
     },
-    "startWith": "Empezar con {{room}}",
     "askAI": "Preguntar a IA",
-    "allDone": "Todos los cuartos asignados están listos.",
-    "pullToRefresh": "Jala para actualizar si tu supervisora agrega más.",
     "engineer": {
       "shiftMeta": "Turno de mantenimiento",
       "summary": "{{open}} en la fila · {{bench}} en tu banco",
@@ -247,7 +194,7 @@
         "evening": "Noche"
       },
       "shift": {
-        "unknown": "Revisando tu turno…",
+        "unknown": "Estado del turno sin confirmar",
         "notStarted": "Tu turno no ha comenzado.",
         "active": "Tu turno está en curso.",
         "onBreak": "Estás en descanso.",

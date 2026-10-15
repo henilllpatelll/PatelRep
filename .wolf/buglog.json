@@ -33370,6 +33370,39 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-14T21:00:00.000Z"
+    },
+    {
+      "id": "bug-2023",
+      "timestamp": "2026-10-14T22:30:00.000Z",
+      "error_message": "Housekeeper Home mixed languages: Spanish date line with English cards (or the reverse) after the Profile language toggle",
+      "file": "apps/mobile/components/home/HousekeeperHomeScreen.tsx",
+      "root_cause": "Home derived its text language from user.language_pref, but the rest of the app (and t()) follow i18next; the toggle changes i18next at once while the local user record lags.",
+      "fix": "Home and the Attention Center take the language from i18n.resolvedLanguage like My Rooms and Room Detail; regression test added.",
+      "tags": [
+        "mobile",
+        "i18n",
+        "home"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T22:30:00.000Z"
+    },
+    {
+      "id": "bug-2024",
+      "timestamp": "2026-10-14T22:30:00.000Z",
+      "error_message": "Visual audit: Mark Clean hold label was hardcoded white (about 3.1:1 on the dark accent); notice/submission banners were one accessible group that hid their own buttons from VoiceOver; Shift row crushed its status text at 360px",
+      "file": "apps/mobile/components/home/MarkCleanConfirmationSheet.tsx",
+      "root_cause": "Hardcoded colour instead of theme.onPrimary; accessible wrapper around interactive children; non-wrapping flex row.",
+      "fix": "Use theme.onPrimary; banners are live regions (no accessible group); row wraps. Hold gesture is skipped under reduced motion (tap confirm is primary).",
+      "tags": [
+        "mobile",
+        "a11y",
+        "contrast",
+        "home"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T22:30:00.000Z"
     }
   ]
 }

@@ -39,7 +39,7 @@ const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
  * every tap goes to the existing room workflow or one of the Home drawers.
  */
 export function AttentionCenterScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { user, isOnline } = useAppStore();
@@ -50,7 +50,7 @@ export function AttentionCenterScreen() {
   const [filter, setFilter] = useState<AttentionFilter>("all");
   const [refreshing, setRefreshing] = useState(false);
 
-  const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
+  const language: "en" | "es" = (i18n.resolvedLanguage ?? i18n.language ?? "en").startsWith("es") ? "es" : "en";
   const ctx = useMemo(() => ({ language, timeZone: model?.timeZone ?? null }), [language, model?.timeZone]);
 
   const center = useMemo(() => (model ? buildAttentionCenter(model) : null), [model]);

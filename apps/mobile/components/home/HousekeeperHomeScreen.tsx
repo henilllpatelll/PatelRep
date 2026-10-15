@@ -64,7 +64,7 @@ interface Props {
  * drawers opened from here, one at a time.
  */
 export function HousekeeperHome({ enabled, destinations }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -74,7 +74,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
   const home = useHousekeeperHome({ enabled });
   const { model, rooms, shift, markSupervisorNoteRead, refresh: refreshHome } = home;
   const { lifecycle } = model;
-  const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
+  const language: "en" | "es" = (i18n.resolvedLanguage ?? i18n.language ?? "en").startsWith("es") ? "es" : "en";
   const ctx = useMemo(() => ({ language, timeZone: model.timeZone }), [language, model.timeZone]);
   const scope = user ? `${user.tenant_id}:${user.id}` : null;
 

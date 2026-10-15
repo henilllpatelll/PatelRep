@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   card: { gap: 10 },
   title: { fontSize: 16, fontWeight: "700" },
   body: { fontSize: 13, lineHeight: 18 },
-  activeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  activeText: { flex: 1, gap: 2 },
+  activeRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: 12 },
+  activeText: { flexGrow: 1, flexShrink: 1, flexBasis: 160, gap: 2 },
   breakButton: { minHeight: 44, paddingHorizontal: 8, justifyContent: "center" },
   breakText: { fontSize: 13, fontWeight: "600" },
 });

@@ -7,6 +7,7 @@ import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { PostCompletionState, type CompletionOutcome } from "@/components/home/PostCompletionState";
 import { SheetGone, SheetNotice } from "@/components/home/sheetParts";
 import { useScreenReaderEnabled } from "@/lib/accessibility/useScreenReader";
+import { useReducedMotion } from "@/lib/accessibility/useReducedMotion";
 import type { HomeModel } from "@/lib/housekeeping/homeModel";
 import { findRoomEntry } from "@/lib/housekeeping/homeSheets";
 import { blockMessageKey, rejectionNeedsRoom, resolveMarkCleanReadiness } from "@/lib/housekeeping/markCleanReadiness";
@@ -56,6 +57,7 @@ export function MarkCleanConfirmationSheet({ visible, roomId, model, isOnline, t
   const theme = useTheme();
   const accent = useHousekeeperAccent();
   const screenReader = useScreenReaderEnabled();
+  const reducedMotion = useReducedMotion();
   const session = useCleanSessionStore(selectSession(roomId));
   const entry = findRoomEntry(model, roomId);
 
@@ -204,7 +206,7 @@ export function MarkCleanConfirmationSheet({ visible, roomId, model, isOnline, t
 
   const rejectionText = rejection ? rejectionMessage(rejection, t) : null;
   const missingList = (readiness.state === "blocked" ? readiness.missing : rejection?.missing) ?? [];
-  const showHold = readiness.state === "ready" && !screenReader && !busy;
+  const showHold = readiness.state === "ready" && !screenReader && !reducedMotion && !busy;
 
   return (
     <BottomSheet
@@ -230,7 +232,7 @@ export function MarkCleanConfirmationSheet({ visible, roomId, model, isOnline, t
                   <Animated.View
                     style={[styles.holdFill, { backgroundColor: accent.bg, width: fill.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]}
                   />
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.holdText}>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.holdText, { color: theme.onPrimary }]}>
                     {t("home.markClean.holdCta")}
                   </Text>
                 </Pressable>
@@ -352,6 +354,6 @@ const styles = StyleSheet.create({
   missing: { gap: 4 },
   holdBtn: { minHeight: 56, borderRadius: 12, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   holdFill: { position: "absolute", left: 0, top: 0, bottom: 0 },
-  holdText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
+  holdText: { fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
   release: { textAlign: "center", fontSize: 12 },
 });

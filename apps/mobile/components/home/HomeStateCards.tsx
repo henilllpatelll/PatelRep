@@ -32,9 +32,8 @@ export function ConnectionNoticeBanner({
   return (
     <View
       style={[styles.banner, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
-      accessible
       accessibilityRole="alert"
-      accessibilityLabel={`${copy.title}. ${copy.body}`}
+      accessibilityLiveRegion="polite"
       testID={`home-notice-${notice.kind}`}
     >
       <Ionicons name={icon} size={18} color={theme.status.pickup} />
@@ -76,9 +75,8 @@ export function SubmissionBanner({
   return (
     <View
       style={[styles.banner, { backgroundColor: soft, borderColor: line }]}
-      accessible
       accessibilityRole="alert"
-      accessibilityLabel={`${title}. ${body}`}
+      accessibilityLiveRegion="polite"
       testID="submission-banner"
     >
       <Ionicons name={icon} size={22} color={color} />

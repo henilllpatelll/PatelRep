@@ -395,6 +395,9 @@
 
 ## Do-Not-Repeat
 
+- [2026-10-14] Mobile text language comes from i18next (`useTranslation().i18n.resolvedLanguage`), NOT `user.language_pref`. The Profile toggle changes i18next immediately and the local user record lags; reading language_pref on one screen mixes languages. Known gap (pre-existing, app-wide): i18n boots as "en" and never applies the saved language_pref at login.
+- [2026-10-14] Never wrap buttons inside an `accessible` View (iOS VoiceOver turns it into one element and the buttons become unreachable); use `accessibilityRole="alert"` + `accessibilityLiveRegion` on the wrapper instead. Use `theme.onPrimary` for text on accent fills, never `#FFFFFF`.
+
 - **[2026-10-09] i18n here is `compatibilityJSON: "v3"`:** plurals are `key` + `key_plural`; `_one/_other` keys silently render the raw key. A mocked `t` in screen tests cannot catch it — `roomWorkI18n.test.ts` resolves every `rooms.work.*` key through a real i18next with the app config.
 - **[2026-10-09] Tests that hold a request open must wait for it before releasing:** the clean-session store serializes ALL sync work in one module-level queue, so a never-resolved mocked request wedges every later test. Wait for the call, then resolve; flush leftovers in afterEach.
 - **[2026-10-09] RBAC-MATRIX.md records route LINE NUMBERS:** any edit above a route in `apps/api/routers/*.py` makes `test_rbac_matrix_contract` fail; regenerate with `python apps/api/scripts/generate_rbac_matrix.py` and commit.

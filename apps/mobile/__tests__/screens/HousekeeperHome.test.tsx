@@ -38,6 +38,8 @@ const mockRooms: TestRoom[] = [
 
 // The real locale files, so a missing key shows up as a raw key in an assertion.
 let mockLanguage: "en" | "es" = "en";
+// The saved profile preference can lag the language the person just picked in Profile.
+let mockLanguagePref: "en" | "es" | null = null;
 jest.mock("react-i18next", () => {
   const { makeTranslator } = require("../helpers/i18n");
   const t = makeTranslator(() => mockLanguage);
@@ -133,7 +135,7 @@ let mockUnread = 0;
 
 function mockAppState() {
   return {
-    user: { id: "user-1", tenant_id: "hotel-1", full_name: "Maria Vega", role: "housekeeper", language_pref: mockLanguage },
+    user: { id: "user-1", tenant_id: "hotel-1", full_name: "Maria Vega", role: "housekeeper", language_pref: mockLanguagePref ?? mockLanguage },
     isOnline: mockIsOnline,
     myRooms: mockStoreRooms,
     pendingActions: [],
@@ -1045,6 +1047,34 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       // no English left behind and no raw key
       expect(queryByText(/Continue cleaning|Your progress|Right now/)).toBeNull();
       expect(queryByText(/^home\./)).toBeNull();
+    });
+
+    it("follows the language picked in the app, not a stale saved preference", async () => {
+      mockLanguage = "es";
+      mockLanguagePref = "en";
+      seedSession("room-108", false, { startedAt: new Date(Date.now() - 60_000).toISOString() });
+      const { getByText, getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-card")).toBeTruthy());
+      // the date line and the cards agree: Spanish both
+      expect(getByText(/^(LUNES|MARTES|MIÉRCOLES|JUEVES|VIERNES|SÁBADO|DOMINGO),/i)).toBeTruthy();
+      expect(getByText("Continuar limpieza")).toBeTruthy();
+    });
+
+    it("keeps a notice's own buttons reachable by assistive tech instead of swallowing them in one group", async () => {
+      mockIsOnline = false;
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("home-notice-offline")).toBeTruthy());
+      const notice = getByTestId("home-notice-offline");
+      expect(notice.props.accessible).not.toBe(true);
+      expect(notice.props.accessibilityRole).toBe("alert");
+      expect(getByTestId("notice-sync-status").props.accessibilityRole).toBe("button");
+    });
+
+    it("never says it is checking the shift when the shift could not be read", async () => {
+      mockShiftCurrentFails = true;
+      const { getByTestId, queryByText } = renderHome();
+      await waitFor(() => expect(getByTestId("shift-control-unknown")).toBeTruthy());
+      expect(queryByText(/Checking your shift/)).toBeNull();
     });
 
     it("renders the before-shift and empty states in Spanish", async () => {
