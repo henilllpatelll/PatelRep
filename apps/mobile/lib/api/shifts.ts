@@ -60,10 +60,14 @@ export async function startShift({ id, startedAt = new Date() }: StartShiftOptio
   return result.data;
 }
 
-/** Idempotent — returns null (no-op) if there's no open shift to end. */
-export async function endShift(endedAt: Date = new Date()): Promise<ShiftSession | null> {
+/**
+ * Idempotent — returns null (no-op) when there is nothing to end. Pass `shiftId` (the shift the
+ * person is looking at) so the server never ends a different, newer shift started on another device.
+ */
+export async function endShift(endedAt: Date = new Date(), shiftId?: string | null): Promise<ShiftSession | null> {
   const result = await api.post<{ data: ShiftSession | null }>("/shifts/end", {
     ended_at: endedAt.toISOString(),
+    ...(shiftId ? { shift_id: shiftId } : {}),
   });
   return result.data;
 }

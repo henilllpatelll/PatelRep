@@ -33403,6 +33403,24 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-14T22:30:00.000Z"
+    },
+    {
+      "id": "bug-2025",
+      "timestamp": "2026-10-14T23:30:00.000Z",
+      "error_message": "Concurrent clock-out could overwrite an already-ended shift's ended_at; a break racing clock-out could reopen it; client reported 'clocked out' after a null end even if another device had started a new shift",
+      "file": "apps/api/routers/shifts.py",
+      "root_cause": "end/break updated by id+tenant only (read-then-write, no status guard); client treated any reread after a null end as success.",
+      "fix": "end is a compare-and-swap (status/break_seconds/on_break_since guard, 3 re-reads, optional shift_id so a newer shift is never ended); break update refuses ended rows; client classifies the reread (ended / other_active / still_open / unresolved) and only claims success when the intended shift's own ended record is proven.",
+      "tags": [
+        "shifts",
+        "concurrency",
+        "multi-device",
+        "mobile",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-14T23:30:00.000Z"
     }
   ]
 }

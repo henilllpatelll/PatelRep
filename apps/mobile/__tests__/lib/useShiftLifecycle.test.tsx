@@ -241,6 +241,122 @@ describe("useShiftLifecycle", () => {
     expect(result.current.lifecycle.state).toBe("ended");
   });
 
+  describe("clock-out reconciliation across devices", () => {
+    const endedNow = (overrides: Partial<ShiftSession> = {}) => shift({ status: "ended", ended_at: new Date().toISOString(), ...overrides });
+
+    async function onShift() {
+      mockGetShiftState.mockResolvedValueOnce({ current: shift(), lastEnded: null });
+      const hook = setup();
+      await waitFor(() => expect(hook.result.current.lifecycle.state).toBe("active"));
+      return hook;
+    }
+
+    it("tells the server which shift it means, so a newer shift is never ended by accident", async () => {
+      mockEndShift.mockResolvedValue(endedNow());
+      const { result } = await onShift();
+      await act(async () => {
+        await result.current.end();
+      });
+      expect(mockEndShift).toHaveBeenCalledWith(expect.any(Date), "shift-1");
+    });
+
+    it("does not claim a clock-out when another device has already started a new shift", async () => {
+      const { result } = await onShift();
+      // Our shift was ended elsewhere, and a new one began before we re-read.
+      mockEndShift.mockResolvedValue(null);
+      mockGetShiftState.mockResolvedValue({ current: shift({ id: "shift-2" }), lastEnded: null });
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: false, reason: "not_allowed", message: "shift_changed" });
+      });
+      // The screen shows what is true: the new shift is open, nothing says "clocked out".
+      expect(result.current.lifecycle.state).toBe("active");
+      expect(result.current.lifecycle.shift?.id).toBe("shift-2");
+      expect(result.current.lastError).toBe("shift_changed");
+    });
+
+    it("is a failure, not a success, when the server says nothing was ended but our shift is still open", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockResolvedValue(null);
+      mockGetShiftState.mockResolvedValue({ current: shift(), lastEnded: null });
+
+      await act(async () => {
+        expect(await result.current.end()).toMatchObject({ ok: false, reason: "failed", message: "end_not_applied" });
+      });
+      expect(result.current.lifecycle.state).toBe("active");
+      expect(result.current.lifecycle.canEnd).toBe(true);
+    });
+
+    it("does not call it ended when no shift is open but the ended record is not ours", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockResolvedValue(null);
+      mockGetShiftState.mockResolvedValue({ current: null, lastEnded: endedNow({ id: "some-older-shift" }) });
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: false, reason: "not_allowed", message: "end_unconfirmed" });
+      });
+      expect(result.current.lastError).toBe("end_unconfirmed");
+      expect(result.current.lifecycle.canEnd).toBe(false); // not clocked in, so no false "still clocked in"
+    });
+
+    it("confirms the intended shift ended elsewhere by its own ended record", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockResolvedValue(null);
+      mockGetShiftState.mockResolvedValue({ current: null, lastEnded: endedNow() });
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: true });
+      });
+      expect(result.current.lifecycle.state).toBe("ended");
+    });
+
+    it("recovers a lost answer into the truth when another device started a new shift meanwhile", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockRejectedValue(new Error("timeout"));
+      mockGetShiftState.mockResolvedValue({ current: shift({ id: "shift-2" }), lastEnded: null });
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: false, reason: "not_allowed", message: "shift_changed" });
+      });
+      expect(result.current.lifecycle.shift?.id).toBe("shift-2");
+      expect(result.current.lifecycle.state).toBe("active");
+    });
+
+    it("recovers a lost answer when the intended shift did end, even though it is not the only one that ever did", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockRejectedValue(new Error("timeout"));
+      mockGetShiftState.mockResolvedValue({ current: null, lastEnded: endedNow() });
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: true });
+      });
+      expect(result.current.lifecycle.state).toBe("ended");
+    });
+
+    it("does not say the shift ended when a lost answer is followed by a read that proves nothing about it", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockRejectedValue(new Error("timeout"));
+      mockGetShiftState.mockResolvedValue({ current: null, lastEnded: endedNow({ id: "some-older-shift" }) });
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: false, reason: "not_allowed", message: "end_unconfirmed" });
+      });
+      // No success is claimed; the screen simply reflects what the server returned.
+      expect(result.current.lastError).toBe("end_unconfirmed");
+      expect(result.current.lifecycle.canEnd).toBe(false);
+    });
+
+    it("reports it when the server ended a different shift than the one on screen (older server)", async () => {
+      const { result } = await onShift();
+      mockEndShift.mockResolvedValue(endedNow({ id: "shift-2" }));
+
+      await act(async () => {
+        expect(await result.current.end()).toEqual({ ok: false, reason: "not_allowed", message: "shift_changed" });
+      });
+      expect(result.current.lastError).toBe("shift_changed");
+    });
+  });
+
   it("drops a slow read that returns after a newer action", async () => {
     let resolveRead: (value: unknown) => void = () => undefined;
     mockGetShiftState

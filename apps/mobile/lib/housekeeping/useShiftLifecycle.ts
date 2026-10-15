@@ -36,6 +36,16 @@ interface ServerState {
   lastFetchFailed: boolean;
 }
 
+/** What the server says about the shift the person meant to end, once re-read. */
+type EndOutcome = "ended" | "other_active" | "still_open" | "unresolved";
+
+function classifyEnd(state: { current: ShiftSession | null; lastEnded: ShiftSession | null }, intendedId: string | null): EndOutcome {
+  if (state.current) return intendedId && state.current.id !== intendedId ? "other_active" : "still_open";
+  // Nothing is open, but only the intended shift's own ended record proves it was clocked out.
+  if (state.lastEnded?.ended_at && (!intendedId || state.lastEnded.id === intendedId)) return "ended";
+  return "unresolved";
+}
+
 const EMPTY: ServerState = { current: null, lastEnded: null, serverConfirmed: false, lastFetchFailed: false };
 
 export interface ShiftController {
@@ -185,27 +195,62 @@ export function useShiftLifecycle({ enabled, scope, shiftDate, timeZone, isOnlin
     const blocked = guard((l) => l.canEnd);
     if (blocked) return Promise.resolve(blocked);
     const myScope = scopeRef.current;
+    // The shift this person is looking at; the server must not end a different one.
+    const intendedId = lifecycleRef.current.shift?.id ?? null;
     begin("end");
     const run = (async (): Promise<ShiftActionResult> => {
+      /** Re-read the server and say what actually happened to the intended shift. */
+      const reconcile = async (): Promise<{ outcome: EndOutcome; state: ServerState } | null> => {
+        const read = await getShiftState();
+        if (scopeRef.current !== myScope) return null;
+        const state: ServerState = { ...read, serverConfirmed: true, lastFetchFailed: false };
+        return { outcome: classifyEnd(read, intendedId), state };
+      };
+      const shiftChanged = (): ShiftActionResult => {
+        setLastError("shift_changed");
+        return { ok: false, reason: "not_allowed", message: "shift_changed" };
+      };
       try {
-        const row = await endShift(new Date());
+        const row = await endShift(new Date(), intendedId);
         if (scopeRef.current !== myScope) return { ok: false, reason: "failed" };
-        if (apply(row, (r) => r.status === "ended")) return { ok: true };
-        // Null: the server has no open shift for this person (already ended elsewhere).
-        // Re-read so the screen shows what actually happened.
-        const state = await getShiftState();
-        if (scopeRef.current !== myScope) return { ok: false, reason: "failed" };
-        setServer({ ...state, serverConfirmed: true, lastFetchFailed: false });
-        return { ok: true };
+        if (row?.status === "ended") {
+          apply(row, () => true);
+          // The server ended a different shift than the one on screen: report it, never "clocked out".
+          return intendedId && row.id !== intendedId ? shiftChanged() : { ok: true };
+        }
+        // Null (or a row that is not ended): the server did not end anything for us. Re-read and
+        // confirm the intended shift is really ended before saying so.
+        const seen = await reconcile();
+        if (!seen) return { ok: false, reason: "failed" };
+        setServer(seen.state);
+        if (seen.outcome === "ended") return { ok: true };
+        if (seen.outcome === "other_active") return shiftChanged();
+        if (seen.outcome === "unresolved") {
+          // Nothing is open, yet the ended record is not ours: the person is not clocked in, so
+          // "you are still clocked in" would be false. The screen now shows the server's truth.
+          setLastError("end_unconfirmed");
+          return { ok: false, reason: "not_allowed", message: "end_unconfirmed" };
+        }
+        setLastError("end_not_applied");
+        return { ok: false, reason: "failed", message: "end_not_applied" };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         // The answer may have been lost after the server ended the shift. Ask before
         // calling it a failure, so a retry cannot leave the screen disagreeing with the server.
         try {
-          const state = await getShiftState();
-          if (scopeRef.current === myScope && state.current === null && state.lastEnded?.ended_at) {
-            setServer({ ...state, serverConfirmed: true, lastFetchFailed: false });
+          const seen = await reconcile();
+          if (seen?.outcome === "ended") {
+            setServer(seen.state);
             return { ok: true };
+          }
+          if (seen?.outcome === "other_active") {
+            setServer(seen.state);
+            return shiftChanged();
+          }
+          if (seen?.outcome === "unresolved") {
+            setServer(seen.state);
+            setLastError("end_unconfirmed");
+            return { ok: false, reason: "not_allowed", message: "end_unconfirmed" };
           }
         } catch {
           // Still unreachable: the shift stays as it was, and the person can try again.

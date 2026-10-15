@@ -1817,6 +1817,8 @@ class ShiftBreakRequest(SanitizedBaseModel):
 
 class EndShiftRequest(SanitizedBaseModel):
     ended_at: datetime
+    # Optional: the shift the person meant to end. If it is no longer the open one, nothing is ended.
+    shift_id: Optional[str] = Field(default=None, max_length=64)
 
 
 class BriefingRoomItem(SanitizedBaseModel):

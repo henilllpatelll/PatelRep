@@ -395,6 +395,8 @@
 
 ## Do-Not-Repeat
 
+- [2026-10-14] Shift writes must be compare-and-swap, never read-then-update by id alone (two devices / a lost-response retry will overwrite). A null from /shifts/end means "nothing ended for you", not success: re-read and prove the intended shift's own ended record (client sends shift_id). RBAC-MATRIX.md embeds route line numbers: after editing a router, run `python apps/api/scripts/generate_rbac_matrix.py` or test_rbac_matrix_contract fails in CI.
+
 - [2026-10-14] Mobile text language comes from i18next (`useTranslation().i18n.resolvedLanguage`), NOT `user.language_pref`. The Profile toggle changes i18next immediately and the local user record lags; reading language_pref on one screen mixes languages. Known gap (pre-existing, app-wide): i18n boots as "en" and never applies the saved language_pref at login.
 - [2026-10-14] Never wrap buttons inside an `accessible` View (iOS VoiceOver turns it into one element and the buttons become unreachable); use `accessibilityRole="alert"` + `accessibilityLiveRegion` on the wrapper instead. Use `theme.onPrimary` for text on accent fills, never `#FFFFFF`.
 
