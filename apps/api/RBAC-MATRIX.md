@@ -408,23 +408,24 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | sop.py | /v1/sop/documents/{document_id} | DELETE | gm | require_role('gm') [L176] |
 | sop.py | /v1/sop/query | POST | none |  |
 | staff.py | /v1/staff/me/push-token | PATCH | none |  |
+| staff.py | /v1/staff/me/push-token/revoke | POST | none |  |
 | staff.py | /v1/staff/me/profile | GET | none |  |
 | staff.py | /v1/staff/me/profile | PATCH | none |  |
 | staff.py | /v1/staff/me/avatar | POST | none |  |
 | staff.py | /v1/staff/me/avatar | DELETE | none |  |
 | staff.py | /v1/staff/me/effective-role | GET | none |  |
-| staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L428]; inline: current_user.role in GM_ONLY_ROLES [L480]; inline: current_user.role not in GM_ONLY_ROLES [L441] |
-| staff.py | /v1/staff/departments | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L494] |
-| staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L508] |
-| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L643] |
-| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L661] |
-| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L691] |
-| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L755] |
-| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L796] |
-| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L828] |
-| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L857] |
-| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L868] |
-| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L932] |
+| staff.py | /v1/staff | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L452]; inline: current_user.role in GM_ONLY_ROLES [L504]; inline: current_user.role not in GM_ONLY_ROLES [L465] |
+| staff.py | /v1/staff/departments | GET | chief_engineer, engineer, front_desk, gm, housekeeping_supervisor | require_role(*STAFF_DIRECTORY_ROLES) [L518] |
+| staff.py | /v1/staff/add-direct | POST | gm | require_role('gm') [L532] |
+| staff.py | /v1/staff/custom-roles | GET | gm | require_role('gm') [L667] |
+| staff.py | /v1/staff/custom-roles | POST | gm | require_role('gm') [L685] |
+| staff.py | /v1/staff/custom-roles/{role_id} | PATCH | gm | require_role('gm') [L715] |
+| staff.py | /v1/staff/custom-roles/{role_id} | DELETE | gm | require_role('gm') [L779] |
+| staff.py | /v1/staff/{user_id} | GET | gm | require_role('gm') [L820] |
+| staff.py | /v1/staff/{user_id}/profile | PATCH | gm | require_role('gm') [L852] |
+| staff.py | /v1/staff/{user_id}/reactivate | POST | gm | require_role('gm') [L881] |
+| staff.py | /v1/staff/{staff_id} | PATCH | gm | require_role('gm') [L892] |
+| staff.py | /v1/staff/{staff_id} | DELETE | gm | require_role('gm') [L956] |
 | staff_invitations.py | /v1/staff/invite | POST | gm | require_role('gm') [L193] |
 | staff_invitations.py | /v1/staff/onboarding-invite | POST | none |  |
 | staff_invitations.py | /v1/staff/invitations | GET | gm | require_role('gm') [L229] |
@@ -499,4 +500,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1807] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1881] |
 
-**42 routers, 488 routes.**
+**42 routers, 489 routes.**
