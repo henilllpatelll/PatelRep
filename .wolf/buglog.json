@@ -33489,6 +33489,159 @@
         "multi-device",
         "api"
       ]
+    },
+    {
+      "id": "bug-2030",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "Settings > Personal Information: Remove photo deleted the profile photo with a single tap",
+      "file": "apps/mobile/components/settings/PhotoActionsSheet.tsx",
+      "root_cause": "PhotoActionsSheet called onRemove directly; the Phase 8 drawer audit found no confirmation for a destructive action.",
+      "fix": "Remove now switches the same sheet to a confirmation (Remove photo / Keep photo); only the confirm calls onRemove, and removePhoto ignores a second call while busy. Done inside the same Modal because a second iOS modal opened during dismissal can fail to present.",
+      "tags": [
+        "settings",
+        "destructive-action",
+        "confirmation",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2031",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "SettingsScreen header title was numberOfLines=1, so a long Spanish title (Licencias de codigo abierto) ellipsized on a 360dp phone",
+      "file": "apps/mobile/components/settings/SettingsScreen.tsx",
+      "root_cause": "Single-line title assumed short English titles.",
+      "fix": "numberOfLines={2}; browser-verified at 360px (title wraps instead of truncating).",
+      "tags": [
+        "settings",
+        "i18n",
+        "spanish",
+        "layout"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2032",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "About: two quick taps on a legal link opened it twice",
+      "file": "apps/mobile/app/(app)/profile/about.tsx",
+      "root_cause": "The in-flight guard was React state, which is not updated until re-render, so two presses in one tick both passed.",
+      "fix": "Guard with a useRef; try/finally resets it. Same pattern for the report-draft discard (discarding ref).",
+      "tags": [
+        "settings",
+        "double-submit",
+        "ref",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2033",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "App version/build read from expoConfig in four places (Settings footer, device card, diagnostics, push registration)",
+      "file": "apps/mobile/lib/app/appInfo.ts",
+      "root_cause": "expoConfig belongs to the running OTA update, not the installed binary, and each caller had its own fallback (one showed 'dev').",
+      "fix": "One shared getAppInfo(): expo-application native version/build first, config only as fallback, update id only for a downloaded OTA update. A source-audit test fails if anything else reads them.",
+      "tags": [
+        "version",
+        "ota",
+        "expo-application",
+        "single-source"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2034",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "Settings home: identity card and the Personal Information row both opened the same screen; long names were cut to one line; whole app store subscribed via useAppStore()",
+      "file": "apps/mobile/app/(app)/profile/index.tsx",
+      "root_cause": "Phase 1 shortcut left in place; unselected zustand subscription re-renders on any store change.",
+      "fix": "Card is informational and wraps names to 2 lines; selectors in index, personal and useSettingsIdentity; a test forbids useAppStore() in Settings code.",
+      "tags": [
+        "settings",
+        "navigation",
+        "perf",
+        "zustand"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2035",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "Report form character counter wrapped (0 / 1000 over two lines) at 320px, Spanish",
+      "file": "apps/mobile/app/(app)/profile/report.tsx",
+      "root_cause": "Counter shared a row with a long flex warning; RN-web flexShrink:0 on the Text did not stop it wrapping.",
+      "fix": "Counter on its own right-aligned line (metaStack) plus non-breaking spaces in help.report.count. Measured single-line at 320/360 in EN/ES.",
+      "tags": [
+        "settings",
+        "layout",
+        "spanish",
+        "forms"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2036",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "Edit display name: a full name longer than 40 chars prefilled the field, showed 47/40 and a disabled Save with no explanation",
+      "file": "apps/mobile/components/settings/EditFieldSheet.tsx",
+      "root_cause": "Validation message only appeared after the draft changed.",
+      "fix": "Show the validation message immediately when the untouched value is already over maxLength.",
+      "tags": [
+        "settings",
+        "forms",
+        "validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2037",
+      "timestamp": "2026-10-15T00:00:00.000Z",
+      "error_message": "components/settings and components/security were outside the ESLint i18n gate; stale eslint-disable for an undefined rule and a literal brand string hid there",
+      "file": "apps/mobile/eslint.config.mjs",
+      "root_cause": "Phase 1-8 sheets were never linted.",
+      "fix": "Added both folders to the gate; removed the stale disable comments; brand name via a constant.",
+      "tags": [
+        "lint",
+        "i18n",
+        "settings"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2038",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "Settings Phase 10 audit: static import of expo-local-authentication (new native module) would crash an already-installed binary that receives this JS over the air (runtimeVersion is the fixed string 1.0.0)",
+      "file": "apps/mobile/lib/security/biometrics.ts",
+      "root_cause": "Top-level import resolves the native module at load; binaries built before the module was added lack it, and OTA updates share runtimeVersion 1.0.0",
+      "fix": "Load the module lazily inside a try/catch (same pattern as lib/voice/speechModule.ts); capability reports unsupported and authenticate returns unavailable when absent. Regression test __tests__/lib/security/biometrics.test.ts",
+      "tags": [
+        "expo",
+        "native-module",
+        "ota",
+        "runtimeVersion",
+        "biometrics",
+        "settings"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
     }
   ]
 }
