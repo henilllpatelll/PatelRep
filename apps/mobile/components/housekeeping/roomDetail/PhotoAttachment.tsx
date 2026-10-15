@@ -4,12 +4,18 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { pickPhoto, type PhotoSource } from "@/lib/housekeeping/photo";
+import { discardLocalPhoto } from "@/lib/housekeeping/photoAsset";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+
+/** Where the photo is in its life: chosen on this phone, on the server, or tried and failed. */
+export type PhotoStatus = "pending" | "uploaded" | "failed";
 
 interface Props {
   uri: string | null;
   onChange: (uri: string | null) => void;
   disabled?: boolean;
+  /** Labels the preview so nobody assumes a photo is saved when it is only on this phone. */
+  status?: PhotoStatus;
   /** Overrides the "photo" nouns, e.g. for Lost & Found. */
   testIDPrefix?: string;
 }
@@ -19,7 +25,7 @@ interface Props {
  * a preview, and Remove / Replace. A denied camera permission is explained next
  * to the buttons, and the gallery still works.
  */
-export function PhotoAttachment({ uri, onChange, disabled, testIDPrefix = "photo" }: Props) {
+export function PhotoAttachment({ uri, onChange, disabled, status, testIDPrefix = "photo" }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [message, setMessage] = useState<string | null>(null);
@@ -28,12 +34,23 @@ export function PhotoAttachment({ uri, onChange, disabled, testIDPrefix = "photo
     setMessage(null);
     const result = await pickPhoto(source);
     if (result.ok) {
+      // A replaced photo's cached copy is not kept on the phone.
+      if (uri && uri !== result.uri) discardLocalPhoto(uri);
       onChange(result.uri);
     } else if (result.reason === "permission_denied") {
       setMessage(t("rooms.work.sheets.photo.cameraDenied"));
+    } else if (result.reason === "unsupported") {
+      setMessage(t("rooms.work.sheets.photo.unsupported"));
+    } else if (result.reason === "too_large") {
+      setMessage(t("rooms.work.sheets.photo.tooLarge"));
     } else if (result.reason === "failed") {
       setMessage(t("rooms.work.sheets.photo.failed"));
     }
+  }
+
+  function remove() {
+    discardLocalPhoto(uri);
+    onChange(null);
   }
 
   return (
@@ -50,6 +67,15 @@ export function PhotoAttachment({ uri, onChange, disabled, testIDPrefix = "photo
             testID={`${testIDPrefix}-preview`}
           />
         </View>
+      ) : null}
+      {uri && status ? (
+        <Text
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+          style={[styles.status, { color: status === "failed" ? theme.status.dirty : status === "uploaded" ? theme.status.ready : theme.textMuted }]}
+          testID={`${testIDPrefix}-status`}
+        >
+          {t(`rooms.work.sheets.photo.status.${status}`)}
+        </Text>
       ) : null}
       <View style={styles.buttons}>
         <View style={styles.flex}>
@@ -79,7 +105,7 @@ export function PhotoAttachment({ uri, onChange, disabled, testIDPrefix = "photo
           icon="trash-outline"
           variant="ghost"
           size="sm"
-          onPress={() => onChange(null)}
+          onPress={remove}
           disabled={disabled}
           testID={`${testIDPrefix}-remove`}
         />
@@ -100,4 +126,5 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: "row", gap: 10 },
   flex: { flex: 1 },
   message: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
+  status: { fontSize: 12.5, lineHeight: 17, fontWeight: "600" },
 });

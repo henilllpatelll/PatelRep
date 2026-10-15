@@ -359,12 +359,17 @@ describe("Add Task — AI suggestions", () => {
     expect(posts("/tasks")[0][1]).toMatchObject({ task_type: "housekeeping" });
   });
 
-  it("explains when more than one task was found", async () => {
+  it("shows every task found for review instead of dropping all but the first", async () => {
     serve({ parse: { data: { response_type: "task_preview", tasks: [PILLOWS, { ...PILLOWS, title: "B" }] } } });
     const screen = renderSheet();
-    await describeAndContinue(screen);
+    fireEvent.changeText(screen.getByTestId("add-task-input"), REQUEST);
+    fireEvent.press(screen.getByTestId("add-task-continue"));
 
-    expect(screen.getByTestId("review-extra-tasks").props.children).toMatch(/1 more task/);
+    await waitFor(() => expect(screen.getByTestId("batch-found")).toBeTruthy());
+    expect(screen.getByTestId("batch-title-0").props.children).toBe("Deliver two extra pillows");
+    expect(screen.getByTestId("batch-title-1").props.children).toBe("B");
+    expect(screen.queryByTestId("review-extra-tasks")).toBeNull();
+    expect(posts("/tasks")).toHaveLength(0);
   });
 
   it("asks for a second look when the AI was not confident", async () => {

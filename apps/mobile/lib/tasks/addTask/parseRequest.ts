@@ -18,10 +18,14 @@ import {
 export type ParseFailure = "offline" | "timeout" | "rate_limited" | "unavailable" | "invalid" | "network";
 
 export type ParseResult =
-  | { status: "ok"; draft: TaskDraft }
+  /** `drafts` is every task found, in the order the person wrote them; `draft` is the first (with `extraTasks` counting the rest). */
+  | { status: "ok"; draft: TaskDraft; drafts: TaskDraft[] }
   /** The AI understood the message but found no task in it. */
   | { status: "none"; message: string }
   | { status: "failed"; reason: ParseFailure };
+
+/** More suggestions than this are not a task list a person can review on a phone; the server caps at 20 as well. */
+export const MAX_SUGGESTED_TASKS = 10;
 
 type RawTask = Record<string, unknown>;
 
@@ -68,12 +72,16 @@ export function draftFromAiTask(
   // shown as unverified so the person corrects it; it is never sent as a room.
   const roomId = text(raw.room_id);
   const roomNumber = text(raw.room_number_display) ?? text(raw.room_number);
+  // A place that is not a room ("third-floor cart") is plain text; it is never promoted to a room.
+  const place = text(raw.location_text);
   const location: TaskDraft["location"] =
     roomId && roomNumber
       ? { kind: "room", roomId, roomNumber }
       : roomNumber
         ? { kind: "unverified", text: roomNumber }
-        : { kind: "none" };
+        : place
+          ? { kind: "place", text: place.slice(0, ADD_TASK_LIMITS.place) }
+          : { kind: "none" };
 
   let due: TaskDraft["due"] = { mode: "none" };
   if (raw.due_unresolved === true) due = { mode: "unresolved" };
@@ -99,12 +107,27 @@ interface Envelope {
   data?: { response_type?: string; message?: string; tasks?: unknown };
 }
 
+/** The same description asked twice while the first answer is still pending is ONE paid request. */
+const inFlight = new Map<string, Promise<ParseResult>>();
+
 /** Ask the AI to suggest task details for `description`. Never throws. */
-export async function parseTaskRequest(
+export function parseTaskRequest(
   description: string,
   options: { isOnline: boolean; zone: string | null | undefined; role: string | null; now?: Date },
 ): Promise<ParseResult> {
-  if (!options.isOnline) return { status: "failed", reason: "offline" };
+  if (!options.isOnline) return Promise.resolve({ status: "failed", reason: "offline" });
+  const key = JSON.stringify([options.role ?? "", description]);
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const request = requestSuggestions(description, options).finally(() => inFlight.delete(key));
+  inFlight.set(key, request);
+  return request;
+}
+
+async function requestSuggestions(
+  description: string,
+  options: { zone: string | null | undefined; role: string | null; now?: Date },
+): Promise<ParseResult> {
   const now = options.now ?? new Date();
 
   let response: Envelope;
@@ -136,5 +159,5 @@ export async function parseTaskRequest(
       ? { status: "failed", reason: "invalid" }
       : { status: "none", message: text(data.message) ?? "" };
   }
-  return { status: "ok", draft: { ...drafts[0], extraTasks: drafts.length - 1 } };
+  return { status: "ok", draft: { ...drafts[0], extraTasks: drafts.length - 1 }, drafts: drafts.slice(0, MAX_SUGGESTED_TASKS) };
 }

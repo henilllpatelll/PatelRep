@@ -11,25 +11,26 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
 | ai_copilot.py | /v1/ai/copilot/chat | POST | none |  |
-| ai_copilot.py | /v1/ai/housekeeping/briefing | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L559] |
-| ai_copilot.py | /v1/ai/housekeeping/shift-summary | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L608] |
-| ai_copilot.py | /v1/ai/supervisor/briefing | POST | housekeeping_supervisor | require_role('housekeeping_supervisor') [L651] |
-| ai_copilot.py | /v1/ai/engineer/briefing | POST | chief_engineer, engineer | require_role('engineer', 'chief_engineer') [L694] |
-| ai_copilot.py | /v1/ai/front-desk/briefing | POST | front_desk | require_role('front_desk') [L738] |
-| ai_copilot.py | /v1/ai/gm/briefing | GET | gm | require_role('gm') [L783] |
+| ai_copilot.py | /v1/ai/housekeeping/briefing | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L566] |
+| ai_copilot.py | /v1/ai/housekeeping/shift-summary | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L615] |
+| ai_copilot.py | /v1/ai/supervisor/briefing | POST | housekeeping_supervisor | require_role('housekeeping_supervisor') [L658] |
+| ai_copilot.py | /v1/ai/engineer/briefing | POST | chief_engineer, engineer | require_role('engineer', 'chief_engineer') [L701] |
+| ai_copilot.py | /v1/ai/front-desk/briefing | POST | front_desk | require_role('front_desk') [L745] |
+| ai_copilot.py | /v1/ai/gm/briefing | GET | gm | require_role('gm') [L790] |
 | ai_copilot.py | /v1/ai/tasks/confirm | POST | none |  |
 | ai_copilot.py | /v1/ai/work-orders/confirm | POST | none |  |
+| ai_copilot.py | /v1/ai/photo-analysis | POST | none |  |
 | ai_copilot.py | /v1/ai/guest-requests/confirm | POST | none |  |
-| ai_copilot.py | /v1/ai/assignments/confirm | POST | engineer, gm, housekeeping_supervisor | require_role('housekeeping_supervisor', 'engineer', 'gm') [L1163] |
+| ai_copilot.py | /v1/ai/assignments/confirm | POST | engineer, gm, housekeeping_supervisor | require_role('housekeeping_supervisor', 'engineer', 'gm') [L1243] |
 | ai_copilot.py | /v1/ai/risk-alerts | GET | none |  |
-| ai_copilot.py | /v1/ai/insights | GET | role-restricted (inline, see source) | gate: if current_user.role not in GM_ONLY_ROLES: raise HTTPException(...) [L1268]; inline: current_user.role not in GM_ONLY_ROLES [L1268] |
-| ai_copilot.py | /v1/ai/recommendations | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1299] |
-| ai_copilot.py | /v1/ai/recommendations/metrics | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1313] |
-| ai_copilot.py | /v1/ai/failure-predictions/{prediction_id}/recommendation | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1325] |
-| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/authorize | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1374] |
-| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/mark-executed | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1404] |
-| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/outcome | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1425] |
-| ai_copilot.py | /v1/ai/model-routes/{purpose} | PUT | gm | require_role('gm') [L1447] |
+| ai_copilot.py | /v1/ai/insights | GET | role-restricted (inline, see source) | gate: if current_user.role not in GM_ONLY_ROLES: raise HTTPException(...) [L1348]; inline: current_user.role not in GM_ONLY_ROLES [L1348] |
+| ai_copilot.py | /v1/ai/recommendations | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1379] |
+| ai_copilot.py | /v1/ai/recommendations/metrics | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1393] |
+| ai_copilot.py | /v1/ai/failure-predictions/{prediction_id}/recommendation | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1405] |
+| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/authorize | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1454] |
+| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/mark-executed | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1484] |
+| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/outcome | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1505] |
+| ai_copilot.py | /v1/ai/model-routes/{purpose} | PUT | gm | require_role('gm') [L1527] |
 | assets.py | /v1/assets | GET | none |  |
 | assets.py | /v1/assets | POST | engineer, gm | require_role('gm', 'engineer') [L76] |
 | assets.py | /v1/assets/failure-predictions | GET | none |  |
@@ -506,4 +507,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1788] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1862] |
 
-**42 routers, 495 routes.**
+**42 routers, 496 routes.**

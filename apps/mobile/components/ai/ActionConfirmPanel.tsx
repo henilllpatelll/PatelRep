@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { ActionPreviewCard } from "@/components/ai/ActionPreviewCard";
+import { ConfirmRows } from "@/components/ai/ConfirmRows";
 import { usePalette, type Palette } from "@/components/ai/palette";
 import { summarizePreview } from "@/lib/ai/actionSummary";
 import type { ActionItem } from "@/lib/ai/conversationState";
@@ -60,34 +61,9 @@ export function ActionConfirmPanel({ item, online, onEdit, onConfirm, onCancel, 
 
   return (
     <View style={styles.wrap} testID="confirm-panel">
-      <View style={styles.prepared}>
-        <Ionicons name="sparkles" size={14} color={theme.ai.primary} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.preparedText}>
-          {t("assistant.confirm.prepared")}
-        </Text>
-      </View>
+      <ConfirmRows rows={editing ? [] : rows} prepared={t("assistant.confirm.prepared")} palette={palette} />
 
-      {editing ? (
-        <ActionPreviewCard item={item} onEdit={onEdit} onConfirm={onConfirm} onDismiss={onCancel} hideActions palette={palette} />
-      ) : (
-        <View style={styles.rows}>
-          {rows.map((row) => (
-            <View key={row.key} style={styles.row} accessible accessibilityLabel={`${row.label}: ${row.value}`}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.rowLabel}>
-                {row.label}
-              </Text>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, row.warn && styles.rowWarn]}>
-                {row.value}
-              </Text>
-              {row.warn ? (
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.warn}>
-                  {t("copilot.action.roomUnverified", { room: row.value })}
-                </Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
+      {editing ? <ActionPreviewCard item={item} onEdit={onEdit} onConfirm={onConfirm} onDismiss={onCancel} hideActions palette={palette} /> : null}
 
       {invalid && !editing ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.error}>

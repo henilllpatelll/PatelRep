@@ -28,7 +28,9 @@ export type LocalCard =
   /** Home has not ranked the person's rooms yet (or has nothing left to recommend). */
   | { type: "noRoomOrder" }
   /** A fact about one of the person's own rooms, read from the phone; `href` is the screen that does the next step. */
-  | { type: "roomAnswer"; roomId: string; href?: string; label?: string };
+  | { type: "roomAnswer"; roomId: string; href?: string; label?: string }
+  /** A plain-language reading of one of the person's own tasks, composed on the phone from the task as stored. */
+  | { type: "taskAnswer"; taskId: string };
 
 export interface AssistantMessage {
   id: string;

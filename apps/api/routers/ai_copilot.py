@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from middleware.auth import get_current_user, CurrentUser, require_role
 from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import (
@@ -18,6 +18,8 @@ from services.ai.work_order_parser import parse_work_orders
 from services.ai.guest_request_parser import parse_guest_requests
 from services.ai.assignment_parser import parse_assignments
 from services.ai.sop_rag import query_sop
+from services.ai.photo_analysis import MAX_NOTE_CHARS, MAX_UPLOAD_BYTES, PhotoRejected, analyze_photo, prepare_image
+from services.ai.providers import AIProviderConfigurationError
 from services.ai.housekeeping_briefing import generate_shift_briefing
 from services.ai.housekeeper_shift_recap import generate_shift_recap
 from services.ai.supervisor_briefing import generate_supervisor_briefing
@@ -51,6 +53,7 @@ from routers.work_orders import (
     _seed_checklist_from_template,
 )
 from routers.assets import get_recurring_issues
+import asyncio
 import openai
 import anthropic
 import time
@@ -273,6 +276,7 @@ def _finalize_parsed_tasks(hotel_id: str, tasks: list[dict], hotel_timezone: Opt
       number is kept as text (``room_number_display``) for the person to correct.
     * ``due_at`` is re-validated here (hotel zone, not in the past); anything unusable is
       dropped and flagged ``due_unresolved`` so the client asks for a correction.
+    * ``location_text`` (a place that is not a room) is kept as plain text, trimmed.
     * Drafts never carry an assignee: the parser does not choose who does the work.
     """
     zone = hotel_zone(hotel_timezone)
@@ -282,6 +286,9 @@ def _finalize_parsed_tasks(hotel_id: str, tasks: list[dict], hotel_timezone: Opt
         task["room_number_display"] = rn
         task["due_at"], task["due_unresolved"] = normalize_due_at(task.get("due_at"), zone)
         task.pop("assigned_to", None)
+        # A place that is not a room stays text for the person to review; it is never a verified room.
+        place = task.get("location_text")
+        task["location_text"] = place.strip()[:255] if isinstance(place, str) and place.strip() else None
 
 
 @router.post("/copilot/chat")
@@ -1026,6 +1033,79 @@ async def confirm_work_orders(
         "data": {"created_count": len(created), "work_orders": created},
         "meta": {"deduplicated": deduplicated},
     }
+
+
+@router.post("/photo-analysis")
+async def analyze_issue_photo(
+    file: UploadFile = File(...),
+    description: Optional[str] = Form(None),
+    room_id: Optional[str] = Form(None),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Suggest a work-order category and a short description from ONE photo the employee chose to send.
+
+    A suggestion only: this creates, assigns and escalates nothing, and the photo is analysed in memory and
+    never stored. The upload is validated from its own bytes (type, size, dimensions), re-encoded without
+    metadata, and billed from the provider's real token usage like every other AI call.
+    """
+    start = time.time()
+    require_creation_role(current_user.role)
+    note = (description or "").strip()[:MAX_NOTE_CHARS]
+    if room_id:
+        # Same checks as the chat: a room of THIS hotel and, for a housekeeper, one they are assigned today.
+        context = sanitize_context({"room_id": room_id})
+        resolve_trusted_context(supabase, current_user.hotel_id, current_user.user_id, current_user.role, context)
+
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    try:
+        jpeg = prepare_image(data)
+    except PhotoRejected as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc))
+
+    credits = 0
+    prompt_tokens = 0
+    completion_tokens = 0
+    try:
+        result = await asyncio.to_thread(analyze_photo, jpeg, note)
+        prompt_tokens = result["prompt_tokens"]
+        completion_tokens = result["completion_tokens"]
+        credits = await check_and_deduct_credits(current_user.hotel_id, "photo_analysis", prompt_tokens, completion_tokens)
+    except HTTPException:
+        raise
+    except (openai.RateLimitError, openai.AuthenticationError, AIProviderConfigurationError, openai.APIConnectionError, openai.APIStatusError) as exc:
+        await _log_photo_analysis(current_user, credits, 0, 0, start, False, str(exc))
+        raise HTTPException(status_code=503, detail="AI photo analysis is temporarily unavailable. You can still report the issue yourself.")
+    except Exception as exc:
+        await _log_photo_analysis(current_user, credits, 0, 0, start, False, str(exc))
+        logger.exception("AI photo analysis failed hotel=%s", current_user.hotel_id)
+        raise HTTPException(status_code=500, detail="AI photo analysis is temporarily unavailable. You can still report the issue yourself.")
+
+    await _log_photo_analysis(current_user, credits, prompt_tokens, completion_tokens, start, True, None)
+    return {
+        "data": {
+            "outcome": result["outcome"],
+            "observation": result["observation"],
+            "suggested_category": result["category"],
+            "question": result["question"],
+            "is_suggestion": True,
+            "retained": False,
+            "credits_used": credits,
+            "model_used": "gpt-4o-mini",
+        }
+    }
+
+
+async def _log_photo_analysis(current_user, credits, prompt_tokens, completion_tokens, start, success, error):
+    """Record the call without letting a bookkeeping failure turn a finished analysis into an error."""
+    try:
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="photo_analysis", model_used="gpt-4o-mini",
+            credits_charged=credits, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            latency_ms=int((time.time() - start) * 1000), success=success, error_message=error,
+        )
+    except Exception:
+        logger.warning("Could not log the photo-analysis interaction hotel=%s", current_user.hotel_id, exc_info=True)
 
 
 def _find_recent_duplicate_guest_request(
