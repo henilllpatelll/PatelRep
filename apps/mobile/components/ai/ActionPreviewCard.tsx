@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
-import { darkTheme } from "@/components/shared/tokens";
+import { usePalette, type Palette } from "@/components/ai/palette";
 import type { ActionItem } from "@/lib/ai/conversationState";
 import {
   DRAFT_LIMITS,
@@ -20,6 +21,10 @@ interface Props {
   onDismiss: () => void;
   /** Tighter spacing for the corner card. */
   compact?: boolean;
+  /** The confirm drawer owns Confirm / Cancel; show only the editable fields. */
+  hideActions?: boolean;
+  /** Pin a palette (the legacy corner card is always dark). */
+  palette?: Palette;
 }
 
 function Chips<T extends string>({
@@ -29,6 +34,7 @@ function Chips<T extends string>({
   render,
   onPick,
   disabled,
+  styles,
 }: {
   value: T;
   options: readonly T[];
@@ -36,6 +42,7 @@ function Chips<T extends string>({
   render: (option: T) => string;
   onPick: (option: T) => void;
   disabled: boolean;
+  styles: ReturnType<typeof makeStyles>;
 }) {
   return (
     <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel={label}>
@@ -63,8 +70,10 @@ function Chips<T extends string>({
  * creates it: "Create" is the explicit confirmation, it can only be pressed once at a time, and success is
  * shown only after the server says the record exists.
  */
-export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact }: Props) {
+export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact, hideActions, palette }: Props) {
   const { t } = useTranslation();
+  const theme = usePalette(palette);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const { preview, status } = item;
   const { draft } = preview;
   const locked = status === "confirming" || status === "confirmed";
@@ -89,7 +98,7 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
         editable={!locked}
         maxLength={DRAFT_LIMITS.title + 20}
         accessibilityLabel={t("copilot.action.fields.title")}
-        placeholderTextColor={darkTheme.textMuted}
+        placeholderTextColor={theme.textMuted}
       />
       {errorText("title") ? <Text style={styles.error}>{errorText("title")}</Text> : null}
 
@@ -104,7 +113,7 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
         maxLength={DRAFT_LIMITS.roomNumber}
         accessibilityLabel={t("copilot.action.fields.room")}
         placeholder={t("copilot.action.fields.roomPlaceholder")}
-        placeholderTextColor={darkTheme.textMuted}
+        placeholderTextColor={theme.textMuted}
       />
       {draft.roomNumber.trim() ? (
         unverifiedRoom ? (
@@ -124,11 +133,12 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
             editable={!locked}
             maxLength={DRAFT_LIMITS.location}
             accessibilityLabel={t("copilot.action.fields.place")}
-            placeholderTextColor={darkTheme.textMuted}
+            placeholderTextColor={theme.textMuted}
           />
           {errorText("location") ? <Text style={styles.error}>{errorText("location")}</Text> : null}
           <Text style={styles.label}>{t("copilot.action.fields.category")}</Text>
           <Chips
+            styles={styles}
             value={preview.draft.category}
             options={WORK_ORDER_CATEGORIES}
             label={t("copilot.action.fields.category")}
@@ -149,10 +159,11 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
             editable={!locked}
             maxLength={DRAFT_LIMITS.guestName + 20}
             accessibilityLabel={t("copilot.action.fields.guestName")}
-            placeholderTextColor={darkTheme.textMuted}
+            placeholderTextColor={theme.textMuted}
           />
           <Text style={styles.label}>{t("copilot.action.fields.category")}</Text>
           <Chips
+            styles={styles}
             value={preview.draft.category}
             options={GUEST_CATEGORIES}
             label={t("copilot.action.fields.category")}
@@ -165,6 +176,7 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
 
       <Text style={styles.label}>{t("copilot.action.fields.priority")}</Text>
       <Chips
+            styles={styles}
         value={draft.priority}
         options={preview.kind === "guest_request" ? (["normal", "urgent"] as const) : TASK_PRIORITIES}
         label={t("copilot.action.fields.priority")}
@@ -183,7 +195,7 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
         multiline
         maxLength={DRAFT_LIMITS.description}
         accessibilityLabel={t("copilot.action.fields.details")}
-        placeholderTextColor={darkTheme.textMuted}
+        placeholderTextColor={theme.textMuted}
       />
 
       {status === "failed" && item.failure ? (
@@ -194,9 +206,9 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
         </Text>
       ) : null}
 
-      {status === "confirmed" ? (
+      {hideActions ? null : status === "confirmed" ? (
         <View style={styles.doneRow} accessibilityLiveRegion="polite" testID="action-confirmed">
-          <Ionicons name="checkmark-circle" size={16} color={darkTheme.status.ready} />
+          <Ionicons name="checkmark-circle" size={16} color={theme.status.ready} />
           <Text style={styles.doneText}>
             {item.deduplicated ? t("copilot.action.alreadyCreated") : t(`copilot.action.created.${preview.kind}`)}
           </Text>
@@ -213,7 +225,7 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
             testID="action-confirm"
           >
             {status === "confirming" ? (
-              <ActivityIndicator size="small" color={darkTheme.onPrimary} />
+              <ActivityIndicator size="small" color={theme.onPrimary} />
             ) : (
               <Text style={styles.primaryText}>{status === "failed" ? t("copilot.action.retry") : t("copilot.create")}</Text>
             )}
@@ -234,37 +246,37 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Palette) => StyleSheet.create({
   card: {
     marginTop: 4,
     marginBottom: 10,
-    backgroundColor: darkTheme.surfaceElevated,
+    backgroundColor: theme.surfaceElevated,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: darkTheme.ai.line,
+    borderColor: theme.ai.line,
     alignSelf: "stretch",
   },
   cardCompact: { padding: 10 },
-  kicker: { fontSize: 11, color: darkTheme.ai.primary, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
-  hint: { fontSize: 12, color: darkTheme.textMuted, marginTop: 2, marginBottom: 6 },
-  label: { fontSize: 11, color: darkTheme.textMuted, fontWeight: "600", marginTop: 8, marginBottom: 4 },
+  kicker: { fontSize: 11, color: theme.ai.primary, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
+  hint: { fontSize: 12, color: theme.textMuted, marginTop: 2, marginBottom: 6 },
+  label: { fontSize: 11, color: theme.textMuted, fontWeight: "600", marginTop: 8, marginBottom: 4 },
   input: {
     minHeight: 44,
     borderWidth: 1,
-    borderColor: darkTheme.border,
+    borderColor: theme.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: darkTheme.textPrimary,
-    backgroundColor: darkTheme.surface,
+    color: theme.textPrimary,
+    backgroundColor: theme.surface,
   },
   multiline: { minHeight: 64, textAlignVertical: "top" },
-  inputError: { borderColor: darkTheme.status.dirty },
-  error: { fontSize: 12, color: darkTheme.status.dirty, marginTop: 4 },
-  warn: { fontSize: 12, color: darkTheme.status.pickup, marginTop: 4 },
-  ok: { fontSize: 12, color: darkTheme.status.ready, marginTop: 4 },
+  inputError: { borderColor: theme.status.dirty },
+  error: { fontSize: 12, color: theme.status.dirty, marginTop: 4 },
+  warn: { fontSize: 12, color: theme.status.pickup, marginTop: 4 },
+  ok: { fontSize: 12, color: theme.status.ready, marginTop: 4 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: {
     minHeight: 36,
@@ -272,12 +284,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: darkTheme.border,
-    backgroundColor: darkTheme.surface,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
-  chipSelected: { backgroundColor: darkTheme.ai.soft, borderColor: darkTheme.ai.primary },
-  chipText: { fontSize: 13, color: darkTheme.textSecondary },
-  chipTextSelected: { color: darkTheme.textPrimary, fontWeight: "600" },
+  chipSelected: { backgroundColor: theme.ai.soft, borderColor: theme.ai.primary },
+  chipText: { fontSize: 13, color: theme.textSecondary },
+  chipTextSelected: { color: theme.textPrimary, fontWeight: "600" },
   actions: { flexDirection: "row", gap: 8, marginTop: 14 },
   primary: {
     flex: 1,
@@ -285,9 +297,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
-    backgroundColor: darkTheme.primaryAction,
+    backgroundColor: theme.primaryAction,
   },
-  primaryText: { color: darkTheme.onPrimary, fontSize: 14, fontWeight: "700" },
+  primaryText: { color: theme.onPrimary, fontSize: 14, fontWeight: "700" },
   secondary: {
     flex: 1,
     minHeight: 44,
@@ -295,11 +307,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: darkTheme.border,
-    backgroundColor: darkTheme.surfaceElevated,
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceElevated,
   },
-  secondaryText: { color: darkTheme.textSecondary, fontSize: 14, fontWeight: "600" },
+  secondaryText: { color: theme.textSecondary, fontSize: 14, fontWeight: "600" },
   disabled: { opacity: 0.45 },
   doneRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
-  doneText: { fontSize: 13, color: darkTheme.textPrimary, fontWeight: "600" },
+  doneText: { fontSize: 13, color: theme.textPrimary, fontWeight: "600" },
 });

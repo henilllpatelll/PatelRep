@@ -167,7 +167,10 @@ describe("sending", () => {
     await act(async () => {
       await result.current.chooseOption(clarify, clarify.options![0]);
     });
-    expect(mockSend).toHaveBeenLastCalledWith("AC broken in 305", { intentHint: "work_order_creation", context: undefined });
+    expect(mockSend).toHaveBeenLastCalledWith(
+      "AC broken in 305",
+      expect.objectContaining({ intentHint: "work_order_creation", context: undefined, signal: expect.anything() }),
+    );
   });
 });
 
@@ -405,14 +408,17 @@ describe("saved history", () => {
 
   it("saves text only — no previews — under the person's own key", async () => {
     signIn(ALICE);
-    mockSend.mockResolvedValue(actionsOutcome());
+    mockSend.mockResolvedValueOnce(answer("Strip the bed first."));
+    // A proposal (and the question that led to it) is never saved: its sentence without its card would mislead.
+    mockSend.mockResolvedValueOnce(actionsOutcome());
     const { result } = renderHook(() => useAssistantConversation({ persist: true }));
     await act(async () => {
       await result.current.send("how do I strip a bed");
+      await result.current.send("towels to 214");
     });
     await waitFor(() => expect(mockStore.has(historyKey("hotel-a:alice"))).toBe(true));
     const saved = JSON.parse(mockStore.get(historyKey("hotel-a:alice"))!);
-    expect(saved.map((m: { content: string }) => m.content)).toEqual(["how do I strip a bed", "I'll create this"]);
+    expect(saved.map((m: { content: string }) => m.content)).toEqual(["how do I strip a bed", "Strip the bed first."]);
     expect(saved[1]).not.toHaveProperty("actions");
     expect(mockStore.has(historyKey("hotel-a:bob"))).toBe(false);
   });

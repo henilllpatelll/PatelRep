@@ -34,3 +34,13 @@ try {
 
 export const speechModule = _speechModule;
 export const useSpeechRecognitionEvent = _useSpeechRecognitionEvent;
+
+/** True when this build can listen (the native module exists and the phone's speech service is available). */
+export function isSpeechAvailable(): boolean {
+  if (!speechModule) return false;
+  try {
+    return speechModule.isRecognitionAvailable?.() ?? true;
+  } catch {
+    return false;
+  }
+}

@@ -105,9 +105,14 @@ interface HousekeeperTasksScreenProps {
   /** A task a tapped notification pointed at. Only an id: the screen re-reads it as the signed-in person. */
   linkedTaskId?: string | null;
   onLinkHandled?: () => void;
+  /** Open the Add Task sheet (single use; `onAddHandled` clears the request). */
+  openAdd?: boolean;
+  /** Text to start the new task's description with. */
+  addPrefill?: string | null;
+  onAddHandled?: () => void;
 }
 
-export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: HousekeeperTasksScreenProps = {}) {
+export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, openAdd = false, addPrefill = null, onAddHandled }: HousekeeperTasksScreenProps = {}) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -135,6 +140,13 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
   // `task` is set for a just-created task: the banner then offers "View task" and stays a little longer.
   const [success, setSuccess] = useState<{ text: string; task?: Task } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addInitialText, setAddInitialText] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openAdd) return;
+    setAddInitialText(addPrefill);
+    setAddOpen(true);
+    onAddHandled?.();
+  }, [openAdd, addPrefill, onAddHandled]);
 
   // One sheet at a time: opening another replaces it, so sheets never stack or fight over gestures.
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -826,6 +838,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
       />
       <AddTaskSheet
         visible={addOpen}
+        initialText={addInitialText}
         isOnline={isOnline}
         zone={zone}
         language={language}

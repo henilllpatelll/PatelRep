@@ -182,6 +182,23 @@ describe("Add Task — Describe step", () => {
     expect(mockPost).not.toHaveBeenCalled();
   });
 
+  it("starts with the words the assistant handed over, so what was typed is not lost", () => {
+    const { getByTestId } = renderSheet({ initialText: "  Fix the squeaky cart wheel  " });
+
+    expect(getByTestId("add-task-input").props.value).toBe("Fix the squeaky cart wheel");
+    // Handing text over creates and sends nothing.
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+
+  it("continues an earlier draft rather than overwriting it with handed-over text", () => {
+    const first = renderSheet();
+    fireEvent.changeText(first.getByTestId("add-task-input"), "Earlier unfinished request");
+    first.unmount();
+
+    const { getByTestId } = renderSheet({ initialText: "Something from the assistant" });
+    expect(getByTestId("add-task-input").props.value).toBe("Earlier unfinished request");
+  });
+
   it("does not continue on empty or blank input", () => {
     const { getByTestId } = renderSheet();
 

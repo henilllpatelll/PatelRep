@@ -25,6 +25,19 @@ export function briefingCacheKey(scope: string, shiftDate: string, language: str
   return `${scope}:${shiftDate}:${language}`;
 }
 
+/** The room Home puts first, in the person's words. Facts only; the assistant shows it without asking a model. */
+export interface PublishedNextRoom {
+  roomId: string;
+  roomNumber: string;
+  /** "continue" an open session, or "start" the next room. */
+  kind: "continue" | "start";
+  /** e.g. "Departure · Floor 2" */
+  context: string;
+  /** The strongest verified reason, already in the person's language. */
+  reason: string;
+  estimateMinutes: number | null;
+}
+
 export interface PublishedBriefing {
   key: string;
   /** Home's deterministic briefing: the authoritative order. */
@@ -33,6 +46,8 @@ export interface PublishedBriefing {
   knownRooms: string[];
   /** Rooms that must never be recommended (do-not-disturb, declined service, out of service...). */
   restrictedRooms: string[];
+  /** Home's lead room right now (null when there is nothing to recommend). Optional for older publishers. */
+  nextRoom?: PublishedNextRoom | null;
 }
 
 let published: PublishedBriefing | null = null;
@@ -46,8 +61,21 @@ function sameList(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
+function sameNextRoom(a: PublishedNextRoom | null | undefined, b: PublishedNextRoom | null | undefined): boolean {
+  if (!a || !b) return !a && !b;
+  return (
+    a.roomId === b.roomId &&
+    a.roomNumber === b.roomNumber &&
+    a.kind === b.kind &&
+    a.context === b.context &&
+    a.reason === b.reason &&
+    a.estimateMinutes === b.estimateMinutes
+  );
+}
+
 function samePublished(a: PublishedBriefing, b: PublishedBriefing): boolean {
   return (
+    sameNextRoom(a.nextRoom, b.nextRoom) &&
     a.key === b.key &&
     a.local.headline === b.local.headline &&
     a.local.estimatedMinutes === b.local.estimatedMinutes &&

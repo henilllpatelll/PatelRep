@@ -1,137 +1,156 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
-import { darkTheme } from "@/components/shared/tokens";
 import { ActionPreviewCard } from "@/components/ai/ActionPreviewCard";
-import type { AssistantConversation } from "@/lib/ai/useAssistantConversation";
+import { ActionSummaryCard, ClarificationCard, LimitationCard, RoomRecommendationCard, SourceList } from "@/components/ai/AssistantCards";
+import { usePalette, type Palette } from "@/components/ai/palette";
 import type { AssistantMessage } from "@/lib/ai/conversationState";
+import type { AssistantConversation } from "@/lib/ai/useAssistantConversation";
+
+const MAX_FONT_SCALE = 1.6;
+/** Longer answers than this are shortened in the compact sheet, with a way into the full assistant. */
+export const SHORT_ANSWER_CHARS = 280;
 
 interface Props {
   message: AssistantMessage;
-  conversation: Pick<AssistantConversation, "chooseOption" | "editAction" | "confirm" | "dismissAction" | "send" | "online">;
+  conversation: Pick<AssistantConversation, "chooseOption" | "editAction" | "confirm" | "dismissAction" | "send" | "online" | "sending">;
   compact?: boolean;
+  /** Pin a palette (the legacy corner card is always dark). */
+  palette?: Palette;
+  /** Proposed actions open the confirmation drawer. Without it they edit inline, as the corner card always has. */
+  onReviewAction?: (messageId: string, actionId: string) => void;
+  onOpenRoom?: (roomId: string) => void;
+  /** Where "Read in the full assistant" and the My Rooms link on a limitation go. */
+  onExpand?: () => void;
+  onOpenMyRooms?: () => void;
+}
+
+function timeOf(at: number): string {
+  try {
+    return new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  } catch {
+    return "";
+  }
 }
 
 /** One entry in the conversation, for every assistant surface: text, where it came from, and what can be done next. */
-export function AssistantMessageView({ message, conversation, compact }: Props) {
+export function AssistantMessageView({ message, conversation, compact, palette, onReviewAction, onOpenRoom, onExpand, onOpenMyRooms }: Props) {
   const { t } = useTranslation();
+  const theme = usePalette(palette);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const isUser = message.role === "user";
 
   if (message.kind === "notice" && message.notice) {
-    const retryable = message.askedText && message.notice !== "permission" && message.notice !== "credit_limit";
+    const askedText = message.askedText;
     return (
-      <View style={[styles.notice, compact && styles.noticeCompact]} accessibilityLiveRegion="polite" testID="assistant-notice">
-        <Ionicons name={message.notice === "offline" ? "cloud-offline-outline" : "alert-circle-outline"} size={16} color={darkTheme.status.pickup} />
-        <View style={styles.noticeBody}>
-          <Text style={styles.noticeText}>{t(`copilot.notice.${message.notice}`)}</Text>
-          {retryable ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={!conversation.online && message.notice === "offline"}
-              onPress={() => void conversation.send(message.askedText!)}
-              style={styles.retry}
-              testID="assistant-retry"
-            >
-              <Text style={styles.retryText}>{t("copilot.notice.retry")}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
+      <LimitationCard
+        kind={message.notice}
+        online={conversation.online}
+        compact={compact}
+        palette={palette}
+        onRetry={askedText ? () => void conversation.send(askedText) : undefined}
+      />
     );
   }
 
-  const text = message.content || (message.kind === "unsupported" ? t("copilot.unsupportedReply") : "");
+  const full = message.content || (message.kind === "unsupported" ? t("copilot.unsupportedReply") : "");
+  const long = !!compact && !isUser && full.length > SHORT_ANSWER_CHARS;
+  const text = long ? `${full.slice(0, SHORT_ANSWER_CHARS).trimEnd()}…` : full;
+  const who = isUser ? t("assistant.thread.you") : t("assistant.thread.assistant");
 
   return (
     <View>
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={[styles.bubbleText, isUser ? styles.userText : styles.aiText]}>{text}</Text>
+      <View
+        style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}
+        accessible
+        accessibilityLabel={`${who}: ${full}`}
+        testID={isUser ? "assistant-user-message" : "assistant-reply"}
+      >
+        {!compact ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.who}>
+            {who}
+            {message.at ? ` · ${timeOf(message.at)}` : ""}
+          </Text>
+        ) : null}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bubbleText, isUser ? styles.userText : styles.aiText]}>
+          {text}
+        </Text>
         {!isUser && message.provenance ? (
-          <Text style={styles.provenance} testID="assistant-provenance">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.provenance} testID="assistant-provenance">
             {t(`copilot.provenance.${message.provenance}`)}
+          </Text>
+        ) : null}
+        {!isUser && message.provenance === "ai" ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.disclaimer} testID="assistant-disclaimer">
+            {t("assistant.notAuthoritative")}
           </Text>
         ) : null}
       </View>
 
-      {message.sources && message.sources.length > 0 ? (
-        <View style={styles.sources} testID="assistant-sources">
-          <Text style={styles.sourcesLabel}>{t("copilot.sources")}</Text>
-          {message.sources.map((source, index) => (
-            <Text key={`${source.documentId ?? source.title}-${source.page ?? index}`} style={styles.source} numberOfLines={2}>
-              {source.title}
-              {source.page ? ` · ${t("copilot.page", { page: source.page })}` : ""}
-            </Text>
-          ))}
-        </View>
+      {long && onExpand ? (
+        <Pressable accessibilityRole="button" onPress={onExpand} style={styles.more} testID="assistant-read-more">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.moreText}>
+            {t("assistant.readInFull")}
+          </Text>
+        </Pressable>
       ) : null}
+
+      {message.local?.type === "nextRoom" && onOpenRoom ? <RoomRecommendationCard room={message.local.room} onOpen={onOpenRoom} palette={palette} /> : null}
+      {message.local?.type === "noRoomOrder" && onOpenMyRooms ? (
+        <Pressable accessibilityRole="button" onPress={onOpenMyRooms} style={styles.more} testID="assistant-open-my-rooms">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.moreText}>
+            {t("assistant.room.openMyRooms")}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {message.sources && message.sources.length > 0 ? <SourceList sources={message.sources} palette={palette} /> : null}
 
       {message.options && message.options.length > 0 ? (
-        <View style={styles.options}>
-          <Text style={styles.sourcesLabel}>{t("copilot.clarify")}</Text>
-          {message.options.map((option) => (
-            <Pressable
-              key={option.intentHint}
-              accessibilityRole="button"
-              onPress={() => void conversation.chooseOption(message, option)}
-              style={styles.option}
-              testID={`assistant-option-${option.intentHint}`}
-            >
-              <Text style={styles.optionText}>{option.label}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <ClarificationCard
+          options={message.options}
+          disabled={conversation.sending}
+          palette={palette}
+          onPick={(option) => void conversation.chooseOption(message, option)}
+        />
       ) : null}
 
-      {message.actions?.map((item) => (
-        <ActionPreviewCard
-          key={item.id}
-          item={item}
-          compact={compact}
-          onEdit={(patch) => conversation.editAction(message.id, item.id, patch)}
-          onConfirm={() => void conversation.confirm(message.id, item.id)}
-          onDismiss={() => conversation.dismissAction(message.id, item.id)}
-        />
-      ))}
+      {message.actions?.map((item) =>
+        onReviewAction ? (
+          <ActionSummaryCard
+            key={item.id}
+            item={item}
+            palette={palette}
+            onReview={() => onReviewAction(message.id, item.id)}
+            onDismiss={() => conversation.dismissAction(message.id, item.id)}
+          />
+        ) : (
+          <ActionPreviewCard
+            key={item.id}
+            item={item}
+            compact={compact}
+            palette={palette}
+            onEdit={(patch) => conversation.editAction(message.id, item.id, patch)}
+            onConfirm={() => void conversation.confirm(message.id, item.id)}
+            onDismiss={() => conversation.dismissAction(message.id, item.id)}
+          />
+        ),
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  bubble: { maxWidth: "85%", borderRadius: 14, padding: 12, marginVertical: 4 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: darkTheme.surface, borderWidth: 1, borderColor: darkTheme.border },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: darkTheme.surfaceElevated, borderWidth: 1, borderColor: darkTheme.ai.line },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
-  userText: { color: darkTheme.textPrimary },
-  aiText: { color: darkTheme.textSecondary },
-  provenance: { marginTop: 6, fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase", color: darkTheme.textMuted },
-  sources: { marginTop: 2, marginBottom: 6, paddingHorizontal: 4 },
-  sourcesLabel: { fontSize: 11, color: darkTheme.textMuted, fontWeight: "600", marginBottom: 2 },
-  source: { fontSize: 12, color: darkTheme.textSecondary, marginTop: 2 },
-  options: { gap: 6, marginVertical: 6, alignSelf: "flex-start" },
-  option: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: darkTheme.ai.line,
-    backgroundColor: darkTheme.surfaceElevated,
-  },
-  optionText: { fontSize: 14, color: darkTheme.textPrimary, fontWeight: "600" },
-  notice: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "flex-start",
-    padding: 12,
-    marginVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: darkTheme.border,
-    backgroundColor: darkTheme.surface,
-  },
-  noticeCompact: { padding: 10 },
-  noticeBody: { flex: 1 },
-  noticeText: { fontSize: 13, lineHeight: 18, color: darkTheme.textSecondary },
-  retry: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center" },
-  retryText: { fontSize: 13, fontWeight: "700", color: darkTheme.ai.primary },
-});
+const makeStyles = (theme: Palette) =>
+  StyleSheet.create({
+    bubble: { maxWidth: "88%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, marginVertical: 4 },
+    userBubble: { alignSelf: "flex-end", backgroundColor: theme.primarySoft, borderWidth: 1, borderColor: theme.primaryLine },
+    aiBubble: { alignSelf: "flex-start", backgroundColor: theme.surfaceElevated, borderWidth: 1, borderColor: theme.ai.line },
+    who: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase", color: theme.textMuted, marginBottom: 3 },
+    bubbleText: { fontSize: 15, lineHeight: 21 },
+    userText: { color: theme.textPrimary },
+    aiText: { color: theme.textPrimary },
+    provenance: { marginTop: 6, fontSize: 10.5, letterSpacing: 0.5, textTransform: "uppercase", color: theme.textMuted },
+    disclaimer: { marginTop: 2, fontSize: 11.5, lineHeight: 16, color: theme.textMuted },
+    more: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
+    moreText: { fontSize: 13.5, fontWeight: "800", color: theme.ai.primary },
+  });

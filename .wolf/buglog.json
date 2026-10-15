@@ -33710,6 +33710,90 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2043",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Deep-linked copilot prefill sent without the room_id the screen was launched with",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "The prefill effect ran in the same pass as launchContext, before the context state was applied",
+      "fix": "Send the prefill only once context.entityId matches the launched id (subjectReady)",
+      "tags": [
+        "mobile",
+        "ai",
+        "context",
+        "ordering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2044",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Child-launched assistant context was wiped on first mount",
+      "file": "apps/mobile/lib/ai/AssistantProvider.tsx",
+      "root_cause": "The provider's scope-reset effect runs after child effects and reset the context a screen had just launched",
+      "fix": "Track the previous scope and reset only when it actually changes; context also now belongs to its origin screen (dropped when leaving it, kept for /copilot)",
+      "tags": [
+        "mobile",
+        "ai",
+        "provider",
+        "effects"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2045",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Full chat did not follow a tall reply; newest messages hidden behind the composer",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "FlatList.scrollToEnd estimates the last row offset before it is measured, and our own smooth scroll events flipped the near-bottom flag",
+      "fix": "Scroll via getScrollResponder().scrollToEnd from onContentSizeChange, ignore scroll events for 400ms after our own scroll, keep a New reply pill for readers who scrolled up",
+      "tags": [
+        "mobile",
+        "ai",
+        "scroll",
+        "flatlist"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2046",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Restored conversation showed a proposal's sentence with no card, and a stale next-room answer",
+      "file": "apps/mobile/lib/ai/conversationState.ts",
+      "root_cause": "Only guest-request previews were excluded from saved history; task/work-order proposals and local snapshots were saved as bare text",
+      "fix": "Any proposal and any local live-data snapshot (and the question before it) is excluded from saved history; Phase 1 saved-history test updated to the new rule",
+      "tags": [
+        "mobile",
+        "ai",
+        "history"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2047",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "ThemeSourceAudit failed: full assistant followed the app theme",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Protected decision D-11 keeps Copilot content always dark; the redesign used useTheme",
+      "fix": "Assistant palette pinned to darkTheme (palette.ts), BottomSheet gained an opt-in palette prop; audit test left untouched",
+      "tags": [
+        "mobile",
+        "ai",
+        "theme",
+        "D-11"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
     }
   ]
 }

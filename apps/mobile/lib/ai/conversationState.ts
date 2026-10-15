@@ -1,4 +1,5 @@
-import type { AssistantSource, ClarifyOption, CopilotFailureKind, CopilotOutcome, Provenance } from "@/lib/ai/contract";
+import type { AssistantSource, ClarifyOption, CopilotFailureKind, CopilotOutcome, Provenance, TrustedContext } from "@/lib/ai/contract";
+import type { PublishedNextRoom } from "@/lib/ai/shiftBriefingSource";
 import { patchPreview, type ActionPreview, type DraftPatch } from "@/lib/ai/drafts";
 import type { PersistableMessage, StoredMessage } from "@/lib/ai/history";
 
@@ -21,6 +22,12 @@ export interface ActionItem {
   deduplicated: boolean;
 }
 
+/** An answer the app composed itself from the person's own data; no model is asked, so it costs nothing. */
+export type LocalCard =
+  | { type: "nextRoom"; room: PublishedNextRoom }
+  /** Home has not ranked the person's rooms yet (or has nothing left to recommend). */
+  | { type: "noRoomOrder" };
+
 export interface AssistantMessage {
   id: string;
   role: "user" | "assistant";
@@ -28,8 +35,11 @@ export interface AssistantMessage {
   /** ms epoch */
   at: number;
   /** What the reply was: an answer, proposed actions, a question back, something this app can't act on, or a notice. */
-  kind?: CopilotOutcome["kind"] | "notice";
+  kind?: CopilotOutcome["kind"] | "notice" | "local";
   provenance?: Provenance;
+  /** Records the server itself verified for the ids this message was sent with. */
+  trusted?: TrustedContext | null;
+  local?: LocalCard;
   sources?: AssistantSource[];
   options?: ClarifyOption[];
   actions?: ActionItem[];
@@ -60,9 +70,13 @@ export type ConversationAction =
   | { type: "scope"; scope: string | null }
   | { type: "hydrate"; scope: string; stored: StoredMessage[] }
   | { type: "sent"; message: AssistantMessage }
+  /** The app answered from the person's own data: a question and its answer, with no request made. */
+  | { type: "local"; messages: AssistantMessage[] }
   | { type: "replied"; message: AssistantMessage }
   | { type: "action"; messageId: string; actionId: string; patch: Partial<ActionItem> }
   | { type: "edit"; messageId: string; actionId: string; patch: DraftPatch }
+  /** The person cancelled a request still waiting for its answer: take the question back out of the thread. */
+  | { type: "cancel"; messageId: string }
   | { type: "clear" };
 
 function mapAction(
@@ -99,6 +113,8 @@ export function conversationReducer(state: ConversationState, action: Conversati
       };
     case "sent":
       return { ...state, sending: true, messages: [...state.messages, action.message] };
+    case "local":
+      return { ...state, messages: [...state.messages, ...action.messages] };
     case "replied":
       return { ...state, sending: false, messages: [...state.messages, action.message] };
     case "action":
@@ -110,6 +126,8 @@ export function conversationReducer(state: ConversationState, action: Conversati
           ? item
           : { ...item, preview: patchPreview(item.preview, action.patch), status: "ready", failure: null, failureMessage: null },
       );
+    case "cancel":
+      return { ...state, sending: false, messages: state.messages.filter((message) => message.id !== action.messageId) };
     case "clear":
       return { ...initialConversation(state.scope), hydrated: true };
   }
@@ -123,6 +141,8 @@ export function toPersistable(messages: AssistantMessage[]): PersistableMessage[
     content: message.content,
     at: message.at,
     notice: message.kind === "notice",
-    proposedGuestRequest: message.actions?.some((item) => item.preview.kind === "guest_request") ?? false,
+    // Nothing the person was about to create is saved (its sentence without its card would mislead), and neither is
+    // a snapshot of live data like "your next room" (it would be stale on the next open).
+    proposedGuestRequest: (message.actions?.length ?? 0) > 0 || message.kind === "local",
   }));
 }

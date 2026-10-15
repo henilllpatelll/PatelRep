@@ -2995,6 +2995,134 @@
     "signOutAnyway": "Sign out anyway",
     "appVersion": "PatelRep v{{version}}"
   },
+  "assistant": {
+    "fab": {
+      "label": "Open assistant",
+      "hint": "Opens the housekeeping assistant. Double tap and hold to speak."
+    },
+    "sheet": {
+      "title": "Housekeeping assistant",
+      "heading": "What can I help you with?",
+      "placeholder": "Ask anything...",
+      "openFull": "Open full assistant"
+    },
+    "screen": {
+      "title": "PatelRep Assistant",
+      "subtitle": "Housekeeping · Current shift",
+      "subtitleStaff": "Your hotel assistant",
+      "empty": "How can I help?",
+      "placeholder": "Ask or describe something...",
+      "minimize": "Back to the small assistant"
+    },
+    "quick": {
+      "nextRoom": "My next room",
+      "reportIssue": "Report an issue",
+      "createTask": "Create a task",
+      "askQuestion": "Ask a question",
+      "findProcedure": "Find a procedure"
+    },
+    "thread": {
+      "you": "You",
+      "assistant": "Assistant",
+      "problem": "The assistant could not answer.",
+      "newReply": "New reply"
+    },
+    "cancelSend": "Cancel and edit your message",
+    "notAuthoritative": "Written by AI. It can be wrong. Check anything important with your supervisor.",
+    "readInFull": "Read in the full assistant",
+    "room": {
+      "kicker": "Room {{room}}",
+      "estimate": "about {{minutes}} min",
+      "source": "From your rooms list",
+      "open": "Open room {{room}}",
+      "openRoom": "Open room",
+      "continue": "Continue this room",
+      "answer": "Room {{room}} is first on your list right now.",
+      "none": "I don't have your room order yet. Open Home or My Rooms once, then ask again.",
+      "openMyRooms": "Open My Rooms"
+    },
+    "clarify": {
+      "orType": "Or type what you meant."
+    },
+    "confirm": {
+      "title": "Confirm action",
+      "prepared": "Prepared from your request",
+      "action": "Action",
+      "issue": "Issue",
+      "request": "Request",
+      "notYet": "Nothing is created until you confirm.",
+      "review": "Review and confirm",
+      "edit": "Edit details",
+      "doneEditing": "Done editing",
+      "create": "Confirm and create",
+      "done": "Done",
+      "incomplete": "Fill in the missing details before creating this.",
+      "needsConnection": "You're offline. This needs a connection, so it can't be created yet."
+    },
+    "voice": {
+      "title": "Voice input",
+      "start": "Start speaking",
+      "stop": "Stop",
+      "tapToSpeak": "Tap the microphone and speak",
+      "requesting": "Asking for the microphone...",
+      "listening": "Listening",
+      "processing": "Finishing up...",
+      "denied": "Microphone access is off. Allow it in your phone settings, or type instead.",
+      "nospeech": "I didn't hear anything. Tap the microphone to try again.",
+      "error": "Voice input didn't work. Try again, or type instead.",
+      "hint": "Listening in {{language}}. You will see the text before anything is sent.",
+      "openSettings": "Open phone settings",
+      "unavailable": "Voice input isn't available on this device. Type instead.",
+      "recognized": "Recognized text",
+      "placeholder": "What you say appears here. You can edit it.",
+      "edit": "Edit text",
+      "use": "Use text"
+    },
+    "rooms": {
+      "title": "Which room?",
+      "empty": "You have no rooms on your list right now.",
+      "pick": "Room {{room}}",
+      "describe": "It's not one of my rooms"
+    },
+    "context": {
+      "about": "About: {{name}}",
+      "remove": "Remove subject",
+      "general": "Housekeeping",
+      "shift": "Current shift",
+      "room": "Room",
+      "cleaningSession": "Cleaning session",
+      "task": "Task",
+      "maintenanceIssue": "Maintenance issue",
+      "sop": "Procedure",
+      "shiftWith": "Current shift",
+      "roomWith": "Room {{name}}",
+      "cleaningSessionWith": "Cleaning room {{name}}",
+      "taskWith": "Task {{name}}",
+      "maintenanceIssueWith": "Issue in room {{name}}",
+      "sopWith": "Procedure {{name}}"
+    },
+    "menu": {
+      "title": "Options",
+      "new": "New conversation",
+      "clear": "Clear saved conversation",
+      "clearBody": "This removes the conversation saved on this phone and starts a new one. It can't be undone.",
+      "clearConfirm": "Clear conversation",
+      "voice": "Voice preferences",
+      "voiceBody": "The microphone listens in {{language}}, the same language as the app.",
+      "micSettings": "Microphone permission",
+      "language": "App language",
+      "privacy": "Privacy and AI information",
+      "english": "English",
+      "spanish": "Spanish",
+      "privacyPoints": {
+        "roleOnly": "The assistant only uses what your role is allowed to see. Your hotel and your account are checked by the server, not by this app.",
+        "aiMarked": "Answers written by AI are labeled and can be wrong. Check anything important with your supervisor.",
+        "confirmFirst": "Nothing is created, changed or sent to anyone until you review it and confirm.",
+        "audio": "Your phone turns speech into text. PatelRep never receives or keeps your audio.",
+        "saved": "A text-only copy of this conversation is kept securely on this phone for you. You can clear it any time."
+      }
+    }
+  },
   "copilot": {
     "title": "AI Copilot",
     "placeholder": "Ask anything or create a task...",

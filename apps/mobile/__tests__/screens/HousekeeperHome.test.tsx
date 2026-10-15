@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { APPEARANCE_STORAGE_KEY } from "@/lib/theme/appearance";
 import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { getPublishedBriefing } from "@/lib/ai/shiftBriefingSource";
 
 const mockSetMyRooms = jest.fn();
 
@@ -283,6 +284,18 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(focus).toBeGreaterThan(-1);
       expect(focus).toBeLessThan(progress);
       expect(progress).toBeLessThan(attention);
+    });
+
+    it("publishes its lead room for the assistant: the same room Home leads with", async () => {
+      seedSession("room-108", false, { startedAt: startedMinutesAgo(5) });
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-card")).toBeTruthy());
+
+      await waitFor(() => expect(getPublishedBriefing()?.nextRoom).toBeTruthy());
+      const next = getPublishedBriefing()!.nextRoom!;
+      expect(next.roomNumber).toBe(getByTestId("current-room-number").props.children);
+      expect(next.kind).toBe("continue");
+      expect(next.roomId).toBe("room-108");
     });
 
     it("never invents a timer from a session start that is not believable", async () => {

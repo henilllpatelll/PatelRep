@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { speechModule, useSpeechRecognitionEvent, type SpeechEvent } from "@/lib/voice/speechModule";
+import { speechLocale } from "@/lib/voice/locale";
 
 /* ─── Voice input for the Describe step ─────────────────────────────────────
    Tap -> (ask for the microphone the first time) -> listen -> the words land in the editable text
@@ -93,7 +94,7 @@ export function useVoiceInput({ language, onTranscript }: Options) {
       }
       active.current = true;
       speechModule.start({
-        lang: language.toLowerCase().startsWith("es") ? "es-US" : "en-US",
+        lang: speechLocale(language),
         interimResults: true,
         continuous: false,
         // No recordingOptions: the audio is never saved by the app.

@@ -29,6 +29,7 @@ import { attentionAction } from "@/lib/housekeeping/homeAttention";
 import {
   buildAttentionPreview,
   canQuickMarkClean,
+  leadOf,
   progressCounts,
   resolveHomeState,
   selectUpNext,
@@ -42,6 +43,7 @@ import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
 import { useHousekeeperHome } from "@/lib/housekeeping/useHousekeeperHome";
 import { briefingCacheKey, publishLocalBriefing } from "@/lib/ai/shiftBriefingSource";
+import { nextRoomFromRecommendation } from "@/lib/ai/nextRoom";
 import { buildBriefingFromModel, restrictedRoomNumbers } from "@/lib/housekeeping/homeBriefing";
 import { useShiftBriefing } from "@/lib/housekeeping/useShiftBriefing";
 import { useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
@@ -100,8 +102,9 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       local: buildBriefingFromModel(model, t),
       knownRooms: model.dashboard.all.map((entry) => entry.room.room_number),
       restrictedRooms: restrictedRoomNumbers(model),
+      nextRoom: nextRoomFromRecommendation(leadOf(model), t, ctx),
     });
-  }, [scope, model, language, t]);
+  }, [scope, model, language, t, ctx]);
 
   // Refresh room counts and the shift when navigating back from the room detail screen
   // so Home reflects the latest status immediately. Reads only — never starts a shift.

@@ -39,14 +39,30 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   };
 }
 
+export interface RequestOptions {
+  /** Abort the request from the caller's side (e.g. the person cancelled). Rejects with an `AbortError`. */
+  signal?: AbortSignal;
+}
+
+function abortError(): Error {
+  const error = new Error("Request cancelled.");
+  error.name = "AbortError";
+  return error;
+}
+
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  isRetry = false
+  isRetry = false,
+  options: RequestOptions = {},
 ): Promise<T> {
   const headers = await getAuthHeader();
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const external = options.signal;
+  if (external?.aborted) throw abortError();
+  const onExternalAbort = () => controller?.abort();
+  external?.addEventListener("abort", onExternalAbort);
   let didTimeout = false;
   let timeout: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -69,18 +85,20 @@ async function request<T>(
       timeoutPromise,
     ]);
   } catch (err) {
+    if (external?.aborted) throw abortError();
     if (didTimeout || controller?.signal.aborted) {
       throw new Error(API_TIMEOUT_MESSAGE);
     }
     throw err;
   } finally {
     if (timeout) clearTimeout(timeout);
+    external?.removeEventListener("abort", onExternalAbort);
   }
 
   if (response.status === 401 && !isRetry) {
     const { data, error } = await supabase.auth.refreshSession();
     if (!error && data.session) {
-      return request<T>(method, path, body, true);
+      return request<T>(method, path, body, true, options);
     }
     throw new Error('Session expired. Please log in again.');
   }
@@ -105,7 +123,7 @@ async function request<T>(
 
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
-  post: <T>(path: string, body: unknown) => request<T>("POST", path, body),
+  post: <T>(path: string, body: unknown, options?: RequestOptions) => request<T>("POST", path, body, false, options),
   patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),

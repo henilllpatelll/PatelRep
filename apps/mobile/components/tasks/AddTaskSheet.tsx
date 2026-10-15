@@ -39,6 +39,8 @@ export interface CreatedTask {
 
 interface Props {
   visible: boolean;
+  /** Starting text for the description when no earlier draft is being continued (e.g. handed over by the assistant). */
+  initialText?: string | null;
   isOnline: boolean;
   zone: string | null | undefined;
   language: string;
@@ -71,7 +73,7 @@ function prefillFromRequest(draft: TaskDraft): TaskDraft {
   return next;
 }
 
-export function AddTaskSheet({ visible, isOnline, zone, language, viewer, onClose, onCreated }: Props) {
+export function AddTaskSheet({ visible, initialText = null, isOnline, zone, language, viewer, onClose, onCreated }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const owner = ownerKey(viewer.tenantId, viewer.id);
@@ -118,7 +120,8 @@ export function AddTaskSheet({ visible, isOnline, zone, language, viewer, onClos
         setParsedText(held.parsedText);
         setRestored(hasMeaningfulContent(held.draft));
       } else {
-        setDraft(emptyDraft(viewer.role));
+        const fresh = emptyDraft(viewer.role);
+        setDraft(initialText?.trim() ? { ...fresh, requestText: initialText.trim().slice(0, ADD_TASK_LIMITS.request) } : fresh);
         setStep("describe");
         setParsedText(null);
         setRestored(false);
@@ -133,7 +136,7 @@ export function AddTaskSheet({ visible, isOnline, zone, language, viewer, onClos
       setNow(new Date());
     }
     wasVisible.current = visible;
-  }, [visible, owner, viewer.role]);
+  }, [visible, owner, viewer.role, initialText]);
 
   /* Keep the draft while the sheet is open, so dismissing it by accident loses nothing. */
   useEffect(() => {

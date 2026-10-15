@@ -2995,6 +2995,134 @@
     "signOutAnyway": "Cerrar sesión de todos modos",
     "appVersion": "PatelRep v{{version}}"
   },
+  "assistant": {
+    "fab": {
+      "label": "Abrir asistente",
+      "hint": "Abre el asistente de limpieza. Toque dos veces y mantenga para hablar."
+    },
+    "sheet": {
+      "title": "Asistente de limpieza",
+      "heading": "¿En qué le puedo ayudar?",
+      "placeholder": "Pregunte lo que sea...",
+      "openFull": "Abrir asistente completo"
+    },
+    "screen": {
+      "title": "Asistente PatelRep",
+      "subtitle": "Limpieza · Turno actual",
+      "subtitleStaff": "Su asistente del hotel",
+      "empty": "¿Cómo puedo ayudar?",
+      "placeholder": "Pregunte o describa algo...",
+      "minimize": "Volver al asistente pequeño"
+    },
+    "quick": {
+      "nextRoom": "Mi próxima habitación",
+      "reportIssue": "Reportar un problema",
+      "createTask": "Crear una tarea",
+      "askQuestion": "Hacer una pregunta",
+      "findProcedure": "Buscar un procedimiento"
+    },
+    "thread": {
+      "you": "Usted",
+      "assistant": "Asistente",
+      "problem": "El asistente no pudo responder.",
+      "newReply": "Respuesta nueva"
+    },
+    "cancelSend": "Cancelar y editar su mensaje",
+    "notAuthoritative": "Escrito por IA. Puede equivocarse. Confirme lo importante con su supervisor.",
+    "readInFull": "Leer en el asistente completo",
+    "room": {
+      "kicker": "Habitación {{room}}",
+      "estimate": "unos {{minutes}} min",
+      "source": "De su lista de habitaciones",
+      "open": "Abrir habitación {{room}}",
+      "openRoom": "Abrir habitación",
+      "continue": "Continuar esta habitación",
+      "answer": "La habitación {{room}} es la primera de su lista ahora.",
+      "none": "Todavía no tengo el orden de sus habitaciones. Abra Inicio o Mis habitaciones una vez y vuelva a preguntar.",
+      "openMyRooms": "Abrir Mis habitaciones"
+    },
+    "clarify": {
+      "orType": "O escriba lo que quiso decir."
+    },
+    "confirm": {
+      "title": "Confirmar acción",
+      "prepared": "Preparado a partir de su solicitud",
+      "action": "Acción",
+      "issue": "Problema",
+      "request": "Solicitud",
+      "notYet": "No se crea nada hasta que usted confirme.",
+      "review": "Revisar y confirmar",
+      "edit": "Editar detalles",
+      "doneEditing": "Terminar de editar",
+      "create": "Confirmar y crear",
+      "done": "Listo",
+      "incomplete": "Complete los datos que faltan antes de crearlo.",
+      "needsConnection": "Está sin conexión. Esto necesita conexión, así que todavía no se puede crear."
+    },
+    "voice": {
+      "title": "Entrada de voz",
+      "start": "Empezar a hablar",
+      "stop": "Detener",
+      "tapToSpeak": "Toque el micrófono y hable",
+      "requesting": "Pidiendo acceso al micrófono...",
+      "listening": "Escuchando",
+      "processing": "Terminando...",
+      "denied": "El acceso al micrófono está desactivado. Permítalo en los ajustes del teléfono o escriba.",
+      "nospeech": "No escuché nada. Toque el micrófono para intentar de nuevo.",
+      "error": "La entrada de voz no funcionó. Intente de nuevo o escriba.",
+      "hint": "Escuchando en {{language}}. Verá el texto antes de que se envíe algo.",
+      "openSettings": "Abrir ajustes del teléfono",
+      "unavailable": "La entrada de voz no está disponible en este dispositivo. Escriba.",
+      "recognized": "Texto reconocido",
+      "placeholder": "Lo que diga aparece aquí. Puede editarlo.",
+      "edit": "Editar texto",
+      "use": "Usar texto"
+    },
+    "rooms": {
+      "title": "¿Qué habitación?",
+      "empty": "No tiene habitaciones en su lista ahora.",
+      "pick": "Habitación {{room}}",
+      "describe": "No es una de mis habitaciones"
+    },
+    "context": {
+      "about": "Sobre: {{name}}",
+      "remove": "Quitar tema",
+      "general": "Limpieza",
+      "shift": "Turno actual",
+      "room": "Habitación",
+      "cleaningSession": "Sesión de limpieza",
+      "task": "Tarea",
+      "maintenanceIssue": "Problema de mantenimiento",
+      "sop": "Procedimiento",
+      "shiftWith": "Turno actual",
+      "roomWith": "Habitación {{name}}",
+      "cleaningSessionWith": "Limpiando habitación {{name}}",
+      "taskWith": "Tarea {{name}}",
+      "maintenanceIssueWith": "Problema en habitación {{name}}",
+      "sopWith": "Procedimiento {{name}}"
+    },
+    "menu": {
+      "title": "Opciones",
+      "new": "Conversación nueva",
+      "clear": "Borrar conversación guardada",
+      "clearBody": "Esto elimina la conversación guardada en este teléfono y empieza una nueva. No se puede deshacer.",
+      "clearConfirm": "Borrar conversación",
+      "voice": "Preferencias de voz",
+      "voiceBody": "El micrófono escucha en {{language}}, el mismo idioma de la app.",
+      "micSettings": "Permiso del micrófono",
+      "language": "Idioma de la app",
+      "privacy": "Privacidad e información de IA",
+      "english": "inglés",
+      "spanish": "español",
+      "privacyPoints": {
+        "roleOnly": "El asistente solo usa lo que su puesto puede ver. El servidor verifica su hotel y su cuenta, no esta app.",
+        "aiMarked": "Las respuestas escritas por IA están marcadas y pueden equivocarse. Confirme lo importante con su supervisor.",
+        "confirmFirst": "No se crea, cambia ni envía nada a nadie hasta que lo revise y lo confirme.",
+        "audio": "Su teléfono convierte la voz en texto. PatelRep nunca recibe ni guarda su audio.",
+        "saved": "Se guarda en este teléfono, de forma segura, una copia solo de texto de esta conversación. Puede borrarla cuando quiera."
+      }
+    }
+  },
   "copilot": {
     "title": "Copiloto IA",
     "placeholder": "Pregunta algo o crea una tarea...",

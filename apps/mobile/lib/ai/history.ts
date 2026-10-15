@@ -46,7 +46,10 @@ export interface PersistableMessage {
   role: "user" | "assistant";
   content: string;
   at: number;
-  /** An assistant message that proposed something to create; it and the question that led to it are not saved. */
+  /**
+   * An assistant message whose card is never saved (it proposed something to create, or it showed live data);
+   * it and the question that led to it are not saved either. (Named for the first case it covered.)
+   */
   proposedGuestRequest?: boolean;
   /** Notices (offline, credit limit, ...) are not part of the conversation. */
   notice?: boolean;

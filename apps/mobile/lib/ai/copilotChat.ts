@@ -22,6 +22,8 @@ export interface SendOptions {
   /** Steers the intent; the server whitelists it and checks it against the person's real role. */
   intentHint?: IntentHint;
   context?: AssistantContextIds;
+  /** Lets the person cancel a request that is still waiting for its answer. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -38,11 +40,20 @@ export async function sendCopilotMessage(text: string, options: SendOptions = {}
 
   let raw: unknown;
   try {
-    raw = await api.post<unknown>("/ai/copilot/chat", { message: text, context });
+    const body = { message: text, context };
+    raw = options.signal
+      ? await api.post<unknown>("/ai/copilot/chat", body, { signal: options.signal })
+      : await api.post<unknown>("/ai/copilot/chat", body);
   } catch (error) {
+    if (isAbort(error)) throw error;
     throw toCopilotFailure(error);
   }
   return normalizeCopilotResponse(raw);
+}
+
+/** The request was cancelled by the person; not a failure. */
+export function isAbort(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 export interface ConfirmResult {

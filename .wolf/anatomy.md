@@ -787,5 +787,11 @@
 - apps/mobile/lib/ai/session.ts - assistantScope + resetAssistantSession (called from appStore.setUser on identity change) (~0.4k tok)
 - apps/mobile/lib/ai/shiftBriefingSource.ts / useSharedBriefing.ts - the one shared housekeeping briefing: Home publishes, AI cache, read-only hook (~1.5k tok)
 - apps/mobile/components/ai/ActionPreviewCard.tsx / AssistantMessageView.tsx - shared UI for previews (edit -> Create) and messages (provenance, sources, clarify, notices) (~3k tok)
+- apps/mobile/lib/ai/AssistantProvider.tsx - ONE assistant for the app: shared conversation controller + composer draft + subject (context) + compact-sheet state; useAssistant() (~2.4k tok)
+- apps/mobile/lib/ai/launch.ts - typed openAssistant({contextType, entityId}) API: id-shape validation only (server authorises), contextToIds, contextChanged (~1.2k tok)
+- apps/mobile/lib/ai/{fab,quickActions,nextRoom,actionSummary,useQuickActions,useAssistantA11y}.ts - FAB visibility/placement rules, role-gated quick actions + real destinations, Home-published next room (read-only), confirm-drawer rows, keyboard + screen-reader helpers (~3k tok)
+- apps/mobile/components/ai/{AssistantSheet,AssistantFab,AssistantComposer,AssistantMenu,ContextChip,RoomPickerPanel,ActionConfirmPanel,AssistantCards,palette}.tsx - compact sheet, floating button, shared composer, options menu, subject chip, room picker, confirm-before-create drawer, card set (room/clarify/limit/sources/summary); palette is ALWAYS dark (D-11) (~9k tok)
+- apps/mobile/components/voice/VoiceCapturePanel.tsx + lib/voice/locale.ts - one reusable listening UI (EN/ES, review then Use text, never sends, no audio kept); speechLocale() shared with Add Task voice (~1.8k tok)
+- apps/mobile/app/(app)/copilot/index.tsx - full assistant (header + menu + thread + composer) over the same provider; follows replies only while the reader is at the end (~3k tok)
 - apps/api/services/ai/authorization.py - intent->role matrix, hint whitelist, context sanitising, tenant/assignment-scoped trusted ids (~1.6k tok)
 - apps/api/tests/test_ai_copilot_authorization.py - negative tests: roles, hints, cross-tenant, malformed, confirm verification/idempotency

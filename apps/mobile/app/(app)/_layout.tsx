@@ -10,6 +10,11 @@ import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { CopilotCard } from "@/components/shared/CopilotCard";
 import { CopilotBubble, BUBBLE_RIGHT_INSET, type CopilotBubbleState } from "@/components/shared/CopilotBubble";
+import { AssistantFab } from "@/components/ai/AssistantFab";
+import { AssistantSheet } from "@/components/ai/AssistantSheet";
+import { AssistantProvider } from "@/lib/ai/AssistantProvider";
+import { isAssistantRole } from "@/lib/ai/fab";
+import { speechLocale } from "@/lib/voice/locale";
 import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
@@ -21,7 +26,7 @@ import { useAppLockStore } from "@/stores/appLockStore";
 import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
 
 export default function AppLayout() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
@@ -39,6 +44,8 @@ export default function AppLayout() {
   const cardProgress = useSharedValue(0);
   const hideFab = /^\/my-rooms\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
+  // Housekeepers get the unified assistant (floating button + compact sheet); every other role keeps the corner card.
+  const unifiedAssistant = isAssistantRole(effectiveRole);
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
@@ -106,7 +113,7 @@ export default function AppLayout() {
       return;
     }
     setListening(true);
-    speechModule.start({ lang: "en-US", continuous: false, interimResults: false });
+    speechModule.start({ lang: speechLocale(i18n.resolvedLanguage ?? i18n.language), continuous: false, interimResults: false });
   }
 
   function stopVoiceCapture() {
@@ -169,6 +176,7 @@ export default function AppLayout() {
   return (
     <ToastProvider>
       <AppLockGate>
+      <AssistantProvider>
       <View style={styles.root}>
         <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
           <OfflineBanner />
@@ -227,7 +235,13 @@ export default function AppLayout() {
             />
           ))}
         </Tabs>
-        {!hideFab ? (
+        {unifiedAssistant ? (
+          <>
+            <AssistantFab />
+            <AssistantSheet />
+          </>
+        ) : null}
+        {!unifiedAssistant && !hideFab ? (
           <Animated.View
             style={[StyleSheet.absoluteFill, bubbleAnimatedStyle]}
             pointerEvents={cardOpen ? "none" : "box-none"}
@@ -242,7 +256,7 @@ export default function AppLayout() {
             />
           </Animated.View>
         ) : null}
-        {cardMounted && !hideFab ? (
+        {cardMounted && !unifiedAssistant && !hideFab ? (
           <Animated.View
             style={[StyleSheet.absoluteFill, styles.cardOrigin, cardAnimatedStyle]}
             pointerEvents="box-none"
@@ -258,6 +272,7 @@ export default function AppLayout() {
           </Animated.View>
         ) : null}
       </View>
+      </AssistantProvider>
       </AppLockGate>
     </ToastProvider>
   );

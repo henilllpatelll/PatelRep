@@ -107,7 +107,7 @@ export function CopilotCard({
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
             {messages.map((item) => (
-              <AssistantMessageView key={item.id} message={item} conversation={conversation} compact />
+              <AssistantMessageView key={item.id} message={item} conversation={conversation} compact palette={darkTheme} />
             ))}
             {sending ? (
               <View style={styles.loadingRow}>

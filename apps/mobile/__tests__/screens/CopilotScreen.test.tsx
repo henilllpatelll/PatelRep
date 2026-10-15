@@ -1,19 +1,27 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 const mockApiPost = jest.fn();
+const ROOM_ID = "11111111-1111-4111-8111-111111111111";
+// Every chat request carries an abort signal now, so the person can cancel one that is still waiting.
+const CHAT_OPTIONS = { signal: expect.anything() };
 const mockSecure = new Map<string, string>();
 const mockUseLocalSearchParams = jest.fn(() => ({}) as { prefill?: string; documentId?: string; roomId?: string });
 
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string, options?: Record<string, unknown>) => (options?.room ? `${key}:${options.room}` : key) }),
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) => (options?.room ? `${key}:${options.room}` : key),
+    i18n: { language: "en", resolvedLanguage: "en" },
+  }),
 }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockUseLocalSearchParams(),
-  router: { push: jest.fn() },
+  usePathname: () => "/copilot",
+  router: { push: jest.fn(), back: jest.fn(), canGoBack: () => true, replace: jest.fn(), setParams: jest.fn() },
 }));
 jest.mock("expo-speech-recognition", () => ({
   ExpoSpeechRecognitionModule: { start: jest.fn(), stop: jest.fn() },
@@ -48,6 +56,7 @@ jest.mock("@/lib/auth/secureSessionStorage", () => ({
 }));
 
 import CopilotScreen from "@/app/(app)/copilot";
+import { AssistantProvider } from "@/lib/ai/AssistantProvider";
 import { ApiError } from "@/lib/api/client";
 import { LEGACY_HISTORY_KEY, historyKey, resetLegacyPurgeFlag } from "@/lib/ai/history";
 import { useAppStore } from "@/stores/appStore";
@@ -58,12 +67,30 @@ const BOB = { id: "bob", tenant_id: "hotel-a", role: "housekeeper" } as unknown 
 
 const envelope = (data: Record<string, unknown>) => ({ data });
 
-function renderScreen() {
-  return render(
+const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
+
+function tree() {
+  return (
     <ThemeProvider>
-      <CopilotScreen />
-    </ThemeProvider>,
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <AssistantProvider>
+          <CopilotScreen />
+        </AssistantProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
+}
+
+function renderScreen() {
+  return render(tree());
+}
+
+/** Open the confirmation drawer for the first proposed action, then press its explicit confirm. */
+async function confirmFirst(screen: ReturnType<typeof renderScreen>) {
+  fireEvent.press(screen.getAllByTestId("action-review")[0]);
+  await act(async () => {
+    fireEvent.press(screen.getByTestId("confirm-create"));
+  });
 }
 
 function signIn(user: UserProfile | null, online = true) {
@@ -97,7 +124,7 @@ describe("CopilotScreen — reading the backend envelope", () => {
     await ask(screen, "hello");
     await waitFor(() => expect(screen.getByText("Happy to help.")).toBeTruthy());
     expect(screen.getByTestId("assistant-provenance")).toBeTruthy();
-    expect(mockApiPost).toHaveBeenCalledWith("/ai/copilot/chat", { message: "hello", context: { source: "mobile" } });
+    expect(mockApiPost).toHaveBeenCalledWith("/ai/copilot/chat", { message: "hello", context: { source: "mobile" } }, CHAT_OPTIONS);
   });
 
   it("shows SOP sources", async () => {
@@ -133,10 +160,11 @@ describe("CopilotScreen — reading the backend envelope", () => {
     await act(async () => {
       fireEvent.press(screen.getByTestId("assistant-option-work_order_creation"));
     });
-    expect(mockApiPost).toHaveBeenLastCalledWith("/ai/copilot/chat", {
-      message: "broken tv guest wants",
-      context: { source: "mobile", intent_hint: "work_order_creation" },
-    });
+    expect(mockApiPost).toHaveBeenLastCalledWith(
+      "/ai/copilot/chat",
+      { message: "broken tv guest wants", context: { source: "mobile", intent_hint: "work_order_creation" } },
+      CHAT_OPTIONS,
+    );
   });
 
   it("does not present a legacy/malformed reply as a success", async () => {
@@ -165,15 +193,20 @@ describe("CopilotScreen — action previews and explicit confirmation", () => {
     // Nothing was created by merely previewing.
     expect(mockApiPost).toHaveBeenCalledTimes(1);
 
+    // Reviewing opens the drawer; it is still only a draft until the explicit confirm.
+    fireEvent.press(screen.getByTestId("action-review"));
+    expect(mockApiPost).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByTestId("confirm-edit"));
     fireEvent.changeText(screen.getByLabelText("copilot.action.fields.title"), "Bring 2 towels");
     mockApiPost.mockResolvedValueOnce({ data: { created_count: 1, tasks: [{}] }, meta: { deduplicated: 0 } });
     await act(async () => {
-      fireEvent.press(screen.getByTestId("action-confirm"));
+      fireEvent.press(screen.getByTestId("confirm-create"));
     });
     expect(mockApiPost).toHaveBeenLastCalledWith("/ai/tasks/confirm", [
       { title: "Bring 2 towels", task_type: "guest_request", priority: "urgent", room_id: "room-1" },
     ]);
-    await waitFor(() => expect(screen.getByTestId("action-confirmed")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("confirm-success")).toBeTruthy());
+    expect(screen.getByTestId("action-confirmed")).toBeTruthy();
   });
 
   it("shows several generated actions at once", async () => {
@@ -201,9 +234,7 @@ describe("CopilotScreen — action previews and explicit confirmation", () => {
     await ask(screen, "leak in 305");
     await waitFor(() => expect(screen.getByTestId("action-card-work_order")).toBeTruthy());
     mockApiPost.mockResolvedValueOnce({ data: { created_count: 1, work_orders: [{}] }, meta: { deduplicated: 0 } });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("action-confirm"));
-    });
+    await confirmFirst(screen);
     const [path, body] = mockApiPost.mock.calls[mockApiPost.mock.calls.length - 1];
     expect(path).toBe("/ai/work-orders/confirm");
     expect(body).toEqual([
@@ -223,9 +254,7 @@ describe("CopilotScreen — action previews and explicit confirmation", () => {
     await ask(screen, "crib to 412");
     await waitFor(() => expect(screen.getByTestId("action-card-guest_request")).toBeTruthy());
     mockApiPost.mockResolvedValueOnce({ data: { created_count: 1, requests: [{}] }, meta: { deduplicated: 0 } });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("action-confirm"));
-    });
+    await confirmFirst(screen);
     expect(mockApiPost).toHaveBeenLastCalledWith("/ai/guest-requests/confirm", [
       { title: "Crib", category: "service", priority: "normal", guest_impact: "standard", room_id: "room-4" },
     ]);
@@ -243,10 +272,8 @@ describe("CopilotScreen — action previews and explicit confirmation", () => {
     await ask(screen, "crib to 9999");
     await waitFor(() => expect(screen.getByTestId("action-card-guest_request")).toBeTruthy());
     mockApiPost.mockRejectedValueOnce(new ApiError("Room 9999 was not found in your hotel", 400));
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("action-confirm"));
-    });
-    await waitFor(() => expect(screen.getByTestId("action-failure")).toBeTruthy());
+    await confirmFirst(screen);
+    await waitFor(() => expect(screen.getByTestId("confirm-failure")).toBeTruthy());
     expect(screen.getByText("Room 9999 was not found in your hotel")).toBeTruthy();
     expect(screen.queryByTestId("action-confirmed")).toBeNull();
   });
@@ -258,9 +285,10 @@ describe("CopilotScreen — action previews and explicit confirmation", () => {
     await waitFor(() => expect(screen.getByTestId("action-card-task")).toBeTruthy());
     let release!: () => void;
     mockApiPost.mockReturnValueOnce(new Promise((resolve) => { release = () => resolve({ data: { created_count: 1 } }); }));
+    fireEvent.press(screen.getByTestId("action-review"));
     await act(async () => {
-      fireEvent.press(screen.getByTestId("action-confirm"));
-      fireEvent.press(screen.getByTestId("action-confirm"));
+      fireEvent.press(screen.getByTestId("confirm-create"));
+      fireEvent.press(screen.getByTestId("confirm-create"));
     });
     await act(async () => release());
     expect(mockApiPost.mock.calls.filter(([path]) => path === "/ai/tasks/confirm")).toHaveLength(1);
@@ -294,32 +322,37 @@ describe("CopilotScreen — failures and states", () => {
   it("a quick action routes the next message to the matching intent", async () => {
     mockApiPost.mockResolvedValue(envelope({ response_type: "answer", message: "ok" }));
     const screen = renderScreen();
-    fireEvent.press(screen.getByText("copilot.quickActions.searchSOPs"));
+    fireEvent.press(screen.getByTestId("quick-findProcedure"));
     expect(screen.getByTestId("copilot-input").props.value).toBe("copilot.quickPrompts.searchSOPs");
     await act(async () => {
       fireEvent.press(screen.getByTestId("copilot-send"));
     });
-    expect(mockApiPost).toHaveBeenCalledWith("/ai/copilot/chat", {
-      message: "copilot.quickPrompts.searchSOPs",
-      context: { source: "mobile", intent_hint: "sop_query" },
-    });
+    expect(mockApiPost).toHaveBeenCalledWith(
+      "/ai/copilot/chat",
+      { message: "copilot.quickPrompts.searchSOPs", context: { source: "mobile", intent_hint: "sop_query" } },
+      CHAT_OPTIONS,
+    );
   });
 
   it("sends a deep-linked prefill exactly once, with only ids for the server to verify", async () => {
-    mockUseLocalSearchParams.mockReturnValue({ prefill: "Room 214 needs towels", roomId: "room-1" });
+    mockUseLocalSearchParams.mockReturnValue({ prefill: "Room 214 needs towels", roomId: ROOM_ID });
     mockApiPost.mockResolvedValue(envelope({ response_type: "answer", message: "ok" }));
     const screen = renderScreen();
     await waitFor(() => expect(mockApiPost).toHaveBeenCalledTimes(1));
-    screen.rerender(
-      <ThemeProvider>
-        <CopilotScreen />
-      </ThemeProvider>,
-    );
+    screen.rerender(tree());
     expect(mockApiPost).toHaveBeenCalledTimes(1);
     expect(mockApiPost.mock.calls[0][1]).toEqual({
       message: "Room 214 needs towels",
-      context: { source: "mobile", room_id: "room-1" },
+      context: { source: "mobile", room_id: ROOM_ID },
     });
+  });
+
+  it("ignores an id that is not shaped like a record id instead of sending it", async () => {
+    mockUseLocalSearchParams.mockReturnValue({ prefill: "Hello", roomId: "not-an-id; drop table" });
+    mockApiPost.mockResolvedValue(envelope({ response_type: "answer", message: "ok" }));
+    renderScreen();
+    await waitFor(() => expect(mockApiPost).toHaveBeenCalledTimes(1));
+    expect(mockApiPost.mock.calls[0][1]).toEqual({ message: "Hello", context: { source: "mobile" } });
   });
 });
 
@@ -359,8 +392,9 @@ describe("CopilotScreen — history belongs to one person", () => {
     const screen = renderScreen();
     await ask(screen, "a question");
     await waitFor(() => expect(mockSecure.has(historyKey("hotel-a:alice"))).toBe(true));
+    fireEvent.press(screen.getByTestId("assistant-menu-button"));
     await act(async () => {
-      fireEvent.press(screen.getByTestId("copilot-new-chat"));
+      fireEvent.press(screen.getByTestId("assistant-menu-new"));
     });
     expect(screen.queryByText("An answer")).toBeNull();
     await waitFor(() => expect(mockSecure.has(historyKey("hotel-a:alice"))).toBe(false));

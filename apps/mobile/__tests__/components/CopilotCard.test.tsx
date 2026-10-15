@@ -148,7 +148,11 @@ describe("CopilotCard — inline chat uses the same contract as the full assista
     await ask(screen, "What's next?");
     await waitFor(() => expect(screen.getByText("Sure, on it.")).toBeTruthy());
     expect(screen.getByText("What's next?")).toBeTruthy();
-    expect(mockApiPost).toHaveBeenCalledWith("/ai/copilot/chat", { message: "What's next?", context: { source: "mobile" } });
+    expect(mockApiPost).toHaveBeenCalledWith(
+      "/ai/copilot/chat",
+      { message: "What's next?", context: { source: "mobile" } },
+      { signal: expect.anything() },
+    );
     expect(onClose).not.toHaveBeenCalled();
   });
 

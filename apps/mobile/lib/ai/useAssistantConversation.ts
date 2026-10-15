@@ -3,6 +3,7 @@ import { useAppStore } from "@/stores/appStore";
 import { CopilotFailure, toCopilotFailure, type ClarifyOption, type CopilotOutcome } from "@/lib/ai/contract";
 import {
   confirmAction,
+  isAbort,
   newRequestKey,
   sendCopilotMessage,
   type AssistantContextIds,
@@ -15,6 +16,7 @@ import {
   type ActionItem,
   type AssistantMessage,
   type ConversationState,
+  type LocalCard,
 } from "@/lib/ai/conversationState";
 import { isPreviewValid, type DraftPatch } from "@/lib/ai/drafts";
 import { clearHistory as clearSavedHistory, loadHistory, saveHistory } from "@/lib/ai/history";
@@ -36,6 +38,10 @@ export interface AssistantConversation {
   /** Create what the person reviewed. Nothing is created until this is called. */
   confirm: (messageId: string, actionId: string) => Promise<void>;
   dismissAction: (messageId: string, actionId: string) => void;
+  /** Add a question and an answer the app composed from the person's own data. Nothing is sent anywhere. */
+  showLocal: (question: string, answer: string, card: LocalCard) => void;
+  /** Stop waiting for the reply to the message in flight. Returns the question's text so it can be put back in the composer. */
+  cancel: () => string | null;
   /** Forget the open conversation and its saved copy; the next message starts fresh. */
   startNewConversation: () => void;
   /** Remove this person's saved conversation (and the open one). */
@@ -72,6 +78,7 @@ function replyFromOutcome(outcome: CopilotOutcome, askedText: string): Assistant
     at: Date.now(),
     kind: outcome.kind,
     provenance: outcome.provenance,
+    trusted: outcome.trustedContext,
     askedText,
   };
   switch (outcome.kind) {
@@ -118,22 +125,33 @@ export function useAssistantConversation({ persist = false, context }: Options =
   contextRef.current = context;
   const sendingRef = useRef(false);
   const confirmingRef = useRef(new Set<string>());
+  // The one request that may still answer. Anything else coming back (cancelled, superseded, another person) is dropped.
+  const flightRef = useRef<{ messageId: string; text: string; controller: AbortController } | null>(null);
+
+  const abortFlight = useCallback(() => {
+    const flight = flightRef.current;
+    flightRef.current = null;
+    sendingRef.current = false;
+    flight?.controller.abort();
+    return flight;
+  }, []);
 
   // A different person or hotel (or sign-out) never sees the previous conversation.
   useEffect(() => {
+    abortFlight();
     dispatch({ type: "scope", scope });
-  }, [scope]);
+  }, [scope, abortFlight]);
 
   // Sign-out / account switch resets everything held in memory, even if this component stays mounted.
   useEffect(
     () =>
       onAssistantSessionReset(() => {
-        sendingRef.current = false;
+        abortFlight();
         confirmingRef.current.clear();
         // Empty at once; the scope effect above then starts the new person's conversation.
         dispatch({ type: "clear" });
       }),
-    [],
+    [abortFlight],
   );
 
   // Saved history for this person, read once per conversation.
@@ -164,19 +182,50 @@ export function useAssistantConversation({ persist = false, context }: Options =
     if (!trimmed || !mine || sendingRef.current) return;
     // A double tap while a (paid) request is on its way is one request, not two.
     sendingRef.current = true;
-    dispatch({ type: "sent", message: { id: nextId("m"), role: "user", content: trimmed, at: Date.now() } });
+    const messageId = nextId("m");
+    const flight = { messageId, text: trimmed, controller: new AbortController() };
+    flightRef.current = flight;
+    dispatch({ type: "sent", message: { id: messageId, role: "user", content: trimmed, at: Date.now() } });
+    // Only the request that is still `flightRef` may answer: cancelled, superseded or another person's replies are dropped.
+    const current = () => flightRef.current === flight && scopeRef.current === mine;
     try {
       if (!onlineRef.current) throw new CopilotFailure("offline", "offline");
-      const outcome = await sendCopilotMessage(trimmed, { ...options, context: options.context ?? contextRef.current });
-      if (scopeRef.current !== mine) return; // the person changed while this was in flight
+      const outcome = await sendCopilotMessage(trimmed, {
+        ...options,
+        context: options.context ?? contextRef.current,
+        signal: flight.controller.signal,
+      });
+      if (!current()) return;
       dispatch({ type: "replied", message: replyFromOutcome(outcome, trimmed) });
     } catch (error) {
-      if (scopeRef.current !== mine) return;
+      if (!current() || isAbort(error)) return;
       dispatch({ type: "replied", message: noticeMessage(toCopilotFailure(error).kind, trimmed) });
     } finally {
-      sendingRef.current = false;
+      if (flightRef.current === flight) {
+        flightRef.current = null;
+        sendingRef.current = false;
+      }
     }
   }, []);
+
+  const showLocal = useCallback((question: string, answer: string, card: LocalCard) => {
+    if (!scopeRef.current || sendingRef.current) return;
+    const at = Date.now();
+    dispatch({
+      type: "local",
+      messages: [
+        { id: nextId("m"), role: "user", content: question, at },
+        { id: nextId("m"), role: "assistant", content: answer, at, kind: "local", provenance: "verified", local: card },
+      ],
+    });
+  }, []);
+
+  const cancel = useCallback((): string | null => {
+    const flight = abortFlight();
+    if (!flight) return null;
+    dispatch({ type: "cancel", messageId: flight.messageId });
+    return flight.text;
+  }, [abortFlight]);
 
   const chooseOption = useCallback(
     async (message: AssistantMessage, option: ClarifyOption) => {
@@ -241,16 +290,16 @@ export function useAssistantConversation({ persist = false, context }: Options =
   }, []);
 
   const startNewConversation = useCallback(() => {
-    sendingRef.current = false;
+    abortFlight();
     dispatch({ type: "clear" });
     if (persist && scopeRef.current) void clearSavedHistory(scopeRef.current);
-  }, [persist]);
+  }, [persist, abortFlight]);
 
   const clearHistory = useCallback(async () => {
-    sendingRef.current = false;
+    abortFlight();
     dispatch({ type: "clear" });
     if (scopeRef.current) await clearSavedHistory(scopeRef.current);
-  }, []);
+  }, [abortFlight]);
 
   return useMemo(
     () => ({
@@ -263,9 +312,11 @@ export function useAssistantConversation({ persist = false, context }: Options =
       editAction,
       confirm,
       dismissAction,
+      showLocal,
+      cancel,
       startNewConversation,
       clearHistory,
     }),
-    [state.scope, state.messages, state.sending, scope, isOnline, send, chooseOption, editAction, confirm, dismissAction, startNewConversation, clearHistory],
+    [state.scope, state.messages, state.sending, scope, isOnline, send, chooseOption, editAction, confirm, dismissAction, showLocal, cancel, startNewConversation, clearHistory],
   );
 }

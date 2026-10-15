@@ -28,11 +28,13 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockPush = jest.fn();
+const mockSetParams = jest.fn();
+let mockSearch: Record<string, string> = {};
 jest.mock("expo-router", () => {
   const { useEffect } = jest.requireActual("react");
   return {
-    router: { push: (...args: unknown[]) => mockPush(...args), back: jest.fn(), setParams: jest.fn() },
-    useLocalSearchParams: () => ({}),
+    router: { push: (...args: unknown[]) => mockPush(...args), back: jest.fn(), setParams: (...args: unknown[]) => mockSetParams(...args) },
+    useLocalSearchParams: () => mockSearch,
     useFocusEffect: (callback: () => void) => {
       useEffect(callback, [callback]);
     },
@@ -140,6 +142,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   useTaskOutbox.setState({ scope: null, entries: {}, hydrated: false, sending: {} });
   jest.clearAllMocks();
+  mockSearch = {};
   mockLanguage = "en";
   mockOnline = true;
   mockRole = "housekeeper";
@@ -525,6 +528,23 @@ describe("Housekeeper Tasks — entry points, roles, language, accessibility", (
     expect(getByText("What needs to be done?")).toBeTruthy();
     expect(getByTestId("add-task-input")).toBeTruthy();
     expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("opens Add Task once, with the assistant's starting text, when sent here by the assistant", async () => {
+    mockSearch = { add: "1", prefill: "Fix the squeaky cart" };
+    const { getByTestId } = await ready();
+
+    expect(getByTestId("add-task-sheet")).toBeTruthy();
+    expect(getByTestId("add-task-input").props.value).toBe("Fix the squeaky cart");
+    // The request is single use, and handing over text creates nothing.
+    expect(mockSetParams).toHaveBeenCalledWith({ add: undefined, prefill: undefined });
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("does not open Add Task on its own", async () => {
+    const { queryByTestId } = await ready();
+    expect(queryByTestId("add-task-sheet")).toBeNull();
+    expect(mockSetParams).not.toHaveBeenCalledWith({ add: undefined, prefill: undefined });
   });
 
   it("creates a task through Describe, Review and Create, then refreshes and offers View task", async () => {
