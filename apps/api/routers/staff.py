@@ -4,7 +4,7 @@ from datetime import date as date_type
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from core.config import settings
 from core.database import supabase
@@ -15,6 +15,7 @@ from models.requests import (
     AddStaffDirectRequest,
     CreateCustomRoleRequest,
     UpdateCustomRoleRequest,
+    UpdateOwnProfileRequest,
     UpdatePushTokenRequest,
     UpdateStaffMemberProfileRequest,
 )
@@ -214,6 +215,151 @@ async def update_push_token(
         .eq("id", current_user.user_id)\
         .execute()
     return {"data": {"success": True}}
+
+
+# --- Self-service profile ---------------------------------------------------
+# The caller's identity always comes from the verified JWT (CurrentUser); no endpoint here takes a
+# user id. Only preferred_name and the caller's own avatar are writable — role, tenant, full name and
+# the rest stay hotel-managed (also enforced in the DB by trg_user_profiles_self_update_guard).
+AVATAR_BUCKET = "avatars"
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+AVATAR_SIGNED_URL_SECONDS = 3600
+AVATAR_TYPES = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png"}
+
+
+def _image_matches_type(content_type: str, data: bytes) -> bool:
+    """Trust the bytes, not the client-declared MIME type."""
+    if content_type in ("image/jpeg", "image/jpg"):
+        return data[:3] == b"\xff\xd8\xff"
+    if content_type == "image/png":
+        return data[:8] == b"\x89PNG\r\n\x1a\n"
+    return False
+
+
+def _avatar_signed_url(path: Optional[str]) -> Optional[str]:
+    if not path:
+        return None
+    try:
+        res = supabase.storage.from_(AVATAR_BUCKET).create_signed_url(path, AVATAR_SIGNED_URL_SECONDS)
+        return (res or {}).get("signedURL") or None
+    except Exception:
+        logger.warning("Avatar signed URL failed for path=%s", path, exc_info=True)
+        return None
+
+
+def _remove_avatar_object(path: Optional[str]) -> None:
+    if not path:
+        return
+    try:
+        supabase.storage.from_(AVATAR_BUCKET).remove([path])
+    except Exception:
+        logger.warning("Could not delete old avatar object path=%s", path, exc_info=True)
+
+
+def _own_profile_row(current_user: CurrentUser) -> dict:
+    res = supabase.table("user_profiles")\
+        .select("id, full_name, preferred_name, avatar_url, avatar_path")\
+        .eq("id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return res.data[0]
+
+
+def _own_profile_payload(current_user: CurrentUser, row: dict) -> dict:
+    hotel = supabase.table("tenants").select("name").eq("id", current_user.hotel_id).execute()
+    return {
+        "id": current_user.user_id,
+        "full_name": row.get("full_name"),
+        "preferred_name": row.get("preferred_name"),
+        "email": current_user.email or None,
+        "role": current_user.role,
+        "hotel_id": current_user.hotel_id,
+        "hotel_name": ((hotel.data or [{}])[0]).get("name"),
+        # Own upload (signed, expires) wins; otherwise the GM-set external URL, if any.
+        "avatar_url": _avatar_signed_url(row.get("avatar_path")) or row.get("avatar_url") or None,
+        "has_uploaded_avatar": bool(row.get("avatar_path")),
+    }
+
+
+@router.get("/me/profile")
+async def get_own_profile(current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": _own_profile_payload(current_user, _own_profile_row(current_user))}
+
+
+@router.patch("/me/profile")
+async def update_own_profile(
+    body: UpdateOwnProfileRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Change the caller's own preferred (display) name. Nothing else is writable here."""
+    update_data = body.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=422, detail="No valid fields to update")
+    result = supabase.table("user_profiles")\
+        .update(update_data)\
+        .eq("id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return {"data": _own_profile_payload(current_user, _own_profile_row(current_user))}
+
+
+@router.post("/me/avatar")
+async def upload_own_avatar(
+    file: UploadFile = File(...),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Replace the caller's own profile photo (JPEG/PNG, <= 2 MB) in the private avatars bucket."""
+    row = _own_profile_row(current_user)
+    old_path = row.get("avatar_path")
+    if file.content_type not in AVATAR_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG or PNG images are allowed")
+    contents = await file.read(AVATAR_MAX_BYTES + 1)
+    if len(contents) > AVATAR_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Photo must be 2 MB or smaller")
+    if not contents or not _image_matches_type(file.content_type, contents):
+        raise HTTPException(status_code=400, detail="That file is not a valid image")
+
+    # Opaque, server-chosen key: {tenant}/{user}/{random}.{ext}; the client never supplies a path.
+    path = f"{current_user.hotel_id}/{current_user.user_id}/{secrets.token_hex(8)}.{AVATAR_TYPES[file.content_type]}"
+    try:
+        supabase.storage.from_(AVATAR_BUCKET).upload(
+            path, contents, {"content-type": file.content_type, "upsert": "false"}
+        )
+    except Exception:
+        logger.warning("Avatar upload failed for user=%s", current_user.user_id, exc_info=True)
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+    try:
+        result = supabase.table("user_profiles")\
+            .update({"avatar_path": path})\
+            .eq("id", current_user.user_id)\
+            .eq("tenant_id", current_user.hotel_id)\
+            .execute()
+        if not result.data:
+            raise RuntimeError("profile row not updated")
+    except Exception:
+        _remove_avatar_object(path)
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+    _remove_avatar_object(old_path)
+    return {"data": _own_profile_payload(current_user, {**row, "avatar_path": path})}
+
+
+@router.delete("/me/avatar")
+async def remove_own_avatar(current_user: CurrentUser = Depends(get_current_user)):
+    row = _own_profile_row(current_user)
+    old_path = row.get("avatar_path")
+    supabase.table("user_profiles")\
+        .update({"avatar_path": None})\
+        .eq("id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    _remove_avatar_object(old_path)
+    return {"data": _own_profile_payload(current_user, {**row, "avatar_path": None})}
 
 
 @router.get("/me/effective-role")

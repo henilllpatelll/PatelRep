@@ -12,6 +12,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { useOwnProfile } from "@/lib/settings/useOwnProfile";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -23,7 +24,9 @@ export default function SettingsHomeScreen() {
   const theme = useTheme();
   const { preference } = useAppearancePreference();
   const { unreadCount } = useAppStore();
-  const { name, roleLabel, hotelName, isOnline, pendingCount, connection } = useSettingsIdentity();
+  const { user, name, roleLabel, hotelName, isOnline, pendingCount, connection } = useSettingsIdentity();
+  // Refreshes the short-lived photo URL and mirrors the latest display name into the user store.
+  const { profile } = useOwnProfile();
   const appVersion = Constants.expoConfig?.version ?? "dev";
 
   const appearanceLabel = t(`profile.appearance.${preference}`);
@@ -71,7 +74,7 @@ export default function SettingsHomeScreen() {
         ]}
         testID="settings-identity"
       >
-        <Avatar name={name} size={56} />
+        <Avatar name={name} size={56} uri={profile?.avatar_url ?? user?.avatar_url ?? null} />
         <View style={styles.identityText}>
           <Text
             maxFontSizeMultiplier={MAX_FONT_SCALE}

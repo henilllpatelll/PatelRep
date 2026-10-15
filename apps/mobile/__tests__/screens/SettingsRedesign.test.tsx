@@ -107,7 +107,6 @@ jest.mock("@/stores/appStore", () => {
 });
 
 import SettingsHome from "@/app/(app)/profile";
-import PersonalScreen from "@/app/(app)/profile/personal";
 import SecurityScreen from "@/app/(app)/profile/security";
 import NotificationSettings from "@/app/(app)/profile/notifications";
 import AppearanceScreen from "@/app/(app)/profile/appearance";
@@ -145,7 +144,9 @@ beforeEach(() => {
 
 describe("Settings home", () => {
   it("renders the identity card with the real name, role, hotel, and connection state", async () => {
-    (api.get as jest.Mock).mockResolvedValueOnce({ data: { name: "Lone Star Inn" } });
+    (api.get as jest.Mock).mockImplementation((path: string) =>
+      path.startsWith("/hotels/") ? Promise.resolve({ data: { name: "Lone Star Inn" } }) : new Promise(() => {}),
+    );
     const { getByText, getByTestId } = render(<SettingsHome />);
 
     expect(getByTestId("settings-title").props.children).toBe("Settings");
@@ -350,7 +351,6 @@ describe("Settings home sign out", () => {
 
 describe("Settings destination screens", () => {
   const shells = [
-    ["Personal Information", PersonalScreen],
     ["Security & Sign-in", SecurityScreen],
     ["Notifications", NotificationSettings],
     ["Help & Support", HelpScreen],
@@ -365,14 +365,14 @@ describe("Settings destination screens", () => {
   });
 
   it("back goes to the previous screen when there is history", () => {
-    const { getByTestId } = render(<PersonalScreen />);
+    const { getByTestId } = render(<SecurityScreen />);
     fireEvent.press(getByTestId("settings-back"));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it("back falls back to the Settings root after a deep link with no history", () => {
     mockCanGoBack = false;
-    const { getByTestId } = render(<PersonalScreen />);
+    const { getByTestId } = render(<SecurityScreen />);
     fireEvent.press(getByTestId("settings-back"));
     expect(mockBack).not.toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith("/(app)/profile");

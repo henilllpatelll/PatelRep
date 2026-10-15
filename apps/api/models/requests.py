@@ -1549,6 +1549,15 @@ class UpdatePushTokenRequest(SanitizedBaseModel):
     token: str = Field(min_length=1, max_length=512)
 
 
+class UpdateOwnProfileRequest(SanitizedBaseModel):
+    """Self-service profile fields. Everything else (name, role, tenant, phone, ...) is hotel-managed,
+    so extra=forbid turns any attempt to send it into a 422."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    preferred_name: Optional[str] = Field(default=None, min_length=1, max_length=40)
+
+
 # --- Custom Roles ---
 class CreateCustomRoleRequest(SanitizedBaseModel):
     name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)

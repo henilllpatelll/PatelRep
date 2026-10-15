@@ -60,6 +60,8 @@ export interface UserProfile {
   full_name: string;
   language_pref: "en" | "es";
   preferred_name?: string;
+  /** Signed/hotel-set photo URL; filled from GET /staff/me/profile, never a storage key. */
+  avatar_url?: string | null;
   expo_push_token?: string;
   is_active?: boolean;
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -136,8 +137,11 @@ export function Mono({ children, style }: { children: React.ReactNode; style?: S
   return <Text style={[styles.mono, style]}>{children}</Text>;
 }
 
-export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
+/** Initials circle; shows `uri` (a profile photo) when it loads, and falls back to initials if it cannot. */
+export function Avatar({ name, size = 34, uri }: { name: string; size?: number; uri?: string | null }) {
   const theme = useTheme();
+  const [failedUri, setFailedUri] = React.useState<string | null>(null);
+  const showPhoto = !!uri && failedUri !== uri;
   const initials = name
     .split(" ")
     .filter(Boolean)
@@ -164,17 +168,28 @@ export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
           height: size,
           borderRadius: size / 2,
           backgroundColor: palette[hash % palette.length],
+          overflow: "hidden",
         },
       ]}
     >
-      <Text
-        style={[
-          styles.avatarText,
-          { color: theme.shell.ink, fontSize: size * 0.38 },
-        ]}
-      >
-        {initials || "?"}
-      </Text>
+      {showPhoto ? (
+        <Image
+          source={{ uri: uri as string }}
+          style={{ width: size, height: size }}
+          onError={() => setFailedUri(uri as string)}
+          accessibilityIgnoresInvertColors
+          testID="avatar-image"
+        />
+      ) : (
+        <Text
+          style={[
+            styles.avatarText,
+            { color: theme.shell.ink, fontSize: size * 0.38 },
+          ]}
+        >
+          {initials || "?"}
+        </Text>
+      )}
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
+import { displayNameFor } from "@/lib/settings/displayName";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -53,7 +54,7 @@ export function useSettingsIdentity() {
 
   return {
     user,
-    name: user?.full_name ?? t("settings.staffFallback"),
+    name: displayNameFor(user) || t("settings.staffFallback"),
     role,
     roleLabel,
     hotelName,
