@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { localDate } from "@/lib/utils/date";
 import { useAppStore } from "@/stores/appStore";
+import { displayNameFor } from "@/lib/settings/displayName";
 import { R } from "@/components/shared/tokens";
 import { Avatar, IconButton } from "@/components/shared/mobileHandoff";
 import { HousekeeperHome } from "@/components/home/HousekeeperHomeScreen";
@@ -22,16 +23,16 @@ export default function HousekeeperHomeScreen() {
   const effectiveRole = user?.effective_role ?? user?.role;
 
   if (String(effectiveRole) === "engineer") {
-    return <EngineerHome name={user?.full_name ?? "Engineer"} />;
+    return <EngineerHome name={displayNameFor(user) || "Engineer"} />;
   }
   if (effectiveRole === "housekeeping_supervisor") {
-    return <SupervisorHome name={user?.full_name ?? "Supervisor"} />;
+    return <SupervisorHome name={displayNameFor(user) || "Supervisor"} />;
   }
   if (effectiveRole === "front_desk") {
-    return <FrontDeskHomeScreen name={user?.full_name ?? "Front Desk"} />;
+    return <FrontDeskHomeScreen name={displayNameFor(user) || "Front Desk"} />;
   }
   if (effectiveRole === "gm") {
-    return <GMHomeScreen name={user?.full_name ?? "GM"} />;
+    return <GMHomeScreen name={displayNameFor(user) || "GM"} />;
   }
   return <HousekeeperHome enabled={effectiveRole === "housekeeper"} />;
 }

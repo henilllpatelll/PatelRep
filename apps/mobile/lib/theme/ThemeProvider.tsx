@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useColorScheme } from "react-native";
@@ -30,6 +31,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [preference, setPreferenceState] =
     useState<AppearancePreference>("system");
   const [isHydrated, setIsHydrated] = useState(false);
+  // Set once the person picks a mode, so a slow storage read can never overwrite that choice.
+  const chosenRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -39,7 +42,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const savedPreference = await AsyncStorage.getItem(
           APPEARANCE_STORAGE_KEY,
         );
-        if (isMounted) {
+        if (isMounted && !chosenRef.current) {
           setPreferenceState(
             normalizeAppearancePreference(savedPreference),
           );
@@ -64,6 +67,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setPreference = useCallback(
     async (next: AppearancePreference) => {
+      chosenRef.current = true;
       setPreferenceState(next);
       try {
         await AsyncStorage.setItem(APPEARANCE_STORAGE_KEY, next);

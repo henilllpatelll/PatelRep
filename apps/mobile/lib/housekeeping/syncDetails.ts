@@ -1,5 +1,5 @@
 import { getSyncQueueSummary, type SyncQueueSummaryRow } from "@/lib/offline/db";
-import { useAppStore, type OfflineAction } from "@/stores/appStore";
+import { MAX_ACTION_ATTEMPTS, useAppStore, type OfflineAction } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { entriesForCurrentUser, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import type { OutboxEntry } from "@/lib/tasks/offline/outboxPolicy";
@@ -94,7 +94,7 @@ function actionRows(actions: OfflineAction[]): SyncRow[] {
     key: `action-${action.id}`,
     roomId: action.type === "room_status" ? action.entityId : null,
     kind: ACTION_KIND[action.type] ?? "other",
-    state: "pending" as SyncState,
+    state: ((action.attempts ?? 0) >= MAX_ACTION_ATTEMPTS ? "failed" : (action.attempts ?? 0) > 0 ? "retrying" : "pending") as SyncState,
     savedAt: action.createdAt ?? null,
   }));
 }

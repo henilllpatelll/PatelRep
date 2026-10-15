@@ -18,17 +18,75 @@
     "login": "Iniciar sesión",
     "email": "Correo electrónico",
     "password": "Contraseña",
-    "magicLink": "Enviar enlace mágico",
-    "magicLinkSent": "Revisa tu correo para el enlace de acceso",
-    "signInWith": "Iniciar sesión con correo/contraseña",
-    "propertySubtitle": "v2 - {{property}}",
+    "passwordForm": {
+      "current": "Contraseña actual",
+      "new": "Nueva contraseña",
+      "confirm": "Confirma la nueva contraseña",
+      "requirements": "Usa al menos {{min}} caracteres. Una frase más larga es más segura. Puedes pegar desde un administrador de contraseñas.",
+      "errors": {
+        "currentRequired": "Ingresa tu contraseña actual.",
+        "tooShort": "Usa al menos {{min}} caracteres.",
+        "mismatch": "Las dos contraseñas no coinciden.",
+        "same": "Elige una contraseña distinta a la actual.",
+        "invalidCredentials": "Tu contraseña actual no es correcta.",
+        "weakPassword": "Esa contraseña es muy fácil de adivinar. Prueba una frase más larga.",
+        "samePassword": "Elige una contraseña distinta a la actual.",
+        "rateLimited": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+        "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+        "reauthRequired": "Por tu seguridad, cierra sesión, vuelve a iniciarla e inténtalo otra vez.",
+        "emailNotConfirmed": "Tu correo aún no está confirmado.",
+        "linkExpired": "Este enlace venció. Solicita uno nuevo.",
+        "generic": "No pudimos actualizar tu contraseña. Inténtalo de nuevo."
+      }
+    },
+    "magicLink": "Envíame un enlace de acceso",
+    "magicLinkSent": "Si ese correo pertenece a una cuenta de PatelRep, te llegará un enlace de acceso. Revisa tu bandeja de entrada.",
     "signInEyebrow": "Iniciar sesión",
     "welcomeBack": "Te damos la bienvenida.",
     "startShift": "Inicia sesión para comenzar tu turno.",
-    "signInWithPhone": "Iniciar sesión con teléfono",
-    "newTo": "¿Primera vez en PatelRep?",
-    "getInviteLink": "Obtén el enlace de invitación",
-    "errorTitle": "Error"
+    "errorTitle": "Error",
+    "staffSignIn": "Acceso del personal",
+    "magicLinkIntro": "Te enviaremos por correo un enlace que inicia sesión en este teléfono.",
+    "signInWithEmailLink": "Mejor envíame un enlace por correo",
+    "signInWithPassword": "Mejor iniciar sesión con contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "inviteNotice": "¿Eres nuevo? Pide una invitación al administrador de tu hotel.",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "back": "Atrás",
+    "errors": {
+      "emailRequired": "Ingresa tu correo electrónico.",
+      "emailInvalid": "Ingresa un correo electrónico válido.",
+      "passwordRequired": "Ingresa tu contraseña.",
+      "invalidCredentials": "El correo o la contraseña no son correctos. Inténtalo de nuevo.",
+      "emailNotConfirmed": "Tu correo aún no está confirmado. Revisa tu bandeja de entrada para la invitación.",
+      "rateLimited": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+      "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+      "generic": "No pudimos iniciar tu sesión. Inténtalo de nuevo."
+    },
+    "forgot": {
+      "title": "Restablece tu contraseña",
+      "body": "Ingresa el correo con el que inicias sesión y te enviaremos un enlace para elegir una nueva contraseña.",
+      "sentBody": "Revisa tu correo para los siguientes pasos.",
+      "sentNote": "Si esa dirección pertenece a una cuenta de PatelRep, te llegará un enlace para restablecerla. El enlace funciona una sola vez y vence pronto.",
+      "send": "Enviar enlace"
+    },
+    "reset": {
+      "title": "Elige una nueva contraseña",
+      "body": "Elige una contraseña que no uses en otro lugar. Una frase de varias palabras funciona bien.",
+      "save": "Guardar contraseña",
+      "doneTitle": "Contraseña actualizada",
+      "doneBody": "Tu nueva contraseña está guardada. Úsala la próxima vez que inicies sesión.",
+      "continue": "Continuar"
+    },
+    "callback": {
+      "expiredTitle": "Este enlace venció",
+      "expiredBody": "Los enlaces de acceso y restablecimiento funcionan una vez y vencen rápido. Vuelve y solicita uno nuevo.",
+      "failedTitle": "No pudimos usar este enlace",
+      "failedBody": "Puede estar incompleto o ya se usó. Vuelve e inténtalo de nuevo.",
+      "backToSignIn": "Volver a iniciar sesión"
+    }
   },
   "tabs": {
     "home": "Inicio",
@@ -2572,38 +2630,368 @@
       "noteTooLong": "Los detalles son demasiado largos."
     }
   },
+  "security": {
+    "sections": {
+      "password": "Contraseña",
+      "protection": "Protección de la app",
+      "devices": "Sesiones de dispositivos",
+      "actions": "Seguridad de la cuenta"
+    },
+    "password": {
+      "title": "Cambiar contraseña",
+      "subtitle": "Elige una nueva contraseña",
+      "intro": "Ingresa tu contraseña actual y luego elige una nueva. Seguirás con la sesión iniciada en este teléfono.",
+      "save": "Guardar contraseña",
+      "saved": "Contraseña actualizada"
+    },
+    "biometric": {
+      "title": "Bloqueo biométrico",
+      "faceId": "Face ID",
+      "touchId": "Touch ID",
+      "face": "Desbloqueo facial",
+      "fingerprint": "Huella digital",
+      "generic": "Biometría",
+      "on": "Activado: desbloquea con biometría o el código del teléfono",
+      "off": "Desactivado: pedir {{name}} para abrir PatelRep",
+      "checking": "Revisando este dispositivo…",
+      "notEnrolled": "Primero configura Face ID, una huella o un bloqueo de pantalla en los ajustes del teléfono.",
+      "unsupported": "No disponible en este dispositivo.",
+      "note": "El bloqueo protege PatelRep en este teléfono. No es un nuevo inicio de sesión: tu cuenta sigue activa y el trabajo sin enviar se sigue sincronizando.",
+      "setupTitle": "¿Proteger PatelRep con {{name}}?",
+      "setupBody": "Al abrir PatelRep o después de un tiempo fuera, necesitarás {{name}} (o el código del teléfono) para ver habitaciones, tareas e información de huéspedes. Tus datos biométricos se quedan en tu teléfono y nunca se comparten con PatelRep.",
+      "enable": "Activar",
+      "enablePrompt": "Confirma que eres tú para activar el bloqueo",
+      "disablePrompt": "Confirma que eres tú para desactivar el bloqueo",
+      "enabled": "El bloqueo está activado",
+      "disabled": "El bloqueo está desactivado",
+      "cancelled": "Cancelado. El bloqueo no se activó.",
+      "authFailed": "No pudimos verificarte. Inténtalo de nuevo."
+    },
+    "lockAfter": {
+      "title": "Bloquear tras inactividad",
+      "needsLock": "Activa el bloqueo para elegir cuándo se bloquea",
+      "options": {
+        "immediately": "Inmediatamente",
+        "m1": "Tras 1 minuto",
+        "m5": "Tras 5 minutos",
+        "m15": "Tras 15 minutos",
+        "m30": "Tras 30 minutos"
+      }
+    },
+    "devices": {
+      "title": "Tus dispositivos",
+      "subtitle": "Este teléfono y otras sesiones",
+      "thisDevice": "Este dispositivo",
+      "current": "Actual",
+      "signedIn": "Sesión iniciada {{when}}",
+      "note": "PatelRep no puede mostrar tus otros dispositivos. Si iniciaste sesión en un lugar que ya no usas, puedes cerrar la sesión en todos los demás dispositivos aquí abajo. Seguirás con la sesión iniciada aquí."
+    },
+    "others": {
+      "title": "Cerrar sesión en otros dispositivos",
+      "subtitle": "Mantiene este teléfono con sesión",
+      "offline": "Conéctate a internet para hacerlo.",
+      "confirmTitle": "¿Cerrar sesión en otros dispositivos?",
+      "confirmBody": "Se cerrará la sesión de todos los demás teléfonos o navegadores con tu cuenta. Seguirás con la sesión iniciada en este teléfono. Otro dispositivo puede seguir abierto un momento hasta que venza su acceso actual.",
+      "confirm": "Cerrar otras sesiones",
+      "done": "Se cerró la sesión en los otros dispositivos",
+      "errors": {
+        "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+        "generic": "No pudimos cerrar la sesión en tus otros dispositivos. Inténtalo de nuevo."
+      }
+    },
+    "signOut": {
+      "title": "¿Cerrar sesión en este teléfono?",
+      "body": "Solo se cerrará la sesión en este teléfono. Tus otros dispositivos siguen con sesión iniciada.",
+      "unsyncedTitle": "{{count}} cambio(s) sin sincronizar",
+      "unsyncedBody": "Se quedan guardados en este teléfono bajo tu cuenta y se envían la próxima vez que inicies sesión aquí con conexión. No se sincronizarán mientras no tengas sesión.",
+      "offlineNote": "Ahora estás sin conexión.",
+      "viewDetails": "Ver detalles",
+      "failed": "No pudimos cerrar tu sesión. Inténtalo de nuevo."
+    },
+    "unsynced": {
+      "title": "Cambios sin sincronizar",
+      "intro": "{{count}} cambio(s) guardados en este teléfono aún no llegan al servidor.",
+      "none": "Todo en este teléfono está sincronizado.",
+      "waiting": "Esperando sincronizar",
+      "needsAttention": "{{count}} requiere(n) atención",
+      "since": "desde {{when}}",
+      "categories": {
+        "roomUpdates": "Actualizaciones de habitaciones",
+        "taskCompletions": "Tareas completadas",
+        "workOrders": "Órdenes de trabajo",
+        "logbook": "Entradas de bitácora",
+        "cleaningSessions": "Sesiones de limpieza"
+      }
+    },
+    "errors": {
+      "saveFailed": "No se pudo guardar el ajuste. Inténtalo de nuevo."
+    }
+  },
+  "lock": {
+    "title": "PatelRep está bloqueado",
+    "body": "Desbloquea con biometría o el código de tu teléfono para continuar.",
+    "unlock": "Desbloquear",
+    "prompt": "Desbloquear PatelRep",
+    "cancelled": "Desbloqueo cancelado. Toca Desbloquear para intentarlo de nuevo.",
+    "failed": "No pudimos verificarte. Toca Desbloquear para intentarlo de nuevo.",
+    "unavailable": "Este teléfono no tiene biometría ni código configurado para desbloquear. Cierra sesión e inicia de nuevo para continuar."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "back": "Atrás",
+    "staffFallback": "Personal",
+    "connection": {
+      "online": "En línea",
+      "offline": "Sin conexión",
+      "syncing": "Sincronizando",
+      "onlineSynced": "En línea · Todo sincronizado",
+      "pending": "En línea · {{count}} pendientes",
+      "offlinePending": "Sin conexión · {{count}} pendientes",
+      "attention": "1 requiere atención",
+      "attention_plural": "{{count}} requieren atención"
+    },
+    "sections": {
+      "account": "Cuenta",
+      "preferences": "Preferencias",
+      "support": "App y soporte"
+    },
+    "personal": {
+      "title": "Información personal",
+      "subtitle": "Nombre y datos de la cuenta",
+      "changePhoto": "Cambiar foto",
+      "removePhoto": "Quitar foto",
+      "removeTitle": "¿Quitar tu foto de perfil?",
+      "removeBody": "Se quitará tu foto y se mostrarán tus iniciales. Puedes agregar una foto nueva cuando quieras.",
+      "removeConfirm": "Quitar foto",
+      "keepPhoto": "Conservar foto",
+      "chooseFromLibrary": "Elegir de la galería",
+      "takePhoto": "Tomar foto",
+      "photoA11y": "Foto de perfil. Toca dos veces para cambiarla.",
+      "photoUpdated": "Foto actualizada",
+      "photoRemoved": "Foto eliminada",
+      "uploading": "Subiendo…",
+      "removing": "Quitando…",
+      "cameraDenied": "El acceso a la cámara está desactivado. Actívalo en los ajustes del teléfono para tomar una foto.",
+      "fullName": "Nombre completo",
+      "displayName": "Nombre para mostrar",
+      "displayNameHelper": "Se muestra en la app en lugar de tu nombre completo.",
+      "editDisplayName": "Editar nombre para mostrar",
+      "editHint": "Toca dos veces para editar",
+      "email": "Correo electrónico",
+      "role": "Puesto",
+      "property": "Propiedad asignada",
+      "managedByHotel": "Administrado por tu hotel",
+      "managedNotice": "Tu nombre, puesto y propiedad asignada los administra tu hotel. Habla con tu administrador si algo debe cambiar.",
+      "saveChanges": "Guardar cambios",
+      "saved": "Cambios guardados",
+      "saveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+      "connectionRequired": "Se requiere conexión",
+      "connectionRequiredBody": "Vuelve a conectarte para cambiar tu foto o nombre para mostrar. Aún puedes ver tus datos.",
+      "loadFailed": "No se pudieron cargar algunos datos.",
+      "nameErrors": {
+        "empty": "Ingresa un nombre para mostrar.",
+        "tooLong": "El nombre para mostrar puede tener hasta 40 caracteres.",
+        "invalid": "Ese nombre tiene caracteres no permitidos."
+      },
+      "errors": {
+        "offline": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+        "denied": "No tienes permiso para cambiar eso.",
+        "validation": "Ese valor no está permitido. Revísalo e inténtalo de nuevo.",
+        "tooLarge": "Esa foto es demasiado grande. Elige una más pequeña.",
+        "badImage": "Ese archivo no es una foto compatible. Usa JPG o PNG.",
+        "server": "Algo salió mal de nuestro lado. Inténtalo de nuevo."
+      }
+    },
+    "security": { "title": "Seguridad e inicio de sesión", "subtitle": "Contraseña y seguridad del dispositivo" },
+    "notifications": {
+      "title": "Notificaciones",
+      "subtitle": "Alertas y recordatorios de trabajo",
+      "inbox": "Bandeja de notificaciones",
+      "sectionPhone": "Este teléfono",
+      "pushTitle": "Notificaciones push",
+      "pushOn": "Activadas",
+      "pushQuiet": "Activadas, entregadas en silencio",
+      "pushNotRequested": "Aún no activadas",
+      "pushDenied": "Notificaciones desactivadas en los ajustes del teléfono",
+      "pushUnavailable": "No disponible en este dispositivo",
+      "enable": "Activar notificaciones",
+      "openSettings": "Abrir ajustes del dispositivo",
+      "deviceSettings": "Ajustes de notificaciones del dispositivo",
+      "deviceSettingsHint": "El sonido, la vibración y los avisos se configuran en los ajustes del teléfono.",
+      "sectionWork": "Notificaciones de trabajo",
+      "sectionBehavior": "Comportamiento de las alertas",
+      "sectionInbox": "Bandeja",
+      "phoneOffHint": "Activa las notificaciones en este teléfono para recibir estas alertas. Tus opciones se guardan en tu cuenta.",
+      "categories": {
+        "room_assignments": { "label": "Nuevas asignaciones", "description": "Te asignan una habitación o una salida está lista para limpiar" },
+        "work_orders": { "label": "Órdenes de trabajo", "description": "Te asignan una orden de trabajo" },
+        "tasks": { "label": "Actualizaciones de tareas", "description": "Te asignan una tarea, cambia, se cancela o se desbloquea" }
+      },
+      "criticalHint": "Las alertas de tareas urgentes siempre se entregan.",
+      "inboxOnlyNotice": "Otras alertas de trabajo, como escalaciones y traspasos, aparecen en tu bandeja.",
+      "policyNotice": "Es posible que las alertas operativas importantes sigan apareciendo en PatelRep según la política de notificaciones de tu hotel. Los ajustes de notificaciones de tu teléfono siempre tienen prioridad y no se pueden cambiar desde aquí.",
+      "saving": "Guardando…",
+      "saved": "Cambios guardados",
+      "saveFailed": "No se pudo guardar",
+      "saveFailedDetail": "No se pudo guardar. El interruptor muestra tu último ajuste guardado.",
+      "retry": "Reintentar",
+      "offline": "Sin conexión. Los cambios no se pueden guardar hasta que vuelvas a estar en línea.",
+      "loadFailed": "No se pudieron cargar tus ajustes de notificaciones.",
+      "cachedNotice": "Mostrando tus últimos ajustes guardados. Se actualizarán cuando vuelvas a estar en línea.",
+      "switchOn": "Activado",
+      "switchOff": "Desactivado",
+      "switchHintOff": "Toca dos veces para desactivar",
+      "switchHintOn": "Toca dos veces para activar",
+      "channelAlerts": "Alertas de trabajo",
+      "channelUpdates": "Actualizaciones"
+    },
+    "sync": {
+      "title": "Sin conexión y sincronización",
+      "offline": "Sin conexión — los cambios se guardan",
+      "status": {
+        "saved": {
+          "title": "Todos los cambios guardados",
+          "body": "Tu trabajo está al día."
+        },
+        "waiting": {
+          "title": "Esperando sincronización",
+          "body": "Tus cambios están guardados en este dispositivo y se sincronizarán en cuanto sea posible."
+        },
+        "syncing": {
+          "title": "Sincronizando",
+          "body": "Guardando tus últimos cambios."
+        },
+        "attention": {
+          "title": "Algunos cambios requieren atención",
+          "body": "No se pudieron guardar algunas actualizaciones. Revisa los detalles abajo."
+        },
+        "offline": {
+          "title": "Sin conexión",
+          "body": "Estás sin conexión. Tu trabajo guardado se sincronizará cuando te conectes."
+        },
+        "unavailable": {
+          "title": "Estado no disponible",
+          "body": "Ahora no podemos confirmar el estado de la sincronización. Tu trabajo sigue guardado en este dispositivo."
+        }
+      },
+      "connection": "Conexión",
+      "connOnline": "En línea",
+      "connOffline": "Sin conexión",
+      "lastConfirmed": "Todos los cambios confirmados: {{time}}",
+      "lastUnknown": "Hora de la última sincronización no disponible",
+      "lastLabel": "Última sincronización confirmada",
+      "pendingCount": "{{count}} cambio esperando sincronizarse",
+      "pendingCount_plural": "{{count}} cambios esperando sincronizarse",
+      "noPending": "No hay cambios en espera",
+      "attentionCount": "{{count}} elemento requiere atención",
+      "attentionCount_plural": "{{count}} elementos requieren atención",
+      "noAttention": "Nada requiere atención",
+      "savedWork": "Trabajo guardado",
+      "categories": {
+        "rooms": "Habitaciones",
+        "tasks": "Tareas y órdenes de trabajo",
+        "sessions": "Sesiones de limpieza",
+        "other": "Otro trabajo guardado"
+      },
+      "categoryState": {
+        "synced": "Todo sincronizado",
+        "waiting": "{{count}} en espera",
+        "attention": "{{count}} requieren atención"
+      },
+      "syncNow": "Sincronizar ahora",
+      "syncingNow": "Sincronizando…",
+      "retrySync": "Reintentar sincronización",
+      "offlineInfo": "El trabajo compatible se guarda en este dispositivo sin conexión y se sincroniza cuando la app pueda conectarse a PatelRep.",
+      "drawer": {
+        "title": "Cambios sin sincronizar",
+        "empty": "Todo al día. No tienes cambios esperando sincronizarse.",
+        "intro": "Guardados en este dispositivo. Cada cambio se confirma solo cuando el servidor lo tiene.",
+        "needsYou": "Requiere tu atención",
+        "errorTitle": "No se pudo sincronizar"
+      },
+      "row": {
+        "saved": "Todos los cambios guardados",
+        "waiting": "{{count}} cambio pendiente",
+        "waiting_plural": "{{count}} cambios pendientes",
+        "syncing": "Sincronizando…",
+        "attention": "{{count}} elemento requiere atención",
+        "attention_plural": "{{count}} elementos requieren atención",
+        "unavailable": "Estado no disponible",
+        "offline": "Sin conexión · {{count}} pendientes"
+      },
+      "viewDetails": "Ver detalles"
+    },
+    "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
+    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" }
+  },
+  "about": {
+    "tagline": "Operaciones del hotel, simplificadas.",
+    "versionLine": "Versión {{version}}",
+    "version": "Versión de la app",
+    "build": "Número de compilación",
+    "updateId": "ID de actualización",
+    "unavailable": "No disponible",
+    "contactSupport": "Contactar con soporte",
+    "opensInBrowser": "Se abre en el navegador · requiere internet",
+    "opensInBrowserHint": "Se abre en tu navegador web",
+    "privacy": "Política de privacidad",
+    "terms": "Términos del servicio",
+    "sections": {
+      "application": "Información de la aplicación",
+      "product": "Producto",
+      "support": "Soporte",
+      "legal": "Legal y privacidad"
+    },
+    "whatsNew": {
+      "title": "Novedades",
+      "rowSubtitle": "Cambios de la versión {{version}}",
+      "headline": "Novedades de PatelRep",
+      "version": "Versión {{version}}",
+      "emptyTitle": "Las notas de la versión no están disponibles para esta versión.",
+      "sections": { "features": "Nuevas funciones", "improvements": "Mejoras", "fixes": "Correcciones" }
+    },
+    "licenses": {
+      "title": "Licencias de código abierto",
+      "rowSubtitle": "Funciona sin conexión",
+      "intro": "PatelRep está creado con software de código abierto. Estos {{count}} paquetes son los que PatelRep usa directamente; cada uno depende de otros paquetes que tienen sus propios avisos.",
+      "expandHint": "Muestra el texto de la licencia",
+      "collapseHint": "Oculta el texto de la licencia",
+      "noText": "Este paquete no incluye un archivo de licencia aparte. Se distribuye bajo la licencia {{license}}.",
+      "emptyTitle": "Los avisos de licencia no están disponibles."
+    },
+    "errors": {
+      "offline": "Sin conexión. Conéctate a internet para abrir: {{page}}.",
+      "failed": "No pudimos abrir: {{page}}. Inténtalo de nuevo."
+    }
+  },
   "profile": {
-    "me": "Yo",
-    "preferences": "Preferencias",
     "language": "Idioma",
+    "languageScreen": {
+      "intro": "Elige el idioma que PatelRep usa para ti.",
+      "englishHint": "Inglés (EE. UU.)",
+      "spanishHint": "Español",
+      "pending": "Guardando en tu cuenta…",
+      "failed": "Cambiado en este teléfono, pero aún no se guardó en tu cuenta.",
+      "retry": "Reintentar"
+    },
     "appearance": {
       "label": "Apariencia",
       "system": "Sistema",
       "light": "Claro",
-      "dark": "Oscuro"
+      "dark": "Oscuro",
+      "intro": "Elige cómo se ve PatelRep en este teléfono.",
+      "systemHint": "Sigue la configuración del teléfono",
+      "lightHint": "Usar siempre el modo claro",
+      "darkHint": "Usar siempre el modo oscuro",
+      "note": "Se aplica al instante y se queda en este teléfono."
     },
-    "notifications": "Notificaciones",
     "notificationsUnread": "{{count}} sin leer",
     "myWork": "Mi trabajo",
     "schedule": "Mi horario",
     "sopLibrary": "Biblioteca SOP",
-    "dataSync": "Datos y sincronización",
-    "offlineChanges": "Cambios sin conexión",
-    "upToDate": "Al día",
-    "pendingChanges": "{{count}} por sincronizar",
-    "syncNow": "Sincronizar",
-    "connection": {
-      "online": "En línea — todo está sincronizado",
-      "offline": "Sin conexión — tus cambios están guardados y se sincronizarán después",
-      "pending": "En línea — {{count}} cambio(s) por sincronizar"
-    },
-    "account": "Cuenta",
     "signOut": "Cerrar sesión",
-    "signOutTitle": "Cerrar sesión",
-    "signOutConfirm": "¿Estás seguro?",
-    "signOutUnsyncedTitle": "Tareas completadas sin sincronizar",
-    "signOutUnsynced": "{{count}} tarea completada aún no llega a tu gerente. Sigue guardada en este teléfono y se enviará la próxima vez que inicies sesión aquí con esta cuenta y tengas conexión.",
-    "signOutUnsynced_plural": "{{count}} tareas completadas aún no llegan a tu gerente. Siguen guardadas en este teléfono y se enviarán la próxima vez que inicies sesión aquí con esta cuenta y tengas conexión.",
     "signOutAnyway": "Cerrar sesión de todos modos",
     "appVersion": "PatelRep v{{version}}"
   },
@@ -3067,5 +3455,253 @@
     "category": "Categoría",
     "pages": "Páginas",
     "added": "Agregado"
+  },
+  "help": {
+    "intro": "¿Necesitas ayuda? Encuentra una respuesta o reporta un problema.",
+    "sections": {
+      "getHelp": "Obtener ayuda",
+      "support": "Información de soporte"
+    },
+    "rows": {
+      "faq": {
+        "title": "Preguntas frecuentes",
+        "subtitle": "Respuestas a dudas comunes"
+      },
+      "report": {
+        "title": "Reportar un problema",
+        "subtitle": "Cuéntanos qué no funciona"
+      },
+      "contact": {
+        "title": "Contactar a tu supervisor",
+        "subtitle": "Recibe ayuda de tu equipo del hotel"
+      },
+      "reports": {
+        "title": "Mis reportes",
+        "subtitle": "Problemas que has reportado"
+      },
+      "diagnostics": {
+        "title": "Diagnóstico de la app",
+        "subtitle": "Información que ayuda a resolver problemas"
+      }
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "intro": "Toca una pregunta para ver la respuesta.",
+      "actions": {
+        "sync": "Abrir Sin conexión y sincronización",
+        "report": "Reportar un problema",
+        "language": "Abrir Idioma",
+        "appearance": "Abrir Apariencia",
+        "security": "Abrir Seguridad e inicio de sesión",
+        "contact": "Contactar a tu supervisor"
+      },
+      "items": {
+        "assignmentsMissing": {
+          "q": "¿Por qué no aparecen mis asignaciones?",
+          "a": "Tu supervisor asigna las habitaciones y tareas, así que aparecen cuando te las asignan. Desliza hacia abajo en la lista para actualizar. Si no tienes conexión, verás la última lista guardada en este teléfono. Si sigue vacía, pregunta a tu supervisor o reporta un problema."
+        },
+        "refreshWork": {
+          "q": "¿Cómo actualizo mi trabajo?",
+          "a": "Desliza hacia abajo en una lista para actualizarla. Las listas también se actualizan cuando tu teléfono se reconecta. Sin conexión verás lo último guardado en este teléfono."
+        },
+        "useOffline": {
+          "q": "¿Puedo usar PatelRep sin internet?",
+          "a": "En parte. Las limpiezas, las actualizaciones de tareas y algunas actualizaciones de órdenes de trabajo se guardan en tu teléfono y se envían cuando vuelves a tener conexión. Otras pantallas necesitan conexión y pueden mostrar la última información guardada. Sin conexión y sincronización muestra lo que está en espera."
+        },
+        "syncChanges": {
+          "q": "¿Cómo sincronizo mis cambios guardados?",
+          "a": "Se sincronizan solos cuando tu teléfono se reconecta. Para intentarlo ahora, abre Sin conexión y sincronización y toca Sincronizar ahora."
+        },
+        "taskPending": {
+          "q": "¿Por qué una tarea sigue como pendiente?",
+          "a": "Un cambio sigue pendiente hasta que el servidor lo confirma. Si no tienes conexión o la señal es débil, espera en tu teléfono. Abre Sin conexión y sincronización para ver qué está en espera o necesita atención."
+        },
+        "changeLanguage": {
+          "q": "¿Cómo cambio el idioma de la app?",
+          "a": "Ve a Ajustes, luego Idioma, y elige English o Español. Cambia al instante y se guarda en tu cuenta."
+        },
+        "darkMode": {
+          "q": "¿Cómo cambio entre modo claro y oscuro?",
+          "a": "Ve a Ajustes, luego Apariencia. Elige Claro, Oscuro o Sistema para seguir la configuración de tu teléfono."
+        },
+        "forgotPassword": {
+          "q": "¿Qué hago si olvidé mi contraseña?",
+          "a": "En la pantalla de inicio de sesión toca \"¿Olvidaste tu contraseña?\" y sigue el correo que te enviamos. Si ya iniciaste sesión y quieres cambiarla, abre Seguridad e inicio de sesión."
+        },
+        "noAccess": {
+          "q": "¿Por qué no puedo entrar a una pantalla?",
+          "a": "Las pantallas dependen de tu puesto. Si necesitas acceso a algo, pregunta a tu supervisor o gerente."
+        },
+        "contactSupervisor": {
+          "q": "¿Cómo contacto a mi supervisor?",
+          "a": "Abre Ayuda y soporte y toca Contactar a tu supervisor. Verás a quién preguntar y el teléfono del hotel, si tu hotel lo agregó."
+        },
+        "signOutUnsynced": {
+          "q": "¿Qué pasa con el trabajo sin sincronizar si cierro sesión?",
+          "a": "Los cambios guardados se quedan en este teléfono, en tu cuenta, y se envían cuando vuelvas a iniciar sesión aquí. Otras personas que inicien sesión no pueden verlos ni enviarlos. Sincroniza antes de cerrar sesión cuando puedas y no borres la app mientras haya cambios en espera."
+        },
+        "hkReclean": {
+          "q": "¿Qué es una solicitud de relimpieza?",
+          "a": "Un supervisor o inspector pidió que se limpie otra vez una habitación. Aparece en Mis habitaciones con lo que hay que corregir."
+        },
+        "hkSessionSync": {
+          "q": "¿Por qué no se sincronizó la habitación que terminé?",
+          "a": "Iniciar, avanzar en la lista y terminar una habitación se guardan en tu teléfono y se envían en orden cuando hay conexión. Hasta que el servidor lo confirme, la habitación aparece en espera. Revisa Sin conexión y sincronización."
+        },
+        "inspMissing": {
+          "q": "¿Por qué no veo habitaciones para inspeccionar?",
+          "a": "Las habitaciones aparecen cuando están listas para inspección. Si esperas una y no está, desliza hacia abajo para actualizar y luego pregunta a tu supervisor."
+        },
+        "inspSubmit": {
+          "q": "Mi inspección no se envió",
+          "a": "Una inspección necesita conexión para guardarse. Verifica que tengas conexión e inténtalo de nuevo. Si sigue fallando, reporta un problema."
+        },
+        "engWorkOrders": {
+          "q": "¿Por qué una orden de trabajo no muestra su estado más reciente?",
+          "a": "Las órdenes se actualizan cuando se actualiza la lista; desliza hacia abajo. Las actualizaciones que haces sin conexión se guardan en tu teléfono y se envían al reconectarte."
+        },
+        "engUpdates": {
+          "q": "Mi actualización de la orden de trabajo no se guardó",
+          "a": "Las actualizaciones hechas sin conexión esperan en tu teléfono hasta que el servidor las confirme. Revisa Sin conexión y sincronización. Si una necesita atención, abre la orden de trabajo e inténtalo de nuevo."
+        },
+        "supVisibility": {
+          "q": "¿Por qué no veo las habitaciones de una camarera?",
+          "a": "Primero actualiza la lista. Luego verifica que la asignación se guardó para el día correcto. Si la habitación sigue sin aparecer, reporta un problema."
+        },
+        "supTeam": {
+          "q": "¿Por qué no aparece una actualización del equipo?",
+          "a": "Las actualizaciones te llegan cuando el teléfono de la camarera las envió. Si estaba sin conexión, sus cambios aparecen cuando su teléfono se reconecta."
+        },
+        "fdGuestRequests": {
+          "q": "¿Dónde encuentro las solicitudes de huéspedes?",
+          "a": "Están en la pantalla Solicitudes de huéspedes. Las nuevas aparecen cuando tu teléfono tiene conexión y la lista se actualiza."
+        },
+        "fdRoomStatus": {
+          "q": "El estado de una habitación se ve mal",
+          "a": "Los estados cambian cuando las actualizaciones de limpieza o inspección llegan al servidor. Si un teléfono estaba sin conexión, una actualización puede llegar tarde. Si sigue mal, reporta un problema."
+        },
+        "gmAccess": {
+          "q": "¿Por qué alguien no ve una pantalla?",
+          "a": "El acceso depende del puesto de cada persona. Puedes revisar y cambiar los puestos en Personal."
+        },
+        "gmAdmin": {
+          "q": "¿Dónde administro la propiedad?",
+          "a": "Los ajustes de la propiedad, el personal y los reportes están en la app web de PatelRep. La app móvil está pensada para el trabajo diario."
+        }
+      }
+    },
+    "report": {
+      "title": "Reportar un problema",
+      "intro": "Cuéntanos qué pasó para poder ayudarte.",
+      "area": "¿Sobre qué es?",
+      "areas": {
+        "assignments": "Asignaciones o habitaciones",
+        "tasks": "Tareas",
+        "housekeeping": "Limpieza",
+        "inspections": "Inspecciones",
+        "work_orders": "Órdenes de trabajo",
+        "notifications": "Notificaciones",
+        "account": "Cuenta o inicio de sesión",
+        "sync": "Sin conexión o sincronización",
+        "other": "Otro"
+      },
+      "description": "¿Qué salió mal?",
+      "placeholder": "Describe qué pasó y qué intentabas hacer.",
+      "count": "{{count}}\u00a0/\u00a0{{max}}",
+      "blocking": "Esto no me deja trabajar",
+      "guestWarning": "Por favor no incluyas nombres de huéspedes, teléfonos ni datos de reservaciones.",
+      "diagnostics": "Incluir diagnóstico técnico",
+      "diagnosticsHint": "Nos ayuda a resolver el problema. Puedes revisar exactamente qué se envía.",
+      "viewDiagnostics": "Ver diagnóstico",
+      "submit": "Enviar reporte",
+      "submitting": "Enviando…",
+      "errors": {
+        "empty": "Por favor describe qué pasó.",
+        "tooShort": "Agrega un poco más de detalle (al menos {{min}} caracteres).",
+        "noArea": "Elige sobre qué es el problema."
+      },
+      "failed": "Tu reporte no se envió. Tu texto está guardado en este teléfono. Inténtalo de nuevo.",
+      "offline": "No tienes conexión, así que el reporte aún no se puede enviar. Tu texto está guardado en este teléfono como borrador sin enviar.",
+      "rateLimited": "Enviaste varios reportes hace poco. Inténtalo de nuevo en un rato.",
+      "retry": "Reintentar",
+      "draftNote": "Borrador sin enviar guardado en este teléfono",
+      "success": {
+        "title": "Reporte enviado",
+        "body": "Tu reporte se envió al equipo de soporte.",
+        "reference": "Referencia: {{id}}",
+        "done": "Listo",
+        "view": "Ver mis reportes"
+      },
+      "discard": {
+        "title": "¿Descartar este reporte?",
+        "body": "Lo que escribiste no se ha enviado.",
+        "keep": "Seguir editando",
+        "discard": "Descartar borrador"
+      }
+    },
+    "contact": {
+      "title": "Contactar a tu supervisor",
+      "intro": "Estas son las personas a quienes preguntar primero en tu hotel.",
+      "hotelLine": "Teléfono del hotel",
+      "call": "Llamar al {{phone}}",
+      "none": "Tu hotel aún no ha agregado un contacto de soporte.",
+      "noneHint": "Por favor comunícate con tu gerente de departamento o con recepción para recibir ayuda.",
+      "loadError": "No se pudieron cargar los contactos de tu hotel. Revisa tu conexión e inténtalo de nuevo.",
+      "callFailed": "Este teléfono no pudo iniciar la llamada. Marca el número directamente.",
+      "retry": "Intentar de nuevo"
+    },
+    "reports": {
+      "title": "Mis reportes",
+      "empty": "Aún no has enviado ningún reporte.",
+      "emptyAction": "Reportar un problema",
+      "loadError": "No se pudieron cargar tus reportes. Revisa tu conexión e inténtalo de nuevo.",
+      "retry": "Intentar de nuevo",
+      "submitted": "Enviado {{date}}",
+      "status": {
+        "open": "Abierto",
+        "reviewing": "En revisión",
+        "closed": "Cerrado"
+      },
+      "statusLabel": "Estado: {{status}}",
+      "detail": "Reporte",
+      "blockingYes": "Marcado como que impide trabajar",
+      "noReply": "Todavía no se agregó una respuesta a este reporte."
+    },
+    "diagnostics": {
+      "title": "Diagnóstico de la app",
+      "intro": "Esta es la información que podemos compartir para ayudar a resolver un problema. No se envía nada a menos que decidas compartirla.",
+      "fieldsTitle": "Qué se compartiría",
+      "neverTitle": "Nunca se incluye",
+      "never": "Tu contraseña o datos de inicio de sesión, nombres o teléfonos de huéspedes, reservaciones, notas de habitaciones ni el contenido de tus cambios guardados.",
+      "share": "Compartir diagnóstico",
+      "shareHint": "Abre el menú de compartir de tu teléfono. Tú eliges a dónde va.",
+      "previewTitle": "Compartir diagnóstico",
+      "previewIntro": "Se compartirán exactamente estos datos:",
+      "cancel": "Cancelar",
+      "checking": "Aún se están revisando los cambios guardados. Los datos de sincronización se omiten hasta que termine.",
+      "yes": "Sí",
+      "no": "No",
+      "fields": {
+        "app_version": "Versión de la app",
+        "build": "Compilación",
+        "platform": "Plataforma",
+        "os_version": "Versión del sistema",
+        "role": "Puesto",
+        "language": "Idioma",
+        "online": "Con conexión",
+        "last_synced_at": "Última sincronización confirmada",
+        "pending_changes": "Cambios en espera",
+        "failed_changes": "Cambios que requieren atención",
+        "sync_status": "Estado de sincronización"
+      },
+      "syncStatuses": {
+        "saved": "Todo guardado",
+        "waiting": "En espera",
+        "syncing": "Sincronizando",
+        "attention": "Requiere atención",
+        "offline": "Sin conexión",
+        "unavailable": "No disponible"
+      }
+    }
   }
 }

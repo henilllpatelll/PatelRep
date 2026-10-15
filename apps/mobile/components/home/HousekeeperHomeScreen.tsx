@@ -37,6 +37,7 @@ import {
   type HomeDestinations,
 } from "@/lib/housekeeping/homeState";
 import { dayPartOf, describeSync, firstNameOf, headerMeta, shiftStatusLine } from "@/lib/housekeeping/homeText";
+import { displayNameFor } from "@/lib/settings/displayName";
 import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
 import { useHousekeeperHome } from "@/lib/housekeeping/useHousekeeperHome";
@@ -232,7 +233,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
     );
   }
 
-  const name = firstNameOf(user?.full_name) ?? t("home.header.fallbackName");
+  const name = firstNameOf(displayNameFor(user)) ?? t("home.header.fallbackName");
   const dayPart = dayPartOf(model.timeZone, new Date());
   const greetingKey = dayPart === "morning" ? "home.greetingMorning" : dayPart === "afternoon" ? "home.greetingAfternoon" : "home.greetingEvening";
   const lastCheckedLabel = formatClock(model.board.lastRefreshAt, ctx);

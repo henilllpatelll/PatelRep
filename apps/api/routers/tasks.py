@@ -12,7 +12,7 @@ from core.database import supabase
 from core.roles import ASSIGNMENT_BOUND_ROLES, FLOOR_STAFF_ROLES, MANAGER_ROLES, TASK_ASSIGNMENT_ROLES
 from datetime import datetime, timedelta, timezone
 import logging
-import httpx
+from services.notify import send_push
 
 logger = logging.getLogger(__name__)
 
@@ -75,35 +75,19 @@ TASK_EVENT_TEXT = {
 
 
 async def _push_task_event(row: dict, recipient_id: str) -> None:
-    """Best-effort Expo push for a notification row that was just written. ``push_sent`` is set only when
-    Expo accepted the message (an "ok" ticket); no token, a refusal or a timeout leaves the in-app row as the
-    only delivery, and nothing here claims the device received it."""
-    try:
-        profile = (
-            supabase.table("user_profiles")
-            .select("expo_push_token")
-            .eq("id", recipient_id)
-            .eq("tenant_id", row["tenant_id"])
-            .maybe_single()
-            .execute()
-        )
-        token = (profile.data or {}).get("expo_push_token") if profile else None
-        if not token:
-            return
-        async with httpx.AsyncClient(timeout=4.0) as client:
-            response = await client.post(
-                "https://exp.host/--/api/v2/push/send",
-                json={"to": token, "title": row["title"], "body": row["body"], "data": {**row["data"], "type": row["type"]}},
-            )
-        ticket = ((response.json() or {}).get("data") or {}) if response.status_code == 200 else {}
-        if isinstance(ticket, list):
-            ticket = ticket[0] if ticket else {}
-        if ticket.get("status") == "ok" and row.get("id"):
-            supabase.table("notifications").update(
-                {"push_sent": True, "push_sent_at": datetime.now(timezone.utc).isoformat(), "expo_push_ticket": ticket.get("id")}
-            ).eq("id", row["id"]).eq("tenant_id", row["tenant_id"]).execute()
-    except Exception:  # noqa: BLE001 - push is an extra; the in-app notification already exists
-        logger.warning("TASK_PUSH_FAILED notification=%s", row.get("id"), exc_info=True)
+    """Best-effort push for a notification row that was just written. Whether it goes out (the person's
+    opt-out, critical events, their registered devices) is decided by the central policy in
+    services/notify.py. ``push_sent`` is set only when Expo accepted the message; an opt-out, no device or a
+    refusal leaves the in-app row as the only delivery, and nothing here claims the phone received it."""
+    await send_push(
+        tenant_id=row["tenant_id"],
+        recipient_ids=[recipient_id],
+        event_type=row["type"],
+        title=row["title"],
+        body=row["body"],
+        data=row["data"],
+        notification_ids={recipient_id: row["id"]} if row.get("id") else None,
+    )
 
 
 async def notify_task_event(current_user: CurrentUser, recipient_id: Optional[str], event: str, task: dict) -> bool:

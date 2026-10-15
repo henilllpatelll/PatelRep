@@ -218,3 +218,17 @@ it("keeps the immediate preference after a failed write", async () => {
   );
   expect(screen.getByTestId("mode").props.children).toBe("dark");
 });
+
+it("keeps a mode chosen before the saved value finishes loading", async () => {
+  const read = deferred<string | null>();
+  (AsyncStorage.getItem as jest.Mock).mockReturnValue(read.promise);
+  const screen = renderProvider();
+
+  fireEvent.press(screen.getByTestId("set-dark"));
+  await act(async () => {
+    read.resolve("light");
+    await read.promise;
+  });
+
+  await expectHydrated(screen, "dark", "dark");
+});

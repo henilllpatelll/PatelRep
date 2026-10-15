@@ -99,6 +99,22 @@ export const HIDDEN_APP_ROUTES = [
   "work-orders/[woId]",
   "guest-requests/[requestId]",
   "logbook/new",
+  "profile/personal",
+  "profile/security",
+  "profile/change-password",
+  "profile/devices",
+  "profile/notifications",
+  "profile/appearance",
+  "profile/language",
+  "profile/sync",
+  "profile/help",
+  "profile/faq",
+  "profile/report",
+  "profile/my-reports",
+  "profile/diagnostics",
+  "profile/about",
+  "profile/whats-new",
+  "profile/licenses",
 ];
 
 export function getTabsForRole(role: UserRole): RoleTabDef[] {

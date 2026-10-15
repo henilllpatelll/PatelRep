@@ -1,4 +1,5 @@
 import NetInfo from "@react-native-community/netinfo";
+import { create } from "zustand";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import {
@@ -10,9 +11,13 @@ import { getQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
+import { recordConfirmedSync } from "@/lib/offline/lastSync";
 
 let _syncInProgress = false;
 let _syncOnConnectRun: Promise<void> | null = null;
+
+/** True while the one app-wide sync is running (automatic or manual), so screens can say "Syncing". */
+export const useSyncActivity = create<{ active: boolean }>(() => ({ active: false }));
 
 /**
  * One sync at a time, app-wide. NetInfo fires several times on Android and two
@@ -22,8 +27,10 @@ let _syncOnConnectRun: Promise<void> | null = null;
  */
 export function syncOnConnect(): Promise<void> {
   if (_syncOnConnectRun) return _syncOnConnectRun;
+  useSyncActivity.setState({ active: true });
   _syncOnConnectRun = runSyncOnConnect().finally(() => {
     _syncOnConnectRun = null;
+    useSyncActivity.setState({ active: false });
   });
   return _syncOnConnectRun;
 }
@@ -44,8 +51,8 @@ async function runSyncOnConnect(): Promise<void> {
   if (user && (user.role === "housekeeper" || user.role === "housekeeping_supervisor")) {
     await refreshRooms();
   }
-  // "Last sync" only moves when the round-trip left nothing waiting.
-  if ((await countPendingChanges()) === 0) useAppStore.getState().setLastSyncedAt(new Date().toISOString());
+  // "Last sync" only moves when the round-trip left nothing waiting (and is kept for this person across restarts).
+  if ((await countPendingChanges()) === 0) await recordConfirmedSync();
 }
 
 export async function flushSyncQueue(): Promise<void> {

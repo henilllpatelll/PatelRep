@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { ThemeProvider as NavigationThemeProvider } from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
-import * as Notifications from "expo-notifications";
 import NetInfo from "@react-native-community/netinfo";
 import { useFonts } from "expo-font";
 import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
@@ -25,12 +24,20 @@ import { supabase, toAppRole } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
 import { deferAuthHydration } from "@/lib/auth/deferAuthHydration";
+import { useRecoveryStore } from "@/lib/auth/recoveryStore";
 import {
   ThemeProvider,
   useAppearancePreference,
 } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { getNavigationTheme } from "@/lib/theme/navigationTheme";
+import { hydrateLastSynced } from "@/lib/offline/lastSync";
+import {
+  clearActiveLanguageUser,
+  hydrateLanguageForUser,
+  restoreDeviceLanguage,
+  retryPendingLanguageSync,
+} from "@/lib/language/languageSync";
 
 // Must be at module scope — calling inside a component or useEffect is too late.
 SplashScreen.preventAutoHideAsync();
@@ -44,7 +51,6 @@ export default function RootLayout() {
 }
 
 function RootChrome() {
-  const router = useRouter();
   const { setUser, setIsOnline, setIsLoading, isLoading } = useAppStore();
   const { mode, isHydrated } = useAppearancePreference();
   const theme = useTheme();
@@ -62,7 +68,9 @@ function RootChrome() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Set synchronously so the (auth) layout never redirects before the reset screen opens.
+      if (event === "PASSWORD_RECOVERY") useRecoveryStore.getState().setPending(true);
       deferAuthHydration(async () => {
         try {
           if (session?.user) {
@@ -104,10 +112,16 @@ function RootChrome() {
             } catch {
               setUser(baseUser);
             }
+            // This person's own language (pending local choice > account > cached > device). Only a
+            // real saved profile counts as the account preference, not the "en" fallback above.
+            void hydrateLastSynced().catch(() => undefined);
+            await hydrateLanguageForUser(baseUser.id, profile ? baseUser.language_pref : null).catch(() => undefined);
           } else {
+            clearActiveLanguageUser();
             setUser(null);
           }
           } else {
+            clearActiveLanguageUser();
             setUser(null);
           }
         } finally {
@@ -132,44 +146,26 @@ function RootChrome() {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Before anyone signs in, show the language this phone last used.
+  useEffect(() => {
+    void restoreDeviceLanguage().catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const online = !!state.isConnected;
       setIsOnline(online);
       if (online) {
         syncOnConnect();
+        void retryPendingLanguageSync().catch(() => undefined);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Notification deep link handler — dual-path for backgrounded AND killed states
-  useEffect(() => {
-    // Path 1: Killed state — app cold-started by tapping a notification.
-    // addNotificationResponseReceivedListener is NOT called in this case.
-    // Must check getLastNotificationResponseAsync() once on mount.
-    Notifications.getLastNotificationResponseAsync().then((lastResponse) => {
-      if (lastResponse) {
-        const url = lastResponse.notification.request.content.data?.url as
-          | string
-          | undefined;
-        if (url) router.push(url as never);
-      }
-    });
-
-    // Path 2: Backgrounded or foregrounded — standard listener.
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const url = response.notification.request.content.data?.url as
-          | string
-          | undefined;
-        if (url) router.push(url as never);
-      }
-    );
-
-    return () => subscription.remove();
-  }, []);
+  // Notification taps are handled in one place, once the person is signed in: (app)/_layout.tsx via
+  // lib/notifications/lifecycle.ts, which validates the payload before navigating.
 
   if (!isHydrated) return null;
 

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from typing import Literal, Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -24,6 +23,7 @@ from core.database import supabase
 from core.config import settings
 from core.roles import FLOOR_STAFF_ROLES, GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
+from services.notify import send_push
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
 from services.asset_reliability import restore_active_work_order_downtime, start_asset_downtime
 
@@ -781,35 +781,16 @@ async def get_work_order(
     return {"data": result.data[0]}
 
 
-async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> None:
-    """Fire-and-forget push notification to engineer on work order assignment."""
-    try:
-        profile = (
-            supabase.table("user_profiles")
-            .select("expo_push_token")
-            .eq("id", engineer_id)
-            .maybe_single()
-            .execute()
-        )
-        token = (profile.data or {}).get("expo_push_token")
-        if not token:
-            return
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            await client.post(
-                "https://exp.host/--/api/v2/push/send",
-                json={
-                    "to": token,
-                    "title": "Work Order Assigned",
-                    "body": title,
-                    "data": {
-                        "type": "wo_assignment",
-                        "url": f"/(app)/work-orders/{wo_id}",
-                        "wo_id": wo_id,
-                    },
-                },
-            )
-    except Exception:
-        pass  # Never block claim response on push failure
+async def _send_wo_assignment_push(tenant_id: str, engineer_id: str, wo_id: str, title: str) -> None:
+    """Fire-and-forget push to the engineer on work order assignment (policy in services/notify.py)."""
+    await send_push(
+        tenant_id=tenant_id,
+        recipient_ids=[engineer_id],
+        event_type="wo_assignment",
+        title="Work Order Assigned",
+        body=title,
+        data={"url": f"/(app)/work-orders/{wo_id}", "wo_id": wo_id},
+    )
 
 
 def _notify_guest_request_of_wo_completion(
@@ -892,7 +873,7 @@ async def claim_work_order(
     if wo:
         asyncio.create_task(
             _send_wo_assignment_push(
-                current_user.user_id, wo_id, wo.get("title", "Work order assigned")
+                current_user.hotel_id, current_user.user_id, wo_id, wo.get("title", "Work order assigned")
             )
         )
     return {"data": wo}

@@ -53,8 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow PatelRep to access your photos for work orders.",
-          "cameraPermission": "Allow PatelRep to use the camera for work order photos."
+          "photosPermission": "Allow PatelRep to access your photos for work orders and your profile photo.",
+          "cameraPermission": "Allow PatelRep to use the camera for work order photos and your profile photo."
         }
       ],
       [
@@ -74,6 +74,12 @@
         }
       ],
       "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow PatelRep to use Face ID to unlock the app."
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {

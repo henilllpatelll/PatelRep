@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import UUID4
 
 from core.config import settings
 from core.database import supabase
@@ -12,6 +14,56 @@ from models.requests import CreateFeedbackRequest
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
+
+# Mobile reports may carry technical diagnostics, but only these fields, as short plain values. Anything else
+# the client sends (tokens, payloads, guest data) is dropped here no matter what the app attached.
+MOBILE_DIAGNOSTIC_KEYS = (
+    "app_version",
+    "build",
+    "platform",
+    "os_version",
+    "role",
+    "language",
+    "online",
+    "last_synced_at",
+    "pending_changes",
+    "failed_changes",
+    "sync_status",
+    "source_screen",
+)
+# Per person, across every source: a client can label a report "web" or "mobile" however it likes, so the
+# cap must not depend on the label.
+MOBILE_REPORTS_PER_HOUR = 10
+OWN_REPORT_COLUMNS = "id, category, area, severity, message, status, source, created_at, updated_at"
+
+
+def _allowlisted_context(context: dict[str, Any]) -> dict[str, Any]:
+    clean: dict[str, Any] = {}
+    for key in MOBILE_DIAGNOSTIC_KEYS:
+        value = context.get(key)
+        if isinstance(value, bool) or value is None:
+            if value is not None:
+                clean[key] = value
+        elif isinstance(value, (int, float)):
+            clean[key] = value
+        elif isinstance(value, str):
+            clean[key] = value[:80]
+    return clean
+
+
+def _is_mobile_report(request: CreateFeedbackRequest) -> bool:
+    """Mobile diagnostics rules apply to anything that declares itself mobile OR carries a mobile-only field.
+
+    `source` is client-supplied, so it can only ADD protections, never remove them: a report that sets the mobile
+    area / retry id, or any allow-listed diagnostic key (the browser form never sends these), is treated as mobile
+    and stored as such even when it says source="web".
+    """
+    return (
+        request.source == "mobile"
+        or request.area is not None
+        or request.client_request_id is not None
+        or any(key in request.client_context for key in MOBILE_DIAGNOSTIC_KEYS)
+    )
 
 
 def _feedback_summary(row: dict[str, Any]) -> str:
@@ -74,11 +126,52 @@ def _notify_gms(row: dict[str, Any]) -> None:
         supabase.table("notifications").insert(notifications).execute()
 
 
+def _safe_row(row: dict[str, Any]) -> dict[str, Any]:
+    safe_row = dict(row)
+    if safe_row.get("notification_error"):
+        safe_row["notification_error"] = "Notification failed"
+    return safe_row
+
+
+def _existing_by_request_id(current_user: CurrentUser, client_request_id: str) -> dict[str, Any] | None:
+    found = (
+        supabase.table("feedback_submissions")
+        .select("*")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("user_id", current_user.user_id)
+        .eq("client_request_id", client_request_id)
+        .execute()
+    )
+    return (found.data or [None])[0]
+
+
+def _enforce_report_cap(current_user: CurrentUser) -> None:
+    since = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    recent = (
+        supabase.table("feedback_submissions")
+        .select("id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("user_id", current_user.user_id)
+        .gte("created_at", since)
+        .execute()
+    )
+    if len(recent.data or []) >= MOBILE_REPORTS_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Too many reports in the last hour. Please try again later.")
+
+
 @router.post("")
 async def submit_feedback(
     request: CreateFeedbackRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    is_mobile = _is_mobile_report(request)
+    if request.client_request_id:
+        # A retry of a report the server already accepted returns that report instead of filing another.
+        existing = _existing_by_request_id(current_user, str(request.client_request_id))
+        if existing:
+            return {"data": _safe_row(existing), "meta": {"replayed": True}}
+    _enforce_report_cap(current_user)
+
     payload = {
         "tenant_id": current_user.hotel_id,
         "user_id": current_user.user_id,
@@ -92,11 +185,22 @@ async def submit_feedback(
         "browser_language": request.browser_language,
         "viewport_width": request.viewport_width,
         "viewport_height": request.viewport_height,
-        "client_context": request.client_context,
+        "client_context": _allowlisted_context(request.client_context) if is_mobile else request.client_context,
         "notification_status": "pending",
     }
+    if is_mobile:
+        payload["source"] = "mobile"
+        payload["area"] = request.area
+        payload["client_request_id"] = str(request.client_request_id) if request.client_request_id else None
 
-    result = supabase.table("feedback_submissions").insert(payload).execute()
+    try:
+        result = supabase.table("feedback_submissions").insert(payload).execute()
+    except Exception:
+        # Two retries racing: the unique index kept one; hand back that one.
+        existing = _existing_by_request_id(current_user, str(request.client_request_id)) if request.client_request_id else None
+        if existing:
+            return {"data": _safe_row(existing), "meta": {"replayed": True}}
+        raise
     row = result.data[0]
 
     try:
@@ -119,10 +223,43 @@ async def submit_feedback(
         if updated.data:
             row = updated.data[0]
 
-    safe_row = dict(row)
-    if safe_row.get("notification_error"):
-        safe_row["notification_error"] = "Notification failed"
-    return {"data": safe_row}
+    return {"data": _safe_row(row)}
+
+
+@router.get("/mine")
+async def list_my_feedback(
+    limit: int = Query(30, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """The signed-in person's own reports, newest first. Never another person's, never another hotel's."""
+    result = (
+        supabase.table("feedback_submissions")
+        .select(OWN_REPORT_COLUMNS)
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("user_id", current_user.user_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return {"data": result.data or [], "meta": {"limit": limit}}
+
+
+@router.get("/mine/{feedback_id}")
+async def get_my_feedback(
+    feedback_id: UUID4,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    result = (
+        supabase.table("feedback_submissions")
+        .select(OWN_REPORT_COLUMNS)
+        .eq("id", str(feedback_id))
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("user_id", current_user.user_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"data": result.data[0]}
 
 
 @router.get("")

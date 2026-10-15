@@ -50,6 +50,8 @@ const config = [
       'app/(app)/notifications/**/*.{ts,tsx,js,jsx}',
       'components/supervisor/**/*.{ts,tsx,js,jsx}',
       'components/home/**/*.{ts,tsx,js,jsx}',
+      'components/settings/**/*.{ts,tsx,js,jsx}',
+      'components/security/**/*.{ts,tsx,js,jsx}',
     ],
     ignores: [
       '**/*.test.*',

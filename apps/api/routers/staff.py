@@ -4,10 +4,11 @@ from datetime import date as date_type
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from core.config import settings
 from core.database import supabase
+from services.notify import pick_override_role, register_device, revoke_device
 from services.settings_audit import record_settings_event
 from core.roles import ALL_ROLES, GM_ONLY_ROLES, LEGACY_MODULE_ALIASES, unsupported_modules
 from middleware.auth import CurrentUser, get_current_user, require_role
@@ -15,6 +16,7 @@ from models.requests import (
     AddStaffDirectRequest,
     CreateCustomRoleRequest,
     UpdateCustomRoleRequest,
+    UpdateOwnProfileRequest,
     UpdatePushTokenRequest,
     UpdateStaffMemberProfileRequest,
 )
@@ -208,21 +210,223 @@ async def update_push_token(
     body: UpdatePushTokenRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Register or update the caller's Expo push token. Called on every login."""
-    supabase.table("user_profiles")\
-        .update({"expo_push_token": body.token})\
-        .eq("id", current_user.user_id)\
-        .execute()
+    """Register the caller's phone for push. One person can have several phones (push_devices).
+
+    A token identifies a physical device. If someone else on a shared phone registered it earlier, their
+    registration is detached first, so alerts meant for the previous employee can never reach the next one.
+    The caller is always the JWT identity; the body can only name a token for that identity.
+    """
+    register_device(
+        current_user.hotel_id, current_user.user_id, body.token,
+        installation_id=body.installation_id, platform=body.platform, app_version=body.app_version,
+    )
     return {"data": {"success": True}}
+
+
+@router.post("/me/push-token/revoke")
+async def revoke_push_token(
+    body: UpdatePushTokenRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Called on sign-out: detach this device's token from the caller. Only the caller's own registration
+    for exactly this token is revoked, so their other phones keep working and nobody else is touched."""
+    revoke_device(current_user.hotel_id, current_user.user_id, body.token)
+    return {"data": {"success": True}}
+
+
+# --- Self-service profile ---------------------------------------------------
+# The caller's identity always comes from the verified JWT (CurrentUser); no endpoint here takes a
+# user id. Only preferred_name and the caller's own avatar are writable — role, tenant, full name and
+# the rest stay hotel-managed (also enforced in the DB by trg_user_profiles_self_update_guard).
+AVATAR_BUCKET = "avatars"
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+AVATAR_SIGNED_URL_SECONDS = 3600
+AVATAR_TYPES = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png"}
+
+
+def _image_matches_type(content_type: str, data: bytes) -> bool:
+    """Trust the bytes, not the client-declared MIME type."""
+    if content_type in ("image/jpeg", "image/jpg"):
+        return data[:3] == b"\xff\xd8\xff"
+    if content_type == "image/png":
+        return data[:8] == b"\x89PNG\r\n\x1a\n"
+    return False
+
+
+def _avatar_signed_url(path: Optional[str]) -> Optional[str]:
+    if not path:
+        return None
+    try:
+        res = supabase.storage.from_(AVATAR_BUCKET).create_signed_url(path, AVATAR_SIGNED_URL_SECONDS)
+        return (res or {}).get("signedURL") or None
+    except Exception:
+        logger.warning("Avatar signed URL failed for path=%s", path, exc_info=True)
+        return None
+
+
+def _remove_avatar_object(path: Optional[str]) -> None:
+    if not path:
+        return
+    try:
+        supabase.storage.from_(AVATAR_BUCKET).remove([path])
+    except Exception:
+        logger.warning("Could not delete old avatar object path=%s", path, exc_info=True)
+
+
+def _own_profile_row(current_user: CurrentUser) -> dict:
+    res = supabase.table("user_profiles")\
+        .select("id, full_name, preferred_name, avatar_url, avatar_path")\
+        .eq("id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return res.data[0]
+
+
+def _own_profile_payload(current_user: CurrentUser, row: dict) -> dict:
+    hotel = supabase.table("tenants").select("name").eq("id", current_user.hotel_id).execute()
+    return {
+        "id": current_user.user_id,
+        "full_name": row.get("full_name"),
+        "preferred_name": row.get("preferred_name"),
+        "email": current_user.email or None,
+        "role": current_user.role,
+        "hotel_id": current_user.hotel_id,
+        "hotel_name": ((hotel.data or [{}])[0]).get("name"),
+        # Own upload (signed, expires) wins; otherwise the GM-set external URL, if any.
+        "avatar_url": _avatar_signed_url(row.get("avatar_path")) or row.get("avatar_url") or None,
+        "has_uploaded_avatar": bool(row.get("avatar_path")),
+    }
+
+
+@router.get("/me/profile")
+async def get_own_profile(current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": _own_profile_payload(current_user, _own_profile_row(current_user))}
+
+
+@router.patch("/me/profile")
+async def update_own_profile(
+    body: UpdateOwnProfileRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Change the caller's own preferred (display) name. Nothing else is writable here."""
+    update_data = body.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=422, detail="No valid fields to update")
+    result = supabase.table("user_profiles")\
+        .update(update_data)\
+        .eq("id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return {"data": _own_profile_payload(current_user, _own_profile_row(current_user))}
+
+
+@router.post("/me/avatar")
+async def upload_own_avatar(
+    file: UploadFile = File(...),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Replace the caller's own profile photo (JPEG/PNG, <= 2 MB) in the private avatars bucket."""
+    row = _own_profile_row(current_user)
+    old_path = row.get("avatar_path")
+    if file.content_type not in AVATAR_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG or PNG images are allowed")
+    contents = await file.read(AVATAR_MAX_BYTES + 1)
+    if len(contents) > AVATAR_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Photo must be 2 MB or smaller")
+    if not contents or not _image_matches_type(file.content_type, contents):
+        raise HTTPException(status_code=400, detail="That file is not a valid image")
+
+    # Opaque, server-chosen key: {tenant}/{user}/{random}.{ext}; the client never supplies a path.
+    path = f"{current_user.hotel_id}/{current_user.user_id}/{secrets.token_hex(8)}.{AVATAR_TYPES[file.content_type]}"
+    try:
+        supabase.storage.from_(AVATAR_BUCKET).upload(
+            path, contents, {"content-type": file.content_type, "upsert": "false"}
+        )
+    except Exception:
+        logger.warning("Avatar upload failed for user=%s", current_user.user_id, exc_info=True)
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+    try:
+        result = supabase.table("user_profiles")\
+            .update({"avatar_path": path})\
+            .eq("id", current_user.user_id)\
+            .eq("tenant_id", current_user.hotel_id)\
+            .execute()
+        if not result.data:
+            raise RuntimeError("profile row not updated")
+    except Exception:
+        _remove_avatar_object(path)
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+    _remove_avatar_object(old_path)
+    return {"data": _own_profile_payload(current_user, {**row, "avatar_path": path})}
+
+
+@router.delete("/me/avatar")
+async def remove_own_avatar(current_user: CurrentUser = Depends(get_current_user)):
+    row = _own_profile_row(current_user)
+    old_path = row.get("avatar_path")
+    supabase.table("user_profiles")\
+        .update({"avatar_path": None})\
+        .eq("id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    _remove_avatar_object(old_path)
+    return {"data": _own_profile_payload(current_user, {**row, "avatar_path": None})}
+
+
+# Who a person should turn to first, by their own role. Names and job titles only: the app is given the hotel's
+# business phone line, never anyone's personal phone or email.
+SUPPORT_CONTACT_ROLES = {
+    "housekeeper": ("housekeeping_supervisor", "gm"),
+    "inspector": ("housekeeping_supervisor", "gm"),
+    "housekeeping_supervisor": ("gm",),
+    "engineer": ("chief_engineer", "gm"),
+    "chief_engineer": ("gm",),
+    "front_desk": ("gm", "housekeeping_supervisor"),
+    "gm": (),
+}
+
+
+@router.get("/me/support-contacts")
+async def get_support_contacts(current_user: CurrentUser = Depends(get_current_user)):
+    wanted = SUPPORT_CONTACT_ROLES.get(current_user.role, ())
+    hotel = supabase.table("tenants").select("name, phone").eq("id", current_user.hotel_id).execute()
+    hotel_row = (hotel.data or [{}])[0]
+    contacts: list[dict] = []
+    if wanted:
+        role_rows = (
+            supabase.table("user_roles")
+            .select("user_id, role")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("is_active", True)
+            .in_("role", list(wanted))
+            .execute()
+        ).data or []
+        role_rows = [r for r in role_rows if r.get("user_id") and r["user_id"] != current_user.user_id]
+        if role_rows:
+            profiles = (
+                supabase.table("user_profiles")
+                .select("id, full_name, preferred_name")
+                .eq("tenant_id", current_user.hotel_id)
+                .in_("id", [r["user_id"] for r in role_rows])
+                .execute()
+            ).data or []
+            names = {p["id"]: (p.get("preferred_name") or p.get("full_name")) for p in profiles}
+            rank = {role: index for index, role in enumerate(wanted)}
+            for r in sorted(role_rows, key=lambda r: rank.get(r["role"], 99)):
+                if names.get(r["user_id"]):
+                    contacts.append({"name": names[r["user_id"]], "role": r["role"]})
+    return {"data": {"hotel": {"name": hotel_row.get("name"), "phone": hotel_row.get("phone") or None}, "contacts": contacts[:5]}}
 
 
 @router.get("/me/effective-role")
 async def get_effective_role(current_user: CurrentUser = Depends(get_current_user)):
     """Returns today's effective role for the caller, applying any day-of-week schedule override."""
-    today = date_type.today()
-    # Python weekday(): 0=Mon…6=Sun → our DB convention: 0=Sun, 1=Mon…6=Sat
-    db_day = (today.weekday() + 1) % 7
-
     result = supabase.table("staff_role_schedules")\
         .select("id, override_role, days_of_week, start_date, end_date")\
         .eq("hotel_id", current_user.hotel_id)\
@@ -230,18 +434,9 @@ async def get_effective_role(current_user: CurrentUser = Depends(get_current_use
         .eq("is_active", True)\
         .execute()
 
-    effective_role = current_user.role
-    schedule_id = None
-
-    for s in (result.data or []):
-        if s.get("start_date") and date_type.fromisoformat(s["start_date"]) > today:
-            continue
-        if s.get("end_date") and date_type.fromisoformat(s["end_date"]) < today:
-            continue
-        if db_day in (s.get("days_of_week") or []):
-            effective_role = s["override_role"]
-            schedule_id = s["id"]
-            break
+    # Shared with notification delivery so the role a person sees and the role alerts are judged by agree.
+    override_role, schedule_id = pick_override_role(result.data or [], date_type.today())
+    effective_role = override_role or current_user.role
 
     # Look up custom role assignment for this user
     ur_result = supabase.table("user_roles")\

@@ -1,6 +1,5 @@
 import logging
 import asyncio
-import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import datetime, timedelta, timezone
@@ -21,6 +20,7 @@ from models.requests import (
     ResolveOccupancyDiscrepancyRequest,
 )
 from core.database import supabase
+from services.notify import send_push
 from services.settings_audit import record_settings_event
 from core.roles import ASSIGNMENT_BOUND_ROLES, HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
 from services.room_status_transitions import (
@@ -170,34 +170,20 @@ def _approx_elapsed_minutes(room_status_data: dict) -> float | None:
         return None
 
 
-async def _send_checkout_push(housekeeper_id: str, room_number: str, room_id: str) -> None:
-    """Fire-and-forget push notification when front desk marks an assigned departure checked out."""
-    try:
-        profile = (
-            supabase.table("user_profiles")
-            .select("expo_push_token")
-            .eq("id", housekeeper_id)
-            .maybe_single()
-            .execute()
-        )
-        token = (profile.data or {}).get("expo_push_token")
-        if not token:
-            logger.debug("No push token for housekeeper=%s, skipping checkout push", housekeeper_id)
-            return
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            await client.post("https://exp.host/--/api/v2/push/send", json={
-                "to": token,
-                "title": "Room Checked Out",
-                "body": f"Room {room_number} checked out. Departure clean is ready.",
-                "data": {
-                    "type": "room_checked_out",
-                    "room_id": room_id,
-                    "room_number": room_number,
-                    "url": f"/(app)/my-rooms/{room_id}",
-                },
-            })
-    except Exception:
-        pass
+async def _send_checkout_push(
+    tenant_id: str, housekeeper_id: str, room_number: str, room_id: str, notification_id: str | None = None
+) -> None:
+    """Fire-and-forget push when front desk marks an assigned departure checked out (policy in
+    services/notify.py)."""
+    await send_push(
+        tenant_id=tenant_id,
+        recipient_ids=[housekeeper_id],
+        event_type="room_checked_out",
+        title="Room Checked Out",
+        body=f"Room {room_number} checked out. Departure clean is ready.",
+        data={"room_id": room_id, "room_number": room_number, "url": f"/(app)/my-rooms/{room_id}"},
+        notification_ids={housekeeper_id: notification_id} if notification_id else None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -682,7 +668,7 @@ async def manual_checkout_room(
         and (from_status != "DIRTY" or prior_fo_status == "OCC")
     )
     if should_notify:
-        supabase.table("notifications").insert({
+        written = supabase.table("notifications").insert({
             "tenant_id": current_user.hotel_id,
             "user_id": assigned_to,
             "type": "room_checked_out",
@@ -692,7 +678,10 @@ async def manual_checkout_room(
             "is_read": False,
             "push_sent": False,
         }).execute()
-        asyncio.create_task(_send_checkout_push(assigned_to, room_number, room_id))
+        notification_id = ((written.data or [None])[0] or {}).get("id")
+        asyncio.create_task(
+            _send_checkout_push(current_user.hotel_id, assigned_to, room_number, room_id, notification_id)
+        )
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}

@@ -23,6 +23,17 @@ export interface OfflineAction {
   createdAt: string;
   /** `${tenant_id}:${user_id}` that queued it; only that person + hotel ever replays or sees it. */
   owner?: string;
+  /** Failed sends so far. At MAX_ACTION_ATTEMPTS (or on a refusal that retrying cannot fix) it stops being retried automatically. */
+  attempts?: number;
+}
+
+/** Mirrors the SQLite work-order queue ceiling (lib/offline/db.ts). */
+export const MAX_ACTION_ATTEMPTS = 5;
+
+/** The server understood and refused (not a timeout, rate limit or outage): sending it again unchanged cannot help. */
+function isPermanentRefusal(err: unknown): boolean {
+  const status = (err as { name?: unknown; status?: unknown } | null)?.name === "ApiError" ? (err as { status: unknown }).status : null;
+  return typeof status === "number" && status >= 400 && status < 500 && status !== 408 && status !== 425 && status !== 429;
 }
 
 interface AppState {
@@ -59,6 +70,8 @@ interface AppState {
   /** Drop queued legacy room_status actions for rooms now owned by a clean session. */
   dropQueuedRoomStatus: (roomId: string) => Promise<void>;
   flushQueue: () => Promise<void>;
+  /** "Sync now": give actions that ran out of automatic retries another go. */
+  resetFailedActions: () => Promise<void>;
   loadPendingActions: () => Promise<void>;
 }
 
@@ -162,7 +175,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const changed = (previous?.id ?? null) !== (user?.id ?? null) || (previous?.tenant_id ?? null) !== (user?.tenant_id ?? null);
     if (changed && previous) {
       // A different person/hotel on this device must never see the last user's rooms.
-      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null, pendingActions: [] });
+      set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null, pendingActions: [], unreadCount: 0, lastSyncedAt: null });
       void clearRoomsCache().catch(() => undefined);
       // ...nor the last user's cached tasks, history or counts (their unsent completions stay isolated in the task outbox).
       void clearAllTaskCaches().catch(() => undefined);
@@ -257,10 +270,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   flushQueue: async () => {
     const owner = getQueueOwner();
     if (!owner) return;
-    const actions = get().pendingActions.filter((a) => a.owner === owner);
+    // Actions that ran out of retries wait for the person (Sync now) instead of being re-sent on every reconnect.
+    const actions = get().pendingActions.filter((a) => a.owner === owner && (a.attempts ?? 0) < MAX_ACTION_ATTEMPTS);
     if (actions.length === 0) return;
 
     const succeeded: string[] = [];
+    const failedAttempts = new Map<string, number>();
     for (const action of actions) {
       // Never send under a different account: stop if the person or hotel changed mid-flush.
       if (getQueueOwner() !== owner) return;
@@ -287,14 +302,27 @@ export const useAppStore = create<AppState>((set, get) => ({
         succeeded.push(action.id);
       } catch (err) {
         console.warn("[offline] flush failed for action", action.id, err);
+        failedAttempts.set(action.id, isPermanentRefusal(err) ? MAX_ACTION_ATTEMPTS : (action.attempts ?? 0) + 1);
       }
     }
 
     // Someone else signed in while requests were in flight: leave their view and the stored queue alone.
     if (getQueueOwner() !== owner) return;
-    const remaining = get().pendingActions.filter((a) => !succeeded.includes(a.id));
+    const remaining = get()
+      .pendingActions.filter((a) => !succeeded.includes(a.id))
+      .map((a) => (failedAttempts.has(a.id) ? { ...a, attempts: failedAttempts.get(a.id) } : a));
     set({ pendingActions: remaining });
     await persistQueue(owner, remaining);
+  },
+
+  resetFailedActions: async () => {
+    const owner = getQueueOwner();
+    if (!owner) return;
+    const current = get().pendingActions;
+    if (!current.some((a) => a.owner === owner && (a.attempts ?? 0) >= MAX_ACTION_ATTEMPTS)) return;
+    const next = current.map((a) => (a.owner === owner && (a.attempts ?? 0) >= MAX_ACTION_ATTEMPTS ? { ...a, attempts: 0 } : a));
+    set({ pendingActions: next });
+    await persistQueue(owner, next);
   },
 
   loadPendingActions: async () => {

@@ -18,17 +18,75 @@
     "login": "Log In",
     "email": "Email address",
     "password": "Password",
-    "magicLink": "Send Magic Link",
-    "magicLinkSent": "Check your email for a login link",
-    "signInWith": "Sign in with email/password",
-    "propertySubtitle": "v2 - {{property}}",
+    "passwordForm": {
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "requirements": "Use at least {{min}} characters. A longer passphrase is stronger. You can paste from a password manager.",
+      "errors": {
+        "currentRequired": "Enter your current password.",
+        "tooShort": "Use at least {{min}} characters.",
+        "mismatch": "The two passwords don't match.",
+        "same": "Choose a password different from your current one.",
+        "invalidCredentials": "Your current password isn't right.",
+        "weakPassword": "That password is too easy to guess. Try a longer passphrase.",
+        "samePassword": "Choose a password different from your current one.",
+        "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
+        "offline": "Can't reach the server. Check your connection and try again.",
+        "session": "Your session expired. Please sign in again.",
+        "reauthRequired": "For your security, sign out and sign in again, then retry.",
+        "emailNotConfirmed": "Your email hasn't been confirmed yet.",
+        "linkExpired": "This link has expired. Request a new one.",
+        "generic": "We couldn't update your password. Please try again."
+      }
+    },
+    "magicLink": "Email me a sign-in link",
+    "magicLinkSent": "If that email belongs to a PatelRep account, a sign-in link is on its way. Check your inbox.",
     "signInEyebrow": "Sign in",
     "welcomeBack": "Welcome back.",
     "startShift": "Sign in to start your shift.",
-    "signInWithPhone": "Sign in with phone",
-    "newTo": "New to PatelRep?",
-    "getInviteLink": "Get the invite link",
-    "errorTitle": "Error"
+    "errorTitle": "Error",
+    "staffSignIn": "Staff sign-in",
+    "magicLinkIntro": "We'll email you a link that signs you in on this phone.",
+    "signInWithEmailLink": "Email me a sign-in link instead",
+    "signInWithPassword": "Sign in with password instead",
+    "forgotPassword": "Forgot password?",
+    "inviteNotice": "New employee? Ask your hotel administrator for an invitation.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "back": "Back",
+    "errors": {
+      "emailRequired": "Enter your email address.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Enter your password.",
+      "invalidCredentials": "That email or password isn't right. Please try again.",
+      "emailNotConfirmed": "Your email hasn't been confirmed yet. Check your inbox for the invitation.",
+      "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
+      "offline": "Can't reach the server. Check your connection and try again.",
+      "generic": "We couldn't sign you in. Please try again."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "body": "Enter the email address you sign in with and we'll send you a link to choose a new password.",
+      "sentBody": "Check your email for next steps.",
+      "sentNote": "If that address belongs to a PatelRep account, a reset link is on its way. The link works once and expires soon.",
+      "send": "Send reset link"
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "body": "Pick a password you don't use anywhere else. A passphrase of a few words works well.",
+      "save": "Save password",
+      "doneTitle": "Password updated",
+      "doneBody": "Your new password is saved. Use it the next time you sign in.",
+      "continue": "Continue"
+    },
+    "callback": {
+      "expiredTitle": "This link has expired",
+      "expiredBody": "Sign-in and reset links work once and expire quickly. Go back and request a new one.",
+      "failedTitle": "We couldn't use this link",
+      "failedBody": "The link may be incomplete or already used. Go back and try again.",
+      "backToSignIn": "Back to sign in"
+    }
   },
   "tabs": {
     "home": "Home",
@@ -2572,38 +2630,368 @@
       "noteTooLong": "Details are too long."
     }
   },
+  "security": {
+    "sections": {
+      "password": "Password",
+      "protection": "App protection",
+      "devices": "Device sessions",
+      "actions": "Account security"
+    },
+    "password": {
+      "title": "Change password",
+      "subtitle": "Choose a new password",
+      "intro": "Enter your current password, then choose a new one. You'll stay signed in on this phone.",
+      "save": "Save password",
+      "saved": "Password updated"
+    },
+    "biometric": {
+      "title": "Biometric app lock",
+      "faceId": "Face ID",
+      "touchId": "Touch ID",
+      "face": "Face unlock",
+      "fingerprint": "Fingerprint",
+      "generic": "Biometrics",
+      "on": "On — unlock with biometrics or your phone passcode",
+      "off": "Off — require {{name}} to open PatelRep",
+      "checking": "Checking this device…",
+      "notEnrolled": "Set up Face ID, a fingerprint or a screen lock in your phone's settings first.",
+      "unsupported": "Not available on this device.",
+      "note": "App lock protects PatelRep on this phone. It isn't a new sign-in: your account stays signed in and unsent work keeps syncing.",
+      "setupTitle": "Protect PatelRep with {{name}}?",
+      "setupBody": "When PatelRep opens or after you've been away, you'll need {{name}} (or your phone passcode) to see rooms, tasks and guest information. Your biometric data stays with your phone and is never shared with PatelRep.",
+      "enable": "Enable",
+      "enablePrompt": "Confirm it's you to turn on app lock",
+      "disablePrompt": "Confirm it's you to turn off app lock",
+      "enabled": "App lock is on",
+      "disabled": "App lock is off",
+      "cancelled": "Cancelled. App lock was not turned on.",
+      "authFailed": "We couldn't verify you. Please try again."
+    },
+    "lockAfter": {
+      "title": "Lock after inactivity",
+      "needsLock": "Turn on app lock to choose when it locks",
+      "options": {
+        "immediately": "Immediately",
+        "m1": "After 1 minute",
+        "m5": "After 5 minutes",
+        "m15": "After 15 minutes",
+        "m30": "After 30 minutes"
+      }
+    },
+    "devices": {
+      "title": "Your devices",
+      "subtitle": "This phone and other sessions",
+      "thisDevice": "This device",
+      "current": "Current",
+      "signedIn": "Signed in {{when}}",
+      "note": "PatelRep can't list your other devices. If you've signed in somewhere you no longer use, you can sign out of every other device below. You'll stay signed in here."
+    },
+    "others": {
+      "title": "Sign out of other devices",
+      "subtitle": "Keep this phone signed in",
+      "offline": "Connect to the internet to do this.",
+      "confirmTitle": "Sign out of other devices?",
+      "confirmBody": "Every other phone or browser signed in to your account will be signed out. You'll stay signed in on this phone. An other device may stay open briefly until its current access expires.",
+      "confirm": "Sign out other devices",
+      "done": "Other devices were signed out",
+      "errors": {
+        "offline": "Can't reach the server. Check your connection and try again.",
+        "session": "Your session expired. Please sign in again.",
+        "generic": "We couldn't sign out your other devices. Please try again."
+      }
+    },
+    "signOut": {
+      "title": "Sign out of this phone?",
+      "body": "You'll be signed out on this phone only. Your other devices stay signed in.",
+      "unsyncedTitle": "{{count}} change(s) not synced yet",
+      "unsyncedBody": "They stay saved on this phone under your account and are sent the next time you sign in here with a connection. They won't sync while you're signed out.",
+      "offlineNote": "You're offline right now.",
+      "viewDetails": "View details",
+      "failed": "We couldn't sign you out. Please try again."
+    },
+    "unsynced": {
+      "title": "Unsynced changes",
+      "intro": "{{count}} change(s) saved on this phone haven't reached the server yet.",
+      "none": "Everything on this phone is synced.",
+      "waiting": "Waiting to sync",
+      "needsAttention": "{{count}} need(s) attention",
+      "since": "since {{when}}",
+      "categories": {
+        "roomUpdates": "Room updates",
+        "taskCompletions": "Task completions",
+        "workOrders": "Work orders",
+        "logbook": "Logbook entries",
+        "cleaningSessions": "Cleaning sessions"
+      }
+    },
+    "errors": {
+      "saveFailed": "Couldn't save that setting. Please try again."
+    }
+  },
+  "lock": {
+    "title": "PatelRep is locked",
+    "body": "Unlock with biometrics or your phone passcode to continue.",
+    "unlock": "Unlock",
+    "prompt": "Unlock PatelRep",
+    "cancelled": "Unlock cancelled. Tap Unlock to try again.",
+    "failed": "We couldn't verify you. Tap Unlock to try again.",
+    "unavailable": "This phone has no biometrics or passcode set up for unlocking. Sign out and sign in again to continue."
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "staffFallback": "Staff",
+    "connection": {
+      "online": "Online",
+      "offline": "Offline",
+      "syncing": "Syncing",
+      "onlineSynced": "Online · All synced",
+      "pending": "Online · {{count}} pending",
+      "offlinePending": "Offline · {{count}} pending",
+      "attention": "1 needs attention",
+      "attention_plural": "{{count}} need attention"
+    },
+    "sections": {
+      "account": "Account",
+      "preferences": "Preferences",
+      "support": "App & support"
+    },
+    "personal": {
+      "title": "Personal Information",
+      "subtitle": "Name and account details",
+      "changePhoto": "Change photo",
+      "removePhoto": "Remove photo",
+      "removeTitle": "Remove your profile photo?",
+      "removeBody": "Your photo will be removed and your initials will show instead. You can add a new photo any time.",
+      "removeConfirm": "Remove photo",
+      "keepPhoto": "Keep photo",
+      "chooseFromLibrary": "Choose from library",
+      "takePhoto": "Take photo",
+      "photoA11y": "Profile photo. Double tap to change.",
+      "photoUpdated": "Photo updated",
+      "photoRemoved": "Photo removed",
+      "uploading": "Uploading…",
+      "removing": "Removing…",
+      "cameraDenied": "Camera access is off. Allow it in your phone's settings to take a photo.",
+      "fullName": "Full name",
+      "displayName": "Display name",
+      "displayNameHelper": "Shown in the app instead of your full name.",
+      "editDisplayName": "Edit display name",
+      "editHint": "Double tap to edit",
+      "email": "Email address",
+      "role": "Role",
+      "property": "Assigned property",
+      "managedByHotel": "Managed by your hotel",
+      "managedNotice": "Your name, role and assigned property are managed by your hotel. Contact your administrator if anything needs to be changed.",
+      "saveChanges": "Save changes",
+      "saved": "Changes saved",
+      "saveFailed": "Unable to save. Please try again.",
+      "connectionRequired": "Connection required",
+      "connectionRequiredBody": "Reconnect to change your photo or display name. You can still view your details.",
+      "loadFailed": "Some details could not be loaded.",
+      "nameErrors": {
+        "empty": "Enter a display name.",
+        "tooLong": "Display names can be up to 40 characters.",
+        "invalid": "That name has characters that aren't allowed."
+      },
+      "errors": {
+        "offline": "Can't reach the server. Check your connection and try again.",
+        "session": "Your session expired. Please sign in again.",
+        "denied": "You don't have permission to change that.",
+        "validation": "That value isn't allowed. Please check it and try again.",
+        "tooLarge": "That photo is too large. Choose a smaller one.",
+        "badImage": "That file isn't a supported photo. Use a JPG or PNG.",
+        "server": "Something went wrong on our side. Please try again."
+      }
+    },
+    "security": { "title": "Security & Sign-in", "subtitle": "Password and device security" },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Work alerts and reminders",
+      "inbox": "Notification inbox",
+      "sectionPhone": "This phone",
+      "pushTitle": "Push Notifications",
+      "pushOn": "On",
+      "pushQuiet": "On, delivered quietly",
+      "pushNotRequested": "Not turned on yet",
+      "pushDenied": "Notifications Disabled in your phone's settings",
+      "pushUnavailable": "Not available on this device",
+      "enable": "Enable Notifications",
+      "openSettings": "Open Device Settings",
+      "deviceSettings": "Device Notification Settings",
+      "deviceSettingsHint": "Sound, vibration and banners are set in your phone's settings.",
+      "sectionWork": "Work Notifications",
+      "sectionBehavior": "Alert Behavior",
+      "sectionInbox": "Inbox",
+      "phoneOffHint": "Turn on notifications on this phone to receive these alerts. Your choices are saved to your account.",
+      "categories": {
+        "room_assignments": { "label": "New Assignments", "description": "A room is assigned to you or a departure is ready to clean" },
+        "work_orders": { "label": "Work Order Updates", "description": "A work order is assigned to you" },
+        "tasks": { "label": "Task Updates", "description": "A task is assigned to you, changed, cancelled or unblocked" }
+      },
+      "criticalHint": "Urgent task alerts are always delivered.",
+      "inboxOnlyNotice": "Other work alerts, like escalations and handoffs, appear in your inbox.",
+      "policyNotice": "Important operational alerts may still appear in PatelRep according to your hotel's notification policy. Your phone's own notification settings always take priority and can't be changed from here.",
+      "saving": "Saving…",
+      "saved": "Changes Saved",
+      "saveFailed": "Unable to Save",
+      "saveFailedDetail": "Unable to save. The switch shows your last saved setting.",
+      "retry": "Retry",
+      "offline": "You're offline. Changes can't be saved until you're back online.",
+      "loadFailed": "Couldn't load your notification settings.",
+      "cachedNotice": "Showing your last saved settings. They'll refresh when you're back online.",
+      "switchOn": "On",
+      "switchOff": "Off",
+      "switchHintOff": "Double tap to turn off",
+      "switchHintOn": "Double tap to turn on",
+      "channelAlerts": "Work alerts",
+      "channelUpdates": "Updates"
+    },
+    "sync": {
+      "title": "Offline & Sync",
+      "offline": "Offline — changes are saved",
+      "status": {
+        "saved": {
+          "title": "All Changes Saved",
+          "body": "Your work is up to date."
+        },
+        "waiting": {
+          "title": "Waiting to Sync",
+          "body": "Your changes are saved on this device and will sync when possible."
+        },
+        "syncing": {
+          "title": "Syncing",
+          "body": "Saving your latest changes."
+        },
+        "attention": {
+          "title": "Some Changes Need Attention",
+          "body": "Some updates could not be saved. Review the details below."
+        },
+        "offline": {
+          "title": "You're Offline",
+          "body": "You're offline. Your saved work will sync when you're connected."
+        },
+        "unavailable": {
+          "title": "Status Unavailable",
+          "body": "We can't confirm your sync status right now. Your work stays saved on this device."
+        }
+      },
+      "connection": "Connection",
+      "connOnline": "Online",
+      "connOffline": "Offline",
+      "lastConfirmed": "All changes confirmed: {{time}}",
+      "lastUnknown": "Last sync time unavailable",
+      "lastLabel": "Last confirmed sync",
+      "pendingCount": "{{count}} change waiting to sync",
+      "pendingCount_plural": "{{count}} changes waiting to sync",
+      "noPending": "No changes waiting",
+      "attentionCount": "{{count}} item needs attention",
+      "attentionCount_plural": "{{count}} items need attention",
+      "noAttention": "Nothing needs attention",
+      "savedWork": "Saved work",
+      "categories": {
+        "rooms": "Rooms",
+        "tasks": "Tasks & Work Orders",
+        "sessions": "Housekeeping Sessions",
+        "other": "Other Saved Work"
+      },
+      "categoryState": {
+        "synced": "All synced",
+        "waiting": "{{count}} waiting",
+        "attention": "{{count}} need attention"
+      },
+      "syncNow": "Sync Now",
+      "syncingNow": "Syncing…",
+      "retrySync": "Retry Sync",
+      "offlineInfo": "Supported work is saved on this device while you're offline and syncs when the app can connect to PatelRep.",
+      "drawer": {
+        "title": "Unsynced Changes",
+        "empty": "All caught up. You have no changes waiting to sync.",
+        "intro": "Saved on this device. Each change is confirmed only when the server has it.",
+        "needsYou": "Needs your attention",
+        "errorTitle": "Unable to Sync"
+      },
+      "row": {
+        "saved": "All changes saved",
+        "waiting": "{{count}} change pending",
+        "waiting_plural": "{{count}} changes pending",
+        "syncing": "Syncing…",
+        "attention": "{{count}} item needs attention",
+        "attention_plural": "{{count}} items need attention",
+        "unavailable": "Status unavailable",
+        "offline": "Offline · {{count}} pending"
+      },
+      "viewDetails": "View Details"
+    },
+    "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
+    "about": { "title": "About PatelRep", "subtitle": "Version and app information" }
+  },
+  "about": {
+    "tagline": "Property operations, simplified.",
+    "versionLine": "Version {{version}}",
+    "version": "App version",
+    "build": "Build number",
+    "updateId": "Update ID",
+    "unavailable": "Unavailable",
+    "contactSupport": "Contact Support",
+    "opensInBrowser": "Opens in your browser · needs internet",
+    "opensInBrowserHint": "Opens in your web browser",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "sections": {
+      "application": "Application information",
+      "product": "Product",
+      "support": "Support",
+      "legal": "Legal & privacy"
+    },
+    "whatsNew": {
+      "title": "What’s New",
+      "rowSubtitle": "Changes in version {{version}}",
+      "headline": "What’s New in PatelRep",
+      "version": "Version {{version}}",
+      "emptyTitle": "Release notes aren’t available for this version.",
+      "sections": { "features": "New features", "improvements": "Improvements", "fixes": "Fixes" }
+    },
+    "licenses": {
+      "title": "Open-source licenses",
+      "rowSubtitle": "Works offline",
+      "intro": "PatelRep is built with open-source software. These {{count}} packages are the ones PatelRep uses directly; each relies on further packages that carry their own notices.",
+      "expandHint": "Shows the license text",
+      "collapseHint": "Hides the license text",
+      "noText": "This package does not include a separate license file. It is released under the {{license}} license.",
+      "emptyTitle": "License notices aren’t available."
+    },
+    "errors": {
+      "offline": "You’re offline. Connect to the internet to open the {{page}}.",
+      "failed": "We couldn’t open the {{page}}. Try again."
+    }
+  },
   "profile": {
-    "me": "Me",
-    "preferences": "Preferences",
     "language": "Language",
+    "languageScreen": {
+      "intro": "Choose the language PatelRep uses for you.",
+      "englishHint": "English (US)",
+      "spanishHint": "Spanish",
+      "pending": "Saving to your account…",
+      "failed": "Changed on this phone, but not saved to your account yet.",
+      "retry": "Retry"
+    },
     "appearance": {
       "label": "Appearance",
       "system": "System",
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "intro": "Choose how PatelRep looks on this phone.",
+      "systemHint": "Follows your phone’s setting",
+      "lightHint": "Always use the light look",
+      "darkHint": "Always use the dark look",
+      "note": "Applies right away and stays on this phone."
     },
-    "notifications": "Notifications",
     "notificationsUnread": "{{count}} unread",
     "myWork": "My work",
     "schedule": "My schedule",
     "sopLibrary": "SOP Library",
-    "dataSync": "Data & sync",
-    "offlineChanges": "Offline changes",
-    "upToDate": "Up to date",
-    "pendingChanges": "{{count}} waiting to sync",
-    "syncNow": "Sync now",
-    "connection": {
-      "online": "Online — everything is synced",
-      "offline": "Offline — your changes are saved and will sync later",
-      "pending": "Online — {{count}} change(s) syncing soon"
-    },
-    "account": "Account",
     "signOut": "Sign out",
-    "signOutTitle": "Sign out",
-    "signOutConfirm": "Are you sure?",
-    "signOutUnsyncedTitle": "Task completions not synced",
-    "signOutUnsynced": "{{count}} task completion hasn't reached your manager yet. It stays saved on this phone and sends the next time you sign in here with this account and a connection.",
-    "signOutUnsynced_plural": "{{count}} task completions haven't reached your manager yet. They stay saved on this phone and send the next time you sign in here with this account and a connection.",
     "signOutAnyway": "Sign out anyway",
     "appVersion": "PatelRep v{{version}}"
   },
@@ -3067,5 +3455,253 @@
     "category": "Category",
     "pages": "Pages",
     "added": "Added"
+  },
+  "help": {
+    "intro": "Need help? Find an answer or report a problem.",
+    "sections": {
+      "getHelp": "Get help",
+      "support": "Support information"
+    },
+    "rows": {
+      "faq": {
+        "title": "Frequently Asked Questions",
+        "subtitle": "Answers to common questions"
+      },
+      "report": {
+        "title": "Report a Problem",
+        "subtitle": "Tell us what's not working"
+      },
+      "contact": {
+        "title": "Contact Your Supervisor",
+        "subtitle": "Get help from your hotel team"
+      },
+      "reports": {
+        "title": "My Reports",
+        "subtitle": "Problems you've reported"
+      },
+      "diagnostics": {
+        "title": "App Diagnostics",
+        "subtitle": "Information that helps troubleshoot problems"
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "intro": "Tap a question to see the answer.",
+      "actions": {
+        "sync": "Open Offline & Sync",
+        "report": "Report a Problem",
+        "language": "Open Language",
+        "appearance": "Open Appearance",
+        "security": "Open Security & Sign-in",
+        "contact": "Contact Your Supervisor"
+      },
+      "items": {
+        "assignmentsMissing": {
+          "q": "Why aren't my assignments showing?",
+          "a": "Your supervisor assigns rooms and tasks, so they show up once they've been assigned to you. Pull down on the list to refresh it. If you're offline you'll see the last list saved on this phone. If it's still empty, ask your supervisor or report a problem."
+        },
+        "refreshWork": {
+          "q": "How do I refresh my work?",
+          "a": "Pull down on a list to refresh it. Lists also refresh when your phone reconnects. When you're offline you'll see what was last saved on this phone."
+        },
+        "useOffline": {
+          "q": "Can I use PatelRep without internet?",
+          "a": "Some of it. Cleaning sessions, task updates and some work-order updates are saved on your phone and sent when you're back online. Other screens need a connection and may show the last information saved. Offline & Sync shows what is waiting."
+        },
+        "syncChanges": {
+          "q": "How do I sync my saved changes?",
+          "a": "They sync on their own when your phone reconnects. To try right now, open Offline & Sync and tap Sync Now."
+        },
+        "taskPending": {
+          "q": "Why is a task still showing as pending?",
+          "a": "A change stays pending until the server confirms it. If you're offline or the signal is weak, it waits on your phone. Open Offline & Sync to see what is waiting or needs attention."
+        },
+        "changeLanguage": {
+          "q": "How do I change the app language?",
+          "a": "Go to Settings, then Language, and choose English or Español. It changes right away and is saved to your account."
+        },
+        "darkMode": {
+          "q": "How do I switch between light and dark mode?",
+          "a": "Go to Settings, then Appearance. Choose Light, Dark, or System to follow your phone's setting."
+        },
+        "forgotPassword": {
+          "q": "What should I do if I forget my password?",
+          "a": "On the sign-in screen tap \"Forgot password?\" and follow the email we send you. If you're signed in and want to change it, open Security & Sign-in."
+        },
+        "noAccess": {
+          "q": "Why can't I access a certain screen?",
+          "a": "Screens depend on your role. If you need access to something, ask your supervisor or manager."
+        },
+        "contactSupervisor": {
+          "q": "How do I contact my supervisor?",
+          "a": "Open Help & Support and tap Contact Your Supervisor. You'll see who to ask and your hotel's phone number, if your hotel has added one."
+        },
+        "signOutUnsynced": {
+          "q": "What happens to unsynced work when I sign out?",
+          "a": "Saved changes stay on this phone under your account and are sent after you sign in again here. Other people who sign in can't see or send them. Sync before you sign out when you can, and don't delete the app while changes are waiting."
+        },
+        "hkReclean": {
+          "q": "What is a reclean request?",
+          "a": "A supervisor or inspector asked for a room to be cleaned again. It shows in My Rooms with what needs to be fixed."
+        },
+        "hkSessionSync": {
+          "q": "Why hasn't my finished room synced?",
+          "a": "Starting, checklist progress and finishing a room are saved on your phone and sent in order when you're online. Until the server confirms, the room shows as waiting. Check Offline & Sync."
+        },
+        "inspMissing": {
+          "q": "Why don't I see rooms to inspect?",
+          "a": "Rooms show up once they're ready for inspection. If you expect one and it isn't there, pull down to refresh, then ask your supervisor."
+        },
+        "inspSubmit": {
+          "q": "My inspection didn't submit",
+          "a": "An inspection needs a connection to be saved. Check that you're online and try again. If it keeps failing, report a problem."
+        },
+        "engWorkOrders": {
+          "q": "Why doesn't a work order show its latest status?",
+          "a": "Work orders update when the list refreshes, so pull down to refresh. Updates you make offline are saved on your phone and sent when you reconnect."
+        },
+        "engUpdates": {
+          "q": "My work-order update hasn't saved",
+          "a": "Updates made offline wait on your phone until the server confirms them. Check Offline & Sync. If one needs attention, open the work order and try again."
+        },
+        "supVisibility": {
+          "q": "Why can't I see a housekeeper's rooms?",
+          "a": "Refresh the list first. Then check that the assignment was saved for the right day. If a room is still missing, report a problem."
+        },
+        "supTeam": {
+          "q": "Why isn't a team update showing?",
+          "a": "Updates reach you once the housekeeper's phone has sent them. If they were offline, their changes appear after their phone reconnects."
+        },
+        "fdGuestRequests": {
+          "q": "Where do I find guest requests?",
+          "a": "Guest requests are in the Guest Requests screen. New ones appear when your phone is online and the list refreshes."
+        },
+        "fdRoomStatus": {
+          "q": "A room status looks wrong",
+          "a": "Room statuses change when housekeeping or inspection updates reach the server. If a phone was offline, an update can arrive late. If it still looks wrong, report a problem."
+        },
+        "gmAccess": {
+          "q": "Why can't someone see a screen?",
+          "a": "Access depends on each person's role. You can review and change roles in Staff."
+        },
+        "gmAdmin": {
+          "q": "Where do I manage the property?",
+          "a": "Property settings, staff and reports are in the PatelRep web app. The mobile app is built for day-to-day work."
+        }
+      }
+    },
+    "report": {
+      "title": "Report a Problem",
+      "intro": "Tell us what happened so we can help.",
+      "area": "What is it about?",
+      "areas": {
+        "assignments": "Assignments or Rooms",
+        "tasks": "Tasks",
+        "housekeeping": "Housekeeping",
+        "inspections": "Inspections",
+        "work_orders": "Work Orders",
+        "notifications": "Notifications",
+        "account": "Account or Sign-in",
+        "sync": "Offline or Sync",
+        "other": "Other"
+      },
+      "description": "What went wrong?",
+      "placeholder": "Describe what happened and what you were trying to do.",
+      "count": "{{count}}\u00a0/\u00a0{{max}}",
+      "blocking": "This is stopping me from working",
+      "guestWarning": "Please don't include guest names, phone numbers or reservation details.",
+      "diagnostics": "Include technical diagnostics",
+      "diagnosticsHint": "Helps us troubleshoot. You can review exactly what is sent.",
+      "viewDiagnostics": "View diagnostics",
+      "submit": "Submit Report",
+      "submitting": "Submitting…",
+      "errors": {
+        "empty": "Please describe what happened.",
+        "tooShort": "Please add a little more detail (at least {{min}} characters).",
+        "noArea": "Choose what the problem is about."
+      },
+      "failed": "Your report wasn't sent. Your text is saved on this phone. Try again.",
+      "offline": "You're offline, so the report can't be sent yet. Your text is saved on this phone as an unsent draft.",
+      "rateLimited": "You've sent several reports recently. Please try again in a little while.",
+      "retry": "Retry",
+      "draftNote": "Unsent draft saved on this phone",
+      "success": {
+        "title": "Report Submitted",
+        "body": "Your report has been sent to the support team.",
+        "reference": "Reference: {{id}}",
+        "done": "Done",
+        "view": "View My Reports"
+      },
+      "discard": {
+        "title": "Discard this report?",
+        "body": "What you wrote has not been sent.",
+        "keep": "Keep Editing",
+        "discard": "Discard Draft"
+      }
+    },
+    "contact": {
+      "title": "Contact Your Supervisor",
+      "intro": "These are the people to ask first at your hotel.",
+      "hotelLine": "Hotel phone",
+      "call": "Call {{phone}}",
+      "none": "Your hotel hasn't added a support contact yet.",
+      "noneHint": "Please contact your department manager or the front desk for assistance.",
+      "loadError": "Couldn't load your hotel's contacts. Check your connection and try again.",
+      "callFailed": "This phone couldn't start the call. Dial the number directly.",
+      "retry": "Try again"
+    },
+    "reports": {
+      "title": "My Reports",
+      "empty": "You haven't submitted any reports yet.",
+      "emptyAction": "Report a Problem",
+      "loadError": "Couldn't load your reports. Check your connection and try again.",
+      "retry": "Try again",
+      "submitted": "Submitted {{date}}",
+      "status": {
+        "open": "Open",
+        "reviewing": "In review",
+        "closed": "Closed"
+      },
+      "statusLabel": "Status: {{status}}",
+      "detail": "Report",
+      "blockingYes": "Marked as stopping work",
+      "noReply": "No reply has been added to this report."
+    },
+    "diagnostics": {
+      "title": "App Diagnostics",
+      "intro": "This is the information we can share to help troubleshoot a problem. Nothing is sent unless you choose to share it.",
+      "fieldsTitle": "What would be shared",
+      "neverTitle": "Never included",
+      "never": "Your password or sign-in details, guest names or phone numbers, reservations, room notes, or the contents of your saved changes.",
+      "share": "Share Diagnostics",
+      "shareHint": "Opens your phone's share menu. You choose where it goes.",
+      "previewTitle": "Share Diagnostics",
+      "previewIntro": "Exactly these details will be shared:",
+      "cancel": "Cancel",
+      "checking": "Still checking saved changes. Sync details are left out until that finishes.",
+      "yes": "Yes",
+      "no": "No",
+      "fields": {
+        "app_version": "App version",
+        "build": "Build",
+        "platform": "Platform",
+        "os_version": "System version",
+        "role": "Role",
+        "language": "Language",
+        "online": "Connected",
+        "last_synced_at": "Last confirmed sync",
+        "pending_changes": "Changes waiting",
+        "failed_changes": "Changes needing attention",
+        "sync_status": "Sync status"
+      },
+      "syncStatuses": {
+        "saved": "All saved",
+        "waiting": "Waiting",
+        "syncing": "Syncing",
+        "attention": "Needs attention",
+        "offline": "Offline",
+        "unavailable": "Unavailable"
+      }
+    }
   }
 }

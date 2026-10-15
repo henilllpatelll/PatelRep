@@ -90,6 +90,9 @@ class FakeQuery:
         self.filters[column] = value
         return self
 
+    def gte(self, column, value):
+        return self
+
     def execute(self):
         return self.supabase.execute(self)
 
