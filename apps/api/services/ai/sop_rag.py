@@ -311,6 +311,9 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
                 "content": c["content"],
                 "similarity": c["similarity"],
                 "metadata": c.get("metadata") or {},
+                # Provenance for the client: which document the passage came from.
+                "document_id": c.get("document_id"),
+                "title": doc_title_map.get(c.get("document_id"), "SOP Document"),
             }
             for c in chunks
         ]

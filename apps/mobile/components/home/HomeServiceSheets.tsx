@@ -5,7 +5,12 @@ import { MarkCleanConfirmationSheet } from "@/components/home/MarkCleanConfirmat
 import { ShiftBriefingSheet } from "@/components/home/ShiftBriefingSheet";
 import { SyncStatusSheet } from "@/components/home/SyncStatusSheet";
 import type { HomeSheetState } from "@/components/home/useHomeSheet";
-import { buildBriefingFromModel, buildBriefingPlan, reconcileBriefing } from "@/lib/housekeeping/homeBriefing";
+import {
+  buildBriefingFromModel,
+  buildBriefingPlan,
+  reconcileBriefing,
+  restrictedRoomNumbers,
+} from "@/lib/housekeeping/homeBriefing";
 import type { HomeModel } from "@/lib/housekeeping/homeModel";
 import type { TextContext, Translate } from "@/lib/housekeeping/myRoomsText";
 import { buildShiftReview, type ReviewItem } from "@/lib/housekeeping/shiftReview";
@@ -219,7 +224,7 @@ export function HomeServiceSheets({
     case "briefing": {
       const local = buildBriefingFromModel(model, t);
       const known = model.dashboard.all.map((entry) => entry.room.room_number);
-      const shown = briefing.ai ? reconcileBriefing(briefing.ai, local, known) : local;
+      const shown = briefing.ai ? reconcileBriefing(briefing.ai, local, known, restrictedRoomNumbers(model)) : local;
       return (
         <ShiftBriefingSheet
           visible={visible}

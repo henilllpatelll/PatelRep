@@ -4,8 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
-import { CopilotHero, SectionLabel } from "@/components/shared/mobileHandoff";
-import { Button } from "@/components/ui/Button";
+import { SectionLabel } from "@/components/shared/mobileHandoff";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { getDocument, type SOPDocument } from "@/lib/api/sop";
@@ -45,6 +44,10 @@ export default function SopDetailScreen() {
     );
   }
 
+  // Phase 5 adds a real "Ask about this SOP". It will open the assistant with
+  // router.push({ pathname: "/(app)/copilot", params: { documentId: doc.id } }): the copilot screen already
+  // passes `documentId` to the server, which verifies it for this hotel (lib/ai/copilotChat AssistantContextIds).
+  // Until document-scoped answers exist there is no AI control here, so nothing can look active and do nothing.
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
       <View>
@@ -60,18 +63,6 @@ export default function SopDetailScreen() {
           {doc.indexing_status === "indexed" ? "AI-indexed" : doc.indexing_status}
         </Text>
       </View>
-
-      <CopilotHero
-        tone="violet"
-        kicker="AI assistant"
-        actions={
-          <Button label="Ask about this SOP" onPress={() => undefined} icon="sparkles" size="sm" />
-        }
-      >
-        <Text>
-          {t("sop.assistantIntroPrefix")} <Text style={[styles.heroStrong, { color: theme.textPrimary }]}>{doc.title}</Text> {t("sop.assistantIntroSuffix")}
-        </Text>
-      </CopilotHero>
 
       {doc.description ? (
         <View>
@@ -114,7 +105,6 @@ const styles = StyleSheet.create({
   metaLine: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
   metaText: { fontSize: 12 },
   metaDot: { width: 3, height: 3, borderRadius: 1.5 },
-  heroStrong: { fontStyle: "normal", fontWeight: "700" },
   descCard: { borderRadius: 12, padding: 14 },
   descText: { fontSize: 13.5, lineHeight: 20 },
   infoCard: { borderRadius: 12, overflow: "hidden", padding: 0 },

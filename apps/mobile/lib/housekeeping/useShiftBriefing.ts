@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchShiftBriefing, type ShiftBriefing } from "@/lib/ai/briefing";
-import { createAiCache } from "@/lib/housekeeping/aiCache";
+import { briefingCache, briefingCacheKey, notifyBriefingChange } from "@/lib/ai/shiftBriefingSource";
 import type { Room } from "@/stores/appStore";
-
-/** A briefing is good for the morning's planning; it is reused, not re-bought, until it is this old. */
-const BRIEFING_TTL_MS = 45 * 60_000;
-const briefingCache = createAiCache<ShiftBriefing>(BRIEFING_TTL_MS);
 
 export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable";
 
@@ -36,7 +32,7 @@ interface Options {
  * request is reported as unavailable (and never stored as if it were an answer).
  */
 export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, t }: Options): BriefingController {
-  const key = scope ? `${scope}:${shiftDate}:${language}` : null;
+  const key = scope ? briefingCacheKey(scope, shiftDate, language) : null;
   const [ai, setAi] = useState<ShiftBriefing | null>(() => (key ? briefingCache.get(key) : null));
   const [status, setStatus] = useState<AiRequestStatus>(() => (key && briefingCache.pending(key) ? "loading" : "idle"));
   const keyRef = useRef(key);
@@ -70,6 +66,8 @@ export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, 
         },
         { force: options?.force },
       );
+      // Anyone else showing this briefing (the floating assistant) picks the new answer up too.
+      notifyBriefingChange();
       if (keyRef.current !== myKey) return;
       setAi(result);
       setStatus("idle");
@@ -85,4 +83,5 @@ export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, 
 /** Test seam: forget stored briefings. */
 export function resetBriefingCache(): void {
   briefingCache.clear();
+  notifyBriefingChange();
 }

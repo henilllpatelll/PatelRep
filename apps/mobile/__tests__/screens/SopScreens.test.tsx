@@ -58,12 +58,13 @@ describe("SOP screens", () => {
     expect(router.push).toHaveBeenCalledWith("/(app)/sop/sop-1");
   });
 
-  it("loads the route SOP and exposes the existing AI affordance as a button", async () => {
+  it("loads the route SOP and shows no AI control that does nothing", async () => {
     mockSopId = "sop-42";
-    const { getAllByText, getByRole } = renderWithTheme(<SopDetailScreen />);
+    const { getAllByText, queryByRole } = renderWithTheme(<SopDetailScreen />);
 
     await waitFor(() => expect(getAllByText("Night audit checklist").length).toBeGreaterThan(0));
     expect(mockGetDocument).toHaveBeenCalledWith("sop-42");
-    expect(getByRole("button", { name: "Ask about this SOP" })).toBeTruthy();
+    // Phase 1: the inert "Ask about this SOP" button is gone until document-scoped answers exist (Phase 5).
+    expect(queryByRole("button", { name: "Ask about this SOP" })).toBeNull();
   });
 });

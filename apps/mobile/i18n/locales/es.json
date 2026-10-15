@@ -3017,6 +3017,90 @@
     "confirmTask": "¿Crear esta tarea?",
     "confirm": "Sí, Crear",
     "edit": "Editar",
+    "quickPrompts": {
+      "reportIssue": "Hay un problema en la habitación ",
+      "requestSupplies": "La habitación  necesita toallas extra",
+      "guestRequest": "El huésped de la habitación  pidió ",
+      "searchSOPs": "¿Cómo "
+    },
+    "newConversation": "Nueva conversación",
+    "unsupportedReply": "No puedo hacer eso desde esta app. Pregunta a tu supervisor.",
+    "sources": "Fuentes",
+    "page": "pág. {{page}}",
+    "clarify": "¿Qué debo hacer?",
+    "provenance": {
+      "verified": "De tus datos",
+      "deterministic": "Por reglas, sin IA",
+      "ai": "Redactado por IA"
+    },
+    "notice": {
+      "offline": "Sin conexión. Conéctate para usar el asistente. No se envió nada.",
+      "permission": "Tu rol no puede usar esa acción del asistente.",
+      "credit_limit": "Este hotel agotó sus créditos de IA del mes. Consulta con tu gerente.",
+      "rate_limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "unavailable": "El asistente no está disponible ahora. Inténtalo pronto.",
+      "not_found": "No se encontró ese registro.",
+      "invalid_request": "El asistente no pudo procesar esa solicitud.",
+      "invalid_response": "No se pudo leer la respuesta del asistente. No se creó nada.",
+      "unauthenticated": "Inicia sesión de nuevo.",
+      "unconfirmed": "El servidor no lo confirmó. No se creó nada.",
+      "unknown": "Algo salió mal. No se creó nada.",
+      "retry": "Intentar de nuevo"
+    },
+    "action": {
+      "kind": {
+        "task": "Nueva tarea",
+        "work_order": "Nueva orden de trabajo",
+        "guest_request": "Nueva solicitud de huésped"
+      },
+      "reviewHint": "Revisa los detalles. No se crea nada hasta que toques Crear.",
+      "retry": "Intentar de nuevo",
+      "alreadyCreated": "Ya se creó hace un momento",
+      "created": {
+        "task": "Tarea creada",
+        "work_order": "Orden de trabajo creada",
+        "guest_request": "Solicitud de huésped registrada"
+      },
+      "roomVerified": "Habitación {{room}} encontrada en este hotel",
+      "roomUnverified": "La habitación {{room}} no coincide con las de este hotel. Revísala antes de crear.",
+      "errors": {
+        "required": "Obligatorio",
+        "tooLong": "Demasiado largo",
+        "needsPlace": "Agrega una habitación o un lugar para que lo encuentren."
+      },
+      "fields": {
+        "title": "Título",
+        "room": "Habitación",
+        "roomPlaceholder": "p. ej. 214",
+        "place": "Lugar (si no es una habitación)",
+        "category": "Categoría",
+        "priority": "Prioridad",
+        "details": "Detalles",
+        "guestName": "Nombre del huésped"
+      },
+      "priority": {
+        "urgent": "Urgente",
+        "normal": "Normal",
+        "low": "Baja"
+      },
+      "workOrderCategory": {
+        "plumbing": "Plomería",
+        "electrical": "Eléctrico",
+        "hvac": "Climatización",
+        "furniture": "Muebles",
+        "appliance": "Electrodoméstico",
+        "structural": "Estructural",
+        "safety": "Seguridad",
+        "general": "General"
+      },
+      "guestCategory": {
+        "service": "Servicio",
+        "housekeeping": "Limpieza",
+        "maintenance": "Mantenimiento",
+        "accessibility": "Accesibilidad",
+        "other": "Otro"
+      }
+    },
     "card": {
       "badge": "IA",
       "readLabel": "Leído",
@@ -3034,7 +3118,7 @@
         "gm": "Resumen semanal"
       },
       "housekeeper": {
-        "primary": "Reordenar mi cola",
+        "primary": "Abrir mis habitaciones",
         "source": "tus cuartos",
         "chip1": "¿Qué sigue?",
         "chip2": "¿Voy a tiempo?"

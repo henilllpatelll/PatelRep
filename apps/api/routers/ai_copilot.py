@@ -11,6 +11,7 @@ from models.requests import (
     UpdateAIModelRouteRequest,
 )
 from core.database import supabase
+from core.roles import GM_ONLY_ROLES
 from services.ai.task_parser import hotel_zone, normalize_due_at, parse_nl_tasks, try_fast_path
 from services.ai.insights import generate_gm_insights
 from services.ai.work_order_parser import parse_work_orders
@@ -26,6 +27,14 @@ from services.ai.gm_briefing import generate_gm_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
 from services.inventory import get_low_stock_parts_summary
 from services.policy import check_action_permitted
+from services.ai.authorization import (
+    parse_intent_hint,
+    require_creation_role,
+    resolve_intent,
+    resolve_trusted_context,
+    sanitize_context,
+    PERMISSION_DENIED,
+)
 from services.ai.governance import (
     InvalidRecommendationTransition,
     calculate_recommendation_metrics,
@@ -35,6 +44,12 @@ from services.ai.governance import (
 from services.ai.model_routing import DEFAULT_MODEL_ROUTES
 from services.guest_recovery.contracts import resolve_sla_minutes
 from routers.guest_requests import _record_guest_request_event
+from routers.work_orders import (
+    SLA_MINUTES as WORK_ORDER_SLA_MINUTES,
+    _find_replayed_work_order,
+    _is_unique_violation,
+    _seed_checklist_from_template,
+)
 from routers.assets import get_recurring_issues
 import openai
 import anthropic
@@ -275,8 +290,17 @@ async def copilot_chat(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     start = time.time()
-    intent_hint = (request.context or {}).get("intent_hint") if request.context else None
-    intent = detect_intent(request.message, intent_hint)
+    # The client's role, hint and context are untrusted: the role is the verified JWT's,
+    # the hint must be on the whitelist, and every context identifier is re-checked
+    # against this hotel (and, for floor staff, against their own assignments).
+    intent_hint = parse_intent_hint(request.context)
+    safe_context = sanitize_context(request.context)
+    trusted_context = resolve_trusted_context(
+        supabase, current_user.hotel_id, current_user.user_id, current_user.role, safe_context
+    )
+    intent = resolve_intent(detect_intent(request.message, intent_hint), intent_hint, current_user.role)
+    # Only server-verified facts reach a prompt (never the client's free-text context).
+    parser_context = {"room_number": trusted_context["room_number"]} if trusted_context.get("room_number") else None
 
     intent_to_log = {
         "task_creation": "task_creation",
@@ -319,7 +343,7 @@ async def copilot_chat(
                     shift_name=ctx["shift_name"],
                     shift_start=ctx["shift_start"],
                     shift_end=ctx["shift_end"],
-                    context=request.context,
+                    context=parser_context,
                     timezone_name=ctx.get("timezone"),
                 )
                 prompt_tokens = result["prompt_tokens"]
@@ -400,7 +424,7 @@ async def copilot_chat(
             }
 
         elif intent == "work_order_triage":
-            wos = (request.context or {}).get("work_orders") or []
+            wos = safe_context.get("work_orders") or []
             response_payload = {
                 "response_type": "answer",
                 "message": _build_work_order_triage_summary(wos),
@@ -510,6 +534,10 @@ async def copilot_chat(
         )
         logger.exception("AI copilot request failed hotel=%s intent=%s", current_user.hotel_id, intent)
         raise HTTPException(status_code=500, detail="AI service temporarily unavailable. Please try again later.")
+
+    response_payload["intent"] = intent
+    if trusted_context:
+        response_payload["trusted_context"] = trusted_context
 
     latency = int((time.time() - start) * 1000)
     await log_ai_interaction(
@@ -827,6 +855,7 @@ async def confirm_tasks(
     * Identical previews already created by the caller within the last two minutes are
       returned instead of duplicated (``meta.deduplicated``).
     """
+    require_creation_role(current_user.role)
     SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
     if not tasks:
         raise HTTPException(status_code=422, detail="At least one task is required")
@@ -898,33 +927,126 @@ async def confirm_tasks(
     }
 
 
+MAX_CONFIRM_BATCH = 20
+
+
+def _verified_room_id(hotel_id: str, room_id: Optional[str], room_number: Optional[str]) -> Optional[str]:
+    """A room reference on an AI preview, proven to belong to this hotel.
+
+    ``room_id`` (when the preview carries one) must be a room of this hotel; otherwise
+    ``room_number`` must resolve to one. A reference that cannot be verified is refused
+    rather than saved as an unlinked record, so the person can correct the preview.
+    """
+    if room_id:
+        found = (
+            supabase.table("rooms").select("id")
+            .eq("id", room_id).eq("tenant_id", hotel_id)
+            .limit(1).execute()
+        ).data or []
+        if not found:
+            raise HTTPException(status_code=400, detail="Room not found in your hotel")
+        return found[0]["id"]
+    if room_number:
+        resolved = _resolve_room_id(hotel_id, room_number)
+        if not resolved:
+            raise HTTPException(status_code=400, detail=f"Room {room_number} was not found in your hotel")
+        return resolved
+    return None
+
+
+def _check_batch(items: list) -> None:
+    if not items:
+        raise HTTPException(status_code=422, detail="At least one item is required")
+    if len(items) > MAX_CONFIRM_BATCH:
+        raise HTTPException(status_code=422, detail="Too many items in one request")
+
+
 @router.post("/work-orders/confirm")
 async def confirm_work_orders(
     work_orders: list[WorkOrderPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    from datetime import datetime, timedelta, timezone
-    SLA = {"urgent": 60, "normal": 240, "low": 480}
-    created = []
+    """Create work orders from reviewed AI previews. Body: a JSON **array** of WorkOrderPreview.
+
+    * Every room reference is verified against this hotel before the first write, so a bad
+      preview never leaves a partial batch.
+    * ``client_request_id`` makes a retried confirm return the work order the first attempt
+      created (``meta.deduplicated``) -- the same key and unique index POST /work-orders uses.
+    """
+    require_creation_role(current_user.role)
+    _check_batch(work_orders)
+
+    prepared = []
     for wo in work_orders:
-        room_id = _resolve_room_id(current_user.hotel_id, wo.room_number) if wo.room_number else None
-        priority = wo.priority
-        due_at = (datetime.now(timezone.utc) + timedelta(minutes=SLA.get(priority, 240))).isoformat()
-        result = supabase.table("work_orders").insert({
+        replayed = _find_replayed_work_order(wo.client_request_id, current_user) if wo.client_request_id else None
+        room_id = None if replayed else _verified_room_id(
+            current_user.hotel_id, str(wo.room_id) if wo.room_id else None, wo.room_number
+        )
+        prepared.append((wo, room_id, replayed))
+
+    created = []
+    deduplicated = 0
+    for wo, room_id, replayed in prepared:
+        if replayed:
+            deduplicated += 1
+            created.append(replayed)
+            continue
+        sla = WORK_ORDER_SLA_MINUTES.get(wo.priority, 240)
+        row = {
             "tenant_id": current_user.hotel_id,
             "title": wo.title,
             "description": wo.description,
             "category": wo.category,
-            "priority": priority,
+            "priority": wo.priority,
             "room_id": room_id,
             "location_text": wo.location_text,
-            "due_at": due_at,
+            "sla_minutes": sla,
+            "due_at": (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat(),
             "created_by": current_user.user_id,
             "is_ai_created": True,
-        }).execute()
+        }
+        if wo.client_request_id:
+            row["client_request_id"] = str(wo.client_request_id)
+        try:
+            result = supabase.table("work_orders").insert(row).execute()
+        except Exception as exc:
+            if wo.client_request_id and _is_unique_violation(exc, "work_orders_client_request_uniq"):
+                winner = _find_replayed_work_order(wo.client_request_id, current_user)
+                if winner:
+                    deduplicated += 1
+                    created.append(winner)
+                    continue
+            raise
         if result.data:
+            _seed_checklist_from_template(result.data[0]["id"], wo.category, current_user.hotel_id)
             created.append(result.data[0])
-    return {"data": {"created_count": len(created), "work_orders": created}}
+    if not created:
+        raise HTTPException(status_code=502, detail="The work order could not be created.")
+    return {
+        "data": {"created_count": len(created), "work_orders": created},
+        "meta": {"deduplicated": deduplicated},
+    }
+
+
+def _find_recent_duplicate_guest_request(
+    hotel_id: str, user_id: str, title: str, room_id: Optional[str], now
+) -> Optional[dict]:
+    """A guest request this user already logged from an identical preview in the last couple of
+    minutes -- a double-tap or a retry after a dropped response, not a second request."""
+    since = (now - timedelta(seconds=DUPLICATE_TASK_WINDOW_SECONDS)).isoformat()
+    rows = (
+        supabase.table("guest_requests").select("*")
+        .eq("tenant_id", hotel_id)
+        .eq("created_by", user_id)
+        .eq("title", title)
+        .neq("status", "cancelled")
+        .gte("created_at", since)
+        .execute()
+    ).data or []
+    for row in rows:
+        if (row.get("room_id") or None) == room_id:
+            return row
+    return None
 
 
 @router.post("/guest-requests/confirm")
@@ -932,21 +1054,39 @@ async def confirm_guest_requests(
     requests: list[GuestRequestPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
+    """Log guest requests from reviewed AI previews. Body: a JSON **array** of GuestRequestPreview.
+
+    Rooms are verified against this hotel before any write, and an identical preview from the
+    same person within two minutes is returned instead of duplicated (``meta.deduplicated``).
+    """
+    require_creation_role(current_user.role)
+    _check_batch(requests)
     # Fail-fast validation before any writes — matches create_guest_request's contract.
     for req in requests:
         if req.category == "accessibility" and req.priority != "urgent":
             raise HTTPException(status_code=422, detail="Accessibility-related requests must use urgent priority")
+    prepared = [
+        (req, _verified_room_id(current_user.hotel_id, str(req.room_id) if req.room_id else None, req.room_number))
+        for req in requests
+    ]
 
     created = []
-    for req in requests:
-        room_id = _resolve_room_id(current_user.hotel_id, req.room_number) if req.room_number else None
+    deduplicated = 0
+    for req, room_id in prepared:
+        now = datetime.now(timezone.utc)
+        duplicate = _find_recent_duplicate_guest_request(
+            current_user.hotel_id, current_user.user_id, req.title, room_id, now
+        )
+        if duplicate:
+            deduplicated += 1
+            created.append(duplicate)
+            continue
         policies = supabase.table("guest_request_sla_policies").select(
             "category, priority, guest_impact, sla_minutes"
         ).eq("tenant_id", current_user.hotel_id).execute().data or []
         sla_minutes = resolve_sla_minutes(
             policies, category=req.category, priority=req.priority, guest_impact=req.guest_impact,
         )
-        now = datetime.now(timezone.utc)
         due_at = (now + timedelta(minutes=sla_minutes)).isoformat()
         result = supabase.table("guest_requests").insert({
             "tenant_id": current_user.hotel_id,
@@ -1008,7 +1148,12 @@ async def confirm_guest_requests(
             },
         )
         created.append(result.data[0])
-    return {"data": {"created_count": len(created), "requests": created}}
+    if not created:
+        raise HTTPException(status_code=502, detail="The guest request could not be logged.")
+    return {
+        "data": {"created_count": len(created), "requests": created},
+        "meta": {"deduplicated": deduplicated},
+    }
 
 
 @router.post("/assignments/confirm")
@@ -1119,6 +1264,9 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
 
 @router.get("/insights")
 async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user)):
+    # Hotel-wide operational analysis is GM-only (same rule as the chat insight intent).
+    if current_user.role not in GM_ONLY_ROLES:
+        raise HTTPException(status_code=403, detail=PERMISSION_DENIED)
     credits = 0
     start = time.time()
     try:

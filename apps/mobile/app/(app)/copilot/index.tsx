@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,79 +13,53 @@ import {
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppStore } from "@/stores/appStore";
 import { darkTheme } from "@/components/shared/tokens";
 import { IconButton } from "@/components/shared/mobileHandoff";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/lib/theme/useToast";
+import { AssistantMessageView } from "@/components/ai/AssistantMessageView";
 import { speechModule as _speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
-import {
-  sendCopilotMessage,
-  confirmTask as confirmTaskRequest,
-  confirmWorkOrder as confirmWorkOrderRequest,
-  confirmGuestRequest as confirmGuestRequestRequest,
-  type ChatMessage as Message,
-  type TaskPreview,
-  type WorkOrderPreview,
-  type GuestRequestPreview,
-} from "@/lib/ai/copilotChat";
+import type { IntentHint } from "@/lib/ai/contract";
+import { MAX_MESSAGE_CHARS, useAssistantConversation } from "@/lib/ai/useAssistantConversation";
 
-const HISTORY_KEY = "@patelrep/copilot_history";
-const MAX_HISTORY = 20;
-
-const QUICK_ACTIONS = [
-  { key: "reportIssue", icon: "warning" as const },
-  { key: "requestSupplies", icon: "cube" as const },
-  { key: "roomStatus", icon: "bed" as const },
-  { key: "guestRequest", icon: "person" as const },
-  { key: "searchSOPs", icon: "book-outline" as const },
+// Each quick action starts a real, routed request: it fills in the start of a sentence and points the
+// assistant at the matching intent (the server still checks the hint against the person's role).
+const QUICK_ACTIONS: Array<{ key: string; icon: "warning" | "cube" | "person" | "book-outline"; hint: IntentHint }> = [
+  { key: "reportIssue", icon: "warning", hint: "work_order_creation" },
+  { key: "requestSupplies", icon: "cube", hint: "task_creation" },
+  { key: "guestRequest", icon: "person", hint: "guest_request_creation" },
+  { key: "searchSOPs", icon: "book-outline", hint: "sop_query" },
 ];
 
 export default function CopilotScreen() {
   const { t } = useTranslation();
-  const { user } = useAppStore();
-  const toast = useToast();
-  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  const { prefill, documentId, roomId } = useLocalSearchParams<{ prefill?: string; documentId?: string; roomId?: string }>();
+  // Ids from the route are only ever claims: the server verifies each one for this person before use.
+  const conversation = useAssistantConversation({ persist: true, context: { documentId, roomId } });
+  const { messages, sending, online } = conversation;
   const sentPrefillRef = useRef(false);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [pendingTaskMsgId, setPendingTaskMsgId] = useState<string | null>(null);
-  const [pendingWOMsgId, setPendingWOMsgId] = useState<string | null>(null);
-  const [pendingGRMsgId, setPendingGRMsgId] = useState<string | null>(null);
+  const [pendingHint, setPendingHint] = useState<IntentHint | undefined>(undefined);
   const flatListRef = useRef<FlatList>(null);
   const [isRecording, setIsRecording] = useState(false);
 
-  // Load persisted history on mount
-  useEffect(() => {
-    AsyncStorage.getItem(HISTORY_KEY)
-      .then((stored) => {
-        if (stored) {
-          try {
-            setMessages(JSON.parse(stored) as Message[]);
-          } catch {
-            // ignore corrupt storage
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { send } = conversation;
+  const submit = useCallback(
+    (text: string, hint?: IntentHint) => {
+      if (!text.trim() || sending) return;
+      setInput("");
+      setPendingHint(undefined);
+      void send(text, hint ? { intentHint: hint } : undefined);
+    },
+    [send, sending],
+  );
 
-  // Persist last MAX_HISTORY messages whenever they change
+  // Deep-linked from the corner-card overlay / voice: send the transcript as the opening message exactly once.
   useEffect(() => {
-    if (messages.length === 0) return;
-    const trimmed = messages.slice(-MAX_HISTORY);
-    AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed)).catch(() => {});
-  }, [messages]);
-
-  // Deep-linked from the corner-card overlay's action buttons/chips — send
-  // the tapped label as the opening message exactly once per screen visit.
-  useEffect(() => {
-    if (prefill && !sentPrefillRef.current) {
+    if (prefill && !sentPrefillRef.current && conversation.scope) {
       sentPrefillRef.current = true;
-      sendMessage(prefill);
+      submit(prefill);
     }
-  }, [prefill]);
+  }, [prefill, conversation.scope, submit]);
 
   useSpeechRecognitionEvent("result", (event) => {
     const transcript = event.results[0]?.transcript ?? "";
@@ -102,71 +75,12 @@ export default function CopilotScreen() {
   };
   const handleMicPressOut = () => { _speechModule?.stop(); };
 
-  async function sendMessage(text: string) {
-    if (!text.trim()) return;
+  const startQuickAction = (action: (typeof QUICK_ACTIONS)[number]) => {
+    setInput(t(`copilot.quickPrompts.${action.key}`));
+    setPendingHint(action.hint);
+  };
 
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const response = await sendCopilotMessage(text, user?.role);
-
-      const msgId = (Date.now() + 1).toString();
-      const assistantMsg: Message = {
-        id: msgId,
-        role: "assistant",
-        content: response.message,
-        task_preview: response.task_preview,
-        work_order_preview: response.work_order_preview,
-        guest_request_preview: response.guest_request_preview,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      if (response.task_preview) setPendingTaskMsgId(msgId);
-      if (response.work_order_preview) setPendingWOMsgId(msgId);
-      if (response.guest_request_preview) setPendingGRMsgId(msgId);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "assistant", content: t("common.error") },
-      ]);
-    } finally {
-      setLoading(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
-    }
-  }
-
-  async function confirmTask(preview: TaskPreview) {
-    try {
-      await confirmTaskRequest(preview);
-      setPendingTaskMsgId(null);
-      toast.success(t("copilot.taskCreated"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
-    }
-  }
-
-  async function confirmWorkOrder(preview: WorkOrderPreview) {
-    try {
-      await confirmWorkOrderRequest(preview);
-      setPendingWOMsgId(null);
-      toast.success(t("copilot.workOrderCreated"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
-    }
-  }
-
-  async function confirmGuestRequest(preview: GuestRequestPreview) {
-    try {
-      await confirmGuestRequestRequest(preview);
-      setPendingGRMsgId(null);
-      toast.success(t("copilot.guestRequestCreated"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
-    }
-  }
+  const canSend = online && !sending && input.trim().length > 0;
 
   return (
     <KeyboardAvoidingView
@@ -178,75 +92,7 @@ export default function CopilotScreen() {
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View>
-            <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
-              <Text style={[styles.bubbleText, item.role === "user" ? styles.userText : styles.aiText]}>
-                {item.content}
-              </Text>
-            </View>
-            {item.task_preview && pendingTaskMsgId === item.id ? (
-              <View style={styles.confirmCard}>
-                <Text style={styles.confirmCardLabel}>{t("copilot.createTask")}</Text>
-                <Text style={styles.confirmCardTitle}>{item.task_preview.title}</Text>
-                <View style={styles.confirmCardActions}>
-                  <Button
-                    label={t("copilot.create")}
-                    onPress={() => confirmTask(item.task_preview!)}
-                    size="sm"
-                    style={styles.confirmBtn}
-                  />
-                  <Button
-                    label={t("copilot.dismiss")}
-                    onPress={() => setPendingTaskMsgId(null)}
-                    size="sm"
-                    style={styles.dismissBtn}
-                  />
-                </View>
-              </View>
-            ) : null}
-            {item.work_order_preview && pendingWOMsgId === item.id ? (
-              <View style={styles.confirmCard}>
-                <Text style={styles.confirmCardLabel}>{t("copilot.createWorkOrder")}</Text>
-                <Text style={styles.confirmCardTitle}>{item.work_order_preview.title}</Text>
-                <View style={styles.confirmCardActions}>
-                  <Button
-                    label={t("copilot.create")}
-                    onPress={() => confirmWorkOrder(item.work_order_preview!)}
-                    size="sm"
-                    style={styles.confirmBtn}
-                  />
-                  <Button
-                    label={t("copilot.dismiss")}
-                    onPress={() => setPendingWOMsgId(null)}
-                    size="sm"
-                    style={styles.dismissBtn}
-                  />
-                </View>
-              </View>
-            ) : null}
-            {item.guest_request_preview && pendingGRMsgId === item.id ? (
-              <View style={styles.confirmCard}>
-                <Text style={styles.confirmCardLabel}>{t("copilot.createGuestRequest")}</Text>
-                <Text style={styles.confirmCardTitle}>{item.guest_request_preview.description}</Text>
-                <View style={styles.confirmCardActions}>
-                  <Button
-                    label={t("copilot.create")}
-                    onPress={() => confirmGuestRequest(item.guest_request_preview!)}
-                    size="sm"
-                    style={styles.confirmBtn}
-                  />
-                  <Button
-                    label={t("copilot.dismiss")}
-                    onPress={() => setPendingGRMsgId(null)}
-                    size="sm"
-                    style={styles.dismissBtn}
-                  />
-                </View>
-              </View>
-            ) : null}
-          </View>
-        )}
+        renderItem={({ item }) => <AssistantMessageView message={item} conversation={conversation} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIcon}>
@@ -259,7 +105,7 @@ export default function CopilotScreen() {
                   key={action.key}
                   label={t(`copilot.quickActions.${action.key}`)}
                   icon={action.icon}
-                  onPress={() => sendMessage(t(`copilot.quickActions.${action.key}`))}
+                  onPress={() => startQuickAction(action)}
                   style={styles.quickAction}
                 />
               ))}
@@ -270,11 +116,30 @@ export default function CopilotScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
       />
 
-      {loading ? (
+      {sending ? (
         <View style={styles.typingRow}>
           <ActivityIndicator color={darkTheme.ai.primary} size="small" />
           <Text style={styles.typingText}>{t("copilot.thinking")}</Text>
         </View>
+      ) : null}
+
+      {!online ? (
+        <View style={styles.offlineRow} accessibilityLiveRegion="polite" testID="copilot-offline">
+          <Ionicons name="cloud-offline-outline" size={14} color={darkTheme.status.pickup} />
+          <Text style={styles.offlineText}>{t("copilot.notice.offline")}</Text>
+        </View>
+      ) : null}
+
+      {messages.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={conversation.startNewConversation}
+          style={styles.newChat}
+          testID="copilot-new-chat"
+        >
+          <Ionicons name="refresh" size={14} color={darkTheme.textMuted} />
+          <Text style={styles.newChatText}>{t("copilot.newConversation")}</Text>
+        </Pressable>
       ) : null}
 
       <View style={styles.inputRow}>
@@ -295,13 +160,16 @@ export default function CopilotScreen() {
           value={input}
           onChangeText={setInput}
           multiline
-          maxLength={500}
+          maxLength={MAX_MESSAGE_CHARS}
+          testID="copilot-input"
         />
         <Pressable
           accessibilityRole="button"
-          style={[styles.iconControl, (!input.trim() || loading) && styles.sendBtnDisabled]}
-          onPress={() => sendMessage(input)}
-          disabled={loading || !input.trim()}
+          accessibilityLabel={t("copilot.card.send")}
+          style={[styles.iconControl, !canSend && styles.sendBtnDisabled]}
+          onPress={() => submit(input, pendingHint)}
+          disabled={!canSend}
+          testID="copilot-send"
         >
           <IconButton icon="send" tone="ai" size={40} />
         </Pressable>
@@ -339,41 +207,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: darkTheme.glassBorder,
   },
-  bubble: { maxWidth: "80%", borderRadius: 14, padding: 12, marginVertical: 4 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: darkTheme.surface, borderWidth: 1, borderColor: darkTheme.border },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: darkTheme.surfaceElevated, borderWidth: 1, borderColor: darkTheme.ai.line },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
-  userText: { color: darkTheme.textPrimary },
-  aiText: { color: darkTheme.textSecondary },
-  confirmCard: {
-    marginHorizontal: 12,
-    marginTop: 4,
-    marginBottom: 8,
-    backgroundColor: darkTheme.surfaceElevated,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: darkTheme.ai.line,
-    alignSelf: "flex-start",
-    maxWidth: "85%",
-  },
-  confirmCardLabel: { fontSize: 11, color: darkTheme.textMuted, marginBottom: 4, fontWeight: "600", textTransform: "uppercase" },
-  confirmCardTitle: { fontSize: 15, fontWeight: "600", color: darkTheme.textPrimary, marginBottom: 10 },
-  confirmCardActions: { flexDirection: "row", gap: 8 },
-  confirmBtn: {
-    flex: 1,
-    backgroundColor: darkTheme.primaryAction,
-    borderRadius: 8,
-    paddingVertical: 9,
-  },
-  dismissBtn: {
-    flex: 1,
-    backgroundColor: darkTheme.surfaceElevated,
-    borderWidth: 1,
-    borderColor: darkTheme.border,
-    borderRadius: 8,
-    paddingVertical: 9,
-  },
   typingRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -383,6 +216,24 @@ const styles = StyleSheet.create({
     backgroundColor: darkTheme.background,
   },
   typingText: { fontSize: 12, color: darkTheme.textMuted, fontStyle: "italic" },
+  offlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: darkTheme.surface,
+  },
+  offlineText: { fontSize: 12, color: darkTheme.textSecondary },
+  newChat: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  newChatText: { fontSize: 12, color: darkTheme.textMuted },
   inputRow: {
     flexDirection: "row",
     padding: 10,

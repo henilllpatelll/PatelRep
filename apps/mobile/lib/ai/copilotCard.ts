@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import {
@@ -16,7 +16,9 @@ import { fetchBoard, fetchAssignableStaff } from "@/lib/api/housekeepingSupervis
 import type { BoardRoomRaw } from "@/lib/housekeeping/supervisor";
 import { listWorkOrders } from "@/lib/api/workOrders";
 import { getGuestRequests } from "@/lib/api/guestRequests";
-import { fetchShiftBriefing } from "@/lib/ai/briefing";
+import type { Provenance } from "@/lib/ai/contract";
+import { assistantScope } from "@/lib/ai/session";
+import { useSharedBriefing, type SharedBriefingView } from "@/lib/ai/useSharedBriefing";
 import { useAppStore } from "@/stores/appStore";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -42,6 +44,14 @@ export interface CopilotCardBrief {
   primaryAction: string;
   secondaryAction: string;
   chips: string[];
+  /** Where the words came from, shown instead of a made-up confidence score. */
+  provenance?: Extract<Provenance, "deterministic" | "ai">;
+  /** When set, the primary button opens this route instead of sending its label as a chat message. */
+  primaryRoute?: string;
+  /** The secondary button just closes the card instead of sending its label as a chat message. */
+  secondaryDismiss?: boolean;
+  /** Chips are plain notes, not prompts to send. */
+  chipsAreInfo?: boolean;
 }
 
 function toCardRole(role: string | undefined | null): CopilotCardRole | null {
@@ -75,6 +85,24 @@ function mapApiBrief(
     primaryAction: result.primary_action,
     secondaryAction: result.secondary_action || t("copilot.card.notNow"),
     chips: result.chips,
+  };
+}
+
+/** The floating assistant's housekeeper brief: Home's own briefing, read-only (no request is ever made here). */
+export function housekeeperBriefFromShared(t: Translate, shared: SharedBriefingView): CopilotCardBrief {
+  const { briefing, provenance } = shared;
+  return {
+    label: t("copilot.card.labels.housekeeper"),
+    confidence: null,
+    brief: briefing.headline,
+    sources: [],
+    primaryAction: t("copilot.card.housekeeper.primary"),
+    secondaryAction: t("copilot.card.notNow"),
+    chips: briefing.watchouts.slice(0, 2),
+    provenance,
+    primaryRoute: "/(app)/my-rooms",
+    secondaryDismiss: true,
+    chipsAreInfo: true,
   };
 }
 
@@ -152,32 +180,34 @@ async function loadGmBrief(t: Translate, language: "en" | "es"): Promise<Copilot
   return result ? mapApiBrief(t, "gm", result) : null;
 }
 
-/** Loads the corner-card brief for the current user's role. Housekeeper reuses
- *  the existing (older-shaped) housekeeping briefing endpoint, which already
- *  falls back to an on-device heuristic and never throws; the other 4 roles
- *  use the newer unified briefing contract and resolve to null on failure.
+/** Loads the corner-card brief for the current user's role.
  *
- *  This hook now lives for the whole app session (mounted once in the root
- *  layout, feeding both the collapsed bubble's unread/thinking state and the
- *  open card), not just while the card is open. The auto-fetch on mount is
- *  deliberately keyed ONLY to role changes, not to myRooms/isOnline/language
- *  churn — several of the underlying briefings are real, credit-charged AI
- *  calls (see CLAUDE.md A3), and re-firing one on every room-status mutation
- *  for as long as the app is open would multiply that spend for no reason.
- *  `reload()` still always uses the latest data, since it closures over
- *  current render values regardless of when the effect last ran. */
+ *  Housekeepers get Home's own briefing, read-only from the shared briefing source (lib/ai/shiftBriefingSource):
+ *  nothing here ever requests, or pays for, an AI briefing. The other 4 roles use the unified briefing
+ *  contract and resolve to null on failure.
+ *
+ *  This hook lives for the whole app session (mounted once in the root layout, feeding both the collapsed
+ *  bubble's unread/thinking state and the open card). The auto-fetch is deliberately keyed ONLY to who is
+ *  signed in and their role, not to myRooms/isOnline/language churn: several of the underlying briefings
+ *  are real, credit-charged AI calls (see CLAUDE.md A3), and re-firing one on every room-status mutation
+ *  for as long as the app is open would multiply that spend for no reason. A different person signing in
+ *  on the same device starts from nothing and never sees the previous person's brief. */
 export function useCopilotBrief() {
   const { t, i18n } = useTranslation();
   const language: "en" | "es" = i18n.language?.startsWith("es") ? "es" : "en";
-  const { user, myRooms, isOnline } = useAppStore();
+  const { user } = useAppStore();
   const cardRole = toCardRole(user?.effective_role ?? user?.role);
+  // Housekeepers see the one shared briefing (Home publishes it); reading it never spends a credit.
+  const shared = useSharedBriefing(cardRole === "housekeeper" ? assistantScope(user) : null);
+  const housekeeperBrief = useMemo(() => (shared ? housekeeperBriefFromShared(t, shared) : null), [shared, t]);
 
   const [brief, setBrief] = useState<CopilotCardBrief | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!cardRole) {
+    // Housekeepers have nothing to load: their briefing is the shared one above.
+    if (!cardRole || cardRole === "housekeeper") {
       setBrief(null);
       return;
     }
@@ -185,21 +215,7 @@ export function useCopilotBrief() {
     setError(false);
     try {
       let next: CopilotCardBrief | null = null;
-      if (cardRole === "housekeeper") {
-        const shift = await fetchShiftBriefing(myRooms, language, t, isOnline);
-        next = {
-          label: t("copilot.card.labels.housekeeper"),
-          confidence: shift.source === "ai" ? 90 : null,
-          brief: shift.headline,
-          sources: shift.source === "ai" ? [t("copilot.card.housekeeper.source")] : [],
-          primaryAction: t("copilot.card.housekeeper.primary"),
-          secondaryAction: t("copilot.card.notNow"),
-          chips:
-            shift.watchouts.length > 0
-              ? shift.watchouts.slice(0, 2)
-              : [t("copilot.card.housekeeper.chip1"), t("copilot.card.housekeeper.chip2")],
-        };
-      } else if (cardRole === "housekeeping_supervisor") {
+      if (cardRole === "housekeeping_supervisor") {
         next = await loadSupervisorBrief(t, language);
       } else if (cardRole === "engineer") {
         next = await loadEngineerBrief(t, language);
@@ -216,20 +232,27 @@ export function useCopilotBrief() {
     } finally {
       setLoading(false);
     }
-  }, [cardRole, myRooms, isOnline, language, t]);
+  }, [cardRole, language, t]);
 
-  const loadedRoleRef = useRef<CopilotCardRole | null>(null);
+  const personKey = cardRole ? `${assistantScope(user) ?? "anon"}:${cardRole}` : null;
+  const loadedKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!cardRole) {
-      loadedRoleRef.current = null;
+    if (!personKey) {
+      loadedKeyRef.current = null;
       setBrief(null);
+      setError(false);
       return;
     }
-    if (loadedRoleRef.current !== cardRole) {
-      loadedRoleRef.current = cardRole;
+    if (loadedKeyRef.current !== personKey) {
+      loadedKeyRef.current = personKey;
+      setBrief(null);
+      setError(false);
       load();
     }
-  }, [cardRole, load]);
+  }, [personKey, load]);
 
+  if (cardRole === "housekeeper") {
+    return { cardRole, brief: housekeeperBrief, loading: false, error: false, reload: load };
+  }
   return { cardRole, brief, loading, error, reload: load };
 }

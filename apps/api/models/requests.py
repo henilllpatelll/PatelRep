@@ -1745,13 +1745,18 @@ class WorkOrderPreview(SanitizedBaseModel):
         "general",
     ]
     priority: Literal["urgent", "normal", "low"]
+    room_id: Optional[UUID4] = None
     room_number: Optional[str] = Field(default=None, max_length=64)
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    # Idempotency key for the confirm tap: a retry returns the work order the first
+    # attempt created (same mechanism as POST /work-orders).
+    client_request_id: Optional[UUID4] = None
 
 
 class GuestRequestPreview(SanitizedBaseModel):
     title: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    room_id: Optional[UUID4] = None
     room_number: Optional[str] = Field(default=None, max_length=64)
     guest_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)

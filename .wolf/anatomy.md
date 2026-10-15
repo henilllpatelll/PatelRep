@@ -776,3 +776,16 @@
 - apps/mobile/stores/homeBridgeStore.ts — Home publishes its HomeModel here; the Attention Center route reads it (no second fetch/poll)
 - apps/mobile/components/home/{HomeSheetHost,RoomActionsSheet,RecommendationSheet,IssueDetailsSheet,SupervisorMessageSheet,ShiftProgressSheet,sheetParts}.tsx — Home drawers on the shared roomDetail/BottomSheet; HomeSheetHost = one drawer at a time, delayed unmount, focus return
 - apps/mobile/components/home/AttentionCenterScreen.tsx + app/(app)/attention/index.tsx — full-screen "Needs attention" (hidden route, not a tab)
+
+## Mobile Housekeeper AI V2 - Phase 1 (foundation)
+- apps/mobile/lib/ai/contract.ts - the assistant's strict reply adapter (answer / actions / clarify / unsupported), provenance, CopilotFailure + toCopilotFailure (~2.4k tok)
+- apps/mobile/lib/ai/drafts.ts - editable task / work-order / guest-request drafts, limits, validation, patch (room edit unlinks), array confirm bodies (~2.4k tok)
+- apps/mobile/lib/ai/copilotChat.ts - sendCopilotMessage (hint + trusted ids, no role) and confirmAction (server-confirmed, idempotency key) (~1k tok)
+- apps/mobile/lib/ai/conversationState.ts - pure reducer: scope reset, action status machine, what may be persisted (~1.3k tok)
+- apps/mobile/lib/ai/useAssistantConversation.ts - the one conversation controller (send/confirm/edit/dismiss, double-tap + offline + stale-scope guards, optional history) (~2.2k tok)
+- apps/mobile/lib/ai/history.ts - per tenant:user secure-store history, 20 msgs / 24h, redaction, legacy purge (~1.4k tok)
+- apps/mobile/lib/ai/session.ts - assistantScope + resetAssistantSession (called from appStore.setUser on identity change) (~0.4k tok)
+- apps/mobile/lib/ai/shiftBriefingSource.ts / useSharedBriefing.ts - the one shared housekeeping briefing: Home publishes, AI cache, read-only hook (~1.5k tok)
+- apps/mobile/components/ai/ActionPreviewCard.tsx / AssistantMessageView.tsx - shared UI for previews (edit -> Create) and messages (provenance, sources, clarify, notices) (~3k tok)
+- apps/api/services/ai/authorization.py - intent->role matrix, hint whitelist, context sanitising, tenant/assignment-scoped trusted ids (~1.6k tok)
+- apps/api/tests/test_ai_copilot_authorization.py - negative tests: roles, hints, cross-tenant, malformed, confirm verification/idempotency

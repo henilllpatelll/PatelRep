@@ -1,22 +1,12 @@
 import { useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme } from "@/components/shared/tokens";
-import { useAppStore } from "@/stores/appStore";
-import { useToast } from "@/lib/theme/useToast";
-import { Button } from "@/components/ui/Button";
+import { AssistantMessageView } from "@/components/ai/AssistantMessageView";
 import type { CopilotCardBrief } from "@/lib/ai/copilotCard";
-import {
-  sendCopilotMessage,
-  confirmTask,
-  confirmWorkOrder,
-  confirmGuestRequest,
-  type ChatMessage,
-  type TaskPreview,
-  type WorkOrderPreview,
-  type GuestRequestPreview,
-} from "@/lib/ai/copilotChat";
+import { MAX_MESSAGE_CHARS, useAssistantConversation } from "@/lib/ai/useAssistantConversation";
 
 const CARD_WIDTH = 306;
 const THREAD_MAX_HEIGHT = 260;
@@ -37,82 +27,38 @@ export function CopilotCard({
   reload: () => void;
 }) {
   const { t } = useTranslation();
-  const { user } = useAppStore();
-  const toast = useToast();
   const scrollRef = useRef<ScrollView>(null);
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // The same controller the full-screen chat uses; the card's conversation is not saved.
+  const conversation = useAssistantConversation({ persist: false });
+  const { messages, sending, online, send } = conversation;
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [pendingTaskMsgId, setPendingTaskMsgId] = useState<string | null>(null);
-  const [pendingWOMsgId, setPendingWOMsgId] = useState<string | null>(null);
-  const [pendingGRMsgId, setPendingGRMsgId] = useState<string | null>(null);
 
-  async function sendMessage(text: string) {
+  function sendMessage(text: string) {
     if (!text.trim() || sending) return;
-
-    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setSending(true);
-
-    try {
-      const response = await sendCopilotMessage(text, user?.role);
-      const msgId = (Date.now() + 1).toString();
-      const assistantMsg: ChatMessage = {
-        id: msgId,
-        role: "assistant",
-        content: response.message,
-        task_preview: response.task_preview,
-        work_order_preview: response.work_order_preview,
-        guest_request_preview: response.guest_request_preview,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-      if (response.task_preview) setPendingTaskMsgId(msgId);
-      if (response.work_order_preview) setPendingWOMsgId(msgId);
-      if (response.guest_request_preview) setPendingGRMsgId(msgId);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "assistant", content: t("common.error") },
-      ]);
-    } finally {
-      setSending(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-    }
+    void send(text);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }
 
-  async function handleConfirmTask(preview: TaskPreview) {
-    try {
-      await confirmTask(preview);
-      setPendingTaskMsgId(null);
-      toast.success(t("copilot.taskCreated"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
+  function runPrimary(current: CopilotCardBrief) {
+    if (current.primaryRoute) {
+      onClose();
+      router.push(current.primaryRoute as never);
+      return;
     }
+    sendMessage(current.primaryAction);
   }
 
-  async function handleConfirmWorkOrder(preview: WorkOrderPreview) {
-    try {
-      await confirmWorkOrder(preview);
-      setPendingWOMsgId(null);
-      toast.success(t("copilot.workOrderCreated"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
+  function runSecondary(current: CopilotCardBrief) {
+    if (current.secondaryDismiss) {
+      onClose();
+      return;
     }
-  }
-
-  async function handleConfirmGuestRequest(preview: GuestRequestPreview) {
-    try {
-      await confirmGuestRequest(preview);
-      setPendingGRMsgId(null);
-      toast.success(t("copilot.guestRequestCreated"));
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
-    }
+    sendMessage(current.secondaryAction);
   }
 
   const chatting = messages.length > 0;
+  const canSend = online && !sending && input.trim().length > 0;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -138,6 +84,11 @@ export function CopilotCard({
           {!chatting && brief?.confidence != null ? (
             <Text style={styles.confidence}>{Math.round(brief.confidence)}%</Text>
           ) : null}
+          {!chatting && brief?.provenance ? (
+            <Text style={styles.confidence} testID="copilot-card-provenance">
+              {t(`copilot.provenance.${brief.provenance}`)}
+            </Text>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("common.close")}
@@ -156,73 +107,7 @@ export function CopilotCard({
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
             {messages.map((item) => (
-              <View key={item.id}>
-                <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
-                  <Text style={[styles.bubbleText, item.role === "user" ? styles.userText : styles.aiText]}>
-                    {item.content}
-                  </Text>
-                </View>
-                {item.task_preview && pendingTaskMsgId === item.id ? (
-                  <View style={styles.confirmCard}>
-                    <Text style={styles.confirmCardLabel}>{t("copilot.createTask")}</Text>
-                    <Text style={styles.confirmCardTitle} numberOfLines={2}>{item.task_preview.title}</Text>
-                    <View style={styles.confirmCardActions}>
-                      <Button
-                        label={t("copilot.create")}
-                        onPress={() => handleConfirmTask(item.task_preview!)}
-                        size="sm"
-                        style={styles.confirmBtn}
-                      />
-                      <Button
-                        label={t("copilot.dismiss")}
-                        onPress={() => setPendingTaskMsgId(null)}
-                        size="sm"
-                        style={styles.dismissBtn}
-                      />
-                    </View>
-                  </View>
-                ) : null}
-                {item.work_order_preview && pendingWOMsgId === item.id ? (
-                  <View style={styles.confirmCard}>
-                    <Text style={styles.confirmCardLabel}>{t("copilot.createWorkOrder")}</Text>
-                    <Text style={styles.confirmCardTitle} numberOfLines={2}>{item.work_order_preview.title}</Text>
-                    <View style={styles.confirmCardActions}>
-                      <Button
-                        label={t("copilot.create")}
-                        onPress={() => handleConfirmWorkOrder(item.work_order_preview!)}
-                        size="sm"
-                        style={styles.confirmBtn}
-                      />
-                      <Button
-                        label={t("copilot.dismiss")}
-                        onPress={() => setPendingWOMsgId(null)}
-                        size="sm"
-                        style={styles.dismissBtn}
-                      />
-                    </View>
-                  </View>
-                ) : null}
-                {item.guest_request_preview && pendingGRMsgId === item.id ? (
-                  <View style={styles.confirmCard}>
-                    <Text style={styles.confirmCardLabel}>{t("copilot.createGuestRequest")}</Text>
-                    <Text style={styles.confirmCardTitle} numberOfLines={2}>{item.guest_request_preview.description}</Text>
-                    <View style={styles.confirmCardActions}>
-                      <Button
-                        label={t("copilot.create")}
-                        onPress={() => handleConfirmGuestRequest(item.guest_request_preview!)}
-                        size="sm"
-                        style={styles.confirmBtn}
-                      />
-                      <Button
-                        label={t("copilot.dismiss")}
-                        onPress={() => setPendingGRMsgId(null)}
-                        size="sm"
-                        style={styles.dismissBtn}
-                      />
-                    </View>
-                  </View>
-                ) : null}
-              </View>
+              <AssistantMessageView key={item.id} message={item} conversation={conversation} compact />
             ))}
             {sending ? (
               <View style={styles.loadingRow}>
@@ -255,14 +140,16 @@ export function CopilotCard({
               <Pressable
                 accessibilityRole="button"
                 style={styles.primaryBtn}
-                onPress={() => sendMessage(brief.primaryAction)}
+                onPress={() => runPrimary(brief)}
+                testID="copilot-card-primary"
               >
                 <Text style={styles.primaryBtnText} numberOfLines={1}>{brief.primaryAction}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 style={styles.secondaryBtn}
-                onPress={() => sendMessage(brief.secondaryAction)}
+                onPress={() => runSecondary(brief)}
+                testID="copilot-card-secondary"
               >
                 <Text style={styles.secondaryBtnText} numberOfLines={1}>{brief.secondaryAction}</Text>
               </Pressable>
@@ -270,16 +157,22 @@ export function CopilotCard({
 
             {brief.chips.length > 0 ? (
               <View style={styles.chipsRow}>
-                {brief.chips.map((chip, i) => (
-                  <Pressable
-                    key={`${chip}-${i}`}
-                    accessibilityRole="button"
-                    style={styles.chip}
-                    onPress={() => sendMessage(chip)}
-                  >
-                    <Text style={styles.chipText} numberOfLines={1}>{chip}</Text>
-                  </Pressable>
-                ))}
+                {brief.chips.map((chip, i) =>
+                  brief.chipsAreInfo ? (
+                    <View key={`${chip}-${i}`} style={styles.chip} testID="copilot-card-info-chip">
+                      <Text style={styles.chipText} numberOfLines={2}>{chip}</Text>
+                    </View>
+                  ) : (
+                    <Pressable
+                      key={`${chip}-${i}`}
+                      accessibilityRole="button"
+                      style={styles.chip}
+                      onPress={() => sendMessage(chip)}
+                    >
+                      <Text style={styles.chipText} numberOfLines={1}>{chip}</Text>
+                    </Pressable>
+                  ),
+                )}
               </View>
             ) : null}
           </>
@@ -292,6 +185,12 @@ export function CopilotCard({
           </View>
         ) : null}
 
+        {!online ? (
+          <Text style={styles.offlineText} accessibilityLiveRegion="polite" testID="copilot-card-offline">
+            {t("copilot.notice.offline")}
+          </Text>
+        ) : null}
+
         <View style={styles.askRow}>
           <TextInput
             style={styles.askInput}
@@ -302,14 +201,16 @@ export function CopilotCard({
             onSubmitEditing={() => sendMessage(input)}
             editable={!sending}
             multiline
-            maxLength={500}
+            maxLength={MAX_MESSAGE_CHARS}
+            testID="copilot-card-input"
           />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("copilot.card.send")}
-            style={[styles.askIconBtn, (!input.trim() || sending) && styles.askIconBtnDisabled]}
+            style={[styles.askIconBtn, !canSend && styles.askIconBtnDisabled]}
             onPress={() => sendMessage(input)}
-            disabled={!input.trim() || sending}
+            disabled={!canSend}
+            testID="copilot-card-send"
           >
             <Ionicons name="arrow-up" size={14} color={darkTheme.textPrimary} />
           </Pressable>
@@ -367,56 +268,6 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 12.5, color: "rgba(247,244,238,0.55)" },
   thread: { maxHeight: THREAD_MAX_HEIGHT, marginTop: 8 },
   threadContent: { paddingHorizontal: 13, paddingBottom: 8, gap: 6 },
-  bubble: { maxWidth: "86%", borderRadius: 12, padding: 10, marginVertical: 3 },
-  userBubble: {
-    alignSelf: "flex-end",
-    backgroundColor: "rgba(247,244,238,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(247,244,238,0.14)",
-  },
-  aiBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(247,244,238,0.05)",
-    borderWidth: 1,
-    borderColor: darkTheme.ai.line,
-  },
-  bubbleText: { fontSize: 13, lineHeight: 18 },
-  userText: { color: darkTheme.textPrimary },
-  aiText: { color: "rgba(247,244,238,0.85)" },
-  confirmCard: {
-    marginTop: 4,
-    marginBottom: 6,
-    backgroundColor: "rgba(247,244,238,0.05)",
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: darkTheme.ai.line,
-    alignSelf: "flex-start",
-    maxWidth: "90%",
-  },
-  confirmCardLabel: {
-    fontSize: 10,
-    color: "rgba(247,244,238,0.5)",
-    marginBottom: 3,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  confirmCardTitle: { fontSize: 13, fontWeight: "600", color: darkTheme.textPrimary, marginBottom: 8 },
-  confirmCardActions: { flexDirection: "row", gap: 6 },
-  confirmBtn: {
-    flex: 1,
-    backgroundColor: darkTheme.primaryAction,
-    borderRadius: 8,
-    paddingVertical: 7,
-  },
-  dismissBtn: {
-    flex: 1,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "rgba(247,244,238,0.2)",
-    borderRadius: 8,
-    paddingVertical: 7,
-  },
   brief: {
     marginTop: 10,
     paddingHorizontal: 13,
@@ -453,19 +304,23 @@ const styles = StyleSheet.create({
   actionsRow: { paddingHorizontal: 13, marginTop: 12, flexDirection: "row", gap: 7 },
   primaryBtn: {
     flex: 1,
+    minHeight: 44,
     borderRadius: 10,
     paddingVertical: 11,
     paddingHorizontal: 10,
     backgroundColor: darkTheme.primaryAction,
     alignItems: "center",
+    justifyContent: "center",
   },
   primaryBtnText: { color: darkTheme.onPrimary, fontSize: 13, fontWeight: "700" },
   secondaryBtn: {
+    minHeight: 44,
     borderRadius: 10,
     paddingVertical: 11,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "rgba(247,244,238,0.2)",
+    justifyContent: "center",
   },
   secondaryBtnText: { color: darkTheme.textPrimary, fontSize: 13 },
   chipsRow: { paddingHorizontal: 13, marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 6 },
@@ -482,6 +337,7 @@ const styles = StyleSheet.create({
   unavailableBlock: { paddingHorizontal: 13, marginTop: 12, gap: 6 },
   unavailableText: { fontSize: 12.5, color: "rgba(247,244,238,0.6)" },
   retryText: { fontSize: 12.5, color: darkTheme.ai.primary, fontWeight: "600" },
+  offlineText: { paddingHorizontal: 13, marginTop: 8, fontSize: 11.5, color: "rgba(247,244,238,0.6)" },
   askRow: {
     marginTop: 12,
     paddingHorizontal: 12,

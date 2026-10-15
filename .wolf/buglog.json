@@ -33642,6 +33642,74 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2039",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "Mobile copilot never rendered a backend reply and its Create buttons failed: chat showed the generic error / no previews, work orders POSTed to /work-orders, guest requests POSTed a bare object",
+      "file": "apps/mobile/lib/ai/copilotChat.ts",
+      "root_cause": "Mobile read a flat {message, task_preview} shape but POST /ai/copilot/chat answers {data:{response_type, message, tasks[]/work_orders[]/requests[]}}; confirm calls used the wrong route/shape (endpoints take JSON arrays)",
+      "fix": "lib/ai/contract.ts is the one strict adapter (malformed => invalid_response, never an action); lib/ai/drafts.ts builds the array bodies for the three /ai/*/confirm endpoints; success only when data.created_count >= 1",
+      "tags": [
+        "mobile",
+        "ai",
+        "copilot",
+        "contract"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2040",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "AI copilot history stored under one unscoped AsyncStorage key (@patelrep/copilot_history): the next person on the device saw the previous person's conversation",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "No tenant/user in the key; never cleared on sign-out or account switch",
+      "fix": "History is per tenant:user in the secure store (lib/ai/history.ts), text-only, 20 msgs / 24h, redacted; legacy key is deleted unread; appStore.setUser calls resetAssistantSession() on any identity change",
+      "tags": [
+        "mobile",
+        "ai",
+        "privacy",
+        "history"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2041",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "POST /ai/copilot/chat trusted client role/intent hints: a housekeeper could hint insight_query/task_assignment (GM insights, assignment previews); confirm endpoints had no role gate, WO/GR confirms saved unverified rooms silently and could double-create; GET /ai/insights open to every role",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "detect_intent returned the client hint verbatim; context went straight into prompts; confirm_work_orders/guest_requests resolved room numbers with no failure path",
+      "fix": "services/ai/authorization.py (per-intent role matrix, hint whitelist, context sanitising, tenant/assignment-scoped ids, 404-for-everything); confirms verify rooms before any write, cap batches, dedupe (WO client_request_id, GR 2-minute window); /ai/insights GM-only",
+      "tags": [
+        "api",
+        "ai",
+        "rbac",
+        "tenant-isolation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2042",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "Floating copilot auto-bought a second paid AI briefing for housekeepers on mount (fetchShiftBriefing) with a hardcoded 90% confidence; primary 'Reorder my queue' and secondary 'Not now' chips were sent to the model as chat text; SOP detail 'Ask about this SOP' did nothing",
+      "file": "apps/mobile/lib/ai/copilotCard.ts",
+      "root_cause": "Corner card and Home had separate briefing paths; card buttons were generic 'send my label' handlers",
+      "fix": "One shared briefing source (lib/ai/shiftBriefingSource.ts): Home publishes the deterministic briefing, only Home's explicit request fills the AI cache, the card reads read-only with provenance instead of confidence; card buttons open My Rooms / close; inert SOP button removed",
+      "tags": [
+        "mobile",
+        "ai",
+        "briefing",
+        "credits"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
     }
   ]
 }

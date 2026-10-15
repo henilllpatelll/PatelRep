@@ -1,62 +1,41 @@
 import React from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
-import { CopilotCard } from "@/components/shared/CopilotCard";
-import { sendCopilotMessage, confirmTask, confirmWorkOrder, confirmGuestRequest } from "@/lib/ai/copilotChat";
 
-const EN: Record<string, string> = {
-  "copilot.title": "AI Copilot",
-  "copilot.card.badge": "AI",
-  "copilot.card.readLabel": "Read",
-  "copilot.card.askPlaceholder": "Ask about your shift…",
-  "copilot.card.send": "Send",
-  "copilot.card.notNow": "Not now",
-  "copilot.card.loading": "Thinking…",
-  "copilot.card.unavailable": "Copilot is unavailable right now.",
-  "copilot.card.retry": "Retry",
-  "common.close": "Close",
-  "common.error": "Something went wrong.",
-  "copilot.createTask": "Create Task",
-  "copilot.createWorkOrder": "Create Work Order",
-  "copilot.createGuestRequest": "Create Guest Request",
-  "copilot.create": "Create",
-  "copilot.dismiss": "Dismiss",
-  "copilot.taskCreated": "Task created!",
-  "copilot.workOrderCreated": "Work order created",
-  "copilot.guestRequestCreated": "Guest request created",
-};
+const mockApiPost = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => EN[key] ?? key,
-    i18n: { language: "en" },
-  }),
+  useTranslation: () => ({ t: (key: string, options?: Record<string, unknown>) => (options?.room ? `${key}:${options.room}` : key), i18n: { language: "en" } }),
 }));
-
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
-
-jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({ user: { role: "housekeeper" } }),
+jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
+jest.mock("@/lib/offline/db", () => ({
+  clearRoomsCache: jest.fn().mockResolvedValue(undefined),
+  upsertRooms: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("@/lib/api/client", () => {
+  class ApiError extends Error {
+    status: number;
+    constructor(message: string, status: number) {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+    }
+  }
+  return { ApiError, api: { get: jest.fn(), patch: jest.fn(), post: (...args: unknown[]) => mockApiPost(...args) } };
+});
 
-const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn() };
-jest.mock("@/lib/theme/useToast", () => ({
-  useToast: () => mockToast,
-}));
+import { CopilotCard } from "@/components/shared/CopilotCard";
+import { ApiError } from "@/lib/api/client";
+import { housekeeperBriefFromShared, type CopilotCardBrief } from "@/lib/ai/copilotCard";
+import { useAppStore } from "@/stores/appStore";
+import type { UserProfile } from "@/lib/supabase";
 
-jest.mock("@/lib/ai/copilotChat", () => ({
-  sendCopilotMessage: jest.fn(),
-  confirmTask: jest.fn(),
-  confirmWorkOrder: jest.fn(),
-  confirmGuestRequest: jest.fn(),
-}));
+const ALICE = { id: "alice", tenant_id: "hotel-a", role: "housekeeper" } as unknown as UserProfile;
+const envelope = (data: Record<string, unknown>) => ({ data });
 
-const mockedSend = sendCopilotMessage as jest.Mock;
-const mockedConfirmTask = confirmTask as jest.Mock;
-const mockedConfirmWorkOrder = confirmWorkOrder as jest.Mock;
-const mockedConfirmGuestRequest = confirmGuestRequest as jest.Mock;
-
-const FULL_BRIEF = {
+const SUPERVISOR_BRIEF: CopilotCardBrief = {
   label: "Live risk",
   confidence: 88,
   brief: "Ana is 40 minutes behind on floor 3.",
@@ -66,35 +45,41 @@ const FULL_BRIEF = {
   chips: ["Who needs help?", "Arrivals before 3"],
 };
 
+const HOUSEKEEPER_BRIEF = housekeeperBriefFromShared((key) => key, {
+  briefing: {
+    headline: "ai.briefing.startWith",
+    plan: ["214"],
+    watchouts: ["ai.briefing.dndWatchout"],
+    estimatedMinutes: 40,
+    source: "local",
+  },
+  provenance: "deterministic",
+});
+
 function renderCard(overrides: Partial<React.ComponentProps<typeof CopilotCard>> = {}) {
   return render(
     <ThemeProvider>
-      <CopilotCard
-        onClose={jest.fn()}
-        insetsBottom={0}
-        brief={null}
-        loading={false}
-        error={false}
-        reload={jest.fn()}
-        {...overrides}
-      />
+      <CopilotCard onClose={jest.fn()} insetsBottom={0} brief={null} loading={false} error={false} reload={jest.fn()} {...overrides} />
     </ThemeProvider>,
   );
 }
 
+async function ask(screen: ReturnType<typeof renderCard>, text: string) {
+  fireEvent.changeText(screen.getByTestId("copilot-card-input"), text);
+  await act(async () => {
+    fireEvent.press(screen.getByTestId("copilot-card-send"));
+  });
+}
+
 beforeEach(() => {
-  mockedSend.mockReset();
-  mockedConfirmTask.mockReset();
-  mockedConfirmWorkOrder.mockReset();
-  mockedConfirmGuestRequest.mockReset();
-  mockToast.success.mockClear();
-  mockToast.error.mockClear();
+  jest.clearAllMocks();
+  useAppStore.setState({ user: null, isAuthenticated: false, isOnline: true, myRooms: [] });
+  act(() => useAppStore.getState().setUser(ALICE));
 });
 
 describe("CopilotCard — brief display", () => {
   it("renders the brief, sources, actions and chips", () => {
-    const { getByText, getByTestId } = renderCard({ brief: FULL_BRIEF });
-
+    const { getByText, getByTestId } = renderCard({ brief: SUPERVISOR_BRIEF });
     expect(getByTestId("copilot-card")).toBeTruthy();
     expect(getByText("Live risk")).toBeTruthy();
     expect(getByText("88%")).toBeTruthy();
@@ -106,106 +91,132 @@ describe("CopilotCard — brief display", () => {
   });
 
   it("shows a loading state while the brief is being fetched", () => {
-    const { getByText } = renderCard({ loading: true });
-
-    expect(getByText("Thinking…")).toBeTruthy();
+    expect(renderCard({ loading: true }).getByText("copilot.card.loading")).toBeTruthy();
   });
 
   it("shows an unavailable state with a working retry button", () => {
     const reload = jest.fn();
     const { getByText } = renderCard({ error: true, reload });
-
-    expect(getByText("Copilot is unavailable right now.")).toBeTruthy();
-    fireEvent.press(getByText("Retry"));
+    expect(getByText("copilot.card.unavailable")).toBeTruthy();
+    fireEvent.press(getByText("copilot.card.retry"));
     expect(reload).toHaveBeenCalled();
   });
 
-  it("does NOT close when the dimming scrim behind the card is pressed", () => {
+  it("does NOT close when the dimming scrim is pressed, and closes via the header button", () => {
     const onClose = jest.fn();
-    const { getByTestId } = renderCard({ brief: FULL_BRIEF, onClose });
-
+    const { getByTestId, getByLabelText } = renderCard({ brief: SUPERVISOR_BRIEF, onClose });
     fireEvent.press(getByTestId("copilot-card-scrim"));
-
     expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("only closes via the header close button", () => {
-    const onClose = jest.fn();
-    const { getByLabelText } = renderCard({ brief: FULL_BRIEF, onClose });
-
-    fireEvent.press(getByLabelText("Close"));
-
+    fireEvent.press(getByLabelText("common.close"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("CopilotCard — inline chat (no full-screen navigation)", () => {
-  it("sends a typed message inline and shows the reply in the card, without closing it", async () => {
-    mockedSend.mockResolvedValue({ message: "Sure, on it.", intent: "general" });
+describe("CopilotCard — the housekeeper brief only does real things", () => {
+  it("opens My Rooms from the primary action (and closes) instead of chatting 'Reorder my queue'", () => {
     const onClose = jest.fn();
-    const { getByPlaceholderText, getByLabelText, getByText } = renderCard({ brief: FULL_BRIEF, onClose });
+    const { getByTestId } = renderCard({ brief: HOUSEKEEPER_BRIEF, onClose });
+    fireEvent.press(getByTestId("copilot-card-primary"));
+    expect(mockPush).toHaveBeenCalledWith("/(app)/my-rooms");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
 
-    fireEvent.changeText(getByPlaceholderText("Ask about your shift…"), "What's next?");
-    fireEvent.press(getByLabelText("Send"));
+  it("'Not now' just closes — it never spends a credit asking the AI about 'Not now'", () => {
+    const onClose = jest.fn();
+    const { getByTestId } = renderCard({ brief: HOUSEKEEPER_BRIEF, onClose });
+    fireEvent.press(getByTestId("copilot-card-secondary"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
 
-    expect(mockedSend).toHaveBeenCalledWith("What's next?", "housekeeper");
-    await waitFor(() => expect(getByText("Sure, on it.")).toBeTruthy());
-    expect(getByText("What's next?")).toBeTruthy();
+  it("shows where the briefing came from, no invented confidence, and watch-outs as notes not buttons", () => {
+    const { getByTestId, queryByText, getAllByTestId } = renderCard({ brief: HOUSEKEEPER_BRIEF });
+    expect(getByTestId("copilot-card-provenance").props.children).toBe("copilot.provenance.deterministic");
+    expect(queryByText(/%/)).toBeNull();
+    expect(getAllByTestId("copilot-card-info-chip")).toHaveLength(1);
+    fireEvent.press(getAllByTestId("copilot-card-info-chip")[0]);
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+});
+
+describe("CopilotCard — inline chat uses the same contract as the full assistant", () => {
+  it("sends a typed message inline and shows the reply without closing", async () => {
+    mockApiPost.mockResolvedValue(envelope({ response_type: "answer", message: "Sure, on it.", model_used: null }));
+    const onClose = jest.fn();
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF, onClose });
+    await ask(screen, "What's next?");
+    await waitFor(() => expect(screen.getByText("Sure, on it.")).toBeTruthy());
+    expect(screen.getByText("What's next?")).toBeTruthy();
+    expect(mockApiPost).toHaveBeenCalledWith("/ai/copilot/chat", { message: "What's next?", context: { source: "mobile" } });
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("sends the primary action inline instead of navigating", async () => {
-    mockedSend.mockResolvedValue({ message: "Reassigned.", intent: "general" });
-    const { getByText } = renderCard({ brief: FULL_BRIEF });
-
-    fireEvent.press(getByText("Reassign 313, 314"));
-
-    expect(mockedSend).toHaveBeenCalledWith("Reassign 313, 314", "housekeeper");
-    await waitFor(() => expect(getByText("Reassigned.")).toBeTruthy());
-  });
-
-  it("sends a tapped chip inline instead of navigating", async () => {
-    mockedSend.mockResolvedValue({ message: "Ana and Rosa need help.", intent: "general" });
-    const { getByText } = renderCard({ brief: FULL_BRIEF });
-
-    fireEvent.press(getByText("Who needs help?"));
-
-    expect(mockedSend).toHaveBeenCalledWith("Who needs help?", "housekeeper");
-    await waitFor(() => expect(getByText("Ana and Rosa need help.")).toBeTruthy());
-  });
-
-  it("shows a fallback message when sending fails, without crashing", async () => {
-    mockedSend.mockRejectedValue(new Error("offline"));
-    const { getByPlaceholderText, getByLabelText, getByText } = renderCard({ brief: FULL_BRIEF });
-
-    fireEvent.changeText(getByPlaceholderText("Ask about your shift…"), "hello");
-    fireEvent.press(getByLabelText("Send"));
-
-    await waitFor(() => expect(getByText("Something went wrong.")).toBeTruthy());
-  });
-
-  it("shows an inline task confirm card and creates it on confirm", async () => {
-    mockedSend.mockResolvedValue({
-      message: "Want me to create this task?",
-      intent: "task_creation",
-      task_preview: { title: "Bring towels to 214", task_type: "guest_request", priority: "high" },
+  it("sends a non-housekeeper primary action inline", async () => {
+    mockApiPost.mockResolvedValue(envelope({ response_type: "answer", message: "Reassigned." }));
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF });
+    await act(async () => {
+      fireEvent.press(screen.getByText("Reassign 313, 314"));
     });
-    mockedConfirmTask.mockResolvedValue({});
-    const { getByPlaceholderText, getByLabelText, getByText } = renderCard({ brief: FULL_BRIEF });
+    expect(mockApiPost.mock.calls[0][1].message).toBe("Reassign 313, 314");
+    await waitFor(() => expect(screen.getByText("Reassigned.")).toBeTruthy());
+  });
 
-    fireEvent.changeText(getByPlaceholderText("Ask about your shift…"), "bring towels to 214");
-    fireEvent.press(getByLabelText("Send"));
+  it("shows a typed notice when the AI is unavailable", async () => {
+    mockApiPost.mockRejectedValue(new ApiError("AI service temporarily unavailable.", 503));
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF });
+    await ask(screen, "hello");
+    await waitFor(() => expect(screen.getByText("copilot.notice.unavailable")).toBeTruthy());
+  });
 
-    await waitFor(() => expect(getByText("Bring towels to 214")).toBeTruthy());
-    fireEvent.press(getByText("Create"));
+  it("explains credit exhaustion", async () => {
+    mockApiPost.mockRejectedValue(new ApiError("Monthly AI credit cap reached.", 402));
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF });
+    await ask(screen, "hello");
+    await waitFor(() => expect(screen.getByText("copilot.notice.credit_limit")).toBeTruthy());
+  });
 
-    await waitFor(() =>
-      expect(mockedConfirmTask).toHaveBeenCalledWith({
-        title: "Bring towels to 214",
-        task_type: "guest_request",
-        priority: "high",
+  it("says it is offline and sends nothing", async () => {
+    act(() => useAppStore.setState({ isOnline: false }));
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF });
+    expect(screen.getByTestId("copilot-card-offline")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("copilot-card-input"), "hello");
+    fireEvent.press(screen.getByTestId("copilot-card-send"));
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("previews a task inline, creates it only on Create, and confirms from the server's answer", async () => {
+    mockApiPost.mockResolvedValueOnce(
+      envelope({
+        response_type: "task_preview",
+        message: "I found 1 task.",
+        tasks: [{ title: "Bring towels to 214", task_type: "guest_request", priority: "high", room_id: "r1", room_number_display: "214" }],
       }),
     );
-    expect(mockToast.success).toHaveBeenCalledWith("Task created!");
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF });
+    await ask(screen, "bring towels to 214");
+    await waitFor(() => expect(screen.getByTestId("action-card-task")).toBeTruthy());
+    expect(mockApiPost).toHaveBeenCalledTimes(1);
+
+    mockApiPost.mockResolvedValueOnce({ data: { created_count: 1 }, meta: { deduplicated: 0 } });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("action-confirm"));
+    });
+    expect(mockApiPost).toHaveBeenLastCalledWith("/ai/tasks/confirm", [
+      { title: "Bring towels to 214", task_type: "guest_request", priority: "urgent", room_id: "r1" },
+    ]);
+    await waitFor(() => expect(screen.getByTestId("action-confirmed")).toBeTruthy());
+  });
+});
+
+describe("CopilotCard — nothing carries over to the next person", () => {
+  it("empties the card's conversation when a different person signs in", async () => {
+    mockApiPost.mockResolvedValue(envelope({ response_type: "answer", message: "Alice's private answer" }));
+    const screen = renderCard({ brief: SUPERVISOR_BRIEF });
+    await ask(screen, "something private");
+    await waitFor(() => expect(screen.getByText("Alice's private answer")).toBeTruthy());
+    act(() => useAppStore.getState().setUser({ id: "bob", tenant_id: "hotel-a", role: "housekeeper" } as unknown as UserProfile));
+    expect(screen.queryByText("Alice's private answer")).toBeNull();
+    expect(screen.queryByText("something private")).toBeNull();
   });
 });

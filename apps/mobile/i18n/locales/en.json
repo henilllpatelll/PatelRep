@@ -3017,6 +3017,90 @@
     "confirmTask": "Create this task?",
     "confirm": "Yes, Create",
     "edit": "Edit",
+    "quickPrompts": {
+      "reportIssue": "There is a problem in room ",
+      "requestSupplies": "Room  needs extra towels",
+      "guestRequest": "The guest in room  asked for ",
+      "searchSOPs": "How do I "
+    },
+    "newConversation": "New conversation",
+    "unsupportedReply": "I can't act on that from this app. Ask your supervisor.",
+    "sources": "Sources",
+    "page": "p. {{page}}",
+    "clarify": "What should I do?",
+    "provenance": {
+      "verified": "From your data",
+      "deterministic": "Rule-based, no AI",
+      "ai": "AI-written"
+    },
+    "notice": {
+      "offline": "You're offline. Connect to use the assistant. Nothing was sent.",
+      "permission": "Your role can't use that assistant action.",
+      "credit_limit": "This hotel has used its AI credits for the month. Ask your manager.",
+      "rate_limited": "Too many requests. Wait a moment and try again.",
+      "unavailable": "The assistant isn't available right now. Try again soon.",
+      "not_found": "That record couldn't be found.",
+      "invalid_request": "The assistant couldn't process that request.",
+      "invalid_response": "The assistant's reply couldn't be read. Nothing was created.",
+      "unauthenticated": "Please sign in again.",
+      "unconfirmed": "The server didn't confirm it. Nothing was created.",
+      "unknown": "Something went wrong. Nothing was created.",
+      "retry": "Try again"
+    },
+    "action": {
+      "kind": {
+        "task": "New task",
+        "work_order": "New work order",
+        "guest_request": "New guest request"
+      },
+      "reviewHint": "Check the details. Nothing is created until you tap Create.",
+      "retry": "Try again",
+      "alreadyCreated": "Already created a moment ago",
+      "created": {
+        "task": "Task created",
+        "work_order": "Work order created",
+        "guest_request": "Guest request logged"
+      },
+      "roomVerified": "Room {{room}} found in this hotel",
+      "roomUnverified": "Room {{room}} isn't matched to this hotel's rooms. Check it before creating.",
+      "errors": {
+        "required": "Required",
+        "tooLong": "Too long",
+        "needsPlace": "Add a room or a place so people can find it."
+      },
+      "fields": {
+        "title": "Title",
+        "room": "Room",
+        "roomPlaceholder": "e.g. 214",
+        "place": "Place (if not a room)",
+        "category": "Category",
+        "priority": "Priority",
+        "details": "Details",
+        "guestName": "Guest name"
+      },
+      "priority": {
+        "urgent": "Urgent",
+        "normal": "Normal",
+        "low": "Low"
+      },
+      "workOrderCategory": {
+        "plumbing": "Plumbing",
+        "electrical": "Electrical",
+        "hvac": "HVAC",
+        "furniture": "Furniture",
+        "appliance": "Appliance",
+        "structural": "Structural",
+        "safety": "Safety",
+        "general": "General"
+      },
+      "guestCategory": {
+        "service": "Service",
+        "housekeeping": "Housekeeping",
+        "maintenance": "Maintenance",
+        "accessibility": "Accessibility",
+        "other": "Other"
+      }
+    },
     "card": {
       "badge": "AI",
       "readLabel": "Read",
@@ -3034,7 +3118,7 @@
         "gm": "Weekly read"
       },
       "housekeeper": {
-        "primary": "Reorder my queue",
+        "primary": "Open my rooms",
         "source": "your rooms",
         "chip1": "What's next?",
         "chip2": "Am I on pace?"

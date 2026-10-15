@@ -54,6 +54,19 @@ export function mentionsUnknownRoom(text: string, knownRooms: readonly string[])
   return (text.match(ROOM_TOKEN) ?? []).some((token) => !known.has(token.toLowerCase()));
 }
 
+/** True when the text names any of these rooms. */
+export function mentionsAnyRoom(text: string, rooms: readonly string[]): boolean {
+  if (rooms.length === 0) return false;
+  const set = new Set(rooms.map((room) => room.toLowerCase()));
+  return (text.match(ROOM_TOKEN) ?? []).some((token) => set.has(token.toLowerCase()));
+}
+
+/** Rooms nobody should be sent to right now: held (DND, declined...), out of service, or waiting on a supervisor. */
+export function restrictedRoomNumbers(model: HomeModel): string[] {
+  const { dashboard } = model;
+  return [...dashboard.attention, ...dashboard.unavailable].map((entry) => entry.room.room_number);
+}
+
 /**
  * Keep the AI's briefing only if its first room is the one Home recommends;
  * otherwise show the deterministic one. Either way the plan shown is Home's own.
@@ -64,12 +77,17 @@ export function reconcileBriefing(
   ai: ShiftBriefing,
   authoritative: ShiftBriefing,
   knownRooms?: readonly string[],
+  /** Rooms that must never be recommended; AI wording that names one is dropped, whatever it says about it. */
+  restrictedRooms: readonly string[] = [],
 ): ShiftBriefing {
   if (ai.source !== "ai") return authoritative;
   const agrees = ai.plan.length > 0 && authoritative.plan.length > 0 && ai.plan[0] === authoritative.plan[0];
   if (!agrees) return authoritative;
   if (knownRooms && mentionsUnknownRoom(ai.headline, knownRooms)) return authoritative;
-  const watchouts = knownRooms ? ai.watchouts.filter((line) => !mentionsUnknownRoom(line, knownRooms)) : ai.watchouts;
+  if (mentionsAnyRoom(ai.headline, restrictedRooms)) return authoritative;
+  const watchouts = ai.watchouts.filter(
+    (line) => !(knownRooms && mentionsUnknownRoom(line, knownRooms)) && !mentionsAnyRoom(line, restrictedRooms),
+  );
   return {
     ...ai,
     watchouts,

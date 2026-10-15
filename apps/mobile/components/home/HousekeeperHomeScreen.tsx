@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -41,6 +41,8 @@ import { displayNameFor } from "@/lib/settings/displayName";
 import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
 import { useHousekeeperHome } from "@/lib/housekeeping/useHousekeeperHome";
+import { briefingCacheKey, publishLocalBriefing } from "@/lib/ai/shiftBriefingSource";
+import { buildBriefingFromModel, restrictedRoomNumbers } from "@/lib/housekeeping/homeBriefing";
 import { useShiftBriefing } from "@/lib/housekeeping/useShiftBriefing";
 import { useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
 import { useSyncRun } from "@/lib/housekeeping/useSyncRun";
@@ -88,6 +90,18 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
   const briefing = useShiftBriefing({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
   const recap = useShiftRecap({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
   const syncRun = useSyncRun(refreshHome);
+
+  // The floating assistant shows this same briefing (read-only): publish the authoritative,
+  // deterministic one so it can never differ from Home or cost a credit.
+  useEffect(() => {
+    if (!scope) return;
+    publishLocalBriefing({
+      key: briefingCacheKey(scope, model.shiftDate, language),
+      local: buildBriefingFromModel(model, t),
+      knownRooms: model.dashboard.all.map((entry) => entry.room.room_number),
+      restrictedRooms: restrictedRoomNumbers(model),
+    });
+  }, [scope, model, language, t]);
 
   // Refresh room counts and the shift when navigating back from the room detail screen
   // so Home reflects the latest status immediately. Reads only — never starts a shift.

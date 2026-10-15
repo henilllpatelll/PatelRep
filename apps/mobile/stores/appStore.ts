@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
+import { resetAssistantSession } from "@/lib/ai/session";
 import { clearRoomsCache } from "@/lib/offline/db";
 import { writeRoomsCache } from "@/lib/housekeeping/roomsCache";
 import { acceptRoomsResult, fetchMyRooms } from "@/lib/housekeeping/roomsRequest";
@@ -179,6 +180,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       void clearRoomsCache().catch(() => undefined);
       // ...nor the last user's cached tasks, history or counts (their unsent completions stay isolated in the task outbox).
       void clearAllTaskCaches().catch(() => undefined);
+      // ...nor their open assistant conversation or shared briefing (saved history is scoped to its owner).
+      resetAssistantSession();
       // ...and their unsent changes stay on disk for them, out of this person's view and out of any replay.
       if (user) void get().loadPendingActions();
       return;
