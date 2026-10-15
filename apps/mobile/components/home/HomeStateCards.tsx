@@ -98,13 +98,13 @@ export function BeforeShiftState({
   t,
   onStart,
   onReview,
-  onAcknowledgeNote,
+  onMarkNoteRead,
 }: {
   model: HomeModel;
   t: Translate;
   onStart: () => void;
   onReview: () => void;
-  onAcknowledgeNote: () => void;
+  onMarkNoteRead: () => void;
 }) {
   const theme = useTheme();
   const { lifecycle, progress, alerts, supervisorInstruction: note } = model;
@@ -142,7 +142,7 @@ export function BeforeShiftState({
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.bannerBody, { color: theme.textSecondary }]}>
             {note.body}
           </Text>
-          <Button label={t("home.needsYou.gotIt")} onPress={onAcknowledgeNote} variant="ghost" size="sm" testID="before-shift-got-it" />
+          <Button label={t("home.message.markRead")} onPress={onMarkNoteRead} variant="ghost" size="sm" testID="before-shift-mark-read" />
         </View>
       ) : null}
       {!model.sync.online ? (

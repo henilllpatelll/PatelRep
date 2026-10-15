@@ -3,6 +3,7 @@ import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, Sc
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useReducedMotion } from "@/lib/accessibility/useReducedMotion";
 import { useTheme } from "@/lib/theme/useTheme";
 
 export const MAX_FONT_SCALE = 1.6;
@@ -39,6 +40,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
   const insets = useSafeAreaInsets();
   const titleRef = useRef<Text>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!visible || !scrollKey) return;
@@ -58,7 +60,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType={reduceMotion ? "none" : "slide"} onRequestClose={onClose} statusBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fill}>
         <Pressable
           style={styles.backdrop}

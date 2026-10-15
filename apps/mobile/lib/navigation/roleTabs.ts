@@ -90,6 +90,7 @@ export const HIDDEN_APP_ROUTES = [
   "copilot/index",
   "pm-schedules/index",
   "notifications/index",
+  "attention/index",
   "scheduling/index",
   "sop/index",
   "sop/[sopId]",

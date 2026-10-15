@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { monoFont, serifFont } from "@/components/shared/tokens";
 import { ProgressBar } from "@/components/shared/evening";
 import { Button } from "@/components/ui/Button";
-import { Kicker, LinkButton, MAX_FONT_SCALE } from "@/components/home/homeUi";
+import { Kicker, LinkButton, MAX_FONT_SCALE, MoreButton } from "@/components/home/homeUi";
 import { elapsedSeconds, formatElapsed } from "@/lib/housekeeping/cleaningTimer";
 import type { Recommendation } from "@/lib/housekeeping/homeRecommendation";
 import type { ActiveRoomView } from "@/lib/housekeeping/homeModel";
@@ -25,6 +25,10 @@ interface Props {
   ctx: TextContext;
   onOpenRoom: (roomId: string) => void;
   onMarkClean: () => void;
+  /** Opens the room-actions drawer. The control passes itself so focus can return to it. */
+  onMore: (roomId: string, opener: RefObject<unknown>) => void;
+  /** Opens the "Why this room?" drawer. */
+  onWhy: (roomId: string, opener: RefObject<unknown>) => void;
 }
 
 /** Re-render once a second, but only while a real timer is on screen. */
@@ -45,12 +49,14 @@ function useSecondTick(enabled: boolean): number {
  * leads with the reason it is first. It never starts anything itself: the
  * primary action opens the existing room workflow.
  */
-export function CurrentRoomCard({ active, recommendation, canMarkClean, t, ctx, onOpenRoom, onMarkClean }: Props) {
+export function CurrentRoomCard({ active, recommendation, canMarkClean, t, ctx, onOpenRoom, onMarkClean, onMore, onWhy }: Props) {
   if (active) {
-    return <ActiveCard active={active} canMarkClean={canMarkClean} t={t} onOpenRoom={onOpenRoom} onMarkClean={onMarkClean} />;
+    return (
+      <ActiveCard active={active} canMarkClean={canMarkClean} t={t} onOpenRoom={onOpenRoom} onMarkClean={onMarkClean} onMore={onMore} />
+    );
   }
   if (recommendation) {
-    return <RecommendedCard recommendation={recommendation} t={t} ctx={ctx} onOpenRoom={onOpenRoom} />;
+    return <RecommendedCard recommendation={recommendation} t={t} ctx={ctx} onOpenRoom={onOpenRoom} onMore={onMore} onWhy={onWhy} />;
   }
   return null;
 }
@@ -96,8 +102,10 @@ function ActiveCard({
   t,
   onOpenRoom,
   onMarkClean,
-}: Pick<Props, "canMarkClean" | "t" | "onOpenRoom" | "onMarkClean"> & { active: ActiveRoomView }) {
+  onMore,
+}: Pick<Props, "canMarkClean" | "t" | "onOpenRoom" | "onMarkClean" | "onMore"> & { active: ActiveRoomView }) {
   const theme = useTheme();
+  const moreRef = useRef<unknown>(null);
   const running = active.sessionState === "active" || active.sessionState === "starting";
   const now = useSecondTick(running && active.startedAt !== null);
   // A timer is shown only from a real session start; never from the room's update time.
@@ -162,9 +170,27 @@ function ActiveCard({
         testID="focus-primary"
         accessibilityLabel={t("home.current.primaryA11y", { action: primaryLabel, room: active.room.room_number })}
       />
-      {canMarkClean ? (
-        <Button label={t("rooms.detail.primary.markClean")} onPress={onMarkClean} variant="secondary" icon="checkmark" testID="focus-mark-clean" />
-      ) : null}
+      <View style={styles.actions}>
+        {canMarkClean ? (
+          <Button
+            label={t("rooms.detail.primary.markClean")}
+            onPress={onMarkClean}
+            variant="secondary"
+            icon="checkmark"
+            style={styles.grow}
+            testID="focus-mark-clean"
+          />
+        ) : (
+          <View style={styles.grow} />
+        )}
+        <MoreButton
+          ref={moreRef as never}
+          label={t("home.current.more")}
+          accessibilityLabel={t("home.current.moreA11y", { room: active.room.room_number })}
+          onPress={() => onMore(active.room.id, moreRef)}
+          testID="focus-more"
+        />
+      </View>
     </Shell>
   );
 }
@@ -174,9 +200,12 @@ function RecommendedCard({
   t,
   ctx,
   onOpenRoom,
-}: Pick<Props, "t" | "ctx" | "onOpenRoom"> & { recommendation: Recommendation }) {
+  onMore,
+  onWhy,
+}: Pick<Props, "t" | "ctx" | "onOpenRoom" | "onMore" | "onWhy"> & { recommendation: Recommendation }) {
   const theme = useTheme();
-  const [whyOpen, setWhyOpen] = useState(false);
+  const whyRef = useRef<unknown>(null);
+  const moreRef = useRef<unknown>(null);
   const copy = describeRecommendation(recommendation, t, ctx);
   const room = recommendation.room;
 
@@ -197,25 +226,23 @@ function RecommendedCard({
         testID="focus-primary"
         accessibilityLabel={t("home.current.primaryA11y", { action: t("home.current.openRoomShort"), room: room.room_number })}
       />
-      <LinkButton
-        label={t("home.current.why")}
-        icon={whyOpen ? "chevron-up" : "chevron-down"}
-        expanded={whyOpen}
-        onPress={() => setWhyOpen((value) => !value)}
-        testID="focus-why"
-      />
-      {whyOpen ? (
-        <View style={[styles.why, { backgroundColor: theme.surfaceMuted }]} testID="focus-why-panel">
-          {copy.why.map((line, index) => (
-            <View key={`${index}-${line}`} style={styles.whyRow}>
-              <Ionicons name="checkmark-circle-outline" size={15} color={theme.primary} />
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.whyText, { color: theme.textSecondary }]}>
-                {line}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      <View style={styles.actions}>
+        <LinkButton
+          ref={whyRef as never}
+          label={t("home.current.why")}
+          icon="help-circle-outline"
+          onPress={() => onWhy(room.id, whyRef)}
+          testID="focus-why"
+          accessibilityLabel={t("home.current.whyA11y", { room: room.room_number })}
+        />
+        <MoreButton
+          ref={moreRef as never}
+          label={t("home.current.more")}
+          accessibilityLabel={t("home.current.moreA11y", { room: room.room_number })}
+          onPress={() => onMore(room.id, moreRef)}
+          testID="focus-more"
+        />
+      </View>
     </Shell>
   );
 }
@@ -243,7 +270,6 @@ const styles = StyleSheet.create({
   factText: { fontSize: 13, lineHeight: 18 },
   elapsed: { fontFamily: monoFont, fontSize: 18, fontWeight: "700" },
   checklist: { gap: 6 },
-  why: { borderRadius: 12, padding: 12, gap: 8 },
-  whyRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  whyText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  actions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  grow: { flex: 1 },
 });

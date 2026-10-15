@@ -62,13 +62,19 @@ export interface HomeDestinations {
   attentionCenter?: () => void;
 }
 
+/** The room that leads Home: the open session, or the next room to start (a room only waiting to send does not lead). */
+export function leadOf(model: HomeModel): Recommendation | null {
+  const active = model.activeRoom;
+  return active && !active.completing ? model.recommendation : model.nextRoom;
+}
+
 export function resolveHomeState(model: HomeModel): HomeView {
   const board = model.board.state;
   const lifecycle = model.lifecycle.state;
   const boardUsable = board === "ready" || board === "empty";
   const active = model.activeRoom;
   const working = active && !active.completing ? active : null;
-  const lead = working ? model.recommendation : model.nextRoom;
+  const lead = leadOf(model);
   const allDone = boardUsable && model.dashboard.progress.serviceable > 0 && model.dashboard.progress.remaining === 0;
 
   let kind: HomeStateKind;
@@ -188,13 +194,17 @@ export function buildAttentionPreview(
   const ranked = unique
     .map((item, index) => ({ item, index, group: attentionGroup(item) }))
     .sort((a, b) => GROUP_RANK[a.group] - GROUP_RANK[b.group] || a.index - b.index);
+  // The supervisor's instruction always gets a slot: other items must not push it behind "View all".
+  const shown = ranked.slice(0, limit);
+  const message = ranked.find((row) => row.group === "message");
+  if (message && limit > 0 && !shown.includes(message)) shown[shown.length - 1] = message;
   return {
-    shown: ranked.slice(0, limit).map(({ item, group }) => ({
+    shown: shown.map(({ item, group }) => ({
       item,
       group,
       entry: item.roomId ? (byRoom.get(item.roomId) ?? null) : null,
     })),
-    remaining: Math.max(0, ranked.length - limit),
+    remaining: Math.max(0, ranked.length - shown.length),
     total: ranked.length,
   };
 }

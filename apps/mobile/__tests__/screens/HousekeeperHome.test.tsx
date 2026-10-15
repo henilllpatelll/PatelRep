@@ -1,7 +1,7 @@
 import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StyleSheet } from "react-native";
-import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { APPEARANCE_STORAGE_KEY } from "@/lib/theme/appearance";
@@ -386,16 +386,23 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(mockStartShift).not.toHaveBeenCalled();
     });
 
-    it("explains the recommendation inline from verified facts", async () => {
+    it("explains the recommendation in a drawer, from verified facts only", async () => {
       const { getByTestId, getByText, queryByTestId } = renderHome();
       await waitFor(() => expect(getByTestId("focus-why")).toBeTruthy());
-      expect(queryByTestId("focus-why-panel")).toBeNull();
+      expect(queryByTestId("why-sheet")).toBeNull();
 
       fireEvent.press(getByTestId("focus-why"));
-      expect(getByTestId("focus-why-panel")).toBeTruthy();
+      expect(getByTestId("why-sheet")).toBeTruthy();
+      expect(getByText("Why Room 112 next?")).toBeTruthy();
       expect(getByText("Stop 1 in your supervisor's route.")).toBeTruthy();
       // an estimate, labelled as one: never a promise
       expect(getByText(/an estimate, not a deadline/)).toBeTruthy();
+      // no invented proximity, scores or rule names
+      expect(queryByTestId("why-changed")).toBeNull();
+
+      fireEvent.press(getByTestId("why-open-room"));
+      const { router } = require("expo-router");
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-112");
     });
 
     it("shows a rush room first with its priority and deadline", async () => {
@@ -456,10 +463,18 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(getByText("2 out of service")).toBeTruthy();
     });
 
-    it("hides 'View shift details' until its destination exists (no dead button)", async () => {
+    it("opens the shift details drawer from the progress card, and the rows reconcile", async () => {
       const { getByTestId, queryByTestId } = renderHome();
       await waitFor(() => expect(getByTestId("shift-progress-card")).toBeTruthy());
-      expect(queryByTestId("progress-details")).toBeNull();
+      expect(queryByTestId("progress-sheet")).toBeNull();
+
+      fireEvent.press(getByTestId("progress-details"));
+      expect(getByTestId("progress-sheet")).toBeTruthy();
+      expect(getByTestId("progress-value-assigned").props.children).toBe(3);
+      const sum = ["completed", "toClean", "inProgress", "needsAttention", "unavailable"]
+        .map((key) => getByTestId(`progress-value-${key}`).props.children as number)
+        .reduce((a, b) => a + b, 0);
+      expect(sum).toBe(3);
     });
   });
 
@@ -521,7 +536,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(getAllByText(/2 corrections requested/).length).toBeGreaterThan(0);
     });
 
-    it("previews a few items, counts the rest, and sends View All to My Rooms until the Attention Center exists", async () => {
+    it("previews a few items, counts the rest, and sends View All to the Attention Center", async () => {
       setRooms([
         makeRoom("211", { dnd_flag: true, status: "OCCUPIED" }),
         makeRoom("212", { dnd_flag: true, status: "OCCUPIED" }),
@@ -539,19 +554,27 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
 
       fireEvent.press(getByTestId("attention-view-all"));
       const { router } = require("expo-router");
-      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms");
+      expect(router.push).toHaveBeenCalledWith("/(app)/attention");
     });
 
-    it("opens the room behind an attention row", async () => {
+    it("explains a restricted room in the issue drawer first, and never offers to start it", async () => {
       setRooms([makeRoom("214", { dnd_flag: true, status: "OCCUPIED" }), makeRoom("112")]);
-      const { getByTestId } = renderHome();
+      const { getByTestId, queryByText, queryByTestId } = renderHome();
       await waitFor(() => expect(getByTestId("attention-room:room-214:dnd")).toBeTruthy());
       fireEvent.press(getByTestId("attention-room:room-214:dnd"));
+
+      expect(getByTestId("issue-sheet")).toBeTruthy();
+      expect(getByTestId("issue-headline").props.children).toBe("Do not disturb");
+      expect(getByTestId("issue-wait-notice")).toBeTruthy();
+      expect(queryByText(/start cleaning/i)).toBeNull();
+      expect(queryByTestId("focus-primary")).toBeTruthy(); // Home's own lead card is for room 112, not 214
+
+      fireEvent.press(getByTestId("issue-view-room"));
       const { router } = require("expo-router");
       expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-214");
     });
 
-    it("surfaces an unread supervisor message and acknowledges it on 'Got it'", async () => {
+    it("surfaces an unread supervisor message and marks it read (nothing more) on 'Mark as read'", async () => {
       setRooms([makeRoom("112"), makeRoom("115")]);
       mockListNotifications.mockResolvedValue({
         data: [
@@ -572,9 +595,77 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(getByText("Message from supervisor")).toBeTruthy();
       expect(getByText("Skip the deep clean on 105 — take 115 straight after 108.")).toBeTruthy();
 
-      fireEvent.press(getByTestId("attention-got-it"));
+      // once the server has recorded it, the unread list no longer returns it
+      mockMarkRead.mockImplementationOnce(async () => {
+        mockListNotifications.mockResolvedValue({ data: [] });
+      });
+      fireEvent.press(getByTestId("attention-mark-read"));
       expect(mockMarkRead).toHaveBeenCalledWith("note-1");
-      await waitFor(() => expect(queryByText("Message from supervisor")).toBeNull());
+      // the write resolves asynchronously, then the list is re-read; let both settle
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      });
+      expect(queryByText("Message from supervisor")).toBeNull();
+    });
+
+    it("keeps the message unread and says so when marking it read fails", async () => {
+      setRooms([makeRoom("112"), makeRoom("115")]);
+      mockMarkRead.mockRejectedValue(new Error("server down"));
+      mockListNotifications.mockResolvedValue({
+        data: [
+          { id: "note-1", type: "direct_message", title: "Message from supervisor", body: "Do 115 first.", data: {}, is_read: false, created_at: "2026-05-26T09:12:00.000Z" },
+        ],
+      });
+      const { getByTestId, getByText } = renderHome();
+
+      // quick action on the preview: the message stays
+      await waitFor(() => expect(getByTestId("attention-mark-read")).toBeTruthy());
+      fireEvent.press(getByTestId("attention-mark-read"));
+      await waitFor(() => expect(mockMarkRead).toHaveBeenCalledWith("note-1"));
+      await waitFor(() => expect(getByTestId("attention-message:note-1")).toBeTruthy());
+
+      // in the drawer: the failure is stated and the message is still unread
+      fireEvent.press(getByTestId("attention-message:note-1"));
+      fireEvent.press(getByTestId("message-mark-read"));
+      await waitFor(() => expect(getByTestId("message-error")).toBeTruthy());
+      expect(getByText(/still unread/)).toBeTruthy();
+      expect(getByTestId("message-sheet")).toBeTruthy();
+      expect(getByTestId("attention-message:note-1")).toBeTruthy();
+    });
+
+    it("opens the full message in a drawer: real time, no invented sender, link only when verifiable", async () => {
+      setRooms([makeRoom("112"), makeRoom("115")]);
+      mockListNotifications.mockResolvedValue({
+        data: [
+          { id: "note-1", type: "direct_message", title: "Message from supervisor", body: "Finish 112, then do 115.", data: { room_id: "room-115" }, is_read: false, created_at: "2026-05-26T14:15:00.000Z" },
+        ],
+      });
+      const { getByTestId, queryByText } = renderHome();
+      await waitFor(() => expect(getByTestId("attention-message:note-1")).toBeTruthy());
+
+      fireEvent.press(getByTestId("attention-message:note-1"));
+      expect(getByTestId("message-sheet")).toBeTruthy();
+      expect(getByTestId("message-body").props.children).toBe("Finish 112, then do 115.");
+      expect(getByTestId("message-meta").props.children).toMatch(/^Sent /);
+      expect(queryByText(/From /)).toBeNull();
+
+      fireEvent.press(getByTestId("message-open-link"));
+      const { router } = require("expo-router");
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-115");
+    });
+
+    it("offers no room link when the referenced room is not on this person's list", async () => {
+      setRooms([makeRoom("112")]);
+      mockListNotifications.mockResolvedValue({
+        data: [
+          { id: "note-2", type: "direct_message", title: "Message from supervisor", body: "Look at 999.", data: { room_id: "room-999" }, is_read: false, created_at: "2026-05-26T14:15:00.000Z" },
+        ],
+      });
+      const { getByTestId, queryByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("attention-message:note-2")).toBeTruthy());
+      fireEvent.press(getByTestId("attention-message:note-2"));
+      expect(getByTestId("message-sheet")).toBeTruthy();
+      expect(queryByTestId("message-open-link")).toBeNull();
     });
   });
 
@@ -948,9 +1039,11 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
 
       const why = getByTestId("focus-why");
       expect(why.props.accessibilityRole).toBe("button");
-      expect(why.props.accessibilityState).toMatchObject({ expanded: false });
-      fireEvent.press(why);
-      expect(getByTestId("focus-why").props.accessibilityState).toMatchObject({ expanded: true });
+      expect(why.props.accessibilityLabel).toBe("Why room 112 is recommended");
+      const more = getByTestId("focus-more");
+      expect(more.props.accessibilityRole).toBe("button");
+      expect(more.props.accessibilityLabel).toBe("More actions for room 112");
+      expect(flat(more.props.style).minHeight).toBeGreaterThanOrEqual(48);
     });
 
     it("keeps the AI briefing available but out of the way of the work", async () => {
@@ -969,4 +1062,184 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(flat(getByTestId("home-scroll").props.contentContainerStyle).paddingBottom).toBeGreaterThanOrEqual(100);
     });
   });
+
+  /* ─── Phase 3: drawers ───────────────────────────────────────────────────── */
+
+  describe("room actions drawer", () => {
+    const { router } = require("expo-router");
+
+    beforeEach(() => {
+      // a started shift with nothing open: Home leads with the recommended room 112
+      setRooms([makeRoom("112"), makeRoom("115"), makeRoom("101", { status: "INSPECTED" })]);
+    });
+
+    it("opens from More on the recommended room and lists navigation apart from forms", async () => {
+      const { getByTestId, getByText, queryByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      expect(queryByTestId("room-actions-sheet")).toBeNull();
+
+      fireEvent.press(getByTestId("focus-more"));
+      expect(getByTestId("room-actions-sheet")).toBeTruthy();
+      expect(getByText("Room 112")).toBeTruthy();
+      // the same room facts Home shows: type (when known), floor, and the status as the room screen words it
+      expect(within(getByTestId("room-actions-sheet")).getByText("Floor 1 · Vacant Dirty")).toBeTruthy();
+      ["open", "info", "note", "issue", "supplies", "exception"].forEach((id) => expect(getByTestId(`room-action-${id}`)).toBeTruthy());
+      expect(within(getByTestId("room-action-open")).getByText("Open room")).toBeTruthy();
+      expect(getByText(/Nothing is sent until you submit it there/)).toBeTruthy();
+    });
+
+    it("opens the room screen for the room it was opened for", async () => {
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      fireEvent.press(getByTestId("room-action-open"));
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-112");
+    });
+
+    it("hands a form to the existing room screen with the right room, without sending anything", async () => {
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      const { api } = require("@/lib/api/client");
+      api.post.mockClear();
+      api.patch.mockClear();
+      fireEvent.press(getByTestId("room-action-supplies"));
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-112?action=supplies&from=home");
+      expect(api.post).not.toHaveBeenCalled();
+      expect(api.patch).not.toHaveBeenCalled();
+    });
+
+    it("says 'Continue cleaning' only for the open session, from the active card's More", async () => {
+      setRooms([makeRoom("108", { status: "IN_PROGRESS" }), makeRoom("112")]);
+      seedSession("room-108", false, { startedAt: new Date(Date.now() - 300_000).toISOString() });
+      const { getByTestId, getByText } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      expect(getByText("Room 108")).toBeTruthy();
+      expect(within(getByTestId("room-action-open")).getByText("Continue cleaning")).toBeTruthy();
+      // already inside: the pre-entry access form says why it is unavailable
+      expect(getByText("Not available once cleaning has started")).toBeTruthy();
+    });
+
+    it("is one drawer at a time: opening another replaces it", async () => {
+      const { getByTestId, queryByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      expect(getByTestId("room-actions-sheet")).toBeTruthy();
+      fireEvent.press(getByTestId("focus-why"));
+      expect(getByTestId("why-sheet")).toBeTruthy();
+      expect(queryByTestId("room-actions-sheet")).toBeNull();
+    });
+
+    it("dismissing a drawer changes nothing: no navigation, no writes, no shift change", async () => {
+      const { getByTestId, getAllByLabelText } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      const { api } = require("@/lib/api/client");
+      api.post.mockClear();
+      api.patch.mockClear();
+      router.push.mockClear();
+      fireEvent.press(getAllByLabelText("Close")[0]);
+      expect(router.push).not.toHaveBeenCalled();
+      expect(api.post).not.toHaveBeenCalled();
+      expect(mockStartShift).not.toHaveBeenCalled();
+      expect(mockMarkRead).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("shift progress drawer", () => {
+    beforeEach(() => {
+      setRooms([makeRoom("112"), makeRoom("115"), makeRoom("101", { status: "INSPECTED" })]);
+    });
+
+    it("shows the shift start from the real shift record and the reconciling room rows", async () => {
+      mockShiftCurrent = { data: activeShift({ started_at: "2026-10-14T13:00:00.000Z" }), meta: { last_ended: null } };
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("progress-details")).toBeTruthy());
+      fireEvent.press(getByTestId("progress-details"));
+      expect(getByTestId("progress-sheet-started").props.children).toMatch(/^Shift started /);
+      expect(getByTestId("progress-sheet-headline").props.children).toBe("1 of 3 completed");
+    });
+
+    it("offers My Rooms for the detail, and closing it leaves Home as it was", async () => {
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("progress-details")).toBeTruthy());
+      fireEvent.press(getByTestId("progress-details"));
+      fireEvent.press(getByTestId("progress-open-my-rooms"));
+      const { router } = require("expo-router");
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms");
+    });
+  });
+
+
+  describe("drawers: dismissal, language, theme and accessibility", () => {
+    const { Modal, AccessibilityInfo } = require("react-native");
+
+    beforeEach(() => {
+      setRooms([makeRoom("112"), makeRoom("115"), makeRoom("101", { status: "INSPECTED" })]);
+    });
+
+    it("closes on the Android back button and on the backdrop, and animates out before it unmounts", async () => {
+      const screen = renderHome();
+      await waitFor(() => expect(screen.getByTestId("focus-more")).toBeTruthy());
+
+      fireEvent.press(screen.getByTestId("focus-more"));
+      act(() => {
+        screen.UNSAFE_getByType(Modal).props.onRequestClose();
+      });
+      await waitFor(() => expect(screen.queryByTestId("room-actions-sheet")).toBeNull());
+
+      fireEvent.press(screen.getByTestId("focus-more"));
+      expect(screen.getByTestId("room-actions-sheet")).toBeTruthy();
+      fireEvent.press(screen.getAllByLabelText("Close")[0]);
+      await waitFor(() => expect(screen.queryByTestId("room-actions-sheet")).toBeNull());
+    });
+
+    it("has an explicit Close control and a labelled header for assistive tech", async () => {
+      const screen = renderHome();
+      await waitFor(() => expect(screen.getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(screen.getByTestId("focus-more"));
+      const sheet = screen.getByTestId("room-actions-sheet");
+      expect(sheet.props.accessibilityViewIsModal).toBe(true);
+      expect(within(sheet).getAllByRole("header").length).toBeGreaterThan(0);
+      expect(within(sheet).getByLabelText("Close").props.accessibilityRole).toBe("button");
+    });
+
+    it("drops the slide animation when the person prefers reduced motion", async () => {
+      jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled").mockResolvedValue(true);
+      const screen = renderHome();
+      await waitFor(() => expect(screen.getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(screen.getByTestId("focus-more"));
+      await waitFor(() => expect(screen.UNSAFE_getByType(Modal).props.animationType).toBe("none"));
+      jest.restoreAllMocks();
+    });
+
+    it("keeps drawer text scalable up to the same ceiling as Home", async () => {
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("progress-details")).toBeTruthy());
+      fireEvent.press(getByTestId("progress-details"));
+      expect(getByTestId("progress-sheet-headline").props.maxFontSizeMultiplier).toBe(1.6);
+      expect(getByTestId("progress-value-completed").props.maxFontSizeMultiplier).toBe(1.6);
+    });
+
+    it("follows dark mode in the drawers", async () => {
+      await AsyncStorage.setItem(APPEARANCE_STORAGE_KEY, "dark");
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("progress-details")).toBeTruthy());
+      fireEvent.press(getByTestId("progress-details"));
+      await waitFor(() => expect(flat(getByTestId("progress-sheet-headline").props.style).color).toBe(darkTheme.textPrimary));
+    });
+
+    it("speaks Spanish in the drawers", async () => {
+      mockLanguage = "es";
+      const { getByTestId, getByText } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      expect(getByText("Habitación 112")).toBeTruthy();
+      expect(getByText("Reportar problema de acceso")).toBeTruthy();
+      fireEvent.press(getByTestId("focus-why"));
+      expect(getByText("¿Por qué la habitación 112 sigue?")).toBeTruthy();
+    });
+  });
+
 });

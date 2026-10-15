@@ -325,7 +325,10 @@
       "openRoom": "Open room",
       "openRoomShort": "Open room",
       "primaryA11y": "{{action}}, room {{room}}",
-      "why": "Why this room?"
+      "why": "Why this room?",
+      "more": "More",
+      "moreA11y": "More actions for room {{room}}",
+      "whyA11y": "Why room {{room}} is recommended"
     },
     "upNext": {
       "kicker": "Up next",
@@ -381,6 +384,183 @@
     "briefing": {
       "show": "Show shift briefing",
       "hide": "Hide shift briefing"
+    },
+    "message": {
+      "markRead": "Mark as read",
+      "marking": "Marking as read…",
+      "markedRead": "Marked as read",
+      "failed": "Couldn't mark it as read. It's still unread — try again.",
+      "offline": "Marking as read needs a connection. It's still unread.",
+      "readOnlyHint": "This only marks the message as read. It isn't sent back to your supervisor.",
+      "from": "From {{sender}}",
+      "sent": "Sent {{time}}",
+      "viewRoom": "View Room {{room}}",
+      "viewTask": "View task",
+      "fallbackTitle": "Message",
+      "noneTitle": "No unread message",
+      "noneBody": "There's nothing unread here any more.",
+      "openHint": "Opens the full message",
+      "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again."
+    },
+    "attentionCenter": {
+      "title": "Needs attention",
+      "backA11y": "Back to Home",
+      "filter": {
+        "all": "All",
+        "urgent": "Urgent",
+        "access": "Access",
+        "messages": "Messages",
+        "other": "Other"
+      },
+      "filterA11y": "{{label}}, {{count}}",
+      "priority": {
+        "critical": "Urgent",
+        "warning": "Action needed"
+      },
+      "details": "Details",
+      "action": {
+        "readMessage": "Read message",
+        "viewDetails": "View details",
+        "reviewCorrections": "Review corrections",
+        "openRoom": "Open room",
+        "viewRoom": "View room",
+        "openMyRooms": "Open My Rooms"
+      },
+      "emptyTitle": "Nothing needs your attention",
+      "emptyBody": "Rooms and messages that need you will show up here.",
+      "notReadyTitle": "Open Home first",
+      "notReadyBody": "This list is built from your Home screen, which hasn't loaded yet.",
+      "goHome": "Go to Home",
+      "unavailable": "We can't load your rooms right now."
+    },
+    "roomActions": {
+      "title": "Room {{room}}",
+      "sectionGo": "Go to",
+      "sectionReport": "Report or add",
+      "formsHint": "These open the form on the room screen. Nothing is sent until you submit it there.",
+      "continueHint": "Back to your checklist",
+      "openHint": "Status, instructions and everything about the room",
+      "openRestrictedHint": "You can look at the room, but entry is restricted.",
+      "restricted": "Entry to this room is restricted right now. You can open it to read why, but you can't start cleaning.",
+      "missingTitle": "Room no longer on your list",
+      "missingBody": "It was reassigned or your list changed. Pull down on Home to refresh.",
+      "rows": {
+        "note": {
+          "title": "Add room note",
+          "hint": "Share something the next person should know"
+        },
+        "issue": {
+          "title": "Report maintenance issue",
+          "hint": "Creates a work order"
+        },
+        "supplies": {
+          "title": "Request supplies",
+          "hint": "Towels, linens, amenities"
+        },
+        "exception": {
+          "title": "Report access problem",
+          "hint": "DND, guest inside, come back later"
+        },
+        "info": {
+          "title": "Room information",
+          "hint": "Status, instructions and history"
+        }
+      }
+    },
+    "whySheet": {
+      "title": "Why Room {{room}} next?",
+      "because": "Because",
+      "open": "Open Room {{room}}",
+      "changed": "Your next room changed. Room {{room}} is first now.",
+      "noneTitle": "Nothing to recommend right now",
+      "noneBody": "No room is ready to start. Check what needs your attention, or open My Rooms.",
+      "openMyRooms": "Open My Rooms"
+    },
+    "issue": {
+      "waitNotice": "You can't start this room from here. It's cleared by the guest, the front desk or your supervisor.",
+      "checkoutScheduled": "Scheduled checkout: {{time}}",
+      "checkoutConfirmed": "The front desk confirmed checkout at {{time}}.",
+      "checkoutNotConfirmed": "The front desk hasn't confirmed checkout. A scheduled time isn't confirmation.",
+      "correctionsUnavailable": "The inspector's correction list isn't on this phone yet. Open the room to see it.",
+      "supervisorNote": "Supervisor note: {{note}}",
+      "viewRoom": "View room details",
+      "viewRoomHint": "See the room, its status and instructions",
+      "viewWorkOrder": "View work order",
+      "addNote": "Add note",
+      "addNoteHint": "Opens the room note form",
+      "resolvedTitle": "This issue has cleared",
+      "resolvedBody": "Nothing more to do here. Your list has been updated.",
+      "kind": {
+        "dnd": {
+          "headline": "Do not disturb",
+          "body": "This room has an active DND. Don't enter."
+        },
+        "declined": {
+          "headline": "Guest declined service",
+          "body": "The guest doesn't want service. Don't enter unless the front desk or your supervisor says otherwise."
+        },
+        "come_back_later": {
+          "headline": "Come back later",
+          "body": "The guest asked you to return later. Try again at the retry time."
+        },
+        "guest_inside": {
+          "headline": "Guest is inside",
+          "body": "Don't enter while a guest is in the room."
+        },
+        "access": {
+          "headline": "Access problem",
+          "body": "A problem getting into this room was reported."
+        },
+        "checkout": {
+          "headline": "Checkout not confirmed",
+          "body": "Don't enter until the front desk confirms the guest has left."
+        },
+        "maintenance": {
+          "headline": "Maintenance work open",
+          "body": "Engineering handles this. You can't resolve it from here."
+        },
+        "reclean": {
+          "headline": "Inspector asked for corrections",
+          "body": "Fix what the inspector flagged, then submit the room again."
+        },
+        "rush": {
+          "headline": "Rush deadline passed",
+          "body": "This room was needed by a set time. Open it and tell your supervisor if you can't finish."
+        },
+        "session": {
+          "headline": "Cleaning session needs recovery",
+          "body": "This phone and the server disagree about this room. Open it to recover your work."
+        },
+        "sync": {
+          "headline": "A saved change didn't go through",
+          "body": "Your work is kept on this phone."
+        },
+        "other": {
+          "headline": "Needs a look",
+          "body": "Open the room for the details."
+        }
+      }
+    },
+    "progressSheet": {
+      "title": "Your shift",
+      "completed": "Completed",
+      "unavailable": "Unavailable",
+      "assigned": "Total assigned",
+      "sectionRooms": "Where your rooms are",
+      "reconcile": "These add up to your {{count}} assigned rooms.",
+      "sectionFlags": "Also flagged",
+      "flagsHint": "A room can have more than one flag, so these don't add up to the totals above.",
+      "flagRush": "Rush",
+      "flagReclean": "Reclean",
+      "flagArrivals": "Arriving soon",
+      "waiting": "Finished on this phone and waiting to send: {{count}}. Counted as in progress until the server confirms.",
+      "unavailableNote": "Out-of-service rooms are never counted as cleaned.",
+      "started": "Shift started {{time}}",
+      "notStarted": "Shift not started",
+      "shiftUnknown": "Checking your shift…",
+      "onBreak": "On break",
+      "onBreakSince": "On break since {{time}}",
+      "openMyRooms": "Open My Rooms"
     }
   },
   "rooms": {
@@ -652,7 +832,8 @@
           "NO_CHECKLIST_OFFLINE": "Connect once to download this hotel's cleaning checklist before starting offline."
         },
         "completingUnsure": "We didn't get an answer from the server. Nothing is lost — we'll check with the server before sending again."
-      }
+      },
+      "actionUnavailable": "That action isn't available for this room right now."
     },
     "detailActions": {
       "title": "Actions",

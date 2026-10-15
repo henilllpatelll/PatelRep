@@ -761,3 +761,9 @@
 - apps/mobile/lib/housekeeping/homeState.ts — pure nine-state resolver, attention preview ranking, up-next, progress counts, HomeDestinations (Phase 3 hooks)
 - apps/mobile/lib/housekeeping/homeText.ts — hotel-local greeting/meta, honest sync wording, recommendation + attention copy
 - apps/api/routers/shifts.py — GET /shifts/current now adds meta.last_ended; /shifts/end clamps ended_at >= started_at
+- apps/mobile/lib/housekeeping/homeAttention.ts — Attention Center model: one bucket per item (urgent/access/messages/other), filter counts that add up, attentionAction() = where a tap goes (~1.5k tok)
+- apps/mobile/lib/housekeeping/homeSheets.ts — pure resolvers for the Home drawers: resolveRoomActions / resolveWhyRoom / resolveIssueDetails / buildProgressDetails, all re-read from the live HomeModel (~2.3k tok)
+- apps/mobile/lib/housekeeping/notificationLinks.ts — task link via taskLink contract, room link only if on the person's own list, sender only if record has one
+- apps/mobile/stores/homeBridgeStore.ts — Home publishes its HomeModel here; the Attention Center route reads it (no second fetch/poll)
+- apps/mobile/components/home/{HomeSheetHost,RoomActionsSheet,RecommendationSheet,IssueDetailsSheet,SupervisorMessageSheet,ShiftProgressSheet,sheetParts}.tsx — Home drawers on the shared roomDetail/BottomSheet; HomeSheetHost = one drawer at a time, delayed unmount, focus return
+- apps/mobile/components/home/AttentionCenterScreen.tsx + app/(app)/attention/index.tsx — full-screen "Needs attention" (hidden route, not a tab)

@@ -310,6 +310,9 @@ export interface SupervisorNoteInput {
   title: string;
   body: string;
   createdAt?: string | null;
+  /** The notification row's own type and payload; links are resolved from these, never from the wording. */
+  type?: string;
+  data?: Record<string, unknown> | null;
 }
 
 export interface SupervisorInstruction {
@@ -317,6 +320,8 @@ export interface SupervisorInstruction {
   title: string;
   body: string;
   createdAt: string | null;
+  type: string | null;
+  data: Record<string, unknown> | null;
   destination: AttentionDestination;
 }
 
@@ -594,6 +599,8 @@ export function buildHomeModel(input: HomeModelInput): HomeModel {
         title: input.supervisorNote.title,
         body: input.supervisorNote.body,
         createdAt: input.supervisorNote.createdAt ?? null,
+        type: input.supervisorNote.type ?? null,
+        data: input.supervisorNote.data ?? null,
         destination: { route: "notification", notificationId: input.supervisorNote.id } as const,
       }
     : null;

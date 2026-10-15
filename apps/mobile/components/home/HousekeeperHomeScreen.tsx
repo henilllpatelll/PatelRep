@@ -11,6 +11,7 @@ import { CurrentRoomCard } from "@/components/home/CurrentRoomCard";
 import { EndOfShiftState } from "@/components/home/EndOfShiftState";
 import HoldToConfirmSheet from "@/components/home/HoldToConfirmSheet";
 import { HomeHeader } from "@/components/home/HomeHeader";
+import { HomeSheetHost, useHomeSheet, type HomeSheetGo } from "@/components/home/HomeSheetHost";
 import {
   BeforeShiftState,
   ClockedOutState,
@@ -31,6 +32,7 @@ import { fetchShiftRecap, type ShiftRecap } from "@/lib/ai/shiftRecap";
 import { getCompanionCheckin, snapshotFromDashboard } from "@/lib/ai/companion";
 import { listItems, type LostFoundItem } from "@/lib/api/lostFound";
 import { elapsedSeconds } from "@/lib/housekeeping/cleaningTimer";
+import { attentionAction } from "@/lib/housekeeping/homeAttention";
 import { buildBriefingFromModel, reconcileBriefing } from "@/lib/housekeeping/homeBriefing";
 import {
   buildAttentionPreview,
@@ -80,7 +82,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
   const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
   const unreadCount = useAppStore((state) => state.unreadCount) ?? 0;
   const home = useHousekeeperHome({ enabled });
-  const { model, data, rooms, shift, acknowledgeSupervisorNote, refresh: refreshHome } = home;
+  const { model, data, rooms, shift, markSupervisorNoteRead, refresh: refreshHome } = home;
   const { lifecycle } = model;
   const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
   const locale = language === "es" ? "es-MX" : "en-US";
@@ -96,6 +98,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
   const [shiftRecapLoading, setShiftRecapLoading] = useState(false);
   const [todaysFoundItems, setTodaysFoundItems] = useState<LostFoundItem[]>([]);
   const [dismissedSubmission, setDismissedSubmission] = useState<string | null>(null);
+  const sheets = useHomeSheet();
 
   // Refresh room counts and the shift when navigating back from the room detail screen
   // so Home reflects the latest status immediately. Reads only — never starts a shift.
@@ -136,14 +139,36 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
     setLastTab("done");
     navigate("/(app)/my-rooms");
   }, [navigate]);
+  const openAttentionCenter = useCallback(() => navigate("/(app)/attention"), [navigate]);
   const openAttentionItem = useCallback(
     (row: AttentionPreviewItem) => {
-      const destination = row.item.destination;
-      if (destination.route === "room") openRoom(destination.roomId);
-      else if (destination.route === "notification") openNotifications();
+      const { target } = attentionAction(row.item);
+      if (target.type === "room") openRoom(target.roomId);
+      else if (target.type === "details") sheets.open({ kind: "issue", itemId: row.item.id });
+      else if (target.type === "message") sheets.open({ kind: "message" });
       else openMyRooms();
     },
-    [openRoom, openNotifications, openMyRooms],
+    [openRoom, openMyRooms, sheets],
+  );
+
+  // Marking read is the only write the server supports for a message; a failure keeps it unread and says so.
+  const handleMarkNoteRead = useCallback(async () => {
+    const result = await markSupervisorNoteRead();
+    if (!result.ok) toast.error(t(result.reason === "offline" ? "home.message.offline" : "home.message.failed"));
+  }, [markSupervisorNoteRead, toast, t]);
+
+  const go = useMemo<HomeSheetGo>(
+    () => ({
+      openRoom,
+      roomAction: (roomId, action) => navigate(`/(app)/my-rooms/${roomId}?action=${action}&from=home`),
+      openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
+      openMyRooms,
+      openLink: (link) => {
+        if (link.kind === "room") openRoom(link.roomId);
+        else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
+      },
+    }),
+    [navigate, openRoom, openMyRooms],
   );
 
   /* ─── Derived view ─────────────────────────────────────────────────────── */
@@ -291,11 +316,18 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
         ctx={ctx}
         onOpenRoom={openRoom}
         onMarkClean={handleMarkClean}
+        onMore={(roomId, opener) => sheets.open({ kind: "roomActions", roomId }, opener)}
+        onWhy={(roomId, opener) => sheets.open({ kind: "why", roomId }, opener)}
       />
     ) : null;
 
   const progressCard = (
-    <ShiftProgressSummary progress={model.progress} counts={counts} t={t} onViewDetails={destinations?.progressDetails} />
+    <ShiftProgressSummary
+      progress={model.progress}
+      counts={counts}
+      t={t}
+      onViewDetails={destinations?.progressDetails ? destinations.progressDetails : (opener) => sheets.open({ kind: "progress" }, opener)}
+    />
   );
   const attentionCard = (
     <NeedsAttentionPreview
@@ -304,8 +336,8 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       t={t}
       ctx={ctx}
       onOpenItem={openAttentionItem}
-      onViewAll={destinations?.attentionCenter ?? openMyRooms}
-      onAcknowledgeNote={() => void acknowledgeSupervisorNote()}
+      onViewAll={destinations?.attentionCenter ?? openAttentionCenter}
+      onMarkNoteRead={() => void handleMarkNoteRead()}
     />
   );
 
@@ -341,7 +373,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
               t={t}
               onStart={() => void handleStartShift()}
               onReview={openMyRooms}
-              onAcknowledgeNote={() => void acknowledgeSupervisorNote()}
+              onMarkNoteRead={() => void handleMarkNoteRead()}
             />
           ) : null}
 
@@ -499,6 +531,21 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
           ) : null}
         </View>
       </ScrollView>
+
+      <HomeSheetHost
+        model={model}
+        sheet={sheets.sheet}
+        visible={sheets.visible}
+        onClose={sheets.close}
+        role={user?.role}
+        isOnline={isOnline}
+        pendingCount={model.sync.pending}
+        language={language}
+        t={t}
+        ctx={ctx}
+        go={go}
+        markNoteRead={markSupervisorNoteRead}
+      />
 
       {holdConfirmRoom ? (
         <HoldToConfirmSheet

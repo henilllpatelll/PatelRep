@@ -1,3 +1,4 @@
+import { useRef, type RefObject } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/ui/Card";
@@ -14,7 +15,7 @@ interface Props {
   counts: ProgressCounts;
   t: Translate;
   /** Shown only when a details destination exists; there is no dead "View details". */
-  onViewDetails?: () => void;
+  onViewDetails?: (opener: RefObject<unknown>) => void;
 }
 
 /**
@@ -24,6 +25,7 @@ interface Props {
  */
 export function ShiftProgressSummary({ progress, counts, t, onViewDetails }: Props) {
   const theme = useTheme();
+  const detailsRef = useRef<unknown>(null);
   const { completed, serviceable } = progress;
 
   const notes: string[] = [];
@@ -79,7 +81,15 @@ export function ShiftProgressSummary({ progress, counts, t, onViewDetails }: Pro
           {notes.join(" · ")}
         </Text>
       ) : null}
-      {onViewDetails ? <LinkButton label={t("home.progress.viewDetails")} icon="arrow-forward" onPress={onViewDetails} testID="progress-details" /> : null}
+      {onViewDetails ? (
+        <LinkButton
+          ref={detailsRef as never}
+          label={t("home.progress.viewDetails")}
+          icon="arrow-forward"
+          onPress={() => onViewDetails(detailsRef)}
+          testID="progress-details"
+        />
+      ) : null}
     </Card>
   );
 }

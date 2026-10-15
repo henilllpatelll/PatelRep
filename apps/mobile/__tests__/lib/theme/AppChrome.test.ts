@@ -95,9 +95,9 @@ describe("protected navigation chrome", () => {
     expect(protectedLayoutSource).toMatch(
       /tabBarBadge:\s*name === "notifications\/index" && unreadCount > 0/,
     );
-    expect(protectedLayoutSource).toContain(
-      'listeners={name === "notifications/index" ? { focus: () => setUnreadCount(0) } : undefined}',
-    );
+    // Opening the alerts screen must not clear the unread count: only a persisted read (or the server's own list) does.
+    expect(protectedLayoutSource).not.toContain("setUnreadCount(0)");
+    expect(protectedLayoutSource).not.toContain("focus:");
   });
 
   it("translates tab accessibility labels", () => {

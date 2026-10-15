@@ -41,10 +41,11 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
 }
 
 let mockRooms: Room[] = [makeRoom()];
+let mockParams: Record<string, string | undefined> = { roomId: "room-1" };
 
 jest.mock("expo-router", () => ({
-  useLocalSearchParams: () => ({ roomId: "room-1" }),
-  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => mockParams,
+  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), setParams: jest.fn() },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
@@ -211,6 +212,7 @@ const stayover = (overrides: Partial<Room> = {}) =>
 beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
+  mockParams = { roomId: "room-1" };
   mockIsOnline = true;
   mockUserRole = "housekeeper";
   mockRooms = [makeRoom()];
@@ -1709,5 +1711,62 @@ describe("Room Detail — accessibility", () => {
     expect(getByTestId("checklist-item-id:a").props.accessibilityState.disabled).toBe(true);
     fireEvent.press(getByTestId("checklist-item-id:a"));
     expect(mockApiPatch).not.toHaveBeenCalled();
+  });
+});
+
+describe("Room Detail — hand-off from Home's room actions drawer", () => {
+  it.each([
+    ["note", "note-sheet"],
+    ["issue", "issue-modal"],
+    ["supplies", "supply-modal"],
+    ["exception", "exception-sheet"],
+    ["info", "room-info-sheet"],
+  ])("action=%s opens the existing %s once, and clears the parameter", async (action, sheetId) => {
+    mockRooms = [vacantDeparture()];
+    mockParams = { roomId: "room-1", action, from: "home" };
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId(sheetId)).toBeTruthy());
+    expect(mockRouter.setParams).toHaveBeenCalledWith({ action: undefined });
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("opens nothing for an action this role cannot use on the server", async () => {
+    mockUserRole = "engineer";
+    mockRooms = [vacantDeparture()];
+    mockParams = { roomId: "room-1", action: "exception", from: "home" };
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    expect(queryByTestId("exception-sheet")).toBeNull();
+  });
+
+  it("opens nothing for a form that needs a connection while offline", async () => {
+    mockIsOnline = false;
+    mockRooms = [vacantDeparture()];
+    mockParams = { roomId: "room-1", action: "supplies", from: "home" };
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    expect(queryByTestId("supply-modal")).toBeNull();
+  });
+
+  it("ignores an action it does not recognise", async () => {
+    mockRooms = [vacantDeparture()];
+    mockParams = { roomId: "room-1", action: "delete-everything", from: "home" };
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    expect(queryByTestId("note-sheet")).toBeNull();
+    expect(queryByTestId("issue-modal")).toBeNull();
+  });
+
+  it.each([
+    ["attention", "/(app)/attention"],
+    ["home", "/(app)/home"],
+    [undefined, "/(app)/my-rooms"],
+  ])("Back returns to where the person came from (from=%s)", async (from, destination) => {
+    mockRooms = [vacantDeparture()];
+    mockParams = { roomId: "room-1", ...(from ? { from } : {}) };
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-detail-back")).toBeTruthy());
+    fireEvent.press(getByTestId("room-detail-back"));
+    expect(mockRouter.push).toHaveBeenCalledWith(destination);
   });
 });

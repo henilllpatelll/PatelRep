@@ -325,7 +325,10 @@
       "openRoom": "Abrir cuarto",
       "openRoomShort": "Abrir cuarto",
       "primaryA11y": "{{action}}, cuarto {{room}}",
-      "why": "¿Por qué este cuarto?"
+      "why": "¿Por qué este cuarto?",
+      "more": "Más",
+      "moreA11y": "Más acciones para la habitación {{room}}",
+      "whyA11y": "Por qué se recomienda la habitación {{room}}"
     },
     "upNext": {
       "kicker": "Sigue",
@@ -381,6 +384,183 @@
     "briefing": {
       "show": "Mostrar resumen del turno",
       "hide": "Ocultar resumen del turno"
+    },
+    "message": {
+      "markRead": "Marcar como leído",
+      "marking": "Marcando como leído…",
+      "markedRead": "Marcado como leído",
+      "failed": "No se pudo marcar como leído. Sigue sin leer — inténtalo de nuevo.",
+      "offline": "Marcar como leído necesita conexión. Sigue sin leer.",
+      "readOnlyHint": "Esto solo marca el mensaje como leído. No se envía a tu supervisor.",
+      "from": "De {{sender}}",
+      "sent": "Enviado {{time}}",
+      "viewRoom": "Ver habitación {{room}}",
+      "viewTask": "Ver tarea",
+      "fallbackTitle": "Mensaje",
+      "noneTitle": "Ningún mensaje sin leer",
+      "noneBody": "Ya no hay nada sin leer aquí.",
+      "openHint": "Abre el mensaje completo",
+      "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo."
+    },
+    "attentionCenter": {
+      "title": "Requiere atención",
+      "backA11y": "Volver al inicio",
+      "filter": {
+        "all": "Todo",
+        "urgent": "Urgente",
+        "access": "Acceso",
+        "messages": "Mensajes",
+        "other": "Otros"
+      },
+      "filterA11y": "{{label}}, {{count}}",
+      "priority": {
+        "critical": "Urgente",
+        "warning": "Requiere acción"
+      },
+      "details": "Detalles",
+      "action": {
+        "readMessage": "Leer mensaje",
+        "viewDetails": "Ver detalles",
+        "reviewCorrections": "Revisar correcciones",
+        "openRoom": "Abrir habitación",
+        "viewRoom": "Ver habitación",
+        "openMyRooms": "Abrir Mis habitaciones"
+      },
+      "emptyTitle": "Nada requiere tu atención",
+      "emptyBody": "Las habitaciones y mensajes que te necesiten aparecerán aquí.",
+      "notReadyTitle": "Abre Inicio primero",
+      "notReadyBody": "Esta lista se arma desde tu pantalla de Inicio, que aún no ha cargado.",
+      "goHome": "Ir a Inicio",
+      "unavailable": "No podemos cargar tus habitaciones ahora."
+    },
+    "roomActions": {
+      "title": "Habitación {{room}}",
+      "sectionGo": "Ir a",
+      "sectionReport": "Reportar o agregar",
+      "formsHint": "Abren el formulario en la pantalla de la habitación. No se envía nada hasta que lo envíes allí.",
+      "continueHint": "Volver a tu lista de tareas",
+      "openHint": "Estado, instrucciones y todo sobre la habitación",
+      "openRestrictedHint": "Puedes ver la habitación, pero la entrada está restringida.",
+      "restricted": "La entrada a esta habitación está restringida ahora. Puedes abrirla para ver por qué, pero no puedes empezar a limpiar.",
+      "missingTitle": "La habitación ya no está en tu lista",
+      "missingBody": "Fue reasignada o tu lista cambió. Desliza hacia abajo en Inicio para actualizar.",
+      "rows": {
+        "note": {
+          "title": "Agregar nota de habitación",
+          "hint": "Comparte algo que la siguiente persona deba saber"
+        },
+        "issue": {
+          "title": "Reportar problema de mantenimiento",
+          "hint": "Crea una orden de trabajo"
+        },
+        "supplies": {
+          "title": "Pedir suministros",
+          "hint": "Toallas, sábanas, artículos de cortesía"
+        },
+        "exception": {
+          "title": "Reportar problema de acceso",
+          "hint": "No molestar, huésped dentro, volver más tarde"
+        },
+        "info": {
+          "title": "Información de la habitación",
+          "hint": "Estado, instrucciones e historial"
+        }
+      }
+    },
+    "whySheet": {
+      "title": "¿Por qué la habitación {{room}} sigue?",
+      "because": "Porque",
+      "open": "Abrir habitación {{room}}",
+      "changed": "Tu siguiente habitación cambió. Ahora la habitación {{room}} es la primera.",
+      "noneTitle": "Nada que recomendar por ahora",
+      "noneBody": "Ninguna habitación está lista para empezar. Revisa lo que requiere atención o abre Mis habitaciones.",
+      "openMyRooms": "Abrir Mis habitaciones"
+    },
+    "issue": {
+      "waitNotice": "No puedes empezar esta habitación desde aquí. La libera el huésped, la recepción o tu supervisor.",
+      "checkoutScheduled": "Salida programada: {{time}}",
+      "checkoutConfirmed": "La recepción confirmó la salida a las {{time}}.",
+      "checkoutNotConfirmed": "La recepción no ha confirmado la salida. Una hora programada no es una confirmación.",
+      "correctionsUnavailable": "La lista de correcciones del inspector aún no está en este teléfono. Abre la habitación para verla.",
+      "supervisorNote": "Nota del supervisor: {{note}}",
+      "viewRoom": "Ver detalles de la habitación",
+      "viewRoomHint": "Ver la habitación, su estado e instrucciones",
+      "viewWorkOrder": "Ver orden de trabajo",
+      "addNote": "Agregar nota",
+      "addNoteHint": "Abre el formulario de nota de la habitación",
+      "resolvedTitle": "Este asunto ya se resolvió",
+      "resolvedBody": "No hay nada más que hacer aquí. Tu lista se actualizó.",
+      "kind": {
+        "dnd": {
+          "headline": "No molestar",
+          "body": "Esta habitación tiene No molestar activo. No entres."
+        },
+        "declined": {
+          "headline": "El huésped rechazó el servicio",
+          "body": "El huésped no quiere servicio. No entres a menos que la recepción o tu supervisor lo indique."
+        },
+        "come_back_later": {
+          "headline": "Volver más tarde",
+          "body": "El huésped pidió que vuelvas más tarde. Intenta de nuevo a la hora indicada."
+        },
+        "guest_inside": {
+          "headline": "Huésped dentro",
+          "body": "No entres mientras haya un huésped en la habitación."
+        },
+        "access": {
+          "headline": "Problema de acceso",
+          "body": "Se reportó un problema para entrar a esta habitación."
+        },
+        "checkout": {
+          "headline": "Salida sin confirmar",
+          "body": "No entres hasta que la recepción confirme que el huésped se fue."
+        },
+        "maintenance": {
+          "headline": "Trabajo de mantenimiento abierto",
+          "body": "Ingeniería se encarga de esto. No puedes resolverlo desde aquí."
+        },
+        "reclean": {
+          "headline": "El inspector pidió correcciones",
+          "body": "Corrige lo que marcó el inspector y vuelve a enviar la habitación."
+        },
+        "rush": {
+          "headline": "Pasó la hora límite urgente",
+          "body": "Esta habitación se necesitaba a una hora fija. Ábrela y avisa a tu supervisor si no puedes terminar."
+        },
+        "session": {
+          "headline": "La sesión de limpieza necesita recuperarse",
+          "body": "Este teléfono y el servidor no coinciden sobre esta habitación. Ábrela para recuperar tu trabajo."
+        },
+        "sync": {
+          "headline": "Un cambio guardado no se envió",
+          "body": "Tu trabajo se conserva en este teléfono."
+        },
+        "other": {
+          "headline": "Requiere revisión",
+          "body": "Abre la habitación para ver los detalles."
+        }
+      }
+    },
+    "progressSheet": {
+      "title": "Tu turno",
+      "completed": "Completadas",
+      "unavailable": "No disponibles",
+      "assigned": "Total asignadas",
+      "sectionRooms": "Dónde están tus habitaciones",
+      "reconcile": "Estas suman tus {{count}} habitaciones asignadas.",
+      "sectionFlags": "También marcadas",
+      "flagsHint": "Una habitación puede tener más de una marca, así que no suman los totales de arriba.",
+      "flagRush": "Urgente",
+      "flagReclean": "Relimpieza",
+      "flagArrivals": "Llegada pronto",
+      "waiting": "Terminadas en este teléfono y por enviar: {{count}}. Cuentan como en curso hasta que el servidor las confirme.",
+      "unavailableNote": "Las habitaciones fuera de servicio nunca cuentan como limpias.",
+      "started": "Turno iniciado {{time}}",
+      "notStarted": "Turno sin iniciar",
+      "shiftUnknown": "Revisando tu turno…",
+      "onBreak": "En descanso",
+      "onBreakSince": "En descanso desde las {{time}}",
+      "openMyRooms": "Abrir Mis habitaciones"
     }
   },
   "rooms": {
@@ -652,7 +832,8 @@
           "NO_CHECKLIST_OFFLINE": "Conéctate una vez para descargar la lista de limpieza del hotel antes de empezar sin conexión."
         },
         "completingUnsure": "No recibimos respuesta del servidor. No se perdió nada: lo consultaremos antes de volver a enviar."
-      }
+      },
+      "actionUnavailable": "Esa acción no está disponible para esta habitación ahora."
     },
     "detailActions": {
       "title": "Acciones",

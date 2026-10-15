@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { listNotifications, markRead } from "@/lib/api/notifications";
+import { isMessageNotification } from "@/lib/housekeeping/notificationLinks";
+import { useHomeBridge, type MarkReadResult } from "@/stores/homeBridgeStore";
 import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
 import { buildHomeModel, type HomeModel, type SupervisorNoteInput } from "@/lib/housekeeping/homeModel";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
@@ -23,7 +25,12 @@ export interface HousekeeperHome {
   shift: ShiftController;
   /** Pull-to-refresh: rooms, shift, supervisor message and sync status. */
   refresh: () => Promise<void>;
-  acknowledgeSupervisorNote: () => Promise<void>;
+  /**
+   * Marks the supervisor's message read on the server. "Read" is all the backend
+   * records (there is no acknowledgement); on any failure the message stays on
+   * screen, unread, and the caller says so.
+   */
+  markSupervisorNoteRead: () => Promise<MarkReadResult>;
   /** Looking up an active clean session this device lost (restart, started elsewhere). */
   restoringSession: boolean;
 }
@@ -73,8 +80,15 @@ export function useHousekeeperHome({ enabled }: { enabled: boolean }): Housekeep
     try {
       const result = await listNotifications(false);
       if (noteScope.current !== scope) return;
-      const found = result.data.find((n) => n.type === "direct_message" || n.type === "broadcast");
-      setNote(found ? { id: found.id, title: found.title, body: found.body, createdAt: found.created_at ?? null } : null);
+      // The newest unread message wins, whatever order the server returned them in.
+      const found = result.data
+        .filter((n) => isMessageNotification(n.type))
+        .sort((a, b) => (Date.parse(b.created_at ?? "") || 0) - (Date.parse(a.created_at ?? "") || 0))[0];
+      setNote(
+        found
+          ? { id: found.id, title: found.title, body: found.body, createdAt: found.created_at ?? null, type: found.type, data: found.data ?? null }
+          : null,
+      );
     } catch {
       // Leave the last known message; a failed read says nothing about it.
     }
@@ -95,16 +109,28 @@ export function useHousekeeperHome({ enabled }: { enabled: boolean }): Housekeep
     };
   }, [enabled, loadNote]);
 
-  const acknowledgeSupervisorNote = useCallback(async () => {
-    if (!note) return;
+  const markingNote = useRef(false);
+  const markSupervisorNoteRead = useCallback(async (): Promise<MarkReadResult> => {
+    if (!note) return { ok: true };
+    if (!isOnline) return { ok: false, reason: "offline" };
+    if (markingNote.current) return { ok: false, reason: "failed" };
+    markingNote.current = true;
     const id = note.id;
-    setNote(null);
     try {
       await markRead(id);
     } catch {
-      // Dismissed locally; it returns on the next unread fetch if the write failed.
+      // Nothing was recorded: keep the message and its unread state.
+      return { ok: false, reason: "failed" };
+    } finally {
+      markingNote.current = false;
     }
-  }, [note]);
+    setNote((current) => (current?.id === id ? null : current));
+    const { unreadCount, setUnreadCount } = useAppStore.getState();
+    if (typeof unreadCount === "number") setUnreadCount?.(Math.max(0, unreadCount - 1));
+    // Another unread instruction may be waiting behind it.
+    void loadNote();
+    return { ok: true };
+  }, [note, isOnline, loadNote]);
 
   // What the device is holding: cheap synchronous rows now, the full queues (SQLite + task outbox) when they load.
   const [loadedSync, setLoadedSync] = useState<{ rows: SyncRow[]; complete: boolean } | null>(null);
@@ -200,5 +226,13 @@ export function useHousekeeperHome({ enabled }: { enabled: boolean }): Housekeep
     await Promise.all([refreshRooms(), refreshShift(), loadNote(), reloadSync()]);
   }, [refreshRooms, refreshShift, loadNote, reloadSync]);
 
-  return { model, data, rooms, shift, refresh, acknowledgeSupervisorNote, restoringSession: restore.restoring };
+  // The Attention Center is its own route and reads this same model instead of rebuilding it.
+  const { publish, clear } = useHomeBridge.getState();
+  useEffect(() => {
+    if (!enabled) return;
+    publish({ scope, model, refresh, markNoteRead: markSupervisorNoteRead });
+  }, [enabled, scope, model, refresh, markSupervisorNoteRead, publish]);
+  useEffect(() => (enabled ? clear : undefined), [enabled, clear]);
+
+  return { model, data, rooms, shift, refresh, markSupervisorNoteRead, restoringSession: restore.restoring };
 }

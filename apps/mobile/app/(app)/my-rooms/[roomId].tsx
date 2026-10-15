@@ -119,11 +119,21 @@ function buildLastAction(
   return time ? t("rooms.detail.lastAction.at", { action, actor, time }) : t("rooms.detail.lastAction.only", { action, actor });
 }
 
+/** The forms Home's room-actions drawer may open on arrival. */
+const HOME_FORM_ACTIONS: ReadonlySet<string> = new Set(["note", "issue", "supplies", "exception", "info"]);
+
+/** Where the header Back button returns to: the screen the person came from, else the room list. */
+function backTarget(from: string | undefined): string {
+  if (from === "attention") return "/(app)/attention";
+  if (from === "home") return "/(app)/home";
+  return "/(app)/my-rooms";
+}
+
 /** iOS can't present a modal while another is still dismissing; give it a beat. */
 const SHEET_HANDOFF_MS = Platform.OS === "ios" ? 350 : 0;
 
 export default function RoomDetailScreen() {
-  const { roomId } = useLocalSearchParams<{ roomId: string }>();
+  const { roomId, action: requestedAction, from } = useLocalSearchParams<{ roomId: string; action?: string; from?: string }>();
   const { t, i18n } = useTranslation();
   const { isOnline, myRooms, setMyRooms, user, hotelTimezone, refreshRooms, pendingActions = [] } = useAppStore();
   const id = typeof roomId === "string" ? roomId : undefined;
@@ -205,6 +215,32 @@ export default function RoomDetailScreen() {
     setSyncOpen(false);
     setTarget(null);
   }, [room?.id]);
+
+  // Home's room-actions drawer hands off here: open the ONE existing form it asked for, once, and only
+  // if this room and this person still allow it. It opens the form; it never submits anything.
+  const handledAction = useRef<string | null>(null);
+  useEffect(() => {
+    if (typeof requestedAction !== "string" || !room) return;
+    const key = `${room.id}:${requestedAction}`;
+    if (handledAction.current === key) return;
+    handledAction.current = key;
+    router.setParams({ action: undefined });
+    const available = getReportActions({
+      role: user?.role,
+      isOnline,
+      room,
+      hasLiveSession: Boolean(session && !session.completionConfirmed),
+      linenApplicable: false,
+      linenLocked: false,
+      pendingCount: 0,
+    });
+    const match = available.find((candidate) => candidate.id === requestedAction);
+    if (!match || match.disabledReason || !HOME_FORM_ACTIONS.has(requestedAction)) {
+      toast.info(t("rooms.detail.actionUnavailable"));
+      return;
+    }
+    openReportTarget(requestedAction as ReportTarget);
+  }, [requestedAction, room, user?.role, isOnline, session]);
 
   const updateLocalRoom = useCallback(
     (roomIdToUpdate: string, patch: Partial<Room>) => {
@@ -460,7 +496,7 @@ export default function RoomDetailScreen() {
         statusKey={getRoomStatusKey(view.status)}
         statusLabel={statusLabel}
         rush={rushVisible}
-        onBack={() => router.push("/(app)/my-rooms" as never)}
+        onBack={() => router.push(backTarget(from) as never)}
         onMore={reportable ? () => setMoreOpen(true) : undefined}
       />
 

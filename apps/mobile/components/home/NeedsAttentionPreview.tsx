@@ -16,9 +16,10 @@ interface Props {
   t: Translate;
   ctx: TextContext;
   onOpenItem: (row: AttentionPreviewItem) => void;
-  /** Opens the full list: the Attention Center when it exists, My Rooms until then. */
+  /** Opens the Attention Center. */
   onViewAll: () => void;
-  onAcknowledgeNote: () => void;
+  /** Marks the supervisor message read (the only thing the server records); the caller reports a failure. */
+  onMarkNoteRead: () => void;
 }
 
 const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
@@ -34,7 +35,7 @@ const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
  * dropped. Work they can resolve ranks above rooms they can only wait on, and
  * the group icon says which is which without relying on colour.
  */
-export function NeedsAttentionPreview({ preview, note, t, ctx, onOpenItem, onViewAll, onAcknowledgeNote }: Props) {
+export function NeedsAttentionPreview({ preview, note, t, ctx, onOpenItem, onViewAll, onMarkNoteRead }: Props) {
   const theme = useTheme();
   if (preview.total === 0) return null;
 
@@ -81,7 +82,7 @@ export function NeedsAttentionPreview({ preview, note, t, ctx, onOpenItem, onVie
               <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
             </Pressable>
             {isMessage ? (
-              <LinkButton label={t("home.needsYou.gotIt")} onPress={onAcknowledgeNote} testID="attention-got-it" />
+              <LinkButton label={t("home.message.markRead")} onPress={onMarkNoteRead} testID="attention-mark-read" />
             ) : null}
           </View>
         );

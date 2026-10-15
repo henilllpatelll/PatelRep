@@ -156,8 +156,12 @@ const REASON_KEY: Record<RecommendationReason, string> = {
 export interface RecommendationCopy {
   /** One short line shown under the room ("Guest arrival at 1:00 PM"). */
   headline: string | null;
-  /** The fuller "Why this room?" explanation: verified facts only. */
+  /** The fuller "Why this room?" explanation: verified facts only (reasons, then the estimate). */
   why: string[];
+  /** Just the reasons, strongest first. */
+  reasons: string[];
+  /** The typical-length line, kept apart: it is an estimate, not a reason. */
+  estimate: string;
 }
 
 /** "Arrival 3:00 PM", using the arrival flag computed when the room was ranked (not the render-time clock). */
@@ -195,9 +199,10 @@ function reasonLine(reason: RecommendationReason, rec: Recommendation, t: Transl
 
 export function describeRecommendation(rec: Recommendation, t: Translate, ctx: TextContext = {}): RecommendationCopy {
   const reasons = [rec.reason, ...rec.alsoApplies];
-  const why = reasons.map((reason) => reasonLine(reason, rec, t, ctx));
+  const reasonLines = reasons.map((reason) => reasonLine(reason, rec, t, ctx));
   // The typical length is an estimate from the room type, never a promise.
-  why.push(t("home.why.estimate", { minutes: rec.timing.estimateMinutes }));
+  const estimate = t("home.why.estimate", { minutes: rec.timing.estimateMinutes });
+  const why = [...reasonLines, estimate];
 
   let headline: string | null = null;
   if (rec.reason === "arrival_soon") headline = arrivalLine(rec, t, ctx);
@@ -206,7 +211,7 @@ export function describeRecommendation(rec: Recommendation, t: Translate, ctx: T
     headline = [rush?.reason, rush?.deadline].filter(Boolean).join(" · ") || t("rooms.dash.card.rush");
   } else if (rec.reason === "reclean") headline = describeReclean(rec.entry, t);
   else headline = arrivalLine(rec, t, ctx);
-  return { headline, why };
+  return { headline, why, reasons: reasonLines, estimate };
 }
 
 /** Context line for the compact Up Next row. */

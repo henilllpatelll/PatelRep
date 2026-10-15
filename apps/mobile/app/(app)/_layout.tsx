@@ -15,6 +15,7 @@ import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { setupPushNotifications } from "@/lib/notifications";
+import { resolveNotificationLink } from "@/lib/housekeeping/notificationLinks";
 import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 import { listNotifications } from "@/lib/api/notifications";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
@@ -160,6 +161,7 @@ export default function AppLayout() {
         url?: string;
         requestId?: string;
         task_id?: string;
+        room_id?: string;
       };
 
       const linkedTask = taskIdFromNotification(data);
@@ -172,6 +174,13 @@ export default function AppLayout() {
       if (data.url) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push(data.url as any);
+        return;
+      }
+
+      // A room alert opens that room only if it is on this person's own list; otherwise nothing opens.
+      const roomLink = resolveNotificationLink({ type: data.type ?? "", data: data as Record<string, unknown> }, useAppStore.getState().myRooms);
+      if (roomLink.kind === "room") {
+        router.push(`/(app)/my-rooms/${roomLink.roomId}` as never);
         return;
       }
 
@@ -274,7 +283,6 @@ export default function AppLayout() {
                 headerShown: false,
                 tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
               }}
-              listeners={name === "notifications/index" ? { focus: () => setUnreadCount(0) } : undefined}
             />
           ))}
         </Tabs>
