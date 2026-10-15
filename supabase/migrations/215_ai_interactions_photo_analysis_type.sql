@@ -1,3 +1,5 @@
+-- migration-safety: destructive-reviewed
+-- rollback-plan: Re-add the previous CHECK (migration 100 value list without photo_analysis) after confirming no ai_interactions rows use photo_analysis. The only DROP replaces this migration's own constraint with a superset of allowed values.
 -- =============================================================================
 -- Migration 215: Widen ai_interactions.interaction_type for photo analysis
 -- =============================================================================
