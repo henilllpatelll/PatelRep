@@ -1,5 +1,6 @@
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import { checkPickedAsset } from "@/lib/housekeeping/photoAsset";
 
 /**
  * One place for how a housekeeper's photo is taken and prepared, so the
@@ -8,20 +9,26 @@ import * as ImagePicker from "expo-image-picker";
  */
 
 export type PhotoSource = "camera" | "gallery";
-export type PhotoPick = { ok: true; uri: string } | { ok: false; reason: "cancelled" | "permission_denied" | "failed" };
+export type PhotoPick =
+  | { ok: true; uri: string }
+  | { ok: false; reason: "cancelled" | "permission_denied" | "failed" | "unsupported" | "too_large" };
+
+/** The picked asset, unless it is not a photo we can use (then why not). */
+function accept(result: { canceled: boolean; assets?: ImagePicker.ImagePickerAsset[] | null }): PhotoPick {
+  const asset = result.canceled ? null : result.assets?.[0];
+  if (!asset) return { ok: false, reason: "cancelled" };
+  const problem = checkPickedAsset(asset);
+  return problem ? { ok: false, reason: problem } : { ok: true, uri: asset.uri };
+}
 
 export async function pickPhoto(source: PhotoSource): Promise<PhotoPick> {
   try {
     if (source === "camera") {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (permission.status !== "granted") return { ok: false, reason: "permission_denied" };
-      const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.8 });
-      const asset = result.canceled ? null : result.assets[0];
-      return asset ? { ok: true, uri: asset.uri } : { ok: false, reason: "cancelled" };
+      return accept(await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.8 }));
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: false, quality: 0.8 });
-    const asset = result.canceled ? null : result.assets[0];
-    return asset ? { ok: true, uri: asset.uri } : { ok: false, reason: "cancelled" };
+    return accept(await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: false, quality: 0.8 }));
   } catch {
     return { ok: false, reason: "failed" };
   }

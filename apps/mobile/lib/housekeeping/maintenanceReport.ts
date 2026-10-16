@@ -3,6 +3,7 @@ import { enqueueAction } from "@/lib/offline/db";
 import { createWorkOrder, uploadWorkOrderPhoto, type CreateWorkOrderPayload } from "@/lib/api/workOrders";
 import { isAmbiguousFailure } from "@/lib/housekeeping/supplyRequest";
 import { prepareForUpload } from "@/lib/housekeeping/photo";
+import { discardLocalPhoto } from "@/lib/housekeeping/photoAsset";
 
 /**
  * Maintenance / damage reports go through the existing work-order endpoint (and
@@ -115,10 +116,15 @@ export async function createMaintenanceWorkOrder(
 
 /** Resize and upload to an EXISTING work order; never creates one. */
 export async function attachMaintenancePhoto(workOrderId: string, uri: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  let prepared: string | null = null;
   try {
-    await uploadWorkOrderPhoto(workOrderId, await prepareForUpload(uri));
+    prepared = await prepareForUpload(uri);
+    await uploadWorkOrderPhoto(workOrderId, prepared);
     return { ok: true };
   } catch (err: unknown) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  } finally {
+    // The resized copy is only needed for this attempt; the picked original stays for a retry.
+    if (prepared && prepared !== uri) discardLocalPhoto(prepared);
   }
 }

@@ -275,6 +275,8 @@
       "staleTitle": "Showing saved rooms"
     },
     "why": {
+      "estimateGeneral": "No time is set for this room type. A general clean takes about {{minutes}} min (an estimate, not a deadline).",
+      "estimateHistory": "Based on recent cleans of this kind here: about {{minutes}} min (an estimate, not a deadline).",
       "activeSession": "You're already cleaning this room.",
       "sequence": "Your supervisor put it first in your route.",
       "sequenceAt": "Stop {{position}} in your supervisor's route.",
@@ -339,6 +341,8 @@
       "whyA11y": "Why room {{room}} is recommended"
     },
     "upNext": {
+      "why": "Why this room?",
+      "whyA11y": "Why is room {{room}} next?",
       "kicker": "Up next",
       "a11y": "Up next, room {{room}}",
       "viewRoute": "View route"
@@ -412,7 +416,10 @@
       "noneTitle": "No unread message",
       "noneBody": "There's nothing unread here any more.",
       "openHint": "Opens the full message",
-      "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again."
+      "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again.",
+      "ask": "Ask the assistant about this",
+      "roomNotOnList": "This room isn't on your list now (it may have been reassigned), so it can't be opened from here.",
+      "alreadyRead": "You've already marked this as read."
     },
     "attentionCenter": {
       "title": "Needs attention",
@@ -443,9 +450,37 @@
       "notReadyTitle": "Open Home first",
       "notReadyBody": "This list is built from your Home screen, which hasn't loaded yet.",
       "goHome": "Go to Home",
-      "unavailable": "We can't load your rooms right now."
+      "unavailable": "We can't load your rooms right now.",
+      "ask": "Ask assistant",
+      "summary": {
+        "urgent": "{{count}} urgent",
+        "access": "{{count}} room restriction",
+        "access_plural": "{{count}} room restrictions",
+        "messages": "{{count}} message",
+        "messages_plural": "{{count}} messages",
+        "other": "{{count}} other"
+      },
+      "section": {
+        "critical": "Priority",
+        "actionable": "To do",
+        "message": "Messages",
+        "restricted": "Room restrictions",
+        "info": "For your information"
+      },
+      "why": {
+        "arrival": "Arrival expected at {{time}}.",
+        "deadline": "Needed by {{time}} (set by your supervisor).",
+        "workOrder": "A maintenance work order is open ({{status}}).",
+        "nextInOrder": "Next in your assignment order.",
+        "retry": "Try again at {{time}}."
+      }
     },
     "roomActions": {
+      "sectionAssist": "Assistance",
+      "ask": {
+        "title": "Ask about Room {{room}}",
+        "hint": "Opens the assistant about this room. Nothing is sent until you ask."
+      },
       "title": "Room {{room}}",
       "sectionGo": "Go to",
       "sectionReport": "Report or add",
@@ -480,6 +515,13 @@
       }
     },
     "whySheet": {
+      "viewAll": "View all my rooms",
+      "offline": "You're offline. This is based on the rooms last saved on this phone. Room access is checked again when you open the room.",
+      "stale": "Your rooms haven't refreshed recently. Pull down on Home to update them. Access is checked again when you open the room.",
+      "cached": "Showing the rooms saved on this phone. Access is checked again when you open the room.",
+      "accessClear": "No access restriction is recorded for this room.",
+      "noOverride": "This doesn't override room access rules. The front desk, the guest and your supervisor still decide when a room can be entered.",
+      "updatedAt": "Rooms last updated {{time}}.",
       "title": "Why Room {{room}} next?",
       "because": "Because",
       "open": "Open Room {{room}}",
@@ -551,7 +593,11 @@
           "headline": "Needs a look",
           "body": "Open the room for the details."
         }
-      }
+      },
+      "openProcedure": "Open procedure: {{title}}",
+      "openProcedureHint": "The hotel's approved procedure for this.",
+      "ask": "Ask the assistant about this room",
+      "askHint": "It explains and suggests. It can't enter the room or change anything."
     },
     "progressSheet": {
       "title": "Your shift",
@@ -601,7 +647,11 @@
         "exceptions": "{{count}} room left through a documented exception",
         "exceptions_plural": "{{count}} rooms left through documented exceptions",
         "remaining": "{{count}} room still to clean",
-        "remaining_plural": "{{count}} rooms still to clean"
+        "remaining_plural": "{{count}} rooms still to clean",
+        "inProgress": "{{count}} room open right now (not yet submitted)",
+        "inProgress_plural": "{{count}} rooms open right now (not yet submitted)",
+        "notStarted": "{{count}} room not started",
+        "notStarted_plural": "{{count}} rooms not started"
       },
       "sync": {
         "none": "0 changes waiting to sync",
@@ -667,11 +717,21 @@
       "syncUnverified": "Couldn't confirm everything was sent",
       "syncHint": "Your summary is not final until these reach the server.",
       "sectionRecap": "AI recap",
-      "recapAiLabel": "Written by AI from today's room list",
+      "recapAiLabel": "Written by AI from the verified record above. Check it against your records.",
       "recapOptional": "Optional. Your summary above is complete without it.",
       "recapUnavailable": "The AI recap isn't available right now. Your summary above is unaffected.",
       "recapOffline": "Connect to the internet to ask for an AI recap.",
-      "recapRequest": "Add AI recap"
+      "recapRequest": "Add AI recap",
+      "recapVerifiedLabel": "From your shift record",
+      "recapCompletedByYou": "Rooms you completed",
+      "recapStillOpen": "Rooms still open",
+      "recapRecordedTime": "Recorded cleaning time ({{count}} room)",
+      "recapRecordedTime_plural": "Recorded cleaning time ({{count}} rooms)",
+      "recapDiffers": "These counts come from the server's record and may differ from the list on this phone. Pull to refresh Home to compare.",
+      "recapBasis": "Based on verified shift activity. Only the sentence above is written by AI.",
+      "recapBasisSaved": "Saved from earlier for this same shift record. Based on verified shift activity.",
+      "recapCredits": "Your hotel's AI allowance is used up for now. Your summary above is unaffected.",
+      "recapInsufficient": "No completed rooms are on record for this shift yet, so there is nothing for the AI to summarize."
     },
     "syncSheet": {
       "title": "Sync status",
@@ -768,6 +828,17 @@
         "forbidden": "You no longer have access to this.",
         "rejected": "The server didn't accept this change.",
         "expired": "This change is too old to send."
+      },
+      "ai": {
+        "title": "AI help",
+        "online": {
+          "title": "Online AI is available",
+          "body": "It answers only when you ask. AI requests are never saved to send later or sent again on their own."
+        },
+        "offline": {
+          "title": "Online AI isn't available offline",
+          "body": "Your shift plan and the room guidance on this phone still work. Nothing AI-related is waiting to send."
+        }
       }
     },
     "markClean": {
@@ -840,6 +911,10 @@
       "backHome": "Back to Home"
     },
     "briefingSheet": {
+      "askShift": "Ask about my shift",
+      "credits": "AI help has reached its limit for now. The plan below comes from your assigned rooms and is complete without it.",
+      "planSource": "Order and reasons come from your supervisor's route and today's room data, not from AI.",
+      "updatedAt": "Rooms last updated {{time}}.",
       "title": "Shift briefing",
       "newBriefing": "New briefing",
       "sourceAi": "Written by AI from your room list",
@@ -858,9 +933,46 @@
         "arrivalAt": "Arrival at {{time}}",
         "queue": "Next in your order"
       }
+    },
+    "handoff": {
+      "title": "Handoff summary",
+      "hint": "This is exactly what will be shared, and nothing is sent until you pick who gets it. It lists only items still open in your records.",
+      "share": "Share handoff summary",
+      "heading": "Shift handoff for {{date}}",
+      "sections": {
+        "toClean": "Still to clean",
+        "exceptions": "Rooms left through an exception",
+        "maintenance": "Open maintenance"
+      },
+      "unsynced": "Some changes from this phone had not reached the server when this was written.",
+      "aiNoteLabel": "Note written by AI from the shift record:",
+      "footer": "From PatelRep, based on recorded shift activity."
     }
   },
   "rooms": {
+    "help": {
+      "needHelp": "Need help?",
+      "needHelpRoom": "Need help with this room?",
+      "askAi": "Ask AI",
+      "askAbout": "Ask about Room {{room}}",
+      "findProcedure": "Find a procedure",
+      "reportIssue": "Report an issue"
+    },
+    "readiness": {
+      "estimateRoomType": "Typical clean for this room type: about {{minutes}} min",
+      "estimateGeneral": "General estimate: about {{minutes}} min (none set for this room type)",
+      "estimateHistory": "Usually about {{minutes}} min here, from recent cleans (an estimate)",
+      "workOrderOpen": "Open work order: {{label}}",
+      "workOrderNone": "No open work order on record"
+    },
+    "guidance": {
+      "restricted": "This room has an active access restriction. Wait for it to clear.",
+      "pending": "Some changes on this phone haven't reached the server yet.",
+      "itemsLeft": "{{count}} checklist item remaining.",
+      "itemsLeft_plural": "{{count}} checklist items remaining.",
+      "workOrder": "A maintenance follow-up is recorded for this room.",
+      "next": "Your route puts this room next."
+    },
     "title": "My Rooms",
     "status": {
       "DIRTY": "Vacant Dirty",
@@ -1254,6 +1366,8 @@
         "a11y": "Current room {{room}}, in progress, {{minutes}} minutes elapsed, checklist {{done}} of {{total}}, resume"
       },
       "card": {
+        "whyNext": "Why next?",
+        "whyNextA11y": "Why is room {{room}} next?",
         "review": "Review",
         "rush": "RUSH",
         "neededBy": "Needed by {{time}}",
@@ -1593,6 +1707,10 @@
         "pending_plural": "{{count}} changes are saved on this device and waiting to sync."
       },
       "more": {
+        "ask": {
+          "title": "Ask about Room {{room}}",
+          "hint": "Opens the assistant about this room"
+        },
         "title": "Report / More — Room {{room}}",
         "reported": "Reported",
         "disabled": {
@@ -1664,7 +1782,14 @@
           "remove": "Remove Photo",
           "previewLabel": "Selected photo preview",
           "cameraDenied": "Camera access is off. Allow it in Settings, or choose a photo from the gallery.",
-          "failed": "Could not open the photo. Try again."
+          "failed": "Could not open the photo. Try again.",
+          "unsupported": "That file isn't a supported photo. Use a JPG, PNG or WebP image.",
+          "tooLarge": "That photo is too large. Choose a smaller one.",
+          "status": {
+            "pending": "On this phone only — not uploaded yet",
+            "uploaded": "Uploaded",
+            "failed": "Not uploaded"
+          }
         }
       },
       "exception": {
@@ -2077,6 +2202,61 @@
         "resumeConflict": "This task changed. Your list was refreshed.",
         "resumed": "Task resumed"
       },
+      "quick": {
+        "title": "Quick task creation",
+        "body": "Describe what needs doing and we'll suggest the details. You review everything before it's created.",
+        "describe": "Describe a task",
+        "hint": "Opens a box where you can type or speak the request.",
+        "voice": "Describe a task by voice",
+        "offline": "You're offline. Adding a task needs a connection."
+      },
+      "translate": {
+        "title": "Translate instructions",
+        "into": "Translate into {{language}}",
+        "language": {
+          "en": "English",
+          "es": "Español"
+        },
+        "loading": "Translating...",
+        "offline": "Translating needs a connection. The original instructions above are unchanged.",
+        "failed": "Couldn't translate this right now. The original instructions above are unchanged.",
+        "badge": "AI translation · {{language}}",
+        "originalBadge": "Original instructions",
+        "aiNote": "Translated by AI to help you read it. Check anything unclear with your supervisor. The task itself is unchanged.",
+        "showOriginal": "Show original",
+        "showTranslation": "Show translation"
+      },
+      "help": {
+        "title": "Need help?",
+        "explain": "Explain this task",
+        "hide": "Hide explanation",
+        "ask": "Ask Assistant",
+        "findProcedure": "Find a procedure",
+        "askOffline": "The assistant needs a connection.",
+        "askQuestion": "Explain this task",
+        "source": "Based only on this task's details. Nothing has been added or changed.",
+        "explain_what": "This is a {{type}} task: {{title}}.",
+        "explain_whereRoom": "It is for Room {{room}}.",
+        "explain_wherePlace": "It is at: {{place}}.",
+        "explain_whereNone": "No room or place is written on the task.",
+        "explain_whenSet": "It is due {{time}}.",
+        "explain_whenOverdue": "It was due {{time}} and is overdue.",
+        "explain_whenNone": "No due time is set.",
+        "explain_priorityUrgent": "Its priority is Urgent.",
+        "explain_priorityNormal": "Its priority is Normal.",
+        "explain_priorityLow": "Its priority is Low.",
+        "explain_statusAvailable": "Nobody has taken it yet. You can claim it from the list.",
+        "explain_statusMineOpen": "It is assigned to you and not started yet.",
+        "explain_statusMineStarted": "It is assigned to you and you have started it.",
+        "explain_statusOther": "It is assigned to {{name}}.",
+        "explain_statusTeammate": "It is assigned to a teammate.",
+        "explain_statusUnassigned": "It is not assigned to anyone.",
+        "explain_statusCompleted": "It has been completed.",
+        "explain_statusCancelled": "It was cancelled.",
+        "explain_blocked": "A problem was reported on it: {{reason}}.",
+        "explain_details": "Instructions on the task: “{{text}}”",
+        "explain_detailsNone": "No extra instructions were written for this task. If something is unclear, ask your supervisor."
+      },
       "add": {
         "button": "Add task",
         "sheetTitle": "Add task",
@@ -2088,7 +2268,7 @@
           "inputA11y": "Describe the task",
           "count": "{{count}} of {{max}}",
           "smartTitle": "Smart task creation",
-          "smartBody": "We'll suggest the details so you can review them before saving.",
+          "smartBody": "AI can organize this into separate, editable tasks. Nothing is created until you confirm.",
           "continue": "Continue",
           "working": "Reading your request…",
           "manual": "Enter details manually",
@@ -2124,8 +2304,6 @@
           "introAi": "Confirm these details before creating.",
           "introManual": "Fill in the details, then create the task.",
           "lowConfidence": "We weren't sure about some details. Please check them.",
-          "extraTasks": "Your description mentioned {{count}} more task. Add it separately after this one.",
-          "extraTasks_plural": "Your description mentioned {{count}} more tasks. Add them separately after this one.",
           "create": "Create task",
           "back": "Back to edit",
           "fixErrors": "Check the highlighted details."
@@ -2192,6 +2370,7 @@
           "submit": {
             "rejected": "The task wasn't accepted. Check the details and try again.",
             "forbidden": "Your role can't create this kind of task.",
+            "signedOut": "You were signed out. Sign in again — your details are kept and nothing will be added twice.",
             "unconfirmed": "We couldn't confirm the task was saved. Tap Create task again — it won't be added twice.",
             "offline": "You're offline. Connect to create the task."
           }
@@ -2228,6 +2407,57 @@
           "keep": "Keep editing",
           "save": "Save draft for later",
           "discard": "Discard"
+        },
+        "batch": {
+          "title": "Review suggested tasks",
+          "found": "Found {{count}} possible task",
+          "found_plural": "Found {{count}} possible tasks",
+          "intro": "Check each one. Leave out any you don't want, and edit the details before creating.",
+          "original": "From your description: “{{text}}”",
+          "taskN": "Task {{n}}",
+          "editA11y": "Edit task {{n}}: {{title}}",
+          "includeA11y": "Include task {{n}}: {{title}}",
+          "include": "Include",
+          "where": "Where: {{place}}",
+          "type": "Type: {{type}}",
+          "priority": "Priority: {{priority}}",
+          "created": "Created",
+          "alreadyCreated": "Already created",
+          "creating": "Creating…",
+          "unsent": "Not sent yet.",
+          "viewA11y": "View task {{title}}",
+          "createdCount": "{{count}} of {{total}} created",
+          "create": "Create {{count}} task",
+          "create_plural": "Create {{count}} tasks",
+          "retry": "Retry {{count}} task",
+          "retry_plural": "Retry {{count}} tasks",
+          "finish": "Done — skip the rest",
+          "done": "Done",
+          "back": "Back to description",
+          "noneIncluded": "No tasks are included. Include at least one, or go back.",
+          "editTitle": "Edit task {{n}}",
+          "saveEdit": "Save changes",
+          "cancelEdit": "Cancel",
+          "successCount": "{{count}} task created",
+          "successCount_plural": "{{count}} tasks created",
+          "problem": {
+            "invalid": "Not created: check the details.",
+            "rejected": "Not created: the server didn't accept it. Check the details and try again.",
+            "forbidden": "Not created: your role can't create this kind of task.",
+            "signedOut": "Not created: you were signed out. Sign in again, then retry.",
+            "unconfirmed": "We couldn't confirm it was saved. Retrying won't add it twice.",
+            "offline": "Not created: you're offline."
+          },
+          "halted": {
+            "signedOut": "You were signed out. Tasks already created are safe. Sign in again to create the rest.",
+            "offline": "You went offline. Tasks already created are safe. Reconnect to create the rest.",
+            "unconfirmed": "We stopped because the server didn't answer. Tasks already created are safe, and retrying won't add any twice."
+          },
+          "discard": {
+            "title": "Leave these tasks?",
+            "body": "None of these tasks have been created yet.",
+            "bodyCreated": "Tasks already created stay created. The rest won't be created unless you keep them for later."
+          }
         },
         "success": {
           "created": "Task created",
@@ -2564,6 +2794,104 @@
     "photo": "Photo",
     "saveOffline": "Save Work Order",
     "offlineQueued": "No connection. The work order is saved on this device and sent when you are back online.",
+    "whatHappened": "What happened?",
+    "roomVerifiedTag": "✓ Verified room",
+    "voice": {
+      "start": "Describe by voice",
+      "stop": "Stop listening",
+      "requesting": "Asking for microphone access…",
+      "listening": "Listening… tap to stop",
+      "processing": "Processing…",
+      "denied": "Microphone or speech access is off. Turn it on in your phone's settings, or type instead.",
+      "nospeech": "We didn't hear anything. Tap the microphone to try again.",
+      "error": "Voice input didn't work. You can type instead.",
+      "privacy": "Your phone's speech service turns your voice into text. PatelRep doesn't record or save audio."
+    },
+    "ai": {
+      "title": "Suggest details",
+      "body": "Optional. AI reads what you wrote and suggests a title, category and priority. You check everything before it is used.",
+      "suggest": "Analyze description",
+      "again": "Analyze again",
+      "working": "Reading your description…",
+      "tooShort": "Describe what happened first, then you can ask for suggestions.",
+      "offline": "AI suggestions need a connection. You can still fill in the report yourself.",
+      "none": "Nothing to suggest from that. Add more detail, or fill in the report yourself.",
+      "stale": "You changed the description after this suggestion. Suggest again for fresh details.",
+      "suggestionTitle": "Suggested report",
+      "use": "Use",
+      "useField": "Use suggested {{field}}",
+      "used": "Used",
+      "useAll": "Use these details",
+      "dismiss": "Discard suggestions",
+      "urgentNote": "The suggested priority is Urgent. Urgency is your decision — tap Use on Priority to apply it.",
+      "kept": "Kept what you entered for: {{fields}}.",
+      "suggestedTag": "AI suggestion",
+      "suggestedFieldTag": "AI suggestion — check it before submitting.",
+      "photoNoteTag": "includes an AI photo note",
+      "photoNoteFieldTag": "Includes an AI photo note — check it before submitting.",
+      "field": {
+        "title": "title",
+        "category": "category",
+        "priority": "priority",
+        "details": "details"
+      },
+      "failed": {
+        "offline": "You're offline. You can still report the issue yourself.",
+        "credit_limit": "AI suggestions aren't available right now (monthly limit reached). You can still report the issue yourself.",
+        "rate_limited": "Too many requests right now. Wait a moment, or fill in the report yourself.",
+        "invalid_request": "That couldn't be read. Fill in the report yourself.",
+        "unauthenticated": "You were signed out. Sign in again to use suggestions.",
+        "unavailable": "Suggestions aren't available right now. You can still report the issue yourself."
+      }
+    },
+    "photoAi": {
+      "title": "Photo assistance",
+      "body": "Optional. AI can look at this photo and suggest a category and a short description. It only suggests — you decide what to use.",
+      "analyze": "Analyze photo",
+      "offline": "Photo analysis needs a connection. You can still submit the photo with your report.",
+      "disclosureTitle": "Send this photo to the AI service?",
+      "disclosureBody": "The photo is sent securely to PatelRep's AI service only to suggest a category and a short description. This step doesn't keep it, and nothing is created from it. Avoid guests, ID cards or documents in the photo.",
+      "send": "Send photo for analysis",
+      "cancel": "Cancel",
+      "working": "Looking at the photo…",
+      "observation": "Possible observation",
+      "unverified": "From the photo only. Not checked or confirmed.",
+      "category": "Suggested category",
+      "needsConfirmation": "Needs your confirmation",
+      "answer": {
+        "yes": "Yes",
+        "no": "No",
+        "unsure": "Not sure"
+      },
+      "useThese": "Use these details",
+      "discard": "Discard suggestions",
+      "unable": "Couldn't tell from this photo. You can still describe the problem yourself.",
+      "noteLine": "Photo note (AI, unverified): {{text}}",
+      "answerLine": "{{question}} {{answer}} (your answer)",
+      "noteTooLong": "The photo note didn't fit in the details. Shorten them to add it.",
+      "failed": {
+        "offline": "You're offline. You can still submit the photo with your report.",
+        "credit_limit": "Photo analysis isn't available right now (monthly limit reached). You can still submit the photo with your report.",
+        "rate_limited": "Too many requests right now. Wait a moment, or continue without analysis.",
+        "invalid_request": "That photo couldn't be analyzed. You can still submit it with your report.",
+        "unauthenticated": "You were signed out. Sign in again to use photo analysis.",
+        "unavailable": "Photo analysis isn't available right now. You can still submit the photo with your report."
+      }
+    },
+    "review": {
+      "title": "Review report",
+      "action": "Create Maintenance Work Order",
+      "roomVerified": "{{room}} (verified)",
+      "photoLabel": "Photo",
+      "photoNone": "No photo",
+      "photoPending": "1 photo — not uploaded yet; it uploads after the report is created",
+      "photoUploaded": "1 photo — uploaded",
+      "prepared": "Prepared with suggestions you reviewed",
+      "reviewButton": "Review report",
+      "confirm": "Confirm & create",
+      "edit": "Edit details",
+      "offlineNote": "You're offline. The report will be saved on this device and sent when you're back online."
+    },
     "photoNeedsConnection": "Photos need a connection. Remove the photo or reconnect to submit.",
     "savedOffline": "Saved on this device. It will be sent when you are online.",
     "submittedOnline": "Work order submitted.",
@@ -2924,7 +3252,49 @@
       "viewDetails": "View Details"
     },
     "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
-    "about": { "title": "About PatelRep", "subtitle": "Version and app information" }
+    "about": { "title": "About PatelRep", "subtitle": "Version and app information" },
+    "aiVoice": {
+      "title": "AI & voice",
+      "subtitle": "Assistant language, voice input, saved conversation",
+      "about": "AI suggests and explains. Anything that creates or changes something needs your approval first.",
+      "saveFailed": "Couldn't save this choice on the phone. It applies until you close the app.",
+      "matchApp": "Match app language",
+      "sections": {
+        "voice": "Voice",
+        "speechLanguage": "Speech recognition language",
+        "answerLanguage": "Language of AI answers",
+        "assistance": "Assistance",
+        "privacy": "Privacy"
+      },
+      "voiceInput": "Voice input",
+      "voiceInputHint": "Show the microphone in the assistant, new tasks and issue reports. Typing always works.",
+      "voiceUnsupported": "Speech recognition isn't available on this phone. Typing always works.",
+      "speechLanguageHint": "The language the microphone listens in. Nothing is recorded or kept; your phone turns speech into text and you review it before anything is used.",
+      "answerLanguageHint": "Used for procedure answers and the shift recap. Screens stay in the app language, and the original wording of procedures and records is never changed.",
+      "suggestions": "Helpful suggestions",
+      "suggestionsHint": "Show suggested questions and quick actions in the assistant.",
+      "history": {
+        "title": "Saved conversation",
+        "checking": "Checking…",
+        "none": "Nothing saved on this phone",
+        "saved": "{{count}} message saved on this phone",
+        "saved_plural": "{{count}} messages saved on this phone",
+        "cleared": "Saved conversation cleared from this phone."
+      },
+      "newConversation": "Start a new conversation",
+      "newConversationHint": "Clears the current conversation and its saved copy.",
+      "privacyRow": "How AI uses hotel information",
+      "privacyExtra": {
+        "usage": "The hotel keeps a usage record of each AI request (when, by whom and how much it used) for billing. This app can't delete that record.",
+        "provider": "Requests are processed by the hotel's AI providers under the hotel's agreement. This app can't delete anything held by them."
+      },
+      "clear": {
+        "title": "Clear saved conversation?",
+        "confirm": "Clear conversation",
+        "clears": "This removes the conversation saved on this phone and the one on screen, for your account at this hotel. It can't be undone.",
+        "doesNot": "It doesn't remove the hotel's usage record of AI requests or anything held by the AI providers. Those aren't controlled from this app."
+      }
+    }
   },
   "about": {
     "tagline": "Property operations, simplified.",
@@ -2995,6 +3365,165 @@
     "signOutAnyway": "Sign out anyway",
     "appVersion": "PatelRep v{{version}}"
   },
+  "assistant": {
+    "roomQ": {
+      "heading": "Ask about this room",
+      "suggested": "Suggested questions",
+      "gone": "That room is no longer on your list, so I can't tell you about it. Open My Rooms to see your current rooms.",
+      "sopPrefill": "How do I clean room {{room}}? ",
+      "q": {
+        "checklistLeft": "What's left on my checklist?",
+        "reportProblem": "How do I report a problem?",
+        "openWorkOrders": "Are there open work orders?",
+        "findProcedure": "Find a cleaning procedure"
+      },
+      "open": {
+        "reportProblem": "Open the issue form",
+        "openWorkOrders": "Open the work order"
+      },
+      "checklist": {
+        "none": "No cleaning is open on this room, so there's no checklist yet. It loads when you start cleaning.",
+        "allDone": "Every checklist item is ticked. Finish the clean yourself when you're ready.",
+        "left": "{{count}} checklist item left ({{required}} required).",
+        "left_plural": "{{count}} checklist items left ({{required}} required).",
+        "names": "Next up: {{names}}.",
+        "pending": "Some ticks on this phone haven't reached the server yet."
+      },
+      "report": "Use Report an issue for maintenance or damage. It opens the form on this room, and nothing is sent until you submit it.",
+      "workOrder": {
+        "open": "There's an open work order on record for this room: {{label}}",
+        "none": "No open work order is on record for this room in your list. It shows what was last loaded, so something filed a moment ago may not appear yet."
+      }
+    },
+    "fab": {
+      "label": "Open assistant",
+      "hint": "Opens the housekeeping assistant. Double tap and hold to speak."
+    },
+    "sheet": {
+      "title": "Housekeeping assistant",
+      "heading": "What can I help you with?",
+      "placeholder": "Ask anything...",
+      "openFull": "Open full assistant"
+    },
+    "screen": {
+      "title": "PatelRep Assistant",
+      "subtitle": "Housekeeping · Current shift",
+      "subtitleStaff": "Your hotel assistant",
+      "empty": "How can I help?",
+      "placeholder": "Ask or describe something...",
+      "minimize": "Back to the small assistant"
+    },
+    "quick": {
+      "nextRoom": "My next room",
+      "reportIssue": "Report an issue",
+      "createTask": "Create a task",
+      "askQuestion": "Ask a question",
+      "findProcedure": "Find a procedure"
+    },
+    "thread": {
+      "you": "You",
+      "assistant": "Assistant",
+      "problem": "The assistant could not answer.",
+      "newReply": "New reply"
+    },
+    "cancelSend": "Cancel and edit your message",
+    "notAuthoritative": "Written by AI. It can be wrong. Check anything important with your supervisor.",
+    "readInFull": "Read in the full assistant",
+    "room": {
+      "kicker": "Room {{room}}",
+      "estimate": "about {{minutes}} min",
+      "source": "From your rooms list",
+      "open": "Open room {{room}}",
+      "openRoom": "Open room",
+      "continue": "Continue this room",
+      "answer": "Room {{room}} is first on your list right now.",
+      "none": "I don't have your room order yet. Open Home or My Rooms once, then ask again.",
+      "openMyRooms": "Open My Rooms"
+    },
+    "clarify": {
+      "orType": "Or type what you meant."
+    },
+    "confirm": {
+      "title": "Confirm action",
+      "prepared": "Prepared from your request",
+      "action": "Action",
+      "issue": "Issue",
+      "request": "Request",
+      "notYet": "Nothing is created until you confirm.",
+      "review": "Review and confirm",
+      "edit": "Edit details",
+      "doneEditing": "Done editing",
+      "create": "Confirm and create",
+      "done": "Done",
+      "incomplete": "Fill in the missing details before creating this.",
+      "needsConnection": "You're offline. This needs a connection, so it can't be created yet."
+    },
+    "voice": {
+      "title": "Voice input",
+      "start": "Start speaking",
+      "stop": "Stop",
+      "tapToSpeak": "Tap the microphone and speak",
+      "requesting": "Asking for the microphone...",
+      "listening": "Listening",
+      "processing": "Finishing up...",
+      "denied": "Microphone access is off. Allow it in your phone settings, or type instead.",
+      "nospeech": "I didn't hear anything. Tap the microphone to try again.",
+      "error": "Voice input didn't work. Try again, or type instead.",
+      "hint": "Listening in {{language}}. You will see the text before anything is sent.",
+      "openSettings": "Open phone settings",
+      "unavailable": "Voice input isn't available on this device. Type instead.",
+      "recognized": "Recognized text",
+      "placeholder": "What you say appears here. You can edit it.",
+      "edit": "Edit text",
+      "use": "Use text"
+    },
+    "rooms": {
+      "title": "Which room?",
+      "empty": "You have no rooms on your list right now.",
+      "pick": "Room {{room}}",
+      "describe": "It's not one of my rooms"
+    },
+    "context": {
+      "about": "About: {{name}}",
+      "remove": "Remove subject",
+      "general": "Housekeeping",
+      "shift": "Current shift",
+      "room": "Room",
+      "cleaningSession": "Cleaning session",
+      "task": "Task",
+      "maintenanceIssue": "Maintenance issue",
+      "sop": "Procedure",
+      "shiftWith": "Current shift",
+      "roomWith": "Room {{name}}",
+      "cleaningSessionWith": "Cleaning room {{name}}",
+      "taskWith": "Task {{name}}",
+      "maintenanceIssueWith": "Issue in room {{name}}",
+      "sopWith": "Procedure {{name}}"
+    },
+    "menu": {
+      "title": "Options",
+      "new": "New conversation",
+      "clear": "Clear saved conversation",
+      "clearBody": "This removes the conversation saved on this phone and starts a new one. It can't be undone.",
+      "clearConfirm": "Clear conversation",
+      "voice": "Voice preferences",
+      "voiceBody": "The microphone listens in {{language}}. You can change this in AI & voice settings.",
+      "micSettings": "Microphone permission",
+      "language": "App language",
+      "privacy": "Privacy and AI information",
+      "english": "English",
+      "spanish": "Spanish",
+      "privacyPoints": {
+        "roleOnly": "The assistant only uses what your role is allowed to see. Your hotel and your account are checked by the server, not by this app.",
+        "aiMarked": "Answers written by AI are labeled and can be wrong. Check anything important with your supervisor.",
+        "confirmFirst": "Nothing is created, changed or sent to anyone until you review it and confirm.",
+        "audio": "Your phone turns speech into text. PatelRep never receives or keeps your audio.",
+        "saved": "A text-only copy of this conversation is kept securely on this phone for you. You can clear it any time."
+      },
+      "settings": "AI & voice settings",
+      "voiceOffByChoice": "Voice input is turned off in AI & voice settings. You can still type."
+    }
+  },
   "copilot": {
     "title": "AI Copilot",
     "placeholder": "Ask anything or create a task...",
@@ -3017,6 +3546,90 @@
     "confirmTask": "Create this task?",
     "confirm": "Yes, Create",
     "edit": "Edit",
+    "quickPrompts": {
+      "reportIssue": "There is a problem in room ",
+      "requestSupplies": "Room  needs extra towels",
+      "guestRequest": "The guest in room  asked for ",
+      "searchSOPs": "How do I "
+    },
+    "newConversation": "New conversation",
+    "unsupportedReply": "I can't act on that from this app. Ask your supervisor.",
+    "sources": "Sources",
+    "page": "p. {{page}}",
+    "clarify": "What should I do?",
+    "provenance": {
+      "verified": "From your data",
+      "deterministic": "Rule-based, no AI",
+      "ai": "AI-written"
+    },
+    "notice": {
+      "offline": "You're offline. Connect to use the assistant. Nothing was sent.",
+      "permission": "Your role can't use that assistant action.",
+      "credit_limit": "This hotel has used its AI credits for the month. Ask your manager.",
+      "rate_limited": "Too many requests. Wait a moment and try again.",
+      "unavailable": "The assistant isn't available right now. Try again soon.",
+      "not_found": "That record couldn't be found.",
+      "invalid_request": "The assistant couldn't process that request.",
+      "invalid_response": "The assistant's reply couldn't be read. Nothing was created.",
+      "unauthenticated": "Please sign in again.",
+      "unconfirmed": "The server didn't confirm it. Nothing was created.",
+      "unknown": "Something went wrong. Nothing was created.",
+      "retry": "Try again"
+    },
+    "action": {
+      "kind": {
+        "task": "New task",
+        "work_order": "New work order",
+        "guest_request": "New guest request"
+      },
+      "reviewHint": "Check the details. Nothing is created until you tap Create.",
+      "retry": "Try again",
+      "alreadyCreated": "Already created a moment ago",
+      "created": {
+        "task": "Task created",
+        "work_order": "Work order created",
+        "guest_request": "Guest request logged"
+      },
+      "roomVerified": "Room {{room}} found in this hotel",
+      "roomUnverified": "Room {{room}} isn't matched to this hotel's rooms. Check it before creating.",
+      "errors": {
+        "required": "Required",
+        "tooLong": "Too long",
+        "needsPlace": "Add a room or a place so people can find it."
+      },
+      "fields": {
+        "title": "Title",
+        "room": "Room",
+        "roomPlaceholder": "e.g. 214",
+        "place": "Place (if not a room)",
+        "category": "Category",
+        "priority": "Priority",
+        "details": "Details",
+        "guestName": "Guest name"
+      },
+      "priority": {
+        "urgent": "Urgent",
+        "normal": "Normal",
+        "low": "Low"
+      },
+      "workOrderCategory": {
+        "plumbing": "Plumbing",
+        "electrical": "Electrical",
+        "hvac": "HVAC",
+        "furniture": "Furniture",
+        "appliance": "Appliance",
+        "structural": "Structural",
+        "safety": "Safety",
+        "general": "General"
+      },
+      "guestCategory": {
+        "service": "Service",
+        "housekeeping": "Housekeeping",
+        "maintenance": "Maintenance",
+        "accessibility": "Accessibility",
+        "other": "Other"
+      }
+    },
     "card": {
       "badge": "AI",
       "readLabel": "Read",
@@ -3034,7 +3647,7 @@
         "gm": "Weekly read"
       },
       "housekeeper": {
-        "primary": "Reorder my queue",
+        "primary": "Open my rooms",
         "source": "your rooms",
         "chip1": "What's next?",
         "chip2": "Am I on pace?"
@@ -3325,7 +3938,7 @@
     "briefing": {
       "kicker": "AI Shift Briefing",
       "planLabel": "Suggested order",
-      "startWith": "Start with room {{room}} — it's the fastest path through your list.",
+      "startWith": "Start with room {{room}} — it's first in your route.",
       "startVip": "Start with room {{room}} — VIP guest, get it perfect early.",
       "startArrival": "Start with room {{room}} — the next guest arrives soon.",
       "allClear": "All caught up. Every assigned room is handled.",
@@ -3431,7 +4044,27 @@
   "alertsScreen": {
     "unreadSuffix_one": "{{count}} unread",
     "unreadSuffix_other": "{{count}} unread",
-    "title": "Alerts"
+    "title": "Alerts",
+    "unreadSuffix": "{{count}} unread",
+    "unreadSuffix_plural": "{{count}} unread",
+    "markAllRead": "Mark all read",
+    "clearing": "Clearing…",
+    "unread": "Unread",
+    "filter": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "day": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
+    "stale": "Couldn't refresh. Showing what was loaded earlier.",
+    "loadFailed": "Couldn't load your notifications. Check your connection and try again.",
+    "emptyUnreadTitle": "You're all caught up",
+    "emptyUnreadBody": "No unread alerts right now.",
+    "emptyAllTitle": "No notifications yet",
+    "emptyAllBody": "Alerts and messages from your team will appear here."
   },
   "scheduling": {
     "title": "My shifts",
@@ -3454,7 +4087,102 @@
     "overview": "Overview",
     "category": "Category",
     "pages": "Pages",
-    "added": "Added"
+    "added": "Added",
+    "kicker": "Procedures",
+    "hero": "How can we help?",
+    "ask": {
+      "title": "Ask about a hotel procedure",
+      "placeholder": "Type your question...",
+      "inputA11y": "Ask a question about a hotel procedure, or search procedures by name",
+      "voice": "Ask by voice",
+      "send": "Ask",
+      "hint": "Typing also filters the procedures below. Answers come only from your hotel's approved procedures.",
+      "offline": "Asking a question needs a connection. You can still search and read the procedures below."
+    },
+    "cache": {
+      "saved_justNow": "Showing the list saved on this phone a moment ago.",
+      "saved_minutes": "Showing the list saved on this phone {{value}} min ago.",
+      "saved_hours": "Showing the list saved on this phone {{value}} h ago.",
+      "saved_days": "Showing the list saved on this phone {{value}} d ago.",
+      "reconnect": "Reconnect to confirm these procedures are still current."
+    },
+    "errorLoad": "Procedures could not be loaded. Pull down to try again.",
+    "errorOffline": "You're offline and no procedures are saved on this phone yet.",
+    "backToList": "Procedures",
+    "gone": "This procedure is no longer available. Ask your supervisor if you need it.",
+    "general": "General",
+    "approved": "Procedures",
+    "allCategories": "All",
+    "footer": "Only procedures you are authorized to read are shown.",
+    "status": {
+      "approved": "Approved",
+      "approvedVersion": "Approved · Version {{version}}",
+      "uploaded": "Hotel document"
+    },
+    "empty": {
+      "title": "No procedures yet",
+      "body": "Ask your GM or supervisor to add procedure documents."
+    },
+    "noMatch": {
+      "title": "No procedures match \"{{query}}\"",
+      "body": "Try a different word, or clear the search.",
+      "bodyAsk": "Try a different word, or tap Ask to put your question to the assistant."
+    },
+    "suggest": {
+      "title": "Questions you can ask",
+      "keyPoints": "What are the key points of {{title}}?",
+      "note": "These come from the procedures your hotel has. If a procedure doesn't cover something, the assistant will say so."
+    },
+    "detail": {
+      "document": "Document",
+      "open": "Open full procedure",
+      "openPage": "Open full procedure (page {{page}})",
+      "openOffline": "Opening the original needs a connection.",
+      "openUnavailable": "The original document can't be opened right now. Please try again, or ask your supervisor.",
+      "approvedOn": "Approved {{date}}",
+      "reviewDue": "Review due {{date}}",
+      "askTitle": "Ask about this procedure",
+      "askAnother": "Ask another question",
+      "askNotReady": "Questions aren't available for this document yet. You can still read the original.",
+      "askOffline": "Questions need a connection. You can still read the original when you're back online.",
+      "citeNote": "Answers cite this procedure. The document itself is always the official version.",
+      "q": {
+        "keyPoints": "Give me the key points of this procedure.",
+        "simply": "Explain this procedure more simply.",
+        "first": "What should I do first?",
+        "translate_en": "Translate this procedure into English.",
+        "translate_es": "Translate this procedure into Spanish."
+      }
+    },
+    "citation": {
+      "version": "Version {{version}}",
+      "section": "Section {{section}}",
+      "view": "View source procedure",
+      "viewA11y": "View source procedure: {{title}}"
+    },
+    "notes": {
+      "grounded": "Written from the cited approved procedures. Open the source to read the original.",
+      "groundedNoSources": "Written from approved procedures, but no source could be shown. Check the original procedure.",
+      "reason": {
+        "no_documents": "There are no approved procedures to search yet. Please check with your supervisor.",
+        "no_match": "I couldn't find this in your hotel's approved procedures, so I won't guess. Please check with your supervisor.",
+        "insufficient": "The approved procedures don't answer this, so I won't guess. Please check with your supervisor.",
+        "conflict": "Approved procedures disagree on this, so I can't pick one. Please ask your supervisor.",
+        "unverified_figures": "I couldn't confirm the numbers in that answer against the procedure. Read the original or ask your supervisor."
+      },
+      "translated": "AI-written in {{language}}. The original procedure is the official version.",
+      "language": {
+        "en": "English",
+        "es": "Spanish"
+      },
+      "highRisk": "This involves safety, chemicals, an emergency or entering a room. Read the original procedure and follow your supervisor's instructions; this summary doesn't replace them.",
+      "related": "Procedures that may help:",
+      "followUp": "Ask a follow-up question"
+    },
+    "related": {
+      "title": "Procedures that may help",
+      "open": "Open procedure: {{title}}"
+    }
   },
   "help": {
     "intro": "Need help? Find an answer or report a problem.",

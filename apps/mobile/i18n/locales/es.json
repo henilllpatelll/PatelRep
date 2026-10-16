@@ -275,6 +275,8 @@
       "staleTitle": "Mostrando cuartos guardados"
     },
     "why": {
+      "estimateGeneral": "No hay un tiempo definido para este tipo de habitación. Una limpieza general toma unos {{minutes}} min (es un estimado, no un plazo).",
+      "estimateHistory": "Según limpiezas recientes de este tipo aquí: unos {{minutes}} min (es un estimado, no un plazo).",
       "activeSession": "Ya estás limpiando este cuarto.",
       "sequence": "Tu supervisor lo puso primero en tu ruta.",
       "sequenceAt": "Parada {{position}} en la ruta de tu supervisor.",
@@ -333,12 +335,14 @@
       "openRoom": "Abrir cuarto",
       "openRoomShort": "Abrir cuarto",
       "primaryA11y": "{{action}}, cuarto {{room}}",
-      "why": "¿Por qué este cuarto?",
+      "why": "¿Por qué esta habitación?",
       "more": "Más",
       "moreA11y": "Más acciones para la habitación {{room}}",
       "whyA11y": "Por qué se recomienda la habitación {{room}}"
     },
     "upNext": {
+      "why": "¿Por qué esta habitación?",
+      "whyA11y": "¿Por qué sigue la habitación {{room}}?",
       "kicker": "Sigue",
       "a11y": "Sigue, cuarto {{room}}",
       "viewRoute": "Ver ruta"
@@ -412,7 +416,10 @@
       "noneTitle": "Ningún mensaje sin leer",
       "noneBody": "Ya no hay nada sin leer aquí.",
       "openHint": "Abre el mensaje completo",
-      "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo."
+      "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo.",
+      "ask": "Preguntar al asistente sobre esto",
+      "roomNotOnList": "Esta habitación ya no está en tu lista (puede que la hayan reasignado), así que no se puede abrir desde aquí.",
+      "alreadyRead": "Ya marcaste esto como leído."
     },
     "attentionCenter": {
       "title": "Requiere atención",
@@ -443,9 +450,37 @@
       "notReadyTitle": "Abre Inicio primero",
       "notReadyBody": "Esta lista se arma desde tu pantalla de Inicio, que aún no ha cargado.",
       "goHome": "Ir a Inicio",
-      "unavailable": "No podemos cargar tus habitaciones ahora."
+      "unavailable": "No podemos cargar tus habitaciones ahora.",
+      "ask": "Preguntar al asistente",
+      "summary": {
+        "urgent": "{{count}} urgente(s)",
+        "access": "{{count}} restricción de habitación",
+        "access_plural": "{{count}} restricciones de habitación",
+        "messages": "{{count}} mensaje",
+        "messages_plural": "{{count}} mensajes",
+        "other": "{{count}} otro(s)"
+      },
+      "section": {
+        "critical": "Prioridad",
+        "actionable": "Por hacer",
+        "message": "Mensajes",
+        "restricted": "Restricciones de habitación",
+        "info": "Para tu información"
+      },
+      "why": {
+        "arrival": "Llegada prevista a las {{time}}.",
+        "deadline": "Se necesita para las {{time}} (lo fijó tu supervisor).",
+        "workOrder": "Hay una orden de mantenimiento abierta ({{status}}).",
+        "nextInOrder": "Sigue en tu orden de asignación.",
+        "retry": "Vuelve a intentarlo a las {{time}}."
+      }
     },
     "roomActions": {
+      "sectionAssist": "Asistencia",
+      "ask": {
+        "title": "Preguntar sobre la habitación {{room}}",
+        "hint": "Abre el asistente sobre esta habitación. No se envía nada hasta que preguntes."
+      },
       "title": "Habitación {{room}}",
       "sectionGo": "Ir a",
       "sectionReport": "Reportar o agregar",
@@ -480,6 +515,13 @@
       }
     },
     "whySheet": {
+      "viewAll": "Ver todas mis habitaciones",
+      "offline": "No tienes conexión. Esto se basa en las habitaciones guardadas por última vez en este teléfono. El acceso se vuelve a revisar al abrir la habitación.",
+      "stale": "Tus habitaciones no se han actualizado hace un rato. Desliza hacia abajo en Inicio para actualizar. El acceso se vuelve a revisar al abrir la habitación.",
+      "cached": "Se muestran las habitaciones guardadas en este teléfono. El acceso se vuelve a revisar al abrir la habitación.",
+      "accessClear": "No hay ninguna restricción de acceso registrada para esta habitación.",
+      "noOverride": "Esto no cambia las reglas de acceso. Recepción, el huésped y tu supervisor siguen decidiendo cuándo se puede entrar.",
+      "updatedAt": "Habitaciones actualizadas a las {{time}}.",
       "title": "¿Por qué la habitación {{room}} sigue?",
       "because": "Porque",
       "open": "Abrir habitación {{room}}",
@@ -551,7 +593,11 @@
           "headline": "Requiere revisión",
           "body": "Abre la habitación para ver los detalles."
         }
-      }
+      },
+      "openProcedure": "Abrir procedimiento: {{title}}",
+      "openProcedureHint": "El procedimiento aprobado del hotel para esto.",
+      "ask": "Preguntar al asistente sobre esta habitación",
+      "askHint": "Explica y sugiere. No puede entrar a la habitación ni cambiar nada."
     },
     "progressSheet": {
       "title": "Tu turno",
@@ -601,7 +647,11 @@
         "exceptions": "{{count}} habitación con excepción documentada",
         "exceptions_plural": "{{count}} habitaciones con excepción documentada",
         "remaining": "{{count}} habitación por limpiar",
-        "remaining_plural": "{{count}} habitaciones por limpiar"
+        "remaining_plural": "{{count}} habitaciones por limpiar",
+        "inProgress": "{{count}} habitación abierta ahora (sin enviar todavía)",
+        "inProgress_plural": "{{count}} habitaciones abiertas ahora (sin enviar todavía)",
+        "notStarted": "{{count}} habitación sin empezar",
+        "notStarted_plural": "{{count}} habitaciones sin empezar"
       },
       "sync": {
         "none": "0 cambios esperando sincronización",
@@ -667,11 +717,21 @@
       "syncUnverified": "No se pudo confirmar que todo se envió",
       "syncHint": "Tu resumen no es definitivo hasta que esto llegue al servidor.",
       "sectionRecap": "Resumen con IA",
-      "recapAiLabel": "Escrito por IA a partir de la lista de hoy",
+      "recapAiLabel": "Escrito por IA a partir del registro verificado de arriba. Compruébalo con tus registros.",
       "recapOptional": "Opcional. Tu resumen de arriba está completo sin esto.",
       "recapUnavailable": "El resumen con IA no está disponible ahora. Tu resumen de arriba no cambia.",
       "recapOffline": "Conéctate a internet para pedir un resumen con IA.",
-      "recapRequest": "Agregar resumen con IA"
+      "recapRequest": "Agregar resumen con IA",
+      "recapVerifiedLabel": "De tu registro de turno",
+      "recapCompletedByYou": "Habitaciones que completaste",
+      "recapStillOpen": "Habitaciones pendientes",
+      "recapRecordedTime": "Tiempo de limpieza registrado ({{count}} habitación)",
+      "recapRecordedTime_plural": "Tiempo de limpieza registrado ({{count}} habitaciones)",
+      "recapDiffers": "Estas cifras vienen del registro del servidor y pueden diferir de la lista de este teléfono. Desliza hacia abajo en Inicio para comparar.",
+      "recapBasis": "Basado en la actividad verificada del turno. Solo la frase de arriba la escribe la IA.",
+      "recapBasisSaved": "Guardado de antes para este mismo registro de turno. Basado en la actividad verificada.",
+      "recapCredits": "El límite de IA de tu hotel se agotó por ahora. Tu resumen de arriba no se ve afectado.",
+      "recapInsufficient": "Aún no hay habitaciones completadas en el registro de este turno, así que la IA no tiene nada que resumir."
     },
     "syncSheet": {
       "title": "Estado de sincronización",
@@ -768,6 +828,17 @@
         "forbidden": "Ya no tienes acceso a esto.",
         "rejected": "El servidor no aceptó este cambio.",
         "expired": "Este cambio es demasiado antiguo para enviarse."
+      },
+      "ai": {
+        "title": "Ayuda de IA",
+        "online": {
+          "title": "La IA en línea está disponible",
+          "body": "Solo responde cuando se lo pides. Las solicitudes de IA nunca se guardan para enviarse después ni se reenvían solas."
+        },
+        "offline": {
+          "title": "La IA en línea no está disponible sin conexión",
+          "body": "El plan de tu turno y la guía de habitaciones de este teléfono siguen funcionando. No hay nada de IA esperando para enviarse."
+        }
       }
     },
     "markClean": {
@@ -840,6 +911,10 @@
       "backHome": "Volver al inicio"
     },
     "briefingSheet": {
+      "askShift": "Preguntar sobre mi turno",
+      "credits": "La ayuda de IA llegó a su límite por ahora. El plan de abajo viene de tus habitaciones asignadas y está completo sin ella.",
+      "planSource": "El orden y los motivos vienen de la ruta de tu supervisor y de los datos de hoy, no de la IA.",
+      "updatedAt": "Habitaciones actualizadas a las {{time}}.",
       "title": "Resumen del turno",
       "newBriefing": "Nuevo resumen",
       "sourceAi": "Escrito por IA a partir de tu lista de habitaciones",
@@ -858,9 +933,46 @@
         "arrivalAt": "Llegada a las {{time}}",
         "queue": "Sigue en tu orden"
       }
+    },
+    "handoff": {
+      "title": "Resumen de relevo",
+      "hint": "Esto es exactamente lo que se compartirá, y no se envía nada hasta que elijas quién lo recibe. Solo lista lo que sigue abierto en tus registros.",
+      "share": "Compartir resumen de relevo",
+      "heading": "Relevo del turno del {{date}}",
+      "sections": {
+        "toClean": "Por limpiar",
+        "exceptions": "Habitaciones dejadas por una excepción",
+        "maintenance": "Mantenimiento abierto"
+      },
+      "unsynced": "Algunos cambios de este teléfono no habían llegado al servidor cuando se escribió esto.",
+      "aiNoteLabel": "Nota escrita por IA a partir del registro del turno:",
+      "footer": "Desde PatelRep, basado en la actividad registrada del turno."
     }
   },
   "rooms": {
+    "help": {
+      "needHelp": "¿Necesitas ayuda?",
+      "needHelpRoom": "¿Necesitas ayuda con esta habitación?",
+      "askAi": "Preguntar a la IA",
+      "askAbout": "Preguntar sobre la habitación {{room}}",
+      "findProcedure": "Buscar un procedimiento",
+      "reportIssue": "Reportar un problema"
+    },
+    "readiness": {
+      "estimateRoomType": "Limpieza típica de este tipo de habitación: unos {{minutes}} min",
+      "estimateGeneral": "Estimado general: unos {{minutes}} min (no hay uno definido para este tipo de habitación)",
+      "estimateHistory": "Normalmente unos {{minutes}} min aquí, según limpiezas recientes (un estimado)",
+      "workOrderOpen": "Orden de trabajo abierta: {{label}}",
+      "workOrderNone": "No hay ninguna orden de trabajo abierta registrada"
+    },
+    "guidance": {
+      "restricted": "Esta habitación tiene una restricción de acceso activa. Espera a que se quite.",
+      "pending": "Algunos cambios en este teléfono todavía no llegan al servidor.",
+      "itemsLeft": "Falta {{count}} punto de la lista.",
+      "itemsLeft_plural": "Faltan {{count}} puntos de la lista.",
+      "workOrder": "Hay un seguimiento de mantenimiento registrado para esta habitación.",
+      "next": "Tu ruta pone esta habitación de siguiente."
+    },
     "title": "Mis Cuartos",
     "status": {
       "DIRTY": "Vacante Sucio",
@@ -1254,6 +1366,8 @@
         "a11y": "Habitación actual {{room}}, en curso, {{minutes}} minutos transcurridos, lista {{done}} de {{total}}, continuar"
       },
       "card": {
+        "whyNext": "¿Por qué sigue?",
+        "whyNextA11y": "¿Por qué sigue la habitación {{room}}?",
         "review": "Revisar",
         "rush": "URGENTE",
         "neededBy": "Necesaria a las {{time}}",
@@ -1593,6 +1707,10 @@
         "pending_plural": "{{count}} cambios están guardados en este dispositivo y esperan sincronizarse."
       },
       "more": {
+        "ask": {
+          "title": "Preguntar sobre la habitación {{room}}",
+          "hint": "Abre el asistente sobre esta habitación"
+        },
         "title": "Reportar / Más — Habitación {{room}}",
         "reported": "Reportado",
         "disabled": {
@@ -1664,7 +1782,14 @@
           "remove": "Quitar foto",
           "previewLabel": "Vista previa de la foto seleccionada",
           "cameraDenied": "El acceso a la cámara está desactivado. Actívalo en Ajustes o elige una foto de la galería.",
-          "failed": "No se pudo abrir la foto. Inténtalo de nuevo."
+          "failed": "No se pudo abrir la foto. Inténtalo de nuevo.",
+          "unsupported": "Ese archivo no es una foto compatible. Usa una imagen JPG, PNG o WebP.",
+          "tooLarge": "Esa foto es demasiado grande. Elige una más pequeña.",
+          "status": {
+            "pending": "Solo en este teléfono — aún no se ha subido",
+            "uploaded": "Subida",
+            "failed": "No se subió"
+          }
         }
       },
       "exception": {
@@ -2077,6 +2202,61 @@
         "resumeConflict": "Esta tarea cambió. Se actualizó tu lista.",
         "resumed": "Tarea reanudada"
       },
+      "quick": {
+        "title": "Creación rápida de tareas",
+        "body": "Describe lo que hay que hacer y te sugeriremos los detalles. Lo revisas todo antes de crearla.",
+        "describe": "Describir una tarea",
+        "hint": "Abre un cuadro donde puedes escribir o decir la solicitud.",
+        "voice": "Describir una tarea por voz",
+        "offline": "Sin conexión. Agregar una tarea necesita conexión."
+      },
+      "translate": {
+        "title": "Traducir instrucciones",
+        "into": "Traducir al {{language}}",
+        "language": {
+          "en": "English",
+          "es": "Español"
+        },
+        "loading": "Traduciendo...",
+        "offline": "Traducir necesita conexión. Las instrucciones originales de arriba no cambian.",
+        "failed": "No se pudo traducir en este momento. Las instrucciones originales de arriba no cambian.",
+        "badge": "Traducción por IA · {{language}}",
+        "originalBadge": "Instrucciones originales",
+        "aiNote": "Traducido por IA para ayudarte a leerlo. Consulta con tu supervisor lo que no esté claro. La tarea no cambia.",
+        "showOriginal": "Ver original",
+        "showTranslation": "Ver traducción"
+      },
+      "help": {
+        "title": "¿Necesitas ayuda?",
+        "explain": "Explicar esta tarea",
+        "hide": "Ocultar explicación",
+        "ask": "Preguntar al asistente",
+        "findProcedure": "Buscar un procedimiento",
+        "askOffline": "El asistente necesita conexión.",
+        "askQuestion": "Explicar esta tarea",
+        "source": "Basado solo en los detalles de esta tarea. No se ha agregado ni cambiado nada.",
+        "explain_what": "Es una tarea de {{type}}: {{title}}.",
+        "explain_whereRoom": "Es para la habitación {{room}}.",
+        "explain_wherePlace": "Es en: {{place}}.",
+        "explain_whereNone": "La tarea no indica habitación ni lugar.",
+        "explain_whenSet": "Vence {{time}}.",
+        "explain_whenOverdue": "Vencía {{time}} y está atrasada.",
+        "explain_whenNone": "No tiene hora de vencimiento.",
+        "explain_priorityUrgent": "Su prioridad es Urgente.",
+        "explain_priorityNormal": "Su prioridad es Normal.",
+        "explain_priorityLow": "Su prioridad es Baja.",
+        "explain_statusAvailable": "Nadie la ha tomado todavía. Puedes reclamarla desde la lista.",
+        "explain_statusMineOpen": "Está asignada a ti y aún no la has empezado.",
+        "explain_statusMineStarted": "Está asignada a ti y ya la empezaste.",
+        "explain_statusOther": "Está asignada a {{name}}.",
+        "explain_statusTeammate": "Está asignada a un compañero.",
+        "explain_statusUnassigned": "No está asignada a nadie.",
+        "explain_statusCompleted": "Ya se completó.",
+        "explain_statusCancelled": "Se canceló.",
+        "explain_blocked": "Se reportó un problema: {{reason}}.",
+        "explain_details": "Instrucciones de la tarea: “{{text}}”",
+        "explain_detailsNone": "No se escribieron instrucciones adicionales para esta tarea. Si algo no está claro, pregunta a tu supervisor."
+      },
       "add": {
         "button": "Agregar tarea",
         "sheetTitle": "Agregar tarea",
@@ -2088,7 +2268,7 @@
           "inputA11y": "Describe la tarea",
           "count": "{{count}} de {{max}}",
           "smartTitle": "Creación inteligente de tareas",
-          "smartBody": "Te sugeriremos los detalles para que los revises antes de guardar.",
+          "smartBody": "La IA puede organizarlo en tareas separadas y editables. No se crea nada hasta que confirmes.",
           "continue": "Continuar",
           "working": "Leyendo tu solicitud…",
           "manual": "Ingresar los detalles manualmente",
@@ -2124,8 +2304,6 @@
           "introAi": "Confirma estos detalles antes de crear la tarea.",
           "introManual": "Completa los detalles y crea la tarea.",
           "lowConfidence": "No estábamos seguros de algunos detalles. Por favor revísalos.",
-          "extraTasks": "Tu descripción mencionó {{count}} tarea más. Agrégala por separado después de esta.",
-          "extraTasks_plural": "Tu descripción mencionó {{count}} tareas más. Agrégalas por separado después de esta.",
           "create": "Crear tarea",
           "back": "Volver a editar",
           "fixErrors": "Revisa los detalles marcados."
@@ -2192,6 +2370,7 @@
           "submit": {
             "rejected": "No se aceptó la tarea. Revisa los detalles e intenta de nuevo.",
             "forbidden": "Tu rol no puede crear este tipo de tarea.",
+            "signedOut": "Se cerró tu sesión. Inicia sesión de nuevo: tus datos se conservan y no se agregará nada dos veces.",
             "unconfirmed": "No pudimos confirmar que la tarea se guardó. Toca Crear tarea de nuevo; no se agregará dos veces.",
             "offline": "Sin conexión. Conéctate para crear la tarea."
           }
@@ -2228,6 +2407,57 @@
           "keep": "Seguir editando",
           "save": "Guardar borrador para después",
           "discard": "Descartar"
+        },
+        "batch": {
+          "title": "Revisar tareas sugeridas",
+          "found": "Se encontró {{count}} posible tarea",
+          "found_plural": "Se encontraron {{count}} posibles tareas",
+          "intro": "Revisa cada una. Deja fuera las que no quieras y edita los detalles antes de crearlas.",
+          "original": "De tu descripción: “{{text}}”",
+          "taskN": "Tarea {{n}}",
+          "editA11y": "Editar tarea {{n}}: {{title}}",
+          "includeA11y": "Incluir tarea {{n}}: {{title}}",
+          "include": "Incluir",
+          "where": "Dónde: {{place}}",
+          "type": "Tipo: {{type}}",
+          "priority": "Prioridad: {{priority}}",
+          "created": "Creada",
+          "alreadyCreated": "Ya estaba creada",
+          "creating": "Creando…",
+          "unsent": "Aún no se ha enviado.",
+          "viewA11y": "Ver la tarea {{title}}",
+          "createdCount": "{{count}} de {{total}} creadas",
+          "create": "Crear {{count}} tarea",
+          "create_plural": "Crear {{count}} tareas",
+          "retry": "Reintentar {{count}} tarea",
+          "retry_plural": "Reintentar {{count}} tareas",
+          "finish": "Listo — omitir el resto",
+          "done": "Listo",
+          "back": "Volver a la descripción",
+          "noneIncluded": "No hay tareas incluidas. Incluye al menos una o vuelve atrás.",
+          "editTitle": "Editar tarea {{n}}",
+          "saveEdit": "Guardar cambios",
+          "cancelEdit": "Cancelar",
+          "successCount": "{{count}} tarea creada",
+          "successCount_plural": "{{count}} tareas creadas",
+          "problem": {
+            "invalid": "No se creó: revisa los detalles.",
+            "rejected": "No se creó: el servidor no la aceptó. Revisa los detalles e inténtalo de nuevo.",
+            "forbidden": "No se creó: tu rol no puede crear este tipo de tarea.",
+            "signedOut": "No se creó: se cerró tu sesión. Inicia sesión de nuevo y reintenta.",
+            "unconfirmed": "No pudimos confirmar que se guardó. Reintentar no la agregará dos veces.",
+            "offline": "No se creó: no tienes conexión."
+          },
+          "halted": {
+            "signedOut": "Se cerró tu sesión. Las tareas ya creadas están a salvo. Inicia sesión de nuevo para crear el resto.",
+            "offline": "Te quedaste sin conexión. Las tareas ya creadas están a salvo. Vuelve a conectarte para crear el resto.",
+            "unconfirmed": "Nos detuvimos porque el servidor no respondió. Las tareas ya creadas están a salvo y reintentar no agregará ninguna dos veces."
+          },
+          "discard": {
+            "title": "¿Salir de estas tareas?",
+            "body": "Ninguna de estas tareas se ha creado todavía.",
+            "bodyCreated": "Las tareas ya creadas siguen creadas. Las demás no se crearán a menos que las guardes para después."
+          }
         },
         "success": {
           "created": "Tarea creada",
@@ -2564,6 +2794,104 @@
     "photo": "Foto",
     "saveOffline": "Guardar orden de trabajo",
     "offlineQueued": "Sin conexión. La orden se guarda en este dispositivo y se envía cuando vuelvas a tener conexión.",
+    "whatHappened": "¿Qué pasó?",
+    "roomVerifiedTag": "✓ Habitación verificada",
+    "voice": {
+      "start": "Describir por voz",
+      "stop": "Dejar de escuchar",
+      "requesting": "Solicitando acceso al micrófono…",
+      "listening": "Escuchando… toca para detener",
+      "processing": "Procesando…",
+      "denied": "El acceso al micrófono o al reconocimiento de voz está desactivado. Actívalo en los ajustes del teléfono o escribe.",
+      "nospeech": "No oímos nada. Toca el micrófono para intentarlo de nuevo.",
+      "error": "La entrada por voz no funcionó. Puedes escribir.",
+      "privacy": "El servicio de voz de tu teléfono convierte tu voz en texto. PatelRep no graba ni guarda audio."
+    },
+    "ai": {
+      "title": "Sugerir detalles",
+      "body": "Opcional. La IA lee lo que escribiste y sugiere un título, una categoría y una prioridad. Tú lo revisas todo antes de usarlo.",
+      "suggest": "Analizar descripción",
+      "again": "Analizar de nuevo",
+      "working": "Leyendo tu descripción…",
+      "tooShort": "Primero describe lo que pasó y luego podrás pedir sugerencias.",
+      "offline": "Las sugerencias de IA necesitan conexión. Igual puedes llenar el reporte tú mismo.",
+      "none": "No hay nada que sugerir con eso. Agrega más detalle o llena el reporte tú mismo.",
+      "stale": "Cambiaste la descripción después de esta sugerencia. Sugiere de nuevo para obtener detalles actualizados.",
+      "suggestionTitle": "Reporte sugerido",
+      "use": "Usar",
+      "useField": "Usar {{field}} sugerido",
+      "used": "Usado",
+      "useAll": "Usar estos detalles",
+      "dismiss": "Descartar sugerencias",
+      "urgentNote": "La prioridad sugerida es Urgente. La urgencia es decisión tuya: toca Usar en Prioridad para aplicarla.",
+      "kept": "Se conservó lo que escribiste en: {{fields}}.",
+      "suggestedTag": "Sugerencia de IA",
+      "suggestedFieldTag": "Sugerencia de IA: revísala antes de enviar.",
+      "photoNoteTag": "incluye una nota de foto de la IA",
+      "photoNoteFieldTag": "Incluye una nota de foto de la IA: revísala antes de enviar.",
+      "field": {
+        "title": "título",
+        "category": "categoría",
+        "priority": "prioridad",
+        "details": "detalles"
+      },
+      "failed": {
+        "offline": "Sin conexión. Igual puedes reportar el problema tú mismo.",
+        "credit_limit": "Las sugerencias de IA no están disponibles ahora (se alcanzó el límite mensual). Igual puedes reportar el problema tú mismo.",
+        "rate_limited": "Demasiadas solicitudes ahora. Espera un momento o llena el reporte tú mismo.",
+        "invalid_request": "No se pudo leer eso. Llena el reporte tú mismo.",
+        "unauthenticated": "Se cerró tu sesión. Inicia sesión de nuevo para usar las sugerencias.",
+        "unavailable": "Las sugerencias no están disponibles ahora. Igual puedes reportar el problema tú mismo."
+      }
+    },
+    "photoAi": {
+      "title": "Ayuda con la foto",
+      "body": "Opcional. La IA puede mirar esta foto y sugerir una categoría y una descripción breve. Solo sugiere: tú decides qué usar.",
+      "analyze": "Analizar foto",
+      "offline": "El análisis de la foto necesita conexión. Igual puedes enviar la foto con tu reporte.",
+      "disclosureTitle": "¿Enviar esta foto al servicio de IA?",
+      "disclosureBody": "La foto se envía de forma segura al servicio de IA de PatelRep solo para sugerir una categoría y una descripción breve. Este paso no la conserva y no se crea nada con ella. Evita huéspedes, identificaciones o documentos en la foto.",
+      "send": "Enviar foto para análisis",
+      "cancel": "Cancelar",
+      "working": "Mirando la foto…",
+      "observation": "Posible observación",
+      "unverified": "Solo de la foto. No comprobado ni confirmado.",
+      "category": "Categoría sugerida",
+      "needsConfirmation": "Necesita tu confirmación",
+      "answer": {
+        "yes": "Sí",
+        "no": "No",
+        "unsure": "No estoy seguro"
+      },
+      "useThese": "Usar estos detalles",
+      "discard": "Descartar sugerencias",
+      "unable": "No se pudo determinar con esta foto. Igual puedes describir el problema tú mismo.",
+      "noteLine": "Nota de la foto (IA, sin verificar): {{text}}",
+      "answerLine": "{{question}} {{answer}} (tu respuesta)",
+      "noteTooLong": "La nota de la foto no cabe en los detalles. Acórtalos para agregarla.",
+      "failed": {
+        "offline": "Sin conexión. Igual puedes enviar la foto con tu reporte.",
+        "credit_limit": "El análisis de fotos no está disponible ahora (se alcanzó el límite mensual). Igual puedes enviar la foto con tu reporte.",
+        "rate_limited": "Demasiadas solicitudes ahora. Espera un momento o continúa sin análisis.",
+        "invalid_request": "No se pudo analizar esa foto. Igual puedes enviarla con tu reporte.",
+        "unauthenticated": "Se cerró tu sesión. Inicia sesión de nuevo para usar el análisis de fotos.",
+        "unavailable": "El análisis de fotos no está disponible ahora. Igual puedes enviar la foto con tu reporte."
+      }
+    },
+    "review": {
+      "title": "Revisar reporte",
+      "action": "Crear orden de trabajo de mantenimiento",
+      "roomVerified": "{{room}} (verificada)",
+      "photoLabel": "Foto",
+      "photoNone": "Sin foto",
+      "photoPending": "1 foto — aún no se ha subido; se sube después de crear el reporte",
+      "photoUploaded": "1 foto — subida",
+      "prepared": "Preparado con sugerencias que revisaste",
+      "reviewButton": "Revisar reporte",
+      "confirm": "Confirmar y crear",
+      "edit": "Editar detalles",
+      "offlineNote": "Sin conexión. El reporte se guardará en este dispositivo y se enviará cuando vuelvas a tener conexión."
+    },
     "photoNeedsConnection": "Las fotos necesitan conexión. Quita la foto o conéctate para enviar.",
     "savedOffline": "Guardado en este dispositivo. Se enviará cuando tengas conexión.",
     "submittedOnline": "Orden de trabajo enviada.",
@@ -2924,7 +3252,49 @@
       "viewDetails": "Ver detalles"
     },
     "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
-    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" }
+    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" },
+    "aiVoice": {
+      "title": "IA y voz",
+      "subtitle": "Idioma del asistente, entrada de voz, conversación guardada",
+      "about": "La IA sugiere y explica. Todo lo que crea o cambia algo necesita primero tu aprobación.",
+      "saveFailed": "No se pudo guardar esta opción en el teléfono. Se aplica hasta que cierres la app.",
+      "matchApp": "Igual que el idioma de la app",
+      "sections": {
+        "voice": "Voz",
+        "speechLanguage": "Idioma del reconocimiento de voz",
+        "answerLanguage": "Idioma de las respuestas de IA",
+        "assistance": "Ayuda",
+        "privacy": "Privacidad"
+      },
+      "voiceInput": "Entrada de voz",
+      "voiceInputHint": "Muestra el micrófono en el asistente, en tareas nuevas y en reportes de problemas. Siempre puedes escribir.",
+      "voiceUnsupported": "El reconocimiento de voz no está disponible en este teléfono. Siempre puedes escribir.",
+      "speechLanguageHint": "El idioma en que escucha el micrófono. No se graba ni se guarda nada; tu teléfono convierte la voz en texto y tú lo revisas antes de usarlo.",
+      "answerLanguageHint": "Se usa en respuestas sobre procedimientos y en el resumen del turno. Las pantallas siguen en el idioma de la app y el texto original de procedimientos y registros nunca cambia.",
+      "suggestions": "Sugerencias útiles",
+      "suggestionsHint": "Muestra preguntas sugeridas y acciones rápidas en el asistente.",
+      "history": {
+        "title": "Conversación guardada",
+        "checking": "Comprobando…",
+        "none": "No hay nada guardado en este teléfono",
+        "saved": "{{count}} mensaje guardado en este teléfono",
+        "saved_plural": "{{count}} mensajes guardados en este teléfono",
+        "cleared": "Se borró la conversación guardada de este teléfono."
+      },
+      "newConversation": "Empezar una conversación nueva",
+      "newConversationHint": "Borra la conversación actual y su copia guardada.",
+      "privacyRow": "Cómo usa la IA la información del hotel",
+      "privacyExtra": {
+        "usage": "El hotel guarda un registro de uso de cada solicitud de IA (cuándo, quién y cuánto usó) para la facturación. Esta app no puede borrar ese registro.",
+        "provider": "Las solicitudes las procesan los proveedores de IA del hotel según el acuerdo del hotel. Esta app no puede borrar nada que ellos conserven."
+      },
+      "clear": {
+        "title": "¿Borrar la conversación guardada?",
+        "confirm": "Borrar conversación",
+        "clears": "Esto elimina la conversación guardada en este teléfono y la que está en pantalla, para tu cuenta en este hotel. No se puede deshacer.",
+        "doesNot": "No elimina el registro de uso de solicitudes de IA del hotel ni nada que conserven los proveedores de IA. Esta app no controla eso."
+      }
+    }
   },
   "about": {
     "tagline": "Operaciones del hotel, simplificadas.",
@@ -2995,6 +3365,165 @@
     "signOutAnyway": "Cerrar sesión de todos modos",
     "appVersion": "PatelRep v{{version}}"
   },
+  "assistant": {
+    "roomQ": {
+      "heading": "Pregunta sobre esta habitación",
+      "suggested": "Preguntas sugeridas",
+      "gone": "Esa habitación ya no está en tu lista, así que no puedo decirte nada de ella. Abre Mis habitaciones para ver las actuales.",
+      "sopPrefill": "¿Cómo limpio la habitación {{room}}? ",
+      "q": {
+        "checklistLeft": "¿Qué me falta en la lista?",
+        "reportProblem": "¿Cómo reporto un problema?",
+        "openWorkOrders": "¿Hay órdenes de trabajo abiertas?",
+        "findProcedure": "Buscar un procedimiento de limpieza"
+      },
+      "open": {
+        "reportProblem": "Abrir el formulario",
+        "openWorkOrders": "Abrir la orden de trabajo"
+      },
+      "checklist": {
+        "none": "No hay una limpieza abierta en esta habitación, así que todavía no hay lista. Se carga cuando empiezas a limpiar.",
+        "allDone": "Todos los puntos de la lista están marcados. Termina la limpieza tú cuando estés listo.",
+        "left": "Falta {{count}} punto de la lista ({{required}} obligatorios).",
+        "left_plural": "Faltan {{count}} puntos de la lista ({{required}} obligatorios).",
+        "names": "Siguen: {{names}}.",
+        "pending": "Algunas marcas en este teléfono todavía no llegan al servidor."
+      },
+      "report": "Usa Reportar un problema para mantenimiento o daños. Abre el formulario de esta habitación y no se envía nada hasta que lo envíes.",
+      "workOrder": {
+        "open": "Hay una orden de trabajo abierta registrada para esta habitación: {{label}}",
+        "none": "No hay ninguna orden de trabajo abierta registrada para esta habitación en tu lista. Muestra lo último cargado, así que algo reportado hace un momento puede no aparecer todavía."
+      }
+    },
+    "fab": {
+      "label": "Abrir asistente",
+      "hint": "Abre el asistente de limpieza. Toque dos veces y mantenga para hablar."
+    },
+    "sheet": {
+      "title": "Asistente de limpieza",
+      "heading": "¿En qué le puedo ayudar?",
+      "placeholder": "Pregunte lo que sea...",
+      "openFull": "Abrir asistente completo"
+    },
+    "screen": {
+      "title": "Asistente PatelRep",
+      "subtitle": "Limpieza · Turno actual",
+      "subtitleStaff": "Su asistente del hotel",
+      "empty": "¿Cómo puedo ayudar?",
+      "placeholder": "Pregunte o describa algo...",
+      "minimize": "Volver al asistente pequeño"
+    },
+    "quick": {
+      "nextRoom": "Mi próxima habitación",
+      "reportIssue": "Reportar un problema",
+      "createTask": "Crear una tarea",
+      "askQuestion": "Hacer una pregunta",
+      "findProcedure": "Buscar un procedimiento"
+    },
+    "thread": {
+      "you": "Usted",
+      "assistant": "Asistente",
+      "problem": "El asistente no pudo responder.",
+      "newReply": "Respuesta nueva"
+    },
+    "cancelSend": "Cancelar y editar su mensaje",
+    "notAuthoritative": "Escrito por IA. Puede equivocarse. Confirme lo importante con su supervisor.",
+    "readInFull": "Leer en el asistente completo",
+    "room": {
+      "kicker": "Habitación {{room}}",
+      "estimate": "unos {{minutes}} min",
+      "source": "De su lista de habitaciones",
+      "open": "Abrir habitación {{room}}",
+      "openRoom": "Abrir habitación",
+      "continue": "Continuar esta habitación",
+      "answer": "La habitación {{room}} es la primera de su lista ahora.",
+      "none": "Todavía no tengo el orden de sus habitaciones. Abra Inicio o Mis habitaciones una vez y vuelva a preguntar.",
+      "openMyRooms": "Abrir Mis habitaciones"
+    },
+    "clarify": {
+      "orType": "O escriba lo que quiso decir."
+    },
+    "confirm": {
+      "title": "Confirmar acción",
+      "prepared": "Preparado a partir de su solicitud",
+      "action": "Acción",
+      "issue": "Problema",
+      "request": "Solicitud",
+      "notYet": "No se crea nada hasta que usted confirme.",
+      "review": "Revisar y confirmar",
+      "edit": "Editar detalles",
+      "doneEditing": "Terminar de editar",
+      "create": "Confirmar y crear",
+      "done": "Listo",
+      "incomplete": "Complete los datos que faltan antes de crearlo.",
+      "needsConnection": "Está sin conexión. Esto necesita conexión, así que todavía no se puede crear."
+    },
+    "voice": {
+      "title": "Entrada de voz",
+      "start": "Empezar a hablar",
+      "stop": "Detener",
+      "tapToSpeak": "Toque el micrófono y hable",
+      "requesting": "Pidiendo acceso al micrófono...",
+      "listening": "Escuchando",
+      "processing": "Terminando...",
+      "denied": "El acceso al micrófono está desactivado. Permítalo en los ajustes del teléfono o escriba.",
+      "nospeech": "No escuché nada. Toque el micrófono para intentar de nuevo.",
+      "error": "La entrada de voz no funcionó. Intente de nuevo o escriba.",
+      "hint": "Escuchando en {{language}}. Verá el texto antes de que se envíe algo.",
+      "openSettings": "Abrir ajustes del teléfono",
+      "unavailable": "La entrada de voz no está disponible en este dispositivo. Escriba.",
+      "recognized": "Texto reconocido",
+      "placeholder": "Lo que diga aparece aquí. Puede editarlo.",
+      "edit": "Editar texto",
+      "use": "Usar texto"
+    },
+    "rooms": {
+      "title": "¿Qué habitación?",
+      "empty": "No tiene habitaciones en su lista ahora.",
+      "pick": "Habitación {{room}}",
+      "describe": "No es una de mis habitaciones"
+    },
+    "context": {
+      "about": "Sobre: {{name}}",
+      "remove": "Quitar tema",
+      "general": "Limpieza",
+      "shift": "Turno actual",
+      "room": "Habitación",
+      "cleaningSession": "Sesión de limpieza",
+      "task": "Tarea",
+      "maintenanceIssue": "Problema de mantenimiento",
+      "sop": "Procedimiento",
+      "shiftWith": "Turno actual",
+      "roomWith": "Habitación {{name}}",
+      "cleaningSessionWith": "Limpiando habitación {{name}}",
+      "taskWith": "Tarea {{name}}",
+      "maintenanceIssueWith": "Problema en habitación {{name}}",
+      "sopWith": "Procedimiento {{name}}"
+    },
+    "menu": {
+      "title": "Opciones",
+      "new": "Conversación nueva",
+      "clear": "Borrar conversación guardada",
+      "clearBody": "Esto elimina la conversación guardada en este teléfono y empieza una nueva. No se puede deshacer.",
+      "clearConfirm": "Borrar conversación",
+      "voice": "Preferencias de voz",
+      "voiceBody": "El micrófono escucha en {{language}}. Puedes cambiarlo en Ajustes de IA y voz.",
+      "micSettings": "Permiso del micrófono",
+      "language": "Idioma de la app",
+      "privacy": "Privacidad e información de IA",
+      "english": "inglés",
+      "spanish": "español",
+      "privacyPoints": {
+        "roleOnly": "El asistente solo usa lo que su puesto puede ver. El servidor verifica su hotel y su cuenta, no esta app.",
+        "aiMarked": "Las respuestas escritas por IA están marcadas y pueden equivocarse. Confirme lo importante con su supervisor.",
+        "confirmFirst": "No se crea, cambia ni envía nada a nadie hasta que lo revise y lo confirme.",
+        "audio": "Su teléfono convierte la voz en texto. PatelRep nunca recibe ni guarda su audio.",
+        "saved": "Se guarda en este teléfono, de forma segura, una copia solo de texto de esta conversación. Puede borrarla cuando quiera."
+      },
+      "settings": "Ajustes de IA y voz",
+      "voiceOffByChoice": "La entrada de voz está desactivada en Ajustes de IA y voz. Aún puedes escribir."
+    }
+  },
   "copilot": {
     "title": "Copiloto IA",
     "placeholder": "Pregunta algo o crea una tarea...",
@@ -3017,6 +3546,90 @@
     "confirmTask": "¿Crear esta tarea?",
     "confirm": "Sí, Crear",
     "edit": "Editar",
+    "quickPrompts": {
+      "reportIssue": "Hay un problema en la habitación ",
+      "requestSupplies": "La habitación  necesita toallas extra",
+      "guestRequest": "El huésped de la habitación  pidió ",
+      "searchSOPs": "¿Cómo "
+    },
+    "newConversation": "Nueva conversación",
+    "unsupportedReply": "No puedo hacer eso desde esta app. Pregunta a tu supervisor.",
+    "sources": "Fuentes",
+    "page": "pág. {{page}}",
+    "clarify": "¿Qué debo hacer?",
+    "provenance": {
+      "verified": "De tus datos",
+      "deterministic": "Por reglas, sin IA",
+      "ai": "Redactado por IA"
+    },
+    "notice": {
+      "offline": "Sin conexión. Conéctate para usar el asistente. No se envió nada.",
+      "permission": "Tu rol no puede usar esa acción del asistente.",
+      "credit_limit": "Este hotel agotó sus créditos de IA del mes. Consulta con tu gerente.",
+      "rate_limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "unavailable": "El asistente no está disponible ahora. Inténtalo pronto.",
+      "not_found": "No se encontró ese registro.",
+      "invalid_request": "El asistente no pudo procesar esa solicitud.",
+      "invalid_response": "No se pudo leer la respuesta del asistente. No se creó nada.",
+      "unauthenticated": "Inicia sesión de nuevo.",
+      "unconfirmed": "El servidor no lo confirmó. No se creó nada.",
+      "unknown": "Algo salió mal. No se creó nada.",
+      "retry": "Intentar de nuevo"
+    },
+    "action": {
+      "kind": {
+        "task": "Nueva tarea",
+        "work_order": "Nueva orden de trabajo",
+        "guest_request": "Nueva solicitud de huésped"
+      },
+      "reviewHint": "Revisa los detalles. No se crea nada hasta que toques Crear.",
+      "retry": "Intentar de nuevo",
+      "alreadyCreated": "Ya se creó hace un momento",
+      "created": {
+        "task": "Tarea creada",
+        "work_order": "Orden de trabajo creada",
+        "guest_request": "Solicitud de huésped registrada"
+      },
+      "roomVerified": "Habitación {{room}} encontrada en este hotel",
+      "roomUnverified": "La habitación {{room}} no coincide con las de este hotel. Revísala antes de crear.",
+      "errors": {
+        "required": "Obligatorio",
+        "tooLong": "Demasiado largo",
+        "needsPlace": "Agrega una habitación o un lugar para que lo encuentren."
+      },
+      "fields": {
+        "title": "Título",
+        "room": "Habitación",
+        "roomPlaceholder": "p. ej. 214",
+        "place": "Lugar (si no es una habitación)",
+        "category": "Categoría",
+        "priority": "Prioridad",
+        "details": "Detalles",
+        "guestName": "Nombre del huésped"
+      },
+      "priority": {
+        "urgent": "Urgente",
+        "normal": "Normal",
+        "low": "Baja"
+      },
+      "workOrderCategory": {
+        "plumbing": "Plomería",
+        "electrical": "Eléctrico",
+        "hvac": "Climatización",
+        "furniture": "Muebles",
+        "appliance": "Electrodoméstico",
+        "structural": "Estructural",
+        "safety": "Seguridad",
+        "general": "General"
+      },
+      "guestCategory": {
+        "service": "Servicio",
+        "housekeeping": "Limpieza",
+        "maintenance": "Mantenimiento",
+        "accessibility": "Accesibilidad",
+        "other": "Otro"
+      }
+    },
     "card": {
       "badge": "IA",
       "readLabel": "Leído",
@@ -3034,7 +3647,7 @@
         "gm": "Resumen semanal"
       },
       "housekeeper": {
-        "primary": "Reordenar mi cola",
+        "primary": "Abrir mis habitaciones",
         "source": "tus cuartos",
         "chip1": "¿Qué sigue?",
         "chip2": "¿Voy a tiempo?"
@@ -3346,7 +3959,7 @@
     "briefing": {
       "kicker": "Resumen IA del turno",
       "planLabel": "Orden sugerido",
-      "startWith": "Empieza con el cuarto {{room}} — es la ruta más rápida de tu lista.",
+      "startWith": "Empieza con la habitación {{room}}: es la primera de tu ruta.",
       "startVip": "Empieza con el cuarto {{room}} — huésped VIP, déjalo perfecto temprano.",
       "startArrival": "Empieza con el cuarto {{room}} — el próximo huésped llega pronto.",
       "allClear": "Todo al día. Todos tus cuartos asignados están atendidos.",
@@ -3431,7 +4044,27 @@
   "alertsScreen": {
     "unreadSuffix_one": "{{count}} sin leer",
     "unreadSuffix_other": "{{count}} sin leer",
-    "title": "Alertas"
+    "title": "Alertas",
+    "unreadSuffix": "{{count}} sin leer",
+    "unreadSuffix_plural": "{{count}} sin leer",
+    "markAllRead": "Marcar todo como leído",
+    "clearing": "Borrando…",
+    "unread": "Sin leer",
+    "filter": {
+      "all": "Todas",
+      "unread": "Sin leer"
+    },
+    "day": {
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "earlier": "Antes"
+    },
+    "stale": "No se pudo actualizar. Se muestra lo cargado antes.",
+    "loadFailed": "No se pudieron cargar tus notificaciones. Revisa tu conexión e inténtalo de nuevo.",
+    "emptyUnreadTitle": "Estás al día",
+    "emptyUnreadBody": "No hay alertas sin leer por ahora.",
+    "emptyAllTitle": "Aún no hay notificaciones",
+    "emptyAllBody": "Las alertas y los mensajes de tu equipo aparecerán aquí."
   },
   "scheduling": {
     "title": "Mis turnos",
@@ -3454,7 +4087,102 @@
     "overview": "Resumen",
     "category": "Categoría",
     "pages": "Páginas",
-    "added": "Agregado"
+    "added": "Agregado",
+    "kicker": "Procedimientos",
+    "hero": "¿Cómo podemos ayudarte?",
+    "ask": {
+      "title": "Pregunta sobre un procedimiento del hotel",
+      "placeholder": "Escribe tu pregunta...",
+      "inputA11y": "Haz una pregunta sobre un procedimiento del hotel o busca procedimientos por nombre",
+      "voice": "Preguntar por voz",
+      "send": "Preguntar",
+      "hint": "Al escribir también se filtran los procedimientos de abajo. Las respuestas vienen solo de los procedimientos aprobados de tu hotel.",
+      "offline": "Hacer una pregunta necesita conexión. Aún puedes buscar y leer los procedimientos de abajo."
+    },
+    "cache": {
+      "saved_justNow": "Mostrando la lista guardada en este teléfono hace un momento.",
+      "saved_minutes": "Mostrando la lista guardada en este teléfono hace {{value}} min.",
+      "saved_hours": "Mostrando la lista guardada en este teléfono hace {{value}} h.",
+      "saved_days": "Mostrando la lista guardada en este teléfono hace {{value}} d.",
+      "reconnect": "Conéctate para confirmar que estos procedimientos siguen vigentes."
+    },
+    "errorLoad": "No se pudieron cargar los procedimientos. Desliza hacia abajo para intentarlo de nuevo.",
+    "errorOffline": "No tienes conexión y aún no hay procedimientos guardados en este teléfono.",
+    "backToList": "Procedimientos",
+    "gone": "Este procedimiento ya no está disponible. Pregunta a tu supervisor si lo necesitas.",
+    "general": "General",
+    "approved": "Procedimientos",
+    "allCategories": "Todos",
+    "footer": "Solo se muestran los procedimientos que tienes autorización para leer.",
+    "status": {
+      "approved": "Aprobado",
+      "approvedVersion": "Aprobado · Versión {{version}}",
+      "uploaded": "Documento del hotel"
+    },
+    "empty": {
+      "title": "Aún no hay procedimientos",
+      "body": "Pide a tu gerente general o supervisor que agregue documentos de procedimientos."
+    },
+    "noMatch": {
+      "title": "Ningún procedimiento coincide con \"{{query}}\"",
+      "body": "Prueba con otra palabra o borra la búsqueda.",
+      "bodyAsk": "Prueba con otra palabra o toca Preguntar para hacerle tu pregunta al asistente."
+    },
+    "suggest": {
+      "title": "Preguntas que puedes hacer",
+      "keyPoints": "¿Cuáles son los puntos clave de {{title}}?",
+      "note": "Vienen de los procedimientos que tiene tu hotel. Si un procedimiento no cubre algo, el asistente lo dirá."
+    },
+    "detail": {
+      "document": "Documento",
+      "open": "Abrir el procedimiento completo",
+      "openPage": "Abrir el procedimiento completo (página {{page}})",
+      "openOffline": "Abrir el original necesita conexión.",
+      "openUnavailable": "No se puede abrir el documento original en este momento. Inténtalo de nuevo o pregunta a tu supervisor.",
+      "approvedOn": "Aprobado el {{date}}",
+      "reviewDue": "Revisión pendiente: {{date}}",
+      "askTitle": "Pregunta sobre este procedimiento",
+      "askAnother": "Hacer otra pregunta",
+      "askNotReady": "Las preguntas aún no están disponibles para este documento. Aún puedes leer el original.",
+      "askOffline": "Las preguntas necesitan conexión. Podrás leer el original cuando vuelvas a tener conexión.",
+      "citeNote": "Las respuestas citan este procedimiento. El documento siempre es la versión oficial.",
+      "q": {
+        "keyPoints": "Dame los puntos clave de este procedimiento.",
+        "simply": "Explica este procedimiento de forma más sencilla.",
+        "first": "¿Qué debo hacer primero?",
+        "translate_en": "Traduce este procedimiento al inglés.",
+        "translate_es": "Traduce este procedimiento al español."
+      }
+    },
+    "citation": {
+      "version": "Versión {{version}}",
+      "section": "Sección {{section}}",
+      "view": "Ver el procedimiento fuente",
+      "viewA11y": "Ver el procedimiento fuente: {{title}}"
+    },
+    "notes": {
+      "grounded": "Escrito a partir de los procedimientos aprobados citados. Abre la fuente para leer el original.",
+      "groundedNoSources": "Escrito a partir de procedimientos aprobados, pero no se pudo mostrar la fuente. Revisa el procedimiento original.",
+      "reason": {
+        "no_documents": "Aún no hay procedimientos aprobados para consultar. Consulta con tu supervisor.",
+        "no_match": "No lo encontré en los procedimientos aprobados de tu hotel, así que no voy a adivinar. Consulta con tu supervisor.",
+        "insufficient": "Los procedimientos aprobados no responden esto, así que no voy a adivinar. Consulta con tu supervisor.",
+        "conflict": "Los procedimientos aprobados no coinciden en esto, así que no puedo elegir uno. Pregunta a tu supervisor.",
+        "unverified_figures": "No pude confirmar los números de esa respuesta con el procedimiento. Lee el original o pregunta a tu supervisor."
+      },
+      "translated": "Escrito por IA en {{language}}. El procedimiento original es la versión oficial.",
+      "language": {
+        "en": "inglés",
+        "es": "español"
+      },
+      "highRisk": "Esto involucra seguridad, productos químicos, una emergencia o entrar a una habitación. Lee el procedimiento original y sigue las instrucciones de tu supervisor; este resumen no las reemplaza.",
+      "related": "Procedimientos que pueden ayudar:",
+      "followUp": "Hacer una pregunta de seguimiento"
+    },
+    "related": {
+      "title": "Procedimientos que pueden ayudar",
+      "open": "Abrir procedimiento: {{title}}"
+    }
   },
   "help": {
     "intro": "¿Necesitas ayuda? Encuentra una respuesta o reporta un problema.",

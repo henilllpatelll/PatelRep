@@ -11,18 +11,26 @@ import type { CreateTaskInput } from "@/lib/tasks/addTask/draft";
      forbidden    403: this role may not do that. Nothing was created.
      unconfirmed  no answer (timeout/network) or a 5xx: the task MAY exist. Retry with the SAME key —
                   the server returns the existing task instead of making a second one.
+     signedOut    the session ended (401 / expired token): the server refused before creating anything.
+                  Sign in again; the same key is safe to reuse.
      offline      not sent at all. */
 
 export type SubmitOutcome =
   | { kind: "created"; task: Task; replayed: boolean }
   | { kind: "rejected"; status: number; message: string | null }
   | { kind: "forbidden" }
+  | { kind: "signedOut" }
   | { kind: "unconfirmed" }
   | { kind: "offline" };
 
+const SIGNED_OUT_RE = /not authenticated|session expired/i;
+
 export function classifyCreateError(error: unknown): Exclude<SubmitOutcome, { kind: "created" } | { kind: "offline" }> {
   const status = (error as { status?: unknown } | null)?.status;
-  if (typeof status !== "number") return { kind: "unconfirmed" };
+  if (typeof status !== "number") {
+    return error instanceof Error && SIGNED_OUT_RE.test(error.message) ? { kind: "signedOut" } : { kind: "unconfirmed" };
+  }
+  if (status === 401) return { kind: "signedOut" };
   if (status === 403) return { kind: "forbidden" };
   if (status >= 500 || status === 408) return { kind: "unconfirmed" };
   const message = error instanceof Error && error.message ? error.message : null;

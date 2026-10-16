@@ -13,7 +13,7 @@ import {
   type TaskDraft,
 } from "@/lib/tasks/addTask/draft";
 
-export type SubmitProblem = "rejected" | "forbidden" | "unconfirmed" | "offline";
+export type SubmitProblem = "rejected" | "forbidden" | "signedOut" | "unconfirmed" | "offline";
 
 interface BodyProps {
   draft: TaskDraft;
@@ -84,11 +84,6 @@ export function ReviewBody({
       </Text>
       {ai && draft.lowConfidence ? (
         <FieldError message={t("tasks.hk.add.review.lowConfidence")} testID="review-low-confidence" />
-      ) : null}
-      {ai && draft.extraTasks > 0 ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textMuted }]} testID="review-extra-tasks">
-          {t("tasks.hk.add.review.extraTasks", { count: draft.extraTasks })}
-        </Text>
       ) : null}
 
       <Field label={t("tasks.hk.add.field.title")}>

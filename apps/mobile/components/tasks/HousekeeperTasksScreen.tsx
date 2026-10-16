@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useAiCapability } from "@/lib/ai/capabilities";
 import { useAppStore } from "@/stores/appStore";
+import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -15,13 +17,16 @@ import { TaskDetailSheet } from "@/components/tasks/TaskDetailSheet";
 import { UnableToCompleteSheet } from "@/components/tasks/UnableToCompleteSheet";
 import { TaskCard, type TaskCardVariant } from "@/components/tasks/TaskCard";
 import { TaskSyncSheet } from "@/components/tasks/TaskSyncSheet";
+import { QuickTaskCard } from "@/components/tasks/QuickTaskCard";
 import { TasksHeader, type Segment, type SummaryValue } from "@/components/tasks/TasksHeader";
+import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 import { formatHotelTime, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import { addTaskComment, fetchTask, TASK_NOTE_MAX, type BlockerReason, type Task } from "@/lib/api/tasks";
 import { linkFailureOutcome } from "@/lib/tasks/taskLink";
 import { validateBlockerDraft } from "@/lib/tasks/blockers";
 import { newRequestId } from "@/lib/tasks/addTask/draft";
 import { conflictReason, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
+import { canAskAssistantAbout, explainSentences } from "@/lib/tasks/explainTask";
 import { buildWorkBuckets } from "@/lib/tasks/workQueue";
 import { useWorkQueue, type ListState, type MutationResult } from "@/lib/tasks/useWorkQueue";
 import { checkQueueable } from "@/lib/tasks/offline/outboxPolicy";
@@ -105,12 +110,19 @@ interface HousekeeperTasksScreenProps {
   /** A task a tapped notification pointed at. Only an id: the screen re-reads it as the signed-in person. */
   linkedTaskId?: string | null;
   onLinkHandled?: () => void;
+  /** Open the Add Task sheet (single use; `onAddHandled` clears the request). */
+  openAdd?: boolean;
+  /** Text to start the new task's description with. */
+  addPrefill?: string | null;
+  onAddHandled?: () => void;
 }
 
-export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: HousekeeperTasksScreenProps = {}) {
+export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, openAdd = false, addPrefill = null, onAddHandled }: HousekeeperTasksScreenProps = {}) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const voiceEnabled = useVoiceCapability().enabled;
+  const translationOn = useAiCapability("taskTranslation");
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { isOnline, hotelTimezone, user, myRooms } = useAppStore();
   const zone = hotelTimezone ?? null;
@@ -135,6 +147,17 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
   // `task` is set for a just-created task: the banner then offers "View task" and stays a little longer.
   const [success, setSuccess] = useState<{ text: string; task?: Task } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addInitialText, setAddInitialText] = useState<string | null>(null);
+  /** The sheet was opened from the microphone, so it starts listening (one tap = one explicit choice). */
+  const [addAutoVoice, setAddAutoVoice] = useState(false);
+  /** A task the person chose to view from the add sheet; opened once the sheet has closed. */
+  const [viewAfterAdd, setViewAfterAdd] = useState<Task | null>(null);
+  useEffect(() => {
+    if (!openAdd) return;
+    setAddInitialText(addPrefill);
+    setAddOpen(true);
+    onAddHandled?.();
+  }, [openAdd, addPrefill, onAddHandled]);
 
   // One sheet at a time: opening another replaces it, so sheets never stack or fight over gestures.
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -493,6 +516,36 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
     else closeSheets();
   }, [origin, closeSheets]);
 
+  /* "Ask Assistant": point the assistant at this task and start it with the plain reading of the task, so it
+     opens with something true instead of an empty box. Offered only when the server will accept the task as context. */
+  const assistant = useAssistantOptional();
+  const askAssistant = useCallback(() => {
+    if (!assistant || !sheetTask) return;
+    const task = sheetTask;
+    const sentences = explainSentences(task, viewer, { now: new Date(), zone, language }, t);
+    closeSheets();
+    assistant.openAssistant({ contextType: "task", entityId: task.id, label: task.title });
+    assistant.conversation.showLocal(t("tasks.hk.help.askQuestion"), sentences.join(" "), { type: "taskAnswer", taskId: task.id });
+  }, [assistant, sheetTask, viewer, zone, language, t, closeSheets]);
+
+  /* "Find a procedure": the assistant opens about this task with the question started for them. Nothing is asked
+     until they send it, and the answer comes only from the hotel's approved procedures. */
+  const findProcedure = useCallback(() => {
+    if (!assistant || !sheetTask) return;
+    const task = sheetTask;
+    closeSheets();
+    assistant.setPendingHint("sop_query");
+    assistant.openAssistant({ contextType: "task", entityId: task.id, label: task.title, prefill: t("copilot.quickPrompts.searchSOPs") });
+  }, [assistant, sheetTask, t, closeSheets]);
+
+  const openProcedure = useCallback(
+    (documentId: string) => {
+      closeSheets();
+      router.push(`/(app)/sop/${encodeURIComponent(documentId)}` as never);
+    },
+    [closeSheets],
+  );
+
   const canOpenRoom = !!sheetTask?.room_id && (myRooms ?? []).some((room) => room.id === sheetTask.room_id);
   const openRoom = useCallback(() => {
     const roomId = sheetTask?.room_id;
@@ -614,6 +667,22 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
     [queue, t],
   );
 
+  /* Several tasks created from one description: only what the server confirmed is counted, never what was asked for. */
+  const handleBatchCreated = useCallback(
+    (created: CreatedTask[]) => {
+      if (created.length === 0) return;
+      void queue.refreshAll();
+      if (created.some((item) => item.destination === "mine")) setSegment("mine");
+      else if (created.some((item) => item.destination === "pool")) setSegment("available");
+      const first = created[0].task;
+      setSuccess({
+        text: `${t("tasks.hk.add.batch.successCount", { count: created.length })}`,
+        task: created.length === 1 ? first : undefined,
+      });
+    },
+    [queue, t],
+  );
+
   const reload = segment === "mine" ? queue.reloadMine : queue.reloadAvailable;
   const retry = () => {
     void reload();
@@ -688,6 +757,14 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
     </View>
   ) : null;
 
+  // "View task" from the add sheet: open it once the sheet is gone (two modals never stack).
+  useEffect(() => {
+    if (addOpen || !viewAfterAdd) return;
+    const task = viewAfterAdd;
+    setViewAfterAdd(null);
+    openDetails(task);
+  }, [addOpen, viewAfterAdd, openDetails]);
+
   const viewCreated = () => {
     const created = success?.task;
     if (!created) return;
@@ -734,6 +811,24 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
             {messageBanner}
             {savedCopy}
             {banner}
+            {segment === "mine" ? (
+              <QuickTaskCard
+                disabled={!isOnline}
+                onType={() => {
+                  setAddInitialText(null);
+                  setAddOpen(true);
+                }}
+                onVoice={
+                  voiceEnabled
+                    ? () => {
+                        setAddInitialText(null);
+                        setAddAutoVoice(true);
+                        setAddOpen(true);
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
           </View>
         }
         ListEmptyComponent={empty}
@@ -783,6 +878,10 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
           });
         }}
         savedCopySyncedAt={mine.syncedAt}
+        onAskAssistant={assistant && sheetTask && canAskAssistantAbout(sheetTask, viewer) ? askAssistant : undefined}
+        canTranslate={translationOn && !!sheetTask && canAskAssistantAbout(sheetTask, viewer)}
+        onFindProcedure={assistant && sheetTask && canAskAssistantAbout(sheetTask, viewer) ? findProcedure : undefined}
+        onOpenProcedure={openProcedure}
       />
       <CompleteTaskSheet
         visible={sheet === "complete"}
@@ -826,12 +925,19 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled }: H
       />
       <AddTaskSheet
         visible={addOpen}
+        initialText={addInitialText}
+        autoStartVoice={addAutoVoice}
         isOnline={isOnline}
         zone={zone}
         language={language}
         viewer={{ id: viewer.userId, tenantId: user?.tenant_id ?? null, role: viewer.role }}
-        onClose={() => setAddOpen(false)}
+        onClose={() => {
+          setAddOpen(false);
+          setAddAutoVoice(false);
+        }}
         onCreated={handleCreated}
+        onBatchCreated={handleBatchCreated}
+        onOpenTask={setViewAfterAdd}
       />
       <TaskSyncSheet
         visible={syncOpen}

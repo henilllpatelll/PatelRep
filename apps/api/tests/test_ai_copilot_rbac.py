@@ -157,12 +157,37 @@ async def test_assignments_confirm_excludes_housekeeper():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ["housekeeping_supervisor", "engineer", "gm"])
-async def test_assignments_confirm_allows_supervisor_engineer_gm(role):
+@pytest.mark.parametrize("role", ["housekeeping_supervisor", "gm"])
+async def test_assignments_confirm_allows_supervisor_and_gm(role):
     route = _route("/ai/assignments/confirm", "POST")
     role_check = _role_check_dependency(route)
     result = await role_check(_user(role))
     assert result.role == role
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ["engineer", "chief_engineer", "housekeeper", "front_desk"])
+async def test_assignments_confirm_denies_roles_without_domain_assignment_authority(role):
+    role_check = _role_check_dependency(_route("/ai/assignments/confirm", "POST"))
+    with pytest.raises(HTTPException, match="not authorized"):
+        await role_check(_user(role))
+
+
+def test_ai_assignment_roles_never_exceed_the_domain_assignment_routes():
+    """The AI confirm may not grant room-assignment authority the housekeeping routes withhold."""
+    from routers import housekeeping as housekeeping_router
+    from services.ai.authorization import ASSIGNMENT_ROLES
+
+    def gate_roles(route):
+        check = _role_check_dependency(route)
+        return set(inspect.getclosurevars(check).nonlocals["roles"])
+
+    domain = gate_roles(next(
+        r for r in housekeeping_router.router.routes if r.path.endswith("/assignments") and "POST" in r.methods
+    ))
+    confirm = gate_roles(_route("/ai/assignments/confirm", "POST"))
+    assert confirm <= domain
+    assert confirm == set(ASSIGNMENT_ROLES) == {"housekeeping_supervisor", "gm"}
 
 
 @pytest.mark.asyncio

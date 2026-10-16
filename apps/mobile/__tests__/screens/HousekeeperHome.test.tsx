@@ -6,8 +6,12 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { APPEARANCE_STORAGE_KEY } from "@/lib/theme/appearance";
 import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { getPublishedBriefing } from "@/lib/ai/shiftBriefingSource";
 
 const mockSetMyRooms = jest.fn();
+// The assistant is optional on Home: null = a layout without the provider (every earlier test).
+let mockAssistant: { openAssistant: jest.Mock } | null = null;
+jest.mock("@/lib/ai/AssistantProvider", () => ({ useAssistantOptional: () => mockAssistant }));
 
 type TestRoom = Record<string, unknown> & { id: string; room_number: string; status: string };
 
@@ -283,6 +287,18 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       expect(focus).toBeGreaterThan(-1);
       expect(focus).toBeLessThan(progress);
       expect(progress).toBeLessThan(attention);
+    });
+
+    it("publishes its lead room for the assistant: the same room Home leads with", async () => {
+      seedSession("room-108", false, { startedAt: startedMinutesAgo(5) });
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-card")).toBeTruthy());
+
+      await waitFor(() => expect(getPublishedBriefing()?.nextRoom).toBeTruthy());
+      const next = getPublishedBriefing()!.nextRoom!;
+      expect(next.roomNumber).toBe(getByTestId("current-room-number").props.children);
+      expect(next.kind).toBe("continue");
+      expect(next.roomId).toBe("room-108");
     });
 
     it("never invents a timer from a session start that is not believable", async () => {
@@ -1325,4 +1341,101 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
     });
   });
 
+
+  /* ─── Phase 3 (AI V2): Up next, Why, Ask ─────────────────────────────────── */
+
+  describe("contextual assistance on Home", () => {
+    const { router } = require("expo-router");
+
+    beforeEach(() => {
+      mockAssistant = { openAssistant: jest.fn() };
+      setRooms([makeRoom("112", { sequence_order: 1 }), makeRoom("115", { sequence_order: 2 }), makeRoom("101", { status: "INSPECTED" })]);
+    });
+    afterEach(() => {
+      mockAssistant = null;
+    });
+
+    it("explains the Up Next room from its own card while another room is open", async () => {
+      setRooms([makeRoom("108", { status: "IN_PROGRESS" }), makeRoom("112", { sequence_order: 1 }), makeRoom("115", { sequence_order: 2 })]);
+      seedSession("room-108", false);
+      const { getByTestId, getByText, queryByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("up-next-why")).toBeTruthy());
+      fireEvent.press(getByTestId("up-next-why"));
+      expect(getByText("Why Room 112 next?")).toBeTruthy();
+      expect(queryByTestId("why-changed")).toBeNull();
+      expect(getByText("Stop 1 in your supervisor's route.")).toBeTruthy();
+      // The open room is not what is being explained.
+      expect(queryByTestId("why-open-room")).toBeTruthy();
+      fireEvent.press(getByTestId("why-open-room"));
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms/room-112");
+    });
+
+    it("says what the recommendation does not do, and what it is based on", async () => {
+      const { getByTestId, getByText } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-why")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-why"));
+      expect(getByTestId("why-access-clear")).toBeTruthy();
+      expect(getByText(/doesn't override room access rules/)).toBeTruthy();
+      expect(getByTestId("why-updated")).toBeTruthy();
+      fireEvent.press(getByTestId("why-view-all"));
+      expect(router.push).toHaveBeenCalledWith("/(app)/my-rooms");
+    });
+
+    it("warns that it is working from saved rooms when the phone is offline", async () => {
+      mockIsOnline = false;
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-why")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-why"));
+      expect(getByTestId("why-offline")).toBeTruthy();
+      mockIsOnline = true;
+    });
+
+    it("offers Ask about this room in the room actions drawer and opens the assistant about exactly that room", async () => {
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      fireEvent.press(getByTestId("room-action-ask"));
+      expect(mockAssistant?.openAssistant).toHaveBeenCalledWith({ contextType: "room", entityId: "room-112", label: "112" });
+    });
+
+    it("makes it about the cleaning session when a clean is open", async () => {
+      setRooms([makeRoom("108", { status: "IN_PROGRESS" }), makeRoom("112")]);
+      seedSession("room-108", false);
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      fireEvent.press(getByTestId("room-action-ask"));
+      expect(mockAssistant?.openAssistant).toHaveBeenCalledWith({ contextType: "cleaningSession", entityId: "room-108", label: "108" });
+    });
+
+    it("has no Ask row when the layout offers no assistant", async () => {
+      mockAssistant = null;
+      const { getByTestId, queryByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("focus-more")).toBeTruthy());
+      fireEvent.press(getByTestId("focus-more"));
+      expect(getByTestId("room-actions-sheet")).toBeTruthy();
+      expect(queryByTestId("room-action-ask")).toBeNull();
+    });
+
+    it("Ask about my shift opens the shared assistant about the shift: no second briefing request", async () => {
+      const { api } = require("@/lib/api/client");
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("briefing-open")).toBeTruthy());
+      fireEvent.press(getByTestId("briefing-open"));
+      await waitFor(() => expect(getByTestId("briefing-sheet")).toBeTruthy());
+      fireEvent.press(getByTestId("briefing-ask-ai"));
+      expect(mockAssistant?.openAssistant).toHaveBeenCalledWith({ contextType: "shift" });
+      expect(api.post).not.toHaveBeenCalledWith(expect.stringContaining("/ai/"), expect.anything());
+    });
+
+    it("shows the plan's own source and when the rooms were last updated, with the briefing complete without AI", async () => {
+      const { getByTestId } = renderHome();
+      await waitFor(() => expect(getByTestId("briefing-open")).toBeTruthy());
+      fireEvent.press(getByTestId("briefing-open"));
+      await waitFor(() => expect(getByTestId("briefing-sheet")).toBeTruthy());
+      expect(getByTestId("briefing-plan-source")).toBeTruthy();
+      expect(getByTestId("briefing-updated")).toBeTruthy();
+      expect(getByTestId("briefing-plan-112")).toBeTruthy();
+    });
+  });
 });

@@ -630,3 +630,60 @@ describe("Phase 3 on the dashboard", () => {
     expect(getByTestId("room-card-314")).toBeTruthy();
   });
 });
+
+describe("Why next? on the Route tab", () => {
+  const title = (room: string) => new RegExp(`home\.whySheet\.title .*"room":"${room}"`);
+
+  it("offers one explanation, under the first Up Next room, and none on Needs Attention", async () => {
+    const { getAllByTestId, getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-card-107")).toBeTruthy());
+    expect(getAllByTestId("why-next")).toHaveLength(1);
+  });
+
+  it("explains the room the supervisor's order puts next, from verified facts only", async () => {
+    const { getByTestId, getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-card-107")).toBeTruthy());
+    fireEvent.press(getByTestId("why-next"));
+    // Sequence 1 (and Rush) beats sequence 2; the open room 102 and the DND room 103 are never the answer.
+    expect(getByText(title("107"))).toBeTruthy();
+    expect(queryByText(title("103"))).toBeNull();
+    expect(getByTestId("why-access-clear")).toBeTruthy();
+    expect(getByTestId("why-disclaimer")).toBeTruthy();
+    // Without an AI call: the screen made no request beyond loading the rooms.
+    expect((api.post as jest.Mock)).not.toHaveBeenCalled();
+  });
+
+  it("opens the explained room and closes the drawer", async () => {
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-card-107")).toBeTruthy());
+    fireEvent.press(getByTestId("why-next"));
+    fireEvent.press(getByTestId("why-open-room"));
+    expect(mockRouterPush).toHaveBeenLastCalledWith("/(app)/my-rooms/r107");
+    expect(queryByTestId("why-sheet")).toBeNull();
+  });
+
+  it("View all my rooms just closes the drawer: this is already that list", async () => {
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-card-107")).toBeTruthy());
+    mockRouterPush.mockClear();
+    fireEvent.press(getByTestId("why-next"));
+    fireEvent.press(getByTestId("why-view-all"));
+    expect(queryByTestId("why-sheet")).toBeNull();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it("says plainly when it is working from rooms saved on the phone", async () => {
+    mockStore.isOnline = false;
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-card-107")).toBeTruthy());
+    fireEvent.press(getByTestId("why-next"));
+    expect(getByTestId("why-offline")).toBeTruthy();
+  });
+
+  it("is not offered when no room is ready to start", async () => {
+    setRooms([makeRoom({ id: "d", room_number: "314", dnd_flag: true, status: "OCCUPIED", actual_checkout_at: null })]);
+    const { queryByTestId, queryByText } = renderScreen();
+    await waitFor(() => expect(queryByText("rooms.dash.route.attentionTitle")).toBeTruthy());
+    expect(queryByTestId("why-next")).toBeNull();
+  });
+});

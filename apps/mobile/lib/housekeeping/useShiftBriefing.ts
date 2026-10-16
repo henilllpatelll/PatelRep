@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchShiftBriefing, type ShiftBriefing } from "@/lib/ai/briefing";
-import { createAiCache } from "@/lib/housekeeping/aiCache";
+import { CopilotFailure, toCopilotFailure } from "@/lib/ai/contract";
+import { briefingCache, briefingCacheKey, notifyBriefingChange } from "@/lib/ai/shiftBriefingSource";
 import type { Room } from "@/stores/appStore";
 
-/** A briefing is good for the morning's planning; it is reused, not re-bought, until it is this old. */
-const BRIEFING_TTL_MS = 45 * 60_000;
-const briefingCache = createAiCache<ShiftBriefing>(BRIEFING_TTL_MS);
-
-export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable";
+/**
+ * "credits" = the hotel's AI allowance (or rate limit) is used up; the local plan is complete without it.
+ * "insufficient" = the server has no completed work on record to write a recap about.
+ */
+export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable" | "credits" | "insufficient";
 
 export interface BriefingController {
   /** The AI's answer, when there is a fresh one. The deterministic plan never depends on it. */
@@ -15,6 +16,14 @@ export interface BriefingController {
   status: AiRequestStatus;
   /** A deliberate request. With `force` it skips the stored answer ("New briefing"). */
   request: (options?: { force?: boolean }) => Promise<void>;
+}
+
+function failureKindOf(error: unknown): string {
+  try {
+    return toCopilotFailure(error).kind;
+  } catch {
+    return "unknown";
+  }
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -36,7 +45,7 @@ interface Options {
  * request is reported as unavailable (and never stored as if it were an answer).
  */
 export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, t }: Options): BriefingController {
-  const key = scope ? `${scope}:${shiftDate}:${language}` : null;
+  const key = scope ? briefingCacheKey(scope, shiftDate, language) : null;
   const [ai, setAi] = useState<ShiftBriefing | null>(() => (key ? briefingCache.get(key) : null));
   const [status, setStatus] = useState<AiRequestStatus>(() => (key && briefingCache.pending(key) ? "loading" : "idle"));
   const keyRef = useRef(key);
@@ -65,17 +74,20 @@ export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, 
         async () => {
           const answer = await fetchShiftBriefing(current, lang, translate, true);
           // fetchShiftBriefing falls back to a local plan on any failure; that is not an AI answer.
-          if (answer.source !== "ai") throw new Error("ai unavailable");
+          if (answer.source !== "ai") throw new CopilotFailure(answer.failure ?? "unavailable", "ai unavailable");
           return answer;
         },
         { force: options?.force },
       );
+      // Anyone else showing this briefing (the floating assistant) picks the new answer up too.
+      notifyBriefingChange();
       if (keyRef.current !== myKey) return;
       setAi(result);
       setStatus("idle");
-    } catch {
+    } catch (error) {
       if (keyRef.current !== myKey) return;
-      setStatus("unavailable");
+      const kind = failureKindOf(error);
+      setStatus(kind === "credit_limit" || kind === "rate_limited" ? "credits" : "unavailable");
     }
   }, []);
 
@@ -85,4 +97,5 @@ export function useShiftBriefing({ scope, shiftDate, language, rooms, isOnline, 
 /** Test seam: forget stored briefings. */
 export function resetBriefingCache(): void {
   briefingCache.clear();
+  notifyBriefingChange();
 }

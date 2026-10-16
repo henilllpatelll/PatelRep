@@ -62,6 +62,10 @@ export interface ShiftReview {
     unavailable: number;
     /** Left through a documented exception (DND, declined, come back later). */
     exceptions: number;
+    /** The room being cleaned right now (started, not yet submitted). */
+    inProgress: number;
+    /** Rooms that are ready to clean and not started. inProgress + notStarted === remaining. */
+    notStarted: number;
   };
   /** Rooms still to clean, including the open one. */
   remaining: number;
@@ -255,6 +259,8 @@ export function buildShiftReview(model: HomeModel, extras: ReviewExtras = {}): S
       inspected: progress.inspected,
       unavailable: progress.unavailable,
       exceptions: progress.handledExceptions,
+      inProgress: boardUsable ? progress.actionRequired.active : 0,
+      notStarted: boardUsable ? progress.actionRequired.ready : 0,
     },
     remaining,
     activeRoomNumber: active?.room.room_number ?? null,

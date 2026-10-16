@@ -7,12 +7,13 @@ language. This service never accepts browser-provided prompts or text.
 from services.ai.providers import get_openai_client
 
 
-def translate_logbook_content(source_text: str, target_language: str) -> dict:
+def translate_logbook_content(source_text: str, target_language: str, max_tokens: int = 1200) -> dict:
     target_name = "Spanish" if target_language == "es" else "English"
     response = get_openai_client().chat.completions.create(
         model="gpt-4o-mini",
         temperature=0,
-        max_tokens=1200,
+        max_tokens=max_tokens,
+        timeout=30,
         messages=[
             {
                 "role": "system",
@@ -30,4 +31,10 @@ def translate_logbook_content(source_text: str, target_language: str) -> dict:
         raise RuntimeError("Translation provider returned no text")
     # We intentionally leave uncertain detection unset instead of guessing from
     # browser settings; the UI only claims the target language with certainty.
-    return {"translated_text": translated_text, "source_language": None}
+    usage = getattr(response, "usage", None)
+    return {
+        "translated_text": translated_text,
+        "source_language": None,
+        "prompt_tokens": int(getattr(usage, "prompt_tokens", 0) or 0),
+        "completion_tokens": int(getattr(usage, "completion_tokens", 0) or 0),
+    }

@@ -10,8 +10,10 @@ export interface AppNotification {
   created_at: string;
 }
 
-export async function listNotifications(is_read = false): Promise<{ data: AppNotification[] }> {
-  return api.get<{ data: AppNotification[] }>(`/notifications?is_read=${is_read}`);
+/** `is_read=false` is the unread list; `is_read=true` is every notification, read or not. */
+export async function listNotifications(is_read = false, limit?: number): Promise<{ data: AppNotification[] }> {
+  const query = limit ? `&limit=${Math.max(1, Math.min(100, Math.floor(limit)))}` : "";
+  return api.get<{ data: AppNotification[] }>(`/notifications?is_read=${is_read}${query}`);
 }
 
 /**

@@ -19,6 +19,8 @@ interface Props {
   online: boolean;
   t: Translate;
   ctx: TextContext;
+  /** ISO time the rooms behind the plan were last refreshed; null when unknown. */
+  updatedAt?: string | null;
   onNewBriefing: () => void;
   onAskAi: () => void;
   onOpenRoom: (roomId: string) => void;
@@ -31,10 +33,11 @@ interface Props {
  * when it agrees, and the source is always labelled. A request is made only
  * when the person asks, and the sheet is complete without it.
  */
-export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t, ctx, onNewBriefing, onAskAi, onOpenRoom, onClose }: Props) {
+export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t, ctx, updatedAt, onNewBriefing, onAskAi, onOpenRoom, onClose }: Props) {
   const theme = useTheme();
   const isAi = briefing.source === "ai";
   const loading = status === "loading";
+  const updated = formatClock(updatedAt, ctx);
 
   return (
     <BottomSheet
@@ -50,10 +53,10 @@ export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t,
             icon="sparkles"
             onPress={onNewBriefing}
             loading={loading}
-            disabled={loading || !online || plan.length === 0}
+            disabled={loading || !online || plan.length === 0 || status === "credits"}
             testID="briefing-new"
           />
-          <Button label={t("home.askAI")} onPress={onAskAi} variant="secondary" testID="briefing-ask-ai" />
+          <Button label={t("home.briefingSheet.askShift")} onPress={onAskAi} variant="secondary" testID="briefing-ask-ai" />
         </>
       }
     >
@@ -66,6 +69,7 @@ export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t,
 
       {status === "offline" || (!online && !isAi) ? <SheetNotice text={t("home.briefingSheet.offline")} testID="briefing-offline" /> : null}
       {status === "unavailable" ? <SheetNotice tone="warn" text={t("home.briefingSheet.unavailable")} testID="briefing-unavailable" /> : null}
+      {status === "credits" ? <SheetNotice tone="warn" text={t("home.briefingSheet.credits")} testID="briefing-credits" /> : null}
 
       {plan.length > 0 ? (
         <SheetSection title={t("home.briefingSheet.planTitle")} hint={t("home.briefingSheet.planHint", { minutes: briefing.estimatedMinutes })}>
@@ -79,6 +83,9 @@ export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t,
               testID={`briefing-plan-${entry.roomNumber}`}
             />
           ))}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.source, { color: theme.textMuted }]} testID="briefing-plan-source">
+            {t("home.briefingSheet.planSource")}
+          </Text>
         </SheetSection>
       ) : (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]} testID="briefing-empty">
@@ -96,6 +103,11 @@ export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t,
             </View>
           ))}
         </SheetSection>
+      ) : null}
+      {updated ? (
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.updated, { color: theme.textMuted }]} testID="briefing-updated">
+          {t("home.briefingSheet.updatedAt", { time: updated })}
+        </Text>
       ) : null}
     </BottomSheet>
   );
@@ -123,4 +135,5 @@ const styles = StyleSheet.create({
   headline: { fontSize: 20, fontWeight: "800", lineHeight: 26 },
   body: { fontSize: 14, lineHeight: 20 },
   watch: { paddingVertical: 2 },
+  updated: { fontSize: 12, lineHeight: 17 },
 });

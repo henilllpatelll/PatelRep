@@ -40,9 +40,14 @@ export function CopilotBubble({
   onLongPress,
   onPressOut,
   accessibilityLabel,
+  accessibilityHint,
+  right = BUBBLE_RIGHT_INSET,
 }: {
   state: CopilotBubbleState;
   bottom: number;
+  /** Distance from the right edge; wider in landscape so it clears a side cut-out. */
+  right?: number;
+  accessibilityHint?: string;
   onPress: () => void;
   onLongPress: () => void;
   onPressOut: () => void;
@@ -54,11 +59,12 @@ export function CopilotBubble({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       onPress={onPress}
       onLongPress={onLongPress}
       onPressOut={onPressOut}
       delayLongPress={450}
-      style={[styles.bubble, { bottom }, listening && styles.bubbleListening]}
+      style={[styles.bubble, { bottom, right }, listening && styles.bubbleListening]}
       testID="copilot-bubble"
     >
       {listening ? <View style={styles.listeningGlow} /> : null}

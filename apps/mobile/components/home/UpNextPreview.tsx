@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { serifFont } from "@/components/shared/tokens";
@@ -16,11 +17,14 @@ interface Props {
   ctx: TextContext;
   onOpenRoom: (roomId: string) => void;
   onViewRoute: () => void;
+  /** Opens the "Why this room?" drawer; the ref lets focus return to the control afterwards. */
+  onWhy?: (roomId: string, opener: React.RefObject<View | null>) => void;
 }
 
 /** One upcoming room from the shared cleaning order. The full list lives in My Rooms. */
-export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute }: Props) {
+export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute, onWhy }: Props) {
   const theme = useTheme();
+  const whyRef = useRef<View>(null);
   const room = entry.room;
   const detail = describeUpNext(entry, t, ctx);
   const context = roomContext(room, t);
@@ -52,6 +56,16 @@ export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute }: Props)
         </View>
         <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
       </Pressable>
+      {onWhy ? (
+        <LinkButton
+          ref={whyRef}
+          label={t("home.upNext.why")}
+          icon="chevron-forward"
+          onPress={() => onWhy(room.id, whyRef)}
+          accessibilityLabel={t("home.upNext.whyA11y", { room: room.room_number })}
+          testID="up-next-why"
+        />
+      ) : null}
       <LinkButton label={t("home.upNext.viewRoute")} icon="arrow-forward" onPress={onViewRoute} testID="up-next-route" />
     </Card>
   );

@@ -21,6 +21,8 @@ interface Props {
   view: RoomActionsView;
   t: Translate;
   onSelect: (roomId: string, action: RoomActionId) => void;
+  /** Ask the assistant about this room (opens the assistant; sends nothing). */
+  onAsk?: () => void;
   onClose: () => void;
 }
 
@@ -30,7 +32,7 @@ interface Props {
  * access forms, its information sheet): no form logic lives here, and the form
  * rows say that nothing is sent until the form itself is submitted.
  */
-export function RoomActionsSheet({ visible, view, t, onSelect, onClose }: Props) {
+export function RoomActionsSheet({ visible, view, t, onSelect, onAsk, onClose }: Props) {
   if (view.state === "missing") {
     return (
       <BottomSheet visible={visible} title={t("home.roomActions.missingTitle")} onClose={onClose} grabber testID="room-actions-sheet">
@@ -99,6 +101,18 @@ export function RoomActionsSheet({ visible, view, t, onSelect, onClose }: Props)
               />
             );
           })}
+        </SheetSection>
+      ) : null}
+
+      {onAsk ? (
+        <SheetSection title={t("home.roomActions.sectionAssist")}>
+          <SheetActionRow
+            icon="sparkles-outline"
+            title={t("home.roomActions.ask.title", { room: room.room_number })}
+            hint={t("home.roomActions.ask.hint")}
+            onPress={onAsk}
+            testID="room-action-ask"
+          />
         </SheetSection>
       ) : null}
     </BottomSheet>

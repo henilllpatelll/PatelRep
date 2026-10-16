@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { SheetGone, SheetNotice } from "@/components/home/sheetParts";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
-import type { NotificationLink } from "@/lib/housekeeping/notificationLinks";
+import type { NotificationLink, NotificationLinkIssue } from "@/lib/housekeeping/notificationLinks";
 import type { Translate } from "@/lib/housekeeping/myRoomsText";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -17,6 +17,10 @@ export interface MessageDetails {
   /** Only when the record carries a sender name. Never inferred. */
   sender: string | null;
   link: NotificationLink;
+  /** Already read: the sheet only shows it (the list can include read messages). */
+  read?: boolean;
+  /** Why no link is offered although the message names a record. */
+  linkIssue?: NotificationLinkIssue | null;
 }
 
 export type MarkReadError = "offline" | "failed" | null;
@@ -32,6 +36,8 @@ interface Props {
   t: Translate;
   onMarkRead: () => void;
   onOpenLink: (link: Exclude<NotificationLink, { kind: "none" }>) => void;
+  /** Ask the assistant about the record this message points at. Absent when there is no assistant or nothing to ask about. */
+  onAsk?: () => void;
   onClose: () => void;
 }
 
@@ -41,7 +47,7 @@ interface Props {
  * "Read" is the only thing the server records, so that is the only thing the
  * button claims; a failed write leaves the message unread and says so.
  */
-export function SupervisorMessageSheet({ visible, message, marking, error, language, timeZone, t, onMarkRead, onOpenLink, onClose }: Props) {
+export function SupervisorMessageSheet({ visible, message, marking, error, language, timeZone, t, onMarkRead, onOpenLink, onAsk, onClose }: Props) {
   const theme = useTheme();
 
   if (!message) {
@@ -81,13 +87,20 @@ export function SupervisorMessageSheet({ visible, message, marking, error, langu
               testID="message-open-link"
             />
           ) : null}
-          <Button
-            label={t(marking ? "home.message.marking" : "home.message.markRead")}
-            onPress={onMarkRead}
-            loading={marking}
-            icon="checkmark"
-            testID="message-mark-read"
-          />
+          {onAsk && link.kind !== "none" ? (
+            <Button label={t("home.message.ask")} onPress={onAsk} variant="ghost" icon="sparkles" testID="message-ask" />
+          ) : null}
+          {message.read ? (
+            <Button label={t("common.close")} onPress={onClose} variant="secondary" testID="message-close" />
+          ) : (
+            <Button
+              label={t(marking ? "home.message.marking" : "home.message.markRead")}
+              onPress={onMarkRead}
+              loading={marking}
+              icon="checkmark"
+              testID="message-mark-read"
+            />
+          )}
         </View>
       }
     >
@@ -99,11 +112,14 @@ export function SupervisorMessageSheet({ visible, message, marking, error, langu
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textPrimary }]} testID="message-body" selectable>
         {message.body}
       </Text>
+      {message.linkIssue === "room_not_on_list" ? (
+        <SheetNotice text={t("home.message.roomNotOnList")} testID="message-link-issue" />
+      ) : null}
       {error ? (
         <SheetNotice tone="error" text={t(error === "offline" ? "home.message.offline" : "home.message.failed")} testID="message-error" />
       ) : (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
-          {t("home.message.readOnlyHint")}
+          {t(message.read ? "home.message.alreadyRead" : "home.message.readOnlyHint")}
         </Text>
       )}
     </BottomSheet>

@@ -47,6 +47,26 @@ function RushBadge() {
   );
 }
 
+/** "Why next?" under the first Up Next card. A sibling of the card, never inside it, so the card stays one control. */
+export function WhyNextLink({ roomNumber, onPress }: { roomNumber: string; onPress: () => void }) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t("rooms.dash.card.whyNextA11y", { room: roomNumber })}
+      style={({ pressed }) => [styles.whyNext, pressed && styles.pressed]}
+      testID="why-next"
+    >
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.whyNextText, { color: theme.primaryAction }]}>
+        {t("rooms.dash.card.whyNext")}
+      </Text>
+      <Ionicons name="chevron-forward" size={16} color={theme.primaryAction} />
+    </Pressable>
+  );
+}
+
 /* ─── Route card (Up Next + Needs Attention) ──────────────────────────────── */
 
 interface MyRoomCardProps {
@@ -332,6 +352,8 @@ export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, i
 }
 
 const styles = StyleSheet.create({
+  whyNext: { minHeight: MIN_TARGET, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 4 },
+  whyNextText: { fontSize: 14.5, fontWeight: "800" },
   pressable: { minHeight: MIN_TARGET },
   pressed: { opacity: 0.85 },
   card: { flexDirection: "row" },

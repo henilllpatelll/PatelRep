@@ -38,6 +38,10 @@ import { getBlockersForRoom } from "@/lib/housekeeping/roomBlockers";
 import { getReportActions } from "@/lib/housekeeping/reportActions";
 import { countPendingSync } from "@/lib/housekeeping/syncDetails";
 import { hasRoomInProgress } from "@/lib/housekeeping/roomWorkflow";
+import { buildDashboard } from "@/lib/housekeeping/myRoomsDashboard";
+import { buildRecommendation } from "@/lib/housekeeping/homeRecommendation";
+import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
+import { isAssistantRole } from "@/lib/ai/fab";
 import {
   findNextRoom,
   getStickyActions,
@@ -142,6 +146,7 @@ export default function RoomDetailScreen() {
   const theme = useTheme();
   const toast = useToast();
   const tr = t as Translate;
+  const assistant = useAssistantOptional();
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -392,6 +397,11 @@ export default function RoomDetailScreen() {
     otherRoomInProgress: hasRoomInProgress(myRooms, room.id),
   });
   const nextRoom = view.kind === "submitted" ? findNextRoom(myRooms, sessions, room.id) : null;
+  // The same ranking Home and My Rooms show (supervisor order first): used only to say "this is next", never to gate anything.
+  const isLeadRoom =
+    view.kind === "ready" || view.kind === "reclean"
+      ? buildRecommendation(buildDashboard(myRooms, sessions, new Date()), new Date())?.room.id === room.id
+      : false;
   const actions = getStickyActions(view, {
     hasNextRoom: Boolean(nextRoom),
     hasWorkOrder: Boolean(room.open_work_order_id),
@@ -525,7 +535,7 @@ export default function RoomDetailScreen() {
           <NeedsAttentionView room={room} view={view} ctx={textCtx} restriction={restrictionPanel} onOpenInfo={() => setInfoOpen(true)} />
         ) : null}
         {(view.kind === "ready" || view.kind === "reclean") && !view.working ? (
-          <BeforeCleaningView room={room} view={view} ctx={textCtx} restriction={restrictionPanel} onOpenInfo={() => setInfoOpen(true)} />
+          <BeforeCleaningView room={room} view={view} ctx={textCtx} restriction={restrictionPanel} onOpenInfo={() => setInfoOpen(true)} isNext={isLeadRoom} />
         ) : null}
         {(view.kind === "in_progress" || view.kind === "reclean") && view.working ? (
           <ActiveCleaningView
@@ -539,6 +549,7 @@ export default function RoomDetailScreen() {
             onOpenLinen={() => setLinenOpen(true)}
             onReportFoundItem={() => setTarget("found")}
             onOpenInfo={() => setInfoOpen(true)}
+            onReportIssue={() => openReportTarget("issue")}
           />
         ) : null}
       </ScrollView>
@@ -563,6 +574,18 @@ export default function RoomDetailScreen() {
         pendingCount={pendingCount}
         onClose={() => setMoreOpen(false)}
         onSelect={openReportTarget}
+        onAsk={
+          assistant && isAssistantRole(user?.effective_role ?? user?.role)
+            ? () => {
+                setMoreOpen(false);
+                assistant.openAssistant({
+                  contextType: session && !session.completionConfirmed ? "cleaningSession" : "room",
+                  entityId: room.id,
+                  label: room.room_number,
+                });
+              }
+            : undefined
+        }
       />
 
       <CompleteCleaningSheet

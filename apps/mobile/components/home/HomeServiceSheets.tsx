@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Share } from "react-native";
 import { CompletedShiftSummarySheet } from "@/components/home/CompletedShiftSummarySheet";
 import { FinishShiftReviewSheet, type ClockOutError } from "@/components/home/FinishShiftReviewSheet";
 import { MarkCleanConfirmationSheet } from "@/components/home/MarkCleanConfirmationSheet";
 import { ShiftBriefingSheet } from "@/components/home/ShiftBriefingSheet";
 import { SyncStatusSheet } from "@/components/home/SyncStatusSheet";
 import type { HomeSheetState } from "@/components/home/useHomeSheet";
-import { buildBriefingFromModel, buildBriefingPlan, reconcileBriefing } from "@/lib/housekeeping/homeBriefing";
+import {
+  buildBriefingFromModel,
+  buildBriefingPlan,
+  reconcileBriefing,
+  restrictedRoomNumbers,
+} from "@/lib/housekeeping/homeBriefing";
 import type { HomeModel } from "@/lib/housekeeping/homeModel";
 import type { TextContext, Translate } from "@/lib/housekeeping/myRoomsText";
+import { buildHandoffText } from "@/lib/housekeeping/handoffText";
 import { buildShiftReview, type ReviewItem } from "@/lib/housekeeping/shiftReview";
 import { buildShiftSummary } from "@/lib/housekeeping/shiftSummary";
 import { buildSyncStatusView } from "@/lib/housekeeping/syncStatus";
@@ -184,11 +191,15 @@ export function HomeServiceSheets({
         />
       );
     }
-    case "summary":
+    case "summary": {
+      const summary = buildShiftSummary(model, new Date());
+      const handoffText = buildHandoffText({ summary, language, t, recap: recap.ai });
       return (
         <CompletedShiftSummarySheet
           visible={visible}
-          summary={buildShiftSummary(model, new Date())}
+          summary={summary}
+          handoffText={handoffText}
+          onShareHandoff={handoffText ? () => void Share.share({ message: handoffText }).catch(() => undefined) : undefined}
           language={language}
           timeZone={model.timeZone}
           online={isOnline}
@@ -201,6 +212,7 @@ export function HomeServiceSheets({
           onClose={onClose}
         />
       );
+    }
     case "sync":
       return (
         <SyncStatusSheet
@@ -219,7 +231,7 @@ export function HomeServiceSheets({
     case "briefing": {
       const local = buildBriefingFromModel(model, t);
       const known = model.dashboard.all.map((entry) => entry.room.room_number);
-      const shown = briefing.ai ? reconcileBriefing(briefing.ai, local, known) : local;
+      const shown = briefing.ai ? reconcileBriefing(briefing.ai, local, known, restrictedRoomNumbers(model)) : local;
       return (
         <ShiftBriefingSheet
           visible={visible}
@@ -231,6 +243,7 @@ export function HomeServiceSheets({
           ctx={ctx}
           onNewBriefing={() => void briefing.request({ force: true })}
           onAskAi={then(go.openCopilot)}
+          updatedAt={model.board.lastRefreshAt}
           onOpenRoom={then(go.openRoom)}
           onClose={onClose}
         />

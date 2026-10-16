@@ -43,6 +43,30 @@ _DEFS = [
         owner="release-engineering",
         created="2026-10-01",
     ),
+    FeatureFlagDef(
+        key="hk_ai_assistant",
+        description="Mobile housekeeper floating AI assistant (compact sheet, full chat, 'Ask about this' entry points). Off: housekeepers keep the corner copilot card. UI-only; the chat endpoints themselves are unchanged and governed by role and the AI credit cap.",
+        type="release",
+        backend_enforced=False,
+        owner="mobile-housekeeper-ai",
+        created="2026-10-16",
+    ),
+    FeatureFlagDef(
+        key="hk_ai_photo_analysis",
+        description="Optional AI analysis of one maintenance photo (POST /ai/photo-analysis), billed per call. Off: the endpoint answers 403 and the mobile 'Analyze photo' control is hidden; manual reporting is unchanged.",
+        type="release",
+        backend_enforced=True,
+        owner="mobile-housekeeper-ai",
+        created="2026-10-16",
+    ),
+    FeatureFlagDef(
+        key="hk_ai_task_translation",
+        description="AI translation of one task's instructions (POST /ai/tasks/{id}/translate), billed per call. Off: the endpoint answers 403 and the mobile 'Translate' control is hidden; the original instructions are always shown.",
+        type="release",
+        backend_enforced=True,
+        owner="mobile-housekeeper-ai",
+        created="2026-10-16",
+    ),
 ]
 
 FEATURE_REGISTRY: dict[str, FeatureFlagDef] = {f.key: f for f in _DEFS}

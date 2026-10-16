@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
+import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
+import { isAssistantRole } from "@/lib/ai/fab";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { CurrentRoomCard } from "@/components/home/CurrentRoomCard";
 import { HomeHeader } from "@/components/home/HomeHeader";
@@ -29,6 +31,7 @@ import { attentionAction } from "@/lib/housekeeping/homeAttention";
 import {
   buildAttentionPreview,
   canQuickMarkClean,
+  leadOf,
   progressCounts,
   resolveHomeState,
   selectUpNext,
@@ -41,7 +44,13 @@ import { displayNameFor } from "@/lib/settings/displayName";
 import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
 import { useHousekeeperHome } from "@/lib/housekeeping/useHousekeeperHome";
+import { briefingCacheKey, publishLocalBriefing } from "@/lib/ai/shiftBriefingSource";
+import { nextRoomFromRecommendation } from "@/lib/ai/nextRoom";
+import { buildBriefingFromModel, restrictedRoomNumbers } from "@/lib/housekeeping/homeBriefing";
 import { useShiftBriefing } from "@/lib/housekeeping/useShiftBriefing";
+import { resolveAssistantLanguage, useAiPreferences } from "@/lib/ai/preferences";
+import { summaryFingerprint } from "@/lib/ai/shiftRecap";
+import { buildShiftSummary } from "@/lib/housekeeping/shiftSummary";
 import { useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
 import { useSyncRun } from "@/lib/housekeeping/useSyncRun";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -72,6 +81,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
   const { user, isOnline, setMyRooms, refreshRooms } = useAppStore();
   const lastSyncedAt = useAppStore((state) => state.lastSyncedAt) ?? null;
   const unreadCount = useAppStore((state) => state.unreadCount) ?? 0;
+  const assistant = useAssistantOptional();
   const home = useHousekeeperHome({ enabled });
   const { model, rooms, shift, markSupervisorNoteRead, refresh: refreshHome } = home;
   const { lifecycle } = model;
@@ -86,8 +96,25 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
 
   // Paid AI is opt-in: both hooks only ever act on an explicit request from a drawer.
   const briefing = useShiftBriefing({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
-  const recap = useShiftRecap({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
+  const recapFingerprint = useMemo(() => summaryFingerprint(buildShiftSummary(model, new Date())), [model]);
+  // The recap sentence is requested in the person's AI-language choice; the screen itself stays in the app language.
+  const assistantLanguage = useAiPreferences((state) => state.assistantLanguage);
+  const recapLanguage = resolveAssistantLanguage({ assistantLanguage }, language);
+  const recap = useShiftRecap({ scope, shiftDate: model.shiftDate, language: recapLanguage, fingerprint: recapFingerprint, isOnline });
   const syncRun = useSyncRun(refreshHome);
+
+  // The floating assistant shows this same briefing (read-only): publish the authoritative,
+  // deterministic one so it can never differ from Home or cost a credit.
+  useEffect(() => {
+    if (!scope) return;
+    publishLocalBriefing({
+      key: briefingCacheKey(scope, model.shiftDate, language),
+      local: buildBriefingFromModel(model, t),
+      knownRooms: model.dashboard.all.map((entry) => entry.room.room_number),
+      restrictedRooms: restrictedRoomNumbers(model),
+      nextRoom: nextRoomFromRecommendation(leadOf(model), t, ctx),
+    });
+  }, [scope, model, language, t, ctx]);
 
   // Refresh room counts and the shift when navigating back from the room detail screen
   // so Home reflects the latest status immediately. Reads only — never starts a shift.
@@ -153,12 +180,18 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       roomAction: (roomId, action) => navigate(`/(app)/my-rooms/${roomId}?action=${action}&from=home`),
       openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
       openMyRooms,
+      openProcedure: (documentId) => navigate(`/(app)/sop/${documentId}`),
+      askAboutRoom:
+        assistant && isAssistantRole(user?.effective_role ?? user?.role)
+          ? (roomId, roomNumber, live) =>
+              assistant.openAssistant({ contextType: live ? "cleaningSession" : "room", entityId: roomId, label: roomNumber })
+          : undefined,
       openLink: (link) => {
         if (link.kind === "room") openRoom(link.roomId);
         else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
       },
     }),
-    [navigate, openRoom, openMyRooms],
+    [navigate, openRoom, openMyRooms, assistant, user?.effective_role, user?.role],
   );
   const serviceGo = useMemo<HomeServiceGo>(
     () => ({
@@ -166,9 +199,10 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
       openTasks: () => navigate("/(app)/tasks"),
       openLostFound: () => navigate("/(app)/lost-found"),
-      openCopilot: () => navigate("/(app)/copilot"),
+      // The shared assistant, about the shift: the same conversation the floating button opens, and no second briefing request.
+      openCopilot: () => (assistant ? assistant.openAssistant({ contextType: "shift" }) : navigate("/(app)/copilot")),
     }),
-    [navigate, openRoom],
+    [navigate, openRoom, assistant],
   );
 
   /* ─── Derived view ─────────────────────────────────────────────────────── */
@@ -384,7 +418,14 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
               )}
 
               {upNext ? (
-                <UpNextPreview entry={upNext} t={t} ctx={ctx} onOpenRoom={openRoom} onViewRoute={openMyRooms} />
+                <UpNextPreview
+                  entry={upNext}
+                  t={t}
+                  ctx={ctx}
+                  onOpenRoom={openRoom}
+                  onViewRoute={openMyRooms}
+                  onWhy={(roomId, opener) => sheets.open({ kind: "why", roomId }, opener)}
+                />
               ) : null}
             </>
           ) : null}

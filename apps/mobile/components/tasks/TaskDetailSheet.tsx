@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
 import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { ActivityFeed } from "@/components/tasks/ActivityFeed";
+import { TaskHelpCard } from "@/components/tasks/TaskHelpCard";
+import { TaskTranslation } from "@/components/tasks/TaskTranslation";
 import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import type { Task } from "@/lib/api/tasks";
@@ -50,6 +52,12 @@ interface Props {
   onDismissQueued?: () => void;
   /** Offline: when the saved copy on screen was last synced (null = unknown). */
   savedCopySyncedAt?: string | null;
+  /** Open the assistant about this task. Given only when the assistant exists and may use this task as context. */
+  onAskAssistant?: () => void;
+  /** Offer "Translate instructions". Given only for a task the server will let this person read (the same rule as the assistant). */
+  canTranslate?: boolean;
+  onFindProcedure?: () => void;
+  onOpenProcedure?: (documentId: string) => void;
 }
 
 export function TaskDetailSheet({
@@ -74,6 +82,10 @@ export function TaskDetailSheet({
   onRetryQueued,
   onDismissQueued,
   savedCopySyncedAt = null,
+  onAskAssistant,
+  canTranslate = false,
+  onFindProcedure,
+  onOpenProcedure,
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -440,6 +452,12 @@ export function TaskDetailSheet({
             ) : null}
           </View>
         </View>
+      ) : null}
+
+      {!review && canTranslate ? <TaskTranslation task={task} offline={offline} /> : null}
+
+      {!review ? (
+        <TaskHelpCard task={task} viewer={viewer} zone={zone} language={language} now={now} offline={offline} onAskAssistant={onAskAssistant} onFindProcedure={onFindProcedure} onOpenProcedure={onOpenProcedure} />
       ) : null}
 
       {/* Offline there is nothing to fetch, so an empty Activity heading would say nothing. */}

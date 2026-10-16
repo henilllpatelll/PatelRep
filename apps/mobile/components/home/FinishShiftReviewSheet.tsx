@@ -159,8 +159,11 @@ export function FinishShiftReviewSheet({
             {totals.exceptions > 0 ? (
               <TotalRow label={t("home.review.totals.exceptions", { count: totals.exceptions })} value={totals.exceptions} testID="review-exceptions" />
             ) : null}
-            {review.remaining > 0 ? (
-              <TotalRow label={t("home.review.totals.remaining", { count: review.remaining })} value={review.remaining} warn testID="review-remaining" />
+            {totals.inProgress > 0 ? (
+              <TotalRow label={t("home.review.totals.inProgress", { count: totals.inProgress })} value={totals.inProgress} warn testID="review-in-progress" />
+            ) : null}
+            {totals.notStarted > 0 ? (
+              <TotalRow label={t("home.review.totals.notStarted", { count: totals.notStarted })} value={totals.notStarted} warn testID="review-not-started" />
             ) : null}
           </>
         ) : null}
@@ -178,7 +181,8 @@ export function FinishShiftReviewSheet({
             <SheetNotice
               key={warning}
               tone={warning === "sync_problem" ? "error" : "warn"}
-              text={t(WARNING_KEY[warning], { room: review.activeRoomNumber ?? "", count: review.remaining })}
+              // "not started" counts only rooms nobody has opened; the open room has its own warning.
+              text={t(WARNING_KEY[warning], { room: review.activeRoomNumber ?? "", count: totals.notStarted })}
               testID={`review-warning-${warning}`}
             />
           ))}

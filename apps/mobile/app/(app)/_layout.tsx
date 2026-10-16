@@ -1,6 +1,6 @@
 import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Tabs, router, usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,14 @@ import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { CopilotCard } from "@/components/shared/CopilotCard";
 import { CopilotBubble, BUBBLE_RIGHT_INSET, type CopilotBubbleState } from "@/components/shared/CopilotBubble";
+import { AssistantFab } from "@/components/ai/AssistantFab";
+import { AssistantSheet } from "@/components/ai/AssistantSheet";
+import { AssistantProvider } from "@/lib/ai/AssistantProvider";
+import { useAiPreferences } from "@/lib/ai/preferences";
+import { useEstimateTable } from "@/lib/housekeeping/estimateTable";
+import { useAiCapabilities, useAiCapability } from "@/lib/ai/capabilities";
+import { isAssistantRole } from "@/lib/ai/fab";
+import { speechLocale } from "@/lib/voice/locale";
 import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
@@ -21,7 +29,7 @@ import { useAppLockStore } from "@/stores/appLockStore";
 import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
 
 export default function AppLayout() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
@@ -39,6 +47,9 @@ export default function AppLayout() {
   const cardProgress = useSharedValue(0);
   const hideFab = /^\/my-rooms\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
+  // Housekeepers get the unified assistant (floating button + compact sheet); every other role keeps the corner card.
+  const assistantSwitchedOn = useAiCapability("unifiedAssistant");
+  const unifiedAssistant = isAssistantRole(effectiveRole) && assistantSwitchedOn;
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
@@ -48,6 +59,35 @@ export default function AppLayout() {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isLoading]);
+
+  // This person's AI & voice choices, for this hotel. A different person or hotel never sees the previous values.
+  const aiScope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
+  useEffect(() => {
+    void useAiPreferences.getState().hydrate(aiScope);
+  }, [aiScope]);
+
+  // Which optional AI features the hotel has switched on: asked once per sign-in and again when the app
+  // returns after a while. Unknown reads as off, and nothing here waits on the AI service.
+  useEffect(() => {
+    const store = useAiCapabilities.getState();
+    void store.hydrate(aiScope).then(() => store.refresh(aiScope));
+    if (!aiScope) return undefined;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void useAiCapabilities.getState().refresh(aiScope);
+    });
+    return () => sub.remove();
+  }, [aiScope]);
+
+  // Learned cleaning-time figures for this person's hotel (housekeeping floor roles only). Free, no AI model:
+  // a failed or missing table just leaves every screen on the baseline estimate.
+  const estimateScope =
+    aiScope && (effectiveRole === "housekeeper" || effectiveRole === "housekeeping_supervisor") ? aiScope : null;
+  useEffect(() => {
+    void useEstimateTable
+      .getState()
+      .hydrate(estimateScope)
+      .then(() => useEstimateTable.getState().refresh(estimateScope));
+  }, [estimateScope]);
 
   // Load this person's app-lock choice (and lock on cold start if they turned it on).
   useEffect(() => {
@@ -106,7 +146,7 @@ export default function AppLayout() {
       return;
     }
     setListening(true);
-    speechModule.start({ lang: "en-US", continuous: false, interimResults: false });
+    speechModule.start({ lang: speechLocale(i18n.resolvedLanguage ?? i18n.language), continuous: false, interimResults: false });
   }
 
   function stopVoiceCapture() {
@@ -169,6 +209,7 @@ export default function AppLayout() {
   return (
     <ToastProvider>
       <AppLockGate>
+      <AssistantProvider>
       <View style={styles.root}>
         <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
           <OfflineBanner />
@@ -227,7 +268,13 @@ export default function AppLayout() {
             />
           ))}
         </Tabs>
-        {!hideFab ? (
+        {unifiedAssistant ? (
+          <>
+            <AssistantFab />
+            <AssistantSheet />
+          </>
+        ) : null}
+        {!unifiedAssistant && !hideFab ? (
           <Animated.View
             style={[StyleSheet.absoluteFill, bubbleAnimatedStyle]}
             pointerEvents={cardOpen ? "none" : "box-none"}
@@ -242,7 +289,7 @@ export default function AppLayout() {
             />
           </Animated.View>
         ) : null}
-        {cardMounted && !hideFab ? (
+        {cardMounted && !unifiedAssistant && !hideFab ? (
           <Animated.View
             style={[StyleSheet.absoluteFill, styles.cardOrigin, cardAnimatedStyle]}
             pointerEvents="box-none"
@@ -258,6 +305,7 @@ export default function AppLayout() {
           </Animated.View>
         ) : null}
       </View>
+      </AssistantProvider>
       </AppLockGate>
     </ToastProvider>
   );

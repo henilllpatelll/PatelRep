@@ -1,8 +1,9 @@
 import type { Room } from "@/stores/appStore";
 import type { AttentionItem, HomeModel } from "@/lib/housekeeping/homeModel";
-import type { Recommendation } from "@/lib/housekeeping/homeRecommendation";
+import { buildRecommendation, recommendNext, type Recommendation } from "@/lib/housekeeping/homeRecommendation";
 import { leadOf } from "@/lib/housekeeping/homeState";
-import type { RoomEntry } from "@/lib/housekeeping/myRoomsDashboard";
+import type { DashboardModel, RoomEntry } from "@/lib/housekeeping/myRoomsDashboard";
+import type { Freshness } from "@/lib/housekeeping/roomsFreshness";
 import { getReportActions, type DisabledReason } from "@/lib/housekeeping/reportActions";
 
 /**
@@ -90,19 +91,59 @@ export function resolveRoomActions(input: {
 
 /* ─── Why this room ─────────────────────────────────────────────────────────── */
 
+/** How current the rooms behind a recommendation are. Offline outranks stale: it is the reason, not the age. */
+export interface WhyFreshness {
+  state: "fresh" | "stale" | "cached" | "offline";
+  /** ISO time the list was last refreshed from the server; null when it never has been on this phone. */
+  updatedAt: string | null;
+}
+
 export type WhyRoomView =
-  | { state: "ready"; recommendation: Recommendation; changed: boolean }
+  | { state: "ready"; recommendation: Recommendation; changed: boolean; freshness: WhyFreshness }
   | { state: "none" };
+
+export function freshnessView(freshness: Freshness, isOnline: boolean, updatedAt: string | null): WhyFreshness {
+  if (!isOnline) return { state: "offline", updatedAt };
+  return { state: freshness === "stale" ? "stale" : freshness === "cached" || freshness === "never" ? "cached" : "fresh", updatedAt };
+}
+
+export function whyFreshness(model: HomeModel, isOnline: boolean): WhyFreshness {
+  return freshnessView(model.board.freshness, isOnline, model.board.lastRefreshAt);
+}
 
 /**
  * The explanation always describes the CURRENT lead room. If the ranking moved
  * since the drawer opened, `changed` is true and the primary action opens the
  * new room (named on the button), never the one the person first saw.
  */
-export function resolveWhyRoom(model: HomeModel, openedRoomId: string | null): WhyRoomView {
-  const recommendation = leadOf(model);
+export function resolveWhyRoom(model: HomeModel, openedRoomId: string | null, isOnline = true, now: Date = new Date()): WhyRoomView {
+  const lead = leadOf(model);
+  // Opened from the "Up next" card while another room is open: explain THAT room, for as long as it is still next.
+  const next = model.dashboard.upNext[0];
+  const explainNext = Boolean(openedRoomId && lead && lead.room.id !== openedRoomId && next?.room.id === openedRoomId);
+  const recommendation = explainNext ? recommendNext(model.dashboard, now) : lead;
   if (!recommendation) return { state: "none" };
-  return { state: "ready", recommendation, changed: openedRoomId !== null && recommendation.room.id !== openedRoomId };
+  return {
+    state: "ready",
+    recommendation,
+    changed: openedRoomId !== null && recommendation.room.id !== openedRoomId,
+    freshness: whyFreshness(model, isOnline),
+  };
+}
+
+/**
+ * The same explanation for My Rooms, which has the dashboard but not the Home model. "Why next?" is asked of
+ * the head of Up Next, ranked by the same rules Home uses, so the two screens can never name different rooms.
+ */
+export function resolveDashboardWhy(
+  dashboard: DashboardModel,
+  openedRoomId: string | null,
+  freshness: WhyFreshness,
+  now: Date = new Date(),
+): WhyRoomView {
+  const recommendation = recommendNext(dashboard, now) ?? buildRecommendation(dashboard, now);
+  if (!recommendation) return { state: "none" };
+  return { state: "ready", recommendation, changed: openedRoomId !== null && recommendation.room.id !== openedRoomId, freshness };
 }
 
 /* ─── Issue details ─────────────────────────────────────────────────────────── */

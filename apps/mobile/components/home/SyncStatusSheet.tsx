@@ -107,6 +107,21 @@ export function SyncStatusSheet({ visible, view, syncing, lastRun, t, ctx, onRet
       ) : view.status === "synced" || view.status === "stale" || view.status === "unknown" ? (
         <SheetNotice text={t("home.syncSheet.nothingWaiting")} testID="sync-status-empty" />
       ) : null}
+
+      {/* AI help is online-only and is never queued, so it can neither be waiting to send nor replayed on reconnect. */}
+      <SheetSection title={t("home.syncSheet.ai.title")}>
+        <View style={styles.statusRow} accessible accessibilityLabel={`${t(`home.syncSheet.ai.${view.online ? "online" : "offline"}.title`)}. ${t(`home.syncSheet.ai.${view.online ? "online" : "offline"}.body`)}`} testID="sync-status-ai">
+          <Ionicons name={view.online ? "sparkles-outline" : "cloud-offline-outline"} size={22} color={view.online ? theme.status.ready : theme.status.pickup} />
+          <View style={styles.statusText}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textPrimary }]} testID="sync-status-ai-title">
+              {t(`home.syncSheet.ai.${view.online ? "online" : "offline"}.title`)}
+            </Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.statusBody, { color: theme.textSecondary }]}>
+              {t(`home.syncSheet.ai.${view.online ? "online" : "offline"}.body`)}
+            </Text>
+          </View>
+        </View>
+      </SheetSection>
     </BottomSheet>
   );
 }

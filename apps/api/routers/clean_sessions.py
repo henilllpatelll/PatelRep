@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
@@ -17,6 +18,7 @@ from core.database import supabase
 from core.roles import MANAGER_ROLES
 from routers.cleaning_checklists import get_checklist_template_for_clean_type
 from services.reclean_corrections import correction_checklist, load_reclean_details
+from services.cleaning_estimates import build_estimates
 from services.housekeeping_assignments import effective_room_status
 from services.room_status_transitions import (
     SESSION_STARTABLE_STATUSES,
@@ -523,6 +525,70 @@ async def get_active_session(
     )
     rows = result.data or []
     return {"data": rows[0] if rows else None}
+
+
+# ---------------------------------------------------------------------------
+# GET /clean-sessions/estimates
+# ---------------------------------------------------------------------------
+# Hotel-level "usually takes about N minutes" figures per room type and clean type, learned from this
+# hotel's own completed sessions ONLY where they beat the existing baseline on a chronological hold-out
+# (services/cleaning_estimates.py). Deterministic: no model call, no credits, no per-person data.
+# A group without enough trustworthy history is simply absent and the app keeps its baseline.
+
+ESTIMATE_WINDOW_DAYS = 90
+ESTIMATE_SESSION_LIMIT = 4000
+ESTIMATE_CACHE_SECONDS = 6 * 60 * 60
+_estimate_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _load_estimates(hotel_id: str) -> dict:
+    cached = _estimate_cache.get(hotel_id)
+    if cached and time.monotonic() - cached[0] < ESTIMATE_CACHE_SECONDS:
+        return cached[1]
+    since = (datetime.now(timezone.utc) - timedelta(days=ESTIMATE_WINDOW_DAYS)).isoformat()
+    sessions = (
+        supabase.table("room_clean_sessions")
+        .select(
+            "id, room_id, housekeeper_id, clean_type, status, blocked_reason, started_at, ended_at, "
+            "duration_seconds, checklist_done, checklist_total"
+        )
+        .eq("tenant_id", hotel_id)
+        .eq("status", "completed")
+        .gte("started_at", since)
+        .order("started_at", desc=True)
+        .limit(ESTIMATE_SESSION_LIMIT)
+        .execute()
+    )
+    rooms = (
+        supabase.table("rooms")
+        .select("id, room_types(code, base_clean_minutes)")
+        .eq("tenant_id", hotel_id)
+        .execute()
+    )
+    estimates = build_estimates(sessions.data or [], rooms.data or [])
+    payload = {
+        "estimates": [
+            {
+                "room_type_code": e.room_type_code,
+                "clean_type": e.clean_type,
+                "minutes": e.minutes,
+                "sample_count": e.sample_count,
+                "holdout": {"count": e.holdout_count, "baseline_mae": e.baseline_mae, "model_mae": e.model_mae},
+            }
+            for e in estimates
+        ],
+        "window_days": ESTIMATE_WINDOW_DAYS,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _estimate_cache[hotel_id] = (time.monotonic(), payload)
+    return payload
+
+
+@router.get("/estimates")
+async def get_cleaning_estimates(
+    current_user: CurrentUser = Depends(require_role(*SESSION_ROLES)),
+):
+    return {"data": _load_estimates(current_user.hotel_id)}
 
 
 # ---------------------------------------------------------------------------

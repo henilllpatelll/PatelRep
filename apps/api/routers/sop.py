@@ -5,9 +5,11 @@ import anthropic
 import re
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
-from middleware.credits import check_and_deduct_credits, log_ai_interaction
+from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction
 from models.requests import SOPQueryRequest
 from core.database import supabase
+from services.ai.sop_access import visible_document, visible_documents
+from services.ai.sop_access import SopUnavailable
 from services.ai.sop_rag import index_sop_document, query_sop
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,8 @@ router = APIRouter(prefix="/sop", tags=["sop"])
 MAX_SOP_UPLOAD_BYTES = 10 * 1024 * 1024
 READ_CHUNK_BYTES = 1024 * 1024
 SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._ -]")
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+FILE_LINK_SECONDS = 300
 
 
 def _sanitize_pdf_filename(filename: str | None) -> str:
@@ -43,6 +47,59 @@ async def _read_limited_upload(file: UploadFile) -> bytes:
             raise HTTPException(status_code=413, detail="PDF is too large. Maximum size is 10 MB.")
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+# ---------------------------------------------------------------------------
+# Employee-facing library (mobile). Only procedures this hotel's staff may read:
+# an upload hidden by a draft / superseded / archived / expired approval record is
+# not listed, not openable and not cited. storage_path never leaves the server.
+# The admin endpoints below keep their behaviour for the web SOP manager.
+# ---------------------------------------------------------------------------
+
+def _library_document_or_404(hotel_id: str, document_id: str) -> dict:
+    doc = visible_document(supabase, hotel_id, document_id) if UUID_RE.match(document_id or "") else None
+    if not doc:
+        raise HTTPException(status_code=404, detail="SOP document not found.")
+    return doc
+
+
+@router.get("/library")
+async def list_sop_library(current_user: CurrentUser = Depends(get_current_user)):
+    docs = visible_documents(supabase, current_user.hotel_id)
+    return {"data": docs, "meta": {"count": len(docs)}}
+
+
+@router.get("/library/{document_id}")
+async def get_sop_library_document(
+    document_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return {"data": _library_document_or_404(current_user.hotel_id, document_id)}
+
+
+@router.get("/library/{document_id}/file")
+async def get_sop_library_file(
+    document_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """A short-lived link to the ORIGINAL document, issued only for a document this person may see."""
+    _library_document_or_404(current_user.hotel_id, document_id)
+    row = (
+        supabase.table("sop_documents").select("storage_path")
+        .eq("id", document_id).eq("tenant_id", current_user.hotel_id).limit(1).execute()
+    ).data or []
+    path = row[0].get("storage_path") if row else None
+    if not path:
+        raise HTTPException(status_code=404, detail="The original document is not available.")
+    try:
+        signed = supabase.storage.from_("sop-documents").create_signed_url(path, FILE_LINK_SECONDS)
+    except Exception:
+        logger.warning("SOP signed link failed hotel=%s", current_user.hotel_id, exc_info=True)
+        raise HTTPException(status_code=503, detail="The original document is temporarily unavailable.")
+    url = (signed or {}).get("signedURL") or (signed or {}).get("signedUrl")
+    if not isinstance(url, str) or not url.startswith("http"):
+        raise HTTPException(status_code=503, detail="The original document is temporarily unavailable.")
+    return {"data": {"url": url, "expires_in": FILE_LINK_SECONDS, "content_type": "application/pdf"}}
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +272,7 @@ async def query_sop_endpoint(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     start = time.time()
+    await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "sop_query")
     try:
         result = query_sop(
             query=request.query,
@@ -226,6 +284,7 @@ async def query_sop_endpoint(
         openai.AuthenticationError,
         anthropic.RateLimitError,
         anthropic.AuthenticationError,
+        SopUnavailable,
     ) as exc:
         latency_ms = int((time.time() - start) * 1000)
         await log_ai_interaction(
@@ -238,9 +297,11 @@ async def query_sop_endpoint(
 
     prompt_tokens = result.get("prompt_tokens", 0)
     completion_tokens = result.get("completion_tokens", 0)
-    credits_charged = await check_and_deduct_credits(
-        current_user.hotel_id, "sop_query", prompt_tokens, completion_tokens
-    )
+    credits_charged = 0.0
+    if prompt_tokens or completion_tokens:  # nothing to search or nothing relevant: no model ran, nothing to bill
+        credits_charged = await check_and_deduct_credits(
+            current_user.hotel_id, "sop_query", prompt_tokens, completion_tokens
+        )
     latency_ms = int((time.time() - start) * 1000)
     await log_ai_interaction(
         hotel_id=current_user.hotel_id, user_id=current_user.user_id,

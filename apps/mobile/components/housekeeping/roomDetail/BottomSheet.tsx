@@ -1,5 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from "react-native";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { AccessibilityInfo, Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, findNodeHandle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -26,7 +26,15 @@ interface Props {
   grabber?: boolean;
   /** Taller sheet for long feeds. */
   tall?: boolean;
+  /** Let the person pull the header down to dismiss (opt-in; the body still scrolls normally). */
+  dragToDismiss?: boolean;
+  /** Pin the sheet's colours (the assistant's sheets are always dark). Defaults to the app theme. */
+  palette?: ReturnType<typeof useTheme>;
 }
+
+/** How far, or how fast, a downward pull has to be to count as "dismiss". */
+const DISMISS_DISTANCE = 90;
+const DISMISS_VELOCITY = 0.9;
 
 /**
  * The one sheet Room Detail uses for Room Information, Linen Exchange, the
@@ -34,13 +42,44 @@ interface Props {
  * keyboard, closes from the backdrop and the Android back button, and scrolls
  * rather than clipping under large text.
  */
-export function BottomSheet({ visible, title, onClose, children, footer, scrollKey, testID, grabber = false, tall = false }: Props) {
+export function BottomSheet({ visible, title, onClose, children, footer, scrollKey, testID, grabber = false, tall = false, dragToDismiss = false, palette }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
+  const appTheme = useTheme();
+  const theme = palette ?? appTheme;
   const insets = useSafeAreaInsets();
   const titleRef = useRef<Text>(null);
   const scrollRef = useRef<ScrollView>(null);
   const reduceMotion = useReducedMotion();
+  const dragY = useRef(new Animated.Value(0)).current;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (visible) dragY.setValue(0);
+  }, [visible, dragY]);
+
+  const pan = useMemo(
+    () =>
+      dragToDismiss
+        ? PanResponder.create({
+            onMoveShouldSetPanResponder: (_event, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+            onPanResponderMove: (_event, g) => {
+              if (g.dy > 0) dragY.setValue(g.dy);
+            },
+            onPanResponderRelease: (_event, g) => {
+              if (g.dy > DISMISS_DISTANCE || g.vy > DISMISS_VELOCITY) {
+                onCloseRef.current();
+              } else {
+                Animated.spring(dragY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
+              }
+            },
+            onPanResponderTerminate: () => {
+              Animated.spring(dragY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
+            },
+          })
+        : null,
+    [dragToDismiss, dragY],
+  );
 
   useEffect(() => {
     if (!visible || !scrollKey) return;
@@ -69,15 +108,17 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
           accessibilityLabel={t("common.close")}
           importantForAccessibility="no"
         />
-        <View
+        <Animated.View
           testID={testID}
           accessibilityViewIsModal
           style={[
             styles.sheet,
             tall && styles.sheetTall,
             { backgroundColor: theme.surface, borderColor: theme.border, paddingBottom: insets.bottom + 12 },
+            dragToDismiss ? { transform: [{ translateY: dragY }] } : null,
           ]}
         >
+          <View {...(pan?.panHandlers ?? {})}>
           {grabber ? <View style={[styles.grabber, { backgroundColor: theme.border }]} /> : null}
           <View style={styles.header}>
             <Text
@@ -98,6 +139,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
               <Ionicons name="close" size={22} color={theme.textSecondary} />
             </Pressable>
           </View>
+          </View>
           <ScrollView
             ref={scrollRef}
             keyboardShouldPersistTaps="handled"
@@ -107,7 +149,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
             {children}
           </ScrollView>
           {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );

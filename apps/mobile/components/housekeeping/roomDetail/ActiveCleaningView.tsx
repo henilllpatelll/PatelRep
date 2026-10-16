@@ -7,10 +7,15 @@ import type { Room } from "@/stores/appStore";
 import { tracksLinen, type LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 import type { RoomDetailView } from "@/lib/housekeeping/roomDetailState";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
+import { buildRoomGuidance } from "@/lib/housekeeping/roomAssist";
+import { resolveEstimate } from "@/lib/housekeeping/cleaningEstimate";
+import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { CleaningChecklist } from "./CleaningChecklist";
 import { CleaningTimer } from "./CleaningTimer";
 import { DamagePhotoBanner } from "./DamagePhotoBanner";
 import { LinenExchangeRow } from "./LinenExchange";
+import { RoomGuidanceLine } from "./RoomGuidanceLine";
+import { RoomHelpCard } from "./RoomHelpCard";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 
 interface Props {
@@ -26,6 +31,8 @@ interface Props {
   onOpenLinen: () => void;
   onReportFoundItem: () => void;
   onOpenInfo: () => void;
+  /** The existing Report an issue form, offered beside Ask. */
+  onReportIssue?: () => void;
 }
 
 /**
@@ -44,11 +51,14 @@ export function ActiveCleaningView({
   onOpenLinen,
   onReportFoundItem,
   onOpenInfo,
+  onReportIssue,
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const reclean = view.kind === "reclean";
   const items = session?.checklist ?? [];
+  useEstimateVersion(); // the timer's typical time follows the same estimate as the rest of the app
+  const timerEstimate = resolveEstimate(room);
 
   const pendingKeys = useMemo(() => new Set(Object.keys(session?.pendingItems ?? {})), [session?.pendingItems]);
   const notes = useMemo(() => {
@@ -61,6 +71,7 @@ export function ActiveCleaningView({
 
   const inspectedAt = formatClock(room.reclean_details?.inspected_at, ctx);
   const corrections = items.length;
+  const guidance = buildRoomGuidance({ room, session, classification: view.classification, isNext: false });
 
   return (
     <View style={styles.root} testID={reclean ? "reclean-work-view" : "active-cleaning-view"}>
@@ -89,7 +100,7 @@ export function ActiveCleaningView({
           </Pressable>
         </View>
       ) : (
-        <CleaningTimer startedAt={session?.startedAt} baseMinutes={session?.baseCleanMinutes} />
+        <CleaningTimer startedAt={session?.startedAt} baseMinutes={timerEstimate.basis === "history" ? timerEstimate.minutes : session?.baseCleanMinutes} />
       )}
 
       {/* The prompt says "before cleaning": once anything is ticked it is stale. */}
@@ -109,6 +120,9 @@ export function ActiveCleaningView({
       {!reclean && session && tracksLinen(session.cleanType ?? room.clean_type) ? (
         <LinenExchangeRow linen={session.linen} onOpen={onOpenLinen} />
       ) : null}
+
+      {guidance ? <RoomGuidanceLine line={guidance} /> : null}
+      <RoomHelpCard room={room} live variant="active" onReportIssue={onReportIssue} />
     </View>
   );
 }

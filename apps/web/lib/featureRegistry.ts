@@ -32,4 +32,31 @@ export const FEATURE_REGISTRY: Record<string, FeatureFlagDef> = {
     owner: 'release-engineering',
     created: '2026-10-01',
   },
+  hk_ai_assistant: {
+    key: 'hk_ai_assistant',
+    description:
+      'Mobile housekeeper floating AI assistant (compact sheet, full chat, Ask-about-this entry points). Off: housekeepers keep the corner copilot card. UI-only; the chat endpoints are unchanged and governed by role and the AI credit cap.',
+    type: 'release',
+    backendEnforced: false,
+    owner: 'mobile-housekeeper-ai',
+    created: '2026-10-16',
+  },
+  hk_ai_photo_analysis: {
+    key: 'hk_ai_photo_analysis',
+    description:
+      'Optional AI analysis of one maintenance photo, billed per call. Off: the endpoint answers 403 and the mobile Analyze photo control is hidden; manual reporting is unchanged.',
+    type: 'release',
+    backendEnforced: true,
+    owner: 'mobile-housekeeper-ai',
+    created: '2026-10-16',
+  },
+  hk_ai_task_translation: {
+    key: 'hk_ai_task_translation',
+    description:
+      'AI translation of the instructions of one task, billed per call. Off: the endpoint answers 403 and the mobile Translate control is hidden; the original instructions are always shown.',
+    type: 'release',
+    backendEnforced: true,
+    owner: 'mobile-housekeeper-ai',
+    created: '2026-10-16',
+  },
 }

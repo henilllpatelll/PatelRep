@@ -776,3 +776,45 @@
 - apps/mobile/stores/homeBridgeStore.ts — Home publishes its HomeModel here; the Attention Center route reads it (no second fetch/poll)
 - apps/mobile/components/home/{HomeSheetHost,RoomActionsSheet,RecommendationSheet,IssueDetailsSheet,SupervisorMessageSheet,ShiftProgressSheet,sheetParts}.tsx — Home drawers on the shared roomDetail/BottomSheet; HomeSheetHost = one drawer at a time, delayed unmount, focus return
 - apps/mobile/components/home/AttentionCenterScreen.tsx + app/(app)/attention/index.tsx — full-screen "Needs attention" (hidden route, not a tab)
+
+## Mobile Housekeeper AI V2 - Phase 1 (foundation)
+- apps/mobile/lib/ai/contract.ts - the assistant's strict reply adapter (answer / actions / clarify / unsupported), provenance, CopilotFailure + toCopilotFailure (~2.4k tok)
+- apps/mobile/lib/ai/drafts.ts - editable task / work-order / guest-request drafts, limits, validation, patch (room edit unlinks), array confirm bodies (~2.4k tok)
+- apps/mobile/lib/ai/copilotChat.ts - sendCopilotMessage (hint + trusted ids, no role) and confirmAction (server-confirmed, idempotency key) (~1k tok)
+- apps/mobile/lib/ai/conversationState.ts - pure reducer: scope reset, action status machine, what may be persisted (~1.3k tok)
+- apps/mobile/lib/ai/useAssistantConversation.ts - the one conversation controller (send/confirm/edit/dismiss, double-tap + offline + stale-scope guards, optional history) (~2.2k tok)
+- apps/mobile/lib/ai/history.ts - per tenant:user secure-store history, 20 msgs / 24h, redaction, legacy purge (~1.4k tok)
+- apps/mobile/lib/ai/session.ts - assistantScope + resetAssistantSession (called from appStore.setUser on identity change) (~0.4k tok)
+- apps/mobile/lib/ai/shiftBriefingSource.ts / useSharedBriefing.ts - the one shared housekeeping briefing: Home publishes, AI cache, read-only hook (~1.5k tok)
+- apps/mobile/components/ai/ActionPreviewCard.tsx / AssistantMessageView.tsx - shared UI for previews (edit -> Create) and messages (provenance, sources, clarify, notices) (~3k tok)
+- apps/mobile/lib/ai/AssistantProvider.tsx - ONE assistant for the app: shared conversation controller + composer draft + subject (context) + compact-sheet state; useAssistant() (~2.4k tok)
+- apps/mobile/lib/ai/launch.ts - typed openAssistant({contextType, entityId}) API: id-shape validation only (server authorises), contextToIds, contextChanged (~1.2k tok)
+- apps/mobile/lib/ai/{fab,quickActions,nextRoom,actionSummary,useQuickActions,useAssistantA11y}.ts - FAB visibility/placement rules, role-gated quick actions + real destinations, Home-published next room (read-only), confirm-drawer rows, keyboard + screen-reader helpers (~3k tok)
+- apps/mobile/components/ai/{AssistantSheet,AssistantFab,AssistantComposer,AssistantMenu,ContextChip,RoomPickerPanel,ActionConfirmPanel,AssistantCards,palette}.tsx - compact sheet, floating button, shared composer, options menu, subject chip, room picker, confirm-before-create drawer, card set (room/clarify/limit/sources/summary); palette is ALWAYS dark (D-11) (~9k tok)
+- apps/mobile/components/voice/VoiceCapturePanel.tsx + lib/voice/locale.ts - one reusable listening UI (EN/ES, review then Use text, never sends, no audio kept); speechLocale() shared with Add Task voice (~1.8k tok)
+- apps/mobile/app/(app)/copilot/index.tsx - full assistant (header + menu + thread + composer) over the same provider; follows replies only while the reader is at the end (~3k tok)
+- apps/api/services/ai/authorization.py - intent->role matrix, hint whitelist, context sanitising, tenant/assignment-scoped trusted ids (~1.6k tok)
+- apps/api/tests/test_ai_copilot_authorization.py - negative tests: roles, hints, cross-tenant, malformed, confirm verification/idempotency
+- apps/api/tests/test_ai_credit_concurrency.py - threaded burst vs a lock-faithful fake of deduct_ai_credits: cap bound, tenant isolation, pre-217 fallback
+- supabase/migrations/217_deduct_ai_credits_capped.sql - deduct_ai_credits(hotel, credits, base_fee): cap check + increment in one UPDATE; service_role only (~0.5k tok)
+
+- apps/mobile/lib/housekeeping/roomAssist.ts - everything said about ONE room, from phone data only: readiness facts (estimate + basis, work order on record), one line of guidance (restriction > unsent changes > checklist left > maintenance follow-up > next), room-question answers (gone / answer / compose); never asks a model, never allows or orders work (~2.8k tok)
+- apps/mobile/lib/housekeeping/cleaningEstimate.ts - estimateBasisOf(): hotel room-type baseline vs the app's general fallback, so screens label an estimate honestly (~0.3k tok)
+- apps/mobile/lib/ai/useRoomQuestions.ts + components/ai/RoomQuestionList.tsx - the room-aware assistant's suggested questions (checklist left / report a problem / open work orders / find a procedure), answered at tap time from myRooms + the clean-session store; room gone -> says so and drops the context (~2k tok)
+- apps/mobile/components/housekeeping/roomDetail/{RoomHelpCard,RoomGuidanceLine}.tsx - "Need help with this room?" card (Ask / Report an issue) and the quiet guidance line on Room Detail; optional assistant (useAssistantOptional) (~1.6k tok)
+- apps/mobile/lib/housekeeping/homeSheets.ts - now also resolveDashboardWhy (My Rooms' "Why next?"), freshnessView/whyFreshness, resolveWhyRoom(model, id, isOnline) can explain the Up Next room while another is open (recommendNext in homeRecommendation.ts)
+
+## Phase 6 (Attention, notifications, shift recap, AI preferences)
+
+- apps/api/services/ai/housekeeper_shift_recap.py - REWRITTEN: compute_shift_facts() builds the server-side aggregate (assigned vs submitted(CLEAN) vs inspected vs unavailable vs in-progress vs not-started; completed sessions by this person inside the shift window; recorded minutes only when they agree with the session timestamps; handoff room numbers); generate_shift_recap(facts) refuses with no evidence and validate_grounded() rejects numbers not in the facts and performance claims (~4k tok)
+- apps/api/routers/ai_copilot.py - /ai/housekeeping/shift-summary now takes only {language, shift_date}; 409 = no completed work (no model call, no charge); per-facts server cache so unchanged facts are never paid twice
+- apps/api/tests/test_housekeeper_shift_recap_facts.py, test_notification_ai_guards.py - recap contract (assigned != completed, midnight shifts, timing trust, grounding, caching, 409/402/503) and notification-policy guards (no AI-originated/critical/pushed notification, inbox isolation)
+- apps/mobile/lib/ai/preferences.ts - AI & voice preferences (voiceInput, suggestions, assistantLanguage, speechLanguage) scoped `${tenant}:${user}` in AsyncStorage + zustand store; hydrated in app/(app)/_layout.tsx; resolveAssistantLanguage/resolveSpeechLocale (~2k tok)
+- apps/mobile/lib/voice/useVoiceCapability.ts - the one answer to "may this screen show a mic, and in which language"; useVoiceInput also reads the prefs, so task creation and issue reports follow them
+- apps/mobile/app/(app)/profile/ai-voice.tsx + lib/ai/useSavedConversation.ts - AI & voice settings screen (language, voice, suggestions, saved conversation, privacy); only housekeepers see the Profile row; no proactive-AI switch exists because nothing would back it
+- apps/mobile/lib/ai/shiftRecap.ts + lib/housekeeping/useShiftRecap.ts - recap client sends NO rooms; returns {headline, note, facts, cached}; cache key includes summaryFingerprint() so a materially changed shift drops the stored recap; statuses incl. credits / insufficient
+- apps/mobile/components/home/CompletedShiftSummarySheet.tsx - verified numbers (server facts) and the labelled AI sentence are separate blocks; handoff summary share row
+- apps/mobile/lib/housekeeping/handoffText.ts - shareable handoff text from open recorded items only (no guest details); shared via the phone share sheet, never posted
+- apps/mobile/lib/housekeeping/attentionWhy.ts + components/home/AttentionCenterScreen.tsx / IssueDetailsSheet.tsx - evidence lines (arrival today, recorded deadline, open work order, next in order), section headings, summary line, Ask assistant, approved-procedure link (useRelatedProcedures)
+- apps/mobile/lib/notifications/feed.ts + app/(app)/notifications/index.tsx - All/Unread, day groups in hotel tz, masked previews, stale/failed states, read messages viewable, room-not-on-list notice, Ask assistant with verified ids
+- apps/mobile/components/home/{FinishShiftReviewSheet,SyncStatusSheet}.tsx - in-progress vs not-started rows; AI help status (online-only, never queued)

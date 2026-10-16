@@ -5,11 +5,21 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import { buildEntryChecks, type RoomDetailView } from "@/lib/housekeeping/roomDetailState";
+import { buildReadinessFacts, buildRoomGuidance } from "@/lib/housekeeping/roomAssist";
+import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
 import { RushPriorityPanel } from "@/components/housekeeping/RushPriorityPanel";
 import { RecleanCorrectionsPanel } from "@/components/housekeeping/RecleanCorrectionsPanel";
+import { RoomGuidanceLine } from "./RoomGuidanceLine";
+import { RoomHelpCard } from "./RoomHelpCard";
 import { RoomStatusNotice } from "./RoomStatusNotice";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+
+const ESTIMATE_KEY = {
+  history: "rooms.readiness.estimateHistory",
+  room_type: "rooms.readiness.estimateRoomType",
+  general: "rooms.readiness.estimateGeneral",
+} as const;
 
 interface Props {
   room: Room;
@@ -18,6 +28,8 @@ interface Props {
   /** Set when a non-blocking restriction note applies (e.g. the agreed retry time has arrived). */
   restriction?: ReactNode;
   onOpenInfo: () => void;
+  /** The supervisor's sequence (or the standard queue) puts this room next. */
+  isNext?: boolean;
 }
 
 /**
@@ -25,11 +37,14 @@ interface Props {
  * whether to go in — deadline, the pre-entry facts, one warning — and nothing
  * else. Reservation detail lives behind Room Information.
  */
-export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo }: Props) {
+export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo, isNext = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const checks = buildEntryChecks(room);
   const reclean = view.kind === "reclean";
+  useEstimateVersion(); // re-render when the learned table refreshes
+  const facts = buildReadinessFacts(room);
+  const guidance = buildRoomGuidance({ room, session: undefined, classification: view.classification, isNext });
 
   return (
     <View style={styles.root} testID="before-cleaning-view">
@@ -56,7 +71,34 @@ export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo }:
             </View>
           );
         })}
+        {/* What the list records, said as what it is: an estimate, and maintenance "on record". */}
+        <View
+          style={styles.checkRow}
+          accessible
+          accessibilityLabel={t(ESTIMATE_KEY[facts.estimate.basis], { minutes: facts.estimate.minutes })}
+          testID="readiness-estimate"
+        >
+          <Ionicons name="time-outline" size={18} color={theme.textMuted} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.checkText, { color: theme.textPrimary }]}>
+            {t(ESTIMATE_KEY[facts.estimate.basis], { minutes: facts.estimate.minutes })}
+          </Text>
+        </View>
+        <View
+          style={styles.checkRow}
+          accessible
+          accessibilityLabel={facts.workOrder.state === "open" ? t("rooms.readiness.workOrderOpen", { label: facts.workOrder.label }) : t("rooms.readiness.workOrderNone")}
+          testID="readiness-work-order"
+        >
+          <Ionicons name={facts.workOrder.state === "open" ? "build-outline" : "checkmark-circle-outline"} size={18} color={facts.workOrder.state === "open" ? theme.status.dirty : theme.textMuted} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.checkText, { color: theme.textPrimary }]}>
+            {facts.workOrder.state === "open" ? t("rooms.readiness.workOrderOpen", { label: facts.workOrder.label }) : t("rooms.readiness.workOrderNone")}
+          </Text>
+        </View>
       </View>
+
+      {guidance ? <RoomGuidanceLine line={guidance} /> : null}
+
+      <RoomHelpCard room={room} live={false} variant="before" />
 
       <Pressable
         onPress={onOpenInfo}

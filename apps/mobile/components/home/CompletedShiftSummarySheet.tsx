@@ -19,6 +19,9 @@ interface Props {
   online: boolean;
   recap: ShiftRecap | null;
   recapStatus: AiRequestStatus;
+  /** The exact text the person can share on, or null when nothing is open. */
+  handoffText?: string | null;
+  onShareHandoff?: () => void;
   t: Translate;
   onRequestRecap: () => void;
   onOpenItem: (item: ReviewItem) => void;
@@ -40,6 +43,8 @@ export function CompletedShiftSummarySheet({
   online,
   recap,
   recapStatus,
+  handoffText,
+  onShareHandoff,
   t,
   onRequestRecap,
   onOpenItem,
@@ -53,6 +58,10 @@ export function CompletedShiftSummarySheet({
   const { rooms } = summary;
   const unsent = summary.sync.pending + summary.sync.failed + summary.sync.conflicts;
   const loading = recapStatus === "loading";
+  // The recap is about completed work; with none on this phone's list there is nothing to write about.
+  const hasCompletedWork = summary.boardUsable ? rooms.submitted + rooms.inspected > 0 || rooms.confirmedByYou > 0 : true;
+  // The AI's facts come from the server's record; say so when they do not match this phone's list.
+  const recapDiffers = recap !== null && summary.boardUsable && recap.facts.rooms.completed !== rooms.submitted + rooms.inspected;
 
   return (
     <BottomSheet
@@ -112,20 +121,61 @@ export function CompletedShiftSummarySheet({
         />
       ) : null}
 
+      {handoffText && onShareHandoff ? (
+        <SheetSection title={t("home.handoff.title")} hint={t("home.handoff.hint")}>
+          <View style={[styles.handoffBox, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]} testID="summary-handoff-text">
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.handoffText, { color: theme.textSecondary }]} selectable>
+              {handoffText}
+            </Text>
+          </View>
+          <Button label={t("home.handoff.share")} icon="share-outline" onPress={onShareHandoff} variant="secondary" testID="summary-handoff-share" />
+        </SheetSection>
+      ) : null}
+
       <SheetSection title={t("home.summary.sectionRecap")}>
         {recap ? (
           <View style={styles.recap} testID="summary-recap">
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
-              {t("home.summary.recapAiLabel")}
-            </Text>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recapText, { color: theme.textPrimary }]}>
-              {recap.headline}
-            </Text>
-            {recap.note ? (
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recapText, { color: theme.textSecondary }]}>
-                {recap.note}
+            <View style={styles.verified} testID="summary-recap-verified">
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.hint, { color: theme.textMuted }]}>
+                {t("home.summary.recapVerifiedLabel")}
               </Text>
-            ) : null}
+              <Line label={t("home.summary.recapCompletedByYou")} value={String(recap.facts.sessions.completedByYou)} testID="recap-completed-by-you" />
+              <Line label={t("home.summary.submitted")} value={String(recap.facts.rooms.submitted)} testID="recap-submitted" />
+              <Line label={t("home.summary.inspected")} value={String(recap.facts.rooms.inspected)} testID="recap-inspected" />
+              {recap.facts.rooms.unfinished > 0 ? (
+                <Line label={t("home.summary.recapStillOpen")} value={String(recap.facts.rooms.unfinished)} testID="recap-open" />
+              ) : null}
+              {recap.facts.timing.recordedMinutes !== null ? (
+                <Line
+                  label={t("home.summary.recapRecordedTime", { count: recap.facts.timing.timedRooms })}
+                  value={formatDuration(recap.facts.timing.recordedMinutes * 60)}
+                  testID="recap-recorded-time"
+                />
+              ) : null}
+              {recapDiffers ? <SheetNotice text={t("home.summary.recapDiffers")} testID="summary-recap-differs" /> : null}
+            </View>
+            <View
+              style={[styles.aiBlock, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
+              accessible
+              accessibilityLabel={`${t("home.summary.recapAiLabel")}. ${recap.headline}${recap.note ? `. ${recap.note}` : ""}`}
+              testID="summary-recap-ai"
+            >
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
+                {"✦ "}
+                {t("home.summary.recapAiLabel")}
+              </Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recapText, { color: theme.textPrimary }]}>
+                {recap.headline}
+              </Text>
+              {recap.note ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recapText, { color: theme.textSecondary }]}>
+                  {recap.note}
+                </Text>
+              ) : null}
+            </View>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]} testID="summary-recap-basis">
+              {t(recap.cached ? "home.summary.recapBasisSaved" : "home.summary.recapBasis")}
+            </Text>
           </View>
         ) : (
           <>
@@ -133,6 +183,8 @@ export function CompletedShiftSummarySheet({
               {t("home.summary.recapOptional")}
             </Text>
             {recapStatus === "unavailable" ? <SheetNotice tone="warn" text={t("home.summary.recapUnavailable")} testID="summary-recap-unavailable" /> : null}
+            {recapStatus === "credits" ? <SheetNotice tone="warn" text={t("home.summary.recapCredits")} testID="summary-recap-credits" /> : null}
+            {recapStatus === "insufficient" ? <SheetNotice text={t("home.summary.recapInsufficient")} testID="summary-recap-insufficient" /> : null}
             {recapStatus === "offline" || !online ? <SheetNotice text={t("home.summary.recapOffline")} testID="summary-recap-offline" /> : null}
             <Button
               label={t("home.summary.recapRequest")}
@@ -140,7 +192,7 @@ export function CompletedShiftSummarySheet({
               onPress={onRequestRecap}
               variant="secondary"
               loading={loading}
-              disabled={loading || !online}
+              disabled={loading || !online || recapStatus === "credits" || !hasCompletedWork}
               testID="summary-recap-request"
             />
           </>
@@ -206,6 +258,10 @@ const styles = StyleSheet.create({
   lineValue: { fontSize: 16, fontWeight: "800" },
   hint: { fontSize: 12, lineHeight: 17 },
   group: { gap: 8 },
-  recap: { gap: 6 },
+  recap: { gap: 10 },
+  verified: { gap: 2 },
+  handoffBox: { borderWidth: 1, borderRadius: 14, padding: 12 },
+  handoffText: { fontSize: 13, lineHeight: 19 },
+  aiBlock: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 6 },
   recapText: { fontSize: 15, lineHeight: 21 },
 });

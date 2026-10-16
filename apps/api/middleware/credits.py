@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import HTTPException
 from core.config import settings
 from core.database import supabase
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
+
+logger = logging.getLogger(__name__)
 
 CREDIT_COSTS = {
     "task_creation": 1.0,
@@ -13,6 +17,8 @@ CREDIT_COSTS = {
     "gm_insight": 2.0,
     "assignment_suggestion": 0.5,
     "onboarding_assistant": 1.0,
+    "photo_analysis": 1.0,
+    "translation": 0.5,
 }
 
 # USD per 1,000,000 tokens. Current as of 2026-07 — re-confirm against provider
@@ -29,6 +35,8 @@ INTERACTION_MODEL = {
     "task_assignment": "gpt-4o-mini",
     "assignment_suggestion": "gpt-4o-mini",
     "onboarding_assistant": "gpt-4o-mini",
+    "photo_analysis": "gpt-4o-mini",
+    "translation": "gpt-4o-mini",
     "sop_query": "claude-sonnet",
     "gm_insight": "claude-sonnet",
     "room_prediction": "claude-sonnet",
@@ -41,6 +49,11 @@ INTERACTION_MODEL = {
     "front_desk_briefing": "claude-sonnet",
     "gm_briefing": "claude-sonnet",
 }
+
+# error_message on an ai_interactions row that records a refusal because the hotel was at its cap.
+CREDIT_LIMIT_MARKER = "credit_limit"
+# model_used on an ai_interactions row for an answer served without any provider call.
+CACHE_HIT_MODEL = "cache"
 
 DOLLARS_PER_CREDIT = 0.02  # $0.02 per AI credit per CLAUDE.md pricing
 
@@ -116,6 +129,78 @@ def compute_credits(interaction_type: str, prompt_tokens: int, completion_tokens
     return round(max(floor, token_credits), 4)
 
 
+CAP_REACHED_MESSAGE = "Monthly AI credit cap reached. Upgrade or wait for next billing period."
+BASE_FEE_CENTS = 9900  # $99.00
+
+
+def _raise_if_cap_reached(hotel_id: str, ledger: dict) -> None:
+    """The one cap rule, shared by the pre-flight and the post-call deduction."""
+    sub_result = supabase.table("subscriptions")\
+        .select("cap_cents, plan_status")\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    if sub_result and sub_result.data:
+        sub = sub_result.data
+        if sub.get("cap_cents"):
+            current_overage = ledger.get("overage_cost_cents", 0)
+            if current_overage >= sub["cap_cents"] - BASE_FEE_CENTS:
+                raise HTTPException(status_code=402, detail=CAP_REACHED_MESSAGE)
+
+
+def _deduct_within_cap(hotel_id: str, credits: float) -> bool | None:
+    """Add ``credits`` to the open ledger unless the cap is reached, as ONE database statement.
+
+    Concurrent calls serialise on the ledger row and each sees the previous one's total, so the ledger passes
+    the cap by at most the single call that crossed it (the old separate read and increment let every
+    overlapping call through). True = added, False = refused, None = the function does not exist yet
+    (migration 217 not applied), in which case the caller uses the previous path. Any other failure raises.
+    """
+    try:
+        result = supabase.rpc("deduct_ai_credits", {
+            "p_hotel_id": hotel_id,
+            "p_credits": credits,
+            "p_base_fee_cents": BASE_FEE_CENTS,
+        }).execute()
+    except Exception as exc:
+        text = f"{getattr(exc, 'code', '')} {getattr(exc, 'message', '')} {exc}"
+        if "PGRST202" in text or "Could not find the function" in text:
+            logger.warning("deduct_ai_credits() missing; falling back to non-atomic credit deduction")
+            return None
+        raise
+    data = getattr(result, "data", None)
+    return data if isinstance(data, bool) else None
+
+
+async def assert_ai_allowance(
+    hotel_id: str,
+    user_id: str | None = None,
+    interaction_type: str | None = None,
+) -> None:
+    """Pre-flight for every paid AI call: refuse BEFORE the provider is contacted once the hotel is at its cap.
+
+    Without this the cap was only enforced after the model had already run, so a hotel past its cap kept
+    incurring provider cost on every retry (and those tokens were never recorded). Read-only: nothing is
+    deducted here; the real deduction still happens after the call from the provider's actual usage.
+    A refusal is recorded (no tokens, no credits) so cap rejections are visible in the usage summary.
+    """
+    if settings.ai_provider.strip().lower() == "ollama":
+        return
+    try:
+        _raise_if_cap_reached(hotel_id, get_or_create_current_period_ledger(hotel_id))
+    except HTTPException:
+        if user_id and interaction_type:
+            try:
+                await log_ai_interaction(
+                    hotel_id=hotel_id, user_id=user_id, interaction_type=interaction_type,
+                    model_used="none", credits_charged=0, success=False, error_message=CREDIT_LIMIT_MARKER,
+                )
+            except Exception:
+                pass  # a log that cannot be written must not turn a clean refusal into a 500
+        raise
+
+
 async def check_and_deduct_credits(
     hotel_id: str,
     interaction_type: str,
@@ -136,31 +221,35 @@ async def check_and_deduct_credits(
 
     ledger = get_or_create_current_period_ledger(hotel_id)
 
-    # Check cap
-    sub_result = supabase.table("subscriptions")\
-        .select("cap_cents, plan_status")\
-        .eq("tenant_id", hotel_id)\
-        .maybe_single()\
-        .execute()
+    applied = _deduct_within_cap(hotel_id, credits)
+    if applied is True:
+        return credits
+    if applied is False:
+        # Refused by the atomic deduction: at the cap, or there is no open ledger row to bill.
+        # Re-reading the ledger tells the two apart; with no open row nothing is billed, as before.
+        _raise_if_cap_reached(hotel_id, get_or_create_current_period_ledger(hotel_id))
+        logger.warning("AI credit deduction found no open ledger row for hotel_id=%s", hotel_id)
+        return credits
 
-    if sub_result and sub_result.data:
-        sub = sub_result.data
-        if sub.get("cap_cents"):
-            current_overage = ledger.get("overage_cost_cents", 0)
-            base_fee = 9900  # $99.00
-            if current_overage >= sub["cap_cents"] - base_fee:
-                raise HTTPException(
-                    status_code=402,
-                    detail="Monthly AI credit cap reached. Upgrade or wait for next billing period."
-                )
-
-    # Deduct credits
+    # deduct_ai_credits() is not available yet (migration 217 unapplied): the previous read-then-increment.
+    _raise_if_cap_reached(hotel_id, ledger)
     supabase.rpc("increment_credits_used", {
         "p_hotel_id": hotel_id,
         "p_credits": credits
     }).execute()
 
     return credits
+
+
+async def record_cache_hit(hotel_id: str, user_id: str, interaction_type: str) -> None:
+    """Note that an answer was served from a cache (no provider call, no charge). Best-effort: never raises."""
+    try:
+        await log_ai_interaction(
+            hotel_id=hotel_id, user_id=user_id, interaction_type=interaction_type,
+            model_used=CACHE_HIT_MODEL, credits_charged=0, success=True,
+        )
+    except Exception:
+        pass
 
 
 async def log_ai_interaction(

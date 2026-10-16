@@ -197,11 +197,17 @@ function reasonLine(reason: RecommendationReason, rec: Recommendation, t: Transl
   }
 }
 
+const WHY_ESTIMATE_KEY = {
+  history: "home.why.estimateHistory",
+  room_type: "home.why.estimate",
+  general: "home.why.estimateGeneral",
+} as const;
+
 export function describeRecommendation(rec: Recommendation, t: Translate, ctx: TextContext = {}): RecommendationCopy {
   const reasons = [rec.reason, ...rec.alsoApplies];
   const reasonLines = reasons.map((reason) => reasonLine(reason, rec, t, ctx));
   // The typical length is an estimate from the room type, never a promise.
-  const estimate = t("home.why.estimate", { minutes: rec.timing.estimateMinutes });
+  const estimate = t(WHY_ESTIMATE_KEY[rec.timing.estimateBasis], { minutes: rec.timing.estimateMinutes });
   const why = [...reasonLines, estimate];
 
   let headline: string | null = null;

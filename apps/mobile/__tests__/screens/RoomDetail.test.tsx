@@ -74,6 +74,9 @@ jest.mock("@/components/housekeeping/SupplyRequestModal", () => ({ visible }: { 
   const { Text } = require("react-native");
   return visible ? <Text testID="supply-modal">supply</Text> : null;
 });
+// The assistant is optional on this screen: null = the layout has no provider (every other test).
+let mockAssistant: { openAssistant: jest.Mock } | null = null;
+jest.mock("@/lib/ai/AssistantProvider", () => ({ useAssistantOptional: () => mockAssistant }));
 jest.mock("expo-image-picker", () => ({
   requestCameraPermissionsAsync: jest.fn(),
   launchCameraAsync: jest.fn(),
@@ -213,6 +216,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
   mockParams = { roomId: "room-1" };
+  mockAssistant = null;
   mockIsOnline = true;
   mockUserRole = "housekeeper";
   mockRooms = [makeRoom()];
@@ -1768,5 +1772,127 @@ describe("Room Detail — hand-off from Home's room actions drawer", () => {
     await waitFor(() => expect(getByTestId("room-detail-back")).toBeTruthy());
     fireEvent.press(getByTestId("room-detail-back"));
     expect(mockRouter.push).toHaveBeenCalledWith(destination);
+  });
+});
+
+
+/* ─── Readiness, help and guidance (Phase 3) ───────────────────────────────── */
+
+describe("Room Detail — readiness, help and guidance", () => {
+  it("adds the cleaning estimate and the maintenance record to the pre-entry facts, labelled for what they are", async () => {
+    mockRooms = [vacantDeparture({ rooms: { room_types: { name: "King Suite", code: "KS", base_clean_minutes: 30 } } })];
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("before-cleaning-view")).toBeTruthy());
+    expect(getByText("rooms.readiness.estimateRoomType")).toBeTruthy();
+    expect(getByText("rooms.readiness.workOrderNone")).toBeTruthy();
+  });
+
+  it("calls the estimate general when the hotel has none for this room type, and names an open work order", async () => {
+    mockRooms = [vacantDeparture({ open_work_order_id: "wo-1", open_work_order_number: "1042", open_work_order_title: "Leaking faucet" })];
+    const { getByTestId, getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("before-cleaning-view")).toBeTruthy());
+    expect(getByText("rooms.readiness.estimateGeneral")).toBeTruthy();
+    expect(queryByText("rooms.readiness.estimateRoomType")).toBeNull();
+    expect(getByText("rooms.readiness.workOrderOpen")).toBeTruthy();
+    expect(getByText("rooms.guidance.workOrder")).toBeTruthy();
+  });
+
+  it("keeps unknown checkout distinct from confirmed checkout", async () => {
+    mockRooms = [vacantDeparture()];
+    const confirmed = renderScreen();
+    await waitFor(() => expect(confirmed.getByTestId("before-cleaning-view")).toBeTruthy());
+    expect(confirmed.getByTestId("entry-check-checkout").props.accessibilityLabel).toBe("rooms.work.checks.checkoutConfirmed");
+    confirmed.unmount();
+
+    // A departure with no confirmed checkout is not "safe to enter": it cannot be started from here.
+    mockRooms = [vacantDeparture({ actual_checkout_at: null })];
+    const unknown = renderScreen();
+    await waitFor(() => expect(unknown.getByTestId("room-detail-header")).toBeTruthy());
+    expect(unknown.queryByTestId("before-cleaning-view")).toBeNull();
+    expect(unknown.queryByTestId("sticky-start")).toBeNull();
+  });
+
+  it("offers Ask about this room to a housekeeper whose layout has the assistant, and opens it with the room", async () => {
+    mockAssistant = { openAssistant: jest.fn() };
+    mockRooms = [vacantDeparture()];
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-help-card")).toBeTruthy());
+    fireEvent.press(getByTestId("room-help-ask"));
+    expect(mockAssistant.openAssistant).toHaveBeenCalledWith({ contextType: "room", entityId: "room-1", label: "101" });
+    // Asking changes nothing about the room or the person's actions.
+    expect(mockApiPost).not.toHaveBeenCalled();
+    expect(getByTestId("sticky-start")).toBeTruthy();
+  });
+
+  it("offers no assistant to a role that has none, or when the layout provides none", async () => {
+    mockRooms = [vacantDeparture()];
+    mockAssistant = { openAssistant: jest.fn() };
+    mockUserRole = "engineer";
+    const first = renderScreen();
+    await waitFor(() => expect(first.getByTestId("before-cleaning-view")).toBeTruthy());
+    expect(first.queryByTestId("room-help-card")).toBeNull();
+    first.unmount();
+
+    mockUserRole = "housekeeper";
+    mockAssistant = null;
+    const second = renderScreen();
+    await waitFor(() => expect(second.getByTestId("before-cleaning-view")).toBeTruthy());
+    expect(second.queryByTestId("room-help-card")).toBeNull();
+  });
+
+  it("while cleaning: Ask is about the cleaning session, Report an issue opens the existing form, and the checklist stays manual", async () => {
+    mockAssistant = { openAssistant: jest.fn() };
+    mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL", clean_type_label: "Full" })];
+    seedSession([item("a", "Change linens", true, true), item("b", "Clean bathroom", true, false), item("c", "Empty trash", false, false)]);
+    const { getByTestId, getByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("active-cleaning-view")).toBeTruthy());
+
+    expect(getByText("rooms.guidance.itemsLeft")).toBeTruthy();
+    fireEvent.press(getByTestId("room-help-ask"));
+    expect(mockAssistant.openAssistant).toHaveBeenCalledWith({ contextType: "cleaningSession", entityId: "room-1", label: "101" });
+
+    jest.useFakeTimers();
+    fireEvent.press(getByTestId("room-help-report"));
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    jest.useRealTimers();
+    expect(getByTestId("issue-modal")).toBeTruthy();
+    // Nothing the assistant does can tick an item or complete the room.
+    expect(useCleanSessionStore.getState().sessions["room-1"].checklist.filter((entry) => entry.checked)).toHaveLength(1);
+  });
+
+  it("never nudges toward a restricted room, but the hub still lets the person ask about it", async () => {
+    mockAssistant = { openAssistant: jest.fn() };
+    mockRooms = [vacantDeparture({ dnd_flag: true })];
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("room-detail-header")).toBeTruthy());
+    expect(queryByTestId("sticky-start")).toBeNull();
+    expect(queryByTestId("room-guidance")).toBeNull();
+    fireEvent.press(getByTestId("room-detail-more"));
+    expect(getByTestId("more-ask")).toBeTruthy();
+  });
+
+  it("does not add the assistant to the hub for a supervisor", async () => {
+    mockAssistant = { openAssistant: jest.fn() };
+    mockUserRole = "housekeeping_supervisor";
+    mockRooms = [vacantDeparture()];
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    fireEvent.press(getByTestId("sticky-more"));
+    expect(getByTestId("more-issue")).toBeTruthy();
+    expect(queryByTestId("more-ask")).toBeNull();
+    expect(queryByTestId("room-help-card")).toBeNull();
+  });
+
+  it("adds Ask about this room to the Report / More hub, last, and closes the hub when used", async () => {
+    mockAssistant = { openAssistant: jest.fn() };
+    mockRooms = [vacantDeparture()];
+    const { getByTestId, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("sticky-more")).toBeTruthy());
+    fireEvent.press(getByTestId("sticky-more"));
+    fireEvent.press(getByTestId("more-ask"));
+    expect(mockAssistant.openAssistant).toHaveBeenCalledWith({ contextType: "room", entityId: "room-1", label: "101" });
+    expect(queryByTestId("more-ask")).toBeNull();
   });
 });

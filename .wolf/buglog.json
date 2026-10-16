@@ -33642,6 +33642,383 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2039",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "Mobile copilot never rendered a backend reply and its Create buttons failed: chat showed the generic error / no previews, work orders POSTed to /work-orders, guest requests POSTed a bare object",
+      "file": "apps/mobile/lib/ai/copilotChat.ts",
+      "root_cause": "Mobile read a flat {message, task_preview} shape but POST /ai/copilot/chat answers {data:{response_type, message, tasks[]/work_orders[]/requests[]}}; confirm calls used the wrong route/shape (endpoints take JSON arrays)",
+      "fix": "lib/ai/contract.ts is the one strict adapter (malformed => invalid_response, never an action); lib/ai/drafts.ts builds the array bodies for the three /ai/*/confirm endpoints; success only when data.created_count >= 1",
+      "tags": [
+        "mobile",
+        "ai",
+        "copilot",
+        "contract"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2040",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "AI copilot history stored under one unscoped AsyncStorage key (@patelrep/copilot_history): the next person on the device saw the previous person's conversation",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "No tenant/user in the key; never cleared on sign-out or account switch",
+      "fix": "History is per tenant:user in the secure store (lib/ai/history.ts), text-only, 20 msgs / 24h, redacted; legacy key is deleted unread; appStore.setUser calls resetAssistantSession() on any identity change",
+      "tags": [
+        "mobile",
+        "ai",
+        "privacy",
+        "history"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2041",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "POST /ai/copilot/chat trusted client role/intent hints: a housekeeper could hint insight_query/task_assignment (GM insights, assignment previews); confirm endpoints had no role gate, WO/GR confirms saved unverified rooms silently and could double-create; GET /ai/insights open to every role",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "detect_intent returned the client hint verbatim; context went straight into prompts; confirm_work_orders/guest_requests resolved room numbers with no failure path",
+      "fix": "services/ai/authorization.py (per-intent role matrix, hint whitelist, context sanitising, tenant/assignment-scoped ids, 404-for-everything); confirms verify rooms before any write, cap batches, dedupe (WO client_request_id, GR 2-minute window); /ai/insights GM-only",
+      "tags": [
+        "api",
+        "ai",
+        "rbac",
+        "tenant-isolation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2042",
+      "timestamp": "2026-10-15T00:00:00Z",
+      "error_message": "Floating copilot auto-bought a second paid AI briefing for housekeepers on mount (fetchShiftBriefing) with a hardcoded 90% confidence; primary 'Reorder my queue' and secondary 'Not now' chips were sent to the model as chat text; SOP detail 'Ask about this SOP' did nothing",
+      "file": "apps/mobile/lib/ai/copilotCard.ts",
+      "root_cause": "Corner card and Home had separate briefing paths; card buttons were generic 'send my label' handlers",
+      "fix": "One shared briefing source (lib/ai/shiftBriefingSource.ts): Home publishes the deterministic briefing, only Home's explicit request fills the AI cache, the card reads read-only with provenance instead of confidence; card buttons open My Rooms / close; inert SOP button removed",
+      "tags": [
+        "mobile",
+        "ai",
+        "briefing",
+        "credits"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T00:00:00Z"
+    },
+    {
+      "id": "bug-2043",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Deep-linked copilot prefill sent without the room_id the screen was launched with",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "The prefill effect ran in the same pass as launchContext, before the context state was applied",
+      "fix": "Send the prefill only once context.entityId matches the launched id (subjectReady)",
+      "tags": [
+        "mobile",
+        "ai",
+        "context",
+        "ordering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2044",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Child-launched assistant context was wiped on first mount",
+      "file": "apps/mobile/lib/ai/AssistantProvider.tsx",
+      "root_cause": "The provider's scope-reset effect runs after child effects and reset the context a screen had just launched",
+      "fix": "Track the previous scope and reset only when it actually changes; context also now belongs to its origin screen (dropped when leaving it, kept for /copilot)",
+      "tags": [
+        "mobile",
+        "ai",
+        "provider",
+        "effects"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2045",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Full chat did not follow a tall reply; newest messages hidden behind the composer",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "FlatList.scrollToEnd estimates the last row offset before it is measured, and our own smooth scroll events flipped the near-bottom flag",
+      "fix": "Scroll via getScrollResponder().scrollToEnd from onContentSizeChange, ignore scroll events for 400ms after our own scroll, keep a New reply pill for readers who scrolled up",
+      "tags": [
+        "mobile",
+        "ai",
+        "scroll",
+        "flatlist"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2046",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "Restored conversation showed a proposal's sentence with no card, and a stale next-room answer",
+      "file": "apps/mobile/lib/ai/conversationState.ts",
+      "root_cause": "Only guest-request previews were excluded from saved history; task/work-order proposals and local snapshots were saved as bare text",
+      "fix": "Any proposal and any local live-data snapshot (and the question before it) is excluded from saved history; Phase 1 saved-history test updated to the new rule",
+      "tags": [
+        "mobile",
+        "ai",
+        "history"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2047",
+      "timestamp": "2026-10-15T20:00:00Z",
+      "error_message": "ThemeSourceAudit failed: full assistant followed the app theme",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Protected decision D-11 keeps Copilot content always dark; the redesign used useTheme",
+      "fix": "Assistant palette pinned to darkTheme (palette.ts), BottomSheet gained an opt-in palette prop; audit test left untouched",
+      "tags": [
+        "mobile",
+        "ai",
+        "theme",
+        "D-11"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T20:00:00Z"
+    },
+    {
+      "id": "bug-2048",
+      "error_message": "A housekeeper a room was reassigned away from (or who had it on an earlier day) could still use it as assistant context",
+      "file": "apps/api/services/ai/authorization.py",
+      "root_cause": "resolve_trusted_context accepted ANY room_assignments row for the user, not the room's current assignment",
+      "fix": "Only the latest assignment_date counts; the user must hold an assignment on that latest date. Tests for reassigned / still-assigned added",
+      "tags": [
+        "api",
+        "ai",
+        "authorization",
+        "reassignment"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T23:30:00Z",
+      "timestamp": "2026-10-15T23:30:00Z"
+    },
+    {
+      "id": "bug-2049",
+      "error_message": "buildRoomInsight ranked rooms with the legacy smart queue ('#N of M in your smart order') with no callers",
+      "file": "apps/mobile/lib/ai/briefing.ts",
+      "root_cause": "Dead code from the old insight card; a second ordering that could disagree with the supervisor sequence if ever revived",
+      "fix": "Removed buildRoomInsight/RoomInsight (traced consumers: none); buildSmartQueue stays (it is the dashboard's within-tier routing)",
+      "tags": [
+        "mobile",
+        "ai",
+        "ordering",
+        "dead-code"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T23:30:00Z",
+      "timestamp": "2026-10-15T23:30:00Z"
+    },
+    {
+      "id": "bug-2050",
+      "error_message": "Briefing headline claimed 'it's the fastest path through your list' for what is just the supervisor's first room",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Unverifiable optimisation claim in deterministic copy",
+      "fix": "Reworded to 'it's first in your route' (en + es)",
+      "tags": [
+        "mobile",
+        "copy",
+        "briefing"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-15T23:30:00Z",
+      "timestamp": "2026-10-15T23:30:00Z"
+    },
+    {
+      "id": "bug-2051",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "AI shift recap treated every assigned room as completed work",
+      "file": "apps/api/services/ai/housekeeper_shift_recap.py",
+      "root_cause": "The app sent myRooms (assigned, any status, truncated to 60) and the prompt said the rooms were already complete; pace claims used estimated minutes",
+      "fix": "Server builds an aggregate from assignments + room_status + completed clean sessions in the shift window; prompt gets only facts; output validated against them; 409 with no evidence",
+      "tags": [
+        "api",
+        "ai",
+        "recap",
+        "data-contract"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2052",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Database Migration Gate failed: 216_ai_translation_cache.sql destructive without review markers",
+      "file": "supabase/migrations/216_ai_translation_cache.sql",
+      "root_cause": "Drops and re-adds the ai_interactions CHECK without the reviewed-destructive marker and rollback plan",
+      "fix": "Added the two marker lines (no SQL change)",
+      "tags": [
+        "migration",
+        "ci"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2053",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "RoomDetail test ran out of memory (Maximum update depth exceeded)",
+      "file": "apps/mobile/lib/sop/useRelatedProcedures.ts",
+      "root_cause": "setDocs([]) with a new array on every disabled run, and an isOnline dependency that is a new object under a selector-ignoring store mock",
+      "fix": "Keep the same empty array and reduce isOnline to a boolean",
+      "tags": [
+        "mobile",
+        "hooks",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2054",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Notifications screen showed 'You are all caught up' when the request failed",
+      "file": "apps/mobile/app/(app)/notifications/index.tsx",
+      "root_cause": "load() caught the error and set an empty list",
+      "fix": "Failed load keeps previous rows and shows an error/stale state with retry",
+      "tags": [
+        "mobile",
+        "notifications"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2055",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Header unread count showed the raw key alertsScreen.unreadSuffix",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Only _one/_other keys existed but the app uses i18next v3 plurals (key / key_plural)",
+      "fix": "Added unreadSuffix and unreadSuffix_plural (en + es)",
+      "tags": [
+        "mobile",
+        "i18n",
+        "plural"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2056",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Finish-shift warning said '2 rooms have not been started' while totals said 1 not started + 1 in progress",
+      "file": "apps/mobile/components/home/FinishShiftReviewSheet.tsx",
+      "root_cause": "The warning counted remaining (including the open room)",
+      "fix": "Warning now counts totals.notStarted",
+      "tags": [
+        "mobile",
+        "shift"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2057",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "RBAC matrix test failed after editing ai_copilot.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "Generated file records route line numbers",
+      "fix": "Regenerated with scripts/generate_rbac_matrix.py",
+      "tags": [
+        "api",
+        "rbac"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2058",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "Review: housekeeper room AI context used the newest historical assignment, not a valid current one",
+      "file": "apps/api/services/ai/authorization.py",
+      "root_cause": "latest assignment_date was compared only against other rows for that room, so a two-day-old row (or an overnight shift's lapsed row) still granted context",
+      "fix": "_holds_current_assignment: today's hotel-local row decides; yesterday's counts only with an open shift that began yesterday and no row for today",
+      "tags": [
+        "api",
+        "ai",
+        "authorization",
+        "timezone"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2059",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "Review: indexed SOP upload with no approval record was retrieved and cited as approved hotel policy",
+      "file": "apps/api/services/ai/sop_access.py",
+      "root_cause": "'no controlled_documents link = visible' (right for browsing) was reused by RAG and assistant context",
+      "fix": "require_approved flag used by sop_rag.query_sop and resolve_trusted_context; ai_ready now needs approval",
+      "tags": [
+        "api",
+        "ai",
+        "sop"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2060",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "Review: concurrent paid AI calls could all pass a stale cap read and be billed past the cap",
+      "file": "apps/api/middleware/credits.py",
+      "root_cause": "cap read and increment_credits_used were separate statements",
+      "fix": "migration 217 deduct_ai_credits() (check+increment in one UPDATE) with fallback until applied",
+      "tags": [
+        "api",
+        "billing",
+        "concurrency",
+        "migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2061",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "useMyRoomsData > keeps the rooms on screen, marked stale, when a refresh fails (Received [])",
+      "file": "apps/mobile/__tests__/lib/useMyRoomsData.test.tsx",
+      "root_cause": "fixtures hard-code 2026-10-14 with the real clock; hook drops answers for a day that is over",
+      "fix": "pin only Date with jest.useFakeTimers({now, doNotFake:[timers...]})",
+      "tags": [
+        "mobile",
+        "jest",
+        "clock"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
     }
   ]
 }

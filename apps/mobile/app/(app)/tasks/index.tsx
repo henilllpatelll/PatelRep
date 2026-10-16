@@ -9,12 +9,20 @@ import { useAppStore } from "@/stores/appStore";
  *  every other role that shares this tab keeps the existing screen. */
 export default function TasksRoute() {
   const { user } = useAppStore();
-  const { taskId } = useLocalSearchParams<{ taskId?: string }>();
+  const { taskId, add, prefill } = useLocalSearchParams<{ taskId?: string; add?: string; prefill?: string }>();
   const linkedTaskId = taskIdFromNotification({ task_id: taskId });
   // The id is single-use: once the screen has looked it up, drop it so a re-render never re-opens it.
   const clearLink = useCallback(() => router.setParams({ taskId: undefined }), []);
+  // "Create a task" from the assistant opens the Add Task sheet once, with whatever was typed as its starting text.
+  const clearAdd = useCallback(() => router.setParams({ add: undefined, prefill: undefined }), []);
   return user?.role === "housekeeper" ? (
-    <HousekeeperTasksScreen linkedTaskId={linkedTaskId} onLinkHandled={clearLink} />
+    <HousekeeperTasksScreen
+      linkedTaskId={linkedTaskId}
+      onLinkHandled={clearLink}
+      openAdd={add === "1"}
+      addPrefill={typeof prefill === "string" ? prefill : null}
+      onAddHandled={clearAdd}
+    />
   ) : (
     <StaffTasksScreen />
   );

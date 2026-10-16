@@ -1,24 +1,31 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from middleware.auth import get_current_user, CurrentUser, require_role
-from middleware.credits import check_and_deduct_credits, log_ai_interaction
+from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction, record_cache_hit
 from models.requests import (
     CopilotChatRequest, HousekeepingBriefingRequest, HousekeeperShiftRecapRequest,
     SupervisorBriefingRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
     TaskPreview, WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
     AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
-    UpdateAIModelRouteRequest,
+    UpdateAIModelRouteRequest, TaskTranslationRequest,
 )
 from core.database import supabase
+from core.feature_flags import is_feature_enabled, require_feature
+from core.roles import GM_ONLY_ROLES
 from services.ai.task_parser import hotel_zone, normalize_due_at, parse_nl_tasks, try_fast_path
 from services.ai.insights import generate_gm_insights
 from services.ai.work_order_parser import parse_work_orders
 from services.ai.guest_request_parser import parse_guest_requests
 from services.ai.assignment_parser import parse_assignments
+from services.ai.sop_access import SopUnavailable
 from services.ai.sop_rag import query_sop
+from services.ai.photo_analysis import MAX_NOTE_CHARS, MAX_UPLOAD_BYTES, PhotoRejected, analyze_photo, prepare_image
+from services.ai.providers import AIProviderConfigurationError
+from services.ai.usage_summary import summarize as summarize_usage
+from services.ai.task_translation import task_source_hash, translate_task_fields
 from services.ai.housekeeping_briefing import generate_shift_briefing
-from services.ai.housekeeper_shift_recap import generate_shift_recap
+from services.ai.housekeeper_shift_recap import generate_shift_recap, load_shift_facts
 from services.ai.supervisor_briefing import generate_supervisor_briefing
 from services.ai.engineer_briefing import generate_engineer_briefing
 from services.ai.front_desk_briefing import generate_front_desk_briefing
@@ -26,6 +33,14 @@ from services.ai.gm_briefing import generate_gm_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
 from services.inventory import get_low_stock_parts_summary
 from services.policy import check_action_permitted
+from services.ai.authorization import (
+    parse_intent_hint,
+    require_creation_role,
+    resolve_intent,
+    resolve_trusted_context,
+    sanitize_context,
+    PERMISSION_DENIED,
+)
 from services.ai.governance import (
     InvalidRecommendationTransition,
     calculate_recommendation_metrics,
@@ -35,7 +50,14 @@ from services.ai.governance import (
 from services.ai.model_routing import DEFAULT_MODEL_ROUTES
 from services.guest_recovery.contracts import resolve_sla_minutes
 from routers.guest_requests import _record_guest_request_event
+from routers.work_orders import (
+    SLA_MINUTES as WORK_ORDER_SLA_MINUTES,
+    _find_replayed_work_order,
+    _is_unique_violation,
+    _seed_checklist_from_template,
+)
 from routers.assets import get_recurring_issues
+import asyncio
 import openai
 import anthropic
 import time
@@ -43,6 +65,9 @@ import logging
 from typing import Optional
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+# Most recent audit-log rows read for one usage summary (the response says when this truncated).
+USAGE_ROW_LIMIT = 20000
 logger = logging.getLogger(__name__)
 
 
@@ -258,6 +283,7 @@ def _finalize_parsed_tasks(hotel_id: str, tasks: list[dict], hotel_timezone: Opt
       number is kept as text (``room_number_display``) for the person to correct.
     * ``due_at`` is re-validated here (hotel zone, not in the past); anything unusable is
       dropped and flagged ``due_unresolved`` so the client asks for a correction.
+    * ``location_text`` (a place that is not a room) is kept as plain text, trimmed.
     * Drafts never carry an assignee: the parser does not choose who does the work.
     """
     zone = hotel_zone(hotel_timezone)
@@ -267,6 +293,9 @@ def _finalize_parsed_tasks(hotel_id: str, tasks: list[dict], hotel_timezone: Opt
         task["room_number_display"] = rn
         task["due_at"], task["due_unresolved"] = normalize_due_at(task.get("due_at"), zone)
         task.pop("assigned_to", None)
+        # A place that is not a room stays text for the person to review; it is never a verified room.
+        place = task.get("location_text")
+        task["location_text"] = place.strip()[:255] if isinstance(place, str) and place.strip() else None
 
 
 @router.post("/copilot/chat")
@@ -275,8 +304,17 @@ async def copilot_chat(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     start = time.time()
-    intent_hint = (request.context or {}).get("intent_hint") if request.context else None
-    intent = detect_intent(request.message, intent_hint)
+    # The client's role, hint and context are untrusted: the role is the verified JWT's,
+    # the hint must be on the whitelist, and every context identifier is re-checked
+    # against this hotel (and, for floor staff, against their own assignments).
+    intent_hint = parse_intent_hint(request.context)
+    safe_context = sanitize_context(request.context)
+    trusted_context = resolve_trusted_context(
+        supabase, current_user.hotel_id, current_user.user_id, current_user.role, safe_context
+    )
+    intent = resolve_intent(detect_intent(request.message, intent_hint), intent_hint, current_user.role)
+    # Only server-verified facts reach a prompt (never the client's free-text context).
+    parser_context = {"room_number": trusted_context["room_number"]} if trusted_context.get("room_number") else None
 
     intent_to_log = {
         "task_creation": "task_creation",
@@ -311,6 +349,7 @@ async def copilot_chat(
                 }
             else:
                 ctx = _get_hotel_context(current_user.hotel_id)
+                await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
                 result = parse_nl_tasks(
                     message=request.message,
                     hotel_name=ctx["hotel_name"],
@@ -319,7 +358,7 @@ async def copilot_chat(
                     shift_name=ctx["shift_name"],
                     shift_start=ctx["shift_start"],
                     shift_end=ctx["shift_end"],
-                    context=request.context,
+                    context=parser_context,
                     timezone_name=ctx.get("timezone"),
                 )
                 prompt_tokens = result["prompt_tokens"]
@@ -341,6 +380,7 @@ async def copilot_chat(
                 }
 
         elif intent == "work_order_creation":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = parse_work_orders(request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -361,6 +401,7 @@ async def copilot_chat(
             }
 
         elif intent == "guest_request_creation":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = parse_guest_requests(request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -381,6 +422,7 @@ async def copilot_chat(
             }
 
         elif intent == "task_assignment":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = parse_assignments(request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -400,7 +442,7 @@ async def copilot_chat(
             }
 
         elif intent == "work_order_triage":
-            wos = (request.context or {}).get("work_orders") or []
+            wos = safe_context.get("work_orders") or []
             response_payload = {
                 "response_type": "answer",
                 "message": _build_work_order_triage_summary(wos),
@@ -422,6 +464,7 @@ async def copilot_chat(
             }
 
         elif intent == "insight_query":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = generate_gm_insights(current_user.hotel_id, query=request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -437,42 +480,37 @@ async def copilot_chat(
             }
 
         elif intent == "sop_query":
-            sop_check = (
-                supabase.table("sop_documents")
-                .select("id", count="exact")
-                .eq("tenant_id", current_user.hotel_id)
-                .eq("indexing_status", "indexed")
-                .limit(1)
-                .execute()
+            # Answers come only from approved, indexed procedures of THIS hotel; with a document in
+            # context (already verified above) they come only from that document.
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
+            sop_result = await asyncio.to_thread(
+                query_sop,
+                query=request.message,
+                hotel_id=current_user.hotel_id,
+                user_id=current_user.user_id,
+                document_id=trusted_context.get("document_id"),
+                language=safe_context.get("language"),
+                suggest_tasks=False,
             )
-            if not sop_check.count:
-                response_payload = {
-                    "response_type": "answer",
-                    "message": ("No SOPs have been uploaded yet. Upload your procedures "
-                                "in the SOP Library and I'll be able to answer questions about them."),
-                    "sources": [],
-                    "credits_used": 0,
-                    "model_used": None,
-                }
-            else:
-                sop_result = query_sop(
-                    query=request.message,
-                    hotel_id=current_user.hotel_id,
-                    user_id=current_user.user_id,
-                )
-                prompt_tokens = sop_result.get("prompt_tokens", 0)
-                completion_tokens = sop_result.get("completion_tokens", 0)
+            prompt_tokens = sop_result.get("prompt_tokens", 0)
+            completion_tokens = sop_result.get("completion_tokens", 0)
+            # No model call (nothing to search, nothing relevant) means nothing to bill.
+            if prompt_tokens or completion_tokens:
                 credits = await check_and_deduct_credits(
                     current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
                 )
-                response_payload = {
-                    "response_type": "answer",
-                    "message": sop_result["answer"],
-                    "sources": sop_result.get("sources", []),
-                    "suggested_tasks": sop_result.get("suggested_tasks", []),
-                    "credits_used": credits,
-                    "model_used": "claude-sonnet-4-6",
-                }
+            response_payload = {
+                "response_type": "answer",
+                "message": sop_result["answer"],
+                "sources": sop_result.get("sources", []),
+                "grounded": sop_result.get("grounded", False),
+                "reason": sop_result.get("reason"),
+                "high_risk": sop_result.get("high_risk", False),
+                "answer_language": sop_result.get("answer_language"),
+                "related_documents": sop_result.get("related_documents", []),
+                "credits_used": credits,
+                "model_used": "claude-sonnet-4-6" if (prompt_tokens or completion_tokens) else None,
+            }
 
         else:
             response_payload = {
@@ -491,7 +529,8 @@ async def copilot_chat(
     except HTTPException:
         raise
     except (openai.RateLimitError, openai.AuthenticationError,
-            anthropic.RateLimitError, anthropic.AuthenticationError) as exc:
+            anthropic.RateLimitError, anthropic.AuthenticationError, SopUnavailable,
+            AIProviderConfigurationError) as exc:
         latency = int((time.time() - start) * 1000)
         await log_ai_interaction(
             hotel_id=current_user.hotel_id, user_id=current_user.user_id,
@@ -510,6 +549,10 @@ async def copilot_chat(
         )
         logger.exception("AI copilot request failed hotel=%s intent=%s", current_user.hotel_id, intent)
         raise HTTPException(status_code=500, detail="AI service temporarily unavailable. Please try again later.")
+
+    response_payload["intent"] = intent
+    if trusted_context:
+        response_payload["trusted_context"] = trusted_context
 
     latency = int((time.time() - start) * 1000)
     await log_ai_interaction(
@@ -544,6 +587,7 @@ async def housekeeping_shift_briefing(
             .maybe_single()\
             .execute()
         layout_text = _layout_to_context_text((hotel.data or {}).get("layout") if hotel else None)
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "housekeeping_briefing")
         result = generate_shift_briefing(
             [room.model_dump() for room in request.rooms],
             request.language,
@@ -574,24 +618,69 @@ async def housekeeping_shift_briefing(
         raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
 
 
+# A recap is only worth buying once per unchanged shift: the answer is kept per
+# person + shift facts + language, so a second tap (or a second device) on the same
+# facts returns it without another model call or another charge.
+_RECAP_CACHE_TTL_S = 12 * 60 * 60
+_RECAP_CACHE_MAX = 500
+_recap_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+def _recap_cache_get(key: tuple) -> dict | None:
+    hit = _recap_cache.get(key)
+    if not hit:
+        return None
+    if time.time() - hit[0] > _RECAP_CACHE_TTL_S:
+        _recap_cache.pop(key, None)
+        return None
+    return hit[1]
+
+
+def _recap_cache_put(key: tuple, value: dict) -> None:
+    if len(_recap_cache) >= _RECAP_CACHE_MAX:
+        oldest = min(_recap_cache, key=lambda k: _recap_cache[k][0])
+        _recap_cache.pop(oldest, None)
+    _recap_cache[key] = (time.time(), value)
+
+
 @router.post("/housekeeping/shift-summary")
 async def housekeeping_shift_recap(
     request: HousekeeperShiftRecapRequest,
     current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
 ):
-    """AI end-of-shift recap for the housekeeper's completed rooms today.
+    """AI wording for the housekeeper's own end-of-shift recap.
 
-    The mobile app sends compact completed-room summaries and renders a local
-    heuristic recap when this returns 503, so AI failures must not leak
-    provider detail.
+    The facts are computed here from the authoritative tables (assignments, room
+    status, completed clean sessions, the shift record), never taken from the
+    client, and are returned with the wording so the app can show the verified
+    numbers separately from the AI sentence. 409 means there is no completed
+    work on record to write about (no model call, no charge). AI failures must
+    not leak provider detail.
     """
     start = time.time()
     credits = 0
     try:
-        result = generate_shift_recap(
-            [room.model_dump() for room in request.rooms],
-            request.language,
+        facts = load_shift_facts(
+            supabase,
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            shift_date=request.shift_date,
         )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shift facts temporarily unavailable.") from exc
+
+    if facts["evidence"] != "sufficient":
+        raise HTTPException(status_code=409, detail="No completed work is recorded for this shift yet.")
+
+    cache_key = (current_user.hotel_id, current_user.user_id, facts["fingerprint"], request.language)
+    cached = _recap_cache_get(cache_key)
+    if cached is not None:
+        await record_cache_hit(current_user.hotel_id, current_user.user_id, "housekeeper_shift_recap")
+        return {"data": {**cached, "facts": facts, "credits_used": 0, "cached": True}}
+
+    try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "housekeeper_shift_recap")
+        result = generate_shift_recap(facts, request.language)
         credits = await check_and_deduct_credits(
             current_user.hotel_id, "housekeeper_shift_recap",
             result["prompt_tokens"], result["completion_tokens"],
@@ -603,7 +692,9 @@ async def housekeeping_shift_recap(
             credits_charged=credits, prompt_tokens=result["prompt_tokens"],
             completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
         )
-        return {"data": {**result["recap"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+        body = {**result["recap"], "model_used": "claude-sonnet-4-6"}
+        _recap_cache_put(cache_key, body)
+        return {"data": {**body, "facts": facts, "credits_used": credits, "cached": False}}
     except HTTPException:
         raise
     except Exception as exc:
@@ -630,6 +721,7 @@ async def supervisor_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "supervisor_briefing")
         result = generate_supervisor_briefing(
             [room.model_dump() for room in request.rooms],
             [member.model_dump() for member in request.staff],
@@ -674,6 +766,7 @@ async def engineer_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "engineer_briefing")
         result = generate_engineer_briefing(
             [wo.model_dump() for wo in request.work_orders],
             request.pm_due_this_week,
@@ -717,6 +810,7 @@ async def front_desk_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "front_desk_briefing")
         result = generate_front_desk_briefing(
             [gr.model_dump() for gr in request.guest_requests],
             request.ready_room_count,
@@ -760,6 +854,7 @@ async def gm_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "gm_briefing")
         result = generate_gm_briefing(current_user.hotel_id, language)
         credits = await check_and_deduct_credits(
             current_user.hotel_id, "gm_briefing",
@@ -827,6 +922,7 @@ async def confirm_tasks(
     * Identical previews already created by the caller within the last two minutes are
       returned instead of duplicated (``meta.deduplicated``).
     """
+    require_creation_role(current_user.role)
     SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
     if not tasks:
         raise HTTPException(status_code=422, detail="At least one task is required")
@@ -898,33 +994,289 @@ async def confirm_tasks(
     }
 
 
+MAX_CONFIRM_BATCH = 20
+
+
+def _verified_room_id(hotel_id: str, room_id: Optional[str], room_number: Optional[str]) -> Optional[str]:
+    """A room reference on an AI preview, proven to belong to this hotel.
+
+    ``room_id`` (when the preview carries one) must be a room of this hotel; otherwise
+    ``room_number`` must resolve to one. A reference that cannot be verified is refused
+    rather than saved as an unlinked record, so the person can correct the preview.
+    """
+    if room_id:
+        found = (
+            supabase.table("rooms").select("id")
+            .eq("id", room_id).eq("tenant_id", hotel_id)
+            .limit(1).execute()
+        ).data or []
+        if not found:
+            raise HTTPException(status_code=400, detail="Room not found in your hotel")
+        return found[0]["id"]
+    if room_number:
+        resolved = _resolve_room_id(hotel_id, room_number)
+        if not resolved:
+            raise HTTPException(status_code=400, detail=f"Room {room_number} was not found in your hotel")
+        return resolved
+    return None
+
+
+def _check_batch(items: list) -> None:
+    if not items:
+        raise HTTPException(status_code=422, detail="At least one item is required")
+    if len(items) > MAX_CONFIRM_BATCH:
+        raise HTTPException(status_code=422, detail="Too many items in one request")
+
+
 @router.post("/work-orders/confirm")
 async def confirm_work_orders(
     work_orders: list[WorkOrderPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    from datetime import datetime, timedelta, timezone
-    SLA = {"urgent": 60, "normal": 240, "low": 480}
-    created = []
+    """Create work orders from reviewed AI previews. Body: a JSON **array** of WorkOrderPreview.
+
+    * Every room reference is verified against this hotel before the first write, so a bad
+      preview never leaves a partial batch.
+    * ``client_request_id`` makes a retried confirm return the work order the first attempt
+      created (``meta.deduplicated``) -- the same key and unique index POST /work-orders uses.
+    """
+    require_creation_role(current_user.role)
+    _check_batch(work_orders)
+
+    prepared = []
     for wo in work_orders:
-        room_id = _resolve_room_id(current_user.hotel_id, wo.room_number) if wo.room_number else None
-        priority = wo.priority
-        due_at = (datetime.now(timezone.utc) + timedelta(minutes=SLA.get(priority, 240))).isoformat()
-        result = supabase.table("work_orders").insert({
+        replayed = _find_replayed_work_order(wo.client_request_id, current_user) if wo.client_request_id else None
+        room_id = None if replayed else _verified_room_id(
+            current_user.hotel_id, str(wo.room_id) if wo.room_id else None, wo.room_number
+        )
+        prepared.append((wo, room_id, replayed))
+
+    created = []
+    deduplicated = 0
+    for wo, room_id, replayed in prepared:
+        if replayed:
+            deduplicated += 1
+            created.append(replayed)
+            continue
+        sla = WORK_ORDER_SLA_MINUTES.get(wo.priority, 240)
+        row = {
             "tenant_id": current_user.hotel_id,
             "title": wo.title,
             "description": wo.description,
             "category": wo.category,
-            "priority": priority,
+            "priority": wo.priority,
             "room_id": room_id,
             "location_text": wo.location_text,
-            "due_at": due_at,
+            "sla_minutes": sla,
+            "due_at": (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat(),
             "created_by": current_user.user_id,
             "is_ai_created": True,
-        }).execute()
+        }
+        if wo.client_request_id:
+            row["client_request_id"] = str(wo.client_request_id)
+        try:
+            result = supabase.table("work_orders").insert(row).execute()
+        except Exception as exc:
+            if wo.client_request_id and _is_unique_violation(exc, "work_orders_client_request_uniq"):
+                winner = _find_replayed_work_order(wo.client_request_id, current_user)
+                if winner:
+                    deduplicated += 1
+                    created.append(winner)
+                    continue
+            raise
         if result.data:
+            _seed_checklist_from_template(result.data[0]["id"], wo.category, current_user.hotel_id)
             created.append(result.data[0])
-    return {"data": {"created_count": len(created), "work_orders": created}}
+    if not created:
+        raise HTTPException(status_code=502, detail="The work order could not be created.")
+    return {
+        "data": {"created_count": len(created), "work_orders": created},
+        "meta": {"deduplicated": deduplicated},
+    }
+
+
+@router.post("/photo-analysis")
+async def analyze_issue_photo(
+    file: UploadFile = File(...),
+    description: Optional[str] = Form(None),
+    room_id: Optional[str] = Form(None),
+    current_user: CurrentUser = Depends(require_feature("hk_ai_photo_analysis")),
+):
+    """Suggest a work-order category and a short description from ONE photo the employee chose to send.
+
+    A suggestion only: this creates, assigns and escalates nothing, and the photo is analysed in memory and
+    never stored. The upload is validated from its own bytes (type, size, dimensions), re-encoded without
+    metadata, and billed from the provider's real token usage like every other AI call.
+    """
+    start = time.time()
+    require_creation_role(current_user.role)
+    note = (description or "").strip()[:MAX_NOTE_CHARS]
+    if room_id:
+        # Same checks as the chat: a room of THIS hotel and, for a housekeeper, one they are assigned today.
+        context = sanitize_context({"room_id": room_id})
+        resolve_trusted_context(supabase, current_user.hotel_id, current_user.user_id, current_user.role, context)
+
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    try:
+        jpeg = prepare_image(data)
+    except PhotoRejected as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc))
+
+    credits = 0
+    prompt_tokens = 0
+    completion_tokens = 0
+    try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "photo_analysis")
+        result = await asyncio.to_thread(analyze_photo, jpeg, note)
+        prompt_tokens = result["prompt_tokens"]
+        completion_tokens = result["completion_tokens"]
+        credits = await check_and_deduct_credits(current_user.hotel_id, "photo_analysis", prompt_tokens, completion_tokens)
+    except HTTPException:
+        raise
+    except (openai.RateLimitError, openai.AuthenticationError, AIProviderConfigurationError, openai.APIConnectionError, openai.APIStatusError) as exc:
+        await _log_photo_analysis(current_user, credits, 0, 0, start, False, str(exc))
+        raise HTTPException(status_code=503, detail="AI photo analysis is temporarily unavailable. You can still report the issue yourself.")
+    except Exception as exc:
+        await _log_photo_analysis(current_user, credits, 0, 0, start, False, str(exc))
+        logger.exception("AI photo analysis failed hotel=%s", current_user.hotel_id)
+        raise HTTPException(status_code=500, detail="AI photo analysis is temporarily unavailable. You can still report the issue yourself.")
+
+    await _log_photo_analysis(current_user, credits, prompt_tokens, completion_tokens, start, True, None)
+    return {
+        "data": {
+            "outcome": result["outcome"],
+            "observation": result["observation"],
+            "suggested_category": result["category"],
+            "question": result["question"],
+            "is_suggestion": True,
+            "retained": False,
+            "credits_used": credits,
+            "model_used": "gpt-4o-mini",
+        }
+    }
+
+
+@router.post("/tasks/{task_id}/translate")
+async def translate_task_instructions(
+    task_id: str,
+    request: TaskTranslationRequest,
+    current_user: CurrentUser = Depends(require_feature("hk_ai_task_translation")),
+):
+    """Translate ONE task's title and description for the person who may see it. Read-only: the stored task,
+    its status and everything else about it are untouched, and the original text is returned beside the
+    translation so it can always be shown. A cached translation is reused only while the task text is unchanged.
+    """
+    start = time.time()
+    require_creation_role(current_user.role)
+    # Same gate as using a task as assistant context: this hotel's task, and for floor staff one that is theirs.
+    context = sanitize_context({"task_id": task_id})
+    resolve_trusted_context(supabase, current_user.hotel_id, current_user.user_id, current_user.role, context)
+    row = (
+        supabase.table("tasks").select("id, title, description")
+        .eq("id", context["task_id"]).eq("tenant_id", current_user.hotel_id).limit(1).execute()
+    ).data or []
+    if not row:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    title, description = row[0].get("title") or "", row[0].get("description")
+    source_hash = task_source_hash(title, description)
+    original = {"title": title, "description": description}
+
+    try:
+        cached = (
+            supabase.table("ai_content_translations").select("translated_title, translated_body")
+            .eq("tenant_id", current_user.hotel_id).eq("source_type", "task").eq("source_id", context["task_id"])
+            .eq("source_hash", source_hash).eq("target_language", request.target_language).limit(1).execute()
+        ).data or []
+    except Exception:
+        cached = []
+        logger.warning("Translation cache unreadable hotel=%s", current_user.hotel_id, exc_info=True)
+    if cached:
+        await record_cache_hit(current_user.hotel_id, current_user.user_id, "translation")
+        return {"data": {
+            "original": original, "translated": {"title": cached[0]["translated_title"], "description": cached[0].get("translated_body")},
+            "target_language": request.target_language, "cached": True, "ai_generated": True, "credits_used": 0,
+        }}
+
+    credits, prompt_tokens, completion_tokens = 0, 0, 0
+    try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "translation")
+        result = await asyncio.to_thread(translate_task_fields, title, description, request.target_language)
+        prompt_tokens, completion_tokens = result["prompt_tokens"], result["completion_tokens"]
+        credits = await check_and_deduct_credits(current_user.hotel_id, "translation", prompt_tokens, completion_tokens)
+    except HTTPException:
+        raise
+    except (openai.RateLimitError, openai.AuthenticationError, AIProviderConfigurationError, openai.APIConnectionError, openai.APIStatusError) as exc:
+        await _log_ai_call(current_user, "translation", credits, 0, 0, start, False, str(exc))
+        raise HTTPException(status_code=503, detail="Translation is temporarily unavailable. The original instructions are unchanged.")
+    except Exception as exc:
+        await _log_ai_call(current_user, "translation", credits, 0, 0, start, False, str(exc))
+        logger.exception("Task translation failed hotel=%s", current_user.hotel_id)
+        raise HTTPException(status_code=500, detail="Translation is temporarily unavailable. The original instructions are unchanged.")
+
+    try:
+        supabase.table("ai_content_translations").insert({
+            "tenant_id": current_user.hotel_id, "source_type": "task", "source_id": context["task_id"],
+            "source_hash": source_hash, "target_language": request.target_language,
+            "translated_title": result["title"], "translated_body": result["description"],
+            "provider": "openai:gpt-4o-mini",
+        }).execute()
+    except Exception:
+        # A cache miss next time costs one more translation; it must not fail this one.
+        logger.warning("Could not cache task translation hotel=%s", current_user.hotel_id, exc_info=True)
+
+    await _log_ai_call(current_user, "translation", credits, prompt_tokens, completion_tokens, start, True, None)
+    return {"data": {
+        "original": original, "translated": {"title": result["title"], "description": result["description"]},
+        "target_language": request.target_language, "cached": False, "ai_generated": True,
+        "credits_used": credits, "model_used": "gpt-4o-mini",
+    }}
+
+
+async def _log_ai_call(current_user, interaction_type, credits, prompt_tokens, completion_tokens, start, success, error):
+    """Record a call without letting a bookkeeping failure turn a finished call into an error."""
+    try:
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type=interaction_type, model_used="gpt-4o-mini",
+            credits_charged=credits, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            latency_ms=int((time.time() - start) * 1000), success=success, error_message=error,
+        )
+    except Exception:
+        logger.warning("Could not log the %s interaction hotel=%s", interaction_type, current_user.hotel_id, exc_info=True)
+
+
+async def _log_photo_analysis(current_user, credits, prompt_tokens, completion_tokens, start, success, error):
+    """Record the call without letting a bookkeeping failure turn a finished analysis into an error."""
+    try:
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="photo_analysis", model_used="gpt-4o-mini",
+            credits_charged=credits, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            latency_ms=int((time.time() - start) * 1000), success=success, error_message=error,
+        )
+    except Exception:
+        logger.warning("Could not log the photo-analysis interaction hotel=%s", current_user.hotel_id, exc_info=True)
+
+
+def _find_recent_duplicate_guest_request(
+    hotel_id: str, user_id: str, title: str, room_id: Optional[str], now
+) -> Optional[dict]:
+    """A guest request this user already logged from an identical preview in the last couple of
+    minutes -- a double-tap or a retry after a dropped response, not a second request."""
+    since = (now - timedelta(seconds=DUPLICATE_TASK_WINDOW_SECONDS)).isoformat()
+    rows = (
+        supabase.table("guest_requests").select("*")
+        .eq("tenant_id", hotel_id)
+        .eq("created_by", user_id)
+        .eq("title", title)
+        .neq("status", "cancelled")
+        .gte("created_at", since)
+        .execute()
+    ).data or []
+    for row in rows:
+        if (row.get("room_id") or None) == room_id:
+            return row
+    return None
 
 
 @router.post("/guest-requests/confirm")
@@ -932,21 +1284,39 @@ async def confirm_guest_requests(
     requests: list[GuestRequestPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
+    """Log guest requests from reviewed AI previews. Body: a JSON **array** of GuestRequestPreview.
+
+    Rooms are verified against this hotel before any write, and an identical preview from the
+    same person within two minutes is returned instead of duplicated (``meta.deduplicated``).
+    """
+    require_creation_role(current_user.role)
+    _check_batch(requests)
     # Fail-fast validation before any writes — matches create_guest_request's contract.
     for req in requests:
         if req.category == "accessibility" and req.priority != "urgent":
             raise HTTPException(status_code=422, detail="Accessibility-related requests must use urgent priority")
+    prepared = [
+        (req, _verified_room_id(current_user.hotel_id, str(req.room_id) if req.room_id else None, req.room_number))
+        for req in requests
+    ]
 
     created = []
-    for req in requests:
-        room_id = _resolve_room_id(current_user.hotel_id, req.room_number) if req.room_number else None
+    deduplicated = 0
+    for req, room_id in prepared:
+        now = datetime.now(timezone.utc)
+        duplicate = _find_recent_duplicate_guest_request(
+            current_user.hotel_id, current_user.user_id, req.title, room_id, now
+        )
+        if duplicate:
+            deduplicated += 1
+            created.append(duplicate)
+            continue
         policies = supabase.table("guest_request_sla_policies").select(
             "category, priority, guest_impact, sla_minutes"
         ).eq("tenant_id", current_user.hotel_id).execute().data or []
         sla_minutes = resolve_sla_minutes(
             policies, category=req.category, priority=req.priority, guest_impact=req.guest_impact,
         )
-        now = datetime.now(timezone.utc)
         due_at = (now + timedelta(minutes=sla_minutes)).isoformat()
         result = supabase.table("guest_requests").insert({
             "tenant_id": current_user.hotel_id,
@@ -1008,15 +1378,20 @@ async def confirm_guest_requests(
             },
         )
         created.append(result.data[0])
-    return {"data": {"created_count": len(created), "requests": created}}
+    if not created:
+        raise HTTPException(status_code=502, detail="The guest request could not be logged.")
+    return {
+        "data": {"created_count": len(created), "requests": created},
+        "meta": {"deduplicated": deduplicated},
+    }
 
 
 @router.post("/assignments/confirm")
 async def confirm_assignments(
     assignments: list[AssignmentPreview],
-    current_user: CurrentUser = Depends(
-        require_role("housekeeping_supervisor", "engineer", "gm")
-    )
+    # Same authority as the domain's room-assignment routes (housekeeping.py): GM and housekeeping supervisor.
+    # Line engineers have no housekeeping assignment authority, so the AI confirm must not grant it.
+    current_user: CurrentUser = Depends(require_role("housekeeping_supervisor", "gm"))
 ):
     assigned_count = 0
     from datetime import date
@@ -1117,10 +1492,54 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
     }
 
 
+# What the app may offer this hotel's staff, so a switched-off AI feature leaves no dead button. The server
+# still enforces the backend-enforced flags on their own routes; this only tells the phone what to show.
+CAPABILITY_FLAGS = {
+    "unified_assistant": "hk_ai_assistant",
+    "photo_analysis": "hk_ai_photo_analysis",
+    "task_translation": "hk_ai_task_translation",
+}
+
+
+@router.get("/capabilities")
+async def get_ai_capabilities(current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": {name: is_feature_enabled(current_user.hotel_id, key) for name, key in CAPABILITY_FLAGS.items()}}
+
+
+@router.get("/usage")
+async def get_ai_usage(
+    days: int = Query(30, ge=1, le=90),
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """This hotel's AI usage for the last `days` days, from the existing `ai_interactions` audit log.
+
+    GM-only and always scoped to the caller's own hotel. Counts, tokens, credits, latency, cap refusals and
+    cache hits per feature and per model; no message text, no person identifiers. The dollar figure is an
+    estimate from recorded tokens (the provider's invoice is authoritative) and unmetered requests are
+    listed rather than treated as free.
+    """
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    result = (
+        supabase.table("ai_interactions")
+        .select("interaction_type, model_used, prompt_tokens, completion_tokens, credits_charged, latency_ms, success, error_message")
+        .eq("tenant_id", current_user.hotel_id)
+        .gte("created_at", since)
+        .order("created_at", desc=True)
+        .limit(USAGE_ROW_LIMIT)
+        .execute()
+    )
+    rows = result.data or []
+    return {"data": {**summarize_usage(rows), "window_days": days, "truncated": len(rows) >= USAGE_ROW_LIMIT}}
+
+
 @router.get("/insights")
 async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user)):
+    # Hotel-wide operational analysis is GM-only (same rule as the chat insight intent).
+    if current_user.role not in GM_ONLY_ROLES:
+        raise HTTPException(status_code=403, detail=PERMISSION_DENIED)
     credits = 0
     start = time.time()
+    await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "gm_insight")
     try:
         result = generate_gm_insights(current_user.hotel_id)
     except Exception as exc:
