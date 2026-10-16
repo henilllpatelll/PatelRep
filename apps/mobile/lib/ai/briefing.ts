@@ -1,6 +1,7 @@
 import { api } from "@/lib/api/client";
 import { toCopilotFailure, type CopilotFailureKind } from "@/lib/ai/contract";
 import type { Room } from "@/stores/appStore";
+import { resolveEstimate } from "@/lib/housekeeping/cleaningEstimate";
 import {
   getBeforeEnterWarnings,
   getCleaningQueueScore,
@@ -30,20 +31,11 @@ export interface SmartQueueEntry {
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-const DEFAULT_MINUTES: Record<string, number> = {
-  DEP: 30,
-  FULL: 25,
-  LIGHT: 15,
-};
-
 const AI_TIMEOUT_MS = 8000;
 
+/** Kept for existing callers; the single estimate contract is `resolveEstimate` in cleaningEstimate.ts. */
 export function estimateCleanMinutes(room: Room): number {
-  const base = room.rooms?.room_types?.base_clean_minutes;
-  if (base && base > 0) return base;
-  if (room.status === "PICKUP") return 15;
-  if (room.clean_type && DEFAULT_MINUTES[room.clean_type]) return DEFAULT_MINUTES[room.clean_type];
-  return 25;
+  return resolveEstimate(room).minutes;
 }
 
 // -- Proximity routing helpers --

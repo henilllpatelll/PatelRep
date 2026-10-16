@@ -1,5 +1,6 @@
 import type { Room } from "@/stores/appStore";
-import { buildSmartQueue, estimateCleanMinutes } from "@/lib/ai/briefing";
+import { buildSmartQueue } from "@/lib/ai/briefing";
+import { resolveEstimate, type EstimateBasis } from "@/lib/housekeeping/cleaningEstimate";
 import { isDepartureClean } from "@/lib/housekeeping/roomWorkflow";
 import {
   ATTENTION_PRECEDENCE,
@@ -97,6 +98,8 @@ export interface RoomEntry {
   rush: RushInfo | null;
   neededBy: string | null;
   estimateMinutes: number;
+  /** Where `estimateMinutes` came from, resolved in the same pass so the two can never disagree. */
+  estimateBasis?: EstimateBasis;
   /** Only for category "current". */
   session: CurrentSessionView | null;
 }
@@ -237,6 +240,7 @@ export function categorizeRoom(room: Room, session: LocalCleanSession | undefine
 
 function toEntry(room: Room, session: LocalCleanSession | undefined, now: Date): RoomEntry {
   const { effective, classification } = classify(room, session, now);
+  const estimate = resolveEstimate(effective);
   const category = categorizeRoom(room, session, now);
   return {
     room: effective,
@@ -246,7 +250,8 @@ function toEntry(room: Room, session: LocalCleanSession | undefined, now: Date):
     access: getAccessState(effective, now),
     rush: classification.rush,
     neededBy: classification.rush?.neededBy ?? null,
-    estimateMinutes: estimateCleanMinutes(effective),
+    estimateMinutes: estimate.minutes,
+    estimateBasis: estimate.basis,
     session: category === "current" ? sessionView(room, session) : null,
   };
 }

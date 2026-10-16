@@ -8,6 +8,8 @@ import { tracksLinen, type LocalCleanSession } from "@/lib/housekeeping/cleanSes
 import type { RoomDetailView } from "@/lib/housekeeping/roomDetailState";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
 import { buildRoomGuidance } from "@/lib/housekeeping/roomAssist";
+import { resolveEstimate } from "@/lib/housekeeping/cleaningEstimate";
+import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { CleaningChecklist } from "./CleaningChecklist";
 import { CleaningTimer } from "./CleaningTimer";
 import { DamagePhotoBanner } from "./DamagePhotoBanner";
@@ -55,6 +57,8 @@ export function ActiveCleaningView({
   const theme = useTheme();
   const reclean = view.kind === "reclean";
   const items = session?.checklist ?? [];
+  useEstimateVersion(); // the timer's typical time follows the same estimate as the rest of the app
+  const timerEstimate = resolveEstimate(room);
 
   const pendingKeys = useMemo(() => new Set(Object.keys(session?.pendingItems ?? {})), [session?.pendingItems]);
   const notes = useMemo(() => {
@@ -96,7 +100,7 @@ export function ActiveCleaningView({
           </Pressable>
         </View>
       ) : (
-        <CleaningTimer startedAt={session?.startedAt} baseMinutes={session?.baseCleanMinutes} />
+        <CleaningTimer startedAt={session?.startedAt} baseMinutes={timerEstimate.basis === "history" ? timerEstimate.minutes : session?.baseCleanMinutes} />
       )}
 
       {/* The prompt says "before cleaning": once anything is ticked it is stale. */}

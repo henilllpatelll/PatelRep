@@ -14,6 +14,7 @@ import { AssistantFab } from "@/components/ai/AssistantFab";
 import { AssistantSheet } from "@/components/ai/AssistantSheet";
 import { AssistantProvider } from "@/lib/ai/AssistantProvider";
 import { useAiPreferences } from "@/lib/ai/preferences";
+import { useEstimateTable } from "@/lib/housekeeping/estimateTable";
 import { isAssistantRole } from "@/lib/ai/fab";
 import { speechLocale } from "@/lib/voice/locale";
 import { useCopilotBrief } from "@/lib/ai/copilotCard";
@@ -62,6 +63,17 @@ export default function AppLayout() {
   useEffect(() => {
     void useAiPreferences.getState().hydrate(aiScope);
   }, [aiScope]);
+
+  // Learned cleaning-time figures for this person's hotel (housekeeping floor roles only). Free, no AI model:
+  // a failed or missing table just leaves every screen on the baseline estimate.
+  const estimateScope =
+    aiScope && (effectiveRole === "housekeeper" || effectiveRole === "housekeeping_supervisor") ? aiScope : null;
+  useEffect(() => {
+    void useEstimateTable
+      .getState()
+      .hydrate(estimateScope)
+      .then(() => useEstimateTable.getState().refresh(estimateScope));
+  }, [estimateScope]);
 
   // Load this person's app-lock choice (and lock on cold start if they turned it on).
   useEffect(() => {

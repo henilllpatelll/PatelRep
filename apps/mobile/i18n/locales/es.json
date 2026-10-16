@@ -276,6 +276,7 @@
     },
     "why": {
       "estimateGeneral": "No hay un tiempo definido para este tipo de habitación. Una limpieza general toma unos {{minutes}} min (es un estimado, no un plazo).",
+      "estimateHistory": "Según limpiezas recientes de este tipo aquí: unos {{minutes}} min (es un estimado, no un plazo).",
       "activeSession": "Ya estás limpiando este cuarto.",
       "sequence": "Tu supervisor lo puso primero en tu ruta.",
       "sequenceAt": "Parada {{position}} en la ruta de tu supervisor.",
@@ -960,6 +961,7 @@
     "readiness": {
       "estimateRoomType": "Limpieza típica de este tipo de habitación: unos {{minutes}} min",
       "estimateGeneral": "Estimado general: unos {{minutes}} min (no hay uno definido para este tipo de habitación)",
+      "estimateHistory": "Normalmente unos {{minutes}} min aquí, según limpiezas recientes (un estimado)",
       "workOrderOpen": "Orden de trabajo abierta: {{label}}",
       "workOrderNone": "No hay ninguna orden de trabajo abierta registrada"
     },

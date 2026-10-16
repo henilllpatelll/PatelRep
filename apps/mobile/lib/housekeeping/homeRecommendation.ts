@@ -95,7 +95,7 @@ function timingFor(entry: RoomEntry, now: Date): RecommendationTiming {
   const startedAt = session && session.state !== "missing" ? session.startedAt : null;
   return {
     estimateMinutes: entry.estimateMinutes,
-    estimateBasis: estimateBasisOf(room),
+    estimateBasis: entry.estimateBasis ?? estimateBasisOf(room),
     neededBy: entry.neededBy,
     neededByOverdue: entry.rush?.overdue ?? false,
     checkoutVerifiedAt: room.actual_checkout_at ?? null,

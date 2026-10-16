@@ -276,6 +276,7 @@
     },
     "why": {
       "estimateGeneral": "No time is set for this room type. A general clean takes about {{minutes}} min (an estimate, not a deadline).",
+      "estimateHistory": "Based on recent cleans of this kind here: about {{minutes}} min (an estimate, not a deadline).",
       "activeSession": "You're already cleaning this room.",
       "sequence": "Your supervisor put it first in your route.",
       "sequenceAt": "Stop {{position}} in your supervisor's route.",
@@ -960,6 +961,7 @@
     "readiness": {
       "estimateRoomType": "Typical clean for this room type: about {{minutes}} min",
       "estimateGeneral": "General estimate: about {{minutes}} min (none set for this room type)",
+      "estimateHistory": "Usually about {{minutes}} min here, from recent cleans (an estimate)",
       "workOrderOpen": "Open work order: {{label}}",
       "workOrderNone": "No open work order on record"
     },

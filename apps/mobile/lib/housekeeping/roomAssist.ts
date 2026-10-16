@@ -1,7 +1,6 @@
 import type { Room } from "@/stores/appStore";
 import { getProgress, hasPendingSync, type LocalCleanSession } from "@/lib/housekeeping/cleanSession";
-import { estimateCleanMinutes } from "@/lib/ai/briefing";
-import { estimateBasisOf, type EstimateBasis } from "@/lib/housekeeping/cleaningEstimate";
+import { resolveEstimate, type EstimateBasis } from "@/lib/housekeeping/cleaningEstimate";
 import { classifyRoom, type RoomClassification } from "@/lib/housekeeping/needsAttention";
 import { roomIssueHref } from "@/lib/ai/quickActions";
 
@@ -30,7 +29,7 @@ export function buildReadinessFacts(room: Room): ReadinessFacts {
   const title = room.open_work_order_title?.trim();
   const hasOpen = Boolean(room.open_work_order_id || number || title);
   return {
-    estimate: { minutes: estimateCleanMinutes(room), basis: estimateBasisOf(room) },
+    estimate: resolveEstimate(room),
     workOrder: hasOpen
       ? { state: "open", label: [number ? `#${number}` : null, title].filter(Boolean).join(" · ") || "", status: room.open_work_order_status ?? null }
       : { state: "none" },

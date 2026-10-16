@@ -6,6 +6,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import { buildEntryChecks, type RoomDetailView } from "@/lib/housekeeping/roomDetailState";
 import { buildReadinessFacts, buildRoomGuidance } from "@/lib/housekeeping/roomAssist";
+import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
 import { RushPriorityPanel } from "@/components/housekeeping/RushPriorityPanel";
 import { RecleanCorrectionsPanel } from "@/components/housekeeping/RecleanCorrectionsPanel";
@@ -13,6 +14,12 @@ import { RoomGuidanceLine } from "./RoomGuidanceLine";
 import { RoomHelpCard } from "./RoomHelpCard";
 import { RoomStatusNotice } from "./RoomStatusNotice";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+
+const ESTIMATE_KEY = {
+  history: "rooms.readiness.estimateHistory",
+  room_type: "rooms.readiness.estimateRoomType",
+  general: "rooms.readiness.estimateGeneral",
+} as const;
 
 interface Props {
   room: Room;
@@ -35,6 +42,7 @@ export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo, i
   const theme = useTheme();
   const checks = buildEntryChecks(room);
   const reclean = view.kind === "reclean";
+  useEstimateVersion(); // re-render when the learned table refreshes
   const facts = buildReadinessFacts(room);
   const guidance = buildRoomGuidance({ room, session: undefined, classification: view.classification, isNext });
 
@@ -67,12 +75,12 @@ export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo, i
         <View
           style={styles.checkRow}
           accessible
-          accessibilityLabel={t(facts.estimate.basis === "room_type" ? "rooms.readiness.estimateRoomType" : "rooms.readiness.estimateGeneral", { minutes: facts.estimate.minutes })}
+          accessibilityLabel={t(ESTIMATE_KEY[facts.estimate.basis], { minutes: facts.estimate.minutes })}
           testID="readiness-estimate"
         >
           <Ionicons name="time-outline" size={18} color={theme.textMuted} />
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.checkText, { color: theme.textPrimary }]}>
-            {t(facts.estimate.basis === "room_type" ? "rooms.readiness.estimateRoomType" : "rooms.readiness.estimateGeneral", { minutes: facts.estimate.minutes })}
+            {t(ESTIMATE_KEY[facts.estimate.basis], { minutes: facts.estimate.minutes })}
           </Text>
         </View>
         <View

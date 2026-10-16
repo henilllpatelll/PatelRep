@@ -4,6 +4,7 @@ import { listNotifications, markRead } from "@/lib/api/notifications";
 import { isMessageNotification } from "@/lib/housekeeping/notificationLinks";
 import { useHomeBridge, type MarkReadResult } from "@/stores/homeBridgeStore";
 import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
+import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { buildHomeModel, type HomeModel, type SupervisorNoteInput } from "@/lib/housekeeping/homeModel";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 import { buildSyncRows, loadSyncRows, type SyncRow } from "@/lib/housekeeping/syncDetails";
@@ -155,6 +156,8 @@ export function useHousekeeperHome({ enabled }: { enabled: boolean }): Housekeep
     setLoadedSync(null);
   }, [scope]);
 
+  // A refreshed estimate table re-derives the model (estimates only; ordering never reads them).
+  const estimateVersion = useEstimateVersion();
   const model = useMemo(
     () =>
       buildHomeModel({
@@ -203,6 +206,7 @@ export function useHousekeeperHome({ enabled }: { enabled: boolean }): Housekeep
       loadedSync,
       immediateSync,
       note,
+      estimateVersion,
     ],
   );
 

@@ -41,6 +41,7 @@ import { formatClock, type Translate } from "@/lib/housekeeping/myRoomsText";
 import { freshnessView, resolveDashboardWhy } from "@/lib/housekeeping/homeSheets";
 import { resolveFreshness } from "@/lib/housekeeping/roomsFreshness";
 import { formatShiftDate } from "@/lib/housekeeping/hotelTime";
+import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { useActiveSessionRestore, useMyRoomsData } from "@/lib/housekeeping/useMyRoomsData";
 
 const NO_SESSIONS: SessionMap = {};
@@ -69,7 +70,8 @@ export default function MyRoomsScreen() {
     void useCleanSessionStore.getState().hydrate();
   }, [expectedScope]);
 
-  const model = useMemo(() => buildDashboard(myRooms, sessions, data.rankedAt), [myRooms, sessions, data.rankedAt]);
+  const estimateVersion = useEstimateVersion();
+  const model = useMemo(() => buildDashboard(myRooms, sessions, data.rankedAt), [myRooms, sessions, data.rankedAt, estimateVersion]);
 
   const missingKey = useMemo(
     () =>
