@@ -218,7 +218,7 @@ describe("Supervisor Today — readiness", () => {
 });
 
 describe("Supervisor Today — needs your attention", () => {
-  it("shows at most three rows, most urgent first, and does not expose a dead 'View all'", async () => {
+  it("shows at most three rows, most urgent first, with a 'View all' that opens the Attention Center", async () => {
     setup({
       rooms: [
         raw("r-101", "DIRTY", { fo_status: "VAC", checkin_time: new Date(NOW + 30 * 60_000).toISOString(), assigned_to: "hk-1" }),
@@ -234,18 +234,23 @@ describe("Supervisor Today — needs your attention", () => {
     expect(rows[0].props.testID).toBe("today-attention-row-room:r-101:arrival_at_risk");
     expect(screen.getByText("Room 101 needs attention")).toBeTruthy();
     expect(screen.getByTestId("today-attention-more")).toHaveTextContent("1 more item");
-    expect(screen.queryByTestId("today-attention-viewall")).toBeNull();
+    fireEvent.press(screen.getByTestId("today-attention-viewall"));
+    expect(push).toHaveBeenCalledWith("/(app)/supervisor-attention");
   });
 
-  it("sends each row to a supervisor screen — never My Rooms", async () => {
+  it("opens a detail sheet from each row; its primary action goes to a supervisor screen — never My Rooms", async () => {
     setup({ rooms: [raw("r-102", "CLEAN", { assigned_to: "hk-1" }), raw("r-103", "DIRTY")] });
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-attention-row-queue:awaiting_inspection"));
     fireEvent.press(screen.getByTestId("today-attention-row-queue:awaiting_inspection"));
+    // Tapping a row explains first; nothing navigates yet.
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.press(await screen.findByTestId("attention-sheet-primary"));
     fireEvent.press(screen.getByTestId("today-attention-row-queue:unassigned_rooms"));
+    fireEvent.press(await screen.findByTestId("attention-sheet-primary"));
     const paths = push.mock.calls.map((call) => call[0]);
     expect(paths).toEqual(["/(app)/inspect", "/(app)/assignments"]);
-    expect(paths.join()).not.toMatch(/my-rooms|attention/);
+    expect(JSON.stringify(paths)).not.toMatch(/my-rooms|\/attention/);
   });
 
   it("says 'all caught up' only when the relevant sources really loaded", async () => {

@@ -38,10 +38,22 @@ describe("supervisor route contract", () => {
     expect(isSupervisorSafePath("/(app)/room-board")).toBe(true);
   });
 
-  it("opens the parent screen for a record target, since no supervisor screen resolves record params yet", () => {
-    for (const screen of screens) expect(SUPERVISOR_ROUTES[screen].recordDeepLink).toBe(false);
-    expect(supervisorHref({ screen: "rooms", record: { type: "room", id: "r-1" } })).toEqual({ pathname: "/(app)/room-board" });
+  it("only the Room Board resolves a record from route params; every other target opens its parent screen", () => {
+    for (const screen of screens) expect(SUPERVISOR_ROUTES[screen].recordDeepLink).toBe(screen === "rooms");
+    expect(supervisorHref({ screen: "rooms", record: { type: "room", id: "r-1" } })).toEqual({
+      pathname: "/(app)/room-board",
+      params: { roomId: "r-1" },
+    });
+    expect(supervisorHref({ screen: "rooms" })).toEqual({ pathname: "/(app)/room-board" });
+    expect(supervisorHref({ screen: "rooms", record: { type: "room", id: "  " } })).toEqual({ pathname: "/(app)/room-board" });
     expect(supervisorHref({ screen: "tasks", record: { type: "task", id: "t-1" } })).toEqual({ pathname: "/(app)/tasks" });
+    expect(supervisorHref({ screen: "team", record: { type: "staff", id: "s-1" } })).toEqual({ pathname: "/(app)/assignments" });
+  });
+
+  it("the supervisor Attention Center is its own route, separate from the housekeeper one", () => {
+    expect(SUPERVISOR_ROUTES.attention.pathname).toBe("/(app)/supervisor-attention");
+    expect(isSupervisorSafePath("/(app)/supervisor-attention")).toBe(true);
+    expect(isSupervisorSafePath("/(app)/attention")).toBe(false);
   });
 
   it("maps the Team workflow to the Assignments screen and Inspect to the inspection queue", () => {

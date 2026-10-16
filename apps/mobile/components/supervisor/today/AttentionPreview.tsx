@@ -21,13 +21,14 @@ interface Props {
   zone: string | null | undefined;
   language: string;
   t: Translate;
-  onOpen: (pathname: string) => void;
+  /** Opens the item's detail sheet (the same one the Attention Center uses). */
+  onOpenItem: (itemId: string) => void;
   onRetry: () => void;
-  /** Wired up with the Attention Center (Phase 3). Without it, no "View all" is shown — never a dead link. */
+  /** Opens the full Attention Center. Without it, no "View all" is shown — never a dead link. */
   onViewAll?: () => void;
 }
 
-export function AttentionPreview({ attention, board, blockedTasks, zone, language, t, onOpen, onRetry, onViewAll }: Props) {
+export function AttentionPreview({ attention, board, blockedTasks, zone, language, t, onOpenItem, onRetry, onViewAll }: Props) {
   const theme = useTheme();
   const preview = useMemo(() => selectAttentionPreview(attention, ATTENTION_PREVIEW_LIMIT), [attention]);
   const rows = useMemo(
@@ -55,7 +56,7 @@ export function AttentionPreview({ attention, board, blockedTasks, zone, languag
           return (
             <Pressable
               key={row.id}
-              onPress={() => onOpen(row.pathname)}
+              onPress={() => onOpenItem(row.id)}
               testID={`today-attention-row-${row.id}`}
               accessibilityRole="button"
               accessibilityLabel={[urgency, title, subtitle].filter(Boolean).join(". ")}

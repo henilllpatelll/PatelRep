@@ -835,3 +835,9 @@
 - apps/mobile/lib/housekeeping/supervisorTodayView.ts — describeAttention, describeFreshness/freshnessLabel, selectTeamPreview, greetingPart
 - apps/mobile/i18n/locales/{en,es}.json — new `supervisorToday` namespace
 - apps/mobile/__tests__/screens/{SupervisorToday,HomeRoleRouting}.test.tsx, __tests__/lib/supervisorTodayView.test.ts
+- apps/mobile/stores/supervisorTodayStore.ts — zustand store: ONE shared Supervisor Today snapshot (scope-keyed, coalesced refresh + join, empties when last screen releases). ~95 lines
+- apps/mobile/lib/housekeeping/supervisorRealtime.ts — one refcounted room_status Realtime channel shared by Today and the Attention Center. ~65 lines
+- apps/mobile/lib/housekeeping/supervisorAttentionCenter.ts — Attention Center model: categories/filters/counts, describeCard, resolveAttentionDetail (live re-resolve, gone state), primaryFor, attentionListState, partialNotices. ~470 lines
+- apps/mobile/components/supervisor/attention/{SupervisorAttentionScreen,AttentionCard,AttentionFilters,SupervisorAttentionSheet,AttentionSheetHost}.tsx — full supervisor Attention Center + detail sheet (host shared with Today)
+- apps/mobile/app/(app)/supervisor-attention/index.tsx — supervisor-only route (Redirect home for other roles); housekeeper /attention route untouched
+- apps/mobile/__tests__/{lib/supervisorAttentionCenter,lib/supervisorTodayStore,screens/SupervisorAttentionCenter,screens/RoomBoardDeepLink}.test.ts(x)

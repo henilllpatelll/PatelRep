@@ -4543,5 +4543,159 @@
       "partial": "Parte de la información no se pudo cargar",
       "retry": "Reintentar"
     }
+  },
+  "supervisorAttention": {
+    "title": "Requiere su atención",
+    "subtitle": "Prioridades de limpieza que requieren revisión",
+    "back": "Volver a Hoy",
+    "itemCount": "{{count}} elemento",
+    "itemCount_plural": "{{count}} elementos",
+    "filterBarA11y": "Filtrar elementos de atención",
+    "filterA11y": "{{label}}, {{count}}",
+    "filterSelectedA11y": "{{label}}, {{count}}, seleccionado",
+    "filter": {
+      "all": "Todos",
+      "urgent": "Urgentes",
+      "rooms": "Habitaciones",
+      "team": "Equipo",
+      "inspect": "Inspección",
+      "issues": "Problemas",
+      "messages": "Mensajes"
+    },
+    "severity": {
+      "critical": "Urgente",
+      "high": "Prioridad alta",
+      "normal": "Pendiente"
+    },
+    "category": {
+      "rooms": "Habitaciones",
+      "team": "Equipo",
+      "inspect": "Inspección",
+      "issues": "Problemas",
+      "messages": "Mensajes"
+    },
+    "cardA11y": "{{severity}}. {{title}}. {{subtitle}}. Abre los detalles.",
+    "lastVerified": "Verificado por última vez a las {{time}}",
+    "loading": "Cargando elementos de atención",
+    "empty": {
+      "title": "Todo al día",
+      "body": "Ningún elemento de limpieza requiere su atención en este momento."
+    },
+    "filterEmpty": {
+      "title": "No hay elementos en esta categoría",
+      "body": "Nada en {{label}} requiere atención. Elija Todos para ver el resto.",
+      "showAll": "Ver todos"
+    },
+    "staleEmpty": {
+      "title": "Sin elementos en la última actualización",
+      "body": "Vuelva a conectarse o actualice para confirmarlo."
+    },
+    "unavailable": {
+      "title": "No se pudieron cargar los elementos",
+      "body": "Revise su conexión e inténtelo de nuevo.",
+      "retry": "Reintentar"
+    },
+    "partial": "No se pudo revisar parte de la información, por lo que esta lista puede estar incompleta.",
+    "partialSource": {
+      "board": "Los datos de habitaciones no están disponibles.",
+      "blockedTasks": "Los bloqueos de tareas no están disponibles.",
+      "roster": "Los registros de turno no están disponibles."
+    },
+    "offline": "Sin conexión — mostrando los últimos datos conocidos",
+    "forbidden": "No tiene acceso a parte de esta información.",
+    "sheet": {
+      "close": "Cerrar",
+      "whyHeading": "Por qué importa",
+      "detailsHeading": "Detalles",
+      "roomsHeading": "Habitaciones",
+      "sourceHeading": "Fuente",
+      "sourceLine": "De {{sources}}",
+      "sourceStale": "Esta es la última información conocida, no confirmada en este momento.",
+      "sourceStaleAt": "Esta es la última información conocida (verificada a las {{time}}), no confirmada en este momento.",
+      "moreRooms": "+{{count}} habitación más",
+      "moreRooms_plural": "+{{count}} habitaciones más",
+      "restriction": "Una restricción no es permiso para entrar. Consulte con la camarista o con recepción antes de atender esta habitación.",
+      "offlineNote": "Está sin conexión. Esta información puede estar desactualizada.",
+      "goneTitle": "Este elemento ya no está activo",
+      "goneBody": "Se resolvió o cambió. La lista se actualizó.",
+      "goneClose": "Volver a la lista"
+    },
+    "source": {
+      "board": "el tablero de habitaciones",
+      "staff": "la lista de personal",
+      "roster": "los registros de turno",
+      "inspections": "el historial de inspecciones",
+      "blockedTasks": "los bloqueos de tareas"
+    },
+    "action": {
+      "viewRoom": "Ver habitación",
+      "reviewRooms": "Revisar habitaciones",
+      "reviewAssignments": "Revisar asignaciones",
+      "openInspect": "Abrir Inspección",
+      "reviewTask": "Revisar tarea",
+      "openTeam": "Abrir Equipo",
+      "openNotifications": "Abrir Notificaciones"
+    },
+    "why": {
+      "arrival_at_risk": "Se espera un huésped pronto y esta habitación aún no está lista. Limpiarla e inspeccionarla antes de la llegada evita un registro demorado.",
+      "readiness_risk": "La predicción de disponibilidad indica que es poco probable que esta habitación esté lista a tiempo. Es una predicción, no un retraso confirmado.",
+      "task_blocker": "Un miembro del personal reportó un problema que detiene esta tarea. Sigue abierta hasta que alguien la resuelva.",
+      "shift_ended_with_open_rooms": "Esta camarista terminó su turno con habitaciones asignadas que aún necesitan limpieza. Quizá haya que reasignarlas.",
+      "workload_over_assigned": "Las habitaciones asignadas a esta camarista suman más trabajo que un turno estándar. Tal vez quiera redistribuirlas.",
+      "unassigned_rooms": "Estas habitaciones aún necesitan limpieza y nadie está asignado, así que no se empezarán hasta que alguien lo esté.",
+      "awaiting_inspection": "Limpieza marcó estas habitaciones como limpias. No están listas para huéspedes hasta que se inspeccionen.",
+      "access_restricted": "Estas habitaciones tienen No Molestar, así que no se pueden atender hasta que se quite la restricción.",
+      "message": "Un mensaje requiere su atención."
+    },
+    "fact": {
+      "status": "Estado: {{status}}",
+      "arrival": "Llegada prevista {{time}}",
+      "arrivalIn": "Llega en unos {{count}} min",
+      "arrivalPassed": "La llegada prevista fue hace unos {{count}} min",
+      "assignedTo": "Asignada a {{name}}",
+      "assignedUnknown": "Asignada a una camarista",
+      "notAssigned": "Sin asignar",
+      "prediction": "De la predicción de disponibilidad (no es un retraso confirmado)",
+      "task": "Tarea: {{task}}",
+      "room": "Habitación {{room}}",
+      "location": "Ubicación: {{location}}",
+      "blocker": "Problema: {{reason}}",
+      "blockerDetails": "Nota: {{details}}",
+      "taskOwner": "Responsable de la tarea: {{name}}",
+      "taskNoOwner": "La tarea aún no tiene responsable",
+      "reportedByAt": "Reportado por {{name}} a las {{time}}",
+      "reportedBy": "Reportado por {{name}}",
+      "reportedAt": "Reportado a las {{time}}",
+      "priority": {
+        "urgent": "Marcada como urgente",
+        "normal": "Prioridad normal",
+        "low": "Prioridad baja"
+      },
+      "clockedOut": "{{name}} terminó su turno",
+      "openRooms": "{{count}} habitación asignada sigue abierta",
+      "openRooms_plural": "{{count}} habitaciones asignadas siguen abiertas",
+      "estimatedWork": "Se estiman unos {{count}} min de limpieza",
+      "count": {
+        "unassigned_rooms": "{{count}} habitación sin camarista",
+        "unassigned_rooms_plural": "{{count}} habitaciones sin camarista",
+        "awaiting_inspection": "{{count}} habitación esperando inspección",
+        "awaiting_inspection_plural": "{{count}} habitaciones esperando inspección",
+        "access_restricted": "{{count}} habitación con No Molestar",
+        "access_restricted_plural": "{{count}} habitaciones con No Molestar"
+      }
+    },
+    "record": {
+      "status": "{{status}}",
+      "statusAssigned": "{{status}} · {{name}}",
+      "statusUnassigned": "{{status}} · Sin asignar",
+      "doNotDisturb": "No Molestar"
+    },
+    "a11y": {
+      "room": "Habitación {{label}}"
+    },
+    "roomBoard": {
+      "missingTitle": "Habitación fuera del tablero",
+      "missingBody": "Esa habitación ya no está en el tablero de hoy. Pudo haberse retirado o puede que no tenga acceso."
+    }
   }
 }

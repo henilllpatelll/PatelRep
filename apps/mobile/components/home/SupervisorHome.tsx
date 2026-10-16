@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
+import { AttentionSheetHost } from "@/components/supervisor/attention/AttentionSheetHost";
 import { AttentionPreview } from "@/components/supervisor/today/AttentionPreview";
 import { QuickActions, type QuickActionKey } from "@/components/supervisor/today/QuickActions";
 import { ReadinessCard } from "@/components/supervisor/today/ReadinessCard";
@@ -14,12 +15,12 @@ import DirectMessageModal from "@/components/supervisor/DirectMessageModal";
 import EndShiftModal from "@/components/supervisor/EndShiftModal";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 import ShiftNoteModal from "@/components/supervisor/ShiftNoteModal";
-import { supabase } from "@/lib/supabase";
 import { resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import { firstNameOf } from "@/lib/housekeeping/homeText";
 import { buildFloorSnapshot, type AssignableStaff, type FloorSnapshot } from "@/lib/housekeeping/supervisor";
 import { isVerified, knownValue } from "@/lib/housekeeping/supervisorSources";
 import { describeFreshness, freshnessLabel, greetingPart } from "@/lib/housekeeping/supervisorTodayView";
+import { subscribeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import { useSupervisorToday } from "@/lib/housekeeping/useSupervisorToday";
 import { supervisorHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -34,8 +35,6 @@ import { useAppStore } from "@/stores/appStore";
    The floating PatelRep assistant is mounted once by the (app) layout — it is
    deliberately NOT rendered here. */
 
-/** Realtime bursts (many rooms changing at once) collapse into one refresh. */
-const REALTIME_DEBOUNCE_MS = 1500;
 /** Let one modal finish dismissing before the next presents. */
 const MODAL_SWAP_MS = 300;
 
@@ -67,25 +66,15 @@ export function SupervisorHome({ name }: { name: string }) {
   const [handoff, setHandoff] = useState<FloorSnapshot | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [messageTarget, setMessageTarget] = useState<{ id: string; name: string } | null>(null);
+  const [attentionItemId, setAttentionItemId] = useState<string | null>(null);
   const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Realtime: one channel per hotel, refreshing through the hook (newest answer wins). Kept from the previous Home.
+  // Realtime: the one shared channel per hotel (the Attention Center reuses it), refreshing the shared snapshot.
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
   useEffect(() => {
     if (!tenantId) return;
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel("supervisor-home-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${tenantId}` }, () => {
-        if (debounce) clearTimeout(debounce);
-        debounce = setTimeout(() => void refreshRef.current(), REALTIME_DEBOUNCE_MS);
-      })
-      .subscribe();
-    return () => {
-      if (debounce) clearTimeout(debounce);
-      supabase.removeChannel(channel);
-    };
+    return subscribeSupervisorRealtime(tenantId, () => refreshRef.current());
   }, [tenantId]);
 
   useEffect(
@@ -209,7 +198,8 @@ export function SupervisorHome({ name }: { name: string }) {
             zone={zone}
             language={language}
             t={t}
-            onOpen={(pathname) => router.push(pathname as never)}
+            onOpenItem={setAttentionItemId}
+            onViewAll={() => go("attention")}
             onRetry={onRefresh}
           />
           <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => go("team")} onRetry={onRefresh} />
@@ -217,6 +207,14 @@ export function SupervisorHome({ name }: { name: string }) {
         </View>
       </ScrollView>
 
+      <AttentionSheetHost
+        itemId={attentionItemId}
+        today={today}
+        isOnline={isOnline}
+        zone={zone}
+        language={language}
+        onClose={() => setAttentionItemId(null)}
+      />
       <ShiftNoteModal visible={showShiftNote} onClose={() => setShowShiftNote(false)} />
       <BroadcastModal visible={showBroadcast} onClose={() => setShowBroadcast(false)} />
       {handoff ? <EndShiftModal visible snapshot={handoff} onClose={() => setHandoff(null)} /> : null}

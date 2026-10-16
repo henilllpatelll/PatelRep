@@ -3,13 +3,18 @@
    serve supervisors are listed. Supervisor actions never land in housekeeper-only
    screens (`my-rooms`, the housekeeper Attention Center).
 
-   Record deep links do not exist yet: the supervisor Rooms, Team and Inspect
-   screens take no route params, and the Tasks screen only honours `taskId` for
-   housekeepers. Until a screen can resolve a record AND enforce access, a target
-   that names a record opens its parent screen — `recordDeepLink: false` records
-   that, and `supervisorHref` never emits params a screen would ignore. */
+   Only the Room Board resolves a record from route params (`roomId`): it looks the
+   room up in its own, tenant-scoped board and says so when it is not there. Team
+   and Inspect already open on the work an attention item points at (unassigned
+   rooms first / the pending queue), and the Tasks screen only honours `taskId` for
+   housekeepers. A target that names a record on a screen that cannot resolve it
+   opens that screen — `recordDeepLink: false` records that, and `supervisorHref`
+   never emits params a screen would ignore.
 
-export type SupervisorScreen = "rooms" | "team" | "inspect" | "tasks" | "notifications";
+   `attention` is the supervisor Attention Center. It is a separate route from the
+   housekeeper Attention Center (`/(app)/attention`), which stays untouched. */
+
+export type SupervisorScreen = "rooms" | "team" | "inspect" | "tasks" | "notifications" | "attention";
 
 export interface SupervisorRouteDef {
   /** Expo Router pathname, relative to the `(app)` group's registered screens. */
@@ -21,11 +26,12 @@ export interface SupervisorRouteDef {
 }
 
 export const SUPERVISOR_ROUTES: Record<SupervisorScreen, SupervisorRouteDef> = {
-  rooms: { pathname: "/(app)/room-board", screenFile: "room-board/index.tsx", recordDeepLink: false },
+  rooms: { pathname: "/(app)/room-board", screenFile: "room-board/index.tsx", recordDeepLink: true },
   team: { pathname: "/(app)/assignments", screenFile: "assignments/index.tsx", recordDeepLink: false },
   inspect: { pathname: "/(app)/inspect", screenFile: "inspect/index.tsx", recordDeepLink: false },
   tasks: { pathname: "/(app)/tasks", screenFile: "tasks/index.tsx", recordDeepLink: false },
   notifications: { pathname: "/(app)/notifications", screenFile: "notifications/index.tsx", recordDeepLink: false },
+  attention: { pathname: "/(app)/supervisor-attention", screenFile: "supervisor-attention/index.tsx", recordDeepLink: false },
 };
 
 /** Screens a supervisor Today item must never open. */
@@ -41,11 +47,21 @@ export interface SupervisorTarget {
 
 export interface SupervisorHref {
   pathname: string;
+  /** Present only when the destination resolves the record from it. */
+  params?: Record<string, string>;
 }
 
-/** The href for a target. Params are only emitted for screens that honour them (none yet). */
+/**
+ * The href for a target. Params are only emitted for screens that honour them, and only a room id
+ * today. Backend authorization stays authoritative: the screen re-resolves the id as the signed-in user.
+ */
 export function supervisorHref(target: SupervisorTarget): SupervisorHref {
-  return { pathname: SUPERVISOR_ROUTES[target.screen].pathname };
+  const route = SUPERVISOR_ROUTES[target.screen];
+  const record = target.record;
+  if (route.recordDeepLink && target.screen === "rooms" && record?.type === "room" && record.id.trim()) {
+    return { pathname: route.pathname, params: { roomId: record.id } };
+  }
+  return { pathname: route.pathname };
 }
 
 /** True when `pathname` is a supervisor-safe destination (registered above, not housekeeper-only). */

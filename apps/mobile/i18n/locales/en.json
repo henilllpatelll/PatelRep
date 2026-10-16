@@ -4543,5 +4543,159 @@
       "partial": "Some information couldn't be loaded",
       "retry": "Retry"
     }
+  },
+  "supervisorAttention": {
+    "title": "Needs your attention",
+    "subtitle": "Housekeeping priorities requiring review",
+    "back": "Back to Today",
+    "itemCount": "{{count}} item",
+    "itemCount_plural": "{{count}} items",
+    "filterBarA11y": "Filter attention items",
+    "filterA11y": "{{label}}, {{count}}",
+    "filterSelectedA11y": "{{label}}, {{count}}, selected",
+    "filter": {
+      "all": "All",
+      "urgent": "Urgent",
+      "rooms": "Rooms",
+      "team": "Team",
+      "inspect": "Inspect",
+      "issues": "Issues",
+      "messages": "Messages"
+    },
+    "severity": {
+      "critical": "Urgent",
+      "high": "High priority",
+      "normal": "Pending"
+    },
+    "category": {
+      "rooms": "Rooms",
+      "team": "Team",
+      "inspect": "Inspect",
+      "issues": "Issues",
+      "messages": "Messages"
+    },
+    "cardA11y": "{{severity}}. {{title}}. {{subtitle}}. Opens details.",
+    "lastVerified": "Last verified {{time}}",
+    "loading": "Loading attention items",
+    "empty": {
+      "title": "You're all caught up",
+      "body": "No housekeeping items need your attention right now."
+    },
+    "filterEmpty": {
+      "title": "No items in this category",
+      "body": "Nothing in {{label}} needs attention. Choose All to see everything else.",
+      "showAll": "Show all"
+    },
+    "staleEmpty": {
+      "title": "No items as of the last update",
+      "body": "Reconnect or refresh to confirm."
+    },
+    "unavailable": {
+      "title": "Couldn't load attention items",
+      "body": "Check your connection and try again.",
+      "retry": "Retry"
+    },
+    "partial": "Some information couldn't be checked, so this list may be incomplete.",
+    "partialSource": {
+      "board": "Room data is unavailable.",
+      "blockedTasks": "Task blockers are unavailable.",
+      "roster": "Shift check-ins are unavailable."
+    },
+    "offline": "Offline — showing the last known data",
+    "forbidden": "You don't have access to some of this information.",
+    "sheet": {
+      "close": "Close",
+      "whyHeading": "Why this matters",
+      "detailsHeading": "Details",
+      "roomsHeading": "Rooms",
+      "sourceHeading": "Source",
+      "sourceLine": "From {{sources}}",
+      "sourceStale": "This is the last known information, not confirmed just now.",
+      "sourceStaleAt": "This is the last known information (verified {{time}}), not confirmed just now.",
+      "moreRooms": "+{{count}} more room",
+      "moreRooms_plural": "+{{count}} more rooms",
+      "restriction": "A restriction is not permission to enter. Check with the housekeeper or front desk before servicing this room.",
+      "offlineNote": "You're offline. This information may be out of date.",
+      "goneTitle": "This item is no longer active",
+      "goneBody": "It was resolved or changed. The list has been updated.",
+      "goneClose": "Back to the list"
+    },
+    "source": {
+      "board": "the room board",
+      "staff": "the staff list",
+      "roster": "shift check-ins",
+      "inspections": "inspection history",
+      "blockedTasks": "task blockers"
+    },
+    "action": {
+      "viewRoom": "View room",
+      "reviewRooms": "Review rooms",
+      "reviewAssignments": "Review assignments",
+      "openInspect": "Open Inspect",
+      "reviewTask": "Review task",
+      "openTeam": "Open Team",
+      "openNotifications": "Open Notifications"
+    },
+    "why": {
+      "arrival_at_risk": "A guest is expected soon and this room is not guest-ready yet. Getting it cleaned and inspected before arrival avoids a delayed check-in.",
+      "readiness_risk": "The readiness prediction flagged this room as unlikely to be ready in time. It is a prediction, not a confirmed delay.",
+      "task_blocker": "A staff member reported a problem that is stopping this task. It stays open until someone resolves it.",
+      "shift_ended_with_open_rooms": "This housekeeper clocked out while rooms assigned to them still need cleaning. Those rooms may need to be reassigned.",
+      "workload_over_assigned": "The rooms assigned to this housekeeper add up to more than a standard shift of work. You may want to rebalance.",
+      "unassigned_rooms": "These rooms still need cleaning and nobody is assigned to them, so they will not be started until someone is.",
+      "awaiting_inspection": "Housekeeping marked these rooms clean. They are not guest-ready until they are inspected.",
+      "access_restricted": "Do Not Disturb is set on these rooms, so they cannot be serviced until the restriction is cleared.",
+      "message": "A message needs your attention."
+    },
+    "fact": {
+      "status": "Status: {{status}}",
+      "arrival": "Expected arrival {{time}}",
+      "arrivalIn": "Arrives in about {{count}} min",
+      "arrivalPassed": "Expected arrival was about {{count}} min ago",
+      "assignedTo": "Assigned to {{name}}",
+      "assignedUnknown": "Assigned to a housekeeper",
+      "notAssigned": "Not assigned to anyone",
+      "prediction": "From the readiness prediction (not a confirmed delay)",
+      "task": "Task: {{task}}",
+      "room": "Room {{room}}",
+      "location": "Location: {{location}}",
+      "blocker": "Problem: {{reason}}",
+      "blockerDetails": "Note: {{details}}",
+      "taskOwner": "Task owner: {{name}}",
+      "taskNoOwner": "Task has no owner yet",
+      "reportedByAt": "Reported by {{name}} at {{time}}",
+      "reportedBy": "Reported by {{name}}",
+      "reportedAt": "Reported at {{time}}",
+      "priority": {
+        "urgent": "Marked urgent",
+        "normal": "Normal priority",
+        "low": "Low priority"
+      },
+      "clockedOut": "{{name}} has clocked out",
+      "openRooms": "{{count}} assigned room still open",
+      "openRooms_plural": "{{count}} assigned rooms still open",
+      "estimatedWork": "About {{count}} min of cleaning estimated",
+      "count": {
+        "unassigned_rooms": "{{count}} room has no housekeeper",
+        "unassigned_rooms_plural": "{{count}} rooms have no housekeeper",
+        "awaiting_inspection": "{{count}} room waiting for an inspector",
+        "awaiting_inspection_plural": "{{count}} rooms waiting for an inspector",
+        "access_restricted": "{{count}} room with Do Not Disturb",
+        "access_restricted_plural": "{{count}} rooms with Do Not Disturb"
+      }
+    },
+    "record": {
+      "status": "{{status}}",
+      "statusAssigned": "{{status}} · {{name}}",
+      "statusUnassigned": "{{status}} · Not assigned",
+      "doNotDisturb": "Do Not Disturb"
+    },
+    "a11y": {
+      "room": "Room {{label}}"
+    },
+    "roomBoard": {
+      "missingTitle": "Room not on the board",
+      "missingBody": "That room isn't on today's board any more. It may have been removed or you may not have access."
+    }
   }
 }
