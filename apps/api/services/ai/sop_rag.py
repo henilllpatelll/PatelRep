@@ -425,7 +425,7 @@ def query_sop(
         openai_client = get_openai_client()
         claude = get_anthropic_client()
 
-        docs = visible_documents(supabase, hotel_id, [document_id] if scoped else None, require_indexed=True)
+        docs = visible_documents(supabase, hotel_id, [document_id] if scoped else None, require_indexed=True, require_approved=True)
         docs_by_id = {d["id"]: d for d in docs}
         if not docs_by_id:
             return _result(lang, answer=NO_DOCUMENTS_MESSAGE[lang], reason="no_documents", document_scoped=scoped)

@@ -8,6 +8,7 @@ the confirm endpoints' role, room-verification, batch and idempotency rules.
 """
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException
@@ -28,6 +29,13 @@ HK_ID = "11111111-1111-4111-8111-111111111111"
 OTHER_HK_ID = "55555555-5555-4555-8555-555555555555"
 TASK = "66666666-6666-4666-8666-666666666666"
 DOC = "77777777-7777-4777-8777-777777777777"
+# 10:00 on 2026-10-15 in the hotel's America/Chicago zone (15:00 UTC).
+NOW = datetime(2026, 10, 15, 15, 0, tzinfo=timezone.utc)
+
+
+def _hotel_today() -> str:
+    """The handler tests run on the real clock, so the default assignment is dated hotel-local today."""
+    return datetime.now(ZoneInfo("America/Chicago")).date().isoformat()
 
 
 def user(role: str, user_id: str = HK_ID, hotel_id: str = HOTEL) -> CurrentUser:
@@ -41,9 +49,14 @@ def make_db(**extra) -> FakeDB:
             {"id": OTHER_ROOM, "tenant_id": HOTEL, "room_number": "413"},
             {"id": FOREIGN_ROOM, "tenant_id": OTHER_HOTEL, "room_number": "412"},
         ],
-        "room_assignments": [{"id": "ra-1", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID}],
+        "room_assignments": [
+            {"id": "ra-1", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": _hotel_today()}
+        ],
         "tasks": [{"id": TASK, "tenant_id": HOTEL, "title": "Fix", "assigned_to": OTHER_HK_ID, "created_by": OTHER_HK_ID}],
         "sop_documents": [{"id": DOC, "tenant_id": HOTEL, "indexing_status": "indexed"}],
+        "controlled_documents": [
+            {"id": "c-1", "tenant_id": HOTEL, "source_sop_document_id": DOC, "version_number": 1, "approval_state": "approved"}
+        ],
         "guest_request_sla_policies": [],
     }
     rows.update(extra)
@@ -181,36 +194,113 @@ def test_sanitize_context_bounds_triage_work_orders():
     assert "secret" not in clean["work_orders"][0]
 
 
+def _room(db, user_id=HK_ID, role="housekeeper", now=NOW):
+    return authz.resolve_trusted_context(db, HOTEL, user_id, role, {"room_id": ROOM}, now=now)
+
+
+def _denied(db, user_id=HK_ID, now=NOW):
+    with pytest.raises(HTTPException) as exc:
+        _room(db, user_id, now=now)
+    assert exc.value.status_code == 404
+    assert exc.value.detail == authz.NOT_FOUND
+
+
+def _assignment(assigned_to, day, ident="ra"):
+    return {"id": f"{ident}-{day}", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": assigned_to, "assignment_date": day}
+
+
+def _shift(started_at, ended_at=None, status="active", user_id=HK_ID):
+    return {"id": "s1", "tenant_id": HOTEL, "user_id": user_id, "started_at": started_at, "ended_at": ended_at, "status": status}
+
+
 def test_trusted_room_for_assigned_housekeeper(db):
-    trusted = authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": ROOM})
-    assert trusted == {"room_id": ROOM, "room_number": "412"}
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-15")]
+    assert _room(db) == {"room_id": ROOM, "room_number": "412"}
 
 
 def test_housekeeper_cannot_use_unassigned_room_context(db):
     with pytest.raises(HTTPException) as exc:
-        authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": OTHER_ROOM})
+        authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": OTHER_ROOM}, now=NOW)
     assert exc.value.status_code == 404
 
 
 def test_housekeeper_loses_room_context_when_the_room_is_reassigned(db):
-    db.rows["room_assignments"] = [
-        {"id": "ra-old", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": "2026-10-14"},
-        {"id": "ra-new", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": OTHER_HK_ID, "assignment_date": "2026-10-15"},
-    ]
-    with pytest.raises(HTTPException) as exc:
-        authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": ROOM})
-    assert exc.value.status_code == 404
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-14"), _assignment(OTHER_HK_ID, "2026-10-15")]
+    _denied(db)
     # The new assignee, and a supervisor, still get it.
-    assert authz.resolve_trusted_context(db, HOTEL, OTHER_HK_ID, "housekeeper", {"room_id": ROOM})["room_number"] == "412"
-    assert authz.resolve_trusted_context(db, HOTEL, OTHER_HK_ID, "housekeeping_supervisor", {"room_id": ROOM})["room_id"] == ROOM
+    assert _room(db, OTHER_HK_ID)["room_number"] == "412"
+    assert _room(db, OTHER_HK_ID, "housekeeping_supervisor")["room_id"] == ROOM
+
+
+def test_same_day_reassignment_takes_the_room_away_at_once(db):
+    # Reassigning on the same day rewrites the one (room, date) row.
+    db.rows["room_assignments"] = [_assignment(OTHER_HK_ID, "2026-10-15")]
+    _denied(db)
 
 
 def test_housekeeper_keeps_room_context_when_the_current_assignment_is_theirs(db):
-    db.rows["room_assignments"] = [
-        {"id": "ra-old", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": OTHER_HK_ID, "assignment_date": "2026-10-14"},
-        {"id": "ra-new", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": "2026-10-15"},
-    ]
-    assert authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"room_id": ROOM})["room_id"] == ROOM
+    db.rows["room_assignments"] = [_assignment(OTHER_HK_ID, "2026-10-14"), _assignment(HK_ID, "2026-10-15")]
+    assert _room(db)["room_id"] == ROOM
+
+
+def test_expired_assignment_from_an_earlier_day_gives_no_context(db):
+    # Newest row is theirs, but it is two days old: it is history, not an operational assignment.
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-13")]
+    _denied(db)
+    # Even the day before, with no overnight shift, is expired.
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-14")]
+    _denied(db)
+
+
+def test_future_dated_assignment_is_not_current(db):
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-16")]
+    _denied(db)
+
+
+def test_today_is_the_hotel_local_date_not_the_utc_date(db):
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-15")]
+    # 02:00 UTC on the 16th is still 21:00 on the 15th in Chicago: today's row is current.
+    assert _room(db, now=datetime(2026, 10, 16, 2, 0, tzinfo=timezone.utc))["room_id"] == ROOM
+    # 06:00 UTC on the 16th is 01:00 on the 16th locally: the 15th row has expired.
+    _denied(db, now=datetime(2026, 10, 16, 6, 0, tzinfo=timezone.utc))
+
+
+def test_overnight_shift_keeps_yesterdays_room_until_clock_out(db):
+    after_midnight = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)  # 01:30 local on the 16th
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-15")]
+    db.rows["hk_shift_sessions"] = [_shift("2026-10-16T02:00:00+00:00")]  # clocked in 21:00 local on the 15th
+    assert _room(db, now=after_midnight)["room_id"] == ROOM
+    # Clocked out: the carry-over ends.
+    db.rows["hk_shift_sessions"] = [_shift("2026-10-16T02:00:00+00:00", ended_at="2026-10-16T05:00:00+00:00", status="ended")]
+    _denied(db, now=after_midnight)
+    # Never clocked in: nothing to carry over.
+    db.rows["hk_shift_sessions"] = []
+    _denied(db, now=after_midnight)
+
+
+def test_overnight_carry_over_needs_a_shift_that_began_yesterday(db):
+    after_midnight = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-15")]
+    # A shift opened today (01:00 local) is not an overnight carry-over of yesterday's assignment.
+    db.rows["hk_shift_sessions"] = [_shift("2026-10-16T06:00:00+00:00")]
+    _denied(db, now=after_midnight)
+    # Someone else's open shift does not help either.
+    db.rows["hk_shift_sessions"] = [_shift("2026-10-16T02:00:00+00:00", user_id=OTHER_HK_ID)]
+    _denied(db, now=after_midnight)
+
+
+def test_overnight_carry_over_loses_to_a_new_assignment_for_today(db):
+    after_midnight = datetime(2026, 10, 16, 6, 30, tzinfo=timezone.utc)
+    db.rows["room_assignments"] = [_assignment(HK_ID, "2026-10-15"), _assignment(OTHER_HK_ID, "2026-10-16")]
+    db.rows["hk_shift_sessions"] = [_shift("2026-10-16T02:00:00+00:00")]
+    _denied(db, now=after_midnight)
+    assert _room(db, OTHER_HK_ID, now=after_midnight)["room_id"] == ROOM
+
+
+def test_assignment_in_another_hotel_is_ignored(db):
+    other = {**_assignment(HK_ID, "2026-10-15"), "tenant_id": OTHER_HOTEL}
+    db.rows["room_assignments"] = [other]
+    _denied(db)
 
 
 def test_cross_tenant_room_context_is_indistinguishable_from_missing(db):
@@ -239,6 +329,14 @@ def test_document_context_is_tenant_scoped_and_must_be_indexed(db):
     assert authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"document_id": DOC})["document_id"] == DOC
     with pytest.raises(HTTPException):
         authz.resolve_trusted_context(db, OTHER_HOTEL, HK_ID, "gm", {"document_id": DOC})
+
+
+def test_indexed_document_without_an_approval_record_is_not_assistant_context(db):
+    legacy = "88888888-8888-4888-8888-888888888888"
+    db.rows["sop_documents"].append({"id": legacy, "tenant_id": HOTEL, "indexing_status": "indexed"})
+    with pytest.raises(HTTPException) as exc:
+        authz.resolve_trusted_context(db, HOTEL, HK_ID, "housekeeper", {"document_id": legacy})
+    assert (exc.value.status_code, exc.value.detail) == (404, authz.NOT_FOUND)
 
 
 @pytest.mark.asyncio

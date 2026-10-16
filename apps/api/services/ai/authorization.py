@@ -10,6 +10,7 @@ widen what a role is allowed to do.
 from __future__ import annotations
 
 import re
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from typing import Any, Optional
 
 from fastapi import HTTPException
@@ -21,8 +22,9 @@ from services.ai.sop_access import visible_document
 # (tasks, work orders and guest requests are all open to the floor roles).
 CREATION_ROLES = frozenset(ALL_ROLES)
 
-# Mirrors POST /ai/assignments/confirm, the route that executes the preview.
-ASSIGNMENT_ROLES = frozenset({"housekeeping_supervisor", "engineer", "gm"})
+# Mirrors POST /ai/assignments/confirm, the route that executes the preview, which in turn mirrors the
+# domain's own room-assignment authority (housekeeping.py: GM + housekeeping supervisor).
+ASSIGNMENT_ROLES = frozenset({"housekeeping_supervisor", "gm"})
 INSIGHT_ROLES = frozenset(GM_ONLY_ROLES)
 TRIAGE_ROLES = frozenset({"engineer", "chief_engineer", "gm"})
 
@@ -139,7 +141,73 @@ def sanitize_context(context: Optional[dict]) -> dict:
     return clean
 
 
-def resolve_trusted_context(db: Any, hotel_id: str, user_id: str, role: Optional[str], context: dict) -> dict:
+def _hotel_tz(db: Any, hotel_id: str) -> tzinfo:
+    from dateutil import tz as dtz
+
+    name = "America/Chicago"
+    try:
+        result = db.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
+        name = ((result.data if result else None) or {}).get("timezone") or name
+    except Exception:
+        pass
+    return dtz.gettz(name) or dtz.gettz("America/Chicago") or timezone.utc
+
+
+def _on_open_shift_started_on(db: Any, hotel_id: str, user_id: str, day: date, tz: tzinfo) -> bool:
+    """Is this person clocked in on a shift that began on the hotel-local ``day``?"""
+    day_start = datetime.combine(day, time.min, tzinfo=tz)
+    lo = (day_start - timedelta(hours=12)).astimezone(timezone.utc).isoformat()
+    hi = (day_start + timedelta(days=1, hours=12)).astimezone(timezone.utc).isoformat()
+    rows = (
+        db.table("hk_shift_sessions").select("started_at, ended_at, status")
+        .eq("tenant_id", hotel_id).eq("user_id", user_id)
+        .gte("started_at", lo).lte("started_at", hi)
+        .execute()
+    ).data or []
+    for row in rows:
+        if row.get("ended_at") is not None or row.get("status") == "ended":
+            continue
+        try:
+            started = datetime.fromisoformat(str(row.get("started_at")).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        if started.astimezone(tz).date() == day:
+            return True
+    return False
+
+
+def _holds_current_assignment(db: Any, hotel_id: str, user_id: str, room_id: str, now: Optional[datetime]) -> bool:
+    """Is this room on the person's CURRENT assignment?
+
+    Assignments are keyed by the hotel-local date. Today's row is the room's current assignment: whoever it
+    names holds the room, so a reassignment takes it away at once and a stale, expired or future-dated row never
+    counts. The one carry-over is an overnight shift: a row dated yesterday still counts while the person is
+    clocked in on a shift that began yesterday and nobody has been given the room today.
+    """
+    tz = _hotel_tz(db, hotel_id)
+    today = (now or datetime.now(timezone.utc)).astimezone(tz).date()
+    yesterday = today - timedelta(days=1)
+    rows = (
+        db.table("room_assignments").select("assigned_to, assignment_date")
+        .eq("tenant_id", hotel_id).eq("room_id", room_id)
+        .gte("assignment_date", yesterday.isoformat()).lte("assignment_date", today.isoformat())
+        .execute()
+    ).data or []
+    by_date = {str(row.get("assignment_date") or "")[:10]: row for row in rows}
+    current = by_date.get(today.isoformat())
+    if current is not None:
+        return current.get("assigned_to") == user_id
+    carried = by_date.get(yesterday.isoformat())
+    if carried is not None and carried.get("assigned_to") == user_id:
+        return _on_open_shift_started_on(db, hotel_id, user_id, yesterday, tz)
+    return False
+
+
+def resolve_trusted_context(
+    db: Any, hotel_id: str, user_id: str, role: Optional[str], context: dict, now: Optional[datetime] = None
+) -> dict:
     """Verify every identifier in an already-sanitised context against this hotel.
 
     Returns facts the *server* looked up (never the client's claims). A record in
@@ -157,19 +225,8 @@ def resolve_trusted_context(db: Any, hotel_id: str, user_id: str, role: Optional
         ).data or []
         if not room:
             raise HTTPException(status_code=404, detail=NOT_FOUND)
-        if role == "housekeeper":
-            # Only the room's CURRENT assignment counts: a housekeeper it was reassigned away from, or who had
-            # it on an earlier day, no longer has business with it (the room list drops it the same way).
-            recent = (
-                db.table("room_assignments").select("assigned_to, assignment_date")
-                .eq("tenant_id", hotel_id).eq("room_id", room_id)
-                .order("assignment_date", desc=True).limit(10).execute()
-            ).data or []
-            latest = max((str(row.get("assignment_date") or "") for row in recent), default=None)
-            if latest is None or not any(
-                row.get("assigned_to") == user_id and str(row.get("assignment_date") or "") == latest for row in recent
-            ):
-                raise HTTPException(status_code=404, detail=NOT_FOUND)
+        if role == "housekeeper" and not _holds_current_assignment(db, hotel_id, user_id, room_id, now):
+            raise HTTPException(status_code=404, detail=NOT_FOUND)
         trusted["room_id"] = room[0]["id"]
         trusted["room_number"] = room[0].get("room_number")
 
@@ -189,8 +246,9 @@ def resolve_trusted_context(db: Any, hotel_id: str, user_id: str, role: Optional
 
     document_id = context.get("document_id")
     if document_id:
-        # Same rule as the library: this hotel's, indexed, and not a draft / retired / expired procedure.
-        doc = visible_document(db, hotel_id, document_id, require_indexed=True)
+        # The library's rule, plus approval: this hotel's, indexed, and approved and in force. An indexed upload
+        # with no approval record can be browsed but never becomes assistant context presented as policy.
+        doc = visible_document(db, hotel_id, document_id, require_indexed=True, require_approved=True)
         if not doc:
             raise HTTPException(status_code=404, detail=NOT_FOUND)
         trusted["document_id"] = doc["id"]

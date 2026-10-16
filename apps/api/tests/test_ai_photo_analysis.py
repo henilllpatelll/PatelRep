@@ -5,6 +5,8 @@ stripping, the model-output whitelist, and the route's authorization / tenant / 
 Only the provider boundary and the Supabase client are replaced; no live model is ever called.
 """
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from unittest.mock import AsyncMock
 from io import BytesIO
 from types import SimpleNamespace
@@ -213,7 +215,7 @@ def route(monkeypatch):
                 {"id": OTHER_ROOM, "tenant_id": HOTEL, "room_number": "313"},
                 {"id": FOREIGN_ROOM, "tenant_id": OTHER_HOTEL, "room_number": "312"},
             ],
-            "room_assignments": [{"id": "ra-1", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": "2026-10-15"}],
+            "room_assignments": [{"id": "ra-1", "tenant_id": HOTEL, "room_id": ROOM, "assigned_to": HK_ID, "assignment_date": datetime.now(ZoneInfo("America/Chicago")).date().isoformat()}],
         }
     )
     monkeypatch.setattr(ai_copilot, "supabase", db)

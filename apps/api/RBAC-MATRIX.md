@@ -22,7 +22,7 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | ai_copilot.py | /v1/ai/photo-analysis | POST | N/A (feature-gated, not role-based) | require_feature('hk_ai_photo_analysis') [L1103] |
 | ai_copilot.py | /v1/ai/tasks/{task_id}/translate | POST | N/A (feature-gated, not role-based) | require_feature('hk_ai_task_translation') [L1163] |
 | ai_copilot.py | /v1/ai/guest-requests/confirm | POST | none |  |
-| ai_copilot.py | /v1/ai/assignments/confirm | POST | engineer, gm, housekeeping_supervisor | require_role('housekeeping_supervisor', 'engineer', 'gm') [L1393] |
+| ai_copilot.py | /v1/ai/assignments/confirm | POST | gm, housekeeping_supervisor | require_role('housekeeping_supervisor', 'gm') [L1394] |
 | ai_copilot.py | /v1/ai/risk-alerts | GET | none |  |
 | ai_copilot.py | /v1/ai/capabilities | GET | none |  |
 | ai_copilot.py | /v1/ai/usage | GET | gm | require_role('gm') [L1512] |

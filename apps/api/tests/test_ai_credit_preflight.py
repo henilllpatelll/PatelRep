@@ -9,6 +9,7 @@ structural guard — that no paid route can be added without it.
 import ast
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
@@ -116,8 +117,11 @@ async def test_local_ollama_has_no_provider_bill_so_no_cap(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_the_post_call_deduction_uses_the_same_cap_rule(monkeypatch):
+@pytest.mark.parametrize("deduct_result", [False, []], ids=["atomic_refusal", "function_not_deployed"])
+async def test_the_post_call_deduction_uses_the_same_cap_rule(monkeypatch, deduct_result):
+    # The atomic deduct_ai_credits() refusing, and the pre-migration read-then-increment path, both end in the same 402.
     db = _db(overage_cents=10_000)
+    db.rpc = lambda name, params: SimpleNamespace(execute=lambda: SimpleNamespace(data=deduct_result))
     monkeypatch.setattr(credits, "supabase", db)
     with pytest.raises(HTTPException) as err:
         await credits.check_and_deduct_credits("hotel-a", "task_creation", 100, 50)

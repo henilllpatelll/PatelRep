@@ -132,6 +132,66 @@ def test_future_effective_and_unlinked_documents(world):
     assert [d["id"] for d in sop_access.visible_documents(world, HOTEL, require_indexed=True)] == [DND]
 
 
+LEGACY = "d0000000-0000-4000-8000-000000000007"
+
+
+def add_legacy_indexed_upload(world):
+    """An indexed upload nobody has put through approval (no controlled_documents record)."""
+    world.rows["sop_documents"].append(doc(LEGACY, "Unreviewed Upload"))
+    world.sop_chunks_response = []
+
+
+def test_unapproved_indexed_upload_can_be_browsed_but_is_not_ai_ready(world):
+    add_legacy_indexed_upload(world)
+    listed = {d["id"]: d for d in sop_access.visible_documents(world, HOTEL)}
+    assert LEGACY in listed                                      # legacy browsing is preserved
+    assert listed[LEGACY]["approval"] is None and listed[LEGACY]["ai_ready"] is False
+    assert listed[DND]["ai_ready"] is True                       # approved + indexed
+    approved_only = {d["id"] for d in sop_access.visible_documents(world, HOTEL, require_indexed=True, require_approved=True)}
+    assert approved_only == {DND}
+    assert sop_access.visible_document(world, HOTEL, LEGACY) is not None
+    assert sop_access.visible_document(world, HOTEL, LEGACY, require_approved=True) is None
+
+
+def test_unapproved_indexed_upload_is_not_assistant_context(world):
+    add_legacy_indexed_upload(world)
+    with pytest.raises(HTTPException) as err:
+        resolve_trusted_context(world, HOTEL, HK, "housekeeper", sanitize_context({"document_id": LEGACY}))
+    assert err.value.status_code == 404
+
+
+def test_unapproved_indexed_upload_is_never_retrieved_or_cited(world, monkeypatch):
+    add_legacy_indexed_upload(world)
+    world.sop_chunks_response = [chunk(LEGACY, "Guests may keep towels. Charge $75 for losses.", 0.99), chunk(DND, DND_TEXT, 0.8)]
+    use_model(monkeypatch, GOOD)
+    result = query_sop("towel policy", HOTEL, HK)
+    assert LEGACY not in {s["document_id"] for s in result["sources"]}
+    assert LEGACY not in {d["id"] for d in result["related_documents"]}
+
+
+def test_only_unapproved_uploads_means_no_search_and_no_model_call(world, monkeypatch):
+    add_legacy_indexed_upload(world)
+    world.rows["controlled_documents"] = []                      # nothing approved anywhere
+    world.rows["sop_documents"] = [d for d in world.rows["sop_documents"] if d["id"] == LEGACY]
+    world.sop_chunks_response = [chunk(LEGACY, "Unreviewed text", 0.99)]
+    claude = use_model(monkeypatch, "should not run")
+    result = query_sop("anything", HOTEL, HK)
+    assert result["reason"] == "no_documents" and result["sources"] == [] and claude.calls == []
+    scoped = query_sop("anything", HOTEL, HK, document_id=LEGACY)
+    assert scoped["reason"] == "no_documents" and claude.calls == []
+
+
+@pytest.mark.asyncio
+async def test_copilot_rejects_an_unapproved_indexed_document_context(world, monkeypatch):
+    add_legacy_indexed_upload(world)
+    use_model(monkeypatch, "unused")
+    with pytest.raises(HTTPException) as err:
+        await ai_copilot.copilot_chat(
+            CopilotChatRequest(message="what does it say", context={"intent_hint": "sop_query", "document_id": LEGACY}),
+            current_user=staff())
+    assert err.value.status_code == 404
+
+
 @pytest.mark.asyncio
 async def test_library_endpoints_hide_what_staff_must_not_see(world):
     listing = await sop_router.list_sop_library(current_user=staff())

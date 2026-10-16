@@ -1389,9 +1389,9 @@ async def confirm_guest_requests(
 @router.post("/assignments/confirm")
 async def confirm_assignments(
     assignments: list[AssignmentPreview],
-    current_user: CurrentUser = Depends(
-        require_role("housekeeping_supervisor", "engineer", "gm")
-    )
+    # Same authority as the domain's room-assignment routes (housekeeping.py): GM and housekeeping supervisor.
+    # Line engineers have no housekeeping assignment authority, so the AI confirm must not grant it.
+    current_user: CurrentUser = Depends(require_role("housekeeping_supervisor", "gm"))
 ):
     assigned_count = 0
     from datetime import date

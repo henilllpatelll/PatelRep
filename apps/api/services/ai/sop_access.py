@@ -8,6 +8,8 @@ dates live on ``controlled_documents`` (migration 069), linked through ``source_
 
 * an upload with NO controlled-document record stays visible exactly as before, with no status claimed
   (nothing here can say "approved" for a record that has no approval);
+* such an unlinked upload is for BROWSING only: ``ai_ready`` is False and ``require_approved=True`` excludes
+  it, so retrieval and the assistant never present it as approved hotel policy;
 * an upload WITH records is visible only while one of them is ``approved``, has taken effect and has not
   expired. A draft, superseded or archived record hides it, so a retired procedure is never offered as
   current policy.
@@ -82,9 +84,13 @@ def visible_documents(
     ids: Optional[list[str]] = None,
     *,
     require_indexed: bool = False,
+    require_approved: bool = False,
     today: Optional[date] = None,
 ) -> list[dict]:
-    """The hotel's documents an employee may see, each with its real approval metadata (or None)."""
+    """The hotel's documents an employee may see, each with its real approval metadata (or None).
+
+    ``require_approved`` keeps only documents with an approval record in force. Anything that speaks AS hotel
+    policy (retrieval, the assistant's document context) must pass it; browsing does not."""
     query = db.table("sop_documents").select(DOCUMENT_COLUMNS).eq("tenant_id", hotel_id)
     if ids is not None:
         if not ids:
@@ -108,14 +114,18 @@ def visible_documents(
     out = []
     for doc in docs:
         visible, approval = current_approval(by_doc.get(doc["id"], []), today)
-        if not visible:
+        if not visible or (require_approved and approval is None):
             continue
         # An explicit allow-list, whatever the query returned: storage paths and tenant ids never go to a client.
         safe = {key: doc.get(key) for key in _PUBLIC_FIELDS}
-        out.append({**safe, "approval": approval, "ai_ready": doc.get("indexing_status") == "indexed"})
+        out.append({**safe, "approval": approval, "ai_ready": doc.get("indexing_status") == "indexed" and approval is not None})
     return out
 
 
-def visible_document(db: Any, hotel_id: str, document_id: str, *, require_indexed: bool = False) -> Optional[dict]:
-    rows = visible_documents(db, hotel_id, [document_id], require_indexed=require_indexed)
+def visible_document(
+    db: Any, hotel_id: str, document_id: str, *, require_indexed: bool = False, require_approved: bool = False
+) -> Optional[dict]:
+    rows = visible_documents(
+        db, hotel_id, [document_id], require_indexed=require_indexed, require_approved=require_approved
+    )
     return rows[0] if rows else None

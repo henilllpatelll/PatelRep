@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import HTTPException
 from core.config import settings
 from core.database import supabase
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
+
+logger = logging.getLogger(__name__)
 
 CREDIT_COSTS = {
     "task_creation": 1.0,
@@ -145,6 +149,30 @@ def _raise_if_cap_reached(hotel_id: str, ledger: dict) -> None:
                 raise HTTPException(status_code=402, detail=CAP_REACHED_MESSAGE)
 
 
+def _deduct_within_cap(hotel_id: str, credits: float) -> bool | None:
+    """Add ``credits`` to the open ledger unless the cap is reached, as ONE database statement.
+
+    Concurrent calls serialise on the ledger row and each sees the previous one's total, so the ledger passes
+    the cap by at most the single call that crossed it (the old separate read and increment let every
+    overlapping call through). True = added, False = refused, None = the function does not exist yet
+    (migration 217 not applied), in which case the caller uses the previous path. Any other failure raises.
+    """
+    try:
+        result = supabase.rpc("deduct_ai_credits", {
+            "p_hotel_id": hotel_id,
+            "p_credits": credits,
+            "p_base_fee_cents": BASE_FEE_CENTS,
+        }).execute()
+    except Exception as exc:
+        text = f"{getattr(exc, 'code', '')} {getattr(exc, 'message', '')} {exc}"
+        if "PGRST202" in text or "Could not find the function" in text:
+            logger.warning("deduct_ai_credits() missing; falling back to non-atomic credit deduction")
+            return None
+        raise
+    data = getattr(result, "data", None)
+    return data if isinstance(data, bool) else None
+
+
 async def assert_ai_allowance(
     hotel_id: str,
     user_id: str | None = None,
@@ -193,9 +221,18 @@ async def check_and_deduct_credits(
 
     ledger = get_or_create_current_period_ledger(hotel_id)
 
-    _raise_if_cap_reached(hotel_id, ledger)
+    applied = _deduct_within_cap(hotel_id, credits)
+    if applied is True:
+        return credits
+    if applied is False:
+        # Refused by the atomic deduction: at the cap, or there is no open ledger row to bill.
+        # Re-reading the ledger tells the two apart; with no open row nothing is billed, as before.
+        _raise_if_cap_reached(hotel_id, get_or_create_current_period_ledger(hotel_id))
+        logger.warning("AI credit deduction found no open ledger row for hotel_id=%s", hotel_id)
+        return credits
 
-    # Deduct credits
+    # deduct_ai_credits() is not available yet (migration 217 unapplied): the previous read-then-increment.
+    _raise_if_cap_reached(hotel_id, ledger)
     supabase.rpc("increment_credits_used", {
         "p_hotel_id": hotel_id,
         "p_credits": credits
