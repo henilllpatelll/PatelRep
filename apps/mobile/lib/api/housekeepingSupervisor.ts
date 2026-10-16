@@ -95,6 +95,52 @@ export async function triggerReclean(inspectionId: string): Promise<void> {
   await api.post(`/housekeeping/inspections/${inspectionId}/reclean`, {});
 }
 
+/* ─── Supervisor Today reads ────────────────────────────────────────────────
+   Strict variants: a payload that is not the documented shape THROWS instead of
+   becoming an empty list, so the Today layer reports "failed", never a false zero. */
+
+function requireArray<T>(payload: { data?: unknown } | null | undefined, what: string): T[] {
+  if (!payload || !Array.isArray(payload.data)) throw new Error(`Malformed ${what} response`);
+  return payload.data as T[];
+}
+
+/** GET /housekeeping/board — every room of the hotel with today's assignment merged in. */
+export async function fetchBoardVerified(date: string): Promise<BoardRoomRaw[]> {
+  return requireArray<BoardRoomRaw>(await api.get(`/housekeeping/board?date=${date}`), "board");
+}
+
+/** One row of GET /shifts/roster: the latest hk_shift_sessions row per person that started in the day. */
+export interface ShiftRosterRowRaw {
+  user_id?: string | null;
+  status?: string | null;
+  started_at?: string | null;
+  on_break_since?: string | null;
+  break_seconds?: number | null;
+}
+
+/** GET /shifts/roster — gm + housekeeping_supervisor only (403 otherwise). */
+export async function fetchShiftRoster(date: string): Promise<ShiftRosterRowRaw[]> {
+  return requireArray<ShiftRosterRowRaw>(await api.get(`/shifts/roster?date=${date}`), "roster");
+}
+
+/** One row of GET /housekeeping/inspections (flattened by the server). */
+export interface InspectionRecordRaw {
+  id?: string | null;
+  room_number?: string | null;
+  inspector_name?: string | null;
+  overall_result?: string | null;
+  notes?: string | null;
+  completed_at?: string | null;
+}
+
+/** Inspections completed on the hotel's `date`; `tzOffset` is JS getTimezoneOffset() minutes for that zone. */
+export async function fetchInspectionHistory(date: string, tzOffset: number): Promise<InspectionRecordRaw[]> {
+  return requireArray<InspectionRecordRaw>(
+    await api.get(`/housekeeping/inspections?date_from=${date}&date_to=${date}&tz_offset=${tzOffset}`),
+    "inspections",
+  );
+}
+
 /* ─── Direct message to one housekeeper ───────────────────────────────────── */
 
 export async function sendDirectMessage(

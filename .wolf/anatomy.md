@@ -818,3 +818,13 @@
 - apps/mobile/lib/housekeeping/attentionWhy.ts + components/home/AttentionCenterScreen.tsx / IssueDetailsSheet.tsx - evidence lines (arrival today, recorded deadline, open work order, next in order), section headings, summary line, Ask assistant, approved-procedure link (useRelatedProcedures)
 - apps/mobile/lib/notifications/feed.ts + app/(app)/notifications/index.tsx - All/Unread, day groups in hotel tz, masked previews, stale/failed states, read messages viewable, room-not-on-list notice, Ask assistant with verified ids
 - apps/mobile/components/home/{FinishShiftReviewSheet,SyncStatusSheet}.tsx - in-progress vs not-started rows; AI help status (online-only, never queued)
+
+## Supervisor Today foundation (Phase 1, 2026-10-16)
+- apps/mobile/lib/housekeeping/supervisorSources.ts — SourceState (loading/available/empty/stale/failed), settle/offline/age helpers, Derived<T>. ~140 lines
+- apps/mobile/lib/housekeeping/supervisorToday.ts — definitions doc, normalizeBoard, readiness/inspection metrics, hotel-date helpers, composeSupervisorToday, loadTodaySources (injected fetchers). ~300 lines
+- apps/mobile/lib/housekeeping/supervisorTeam.ts — roster normaliser + buildTeamPulse (unknown vs verified-zero staffing). ~150 lines
+- apps/mobile/lib/housekeeping/supervisorAttention.ts — SupervisorAttentionItem contract, builders, selectAttentionPreview. ~270 lines
+- apps/mobile/lib/housekeeping/useSupervisorToday.ts — thin hook over loadTodaySources (not yet used by SupervisorHome). ~75 lines
+- apps/mobile/lib/navigation/supervisorRoutes.ts — SUPERVISOR_ROUTES + supervisorHref/isSupervisorSafePath. ~65 lines
+- apps/mobile/lib/api/housekeepingSupervisor.ts — added fetchBoardVerified / fetchShiftRoster / fetchInspectionHistory (strict, throw on malformed).
+- apps/mobile/__tests__/lib/supervisor{Today,Attention,Routes}.test.ts — 78 tests.
