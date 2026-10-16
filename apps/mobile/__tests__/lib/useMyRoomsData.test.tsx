@@ -79,6 +79,16 @@ function deferred<T>() {
 beforeEach(async () => {
   jest.clearAllMocks();
   jest.useRealTimers();
+  // The fixtures are dated 2026-10-14 and the hook drops a server answer for a day that is already over, so
+  // pin ONLY the wall clock (timers stay real) to that day instead of whatever day the suite happens to run.
+  jest.useFakeTimers({
+    now: new Date("2026-10-14T18:00:00Z"),
+    doNotFake: [
+      "setTimeout", "clearTimeout", "setInterval", "clearInterval", "setImmediate", "clearImmediate",
+      "nextTick", "queueMicrotask", "requestAnimationFrame", "cancelAnimationFrame",
+      "requestIdleCallback", "cancelIdleCallback", "performance", "hrtime",
+    ],
+  });
   resetRoomsStatus();
   resetRoomsRequestState();
   await AsyncStorage.clear();

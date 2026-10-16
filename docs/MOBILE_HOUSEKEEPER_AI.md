@@ -28,14 +28,23 @@ notification explanations · verified shift recap · AI & voice settings.
 
 The client's role, intent hint and ids are claims. The server takes role/hotel from the verified JWT, whitelists the intent
 hint, and re-checks every id (`resolve_trusted_context`): a housekeeper's room must be on their CURRENT assignment, a task
-must be theirs, a document must be visible in their hotel. GM-only reports are refused for other roles. Every query is
+must be theirs, a document must be visible AND approved in their hotel. GM-only reports are refused for other roles. Every query is
 hotel-scoped; RLS remains underneath.
+
+"Current assignment" is the room's `room_assignments` row for today's **hotel-local** date (tenant timezone, default
+America/Chicago): whoever it names holds the room, so a reassignment (including a same-day rewrite) takes it away at once. An
+older, expired or future-dated row grants nothing. One carry-over exists for overnight shifts: yesterday's row still counts while
+that person is clocked in (`hk_shift_sessions`, not ended) on a shift that began yesterday and nobody has been given the room
+today. Supervisors and GMs are not assignment-bound.
 
 ## 4. Confirmation and execution
 
 Parsers return previews (`requires_confirmation`). Nothing is created until the person confirms; confirm routes re-validate
 role, rooms (this hotel only), batch size and idempotency. AI cannot clear DND, grant entry, change room status, finish a
-shift, dispatch a work order or reassign supervisor assignments; no AI path writes any of those.
+shift, dispatch a work order or reassign supervisor assignments; no AI path writes any of those. The one AI path that assigns
+rooms, `POST /ai/assignments/confirm` (and the `task_assignment` intent), is limited to GM and housekeeping supervisor, the same
+authority as the housekeeping assignment routes; line engineers have none there, so the AI cannot grant it
+(`tests/test_ai_copilot_rbac.py` ties the two together).
 
 ## 5. Provider / model routing
 
@@ -52,7 +61,14 @@ briefings, recap, insights. Keys live only on the API; the phone holds none. Per
 - Nothing paid happens on opening a screen. Paid calls are explicit taps; the phone de-duplicates (one in-flight request per
   key; a recent briefing/recap is reused); the server caches the recap per facts, and translations per task-text hash.
 - Rate limit: 20 AI requests/min/user (`middleware/rate_limit.py`).
-- Remaining risks: the post-call deduction can still overshoot the cap by the calls in flight at that moment; sync provider
+- **Concurrency (migration 217):** the cap check and the increment used to be two steps, so overlapping requests all passed
+  the same stale check and were all billed. `check_and_deduct_credits` now calls `deduct_ai_credits()`, one statement that
+  checks and increments under the ledger row lock, so the ledger passes the cap by at most the single call that crossed it,
+  whatever the concurrency (`tests/test_ai_credit_concurrency.py`). Until the migration is applied the API logs a warning and
+  uses the previous read-then-increment. There is deliberately no up-front reservation: a call's cost is only known from
+  the provider's actual usage, and holds would add leak-on-crash billing risk.
+- Remaining risks: calls already in flight when the cap is reached still reach the provider, and their deduction is then refused
+  (the hotel is not billed past the cap, but that provider spend is ours); sync provider
   calls inside async handlers serialize per worker (a bound, but also a latency risk); a provider invoice is the only
   authoritative cost, so the usage summary's dollar figure is an estimate.
 
@@ -77,7 +93,10 @@ no damage assessment, no guest detection. Needs `hk_ai_photo_analysis`.
 
 ## 10. SOP retrieval and citations
 
-Answers come only from approved, in-effect, indexed documents of the caller's hotel (`sop_access.py`); excerpts are untrusted
+Answers come only from approved, in-effect, indexed documents of the caller's hotel (`sop_access.py`, `require_approved=True`
+for retrieval and for the assistant's document context). An upload with no `controlled_documents` record stays in the library for
+browsing, labelled as uploaded, with `ai_ready: false`; it is never retrieved, cited or used as context, so it cannot be presented
+as approved policy; excerpts are untrusted
 data; invented figures are rejected; citations are real title/version/page only; the original is always one tap away and a
 translation never replaces it.
 
@@ -122,8 +141,9 @@ cd apps/api && pytest tests/ --ignore=tests/integration     # needs dummy env va
 cd apps/mobile && npx jest && npx tsc --noEmit && npx eslint .
 node scripts/check-feature-flag-registry.mjs && node scripts/check-migrations.mjs
 ```
-Mobile jest is not in CI. Known baseline failures when `expo-local-authentication` is missing from node_modules:
-biometrics (2) and SecuritySettings/useMyRoomsData suites.
+Mobile jest is not in CI. Run it from a real install: `cd apps/mobile && npm ci` (a junction to another checkout's
+`node_modules` can lack `expo-local-authentication`, which fails the biometrics, SecuritySettings and useMyRoomsData suites).
+With a clean install all 179 suites pass; `npx expo export --platform android|ios` needs dummy `EXPO_PUBLIC_*` values.
 
 ## 15. Device-only limitations (not verified by automation)
 
@@ -140,7 +160,7 @@ Features needing a **development build** (not Expo Go): speech recognition, biom
 | Photo/translate button missing | its flag is off, or offline |
 | Estimates unchanged | not enough clean history, or learned figure did not beat the baseline on the hold-out |
 | 503 from AI routes | provider keys / outage; manual flows are unaffected |
-| SOP answer says no approved source | no approved, indexed document matches; check SOP status/indexing |
+| SOP answer says no approved source | no approved, indexed document matches; check SOP status/indexing, and that the upload has an approved controlled-document record |
 
 ## 17. Manual verification checklist (device)
 
