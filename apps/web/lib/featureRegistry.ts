@@ -53,7 +53,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureFlagDef> = {
   hk_ai_task_translation: {
     key: 'hk_ai_task_translation',
     description:
-      'AI translation of one task's instructions, billed per call. Off: the endpoint answers 403 and the mobile Translate control is hidden; the original instructions are always shown.',
+      'AI translation of the instructions of one task, billed per call. Off: the endpoint answers 403 and the mobile Translate control is hidden; the original instructions are always shown.',
     type: 'release',
     backendEnforced: true,
     owner: 'mobile-housekeeper-ai',
