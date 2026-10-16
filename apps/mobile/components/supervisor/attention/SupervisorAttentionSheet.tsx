@@ -19,6 +19,8 @@ interface Props {
   onClose: () => void;
   /** Navigation is the screen's job; the sheet closes first, then calls this with the resolved primary. */
   onPrimary: (view: Extract<AttentionDetailView, { state: "ready" }>) => void;
+  /** Open the Copilot about one room. Offered only when the item is about exactly one verified room. */
+  onAsk?: (room: { id: string; label: string }) => void;
 }
 
 /**
@@ -26,7 +28,7 @@ interface Props {
  * that was resolved or changed while the sheet was open becomes a plain "no longer active" state with no
  * action on it. It explains and navigates; it never changes a room, a task or an assignment.
  */
-export function SupervisorAttentionSheet({ visible, view, isOnline, zone, language, t, onClose, onPrimary }: Props) {
+export function SupervisorAttentionSheet({ visible, view, isOnline, zone, language, t, onClose, onPrimary, onAsk }: Props) {
   const theme = useTheme();
 
   if (view.state === "gone") {
@@ -47,6 +49,7 @@ export function SupervisorAttentionSheet({ visible, view, isOnline, zone, langua
   const verifiedAt = view.source.fetchedAt ? formatHotelTime(new Date(view.source.fetchedAt), zone, language) : null;
   const sources = view.source.names.map((key) => t(key)).join(", ");
   const severity = t(`supervisorAttention.severity.${view.severity}`);
+  const onlyRoom = view.records.length === 1 && view.records[0].type === "room" && view.moreRecords === 0 ? view.records[0] : null;
 
   return (
     <BottomSheet
@@ -63,6 +66,15 @@ export function SupervisorAttentionSheet({ visible, view, isOnline, zone, langua
             icon="arrow-forward-circle-outline"
             testID="attention-sheet-primary"
           />
+          {onAsk && onlyRoom ? (
+            <Button
+              label={t("supervisorCopilot.attention.ask")}
+              onPress={() => onAsk({ id: onlyRoom.id, label: onlyRoom.label })}
+              variant="secondary"
+              icon="sparkles-outline"
+              testID="attention-sheet-ask"
+            />
+          ) : null}
           <Button label={t("supervisorAttention.sheet.close")} onPress={onClose} variant="secondary" testID="attention-sheet-close" />
         </View>
       }

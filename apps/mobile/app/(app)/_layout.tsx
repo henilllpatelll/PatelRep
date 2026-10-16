@@ -1,5 +1,5 @@
 import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Tabs, router, usePathname } from "expo-router";
@@ -9,6 +9,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { CopilotCard } from "@/components/shared/CopilotCard";
+import { SupervisorCopilotCard } from "@/components/ai/SupervisorCopilotCard";
+import { isSupervisorCopilotRole } from "@/lib/ai/supervisorCopilot";
+import { useSupervisorCopilotStore } from "@/stores/supervisorCopilotStore";
 import { CopilotBubble, BUBBLE_RIGHT_INSET, type CopilotBubbleState } from "@/components/shared/CopilotBubble";
 import { AssistantFab } from "@/components/ai/AssistantFab";
 import { AssistantSheet } from "@/components/ai/AssistantSheet";
@@ -50,6 +53,8 @@ export default function AppLayout() {
   // Housekeepers get the unified assistant (floating button + compact sheet); every other role keeps the corner card.
   const assistantSwitchedOn = useAiCapability("unifiedAssistant");
   const unifiedAssistant = isAssistantRole(effectiveRole) && assistantSwitchedOn;
+  // The housekeeping supervisor keeps this same corner card; its body is the Supervisor Copilot.
+  const supervisorCopilot = isSupervisorCopilotRole(effectiveRole);
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
@@ -103,6 +108,16 @@ export default function AppLayout() {
     cardProgress.value = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // Another screen (an Attention detail sheet) asked for the Copilot to open. Only a tap there changes this number.
+  const copilotOpenNonce = useSupervisorCopilotStore((state) => state.openNonce);
+  const handledNonce = useRef(copilotOpenNonce);
+  useEffect(() => {
+    if (copilotOpenNonce === handledNonce.current) return;
+    handledNonce.current = copilotOpenNonce;
+    if (supervisorCopilot && !unifiedAssistant && !hideFab) openCard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copilotOpenNonce]);
 
   // A freshly-loaded brief is "unread" until the card is opened to see it.
   useEffect(() => {
@@ -294,14 +309,25 @@ export default function AppLayout() {
             style={[StyleSheet.absoluteFill, styles.cardOrigin, cardAnimatedStyle]}
             pointerEvents="box-none"
           >
-            <CopilotCard
-              onClose={closeCard}
-              insetsBottom={insets.bottom}
-              brief={brief}
-              loading={briefLoading}
-              error={briefError}
-              reload={reloadBrief}
-            />
+            {supervisorCopilot ? (
+              <SupervisorCopilotCard
+                onClose={closeCard}
+                insetsBottom={insets.bottom}
+                brief={brief}
+                loading={briefLoading}
+                error={briefError}
+                reload={reloadBrief}
+              />
+            ) : (
+              <CopilotCard
+                onClose={closeCard}
+                insetsBottom={insets.bottom}
+                brief={brief}
+                loading={briefLoading}
+                error={briefError}
+                reload={reloadBrief}
+              />
+            )}
           </Animated.View>
         ) : null}
       </View>

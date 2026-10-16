@@ -8,6 +8,7 @@ import { SheetNotice } from "@/components/home/sheetParts";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { AckRow, BlockerNotice, MetaRow, Section, StepIndicator, SummaryGrid, UnfinishedList, noticeText } from "@/components/supervisor/handoff/HandoffParts";
 import { DraftField } from "@/components/supervisor/commsParts";
+import { HandoffNotesAssist } from "@/components/supervisor/handoff/HandoffNotesAssist";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
@@ -179,6 +180,7 @@ function HandoffSheet({ today, refresh, scope, isOnline, supervisorName, languag
               editable={flow.ready && !busy}
               testID="handoff-notes"
             />
+            <HandoffNotesAssist today={today} notes={flow.notes} setNotes={flow.setNotes} disabled={!flow.ready || busy} language={language} />
           </View>
         </View>
       ) : null}

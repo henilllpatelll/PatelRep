@@ -4913,5 +4913,124 @@
       "missingTitle": "Habitación fuera del tablero",
       "missingBody": "Esa habitación ya no está en el tablero de hoy. Pudo haberse retirado o puede que no tenga acceso."
     }
+  },
+  "supervisorCopilot": {
+    "title": "PatelRep AI",
+    "role": "Supervisor de ama de llaves",
+    "headerLabel": "PatelRep AI · Supervisor de ama de llaves",
+    "backToOverview": "Volver al resumen",
+    "overview": {
+      "heading": "Resumen del turno",
+      "ready": "{{ready}} de {{total}} habitaciones en servicio están listas.",
+      "awaitingInspection_one": "{{count}} habitación espera inspección.",
+      "awaitingInspection_other": "{{count}} habitaciones esperan inspección.",
+      "unassigned_one": "{{count}} habitación por limpiar no tiene camarera.",
+      "unassigned_other": "{{count}} habitaciones por limpiar no tienen camarera.",
+      "allAssigned": "Todas las habitaciones por limpiar tienen camarera.",
+      "boardUnknown": "No se pudo revisar el tablero de habitaciones, así que no se conocen los conteos.",
+      "inspectionResults": "Inspecciones de hoy: {{passed}} aprobadas, {{failed}} reprobadas.",
+      "inspectionsUnknown": "No se pudieron revisar los resultados de inspección."
+    },
+    "observations": {
+      "heading": "Requiere su atención",
+      "none": "Nada requiere atención en las fuentes revisadas.",
+      "noneChecked": "No se encontraron problemas en lo que se pudo revisar. Algunas fuentes no están disponibles, así que esto no es una confirmación total."
+    },
+    "suggestions": {
+      "heading": "Próximos pasos sugeridos",
+      "draftTask": "Preparar una tarea de seguimiento para la habitación {{room}}",
+      "openHint": "Abre la pantalla. No cambia nada.",
+      "draftHint": "Abre un borrador editable. No se crea nada hasta que confirme."
+    },
+    "quick": {
+      "heading": "Acciones rápidas",
+      "rooms": "Revisar habitaciones prioritarias",
+      "unassigned": "Revisar habitaciones sin asignar",
+      "inspections": "Revisar inspecciones pendientes",
+      "blocked": "Revisar tareas bloqueadas",
+      "task": "Preparar tarea de seguimiento"
+    },
+    "sources": {
+      "heading": "Basado en",
+      "board": "Tablero de habitaciones",
+      "staff": "Lista de personal",
+      "roster": "Rol de turnos",
+      "inspections": "Registros de inspección",
+      "blockedTasks": "Bloqueos de tareas",
+      "verified": "{{name}} · verificado {{time}}",
+      "stale": "{{name}} · última verificación {{time}}",
+      "loading": "{{name}} · cargando",
+      "unavailable": "{{name}} · no disponible",
+      "notChecked": "No se pudo revisar: {{sources}}. Se desconocen; no son cero."
+    },
+    "context": {
+      "about": "Preguntando por la habitación {{room}}",
+      "gone": "La habitación {{room}} ya no está en el tablero",
+      "clear": "Dejar de preguntar por esta habitación"
+    },
+    "draft": {
+      "title": "Seguimiento de la habitación {{room}}",
+      "question": "Preparar una tarea de seguimiento para la habitación {{room}}",
+      "answer": "Este es un borrador de tarea para la habitación {{room}}. Revíselo y edítelo. No se crea nada hasta que confirme.",
+      "reason": {
+        "arrival_at_risk": "La habitación {{room}} no está lista y se espera una llegada pronto. Revise su estado y prepárela.",
+        "readiness_risk": "La habitación {{room}} no está lista. Revise su estado y dé seguimiento.",
+        "general": "Dar seguimiento a la habitación {{room}}."
+      }
+    },
+    "taskHint": {
+      "chip": "Borrador de tarea",
+      "placeholder": "Describa la tarea que preparar…",
+      "clear": "Cancelar borrador de tarea"
+    },
+    "ai": {
+      "heading": "Resumen con IA",
+      "ask": "Resumir con IA",
+      "refresh": "Actualizar resumen",
+      "retry": "Intentar de nuevo",
+      "pending": "Escribiendo resumen…",
+      "interpretation": "Redacción con IA de las cifras de arriba. Las cifras son los hechos.",
+      "writtenAt": "Escrito {{time}}",
+      "creditsUsed": "{{credits}} créditos de IA usados",
+      "outdated": "Las cifras cambiaron desde que se escribió esto. Actualice para ponerlo al día.",
+      "costNote": "Usa créditos de IA, solo cuando usted toca.",
+      "noBoard": "Disponible cuando cargue el tablero de habitaciones.",
+      "disabled": "Los resúmenes con IA no están activados en su hotel. El resumen de arriba siempre está disponible.",
+      "failure": {
+        "offline": "Sin conexión. No se envió nada.",
+        "disabled": "Los resúmenes con IA no están activados en su hotel.",
+        "credit_limit": "Este hotel usó sus créditos de IA del mes. Consulte con su gerente.",
+        "rate_limited": "Demasiadas solicitudes. Espere un momento e intente de nuevo.",
+        "unavailable": "La IA no está disponible ahora. El resumen de arriba no se ve afectado.",
+        "invalid": "No se pudo verificar el resumen con las cifras, así que no se mostró.",
+        "cooldown": "Espere un momento antes de volver a pedirlo.",
+        "no_data": "Aún no hay nada verificado que resumir."
+      }
+    },
+    "handoff": {
+      "help": "Ayuda con las notas",
+      "helpHint": "Escribe un borrador con las cifras verificadas de hoy. Usa créditos de IA, solo cuando usted toca.",
+      "pending": "Redactando notas…",
+      "needsFresh": "Actualice las cifras primero para que el borrador refleje lo verificado ahora.",
+      "heading": "Notas sugeridas",
+      "disclosure": "Escrito por IA con las cifras de arriba. Edítelo antes de usarlo. No se envía nada por usted.",
+      "use": "Agregar a mis notas",
+      "discard": "Descartar",
+      "creditsUsed": "{{credits}} créditos de IA usados",
+      "tooLong": "Sus notas quedarían demasiado largas con este borrador. Acorte sus notas o descarte el borrador.",
+      "failure": {
+        "offline": "Sin conexión. Escriba las notas usted o intente más tarde.",
+        "disabled": "La redacción con IA no está activada en su hotel. Puede escribir las notas usted.",
+        "credit_limit": "Este hotel usó sus créditos de IA del mes. Puede escribir las notas usted.",
+        "rate_limited": "Demasiadas solicitudes. Espere un momento e intente de nuevo.",
+        "unavailable": "La IA no está disponible ahora. Puede escribir las notas usted.",
+        "invalid": "No se pudo verificar el borrador con las cifras, así que no se mostró.",
+        "cooldown": "Espere un momento antes de volver a pedirlo.",
+        "no_data": "Aún no hay nada verificado para redactar."
+      }
+    },
+    "attention": {
+      "ask": "Preguntar a PatelRep sobre esta habitación"
+    }
   }
 }

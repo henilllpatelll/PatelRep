@@ -489,7 +489,7 @@ describe("copy", () => {
 });
 
 describe("no AI spend", () => {
-  it("the attention model, store and realtime modules never touch AI routes, credits or models", () => {
+  it("the attention model, store and realtime modules never touch paid AI routes, credits or providers", () => {
     const files = [
       "../../lib/housekeeping/supervisorAttention.ts",
       "../../lib/housekeeping/supervisorAttentionCenter.ts",
@@ -502,7 +502,9 @@ describe("no AI spend", () => {
     ];
     for (const file of files) {
       const source = fs.readFileSync(path.resolve(__dirname, file), "utf8");
-      expect({ file, ai: /\/lib\/ai\/|openai|anthropic|\/ai\/|credit|copilot|assistant/i.test(source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")) }).toEqual({ file, ai: false });
+      // The detail sheet may offer an explicit navigation-only entry into the Copilot. It must not make a
+      // model request, inspect credit state, or import a provider merely to render/filter Attention.
+      expect({ file, paidAi: /openai|anthropic|["'`]\/ai\/|credit/i.test(source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")) }).toEqual({ file, paidAi: false });
     }
   });
 });

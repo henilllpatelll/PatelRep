@@ -4913,5 +4913,124 @@
       "missingTitle": "Room not on the board",
       "missingBody": "That room isn't on today's board any more. It may have been removed or you may not have access."
     }
+  },
+  "supervisorCopilot": {
+    "title": "PatelRep AI",
+    "role": "Housekeeping Supervisor",
+    "headerLabel": "PatelRep AI · Housekeeping Supervisor",
+    "backToOverview": "Back to overview",
+    "overview": {
+      "heading": "Shift overview",
+      "ready": "{{ready}} of {{total}} in-service rooms are ready.",
+      "awaitingInspection_one": "{{count}} room is waiting for inspection.",
+      "awaitingInspection_other": "{{count}} rooms are waiting for inspection.",
+      "unassigned_one": "{{count}} room that needs cleaning has no housekeeper.",
+      "unassigned_other": "{{count}} rooms that need cleaning have no housekeeper.",
+      "allAssigned": "Every room that needs cleaning has a housekeeper.",
+      "boardUnknown": "The room board could not be checked, so room counts are unknown.",
+      "inspectionResults": "Inspections today: {{passed}} passed, {{failed}} failed.",
+      "inspectionsUnknown": "Inspection results could not be checked."
+    },
+    "observations": {
+      "heading": "Worth your attention",
+      "none": "Nothing needs attention in the sources checked.",
+      "noneChecked": "No issues found in what could be checked. Some sources are unavailable, so this is not an all-clear."
+    },
+    "suggestions": {
+      "heading": "Suggested next steps",
+      "draftTask": "Prepare a follow-up task for room {{room}}",
+      "openHint": "Opens the screen. Nothing changes.",
+      "draftHint": "Opens an editable draft. Nothing is created until you confirm."
+    },
+    "quick": {
+      "heading": "Quick actions",
+      "rooms": "Review priority rooms",
+      "unassigned": "Review unassigned rooms",
+      "inspections": "Review pending inspections",
+      "blocked": "Review blocked tasks",
+      "task": "Prepare follow-up task"
+    },
+    "sources": {
+      "heading": "Based on",
+      "board": "Room board",
+      "staff": "Staff list",
+      "roster": "Shift roster",
+      "inspections": "Inspection records",
+      "blockedTasks": "Task blockers",
+      "verified": "{{name}} · verified {{time}}",
+      "stale": "{{name}} · last verified {{time}}",
+      "loading": "{{name}} · loading",
+      "unavailable": "{{name}} · not available",
+      "notChecked": "Could not check: {{sources}}. These are unknown, not zero."
+    },
+    "context": {
+      "about": "Asking about room {{room}}",
+      "gone": "Room {{room}} is no longer on the board",
+      "clear": "Stop asking about this room"
+    },
+    "draft": {
+      "title": "Follow up on room {{room}}",
+      "question": "Prepare a follow-up task for room {{room}}",
+      "answer": "Here is a draft task for room {{room}}. Review and edit it. Nothing is created until you confirm.",
+      "reason": {
+        "arrival_at_risk": "Room {{room}} is not ready and a guest arrival is expected soon. Check its status and get it ready.",
+        "readiness_risk": "Room {{room}} is not ready. Check its status and follow up.",
+        "general": "Follow up on room {{room}}."
+      }
+    },
+    "taskHint": {
+      "chip": "Task draft",
+      "placeholder": "Describe the task to prepare…",
+      "clear": "Cancel task draft"
+    },
+    "ai": {
+      "heading": "AI summary",
+      "ask": "Summarize with AI",
+      "refresh": "Refresh summary",
+      "retry": "Try again",
+      "pending": "Writing summary…",
+      "interpretation": "AI wording of the figures above. The figures are the facts.",
+      "writtenAt": "Written {{time}}",
+      "creditsUsed": "{{credits}} AI credits used",
+      "outdated": "The figures have changed since this was written. Refresh to update it.",
+      "costNote": "Uses AI credits, only when you tap.",
+      "noBoard": "Available once the room board has loaded.",
+      "disabled": "AI summaries are not turned on for your hotel. The overview above is always available.",
+      "failure": {
+        "offline": "You are offline. Nothing was sent.",
+        "disabled": "AI summaries are not turned on for your hotel.",
+        "credit_limit": "This hotel has used its AI credits for the month. Ask your manager.",
+        "rate_limited": "Too many requests. Wait a moment and try again.",
+        "unavailable": "AI is unavailable right now. The overview above is unaffected.",
+        "invalid": "The summary could not be verified against the figures, so it was not shown.",
+        "cooldown": "Please wait a moment before asking again.",
+        "no_data": "There is nothing verified to summarize yet."
+      }
+    },
+    "handoff": {
+      "help": "Help draft notes",
+      "helpHint": "Writes a draft from today's verified figures. Uses AI credits, only when you tap.",
+      "pending": "Drafting notes…",
+      "needsFresh": "Refresh the figures first so the draft reflects what is verified now.",
+      "heading": "Suggested notes",
+      "disclosure": "Written by AI from the figures above. Edit before using. Nothing is submitted for you.",
+      "use": "Add to my notes",
+      "discard": "Discard",
+      "creditsUsed": "{{credits}} AI credits used",
+      "tooLong": "Your notes would be too long with this draft. Shorten your notes or discard the draft.",
+      "failure": {
+        "offline": "You are offline. Write the notes yourself or try again later.",
+        "disabled": "AI drafting is not turned on for your hotel. You can write the notes yourself.",
+        "credit_limit": "This hotel has used its AI credits for the month. You can write the notes yourself.",
+        "rate_limited": "Too many requests. Wait a moment and try again.",
+        "unavailable": "AI is unavailable right now. You can write the notes yourself.",
+        "invalid": "The draft could not be verified against the figures, so it was not shown.",
+        "cooldown": "Please wait a moment before asking again.",
+        "no_data": "There is nothing verified to draft from yet."
+      }
+    },
+    "attention": {
+      "ask": "Ask PatelRep about this room"
+    }
   }
 }

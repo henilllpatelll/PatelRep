@@ -1982,6 +1982,65 @@ class SupervisorBriefingRequest(SanitizedBaseModel):
     language: Literal["en", "es"] = "en"
 
 
+SUPERVISOR_SUMMARY_FACT_KINDS = (
+    "arrival_at_risk",
+    "readiness_risk",
+    "task_blocker",
+    "shift_ended_with_open_rooms",
+    "workload_over_assigned",
+    "unassigned_rooms",
+    "awaiting_inspection",
+    "access_restricted",
+)
+SUPERVISOR_SUMMARY_SOURCES = ("board", "staff", "roster", "inspections", "blockedTasks")
+_SUMMARY_ROOM_RE = re.compile(r"^[A-Za-z0-9-]{1,10}$")
+
+
+class SupervisorSummaryFact(SanitizedBaseModel):
+    """One verified condition from the supervisor's Today snapshot. Structured only: no free text reaches the model."""
+
+    kind: Literal[SUPERVISOR_SUMMARY_FACT_KINDS]
+    count: int = Field(ge=0, le=1000)
+    rooms: List[str] = Field(default_factory=list, max_length=8)
+
+    @field_validator("rooms", mode="after")
+    @classmethod
+    def validate_rooms(cls, value: List[str]) -> List[str]:
+        if any(not _SUMMARY_ROOM_RE.match(item) for item in value):
+            raise ValueError("invalid room number")
+        return value
+
+
+class SupervisorSummaryReadiness(SanitizedBaseModel):
+    in_service: int = Field(ge=0, le=2000)
+    ready: int = Field(ge=0, le=2000)
+    awaiting_inspection: int = Field(ge=0, le=2000)
+    in_progress: int = Field(ge=0, le=2000)
+    to_clean: int = Field(ge=0, le=2000)
+    out_of_order: int = Field(ge=0, le=2000)
+
+
+class SupervisorSummaryInspections(SanitizedBaseModel):
+    passed: int = Field(ge=0, le=5000)
+    failed: int = Field(ge=0, le=5000)
+    conditional: int = Field(ge=0, le=5000)
+
+
+class SupervisorSummaryRequest(SanitizedBaseModel):
+    """What the phone's own Today model verified, as numbers and room numbers; the answer is plain wording only.
+
+    ``readiness`` / ``inspections`` are omitted when that source could not be verified (never sent as zero), and
+    ``unverified`` names the sources that could not be checked so the wording never implies "all clear".
+    """
+
+    purpose: Literal["shift", "handoff"] = "shift"
+    language: Literal["en", "es"] = "en"
+    readiness: Optional[SupervisorSummaryReadiness] = None
+    inspections: Optional[SupervisorSummaryInspections] = None
+    facts: List[SupervisorSummaryFact] = Field(default_factory=list, max_length=12)
+    unverified: List[Literal[SUPERVISOR_SUMMARY_SOURCES]] = Field(default_factory=list, max_length=5)
+
+
 class WorkOrderBriefingItem(SanitizedBaseModel):
     title: str = Field(min_length=1, max_length=200)
     category: Optional[str] = Field(default=None, max_length=40)

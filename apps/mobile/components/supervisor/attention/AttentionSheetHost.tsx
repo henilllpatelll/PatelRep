@@ -1,17 +1,14 @@
 import { useCallback, useMemo } from "react";
-import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { SupervisorAttentionSheet } from "@/components/supervisor/attention/SupervisorAttentionSheet";
 import { resolveAttentionDetail, type AttentionDetailView } from "@/lib/housekeeping/supervisorAttentionCenter";
 import type { SupervisorToday } from "@/lib/housekeeping/supervisorToday";
-import { isSupervisorSafePath, type SupervisorHref } from "@/lib/navigation/supervisorRoutes";
+import { assistantScope } from "@/lib/ai/session";
+import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
+import { useAppStore } from "@/stores/appStore";
+import { launchSupervisorCopilot } from "@/stores/supervisorCopilotStore";
 
-/** Open a supervisor destination. Refuses anything that is not a registered supervisor route. */
-export function openSupervisorHref(href: SupervisorHref): boolean {
-  if (!isSupervisorSafePath(href.pathname)) return false;
-  router.push((href.params ? { pathname: href.pathname, params: href.params } : href.pathname) as never);
-  return true;
-}
+export { openSupervisorHref };
 
 interface Props {
   /** The item the sheet is open for; null = closed. */
@@ -30,6 +27,15 @@ interface Props {
 export function AttentionSheetHost({ itemId, today, isOnline, zone, language, onClose }: Props) {
   const { t } = useTranslation();
   const someone = t("supervisorToday.attention.someone");
+  const scope = assistantScope(useAppStore((state) => state.user));
+  // The room comes from the verified detail view; the Copilot re-checks it against the board when it opens.
+  const onAsk = useCallback(
+    (room: { id: string; label: string }) => {
+      onClose();
+      launchSupervisorCopilot(scope, { roomId: room.id, roomNumber: room.label });
+    },
+    [onClose, scope],
+  );
   const view = useMemo<AttentionDetailView>(
     () =>
       itemId
@@ -45,5 +51,5 @@ export function AttentionSheetHost({ itemId, today, isOnline, zone, language, on
     [onClose],
   );
   if (!itemId) return null;
-  return <SupervisorAttentionSheet visible view={view} isOnline={isOnline} zone={zone} language={language} t={t} onClose={onClose} onPrimary={onPrimary} />;
+  return <SupervisorAttentionSheet visible view={view} isOnline={isOnline} zone={zone} language={language} t={t} onClose={onClose} onPrimary={onPrimary} onAsk={onAsk} />;
 }

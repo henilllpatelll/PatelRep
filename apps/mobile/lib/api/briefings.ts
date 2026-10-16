@@ -27,29 +27,8 @@ async function postBriefing(path: string, body: unknown): Promise<CopilotBriefin
   }
 }
 
-export interface BriefingRoomInput {
-  room_number: string;
-  status: string;
-  clean_type?: string | null;
-  vip_flag?: boolean;
-  dnd_flag?: boolean;
-}
-
-export interface StaffProgressInput {
-  name: string;
-  floor?: string | null;
-  rooms_done: number;
-  rooms_total: number;
-  minutes_behind?: number | null;
-}
-
-export function fetchSupervisorBriefing(
-  rooms: BriefingRoomInput[],
-  staff: StaffProgressInput[],
-  language: "en" | "es",
-): Promise<CopilotBriefing | null> {
-  return postBriefing("/ai/supervisor/briefing", { rooms, staff, language });
-}
+// The supervisor no longer has an automatic briefing call here: its overview is built on the phone from the Today
+// snapshot, and its optional paid wording lives in lib/ai/supervisorSummaryAi.ts (a tap, never a load).
 
 export interface WorkOrderBriefingInput {
   title: string;
