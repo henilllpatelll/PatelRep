@@ -828,3 +828,10 @@
 - apps/mobile/lib/navigation/supervisorRoutes.ts — SUPERVISOR_ROUTES + supervisorHref/isSupervisorSafePath. ~65 lines
 - apps/mobile/lib/api/housekeepingSupervisor.ts — added fetchBoardVerified / fetchShiftRoster / fetchInspectionHistory (strict, throw on malformed).
 - apps/mobile/__tests__/lib/supervisor{Today,Attention,Routes}.test.ts — 78 tests.
+
+## Supervisor Today UI (Phase 2, 2026-10-16)
+- apps/mobile/components/home/SupervisorHome.tsx — rewritten: orchestrates useSupervisorToday, realtime (debounced), modals; no mosaic/tiles. ~250 lines
+- apps/mobile/components/supervisor/today/{TodayBlocks,TodayHeader,ReadinessCard,AttentionPreview,TeamPulseCard,QuickActions}.tsx — the Today sections
+- apps/mobile/lib/housekeeping/supervisorTodayView.ts — describeAttention, describeFreshness/freshnessLabel, selectTeamPreview, greetingPart
+- apps/mobile/i18n/locales/{en,es}.json — new `supervisorToday` namespace
+- apps/mobile/__tests__/screens/{SupervisorToday,HomeRoleRouting}.test.tsx, __tests__/lib/supervisorTodayView.test.ts

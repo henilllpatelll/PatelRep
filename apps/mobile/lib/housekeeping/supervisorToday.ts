@@ -196,7 +196,7 @@ const EMPTY_BOARD: BoardSnapshot = { rooms: [], invalidRows: 0, duplicateRows: 0
 
 export function composeSupervisorToday(
   sources: TodaySources,
-  options: { now: number; timeZone?: string | null },
+  options: { now: number; timeZone?: string | null; viewerId?: string | null },
 ): SupervisorToday {
   const { now } = options;
   const timeZone = resolveTimeZone(options.timeZone);
@@ -216,7 +216,7 @@ export function composeSupervisorToday(
     timeZone,
     readiness: derive(aged.board, EMPTY_BOARD, (snapshot) => buildReadinessSummary(snapshot.rooms)),
     inspections: derive(aged.inspections, [], buildInspectionMetrics),
-    team: derive(aged.board, EMPTY_BOARD, (snapshot) => buildTeamPulse(snapshot.rooms, staff, aged.roster)),
+    team: derive(aged.board, EMPTY_BOARD, (snapshot) => buildTeamPulse(snapshot.rooms, staff, aged.roster, options.viewerId)),
     attention: buildSupervisorAttention(aged, { now, timeZone }),
     boardWarnings: { invalidRows: board?.invalidRows ?? 0, duplicateRows: board?.duplicateRows ?? 0 },
     sources: aged,

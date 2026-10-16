@@ -4431,5 +4431,117 @@
         "unavailable": "Unavailable"
       }
     }
+  },
+  "supervisorToday": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "morningName": "Good morning, {{name}}",
+      "afternoonName": "Good afternoon, {{name}}",
+      "eveningName": "Good evening, {{name}}"
+    },
+    "header": {
+      "profile": "Open profile"
+    },
+    "readiness": {
+      "title": "Room readiness",
+      "ready": "{{ready}} / {{total}} ready",
+      "a11y": "{{ready}} of {{total}} in-service rooms ready",
+      "outOfOrder": "{{count}} out-of-order room not counted",
+      "outOfOrder_plural": "{{count}} out-of-order rooms not counted",
+      "toClean": "To clean",
+      "working": "Working",
+      "inspect": "Inspect",
+      "unavailable": "Room data unavailable",
+      "unavailableHint": "We couldn't load the room board. Try again.",
+      "empty": "No rooms on the board yet.",
+      "emptyHint": "Rooms appear after the morning import.",
+      "open": "Open Room Board",
+      "loading": "Loading rooms"
+    },
+    "freshness": {
+      "justNow": "Updated just now",
+      "minutes": "Updated {{count}} minute ago",
+      "minutes_plural": "Updated {{count}} minutes ago",
+      "offline": "Offline — last updated {{time}}",
+      "refreshFailed": "Couldn't refresh — last updated {{time}}",
+      "age": "Last updated {{time}}",
+      "updating": "Updating…"
+    },
+    "attention": {
+      "title": "Needs your attention",
+      "viewAll": "View all",
+      "more": "{{count}} more item",
+      "more_plural": "{{count}} more items",
+      "caughtUp": "You're all caught up.",
+      "caughtUpHint": "No urgent housekeeping items need your attention right now.",
+      "staleEmpty": "No items as of the last update.",
+      "staleEmptyHint": "Reconnect or refresh to confirm.",
+      "incomplete": "Couldn't check everything",
+      "incompleteHint": "Some data didn't load, so this list may be incomplete.",
+      "urgent": "Urgent",
+      "high": "High priority",
+      "roomNeedsAttention": "Room {{room}} needs attention",
+      "arrivalAt": "Arrival expected {{time}} · Not ready",
+      "arrivalNotReady": "Arrival today · Not ready",
+      "roomAtRisk": "Room {{room}} may not be ready",
+      "roomAtRiskHint": "Flagged high risk by readiness prediction",
+      "taskBlocked": "{{task}} is blocked",
+      "shiftEndedTitle": "{{name}} clocked out",
+      "shiftEndedHint": "{{count}} assigned room still open",
+      "shiftEndedHint_plural": "{{count}} assigned rooms still open",
+      "overAssignedTitle": "{{name}} may be overloaded",
+      "overAssignedHint": "Assigned work exceeds a standard shift",
+      "unassigned": "{{count}} room unassigned",
+      "unassigned_plural": "{{count}} rooms unassigned",
+      "unassignedHint": "Review team assignments",
+      "awaitingInspection": "{{count}} room awaiting inspection",
+      "awaitingInspection_plural": "{{count}} rooms awaiting inspection",
+      "awaitingInspectionHint": "Open inspection queue",
+      "accessRestricted": "{{count}} room with an access restriction",
+      "accessRestricted_plural": "{{count}} rooms with access restrictions",
+      "accessRestrictedHint": "Do not disturb — check before servicing",
+      "someone": "A housekeeper"
+    },
+    "team": {
+      "title": "Team pulse",
+      "onShift": "{{count}} on shift",
+      "onShift_plural": "{{count}} on shift",
+      "onShiftStale": "{{count}} on shift (last known)",
+      "onShiftStale_plural": "{{count}} on shift (last known)",
+      "shiftUnknown": "Shift status unavailable",
+      "manage": "Assignments",
+      "progress": "{{done}} of {{count}} room completed",
+      "progress_plural": "{{done}} of {{count}} rooms completed",
+      "statusOnShift": "On shift",
+      "statusOnBreak": "On break",
+      "statusEnded": "Clocked out",
+      "statusNotClockedIn": "Not clocked in",
+      "concernEnded": "Clocked out · rooms open",
+      "concernOver": "Heavy load",
+      "more": "+{{count}} more",
+      "withoutRooms": "{{count}} housekeeper has no rooms",
+      "withoutRooms_plural": "{{count}} housekeepers have no rooms",
+      "empty": "No rooms assigned yet",
+      "emptyHint": "Assign today's rooms to see team progress.",
+      "unavailable": "Team data unavailable"
+    },
+    "actions": {
+      "title": "Quick actions",
+      "shiftNote": "Shift note",
+      "messageTeam": "Message team",
+      "messageStaff": "Message staff",
+      "handoff": "Shift handoff",
+      "pickerTitle": "Message who?",
+      "offline": "You're offline. Reconnect to send.",
+      "staffUnavailable": "Staff list unavailable. Pull down to refresh.",
+      "handoffUnavailable": "Room data unavailable. Refresh before handing off."
+    },
+    "status": {
+      "offline": "Offline — showing last known data",
+      "partial": "Some information couldn't be loaded",
+      "retry": "Retry"
+    }
   }
 }

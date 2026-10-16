@@ -65,6 +65,8 @@ export type StaffConcern = "over_assigned" | "shift_ended_with_open_rooms";
 export interface StaffPulseMember {
   userId: string;
   name: string | null;
+  /** From the staff list; null when the person is only known from an assignment. */
+  role: string | null;
   /** `unknown` whenever the roster is not available. */
   availability: StaffAvailability;
   load: TeamLoad | null;
@@ -86,8 +88,10 @@ export function buildTeamPulse(
   rooms: FloorRoom[],
   staff: AssignableStaff[] | null,
   roster: SourceState<RosterEntry[]>,
+  viewerId?: string | null,
 ): TeamPulse {
   const nameById = buildNameById(staff ?? []);
+  const roleById = new Map((staff ?? []).map((member) => [member.userId, member.role]));
   const workloads = buildTeamLoads(rooms, nameById);
   const loadById = new Map(workloads.map((load) => [load.housekeeperId, load]));
   const entries = knownValue(roster, []);
@@ -104,12 +108,12 @@ export function buildTeamPulse(
     let concern: StaffConcern | null = null;
     if (availability === "ended" && openRooms > 0) concern = "shift_ended_with_open_rooms";
     else if (load?.overAssigned) concern = "over_assigned";
-    return { userId, name: nameById.get(userId) ?? null, availability, load, concern };
+    return { userId, name: nameById.get(userId) ?? null, role: roleById.get(userId) ?? null, availability, load, concern };
   });
   members.sort((a, b) => (a.name ?? "~").localeCompare(b.name ?? "~", undefined, { sensitivity: "base" }));
 
   const count = (availability: RosterAvailability) =>
-    entries === null ? null : entries.filter((entry) => entry.availability === availability).length;
+    entries === null ? null : entries.filter((entry) => entry.availability === availability && entry.userId !== viewerId).length;
   return { roster: { status: rosterStatus, fetchedAt: fetchedAtOf(roster) }, onShift: count("on_shift"), onBreak: count("on_break"), members, workloads };
 }
 
