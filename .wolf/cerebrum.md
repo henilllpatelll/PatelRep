@@ -398,6 +398,10 @@
 
 ## Do-Not-Repeat
 
+- [2026-10-16] **Never reuse the browsing visibility rule for anything that speaks AS hotel policy.** `sop_access.visible_documents` shows an upload with no `controlled_documents` record (legacy browsing) but RAG, citations and assistant document context must pass `require_approved=True`. `ai_ready` = indexed AND approved.
+- [2026-10-16] **A housekeeper's "current" room assignment is today's hotel-local `room_assignments` row** (tenant tz), not the newest row; yesterday's only carries over while clocked in on an overnight `hk_shift_sessions` shift that began yesterday. Handler tests run on the real clock, so date their fixtures with hotel-local today. (Latent: `/ai/assignments/confirm` still dates rows with server `date.today()`, not hotel-local.)
+- [2026-10-16] **Credit cap = one atomic statement.** `check_and_deduct_credits` calls `deduct_ai_credits()` (migration 217); the old read-then-`increment_credits_used` is only the fallback when the function is missing (PGRST202). Fakes that return `data=[]` for unknown RPCs hit the fallback. Mobile jest needs a real `npm ci` in the worktree (delete the node_modules junction with `[System.IO.Directory]::Delete`, never recurse), and `useMyRoomsData` tests pin Date to 2026-10-14.
+
 - [2026-10-15] Never statically import a NEW native Expo module in mobile JS while `runtimeVersion` is the fixed "1.0.0": OTA JS reaches older binaries and throws at launch. Load it lazily in try/catch (see lib/voice/speechModule.ts, lib/security/biometrics.ts) or bump the runtime with the native build.
 
 - [2026-10-15] Do not add push sending outside `services/notify.py`, and do not trust `data.url` from a push payload: route through `lib/notifications/deepLink.ts`. Do not count the length of `GET /notifications` for a badge (capped at 20): use `/notifications/unread-count`.

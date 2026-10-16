@@ -33953,6 +33953,72 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2058",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "Review: housekeeper room AI context used the newest historical assignment, not a valid current one",
+      "file": "apps/api/services/ai/authorization.py",
+      "root_cause": "latest assignment_date was compared only against other rows for that room, so a two-day-old row (or an overnight shift's lapsed row) still granted context",
+      "fix": "_holds_current_assignment: today's hotel-local row decides; yesterday's counts only with an open shift that began yesterday and no row for today",
+      "tags": [
+        "api",
+        "ai",
+        "authorization",
+        "timezone"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2059",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "Review: indexed SOP upload with no approval record was retrieved and cited as approved hotel policy",
+      "file": "apps/api/services/ai/sop_access.py",
+      "root_cause": "'no controlled_documents link = visible' (right for browsing) was reused by RAG and assistant context",
+      "fix": "require_approved flag used by sop_rag.query_sop and resolve_trusted_context; ai_ready now needs approval",
+      "tags": [
+        "api",
+        "ai",
+        "sop"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2060",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "Review: concurrent paid AI calls could all pass a stale cap read and be billed past the cap",
+      "file": "apps/api/middleware/credits.py",
+      "root_cause": "cap read and increment_credits_used were separate statements",
+      "fix": "migration 217 deduct_ai_credits() (check+increment in one UPDATE) with fallback until applied",
+      "tags": [
+        "api",
+        "billing",
+        "concurrency",
+        "migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2061",
+      "timestamp": "2026-10-16T12:00:00Z",
+      "error_message": "useMyRoomsData > keeps the rooms on screen, marked stale, when a refresh fails (Received [])",
+      "file": "apps/mobile/__tests__/lib/useMyRoomsData.test.tsx",
+      "root_cause": "fixtures hard-code 2026-10-14 with the real clock; hook drops answers for a day that is over",
+      "fix": "pin only Date with jest.useFakeTimers({now, doNotFake:[timers...]})",
+      "tags": [
+        "mobile",
+        "jest",
+        "clock"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T12:00:00Z"
     }
   ]
 }

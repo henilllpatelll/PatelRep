@@ -795,6 +795,8 @@
 - apps/mobile/app/(app)/copilot/index.tsx - full assistant (header + menu + thread + composer) over the same provider; follows replies only while the reader is at the end (~3k tok)
 - apps/api/services/ai/authorization.py - intent->role matrix, hint whitelist, context sanitising, tenant/assignment-scoped trusted ids (~1.6k tok)
 - apps/api/tests/test_ai_copilot_authorization.py - negative tests: roles, hints, cross-tenant, malformed, confirm verification/idempotency
+- apps/api/tests/test_ai_credit_concurrency.py - threaded burst vs a lock-faithful fake of deduct_ai_credits: cap bound, tenant isolation, pre-217 fallback
+- supabase/migrations/217_deduct_ai_credits_capped.sql - deduct_ai_credits(hotel, credits, base_fee): cap check + increment in one UPDATE; service_role only (~0.5k tok)
 
 - apps/mobile/lib/housekeeping/roomAssist.ts - everything said about ONE room, from phone data only: readiness facts (estimate + basis, work order on record), one line of guidance (restriction > unsent changes > checklist left > maintenance follow-up > next), room-question answers (gone / answer / compose); never asks a model, never allows or orders work (~2.8k tok)
 - apps/mobile/lib/housekeeping/cleaningEstimate.ts - estimateBasisOf(): hotel room-type baseline vs the app's general fallback, so screens label an estimate honestly (~0.3k tok)
