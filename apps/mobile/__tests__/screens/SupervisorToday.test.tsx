@@ -47,26 +47,10 @@ jest.mock("@/components/supervisor/DirectMessageModal", () => {
   const { Text } = require("react-native");
   return {
     __esModule: true,
-    default: ({ visible, recipientId }: { visible: boolean; recipientId: string | null }) =>
-      visible ? <Text testID="modal-dm">{recipientId}</Text> : null,
+    default: ({ visible, recipientId, recipientMeta }: { visible: boolean; recipientId: string | null; recipientMeta?: string | null }) =>
+      visible ? <Text testID="modal-dm">{`${recipientId}|${recipientMeta ?? ""}`}</Text> : null,
   };
 });
-jest.mock("@/components/supervisor/HousekeeperPicker", () => {
-  const { Pressable, Text, View } = require("react-native");
-  return {
-    HousekeeperPicker: ({ visible, staff, onSelect }: { visible: boolean; staff: Array<{ userId: string; name: string }>; onSelect: (m: unknown) => void }) =>
-      visible ? (
-        <View testID="picker">
-          {staff.map((member) => (
-            <Pressable key={member.userId} testID={`pick-${member.userId}`} onPress={() => onSelect(member)}>
-              <Text>{member.name}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null,
-  };
-});
-
 const mockState: {
   user: { id: string; role: string; tenant_id: string; language_pref: string; full_name?: string };
   isOnline: boolean;
@@ -315,12 +299,32 @@ describe("Supervisor Today — team pulse", () => {
     expect(screen.getByTestId("today-team-norooms")).toHaveTextContent("1 housekeeper has no rooms");
   });
 
-  it("opens Assignments from the header link and from a row", async () => {
+  it("opens Assignments from the header link, and a person's quick view from a row", async () => {
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-team-row-hk-1"));
     fireEvent.press(screen.getByTestId("today-team-manage"));
+    expect(push.mock.calls.map((call) => call[0])).toEqual(["/(app)/assignments"]);
     fireEvent.press(screen.getByTestId("today-team-row-hk-1"));
-    expect(push.mock.calls.map((call) => call[0])).toEqual(["/(app)/assignments", "/(app)/assignments"]);
+    expect(screen.getByTestId("staff-quick-sheet")).toBeTruthy();
+    expect(push).toHaveBeenCalledTimes(1); // the row alone does not navigate
+  });
+
+  it("quick view: View all assignments closes the sheet and opens Assignments", async () => {
+    const screen = renderHome();
+    await waitFor(() => screen.getByTestId("today-team-row-hk-1"));
+    fireEvent.press(screen.getByTestId("today-team-row-hk-1"));
+    fireEvent.press(screen.getByTestId("staff-quick-assignments"));
+    expect(screen.queryByTestId("staff-quick-sheet")).toBeNull();
+    expect(push).toHaveBeenCalledWith("/(app)/assignments");
+  });
+
+  it("quick view: Message opens the composer for that person with their verified status", async () => {
+    const screen = renderHome();
+    await waitFor(() => screen.getByTestId("today-team-row-hk-1"));
+    fireEvent.press(screen.getByTestId("today-team-row-hk-1"));
+    fireEvent.press(screen.getByTestId("staff-quick-message"));
+    expect(screen.queryByTestId("staff-quick-sheet")).toBeNull(); // sheets never stack
+    await waitFor(() => expect(screen.getByTestId("modal-dm")).toHaveTextContent(/^hk-1\|Housekeeper · .+/));
   });
 
   it("shows an unavailable state with retry when the board is down", async () => {
@@ -377,20 +381,22 @@ describe("Supervisor Today — quick actions", () => {
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-team-row-hk-1"));
     fireEvent.press(screen.getByTestId("today-action-messageStaff"));
-    expect(screen.getByTestId("picker")).toBeTruthy();
+    expect(screen.getByTestId("staff-picker-sheet")).toBeTruthy();
     expect(screen.queryByTestId("modal-dm")).toBeNull();
-    expect(screen.queryByTestId("pick-sup-1")).toBeNull(); // not yourself
-    fireEvent.press(screen.getByTestId("pick-hk-2"));
-    await waitFor(() => expect(screen.getByTestId("modal-dm")).toHaveTextContent("hk-2"));
+    expect(screen.queryByTestId("picker-sup-1")).toBeNull(); // not yourself
+    fireEvent.press(screen.getByTestId("picker-hk-2"));
+    expect(screen.queryByTestId("staff-picker-sheet")).toBeNull();
+    await waitFor(() => expect(screen.getByTestId("modal-dm")).toHaveTextContent(/^hk-2\|/));
   });
 
-  it("explains instead of doing nothing when the staff list is unavailable", async () => {
+  it("explains in the picker, with a retry, when the staff list is unavailable", async () => {
     staffList.mockRejectedValue(new Error("down"));
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-readiness-ready"));
     fireEvent.press(screen.getByTestId("today-action-messageStaff"));
-    expect(mockToast.error).toHaveBeenCalledWith("Staff list unavailable. Pull down to refresh.");
-    expect(screen.queryByTestId("picker")).toBeNull();
+    expect(screen.getByTestId("picker-failed")).toHaveTextContent("Couldn't load your staff list.");
+    expect(screen.getByTestId("picker-retry")).toBeTruthy();
+    expect(screen.queryByTestId("modal-dm")).toBeNull();
   });
 
   it("keeps Shift handoff available even when few rooms are clean", async () => {

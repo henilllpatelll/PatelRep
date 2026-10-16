@@ -13,11 +13,13 @@ import { TodayHeader } from "@/components/supervisor/today/TodayHeader";
 import BroadcastModal from "@/components/supervisor/BroadcastModal";
 import DirectMessageModal from "@/components/supervisor/DirectMessageModal";
 import EndShiftModal from "@/components/supervisor/EndShiftModal";
-import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 import ShiftNoteModal from "@/components/supervisor/ShiftNoteModal";
+import { StaffPickerSheet } from "@/components/supervisor/StaffPickerSheet";
+import { StaffQuickViewSheet } from "@/components/supervisor/StaffQuickViewSheet";
 import { resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import { firstNameOf } from "@/lib/housekeeping/homeText";
 import { buildFloorSnapshot, type AssignableStaff, type FloorSnapshot } from "@/lib/housekeeping/supervisor";
+import { availabilityKey, roleKey, type StaffQuickView } from "@/lib/housekeeping/supervisorComms";
 import { isVerified, knownValue } from "@/lib/housekeeping/supervisorSources";
 import { describeFreshness, freshnessLabel, greetingPart } from "@/lib/housekeeping/supervisorTodayView";
 import { subscribeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
@@ -65,7 +67,8 @@ export function SupervisorHome({ name }: { name: string }) {
   // The counts the handoff will report, frozen when it opens so a background refresh cannot change them mid-form.
   const [handoff, setHandoff] = useState<FloorSnapshot | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const [messageTarget, setMessageTarget] = useState<{ id: string; name: string } | null>(null);
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
+  const [messageTarget, setMessageTarget] = useState<{ id: string; name: string; meta: string | null } | null>(null);
   const [attentionItemId, setAttentionItemId] = useState<string | null>(null);
   const swapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -114,11 +117,9 @@ export function SupervisorHome({ name }: { name: string }) {
     [today.sources.board, now, t, zone, language],
   );
 
-  const staff = knownValue(today.sources.staff, []);
   const board = knownValue(today.sources.board, { rooms: [], invalidRows: 0, duplicateRows: 0 });
   const boardVerified = isVerified(today.sources.board);
   const handoffSnapshot = useMemo(() => (board && boardVerified ? buildFloorSnapshot(board.rooms) : null), [board, boardVerified]);
-  const pickerStaff = useMemo<AssignableStaff[]>(() => (staff ?? []).filter((member) => member.userId !== userId), [staff, userId]);
 
   const onQuickAction = useCallback(
     (key: QuickActionKey) => {
@@ -135,10 +136,7 @@ export function SupervisorHome({ name }: { name: string }) {
           setShowBroadcast(true);
           return;
         case "messageStaff":
-          if (staff === null) {
-            toast.error(t("supervisorToday.actions.staffUnavailable"));
-            return;
-          }
+          // The picker explains a loading, failed or empty staff list itself.
           setShowPicker(true);
           return;
         case "handoff":
@@ -151,13 +149,55 @@ export function SupervisorHome({ name }: { name: string }) {
           return;
       }
     },
-    [isOnline, staff, handoffSnapshot, toast, t],
+    [isOnline, handoffSnapshot, toast, t],
   );
 
-  const onPickRecipient = useCallback((member: AssignableStaff) => {
-    setShowPicker(false);
-    if (swapTimer.current) clearTimeout(swapTimer.current);
-    swapTimer.current = setTimeout(() => setMessageTarget({ id: member.userId, name: member.name }), MODAL_SWAP_MS);
+  /** Role · shift status · rooms cleaned, from the live team snapshot; only what is known. */
+  const describeRecipient = useCallback(
+    (id: string, role: string | null): string | null => {
+      const member = today.team.value?.members.find((m) => m.userId === id);
+      const roleText = roleKey(role);
+      const parts = [
+        roleText ? t(roleText) : null,
+        t(availabilityKey(member?.availability ?? "unknown")),
+        member?.load && member.load.total > 0 ? t("supervisorComms.quick.progress", { done: member.load.done, count: member.load.total }) : null,
+      ];
+      return parts.filter(Boolean).join(" · ");
+    },
+    [today.team.value, t],
+  );
+
+  /** One sheet finishes dismissing before the composer presents, so the two never stack. */
+  const openComposer = useCallback(
+    (target: { id: string; name: string; role: string | null }) => {
+      if (swapTimer.current) clearTimeout(swapTimer.current);
+      swapTimer.current = setTimeout(
+        () => setMessageTarget({ id: target.id, name: target.name, meta: describeRecipient(target.id, target.role) }),
+        MODAL_SWAP_MS,
+      );
+    },
+    [describeRecipient],
+  );
+
+  const onPickRecipient = useCallback(
+    (member: AssignableStaff) => {
+      setShowPicker(false);
+      openComposer({ id: member.userId, name: member.name, role: member.role });
+    },
+    [openComposer],
+  );
+
+  const onQuickViewMessage = useCallback(
+    (view: StaffQuickView) => {
+      setQuickViewId(null);
+      openComposer({ id: view.userId, name: view.name ?? t("supervisorToday.attention.someone"), role: view.role });
+    },
+    [openComposer, t],
+  );
+
+  const onQuickViewAssignments = useCallback(() => {
+    setQuickViewId(null);
+    go("team");
   }, []);
 
   return (
@@ -202,7 +242,7 @@ export function SupervisorHome({ name }: { name: string }) {
             onViewAll={() => go("attention")}
             onRetry={onRefresh}
           />
-          <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => go("team")} onRetry={onRefresh} />
+          <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => go("team")} onOpenMember={setQuickViewId} onRetry={onRefresh} />
           <QuickActions t={t} onAction={onQuickAction} />
         </View>
       </ScrollView>
@@ -215,23 +255,32 @@ export function SupervisorHome({ name }: { name: string }) {
         language={language}
         onClose={() => setAttentionItemId(null)}
       />
-      <ShiftNoteModal visible={showShiftNote} onClose={() => setShowShiftNote(false)} />
-      <BroadcastModal visible={showBroadcast} onClose={() => setShowBroadcast(false)} />
+      <ShiftNoteModal visible={showShiftNote} tenantId={tenantId} isOnline={isOnline} onClose={() => setShowShiftNote(false)} />
+      <BroadcastModal visible={showBroadcast} isOnline={isOnline} onClose={() => setShowBroadcast(false)} />
       {handoff ? <EndShiftModal visible snapshot={handoff} onClose={() => setHandoff(null)} /> : null}
-      <HousekeeperPicker
+      <StaffPickerSheet
         visible={showPicker}
-        roomNumber={null}
-        customTitle={t("supervisorToday.actions.pickerTitle")}
-        staff={pickerStaff}
-        loads={today.team.value?.workloads ?? []}
-        saving={false}
+        staff={today.sources.staff}
+        team={today.team}
+        viewerId={userId}
         onSelect={onPickRecipient}
+        onRetry={onRefresh}
         onClose={() => setShowPicker(false)}
+      />
+      <StaffQuickViewSheet
+        userId={quickViewId}
+        team={today.team}
+        isOnline={isOnline}
+        onMessage={onQuickViewMessage}
+        onViewAssignments={onQuickViewAssignments}
+        onClose={() => setQuickViewId(null)}
       />
       <DirectMessageModal
         visible={messageTarget != null}
         recipientId={messageTarget?.id ?? null}
         recipientName={messageTarget?.name ?? null}
+        recipientMeta={messageTarget?.meta ?? null}
+        isOnline={isOnline}
         onClose={() => setMessageTarget(null)}
       />
     </View>

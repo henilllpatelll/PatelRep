@@ -285,8 +285,8 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | notifications.py | /v1/notifications | GET | none |  |
 | notifications.py | /v1/notifications/{notification_id}/read | PATCH | none |  |
 | notifications.py | /v1/notifications/mark-all-read | POST | none |  |
-| notifications.py | /v1/notifications/broadcast | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L132] |
-| notifications.py | /v1/notifications/direct | POST | engineer, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer') [L177] |
+| notifications.py | /v1/notifications/broadcast | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L154] |
+| notifications.py | /v1/notifications/direct | POST | engineer, gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor', 'engineer') [L215] |
 | onboarding.py | /v1/onboarding/status | GET | gm | require_role('gm') [L122] |
 | onboarding.py | /v1/onboarding/rooms/import-csv | POST | gm | require_role('gm') [L186] |
 | onboarding.py | /v1/onboarding/ai-assistant | POST | none |  |

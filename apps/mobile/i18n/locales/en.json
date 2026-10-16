@@ -3906,6 +3906,111 @@
     "lateCoNoTime": "Late checkout requested — time not specified",
     "vipBadge": "VIP"
   },
+  "supervisorComms": {
+    "offline": "You're offline. Reconnect to send. Your draft is kept.",
+    "count": "{{count}} / {{max}}",
+    "retry": "Try again",
+    "errors": {
+      "rejected": "The server couldn't accept this. Check it and try again.",
+      "forbidden": "Your account isn't allowed to do this.",
+      "signedOut": "Your session ended. Sign in again. Your draft stays here until you close this.",
+      "unconfirmed": "We didn't get an answer, so it may already have been sent. Check before sending again. Your draft is kept."
+    },
+    "note": {
+      "title": "Add shift note",
+      "sub": "Record an important update for your team or the next shift.",
+      "label": "Note",
+      "placeholder": "Room 308 requires priority inspection before the next arrival...",
+      "department": "Filed under {{department}}",
+      "departmentName": "Housekeeping",
+      "departmentLoading": "Finding your Housekeeping logbook...",
+      "departmentFailed": "Couldn't load your hotel's departments, so the note can't be filed yet.",
+      "departmentMissing": "This hotel has no Housekeeping department, so a note can't be filed. Ask a manager to set one up.",
+      "departmentAmbiguous": "This hotel has more than one Housekeeping department, so the app can't tell which logbook to use.",
+      "save": "Save note",
+      "saved": "Shift note saved."
+    },
+    "team": {
+      "title": "Message team",
+      "audienceLabel": "Sends to",
+      "audience": "All active housekeeper accounts at this hotel",
+      "audienceHint": "Added to each person's notification inbox. It isn't limited to who is clocked in, and the app can't tell you who has read it.",
+      "templatesLabel": "Quick messages",
+      "templates": {
+        "assignments": "Check your updated assignments.",
+        "priority": "Please review priority rooms.",
+        "shift": "Shift reminder.",
+        "checkOut": "Check with your supervisor before leaving."
+      },
+      "label": "Message",
+      "placeholder": "Write a message for the whole team...",
+      "send": "Send message",
+      "delivered": "Message added to {{count}} housekeeper inbox.",
+      "delivered_plural": "Message added to {{count}} housekeeper inboxes.",
+      "deliveredUnknown": "Message sent. The server didn't report how many inboxes it reached.",
+      "nobody": "There are no active housekeeper accounts to send to, so nothing was sent."
+    },
+    "dm": {
+      "title": "Message staff member",
+      "to": "To",
+      "hint": "Goes to their notification inbox. You won't see whether they've read it.",
+      "label": "Message",
+      "placeholder": "e.g. Skip 207, start 310 first",
+      "send": "Send message",
+      "sent": "Message sent to {{name}}.",
+      "noRecipient": "Choose who to message first."
+    },
+    "picker": {
+      "title": "Message who?",
+      "search": "Search by name",
+      "searchLabel": "Search staff by name",
+      "loading": "Loading your staff...",
+      "failed": "Couldn't load your staff list.",
+      "forbidden": "Your account can't see the staff list.",
+      "empty": "No other active housekeeping staff accounts found.",
+      "noResults": "No one matches \"{{query}}\".",
+      "rooms": "{{count}} room today",
+      "rooms_plural": "{{count}} rooms today",
+      "noRooms": "No rooms today",
+      "pickA11y": "Message {{name}}. {{role}}. {{status}}"
+    },
+    "quick": {
+      "title": "Staff member",
+      "gone": "This person is no longer on your team list.",
+      "goneClose": "Close",
+      "statusUnknown": "Availability unknown",
+      "rosterStale": "Shift status is the last known, not confirmed now.",
+      "rosterUnknown": "Shift status couldn't be confirmed.",
+      "roles": {
+        "housekeeper": "Housekeeper",
+        "housekeeping_supervisor": "Housekeeping supervisor"
+      },
+      "assigned": "{{count}} room assigned",
+      "assigned_plural": "{{count}} rooms assigned",
+      "cleaned": "Cleaned",
+      "cleanedHint": "Cleaning submitted or inspected",
+      "inspected": "Passed inspection",
+      "awaiting": "Awaiting inspection",
+      "remaining": "Remaining",
+      "progress": "{{done}} of {{count}} room cleaned",
+      "progress_plural": "{{done}} of {{count}} rooms cleaned",
+      "remainingTitle": "Remaining rooms",
+      "moreRooms": "+{{count}} more room",
+      "moreRooms_plural": "+{{count}} more rooms",
+      "noRooms": "No rooms assigned today.",
+      "allCleaned": "Every assigned room has been cleaned.",
+      "vip": "VIP",
+      "dnd": "Do not disturb",
+      "status": {
+        "DIRTY": "To clean",
+        "OCCUPIED": "To clean",
+        "PICKUP": "Pickup",
+        "IN_PROGRESS": "Cleaning now"
+      },
+      "message": "Message",
+      "viewAll": "View all assignments"
+    }
+  },
   "supervisorTools": {
     "messageTeamTitle": "Message Team",
     "messageTeamSub": "Sends to all housekeeping staff on shift",

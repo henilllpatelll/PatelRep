@@ -24,6 +24,8 @@ interface Props {
   team: Derived<TeamPulse>;
   t: Translate;
   onOpenAssignments: () => void;
+  /** Tapping a person opens their quick view; "Assignments" in the header is the way to the full Team screen. */
+  onOpenMember: (userId: string) => void;
   onRetry: () => void;
 }
 
@@ -49,7 +51,7 @@ function availabilityLabel(member: StaffPulseMember, t: Translate): string | nul
   }
 }
 
-export function TeamPulseCard({ team, t, onOpenAssignments, onRetry }: Props) {
+export function TeamPulseCard({ team, t, onOpenAssignments, onOpenMember, onRetry }: Props) {
   const theme = useTheme();
   const pulse = team.value;
   const preview = useMemo(() => (pulse ? selectTeamPreview(pulse, TEAM_PREVIEW_LIMIT) : null), [pulse]);
@@ -99,7 +101,7 @@ export function TeamPulseCard({ team, t, onOpenAssignments, onRetry }: Props) {
           return (
             <Pressable
               key={member.userId}
-              onPress={onOpenAssignments}
+              onPress={() => onOpenMember(member.userId)}
               testID={`today-team-row-${member.userId}`}
               accessibilityRole="button"
               accessibilityLabel={[name, progress, concern ?? status].filter(Boolean).join(". ")}

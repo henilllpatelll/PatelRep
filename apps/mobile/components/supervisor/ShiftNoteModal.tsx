@@ -1,96 +1,191 @@
-import { useState } from "react";
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCallback, useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { api } from "@/lib/api/client";
+import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
+import { MAX_FONT_SCALE } from "@/components/home/homeUi";
+import { SheetNotice } from "@/components/home/sheetParts";
+import { DraftField, useSubmitGuard } from "@/components/supervisor/commsParts";
+import { Button } from "@/components/ui/Button";
+import { createShiftNote, fetchHotelDepartments } from "@/lib/api/housekeepingSupervisor";
+import {
+  SHIFT_NOTE_MAX,
+  isMeaningfulDraft,
+  resolveHousekeepingDepartment,
+  type DepartmentResolution,
+  type SendFailureKind,
+} from "@/lib/housekeeping/supervisorComms";
+import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
-import { Button } from "@/components/ui/Button";
 
 interface Props {
   visible: boolean;
+  /** The hotel the note belongs to; its departments are read to find Housekeeping. */
+  tenantId: string | null;
+  isOnline: boolean;
   onClose: () => void;
 }
 
-export default function ShiftNoteModal({ visible, onClose }: Props) {
-  const insets = useSafeAreaInsets();
+type DepartmentState = { status: "loading" } | { status: "failed" } | DepartmentResolution;
+
+/**
+ * Add a shift note: one informational logbook entry in the hotel's Housekeeping department
+ * (POST /logbook/entries). The department is looked up from the hotel's own list and never guessed:
+ * with no single clear Housekeeping department the note cannot be filed, and the sheet says why.
+ * A sheet that is not showing holds nothing, so a draft never outlives its sheet.
+ */
+export default function ShiftNoteModal({ visible, tenantId, isOnline, onClose }: Props) {
+  if (!visible) return null;
+  return <ShiftNoteSheet tenantId={tenantId} isOnline={isOnline} onClose={onClose} />;
+}
+
+function ShiftNoteSheet({ tenantId, isOnline, onClose }: Omit<Props, "visible">) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
-  const { t } = useTranslation();
+  const { busy, run } = useSubmitGuard();
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [failure, setFailure] = useState<SendFailureKind | null>(null);
+  const [department, setDepartment] = useState<DepartmentState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
-  async function submit() {
-    if (!text.trim()) return;
-    setLoading(true);
-    try {
-      await api.post("/logbook", {
-        entry_type: "shift_note",
-        content: text.trim(),
-        is_private: false,
-      });
-      setText("");
-      toast.success("Shift note logged.");
-      onClose();
-    } catch (err: unknown) {
-      toast.error((err as Error).message ?? "Failed to save note");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+    setDepartment({ status: "loading" });
+    if (!tenantId) {
+      setDepartment({ status: "failed" });
+      return;
     }
-  }
+    fetchHotelDepartments(tenantId).then(
+      (rows) => {
+        if (!cancelled) setDepartment(resolveHousekeepingDepartment(rows));
+      },
+      () => {
+        if (!cancelled) setDepartment({ status: "failed" });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, attempt]);
+
+  const dirty = isMeaningfulDraft(text);
+  const requestClose = useDiscardGuard({ dirty, busy, onClose });
+  const departmentId = department.status === "ok" ? department.departmentId : null;
+  const canSave = dirty && departmentId !== null && isOnline && !busy;
+
+  const save = useCallback(async () => {
+    if (!dirty || !departmentId || !isOnline) return;
+    setFailure(null);
+    const result = await run(() => createShiftNote(departmentId, text));
+    if (!result) return; // a second tap while the first is in flight
+    if (result.ok) {
+      toast.success(t("supervisorComms.note.saved"));
+      onClose();
+    } else {
+      setFailure(result.kind);
+    }
+  }, [dirty, departmentId, isOnline, run, text, toast, t, onClose]);
+
+  const departmentNotice =
+    department.status === "failed"
+      ? t("supervisorComms.note.departmentFailed")
+      : department.status === "missing"
+        ? t("supervisorComms.note.departmentMissing")
+        : department.status === "ambiguous"
+          ? t("supervisorComms.note.departmentAmbiguous")
+          : null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity style={[styles.sheet, { paddingBottom: insets.bottom + 16, backgroundColor: theme.surface }]} activeOpacity={1}>
-          <View style={styles.titleRow}>
-            <Ionicons name="book-outline" size={16} color={theme.status.clean} />
-            <Text style={[styles.title, { color: theme.textPrimary }]}>{t("supervisorTools.shiftNoteTitle")}</Text>
-          </View>
-          <Text style={[styles.sub, { color: theme.textMuted }]}>{t("supervisorTools.shiftNoteSub")}</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
-            value={text}
-            onChangeText={setText}
-            placeholder="e.g. VIP arrival in 201, extra linen requested for floor 3..."
-            placeholderTextColor={theme.textMuted}
-            multiline
-            numberOfLines={4}
-            autoFocus
+    <BottomSheet
+      visible
+      title={t("supervisorComms.note.title")}
+      onClose={requestClose}
+      grabber
+      testID="shift-note-sheet"
+      footer={
+        <View style={styles.footer}>
+          <Button
+            label={t("common.cancel")}
+            onPress={requestClose}
+            variant="secondary"
+            disabled={busy}
+            style={styles.cancel}
+            testID="shift-note-cancel"
           />
-          <View style={styles.actions}>
-            <Button
-              label="Log Note"
-              onPress={submit}
-              loading={loading}
-              disabled={!text.trim()}
-              icon="checkmark-circle-outline"
-              style={styles.sendBtn}
-            />
-            <Button label="Cancel" onPress={onClose} variant="ghost" />
+          <Button
+            label={t("supervisorComms.note.save")}
+            onPress={save}
+            loading={busy}
+            disabled={!canSave}
+            icon="checkmark-circle-outline"
+            style={styles.primary}
+            testID="shift-note-save"
+          />
+        </View>
+      }
+    >
+      <View style={styles.body}>
+        <View style={styles.intro}>
+          <Ionicons name="book-outline" size={20} color={theme.status.clean} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textSecondary }]}>
+            {t("supervisorComms.note.sub")}
+          </Text>
+        </View>
+
+        <DraftField
+          testID="shift-note-input"
+          label={t("supervisorComms.note.label")}
+          value={text}
+          onChangeText={setText}
+          placeholder={t("supervisorComms.note.placeholder")}
+          max={SHIFT_NOTE_MAX}
+          counterText={t("supervisorComms.count", { count: text.trim().length, max: SHIFT_NOTE_MAX })}
+          minHeight={140}
+          editable={!busy}
+          autoFocus
+        />
+
+        {department.status === "ok" ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]} testID="shift-note-department">
+            {t("supervisorComms.note.department", { department: t("supervisorComms.note.departmentName") })}
+          </Text>
+        ) : department.status === "loading" ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]} testID="shift-note-department-loading">
+            {t("supervisorComms.note.departmentLoading")}
+          </Text>
+        ) : null}
+
+        {departmentNotice ? (
+          <View style={styles.stack}>
+            <SheetNotice text={departmentNotice} tone="warn" testID="shift-note-department-notice" />
+            {department.status === "failed" ? (
+              <Button
+                label={t("supervisorComms.retry")}
+                onPress={() => setAttempt((n) => n + 1)}
+                variant="secondary"
+                size="sm"
+                testID="shift-note-department-retry"
+              />
+            ) : null}
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+        ) : null}
+
+        {!isOnline ? <SheetNotice text={t("supervisorComms.offline")} tone="warn" testID="shift-note-offline" /> : null}
+        {failure ? <SheetNotice text={t(`supervisorComms.errors.${failure}`)} tone="error" testID="shift-note-error" /> : null}
+      </View>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, gap: 14 },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 16, fontWeight: "900" },
-  sub: { fontSize: 12.5, marginTop: -6 },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    fontSize: 13.5,
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-  actions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  sendBtn: { flex: 1 },
+  body: { gap: 14 },
+  intro: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  sub: { flex: 1, fontSize: 14, lineHeight: 20 },
+  meta: { fontSize: 13, fontWeight: "600" },
+  stack: { gap: 8 },
+  footer: { flexDirection: "row", gap: 10 },
+  cancel: { flex: 1 },
+  primary: { flex: 2 },
 });

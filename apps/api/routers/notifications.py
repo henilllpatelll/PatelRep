@@ -125,6 +125,28 @@ async def mark_all_read(current_user: CurrentUser = Depends(get_current_user)):
     return {"data": {"success": True}}
 
 
+MAX_MESSAGE_CHARS = 1000
+_HOUSEKEEPING_ROLES = {"housekeeper", "housekeeping_supervisor"}
+_ALL_ROLES = _HOUSEKEEPING_ROLES | {"engineer", "chief_engineer", "front_desk", "gm"}
+
+
+def _clean_message(raw) -> str:
+    message = raw.strip() if isinstance(raw, str) else ""
+    if not message:
+        raise HTTPException(status_code=422, detail="message is required")
+    if len(message) > MAX_MESSAGE_CHARS:
+        raise HTTPException(status_code=422, detail=f"message must be {MAX_MESSAGE_CHARS} characters or fewer")
+    return message
+
+
+# A housekeeping supervisor reaches housekeeping accounts only; a GM or an engineer reaches any role.
+_REACHABLE_ROLES = {"gm": _ALL_ROLES, "engineer": _ALL_ROLES, "housekeeping_supervisor": _HOUSEKEEPING_ROLES}
+
+
+def _allowed_roles(current_user: CurrentUser) -> set[str]:
+    return set(_REACHABLE_ROLES.get(current_user.role, _HOUSEKEEPING_ROLES))
+
+
 @router.post("/broadcast")
 async def broadcast_message(
     body: dict = Body(...),
@@ -132,25 +154,41 @@ async def broadcast_message(
         require_role("gm", "housekeeping_supervisor")
     ),
 ):
-    """Send a message to all active housekeeping staff on this property."""
-    message = (body.get("message") or "").strip()
-    roles = body.get("roles") or ["housekeeper", "housekeeping_supervisor"]
-    if not message:
-        raise HTTPException(status_code=422, detail="message is required")
+    """Add a message to the inbox of every active account holding one of `roles` on this property.
+
+    `roles` defaults to housekeepers and housekeeping supervisors. It is validated against the roles the
+    caller may reach. This writes inbox rows only: it says nothing about who is clocked in, and nothing
+    about whether anyone has read it or received a push."""
+    message = _clean_message(body.get("message"))
+    requested = body.get("roles")
+    if requested is None:
+        requested = ["housekeeper", "housekeeping_supervisor"]
+    if (
+        not isinstance(requested, list)
+        or not requested
+        or not all(isinstance(role, str) for role in requested)
+    ):
+        raise HTTPException(status_code=422, detail="roles must be a non-empty list of role names")
+    roles = set(requested)
+    if not roles <= _allowed_roles(current_user):
+        raise HTTPException(status_code=403, detail="You cannot message one of those roles")
 
     staff_result = (
         supabase.table("user_roles")
         .select("user_id")
         .eq("tenant_id", current_user.hotel_id)
         .eq("is_active", True)
-        .in_("role", roles)
+        .in_("role", sorted(roles))
         .execute()
     )
-    recipients = [
-        r["user_id"]
-        for r in (staff_result.data or [])
-        if r["user_id"] != current_user.user_id
-    ]
+    # One inbox row per person, even when they hold more than one matching role row.
+    recipients = sorted(
+        {
+            r["user_id"]
+            for r in (staff_result.data or [])
+            if r.get("user_id") and r["user_id"] != current_user.user_id
+        }
+    )
 
     if not recipients:
         return {"data": {"sent": 0}}
@@ -177,22 +215,28 @@ async def send_direct_message(
         require_role("gm", "housekeeping_supervisor", "engineer")
     ),
 ):
-    """Send a direct in-app message to one staff member."""
+    """Send a direct in-app message to one active staff member of this property."""
     recipient_id = body.get("recipient_id")
-    message = (body.get("message") or "").strip()
-    if not recipient_id or not message:
+    if not isinstance(recipient_id, str) or not recipient_id.strip():
         raise HTTPException(status_code=422, detail="recipient_id and message are required")
+    recipient_id = recipient_id.strip()
+    message = _clean_message(body.get("message"))
+    if recipient_id == current_user.user_id:
+        raise HTTPException(status_code=422, detail="You cannot message yourself")
 
-    # Confirm recipient belongs to the same tenant
-    staff_row = (
+    # The recipient must hold an ACTIVE role in the caller's property. A supervisor reaches housekeeping accounts only.
+    rows = (
         supabase.table("user_roles")
-        .select("user_id")
+        .select("user_id, role")
         .eq("user_id", recipient_id)
         .eq("tenant_id", current_user.hotel_id)
-        .maybe_single()
+        .eq("is_active", True)
         .execute()
     )
-    if not staff_row or not staff_row.data:
+    held = {r.get("role") for r in (rows.data or [])}
+    if not held:
+        raise HTTPException(status_code=404, detail="Recipient not found in this property")
+    if not (held & _allowed_roles(current_user)):
         raise HTTPException(status_code=404, detail="Recipient not found in this property")
 
     supabase.table("notifications").insert({

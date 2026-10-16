@@ -4,6 +4,13 @@ import {
   type BoardRoomRaw,
   extractAssignableStaff,
 } from "@/lib/housekeeping/supervisor";
+import {
+  type BroadcastOutcome,
+  type DepartmentRow,
+  TEAM_MESSAGE_ROLES,
+  buildShiftNotePayload,
+  readBroadcastResult,
+} from "@/lib/housekeeping/supervisorComms";
 
 /* ─── Supervisor housekeeping API ───────────────────────────────────────────
    Typed wrappers around the real endpoint contracts. Assignment saves use
@@ -147,5 +154,25 @@ export async function sendDirectMessage(
   recipientId: string,
   message: string,
 ): Promise<void> {
-  await api.post("/notifications/direct", { recipient_id: recipientId, message });
+  await api.post("/notifications/direct", { recipient_id: recipientId, message: message.trim() });
+}
+
+/* ─── Shift note & team message ─────────────────────────────────────────────
+   A note is a logbook entry (POST /logbook/entries needs a real department_id); a team
+   message is an inbox broadcast (POST /notifications/broadcast) — never a task. */
+
+/** GET /hotels/{id}/departments — the hotel's own departments (id, name, code). */
+export async function fetchHotelDepartments(hotelId: string): Promise<DepartmentRow[]> {
+  return requireArray<DepartmentRow>(await api.get(`/hotels/${encodeURIComponent(hotelId)}/departments`), "departments");
+}
+
+/** POST /logbook/entries. Resolves only once the server has stored the entry. */
+export async function createShiftNote(departmentId: string, content: string): Promise<void> {
+  await api.post("/logbook/entries", buildShiftNotePayload(departmentId, content));
+}
+
+/** POST /notifications/broadcast to housekeeper accounts. Returns what the server reported, unmodified. */
+export async function sendTeamBroadcast(message: string, roles: readonly string[] = TEAM_MESSAGE_ROLES): Promise<BroadcastOutcome> {
+  const response = await api.post<unknown>("/notifications/broadcast", { message: message.trim(), roles: [...roles] });
+  return readBroadcastResult(response);
 }
