@@ -330,14 +330,18 @@ export function classifyHandoffFailure(error: unknown): HandoffFailure {
 /* ─── Draft ───────────────────────────────────────────────────────────────── */
 
 /**
- * What survives leaving the sheet: the note, the idempotency key, and whether a submit was started whose outcome
- * is not known. Figures are NEVER kept — they are always rebuilt from fresh data.
+ * What survives leaving the sheet: the note, key, and any unconfirmed submit. Figures are rebuilt from fresh data;
+ * the one exception is the original saved-report payload, retained only while its GM notification recovery is pending.
  */
 export interface HandoffDraft {
   notes: string;
   requestId: string;
   /** A submit was sent and no answer was seen. The next open checks the server before offering Submit again. */
   attempted: boolean;
+  /** A saved report still needs its deterministic GM notifications completed. */
+  notificationPending: boolean;
+  /** The exact original report body, retained only until its notification recovery completes. */
+  recoveryPayload?: EndShiftSummaryPayload;
   savedAt: number;
 }
 
@@ -363,6 +367,14 @@ export function parseHandoffDraft(raw: string | null, now: number): HandoffDraft
       notes: parsed.notes.slice(0, HANDOFF_NOTES_MAX),
       requestId: parsed.requestId,
       attempted: parsed.attempted === true,
+      notificationPending: parsed.notificationPending === true,
+      recoveryPayload:
+        parsed.notificationPending === true
+        && parsed.recoveryPayload
+        && typeof parsed.recoveryPayload === "object"
+        && (parsed.recoveryPayload as { client_request_id?: unknown }).client_request_id === parsed.requestId
+          ? parsed.recoveryPayload as EndShiftSummaryPayload
+          : undefined,
       savedAt: parsed.savedAt,
     };
   } catch {
@@ -370,9 +382,11 @@ export function parseHandoffDraft(raw: string | null, now: number): HandoffDraft
   }
 }
 
-/** Worth keeping or warning about: the person wrote a note, or a submit's outcome is still unknown. */
-export function isMeaningfulHandoffDraft(draft: Pick<HandoffDraft, "notes" | "attempted">): boolean {
-  return draft.notes.trim().length > 0 || draft.attempted;
+/** Worth keeping or warning about: a note, an uncertain submit, or recoverable GM delivery. */
+export function isMeaningfulHandoffDraft(
+  draft: Pick<HandoffDraft, "notes" | "attempted"> & Partial<Pick<HandoffDraft, "notificationPending">>,
+): boolean {
+  return draft.notes.trim().length > 0 || draft.attempted || draft.notificationPending === true;
 }
 
 export async function loadHandoffDraft(scope: string, now: number = Date.now()): Promise<HandoffDraft | null> {

@@ -96,8 +96,8 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
   // The latest values for async continuations that outlive a render.
-  const live = useRef({ notes, requestId, attempted, scope });
-  live.current = { notes, requestId, attempted, scope };
+  const live = useRef({ notes, requestId, attempted, scope, notificationPending: false });
+  live.current = { ...live.current, notes, requestId, attempted, scope };
 
   const report = useMemo(() => buildHandoffReport(today), [today]);
   const blockers = useMemo(() => handoffBlockers(report), [report]);
@@ -110,10 +110,24 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
     [],
   );
 
-  const persist = useCallback(async (patch: Partial<{ notes: string; attempted: boolean }> = {}) => {
-    const { notes: n, requestId: id, attempted: a, scope: s } = live.current;
+  const persist = useCallback(async (patch: Partial<{
+    notes: string;
+    attempted: boolean;
+    notificationPending: boolean;
+    recoveryPayload: EndShiftSummaryPayload;
+  }> = {}) => {
+    const { notes: n, requestId: id, attempted: a, scope: s, notificationPending } = live.current;
     if (!s) return;
-    await saveHandoffDraft(s, { notes: patch.notes ?? n, requestId: id, attempted: patch.attempted ?? a, savedAt: Date.now() });
+    const next = {
+      notes: patch.notes ?? n,
+      requestId: id,
+      attempted: patch.attempted ?? a,
+      notificationPending: patch.notificationPending ?? notificationPending,
+      recoveryPayload: patch.recoveryPayload ?? lastPayload.current ?? undefined,
+      savedAt: Date.now(),
+    };
+    live.current = { ...live.current, notes: next.notes, attempted: next.attempted, notificationPending: next.notificationPending };
+    await saveHandoffDraft(s, next);
   }, []);
 
   /** Ask the server whether this key was saved. Found → show it; not found → say so; no answer → stay unresolved. */
@@ -124,7 +138,14 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
       const found = await fetchShiftHandoff(id);
       if (!mounted.current) return;
       if (found) {
-        if (live.current.scope) await clearHandoffDraft(live.current.scope);
+        const notificationPending = found.managers === "failed" || found.managers === "unknown";
+        if (notificationPending) {
+          const recoveryPayload = lastPayload.current ?? buildHandoffPayload(report, live.current.notes, id);
+          if (recoveryPayload) lastPayload.current = recoveryPayload;
+          await persist({ attempted: false, notificationPending: true, ...(recoveryPayload ? { recoveryPayload } : {}) });
+        } else if (live.current.scope) {
+          await clearHandoffDraft(live.current.scope);
+        }
         setSaved({ ...found, replay: true });
         setAttempted(false);
         setUnresolved(false);
@@ -142,7 +163,7 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
     } finally {
       if (mounted.current) setPhase("idle");
     }
-  }, [persist]);
+  }, [persist, report]);
 
   // Open: restore the kept draft (note + key), settle any unknown earlier submit, and ask for fresh figures.
   useEffect(() => {
@@ -154,11 +175,19 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
         setNotesState(draft.notes);
         setRequestId(draft.requestId);
         setAttempted(draft.attempted);
-        live.current = { ...live.current, notes: draft.notes, requestId: draft.requestId, attempted: draft.attempted };
+        lastPayload.current = draft.recoveryPayload ?? null;
+        live.current = {
+          ...live.current,
+          notes: draft.notes,
+          requestId: draft.requestId,
+          attempted: draft.attempted,
+          notificationPending: draft.notificationPending,
+        };
       }
       setReady(true);
       if (draft?.attempted && isOnline) await verify(draft.requestId, { announce: false });
       else if (draft?.attempted) setUnresolved(true);
+      else if (draft?.notificationPending && isOnline) await verify(draft.requestId, { announce: false });
     })();
     return () => {
       cancelled = true;
@@ -242,9 +271,11 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
     try {
       // Written BEFORE sending: if the app dies mid-request the next open knows to check the server first.
       setAttempted(true);
-      await persist({ attempted: true });
+      await persist({ attempted: true, notificationPending: false, recoveryPayload: payload });
       const result = await submitShiftHandoff(payload);
-      if (live.current.scope) await clearHandoffDraft(live.current.scope);
+      const notificationPending = result.managers === "failed" || result.managers === "unknown";
+      if (notificationPending) await persist({ attempted: false, notificationPending: true, recoveryPayload: payload });
+      else if (live.current.scope) await clearHandoffDraft(live.current.scope);
       if (!mounted.current) return;
       setAttempted(false);
       setSaved(result);
@@ -291,6 +322,9 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
     setNotice(null);
     try {
       const result = await submitShiftHandoff(payload);
+      const notificationPending = result.managers === "failed" || result.managers === "unknown";
+      if (notificationPending) await persist({ attempted: false, notificationPending: true, recoveryPayload: payload });
+      else if (live.current.scope) await clearHandoffDraft(live.current.scope);
       if (mounted.current) {
         setSaved(result);
         if (result.managers === "failed") setNotice({ kind: "notifyFailed" });
@@ -301,13 +335,13 @@ export function useShiftHandoff({ today, refresh, scope, isOnline }: UseShiftHan
       busy.current = false;
       if (mounted.current) setPhase("idle");
     }
-  }, [isOnline]);
+  }, [isOnline, persist]);
 
   /** Drop the note. A submit whose outcome is still unknown keeps its marker so it is checked next time. */
   const discard = useCallback(() => {
     const { attempted: a, scope: s, requestId: id } = live.current;
     if (!s) return;
-    if (a) void saveHandoffDraft(s, { notes: "", requestId: id, attempted: true, savedAt: Date.now() });
+    if (a) void saveHandoffDraft(s, { notes: "", requestId: id, attempted: true, notificationPending: false, savedAt: Date.now() });
     else void clearHandoffDraft(s);
   }, []);
 

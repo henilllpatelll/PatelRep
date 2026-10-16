@@ -34036,6 +34036,30 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-17T14:20:00-05:00"
+    },
+    {
+      "id": "bug-2063",
+      "timestamp": "2026-10-16T13:26:00-05:00",
+      "error_message": "Mobile inspection-history queries applied one timezone offset to both ends of a hotel-local day, misclassifying records on daylight-saving transition days.",
+      "file": "apps/api/routers/housekeeping.py, apps/mobile/lib/api/housekeepingSupervisor.ts",
+      "root_cause": "The mobile client supplied a single getTimezoneOffset value and the API used it for both day boundaries instead of resolving each boundary in the hotel's IANA timezone.",
+      "fix": "Moved reporting-window calculation to the API using the hotel timezone and half-open UTC bounds; mobile now sends only the hotel-local date. Added spring-forward and fall-back regression tests.",
+      "tags": ["mobile", "api", "inspections", "timezone", "dst", "regression"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T13:26:00-05:00"
+    },
+    {
+      "id": "bug-2064",
+      "timestamp": "2026-10-16T13:26:00-05:00",
+      "error_message": "A saved Shift Handoff lost its manager-notification retry path after the drawer closed or app restarted when initial notification delivery failed.",
+      "file": "apps/api/routers/housekeeping.py, apps/mobile/lib/housekeeping/useShiftHandoff.ts",
+      "root_cause": "Saved-report retrieval omitted durable notification state, while the client cleared its draft and retained the replay-safe request payload only in memory.",
+      "fix": "GET now reads notification completion without writing; the app retains the original payload and idempotency key only until manager notifications complete, then retries safely without creating duplicate rows.",
+      "tags": ["mobile", "api", "shift-handoff", "notifications", "idempotency", "recovery"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T13:26:00-05:00"
     }
   ]
 }

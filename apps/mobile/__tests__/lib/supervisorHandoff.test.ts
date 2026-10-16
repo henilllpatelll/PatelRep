@@ -273,12 +273,12 @@ describe("the kept draft", () => {
   });
 
   it("round-trips for the same person and hotel", async () => {
-    await saveHandoffDraft("h1:u1", { notes: "Watch 312", requestId: REQUEST_ID, attempted: false, savedAt: NOW });
-    expect(await loadHandoffDraft("h1:u1", NOW + 1000)).toEqual({ notes: "Watch 312", requestId: REQUEST_ID, attempted: false, savedAt: NOW });
+    await saveHandoffDraft("h1:u1", { notes: "Watch 312", requestId: REQUEST_ID, attempted: false, notificationPending: false, savedAt: NOW });
+    expect(await loadHandoffDraft("h1:u1", NOW + 1000)).toEqual({ notes: "Watch 312", requestId: REQUEST_ID, attempted: false, notificationPending: false, recoveryPayload: undefined, savedAt: NOW });
   });
 
   it("never shows one person's or one hotel's draft to another", async () => {
-    await saveHandoffDraft("h1:u1", { notes: "private", requestId: REQUEST_ID, attempted: false, savedAt: NOW });
+    await saveHandoffDraft("h1:u1", { notes: "private", requestId: REQUEST_ID, attempted: false, notificationPending: false, savedAt: NOW });
     expect(await loadHandoffDraft("h1:u2", NOW)).toBeNull();
     expect(await loadHandoffDraft("h2:u1", NOW)).toBeNull();
   });
@@ -294,18 +294,18 @@ describe("the kept draft", () => {
   });
 
   it("is dropped when empty, kept when a submit is unresolved, and cleared on request", async () => {
-    await saveHandoffDraft("h1:u1", { notes: "  ", requestId: REQUEST_ID, attempted: false, savedAt: NOW });
+    await saveHandoffDraft("h1:u1", { notes: "  ", requestId: REQUEST_ID, attempted: false, notificationPending: false, savedAt: NOW });
     expect(await loadHandoffDraft("h1:u1", NOW)).toBeNull();
     expect(isMeaningfulHandoffDraft({ notes: "", attempted: true })).toBe(true);
-    await saveHandoffDraft("h1:u1", { notes: "", requestId: REQUEST_ID, attempted: true, savedAt: NOW });
+    await saveHandoffDraft("h1:u1", { notes: "", requestId: REQUEST_ID, attempted: true, notificationPending: false, savedAt: NOW });
     expect((await loadHandoffDraft("h1:u1", NOW))?.attempted).toBe(true);
     await clearHandoffDraft("h1:u1");
     expect(await loadHandoffDraft("h1:u1", NOW)).toBeNull();
   });
 
-  it("stores no figures — only the note, the key and the unresolved flag", async () => {
-    await saveHandoffDraft("h1:u1", { notes: "n", requestId: REQUEST_ID, attempted: false, savedAt: NOW });
+  it("stores no figures until a saved report needs GM-notification recovery", async () => {
+    await saveHandoffDraft("h1:u1", { notes: "n", requestId: REQUEST_ID, attempted: false, notificationPending: false, savedAt: NOW });
     const stored = JSON.parse((await AsyncStorage.getItem("@patelrep/mobile/supervisor-handoff-draft:h1:u1")) as string);
-    expect(Object.keys(stored).sort()).toEqual(["attempted", "notes", "requestId", "savedAt"]);
+    expect(Object.keys(stored).sort()).toEqual(["attempted", "notes", "notificationPending", "requestId", "savedAt"]);
   });
 });

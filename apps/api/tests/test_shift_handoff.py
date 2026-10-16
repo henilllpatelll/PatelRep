@@ -243,6 +243,45 @@ def test_inspection_window_is_the_hotel_local_day_not_the_utc_day(db):
     assert ok.status_code == 200
 
 
+@pytest.mark.parametrize(
+    ("local_day", "legacy_offset", "rows", "expected_ids"),
+    [
+        (
+            "2026-03-08", 360,
+            [
+                _inspection("failed", "2026-03-08T05:59:59+00:00"),
+                _inspection("passed", "2026-03-08T06:00:00+00:00", room="r2"),
+                _inspection("passed", "2026-03-09T04:59:59+00:00", room="r3"),
+                _inspection("failed", "2026-03-09T05:00:00+00:00", room="r4"),
+            ],
+            (2, 1),
+        ),
+        (
+            "2026-11-01", 300,
+            [
+                _inspection("failed", "2026-11-01T04:59:59+00:00"),
+                _inspection("passed", "2026-11-01T05:00:00+00:00", room="r2"),
+                _inspection("passed", "2026-11-02T05:59:59+00:00", room="r3"),
+                _inspection("failed", "2026-11-02T06:00:00+00:00", room="r4"),
+            ],
+            (2, 1),
+        ),
+    ],
+    ids=["spring-forward", "fall-back"],
+)
+def test_mobile_inspection_history_uses_hotel_local_dst_boundaries(db, local_day, legacy_offset, rows, expected_ids):
+    """A stale single client offset must not change the hotel's reporting window."""
+    db.rows["inspections"] = rows
+    response = TestClient(app).get(
+        "/v1/housekeeping/inspections",
+        headers=_auth(),
+        params={"date_from": local_day, "date_to": local_day, "tz_offset": legacy_offset},
+    )
+    assert response.status_code == 200
+    returned_ids = [row["id"] for row in response.json()["data"]]
+    assert returned_ids == [rows[index]["id"] for index in expected_ids]
+
+
 def test_same_room_inspected_twice_counts_twice_and_other_hotels_are_excluded(db):
     db.rows["inspections"] = [
         _inspection("failed", "2026-10-16T14:00:00+00:00", room="r1"),
@@ -389,12 +428,25 @@ def test_notification_failure_keeps_the_saved_report_and_a_retry_completes_it(db
     assert len(db.rows["logbook_entries"]) == 1
     assert db.rows["notifications"] == []
 
+    # A restart first reads this endpoint. It must truthfully retain the failed
+    # delivery state without attempting another notification write.
+    lookup = TestClient(app).get(f"/v1/housekeeping/end-shift-summary/{body['client_request_id']}", headers=_auth())
+    assert lookup.status_code == 200
+    assert lookup.json()["notifications"] == {"status": "failed", "recipients": 2}
+    assert db.rows["notifications"] == []
+
     fail["on"] = False
     retry = _post(body)
     assert retry.status_code == 200
     assert retry.json()["idempotent_replay"] is True
     assert retry.json()["notifications"]["status"] == "complete"
     assert len(db.rows["logbook_entries"]) == 1
+    assert len(db.rows["notifications"]) == 2
+
+    completed_lookup = TestClient(app).get(
+        f"/v1/housekeeping/end-shift-summary/{body['client_request_id']}", headers=_auth()
+    )
+    assert completed_lookup.json()["notifications"] == {"status": "complete", "recipients": 2}
     assert len(db.rows["notifications"]) == 2
 
     _post(body)  # a further retry must not double them

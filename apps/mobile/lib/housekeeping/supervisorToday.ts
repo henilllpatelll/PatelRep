@@ -1,6 +1,6 @@
 import type { BlockedTaskItem } from "@/lib/api/tasks";
 import type { InspectionRecordRaw, ShiftRosterRowRaw } from "@/lib/api/housekeepingSupervisor";
-import { hotelDateKey, resolveTimeZone, zonedTimeToInstant } from "@/lib/housekeeping/hotelTime";
+import { hotelDateKey, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import {
   buildFloorSnapshot,
   normalizeBoardRooms,
@@ -96,14 +96,6 @@ export function normalizeBoard(raw: BoardRoomRaw[]): BoardSnapshot {
 
 export function hotelTodayKey(now: number, timeZone: string | null | undefined): string {
   return hotelDateKey(new Date(now), timeZone) ?? new Date(now).toISOString().slice(0, 10);
-}
-
-/** JS getTimezoneOffset() minutes (positive behind UTC, e.g. 300 for CDT) for the hotel's zone on its `date`. */
-export function hotelTzOffsetMinutes(date: string, timeZone: string | null | undefined): number {
-  const midnight = zonedTimeToInstant(date, 0, 0, resolveTimeZone(timeZone));
-  const [y, m, d] = date.split("-").map(Number);
-  if (!midnight || !y || !m || !d) return 0;
-  return Math.round((midnight.getTime() - Date.UTC(y, m - 1, d)) / 60_000);
 }
 
 /* ─── Room readiness ──────────────────────────────────────────────────────── */
@@ -229,7 +221,7 @@ export interface TodayFetchers {
   board(date: string): Promise<BoardRoomRaw[]>;
   staff(): Promise<AssignableStaff[]>;
   roster(date: string): Promise<ShiftRosterRowRaw[]>;
-  inspections(date: string, tzOffset: number): Promise<InspectionRecordRaw[]>;
+  inspections(date: string): Promise<InspectionRecordRaw[]>;
   blockedTasks(): Promise<BlockedTaskItem[]>;
 }
 
@@ -253,7 +245,6 @@ export async function loadTodaySources(
     };
   }
   const date = hotelTodayKey(now, options.timeZone);
-  const tzOffset = hotelTzOffsetMinutes(date, options.timeZone);
   const [board, staff, roster, inspections, blockedTasks] = await Promise.allSettled([
     fetchers.board(date).then((raw) => {
       const snapshot = normalizeBoard(raw);
@@ -263,7 +254,7 @@ export async function loadTodaySources(
     }),
     fetchers.staff(),
     fetchers.roster(date).then((rows) => normalizeRoster(rows, now)),
-    fetchers.inspections(date, tzOffset),
+    fetchers.inspections(date),
     fetchers.blockedTasks(),
   ]);
   return {

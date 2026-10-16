@@ -50,6 +50,19 @@ MAX_INSPECTION_PHOTO_BYTES = 5 * 1024 * 1024
 HOTEL_ACTIVITY_TIMEZONE = tz.gettz("America/Chicago") or timezone(timedelta(hours=-6))
 
 
+def _hotel_zone(hotel_id: str):
+    result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
+    name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
+    return tz.gettz(name) or HOTEL_ACTIVITY_TIMEZONE
+
+
+def _hotel_reporting_window(start_date: date, end_date: date, zone) -> tuple[str, str]:
+    """[start local midnight, day after end local midnight) in UTC, including DST transitions."""
+    start = datetime.combine(start_date, time.min, tzinfo=zone).astimezone(timezone.utc)
+    end = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=zone).astimezone(timezone.utc)
+    return start.isoformat(), end.isoformat()
+
+
 def _is_missing_clean_type_column_error(exc: Exception) -> bool:
     err = str(exc)
     return ("42703" in err or "PGRST204" in err) and "clean_type" in err
@@ -2365,31 +2378,19 @@ async def list_inspections(
     date_to: Optional[date] = Query(None),
     room_id: Optional[str] = Query(None),
     result: Optional[str] = Query(None),  # passed|failed|conditional
-    tz_offset: Optional[int] = Query(None),  # client UTC offset in minutes (JS getTimezoneOffset)
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """List inspection records with optional filters.
 
-    tz_offset: JS Date.getTimezoneOffset() value (positive = behind UTC, e.g. 300 for CDT).
-    When provided, local-day boundaries are converted to UTC so inspections done
-    in the evening don't fall outside the 'today' window due to UTC date rollover.
+    Date filters always use the hotel's configured time zone. The server resolves
+    both local midnights independently so spring-forward and fall-back days match
+    every reporting surface, regardless of the mobile device's time zone.
     """
-    from datetime import timedelta as _td
-    today = date.today()
+    zone = _hotel_zone(current_user.hotel_id)
+    today = datetime.now(zone).date()
     from_date = date_from or today
     to_date = date_to or today
-
-    if tz_offset is not None:
-        # Convert local midnight/end-of-day to UTC using the client timezone offset.
-        # JS getTimezoneOffset() = -utc_offset_minutes, so CDT(UTC-5) = 300.
-        offset_delta = _td(minutes=tz_offset)
-        start_utc = datetime.combine(from_date, datetime.min.time()) + offset_delta
-        end_utc = datetime.combine(to_date, datetime.max.time().replace(microsecond=0)) + offset_delta
-        start_str = start_utc.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        end_str = end_utc.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    else:
-        start_str = f"{from_date.isoformat()}T00:00:00+00:00"
-        end_str = f"{to_date.isoformat()}T23:59:59+00:00"
+    start_str, end_str = _hotel_reporting_window(from_date, to_date, zone)
 
     query = (
         supabase.table("inspections")
@@ -2399,7 +2400,7 @@ async def list_inspections(
         )
         .eq("tenant_id", current_user.hotel_id)
         .gte("completed_at", start_str)
-        .lte("completed_at", end_str)
+        .lt("completed_at", end_str)
         .order("completed_at", desc=True)
     )
 
@@ -2708,7 +2709,6 @@ async def upload_inspection_photo(
 
 
 HANDOFF_NOTIFICATION_TYPE = "shift_summary"
-HANDOFF_DEFAULT_TIMEZONE = "America/Chicago"
 # A handoff covers one hotel-local day; the previous day stays open so an overnight supervisor can still file it.
 HANDOFF_MAX_DAYS_BACK = 1
 HANDOFF_INSPECTION_ROW_LIMIT = 5000
@@ -2718,17 +2718,9 @@ def _handoff_error(status_code: int, code: str, message: str, **extra) -> HTTPEx
     return HTTPException(status_code=status_code, detail={"code": code, "message": message, **extra})
 
 
-def _handoff_zone(hotel_id: str):
-    result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
-    name = ((result.data if result else None) or {}).get("timezone") or HANDOFF_DEFAULT_TIMEZONE
-    return tz.gettz(name) or tz.gettz(HANDOFF_DEFAULT_TIMEZONE) or HOTEL_ACTIVITY_TIMEZONE
-
-
 def _handoff_window(report_date: date, zone) -> tuple[str, str]:
     """[local midnight, next local midnight) as UTC ISO strings, correct across DST changes."""
-    start = datetime.combine(report_date, time.min, tzinfo=zone).astimezone(timezone.utc)
-    end = datetime.combine(report_date + timedelta(days=1), time.min, tzinfo=zone).astimezone(timezone.utc)
-    return start.isoformat(), end.isoformat()
+    return _hotel_reporting_window(report_date, report_date, zone)
 
 
 def _count_handoff_inspections(hotel_id: str, start_iso: str, end_iso: str) -> dict:
@@ -2857,6 +2849,40 @@ def _find_handoff(hotel_id: str, user_id: str, client_request_id: str) -> Option
     return result.data if result else None
 
 
+def _handoff_manager_ids(hotel_id: str, author_id: str) -> list[str]:
+    rows = (
+        supabase.table("user_roles")
+        .select("user_id")
+        .eq("tenant_id", hotel_id)
+        .eq("role", "gm")
+        .eq("is_active", True)
+        .execute()
+        .data
+        or []
+    )
+    return sorted({str(row["user_id"]) for row in rows if row.get("user_id") and str(row["user_id"]) != author_id})
+
+
+def _handoff_notification_status(hotel_id: str, author_id: str, entry: dict) -> dict:
+    """Read, never write, the durable GM-notification state for a saved handoff."""
+    recipients = _handoff_manager_ids(hotel_id, author_id)
+    if not recipients:
+        return {"status": "none_needed", "recipients": 0}
+    expected_ids = [str(uuid5(NAMESPACE_URL, f"patelrep:handoff:{entry['id']}:{user_id}")) for user_id in recipients]
+    delivered = (
+        supabase.table("notifications")
+        .select("id")
+        .eq("tenant_id", hotel_id)
+        .eq("type", HANDOFF_NOTIFICATION_TYPE)
+        .in_("id", expected_ids)
+        .execute()
+        .data
+        or []
+    )
+    delivered_ids = {str(row.get("id")) for row in delivered if row.get("id")}
+    return {"status": "complete" if len(delivered_ids) == len(expected_ids) else "failed", "recipients": len(recipients)}
+
+
 def _handoff_payload(entry: dict) -> dict:
     return {
         "id": entry.get("id"),
@@ -2879,17 +2905,7 @@ def _notify_handoff_managers(hotel_id: str, author_id: str, entry: dict, content
     ignore-duplicates, so a retry fills in whatever is missing and never doubles what was delivered.
     """
     try:
-        gms = (
-            supabase.table("user_roles")
-            .select("user_id")
-            .eq("tenant_id", hotel_id)
-            .eq("role", "gm")
-            .eq("is_active", True)
-            .execute()
-            .data
-            or []
-        )
-        recipients = sorted({str(row["user_id"]) for row in gms if row.get("user_id") and str(row["user_id"]) != author_id})
+        recipients = _handoff_manager_ids(hotel_id, author_id)
         if not recipients:
             return {"status": "none_needed", "recipients": 0}
         first_line = content.split("\n", 1)[0]
@@ -2906,7 +2922,7 @@ def _notify_handoff_managers(hotel_id: str, author_id: str, entry: dict, content
             for user_id in recipients
         ]
         supabase.table("notifications").upsert(rows, on_conflict="id", ignore_duplicates=True).execute()
-        return {"status": "complete", "recipients": len(recipients)}
+        return _handoff_notification_status(hotel_id, author_id, entry)
     except Exception:  # the report is already saved; a retry of the same submission completes this
         logging.getLogger(__name__).exception("Handoff notification failed for entry %s", entry.get("id"))
         return {"status": "failed", "recipients": None}
@@ -2940,7 +2956,7 @@ async def submit_end_shift_summary(
         notifications = _notify_handoff_managers(hotel_id, user_id, existing, existing.get("content") or "")
         return _handoff_response(existing, True, notifications)
 
-    zone = _handoff_zone(hotel_id)
+    zone = _hotel_zone(hotel_id)
     hotel_today = datetime.now(zone).date()
     if body.report_date > hotel_today or body.report_date < hotel_today - timedelta(days=HANDOFF_MAX_DAYS_BACK):
         raise _handoff_error(
@@ -3006,7 +3022,11 @@ async def get_end_shift_summary(
     entry = _find_handoff(current_user.hotel_id, current_user.user_id, str(client_request_id))
     if not entry:
         raise _handoff_error(404, "handoff_not_found", "No handoff was saved under that request.")
-    return _handoff_response(entry, True)
+    return _handoff_response(
+        entry,
+        True,
+        _handoff_notification_status(current_user.hotel_id, current_user.user_id, entry),
+    )
 
 
 @router.delete("/inspections/templates/{template_id}", status_code=204)

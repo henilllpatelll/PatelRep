@@ -279,7 +279,7 @@ function HandoffSheet({ today, refresh, scope, isOnline, supervisorName, languag
             testID="handoff-managers"
           />
           {noticeNode}
-          {saved.managers === "failed" ? (
+          {saved.managers === "failed" || saved.managers === "unknown" ? (
             <Button label={t("supervisorHandoff.actions.notifyAgain")} onPress={flow.actions.notifyAgain} loading={phase === "submitting"} disabled={!isOnline} variant="secondary" size="sm" testID="handoff-notify-again" />
           ) : null}
         </View>

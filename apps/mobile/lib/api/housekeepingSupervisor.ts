@@ -141,10 +141,10 @@ export interface InspectionRecordRaw {
   completed_at?: string | null;
 }
 
-/** Inspections completed on the hotel's `date`; `tzOffset` is JS getTimezoneOffset() minutes for that zone. */
-export async function fetchInspectionHistory(date: string, tzOffset: number): Promise<InspectionRecordRaw[]> {
+/** Inspections completed on the hotel's `date`; the server owns hotel-local DST boundaries. */
+export async function fetchInspectionHistory(date: string): Promise<InspectionRecordRaw[]> {
   return requireArray<InspectionRecordRaw>(
-    await api.get(`/housekeeping/inspections?date_from=${date}&date_to=${date}&tz_offset=${tzOffset}`),
+    await api.get(`/housekeeping/inspections?date_from=${date}&date_to=${date}`),
     "inspections",
   );
 }

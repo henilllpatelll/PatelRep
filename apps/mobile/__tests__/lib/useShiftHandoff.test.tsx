@@ -88,4 +88,36 @@ describe("useShiftHandoff", () => {
     act(() => result.current.actions.discard());
     await waitFor(async () => expect(JSON.parse((await AsyncStorage.getItem(DRAFT_KEY)) as string)).toMatchObject({ notes: "", attempted: true }));
   });
+
+  it("keeps a failed manager-notification recovery across reopening and retries the original report", async () => {
+    const failed = { ...SAVED, managers: "failed" as const };
+    submit.mockResolvedValueOnce(failed).mockResolvedValueOnce(SAVED);
+    const first = setup();
+    await waitFor(() => expect(first.result.current.ready).toBe(true));
+    act(() => first.result.current.setAcknowledged(true));
+    await act(async () => {
+      await first.result.current.actions.submit();
+    });
+
+    const originalPayload = submit.mock.calls[0][0];
+    await waitFor(async () => {
+      expect(JSON.parse((await AsyncStorage.getItem(DRAFT_KEY)) as string)).toMatchObject({
+        attempted: false,
+        notificationPending: true,
+        recoveryPayload: originalPayload,
+      });
+    });
+    first.unmount();
+
+    fetchSaved.mockResolvedValueOnce({ ...failed, replay: true });
+    const reopened = setup();
+    await waitFor(() => expect(reopened.result.current.saved?.managers).toBe("failed"));
+    await act(async () => {
+      await reopened.result.current.actions.notifyAgain();
+    });
+
+    expect(submit).toHaveBeenCalledTimes(2);
+    expect(submit.mock.calls[1][0]).toEqual(originalPayload);
+    await waitFor(async () => expect(await AsyncStorage.getItem(DRAFT_KEY)).toBeNull());
+  });
 });

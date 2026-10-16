@@ -14,7 +14,6 @@ import {
   buildReadinessSummary,
   composeSupervisorToday,
   hotelTodayKey,
-  hotelTzOffsetMinutes,
   initialTodaySources,
   loadTodaySources,
   normalizeBoard,
@@ -332,11 +331,6 @@ describe("hotel-local date", () => {
     expect(hotelTodayKey(Date.parse("2026-10-17T06:00:00Z"), ZONE)).toBe("2026-10-17");
   });
 
-  it("derives the getTimezoneOffset minutes for the hotel's day (DST-aware)", () => {
-    expect(hotelTzOffsetMinutes("2026-10-16", ZONE)).toBe(300);
-    expect(hotelTzOffsetMinutes("2026-12-01", ZONE)).toBe(360);
-  });
-
   it("requests board, roster and inspections for the hotel's date", async () => {
     const board = jest.fn(async () => [raw("r-1", "DIRTY")]);
     const roster = jest.fn(async () => []);
@@ -348,7 +342,7 @@ describe("hotel-local date", () => {
     });
     expect(board).toHaveBeenCalledWith("2026-10-16");
     expect(roster).toHaveBeenCalledWith("2026-10-16");
-    expect(inspections).toHaveBeenCalledWith("2026-10-16", 300);
+    expect(inspections).toHaveBeenCalledWith("2026-10-16");
   });
 });
 
@@ -361,7 +355,7 @@ describe("strict API wrappers", () => {
     mockGet.mockResolvedValue({});
     await expect(fetchShiftRoster("2026-10-16")).rejects.toThrow(/Malformed roster/);
     mockGet.mockResolvedValue(undefined);
-    await expect(fetchInspectionHistory("2026-10-16", 300)).rejects.toThrow(/Malformed inspections/);
+    await expect(fetchInspectionHistory("2026-10-16")).rejects.toThrow(/Malformed inspections/);
   });
 
   it("returns an honestly empty array when the server says so", async () => {
@@ -373,11 +367,11 @@ describe("strict API wrappers", () => {
     mockGet.mockResolvedValue({ data: [] });
     await fetchBoardVerified("2026-10-16");
     await fetchShiftRoster("2026-10-16");
-    await fetchInspectionHistory("2026-10-16", 300);
+    await fetchInspectionHistory("2026-10-16");
     expect(mockGet.mock.calls.map((call) => call[0])).toEqual([
       "/housekeeping/board?date=2026-10-16",
       "/shifts/roster?date=2026-10-16",
-      "/housekeeping/inspections?date_from=2026-10-16&date_to=2026-10-16&tz_offset=300",
+      "/housekeeping/inspections?date_from=2026-10-16&date_to=2026-10-16",
     ]);
   });
 });
