@@ -36,6 +36,7 @@ import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readFileSync, existsSync, appendFileSync } from 'node:fs'
+import { buildFixtureAuthAttributes } from './regression-fixture-auth.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const WEB_ROOT = join(__dirname, '..', '..') // apps/web
@@ -136,12 +137,17 @@ async function findAuthUserByEmail(email) {
 }
 
 /** Create (or converge the password of) a fixture auth user. Returns the user id. */
-async function upsertAuthUser(email, password, fullName) {
+async function upsertAuthUser(email, password, fullName, role) {
+  const attributes = buildFixtureAuthAttributes({
+    hotelId: FIXTURE_TENANT_ID,
+    fullName,
+    role,
+  })
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { hotel_id: FIXTURE_TENANT_ID, full_name: fullName },
+    ...attributes,
   })
   if (!error) return data.user.id
 
@@ -152,7 +158,7 @@ async function upsertAuthUser(email, password, fullName) {
   if (!existing) throw new Error(`Auth user ${email} reported as existing but could not be located`)
   const { error: updateError } = await supabase.auth.admin.updateUserById(existing.id, {
     password,
-    user_metadata: { hotel_id: FIXTURE_TENANT_ID, full_name: fullName },
+    ...attributes,
   })
   if (updateError) throw updateError
   return existing.id
@@ -197,8 +203,13 @@ async function main() {
   if (roomTypeError) throw roomTypeError
 
   // 3. Fixture users -------------------------------------------------------------
-  const gmUserId = await upsertAuthUser(GM_EMAIL, GM_PASSWORD, 'Regression Fixture GM')
-  const supUserId = await upsertAuthUser(SUP_EMAIL, SUP_PASSWORD, 'Regression Fixture Supervisor')
+  const gmUserId = await upsertAuthUser(GM_EMAIL, GM_PASSWORD, 'Regression Fixture GM', 'gm')
+  const supUserId = await upsertAuthUser(
+    SUP_EMAIL,
+    SUP_PASSWORD,
+    'Regression Fixture Supervisor',
+    'housekeeping_supervisor',
+  )
 
   for (const [userId, fullName] of [
     [gmUserId, 'Regression Fixture GM'],
