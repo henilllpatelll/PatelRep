@@ -1,3 +1,5 @@
+-- migration-safety: destructive-reviewed
+-- rollback-plan: Re-add the previous CHECK (migration 215 value list without 'translation') after confirming no ai_interactions rows use translation, then DROP TABLE ai_content_translations (a cache only; every translation can be regenerated and no original text is stored there). The only DROP replaces this migration's own constraint with a superset of allowed values.
 -- =============================================================================
 -- Migration 216: AI instruction translation (task instructions) + usage type
 -- =============================================================================
