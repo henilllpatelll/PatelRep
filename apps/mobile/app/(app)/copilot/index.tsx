@@ -54,7 +54,7 @@ const STAFF_ACTIONS: Array<{ key: string; icon: "warning" | "cube" | "person" | 
 export default function CopilotScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { prefill, documentId, roomId } = useLocalSearchParams<{ prefill?: string; documentId?: string; roomId?: string }>();
+  const { prefill, documentId, roomId, intent } = useLocalSearchParams<{ prefill?: string; documentId?: string; roomId?: string; intent?: string }>();
   const assistant = useAssistant();
   const {
     conversation,
@@ -102,9 +102,10 @@ export default function CopilotScreen() {
   useEffect(() => {
     if (prefill && !sentPrefill.current && scope && subjectReady) {
       sentPrefill.current = true;
-      void conversation.send(prefill);
+      // Only the one intent this screen knows how to start is honoured; the server still checks it against the role.
+      void conversation.send(prefill, intent === "sop_query" ? { intentHint: "sop_query" } : undefined);
     }
-  }, [prefill, scope, subjectReady, conversation]);
+  }, [prefill, intent, scope, subjectReady, conversation]);
 
   const describeIssue = useCallback(() => {
     setDraft(t("copilot.quickPrompts.reportIssue"));
@@ -213,6 +214,7 @@ export default function CopilotScreen() {
               onOpenRoom={openRoom}
               onOpenMyRooms={() => router.push("/(app)/my-rooms" as never)}
               onOpenHref={(href) => router.push(href as never)}
+              onFollowUp={requestFocus}
             />
           )}
           ListHeaderComponent={<ContextChip context={context} label={contextLabel} onClear={clearContext} />}

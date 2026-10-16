@@ -41,9 +41,9 @@ describe("normalizeCopilotResponse — the backend envelope", () => {
         message: "Strip the bed first.",
         model_used: "claude-sonnet-4-6",
         sources: [
-          { content: "Strip linen.", similarity: 0.9, metadata: { page_number: 3 }, document_id: "d1", title: "Linen SOP" },
-          { content: "Strip linen again.", similarity: 0.8, metadata: { page_number: 3 }, document_id: "d1", title: "Linen SOP" },
-          { content: "Other", similarity: 0.7, metadata: {}, document_id: "d2", title: "Safety SOP" },
+          { content: "Strip linen.", similarity: 0.9, metadata: { page_number: 3 }, document_id: "d0000000-0000-4000-8000-0000000000d1", title: "Linen SOP" },
+          { content: "Strip linen again.", similarity: 0.8, metadata: { page_number: 3 }, document_id: "d0000000-0000-4000-8000-0000000000d1", title: "Linen SOP" },
+          { content: "Other", similarity: 0.7, metadata: {}, document_id: "d0000000-0000-4000-8000-0000000000d2", title: "Safety SOP" },
           "garbage",
         ],
       }),
@@ -51,8 +51,8 @@ describe("normalizeCopilotResponse — the backend envelope", () => {
     expect(out.kind).toBe("answer");
     if (out.kind !== "answer") return;
     expect(out.sources).toEqual([
-      { title: "Linen SOP", excerpt: "Strip linen.", page: 3, documentId: "d1" },
-      { title: "Safety SOP", excerpt: "Other", page: null, documentId: "d2" },
+      { title: "Linen SOP", excerpt: "Strip linen.", page: 3, documentId: "d0000000-0000-4000-8000-0000000000d1", version: null, section: null },
+      { title: "Safety SOP", excerpt: "Other", page: null, documentId: "d0000000-0000-4000-8000-0000000000d2", version: null, section: null },
     ]);
   });
 

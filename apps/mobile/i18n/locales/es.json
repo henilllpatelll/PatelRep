@@ -885,6 +885,7 @@
       "needHelpRoom": "¿Necesitas ayuda con esta habitación?",
       "askAi": "Preguntar a la IA",
       "askAbout": "Preguntar sobre la habitación {{room}}",
+      "findProcedure": "Buscar un procedimiento",
       "reportIssue": "Reportar un problema"
     },
     "readiness": {
@@ -2138,11 +2139,28 @@
         "voice": "Describir una tarea por voz",
         "offline": "Sin conexión. Agregar una tarea necesita conexión."
       },
+      "translate": {
+        "title": "Traducir instrucciones",
+        "into": "Traducir al {{language}}",
+        "language": {
+          "en": "English",
+          "es": "Español"
+        },
+        "loading": "Traduciendo...",
+        "offline": "Traducir necesita conexión. Las instrucciones originales de arriba no cambian.",
+        "failed": "No se pudo traducir en este momento. Las instrucciones originales de arriba no cambian.",
+        "badge": "Traducción por IA · {{language}}",
+        "originalBadge": "Instrucciones originales",
+        "aiNote": "Traducido por IA para ayudarte a leerlo. Consulta con tu supervisor lo que no esté claro. La tarea no cambia.",
+        "showOriginal": "Ver original",
+        "showTranslation": "Ver traducción"
+      },
       "help": {
         "title": "¿Necesitas ayuda?",
         "explain": "Explicar esta tarea",
         "hide": "Ocultar explicación",
         "ask": "Preguntar al asistente",
+        "findProcedure": "Buscar un procedimiento",
         "askOffline": "El asistente necesita conexión.",
         "askQuestion": "Explicar esta tarea",
         "source": "Basado solo en los detalles de esta tarea. No se ha agregado ni cambiado nada.",
@@ -3934,7 +3952,102 @@
     "overview": "Resumen",
     "category": "Categoría",
     "pages": "Páginas",
-    "added": "Agregado"
+    "added": "Agregado",
+    "kicker": "Procedimientos",
+    "hero": "¿Cómo podemos ayudarte?",
+    "ask": {
+      "title": "Pregunta sobre un procedimiento del hotel",
+      "placeholder": "Escribe tu pregunta...",
+      "inputA11y": "Haz una pregunta sobre un procedimiento del hotel o busca procedimientos por nombre",
+      "voice": "Preguntar por voz",
+      "send": "Preguntar",
+      "hint": "Al escribir también se filtran los procedimientos de abajo. Las respuestas vienen solo de los procedimientos aprobados de tu hotel.",
+      "offline": "Hacer una pregunta necesita conexión. Aún puedes buscar y leer los procedimientos de abajo."
+    },
+    "cache": {
+      "saved_justNow": "Mostrando la lista guardada en este teléfono hace un momento.",
+      "saved_minutes": "Mostrando la lista guardada en este teléfono hace {{value}} min.",
+      "saved_hours": "Mostrando la lista guardada en este teléfono hace {{value}} h.",
+      "saved_days": "Mostrando la lista guardada en este teléfono hace {{value}} d.",
+      "reconnect": "Conéctate para confirmar que estos procedimientos siguen vigentes."
+    },
+    "errorLoad": "No se pudieron cargar los procedimientos. Desliza hacia abajo para intentarlo de nuevo.",
+    "errorOffline": "No tienes conexión y aún no hay procedimientos guardados en este teléfono.",
+    "backToList": "Procedimientos",
+    "gone": "Este procedimiento ya no está disponible. Pregunta a tu supervisor si lo necesitas.",
+    "general": "General",
+    "approved": "Procedimientos",
+    "allCategories": "Todos",
+    "footer": "Solo se muestran los procedimientos que tienes autorización para leer.",
+    "status": {
+      "approved": "Aprobado",
+      "approvedVersion": "Aprobado · Versión {{version}}",
+      "uploaded": "Documento del hotel"
+    },
+    "empty": {
+      "title": "Aún no hay procedimientos",
+      "body": "Pide a tu gerente general o supervisor que agregue documentos de procedimientos."
+    },
+    "noMatch": {
+      "title": "Ningún procedimiento coincide con \"{{query}}\"",
+      "body": "Prueba con otra palabra o borra la búsqueda.",
+      "bodyAsk": "Prueba con otra palabra o toca Preguntar para hacerle tu pregunta al asistente."
+    },
+    "suggest": {
+      "title": "Preguntas que puedes hacer",
+      "keyPoints": "¿Cuáles son los puntos clave de {{title}}?",
+      "note": "Vienen de los procedimientos que tiene tu hotel. Si un procedimiento no cubre algo, el asistente lo dirá."
+    },
+    "detail": {
+      "document": "Documento",
+      "open": "Abrir el procedimiento completo",
+      "openPage": "Abrir el procedimiento completo (página {{page}})",
+      "openOffline": "Abrir el original necesita conexión.",
+      "openUnavailable": "No se puede abrir el documento original en este momento. Inténtalo de nuevo o pregunta a tu supervisor.",
+      "approvedOn": "Aprobado el {{date}}",
+      "reviewDue": "Revisión pendiente: {{date}}",
+      "askTitle": "Pregunta sobre este procedimiento",
+      "askAnother": "Hacer otra pregunta",
+      "askNotReady": "Las preguntas aún no están disponibles para este documento. Aún puedes leer el original.",
+      "askOffline": "Las preguntas necesitan conexión. Podrás leer el original cuando vuelvas a tener conexión.",
+      "citeNote": "Las respuestas citan este procedimiento. El documento siempre es la versión oficial.",
+      "q": {
+        "keyPoints": "Dame los puntos clave de este procedimiento.",
+        "simply": "Explica este procedimiento de forma más sencilla.",
+        "first": "¿Qué debo hacer primero?",
+        "translate_en": "Traduce este procedimiento al inglés.",
+        "translate_es": "Traduce este procedimiento al español."
+      }
+    },
+    "citation": {
+      "version": "Versión {{version}}",
+      "section": "Sección {{section}}",
+      "view": "Ver el procedimiento fuente",
+      "viewA11y": "Ver el procedimiento fuente: {{title}}"
+    },
+    "notes": {
+      "grounded": "Escrito a partir de los procedimientos aprobados citados. Abre la fuente para leer el original.",
+      "groundedNoSources": "Escrito a partir de procedimientos aprobados, pero no se pudo mostrar la fuente. Revisa el procedimiento original.",
+      "reason": {
+        "no_documents": "Aún no hay procedimientos aprobados para consultar. Consulta con tu supervisor.",
+        "no_match": "No lo encontré en los procedimientos aprobados de tu hotel, así que no voy a adivinar. Consulta con tu supervisor.",
+        "insufficient": "Los procedimientos aprobados no responden esto, así que no voy a adivinar. Consulta con tu supervisor.",
+        "conflict": "Los procedimientos aprobados no coinciden en esto, así que no puedo elegir uno. Pregunta a tu supervisor.",
+        "unverified_figures": "No pude confirmar los números de esa respuesta con el procedimiento. Lee el original o pregunta a tu supervisor."
+      },
+      "translated": "Escrito por IA en {{language}}. El procedimiento original es la versión oficial.",
+      "language": {
+        "en": "inglés",
+        "es": "español"
+      },
+      "highRisk": "Esto involucra seguridad, productos químicos, una emergencia o entrar a una habitación. Lee el procedimiento original y sigue las instrucciones de tu supervisor; este resumen no las reemplaza.",
+      "related": "Procedimientos que pueden ayudar:",
+      "followUp": "Hacer una pregunta de seguimiento"
+    },
+    "related": {
+      "title": "Procedimientos que pueden ayudar",
+      "open": "Abrir procedimiento: {{title}}"
+    }
   },
   "help": {
     "intro": "¿Necesitas ayuda? Encuentra una respuesta o reporta un problema.",

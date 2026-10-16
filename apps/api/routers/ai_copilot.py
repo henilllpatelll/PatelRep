@@ -8,7 +8,7 @@ from models.requests import (
     SupervisorBriefingRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
     TaskPreview, WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
     AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
-    UpdateAIModelRouteRequest,
+    UpdateAIModelRouteRequest, TaskTranslationRequest,
 )
 from core.database import supabase
 from core.roles import GM_ONLY_ROLES
@@ -17,9 +17,11 @@ from services.ai.insights import generate_gm_insights
 from services.ai.work_order_parser import parse_work_orders
 from services.ai.guest_request_parser import parse_guest_requests
 from services.ai.assignment_parser import parse_assignments
+from services.ai.sop_access import SopUnavailable
 from services.ai.sop_rag import query_sop
 from services.ai.photo_analysis import MAX_NOTE_CHARS, MAX_UPLOAD_BYTES, PhotoRejected, analyze_photo, prepare_image
 from services.ai.providers import AIProviderConfigurationError
+from services.ai.task_translation import task_source_hash, translate_task_fields
 from services.ai.housekeeping_briefing import generate_shift_briefing
 from services.ai.housekeeper_shift_recap import generate_shift_recap
 from services.ai.supervisor_briefing import generate_supervisor_briefing
@@ -468,42 +470,36 @@ async def copilot_chat(
             }
 
         elif intent == "sop_query":
-            sop_check = (
-                supabase.table("sop_documents")
-                .select("id", count="exact")
-                .eq("tenant_id", current_user.hotel_id)
-                .eq("indexing_status", "indexed")
-                .limit(1)
-                .execute()
+            # Answers come only from approved, indexed procedures of THIS hotel; with a document in
+            # context (already verified above) they come only from that document.
+            sop_result = await asyncio.to_thread(
+                query_sop,
+                query=request.message,
+                hotel_id=current_user.hotel_id,
+                user_id=current_user.user_id,
+                document_id=trusted_context.get("document_id"),
+                language=safe_context.get("language"),
+                suggest_tasks=False,
             )
-            if not sop_check.count:
-                response_payload = {
-                    "response_type": "answer",
-                    "message": ("No SOPs have been uploaded yet. Upload your procedures "
-                                "in the SOP Library and I'll be able to answer questions about them."),
-                    "sources": [],
-                    "credits_used": 0,
-                    "model_used": None,
-                }
-            else:
-                sop_result = query_sop(
-                    query=request.message,
-                    hotel_id=current_user.hotel_id,
-                    user_id=current_user.user_id,
-                )
-                prompt_tokens = sop_result.get("prompt_tokens", 0)
-                completion_tokens = sop_result.get("completion_tokens", 0)
+            prompt_tokens = sop_result.get("prompt_tokens", 0)
+            completion_tokens = sop_result.get("completion_tokens", 0)
+            # No model call (nothing to search, nothing relevant) means nothing to bill.
+            if prompt_tokens or completion_tokens:
                 credits = await check_and_deduct_credits(
                     current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
                 )
-                response_payload = {
-                    "response_type": "answer",
-                    "message": sop_result["answer"],
-                    "sources": sop_result.get("sources", []),
-                    "suggested_tasks": sop_result.get("suggested_tasks", []),
-                    "credits_used": credits,
-                    "model_used": "claude-sonnet-4-6",
-                }
+            response_payload = {
+                "response_type": "answer",
+                "message": sop_result["answer"],
+                "sources": sop_result.get("sources", []),
+                "grounded": sop_result.get("grounded", False),
+                "reason": sop_result.get("reason"),
+                "high_risk": sop_result.get("high_risk", False),
+                "answer_language": sop_result.get("answer_language"),
+                "related_documents": sop_result.get("related_documents", []),
+                "credits_used": credits,
+                "model_used": "claude-sonnet-4-6" if (prompt_tokens or completion_tokens) else None,
+            }
 
         else:
             response_payload = {
@@ -522,7 +518,8 @@ async def copilot_chat(
     except HTTPException:
         raise
     except (openai.RateLimitError, openai.AuthenticationError,
-            anthropic.RateLimitError, anthropic.AuthenticationError) as exc:
+            anthropic.RateLimitError, anthropic.AuthenticationError, SopUnavailable,
+            AIProviderConfigurationError) as exc:
         latency = int((time.time() - start) * 1000)
         await log_ai_interaction(
             hotel_id=current_user.hotel_id, user_id=current_user.user_id,
@@ -1093,6 +1090,93 @@ async def analyze_issue_photo(
             "model_used": "gpt-4o-mini",
         }
     }
+
+
+@router.post("/tasks/{task_id}/translate")
+async def translate_task_instructions(
+    task_id: str,
+    request: TaskTranslationRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Translate ONE task's title and description for the person who may see it. Read-only: the stored task,
+    its status and everything else about it are untouched, and the original text is returned beside the
+    translation so it can always be shown. A cached translation is reused only while the task text is unchanged.
+    """
+    start = time.time()
+    require_creation_role(current_user.role)
+    # Same gate as using a task as assistant context: this hotel's task, and for floor staff one that is theirs.
+    context = sanitize_context({"task_id": task_id})
+    resolve_trusted_context(supabase, current_user.hotel_id, current_user.user_id, current_user.role, context)
+    row = (
+        supabase.table("tasks").select("id, title, description")
+        .eq("id", context["task_id"]).eq("tenant_id", current_user.hotel_id).limit(1).execute()
+    ).data or []
+    if not row:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    title, description = row[0].get("title") or "", row[0].get("description")
+    source_hash = task_source_hash(title, description)
+    original = {"title": title, "description": description}
+
+    try:
+        cached = (
+            supabase.table("ai_content_translations").select("translated_title, translated_body")
+            .eq("tenant_id", current_user.hotel_id).eq("source_type", "task").eq("source_id", context["task_id"])
+            .eq("source_hash", source_hash).eq("target_language", request.target_language).limit(1).execute()
+        ).data or []
+    except Exception:
+        cached = []
+        logger.warning("Translation cache unreadable hotel=%s", current_user.hotel_id, exc_info=True)
+    if cached:
+        return {"data": {
+            "original": original, "translated": {"title": cached[0]["translated_title"], "description": cached[0].get("translated_body")},
+            "target_language": request.target_language, "cached": True, "ai_generated": True, "credits_used": 0,
+        }}
+
+    credits, prompt_tokens, completion_tokens = 0, 0, 0
+    try:
+        result = await asyncio.to_thread(translate_task_fields, title, description, request.target_language)
+        prompt_tokens, completion_tokens = result["prompt_tokens"], result["completion_tokens"]
+        credits = await check_and_deduct_credits(current_user.hotel_id, "translation", prompt_tokens, completion_tokens)
+    except HTTPException:
+        raise
+    except (openai.RateLimitError, openai.AuthenticationError, AIProviderConfigurationError, openai.APIConnectionError, openai.APIStatusError) as exc:
+        await _log_ai_call(current_user, "translation", credits, 0, 0, start, False, str(exc))
+        raise HTTPException(status_code=503, detail="Translation is temporarily unavailable. The original instructions are unchanged.")
+    except Exception as exc:
+        await _log_ai_call(current_user, "translation", credits, 0, 0, start, False, str(exc))
+        logger.exception("Task translation failed hotel=%s", current_user.hotel_id)
+        raise HTTPException(status_code=500, detail="Translation is temporarily unavailable. The original instructions are unchanged.")
+
+    try:
+        supabase.table("ai_content_translations").insert({
+            "tenant_id": current_user.hotel_id, "source_type": "task", "source_id": context["task_id"],
+            "source_hash": source_hash, "target_language": request.target_language,
+            "translated_title": result["title"], "translated_body": result["description"],
+            "provider": "openai:gpt-4o-mini",
+        }).execute()
+    except Exception:
+        # A cache miss next time costs one more translation; it must not fail this one.
+        logger.warning("Could not cache task translation hotel=%s", current_user.hotel_id, exc_info=True)
+
+    await _log_ai_call(current_user, "translation", credits, prompt_tokens, completion_tokens, start, True, None)
+    return {"data": {
+        "original": original, "translated": {"title": result["title"], "description": result["description"]},
+        "target_language": request.target_language, "cached": False, "ai_generated": True,
+        "credits_used": credits, "model_used": "gpt-4o-mini",
+    }}
+
+
+async def _log_ai_call(current_user, interaction_type, credits, prompt_tokens, completion_tokens, start, success, error):
+    """Record a call without letting a bookkeeping failure turn a finished call into an error."""
+    try:
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type=interaction_type, model_used="gpt-4o-mini",
+            credits_charged=credits, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            latency_ms=int((time.time() - start) * 1000), success=success, error_message=error,
+        )
+    except Exception:
+        logger.warning("Could not log the %s interaction hotel=%s", interaction_type, current_user.hotel_id, exc_info=True)
 
 
 async def _log_photo_analysis(current_user, credits, prompt_tokens, completion_tokens, start, success, error):

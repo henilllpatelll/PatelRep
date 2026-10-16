@@ -525,6 +525,24 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
     assistant.conversation.showLocal(t("tasks.hk.help.askQuestion"), sentences.join(" "), { type: "taskAnswer", taskId: task.id });
   }, [assistant, sheetTask, viewer, zone, language, t, closeSheets]);
 
+  /* "Find a procedure": the assistant opens about this task with the question started for them. Nothing is asked
+     until they send it, and the answer comes only from the hotel's approved procedures. */
+  const findProcedure = useCallback(() => {
+    if (!assistant || !sheetTask) return;
+    const task = sheetTask;
+    closeSheets();
+    assistant.setPendingHint("sop_query");
+    assistant.openAssistant({ contextType: "task", entityId: task.id, label: task.title, prefill: t("copilot.quickPrompts.searchSOPs") });
+  }, [assistant, sheetTask, t, closeSheets]);
+
+  const openProcedure = useCallback(
+    (documentId: string) => {
+      closeSheets();
+      router.push(`/(app)/sop/${encodeURIComponent(documentId)}` as never);
+    },
+    [closeSheets],
+  );
+
   const canOpenRoom = !!sheetTask?.room_id && (myRooms ?? []).some((room) => room.id === sheetTask.room_id);
   const openRoom = useCallback(() => {
     const roomId = sheetTask?.room_id;
@@ -858,6 +876,9 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
         }}
         savedCopySyncedAt={mine.syncedAt}
         onAskAssistant={assistant && sheetTask && canAskAssistantAbout(sheetTask, viewer) ? askAssistant : undefined}
+        canTranslate={!!sheetTask && canAskAssistantAbout(sheetTask, viewer)}
+        onFindProcedure={assistant && sheetTask && canAskAssistantAbout(sheetTask, viewer) ? findProcedure : undefined}
+        onOpenProcedure={openProcedure}
       />
       <CompleteTaskSheet
         visible={sheet === "complete"}

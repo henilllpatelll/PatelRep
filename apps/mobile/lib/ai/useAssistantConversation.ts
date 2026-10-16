@@ -83,7 +83,7 @@ function replyFromOutcome(outcome: CopilotOutcome, askedText: string): Assistant
   };
   switch (outcome.kind) {
     case "answer":
-      return { ...base, sources: outcome.sources };
+      return { ...base, sources: outcome.sources, ...(outcome.sop ? { sop: outcome.sop } : {}) };
     case "actions":
       return { ...base, actions: toActionItems(outcome) };
     case "clarify":

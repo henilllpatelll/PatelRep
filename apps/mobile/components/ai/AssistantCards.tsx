@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { usePalette, type Palette } from "@/components/ai/palette";
+import { SourceCitationCard } from "@/components/sop/SourceCitationCard";
 import { summarizePreview } from "@/lib/ai/actionSummary";
 import type { AssistantSource, ClarifyOption, CopilotFailureKind } from "@/lib/ai/contract";
 import type { ActionItem } from "@/lib/ai/conversationState";
@@ -175,28 +176,18 @@ export function LimitationCard({
   );
 }
 
-/** F. SOP answer references. Only what the server returned; nothing is invented. */
-export function SourceList({ sources, palette }: { sources: AssistantSource[]; palette?: Palette }) {
+/** F. SOP answer references: one citation card per source. Only what the server returned; nothing is invented. */
+export function SourceList({ sources, palette, onOpenHref }: { sources: AssistantSource[]; palette?: Palette; onOpenHref?: (href: string) => void }) {
   const { t } = useTranslation();
   const { styles } = useCardStyles(palette);
   if (sources.length === 0) return null;
   return (
     <View style={styles.sources} testID="assistant-sources">
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.label}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.label} accessibilityRole="header">
         {t("copilot.sources")}
       </Text>
       {sources.map((source, index) => (
-        <View key={`${source.documentId ?? source.title}-${source.page ?? index}`} style={styles.sourceRow}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.sourceTitle} numberOfLines={2}>
-            {source.title}
-            {source.page ? ` · ${t("copilot.page", { page: source.page })}` : ""}
-          </Text>
-          {source.excerpt ? (
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.muted} numberOfLines={2}>
-              {source.excerpt}
-            </Text>
-          ) : null}
-        </View>
+        <SourceCitationCard key={`${source.documentId ?? source.title}-${source.page ?? index}`} source={source} palette={palette} onOpenHref={onOpenHref} />
       ))}
     </View>
   );

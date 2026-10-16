@@ -1,4 +1,5 @@
 import { api } from "@/lib/api/client";
+import i18next from "i18next";
 import {
   CopilotFailure,
   normalizeCopilotResponse,
@@ -22,6 +23,8 @@ export interface SendOptions {
   /** Steers the intent; the server whitelists it and checks it against the person's real role. */
   intentHint?: IntentHint;
   context?: AssistantContextIds;
+  /** The language to answer in ("en" or "es"). Defaults to the app's current language. */
+  language?: "en" | "es";
   /** Lets the person cancel a request that is still waiting for its answer. */
   signal?: AbortSignal;
 }
@@ -33,7 +36,12 @@ export interface SendOptions {
 export async function sendCopilotMessage(text: string, options: SendOptions = {}): Promise<CopilotOutcome> {
   // `context` must be an object -- the API validates Optional[dict] and reads intent_hint from it.
   const context: Record<string, string> = { source: "mobile" };
-  if (options.intentHint) context.intent_hint = options.intentHint;
+  // A question asked about a procedure is always a procedure question, whatever words it happens to use.
+  const hint = options.intentHint ?? (options.context?.documentId ? "sop_query" : undefined);
+  if (hint) context.intent_hint = hint;
+  // The app's language steers the language of a procedure answer; the server accepts only "en" or "es".
+  const language = options.language ?? appLanguage();
+  if (language) context.language = language;
   if (options.context?.roomId) context.room_id = options.context.roomId;
   if (options.context?.taskId) context.task_id = options.context.taskId;
   if (options.context?.documentId) context.document_id = options.context.documentId;
@@ -49,6 +57,11 @@ export async function sendCopilotMessage(text: string, options: SendOptions = {}
     throw toCopilotFailure(error);
   }
   return normalizeCopilotResponse(raw);
+}
+
+function appLanguage(): "en" | "es" | null {
+  const language = typeof i18next.language === "string" ? i18next.language.slice(0, 2).toLowerCase() : "";
+  return language === "es" ? "es" : language === "en" ? "en" : null;
 }
 
 /** The request was cancelled by the person; not a failure. */

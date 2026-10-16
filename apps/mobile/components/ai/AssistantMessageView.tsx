@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ActionPreviewCard } from "@/components/ai/ActionPreviewCard";
 import { ActionSummaryCard, ClarificationCard, LimitationCard, RoomRecommendationCard, SourceList } from "@/components/ai/AssistantCards";
 import { usePalette, type Palette } from "@/components/ai/palette";
+import { SopAnswerNotes } from "@/components/sop/SopAnswerNotes";
 import type { AssistantMessage } from "@/lib/ai/conversationState";
 import type { AssistantConversation } from "@/lib/ai/useAssistantConversation";
 
@@ -25,6 +26,8 @@ interface Props {
   onOpenMyRooms?: () => void;
   /** A screen a room answer points to (the issue form, a work order). The caller closes the sheet and navigates. */
   onOpenHref?: (href: string) => void;
+  /** "Ask a follow-up question" under a procedure answer: put the cursor back in the composer. */
+  onFollowUp?: () => void;
 }
 
 function timeOf(at: number): string {
@@ -36,8 +39,8 @@ function timeOf(at: number): string {
 }
 
 /** One entry in the conversation, for every assistant surface: text, where it came from, and what can be done next. */
-export function AssistantMessageView({ message, conversation, compact, palette, onReviewAction, onOpenRoom, onExpand, onOpenMyRooms, onOpenHref }: Props) {
-  const { t } = useTranslation();
+export function AssistantMessageView({ message, conversation, compact, palette, onReviewAction, onOpenRoom, onExpand, onOpenMyRooms, onOpenHref, onFollowUp }: Props) {
+  const { t, i18n } = useTranslation();
   const theme = usePalette(palette);
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const isUser = message.role === "user";
@@ -119,7 +122,18 @@ export function AssistantMessageView({ message, conversation, compact, palette, 
         </Pressable>
       ) : null}
 
-      {message.sources && message.sources.length > 0 ? <SourceList sources={message.sources} palette={palette} /> : null}
+      {message.sop ? (
+        <SopAnswerNotes
+          sop={message.sop}
+          hasSources={(message.sources?.length ?? 0) > 0}
+          palette={palette}
+          appLanguage={i18n.language?.startsWith("es") ? "es" : "en"}
+          onOpenHref={onOpenHref}
+          onFollowUp={onFollowUp}
+        />
+      ) : null}
+
+      {message.sources && message.sources.length > 0 ? <SourceList sources={message.sources} palette={palette} onOpenHref={onOpenHref} /> : null}
 
       {message.options && message.options.length > 0 ? (
         <ClarificationCard

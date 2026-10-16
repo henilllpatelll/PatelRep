@@ -191,6 +191,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       if (trusted?.roomId && trusted.roomId === context.entityId && trusted.roomNumber) {
         return { text: trusted.roomNumber, verified: true };
       }
+      // The procedure's own title, as the server found it for this id, beats the label the launcher supplied.
+      if (trusted?.documentId && trusted.documentId === context.entityId && trusted.documentTitle) {
+        return { text: trusted.documentTitle, verified: true };
+      }
     }
     return { text: context.label, verified: false };
   }, [context, conversation.messages]);

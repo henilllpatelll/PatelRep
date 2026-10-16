@@ -102,8 +102,8 @@ def _seeded_ledger_rows(hotel_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 class _FakeEmbeddings:
-    def create(self, model, input):
-        return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+    def create(self, model, input, **_kwargs):
+        return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1] * 1536)])
 
 
 class _FakeOpenAIClient:

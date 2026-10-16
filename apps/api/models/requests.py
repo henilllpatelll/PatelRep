@@ -1412,6 +1412,12 @@ class CarryForwardLogbookEntryRequest(SanitizedBaseModel):
     assigned_to: Optional[UUID4] = None
 
 
+class TaskTranslationRequest(SanitizedBaseModel):
+    """Translate an authorised task's own title and description; never browser-supplied text."""
+
+    target_language: Literal["en", "es"]
+
+
 class LogbookTranslationRequest(SanitizedBaseModel):
     """Translate a server-fetched Logbook field; never arbitrary browser text."""
 

@@ -885,6 +885,7 @@
       "needHelpRoom": "Need help with this room?",
       "askAi": "Ask AI",
       "askAbout": "Ask about Room {{room}}",
+      "findProcedure": "Find a procedure",
       "reportIssue": "Report an issue"
     },
     "readiness": {
@@ -2138,11 +2139,28 @@
         "voice": "Describe a task by voice",
         "offline": "You're offline. Adding a task needs a connection."
       },
+      "translate": {
+        "title": "Translate instructions",
+        "into": "Translate into {{language}}",
+        "language": {
+          "en": "English",
+          "es": "Español"
+        },
+        "loading": "Translating...",
+        "offline": "Translating needs a connection. The original instructions above are unchanged.",
+        "failed": "Couldn't translate this right now. The original instructions above are unchanged.",
+        "badge": "AI translation · {{language}}",
+        "originalBadge": "Original instructions",
+        "aiNote": "Translated by AI to help you read it. Check anything unclear with your supervisor. The task itself is unchanged.",
+        "showOriginal": "Show original",
+        "showTranslation": "Show translation"
+      },
       "help": {
         "title": "Need help?",
         "explain": "Explain this task",
         "hide": "Hide explanation",
         "ask": "Ask Assistant",
+        "findProcedure": "Find a procedure",
         "askOffline": "The assistant needs a connection.",
         "askQuestion": "Explain this task",
         "source": "Based only on this task's details. Nothing has been added or changed.",
@@ -3934,7 +3952,102 @@
     "overview": "Overview",
     "category": "Category",
     "pages": "Pages",
-    "added": "Added"
+    "added": "Added",
+    "kicker": "Procedures",
+    "hero": "How can we help?",
+    "ask": {
+      "title": "Ask about a hotel procedure",
+      "placeholder": "Type your question...",
+      "inputA11y": "Ask a question about a hotel procedure, or search procedures by name",
+      "voice": "Ask by voice",
+      "send": "Ask",
+      "hint": "Typing also filters the procedures below. Answers come only from your hotel's approved procedures.",
+      "offline": "Asking a question needs a connection. You can still search and read the procedures below."
+    },
+    "cache": {
+      "saved_justNow": "Showing the list saved on this phone a moment ago.",
+      "saved_minutes": "Showing the list saved on this phone {{value}} min ago.",
+      "saved_hours": "Showing the list saved on this phone {{value}} h ago.",
+      "saved_days": "Showing the list saved on this phone {{value}} d ago.",
+      "reconnect": "Reconnect to confirm these procedures are still current."
+    },
+    "errorLoad": "Procedures could not be loaded. Pull down to try again.",
+    "errorOffline": "You're offline and no procedures are saved on this phone yet.",
+    "backToList": "Procedures",
+    "gone": "This procedure is no longer available. Ask your supervisor if you need it.",
+    "general": "General",
+    "approved": "Procedures",
+    "allCategories": "All",
+    "footer": "Only procedures you are authorized to read are shown.",
+    "status": {
+      "approved": "Approved",
+      "approvedVersion": "Approved · Version {{version}}",
+      "uploaded": "Hotel document"
+    },
+    "empty": {
+      "title": "No procedures yet",
+      "body": "Ask your GM or supervisor to add procedure documents."
+    },
+    "noMatch": {
+      "title": "No procedures match \"{{query}}\"",
+      "body": "Try a different word, or clear the search.",
+      "bodyAsk": "Try a different word, or tap Ask to put your question to the assistant."
+    },
+    "suggest": {
+      "title": "Questions you can ask",
+      "keyPoints": "What are the key points of {{title}}?",
+      "note": "These come from the procedures your hotel has. If a procedure doesn't cover something, the assistant will say so."
+    },
+    "detail": {
+      "document": "Document",
+      "open": "Open full procedure",
+      "openPage": "Open full procedure (page {{page}})",
+      "openOffline": "Opening the original needs a connection.",
+      "openUnavailable": "The original document can't be opened right now. Please try again, or ask your supervisor.",
+      "approvedOn": "Approved {{date}}",
+      "reviewDue": "Review due {{date}}",
+      "askTitle": "Ask about this procedure",
+      "askAnother": "Ask another question",
+      "askNotReady": "Questions aren't available for this document yet. You can still read the original.",
+      "askOffline": "Questions need a connection. You can still read the original when you're back online.",
+      "citeNote": "Answers cite this procedure. The document itself is always the official version.",
+      "q": {
+        "keyPoints": "Give me the key points of this procedure.",
+        "simply": "Explain this procedure more simply.",
+        "first": "What should I do first?",
+        "translate_en": "Translate this procedure into English.",
+        "translate_es": "Translate this procedure into Spanish."
+      }
+    },
+    "citation": {
+      "version": "Version {{version}}",
+      "section": "Section {{section}}",
+      "view": "View source procedure",
+      "viewA11y": "View source procedure: {{title}}"
+    },
+    "notes": {
+      "grounded": "Written from the cited approved procedures. Open the source to read the original.",
+      "groundedNoSources": "Written from approved procedures, but no source could be shown. Check the original procedure.",
+      "reason": {
+        "no_documents": "There are no approved procedures to search yet. Please check with your supervisor.",
+        "no_match": "I couldn't find this in your hotel's approved procedures, so I won't guess. Please check with your supervisor.",
+        "insufficient": "The approved procedures don't answer this, so I won't guess. Please check with your supervisor.",
+        "conflict": "Approved procedures disagree on this, so I can't pick one. Please ask your supervisor.",
+        "unverified_figures": "I couldn't confirm the numbers in that answer against the procedure. Read the original or ask your supervisor."
+      },
+      "translated": "AI-written in {{language}}. The original procedure is the official version.",
+      "language": {
+        "en": "English",
+        "es": "Spanish"
+      },
+      "highRisk": "This involves safety, chemicals, an emergency or entering a room. Read the original procedure and follow your supervisor's instructions; this summary doesn't replace them.",
+      "related": "Procedures that may help:",
+      "followUp": "Ask a follow-up question"
+    },
+    "related": {
+      "title": "Procedures that may help",
+      "open": "Open procedure: {{title}}"
+    }
   },
   "help": {
     "intro": "Need help? Find an answer or report a problem.",

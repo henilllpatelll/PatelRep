@@ -236,6 +236,7 @@ export function AssistantSheet() {
                   onExpand={expandAssistant}
                   onOpenMyRooms={openMyRooms}
                   onOpenHref={openHref}
+                  onFollowUp={requestFocus}
                 />
               ))}
               {sending ? (

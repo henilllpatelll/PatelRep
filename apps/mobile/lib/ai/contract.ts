@@ -11,6 +11,7 @@
    (lib/ai/copilotChat.confirmAction). */
 
 import { ApiError } from "@/lib/api/client";
+import { isValidEntityId } from "@/lib/ai/launch";
 import {
   guestRequestDraftFromRaw,
   taskDraftFromRaw,
@@ -34,6 +35,32 @@ export interface AssistantSource {
   excerpt: string | null;
   page: number | null;
   documentId: string | null;
+  /** The approved version of the cited document, only when the server read one from the document's own record. */
+  version?: number | null;
+  /** A section label, only when the indexed passage really carries one. Never inferred. */
+  section?: string | null;
+}
+
+/** Why the assistant could not give a verified procedure answer. */
+export const SOP_REASONS = ["no_documents", "no_match", "insufficient", "conflict", "unverified_figures"] as const;
+export type SopReason = (typeof SOP_REASONS)[number];
+
+/** An approved procedure worth opening when there is no verified answer. */
+export interface RelatedDocument {
+  id: string;
+  title: string;
+  category: string | null;
+}
+
+/** How a procedure answer stands. Present only for replies the SOP search produced. */
+export interface SopAnswerMeta {
+  /** True only when the answer rests on the sources listed with it. */
+  grounded: boolean;
+  reason: SopReason | null;
+  /** Chemicals, hazards, emergencies or room entry: the original document must stay one tap away. */
+  highRisk: boolean;
+  answerLanguage: "en" | "es" | null;
+  related: RelatedDocument[];
 }
 
 /** Intents a clarification option may point the assistant at. */
@@ -54,6 +81,9 @@ export interface TrustedContext {
   roomNumber?: string;
   taskId?: string;
   documentId?: string;
+  /** The title and approved version the server found for the document id (shown instead of the launcher's label). */
+  documentTitle?: string;
+  documentVersion?: number;
 }
 
 interface OutcomeBase {
@@ -64,7 +94,7 @@ interface OutcomeBase {
 }
 
 export type CopilotOutcome =
-  | (OutcomeBase & { kind: "answer"; sources: AssistantSource[] })
+  | (OutcomeBase & { kind: "answer"; sources: AssistantSource[]; sop?: SopAnswerMeta })
   | (OutcomeBase & { kind: "actions"; actions: ActionPreview[] })
   | (OutcomeBase & { kind: "clarify"; options: ClarifyOption[] })
   /** A well-formed reply for something this app cannot act on (e.g. a manager-only preview). */
@@ -147,6 +177,8 @@ function normalizeTrustedContext(raw: unknown): TrustedContext | null {
   if (str(ctx.room_number)) out.roomNumber = str(ctx.room_number)!;
   if (str(ctx.task_id)) out.taskId = str(ctx.task_id)!;
   if (str(ctx.document_id)) out.documentId = str(ctx.document_id)!;
+  if (str(ctx.document_title)) out.documentTitle = str(ctx.document_title)!.slice(0, 120);
+  if (typeof ctx.document_version === "number" && Number.isFinite(ctx.document_version)) out.documentVersion = ctx.document_version;
   return Object.keys(out).length > 0 ? out : null;
 }
 
@@ -159,16 +191,44 @@ function normalizeSources(raw: unknown): AssistantSource[] {
     if (!source) continue;
     const meta = record(source.metadata) ?? {};
     const title = str(source.title) ?? str(meta.title) ?? "SOP";
-    const page = typeof meta.page_number === "number" ? meta.page_number : null;
-    const documentId = str(source.document_id);
+    const pageValue = typeof source.page === "number" ? source.page : meta.page_number;
+    const page = typeof pageValue === "number" && Number.isInteger(pageValue) && pageValue > 0 && pageValue <= 9999 ? pageValue : null;
+    // A citation can only link to a document id that is shaped like one; anything else is shown as plain text.
+    const rawId = str(source.document_id);
+    const documentId = rawId && isValidEntityId(rawId) ? rawId.toLowerCase() : null;
     const key = `${documentId ?? title}:${page ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const excerpt = str(source.content);
-    out.push({ title, excerpt: excerpt ? excerpt.slice(0, 280) : null, page, documentId });
+    const version = typeof source.version === "number" && source.version > 0 ? source.version : null;
+    out.push({ title, excerpt: excerpt ? excerpt.slice(0, 280) : null, page, documentId, version, section: str(source.section)?.slice(0, 120) ?? null });
     if (out.length >= MAX_SOURCES) break;
   }
   return out;
+}
+
+function normalizeSopMeta(data: Record<string, unknown>): SopAnswerMeta | undefined {
+  if (typeof data.grounded !== "boolean") return undefined;
+  const reason = str(data.reason);
+  const related: RelatedDocument[] = [];
+  if (Array.isArray(data.related_documents)) {
+    for (const item of data.related_documents) {
+      const doc = record(item);
+      const id = str(doc?.id);
+      const title = str(doc?.title);
+      if (!id || !title || !isValidEntityId(id)) continue;
+      related.push({ id: id.toLowerCase(), title: title.slice(0, 120), category: str(doc?.category) });
+      if (related.length >= 3) break;
+    }
+  }
+  const lang = str(data.answer_language);
+  return {
+    grounded: data.grounded,
+    reason: reason && (SOP_REASONS as readonly string[]).includes(reason) ? (reason as SopReason) : null,
+    highRisk: data.high_risk === true,
+    answerLanguage: lang === "en" || lang === "es" ? lang : null,
+    related,
+  };
 }
 
 function normalizeOptions(raw: unknown): ClarifyOption[] {
@@ -221,7 +281,7 @@ export function normalizeCopilotResponse(raw: unknown): CopilotOutcome {
 
   switch (type) {
     case "answer":
-      return { ...base, kind: "answer", sources: normalizeSources(data.sources) };
+      return { ...base, kind: "answer", sources: normalizeSources(data.sources), sop: normalizeSopMeta(data) };
     case "task_preview":
     case "work_order_preview":
     case "guest_request_preview": {

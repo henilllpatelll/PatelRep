@@ -1,4 +1,4 @@
-import type { AssistantSource, ClarifyOption, CopilotFailureKind, CopilotOutcome, Provenance, TrustedContext } from "@/lib/ai/contract";
+import type { AssistantSource, ClarifyOption, CopilotFailureKind, CopilotOutcome, Provenance, SopAnswerMeta, TrustedContext } from "@/lib/ai/contract";
 import type { PublishedNextRoom } from "@/lib/ai/shiftBriefingSource";
 import { patchPreview, type ActionPreview, type DraftPatch } from "@/lib/ai/drafts";
 import type { PersistableMessage, StoredMessage } from "@/lib/ai/history";
@@ -45,6 +45,8 @@ export interface AssistantMessage {
   trusted?: TrustedContext | null;
   local?: LocalCard;
   sources?: AssistantSource[];
+  /** For a procedure answer: whether it rests on cited sources, and why not when it does not. */
+  sop?: SopAnswerMeta;
   options?: ClarifyOption[];
   actions?: ActionItem[];
   /** For a notice: why nothing happened. */
@@ -147,6 +149,7 @@ export function toPersistable(messages: AssistantMessage[]): PersistableMessage[
     notice: message.kind === "notice",
     // Nothing the person was about to create is saved (its sentence without its card would mislead), and neither is
     // a snapshot of live data like "your next room" (it would be stale on the next open).
-    proposedGuestRequest: (message.actions?.length ?? 0) > 0 || message.kind === "local",
+    // A procedure answer is not saved either: its sentence without its source card would read as uncited policy.
+    proposedGuestRequest: (message.actions?.length ?? 0) > 0 || message.kind === "local" || !!message.sop || (message.sources?.length ?? 0) > 0,
   }));
 }

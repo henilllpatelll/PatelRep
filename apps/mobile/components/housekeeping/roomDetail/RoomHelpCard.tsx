@@ -1,9 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
 import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
 import { isAssistantRole } from "@/lib/ai/fab";
+import { ProcedureLinks } from "@/components/sop/ProcedureLinks";
+import { useRelatedProcedures } from "@/lib/sop/useRelatedProcedures";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { MAX_FONT_SCALE } from "./BottomSheet";
@@ -28,7 +31,11 @@ export function RoomHelpCard({ room, live, onReportIssue, variant }: Props) {
   const assistant = useAssistantOptional();
   const { user } = useAppStore();
   const role = user?.effective_role ?? user?.role;
-  if (!assistant || !isAssistantRole(role)) return null;
+  const offered = !!assistant && isAssistantRole(role);
+  // The hotel's own cleaning procedure, if it has one: a plain link to the document, never a model call. Opening it
+  // pushes a screen on top of this one, so the open clean, its checklist and its timer are left exactly as they are.
+  const related = useRelatedProcedures(["clean"], offered);
+  if (!assistant || !offered) return null;
 
   const ask = () =>
     assistant.openAssistant({
@@ -36,6 +43,18 @@ export function RoomHelpCard({ room, live, onReportIssue, variant }: Props) {
       entityId: room.id,
       label: room.room_number,
     });
+
+  /* "Find a procedure": the assistant opens about this room with the question started for them. Nothing is asked
+     until they send it, so opening this screen never costs a model call; the answer comes only from approved procedures. */
+  const findProcedure = () => {
+    assistant.setPendingHint("sop_query");
+    assistant.openAssistant({
+      contextType: live ? "cleaningSession" : "room",
+      entityId: room.id,
+      label: room.room_number,
+      prefill: t("copilot.quickPrompts.searchSOPs"),
+    });
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="room-help-card">
@@ -54,10 +73,19 @@ export function RoomHelpCard({ room, live, onReportIssue, variant }: Props) {
           style={styles.button}
           testID="room-help-ask"
         />
+        <Button
+          label={t("rooms.help.findProcedure")}
+          onPress={findProcedure}
+          variant="secondary"
+          icon="book-outline"
+          style={styles.button}
+          testID="room-help-procedure"
+        />
         {variant === "active" && onReportIssue ? (
           <Button label={t("rooms.help.reportIssue")} onPress={onReportIssue} variant="secondary" icon="warning-outline" style={styles.button} testID="room-help-report" />
         ) : null}
       </View>
+      <ProcedureLinks docs={related} onOpen={(id) => router.push(`/(app)/sop/${encodeURIComponent(id)}` as never)} />
     </View>
   );
 }

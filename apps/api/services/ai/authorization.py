@@ -15,6 +15,7 @@ from typing import Any, Optional
 from fastapi import HTTPException
 
 from core.roles import ALL_ROLES, GM_ONLY_ROLES
+from services.ai.sop_access import visible_document
 
 # Roles that may create operational records through the domain routes
 # (tasks, work orders and guest requests are all open to the floor roles).
@@ -44,7 +45,7 @@ SUPPORTED_INTENT_HINTS = frozenset(INTENT_ROLES) - {"ambiguous"}
 # Context keys that survive sanitising. Anything else (role, room_number, free text
 # that would be spliced into a prompt) is dropped.
 _ALLOWED_CONTEXT_KEYS = frozenset(
-    {"source", "intent_hint", "room_id", "task_id", "document_id", "work_orders"}
+    {"source", "intent_hint", "room_id", "task_id", "document_id", "language", "work_orders"}
 )
 _UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 _SOURCE_RE = re.compile(r"^[a-z0-9_\-]{1,32}$")
@@ -124,6 +125,9 @@ def sanitize_context(context: Optional[dict]) -> dict:
             continue  # handled by parse_intent_hint
         elif key in ("room_id", "task_id", "document_id"):
             clean[key] = _clean_uuid(value, key)
+        elif key == "language":
+            if value in ("en", "es"):
+                clean[key] = value
         elif key == "work_orders":
             if not isinstance(value, list):
                 raise HTTPException(status_code=422, detail="Invalid work_orders.")
@@ -185,13 +189,13 @@ def resolve_trusted_context(db: Any, hotel_id: str, user_id: str, role: Optional
 
     document_id = context.get("document_id")
     if document_id:
-        rows = (
-            db.table("sop_documents").select("id")
-            .eq("id", document_id).eq("tenant_id", hotel_id).eq("indexing_status", "indexed")
-            .limit(1).execute()
-        ).data or []
-        if not rows:
+        # Same rule as the library: this hotel's, indexed, and not a draft / retired / expired procedure.
+        doc = visible_document(db, hotel_id, document_id, require_indexed=True)
+        if not doc:
             raise HTTPException(status_code=404, detail=NOT_FOUND)
-        trusted["document_id"] = rows[0]["id"]
+        trusted["document_id"] = doc["id"]
+        trusted["document_title"] = doc.get("title")
+        if doc.get("approval"):
+            trusted["document_version"] = doc["approval"].get("version")
 
     return trusted

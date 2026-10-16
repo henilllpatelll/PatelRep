@@ -14,6 +14,7 @@ CREDIT_COSTS = {
     "assignment_suggestion": 0.5,
     "onboarding_assistant": 1.0,
     "photo_analysis": 1.0,
+    "translation": 0.5,
 }
 
 # USD per 1,000,000 tokens. Current as of 2026-07 — re-confirm against provider
@@ -31,6 +32,7 @@ INTERACTION_MODEL = {
     "assignment_suggestion": "gpt-4o-mini",
     "onboarding_assistant": "gpt-4o-mini",
     "photo_analysis": "gpt-4o-mini",
+    "translation": "gpt-4o-mini",
     "sop_query": "claude-sonnet",
     "gm_insight": "claude-sonnet",
     "room_prediction": "claude-sonnet",
