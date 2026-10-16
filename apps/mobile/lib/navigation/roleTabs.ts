@@ -100,6 +100,7 @@ export const HIDDEN_APP_ROUTES = [
   "work-orders/[woId]",
   "guest-requests/[requestId]",
   "logbook/new",
+  "logbook/[entryId]",
   "profile/personal",
   "profile/security",
   "profile/change-password",

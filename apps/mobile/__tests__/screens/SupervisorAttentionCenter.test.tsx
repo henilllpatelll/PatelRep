@@ -35,7 +35,7 @@ jest.mock("@/lib/api/tasks", () => ({ fetchBlockedTasks: jest.fn() }));
 jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 jest.mock("@/components/supervisor/ShiftNoteModal", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/components/supervisor/BroadcastModal", () => ({ __esModule: true, default: () => null }));
-jest.mock("@/components/supervisor/EndShiftModal", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/components/supervisor/handoff/ShiftHandoffSheet", () => ({ ShiftHandoffSheet: () => null }));
 jest.mock("@/components/supervisor/DirectMessageModal", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/components/supervisor/HousekeeperPicker", () => ({ HousekeeperPicker: () => null }));
 

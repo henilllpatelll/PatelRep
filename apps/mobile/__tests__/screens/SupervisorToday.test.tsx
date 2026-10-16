@@ -35,12 +35,11 @@ jest.mock("@/components/supervisor/BroadcastModal", () => {
   const { Text } = require("react-native");
   return { __esModule: true, default: ({ visible }: { visible: boolean }) => (visible ? <Text testID="modal-broadcast">broadcast</Text> : null) };
 });
-jest.mock("@/components/supervisor/EndShiftModal", () => {
+jest.mock("@/components/supervisor/handoff/ShiftHandoffSheet", () => {
   const { Text } = require("react-native");
   return {
-    __esModule: true,
-    default: ({ visible, snapshot }: { visible: boolean; snapshot: { ready: number } }) =>
-      visible ? <Text testID="modal-endshift">{`ready:${snapshot.ready}`}</Text> : null,
+    ShiftHandoffSheet: ({ visible, scope, supervisorName }: { visible: boolean; scope: string | null; supervisorName: string }) =>
+      visible ? <Text testID="modal-handoff">{`${scope}|${supervisorName}`}</Text> : null,
   };
 });
 jest.mock("@/components/supervisor/DirectMessageModal", () => {
@@ -405,17 +404,16 @@ describe("Supervisor Today — quick actions", () => {
     await waitFor(() => screen.getByTestId("today-readiness-ready"));
     expect(screen.getByTestId("today-action-handoff")).toBeTruthy();
     fireEvent.press(screen.getByTestId("today-action-handoff"));
-    expect(screen.getByTestId("modal-endshift")).toHaveTextContent("ready:0");
+    expect(screen.getByTestId("modal-handoff")).toHaveTextContent("h1:sup-1|Sam Super");
   });
 
-  it("will not hand off counts it could not verify", async () => {
+  it("opens the handoff even when room data failed to load; the sheet itself says what cannot be verified", async () => {
     board.mockRejectedValue(new Error("down"));
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-readiness-unavailable"));
-    expect(screen.getByTestId("today-action-handoff")).toBeTruthy();
     fireEvent.press(screen.getByTestId("today-action-handoff"));
-    expect(mockToast.error).toHaveBeenCalledWith("Room data unavailable. Refresh before handing off.");
-    expect(screen.queryByTestId("modal-endshift")).toBeNull();
+    expect(screen.getByTestId("modal-handoff")).toBeTruthy();
+    expect(mockToast.error).not.toHaveBeenCalled();
   });
 
   it("handles offline taps safely for every action", async () => {
@@ -424,10 +422,12 @@ describe("Supervisor Today — quick actions", () => {
     for (const key of ["shiftNote", "messageTeam", "messageStaff", "handoff"]) {
       fireEvent.press(screen.getByTestId(`today-action-${key}`));
     }
-    expect(mockToast.error).toHaveBeenCalledTimes(4);
+    // The three send actions need a connection; the handoff can still be opened, read and drafted offline.
+    expect(mockToast.error).toHaveBeenCalledTimes(3);
     expect(mockToast.error).toHaveBeenCalledWith("You're offline. Reconnect to send.");
     expect(screen.queryByTestId("modal-shiftnote")).toBeNull();
     expect(screen.queryByTestId("modal-broadcast")).toBeNull();
+    expect(screen.getByTestId("modal-handoff")).toBeTruthy();
   });
 });
 
@@ -437,6 +437,7 @@ describe("Supervisor Today — structure", () => {
   it("no longer renders the floor mosaic, status tiles or the old conditional End Shift", () => {
     expect(source).not.toMatch(/FloorMosaic|HeroSignalRow|TeamLoadRow|RoomStatusTile/);
     expect(source).not.toMatch(/snapshot\.ready >= snapshot\.total/);
+    expect(source).not.toMatch(/EndShiftModal/);
   });
 
   it("does not mount a second assistant or floating AI button (the layout owns it)", () => {

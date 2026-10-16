@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { AttentionSheetHost } from "@/components/supervisor/attention/AttentionSheetHost";
+import { ShiftHandoffSheet } from "@/components/supervisor/handoff/ShiftHandoffSheet";
 import { AttentionPreview } from "@/components/supervisor/today/AttentionPreview";
 import { QuickActions, type QuickActionKey } from "@/components/supervisor/today/QuickActions";
 import { ReadinessCard } from "@/components/supervisor/today/ReadinessCard";
@@ -12,15 +13,13 @@ import { TeamPulseCard } from "@/components/supervisor/today/TeamPulseCard";
 import { TodayHeader } from "@/components/supervisor/today/TodayHeader";
 import BroadcastModal from "@/components/supervisor/BroadcastModal";
 import DirectMessageModal from "@/components/supervisor/DirectMessageModal";
-import EndShiftModal from "@/components/supervisor/EndShiftModal";
 import ShiftNoteModal from "@/components/supervisor/ShiftNoteModal";
 import { StaffPickerSheet } from "@/components/supervisor/StaffPickerSheet";
 import { StaffQuickViewSheet } from "@/components/supervisor/StaffQuickViewSheet";
 import { resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import { firstNameOf } from "@/lib/housekeeping/homeText";
-import { buildFloorSnapshot, type AssignableStaff, type FloorSnapshot } from "@/lib/housekeeping/supervisor";
+import type { AssignableStaff } from "@/lib/housekeeping/supervisor";
 import { availabilityKey, roleKey, type StaffQuickView } from "@/lib/housekeeping/supervisorComms";
-import { isVerified, knownValue } from "@/lib/housekeeping/supervisorSources";
 import { describeFreshness, freshnessLabel, greetingPart } from "@/lib/housekeeping/supervisorTodayView";
 import { subscribeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import { useSupervisorToday } from "@/lib/housekeeping/useSupervisorToday";
@@ -64,8 +63,7 @@ export function SupervisorHome({ name }: { name: string }) {
   const [pulling, setPulling] = useState(false);
   const [showShiftNote, setShowShiftNote] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
-  // The counts the handoff will report, frozen when it opens so a background refresh cannot change them mid-form.
-  const [handoff, setHandoff] = useState<FloorSnapshot | null>(null);
+  const [showHandoff, setShowHandoff] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [quickViewId, setQuickViewId] = useState<string | null>(null);
   const [messageTarget, setMessageTarget] = useState<{ id: string; name: string; meta: string | null } | null>(null);
@@ -117,13 +115,14 @@ export function SupervisorHome({ name }: { name: string }) {
     [today.sources.board, now, t, zone, language],
   );
 
-  const board = knownValue(today.sources.board, { rooms: [], invalidRows: 0, duplicateRows: 0 });
-  const boardVerified = isVerified(today.sources.board);
-  const handoffSnapshot = useMemo(() => (board && boardVerified ? buildFloorSnapshot(board.rooms) : null), [board, boardVerified]);
-
   const onQuickAction = useCallback(
     (key: QuickActionKey) => {
-      // Every action sends something, so each needs a connection. Say so rather than failing silently.
+      // The handoff is always reachable: it can be read and written offline and says what blocks sending.
+      if (key === "handoff") {
+        setShowHandoff(true);
+        return;
+      }
+      // Every other action sends something, so each needs a connection. Say so rather than failing silently.
       if (!isOnline) {
         toast.error(t("supervisorToday.actions.offline"));
         return;
@@ -139,17 +138,9 @@ export function SupervisorHome({ name }: { name: string }) {
           // The picker explains a loading, failed or empty staff list itself.
           setShowPicker(true);
           return;
-        case "handoff":
-          // The handoff reports room counts; never send counts the app could not verify.
-          if (!handoffSnapshot) {
-            toast.error(t("supervisorToday.actions.handoffUnavailable"));
-            return;
-          }
-          setHandoff(handoffSnapshot);
-          return;
       }
     },
-    [isOnline, handoffSnapshot, toast, t],
+    [isOnline, toast, t],
   );
 
   /** Role · shift status · rooms cleaned, from the live team snapshot; only what is known. */
@@ -257,7 +248,16 @@ export function SupervisorHome({ name }: { name: string }) {
       />
       <ShiftNoteModal visible={showShiftNote} tenantId={tenantId} isOnline={isOnline} onClose={() => setShowShiftNote(false)} />
       <BroadcastModal visible={showBroadcast} isOnline={isOnline} onClose={() => setShowBroadcast(false)} />
-      {handoff ? <EndShiftModal visible snapshot={handoff} onClose={() => setHandoff(null)} /> : null}
+      <ShiftHandoffSheet
+        visible={showHandoff}
+        today={today}
+        refresh={refresh}
+        scope={tenantId && userId ? `${tenantId}:${userId}` : null}
+        isOnline={isOnline}
+        supervisorName={name}
+        language={language}
+        onClose={() => setShowHandoff(false)}
+      />
       <StaffPickerSheet
         visible={showPicker}
         staff={today.sources.staff}

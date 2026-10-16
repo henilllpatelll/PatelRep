@@ -3906,6 +3906,125 @@
     "lateCoNoTime": "Late checkout requested — time not specified",
     "vipBadge": "VIP"
   },
+  "supervisorHandoff": {
+    "title": "Shift handoff",
+    "subtitle": "Review today's housekeeping results and unfinished work.",
+    "close": "Close handoff",
+    "steps": {
+      "prepare": "Prepare",
+      "review": "Review",
+      "confirm": "Confirm"
+    },
+    "stepLabel": "Step {{current}} of {{total}}: {{name}}",
+    "summary": {
+      "title": "Housekeeping summary",
+      "scope": "Room counts are as of now. Inspections are the ones completed today.",
+      "ready": "Ready rooms",
+      "readyOf": "of {{count}} in service",
+      "passed": "Passed inspections",
+      "failed": "Failed inspections",
+      "conditional": "Conditional inspections",
+      "awaiting": "Awaiting inspection",
+      "inProgress": "In progress",
+      "toClean": "To clean",
+      "outOfOrder": "Out of order",
+      "unverified": "Not verified"
+    },
+    "unfinished": {
+      "title": "Unfinished work",
+      "none": "Nothing unfinished was found.",
+      "awaiting": "{{count}} room awaiting inspection",
+      "awaiting_plural": "{{count}} rooms awaiting inspection",
+      "unassigned": "{{count}} unassigned room",
+      "unassigned_plural": "{{count}} unassigned rooms",
+      "blocked": "{{count}} blocked housekeeping task",
+      "blocked_plural": "{{count}} blocked housekeeping tasks",
+      "blockedUnverified": "Blocked tasks could not be checked, so none are listed.",
+      "rooms": "Rooms: {{rooms}}",
+      "moreRooms": "+{{count}} more"
+    },
+    "notes": {
+      "label": "Supervisor notes",
+      "placeholder": "Add important information for the next shift, including priority rooms, unresolved issues, and follow-up instructions.",
+      "counter": "{{count}} / {{max}}",
+      "none": "No notes added."
+    },
+    "actions": {
+      "review": "Review handoff",
+      "cancel": "Cancel",
+      "continue": "Continue",
+      "backToEdit": "Back to edit",
+      "submit": "Submit handoff",
+      "backToReview": "Back to review",
+      "refresh": "Refresh figures",
+      "checkAgain": "Check again",
+      "done": "Done",
+      "viewReport": "View saved report",
+      "notifyAgain": "Try notifying managers again",
+      "edit": "Edit"
+    },
+    "review": {
+      "hint": "Check what will be saved. These figures come from live records and can't be edited here.",
+      "meta": "Report details",
+      "date": "Hotel date",
+      "covers": "Daily handoff for the whole hotel day, not one person's shift",
+      "supervisor": "Submitted by",
+      "asOf": "Data as of",
+      "ack": "I have reviewed this handoff and the outstanding work.",
+      "changed": "These changed while you were reviewing: {{what}}. Look them over and confirm again.",
+      "changes": {
+        "rooms": "room counts",
+        "inspections": "inspection results",
+        "unresolved": "unfinished work",
+        "date": "report date"
+      }
+    },
+    "confirm": {
+      "title": "Submit shift handoff?",
+      "description": "This report will be saved to the housekeeping logbook for authorized management to review.",
+      "records": "It records a summary of today's housekeeping and any notes you added.",
+      "open": "Outstanding tasks stay open, pending inspections stay pending, and unassigned rooms stay unassigned.",
+      "clock": "You are not clocked out by submitting."
+    },
+    "saved": {
+      "title": "Handoff submitted",
+      "body": "Your housekeeping shift report has been saved.",
+      "previously": "This handoff was already submitted. Here is the saved report.",
+      "reference": "Report reference",
+      "savedAt": "Saved at",
+      "date": "Hotel date",
+      "stillOpen": "Unfinished work stays open. Submitting did not clock you out.",
+      "managersComplete": "Managers were notified.",
+      "managersNone": "There were no managers to notify.",
+      "managersFailed": "Saved, but managers could not be notified yet.",
+      "managersUnknown": "Saved. Whether managers were notified is not confirmed."
+    },
+    "blockers": {
+      "boardLoading": "Loading room data…",
+      "boardUnavailable": "Room data could not be loaded.",
+      "boardStale": "Room data isn't current.",
+      "inspectionsLoading": "Loading inspection results…",
+      "inspectionsUnavailable": "Inspection results could not be verified.",
+      "inspectionsStale": "Inspection results aren't current.",
+      "dayMismatch": "The figures come from different days. Refresh to continue.",
+      "offline": "Connect to the internet to submit this handoff.",
+      "hint": "Refresh the figures to continue."
+    },
+    "failure": {
+      "countsChanged": "Inspection results changed while you were reviewing. The figures were refreshed — review them again.",
+      "departmentMissing": "Housekeeping department could not be identified.",
+      "departmentAmbiguous": "This hotel has more than one Housekeeping department, so the report can't be filed.",
+      "dateOutOfRange": "This handoff's date is no longer valid. Refresh and review again.",
+      "forbidden": "You don't have permission to submit shift handoffs.",
+      "signedOut": "Your session ended. Sign in again; your note is kept.",
+      "rejected": "The server couldn't accept this handoff. Check it and try again.",
+      "unconfirmed": "We couldn't confirm whether this handoff was saved. It has not been sent again.",
+      "verifying": "Checking whether it was saved…",
+      "verifyFailed": "Couldn't check yet. Your note is kept — check again when you're online.",
+      "notSaved": "It was not saved. You can submit again safely.",
+      "notifyFailed": "Managers still could not be notified. Try again later."
+    }
+  },
   "supervisorComms": {
     "offline": "You're offline. Reconnect to send. Your draft is kept.",
     "count": "{{count}} / {{max}}",
@@ -4021,6 +4140,12 @@
     "avgMinutes": "~{{min}}m"
   },
   "logbook": {
+    "report": {
+      "title": "Saved report",
+      "missing": "Report not found",
+      "missingBody": "It may have been removed, or it belongs to another hotel.",
+      "error": "Couldn't load this report."
+    },
     "title": "Shift Logbook",
     "newEntry": "New Entry",
     "aiSummary": "AI Shift Summary",
@@ -4097,19 +4222,6 @@
     "send": "Send",
     "sending": "Sending…",
     "sendError": "Could not send message. Try again."
-  },
-  "endShift": {
-    "shortLabel": "End Shift",
-    "title": "End-of-Shift Summary",
-    "subtitle": "This summary will be sent to the GM.",
-    "statReady": "Ready",
-    "statSubmitted": "Submitted",
-    "statOoo": "OOO",
-    "notesLabel": "Supervisor notes",
-    "notesPlaceholder": "Anything for the incoming shift…",
-    "submit": "Submit Summary",
-    "submitting": "Submitting…",
-    "submitError": "Could not submit summary. Try again."
   },
   "picker": {
     "title": "Assign Room {{room}}",
@@ -4640,8 +4752,7 @@
       "handoff": "Shift handoff",
       "pickerTitle": "Message who?",
       "offline": "You're offline. Reconnect to send.",
-      "staffUnavailable": "Staff list unavailable. Pull down to refresh.",
-      "handoffUnavailable": "Room data unavailable. Refresh before handing off."
+      "staffUnavailable": "Staff list unavailable. Pull down to refresh."
     },
     "status": {
       "offline": "Offline — showing last known data",

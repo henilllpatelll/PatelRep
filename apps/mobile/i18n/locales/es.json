@@ -3906,6 +3906,125 @@
     "lateCoNoTime": "Salida tardía solicitada — hora no especificada",
     "vipBadge": "VIP"
   },
+  "supervisorHandoff": {
+    "title": "Entrega de turno",
+    "subtitle": "Revise los resultados de limpieza de hoy y el trabajo pendiente.",
+    "close": "Cerrar entrega",
+    "steps": {
+      "prepare": "Preparar",
+      "review": "Revisar",
+      "confirm": "Confirmar"
+    },
+    "stepLabel": "Paso {{current}} de {{total}}: {{name}}",
+    "summary": {
+      "title": "Resumen de limpieza",
+      "scope": "Los conteos de habitaciones son de este momento. Las inspecciones son las completadas hoy.",
+      "ready": "Habitaciones listas",
+      "readyOf": "de {{count}} en servicio",
+      "passed": "Inspecciones aprobadas",
+      "failed": "Inspecciones reprobadas",
+      "conditional": "Inspecciones condicionales",
+      "awaiting": "Esperando inspección",
+      "inProgress": "En proceso",
+      "toClean": "Por limpiar",
+      "outOfOrder": "Fuera de servicio",
+      "unverified": "Sin verificar"
+    },
+    "unfinished": {
+      "title": "Trabajo pendiente",
+      "none": "No se encontró trabajo pendiente.",
+      "awaiting": "{{count}} habitación esperando inspección",
+      "awaiting_plural": "{{count}} habitaciones esperando inspección",
+      "unassigned": "{{count}} habitación sin asignar",
+      "unassigned_plural": "{{count}} habitaciones sin asignar",
+      "blocked": "{{count}} tarea de limpieza bloqueada",
+      "blocked_plural": "{{count}} tareas de limpieza bloqueadas",
+      "blockedUnverified": "No se pudieron revisar las tareas bloqueadas, por eso no se muestra ninguna.",
+      "rooms": "Habitaciones: {{rooms}}",
+      "moreRooms": "+{{count}} más"
+    },
+    "notes": {
+      "label": "Notas del supervisor",
+      "placeholder": "Agregue información importante para el siguiente turno: habitaciones prioritarias, problemas sin resolver e instrucciones de seguimiento.",
+      "counter": "{{count}} / {{max}}",
+      "none": "No se agregaron notas."
+    },
+    "actions": {
+      "review": "Revisar entrega",
+      "cancel": "Cancelar",
+      "continue": "Continuar",
+      "backToEdit": "Volver a editar",
+      "submit": "Enviar entrega",
+      "backToReview": "Volver a revisar",
+      "refresh": "Actualizar cifras",
+      "checkAgain": "Volver a comprobar",
+      "done": "Listo",
+      "viewReport": "Ver informe guardado",
+      "notifyAgain": "Intentar avisar a los gerentes otra vez",
+      "edit": "Editar"
+    },
+    "review": {
+      "hint": "Revise lo que se guardará. Estas cifras vienen de registros en vivo y no se pueden editar aquí.",
+      "meta": "Detalles del informe",
+      "date": "Fecha del hotel",
+      "covers": "Entrega diaria de todo el día del hotel, no del turno de una persona",
+      "supervisor": "Enviado por",
+      "asOf": "Datos al",
+      "ack": "He revisado esta entrega y el trabajo pendiente.",
+      "changed": "Esto cambió mientras revisaba: {{what}}. Revíselo y confirme de nuevo.",
+      "changes": {
+        "rooms": "los conteos de habitaciones",
+        "inspections": "los resultados de inspección",
+        "unresolved": "el trabajo pendiente",
+        "date": "la fecha del informe"
+      }
+    },
+    "confirm": {
+      "title": "¿Enviar la entrega de turno?",
+      "description": "Este informe se guardará en la bitácora de limpieza para que la gerencia autorizada lo revise.",
+      "records": "Registra un resumen de la limpieza de hoy y las notas que haya agregado.",
+      "open": "Las tareas pendientes siguen abiertas, las inspecciones pendientes siguen pendientes y las habitaciones sin asignar siguen sin asignar.",
+      "clock": "Al enviar no se cierra su turno."
+    },
+    "saved": {
+      "title": "Entrega enviada",
+      "body": "Su informe de limpieza del turno se ha guardado.",
+      "previously": "Esta entrega ya se había enviado. Aquí está el informe guardado.",
+      "reference": "Referencia del informe",
+      "savedAt": "Guardado a las",
+      "date": "Fecha del hotel",
+      "stillOpen": "El trabajo pendiente sigue abierto. Al enviar no se cerró su turno.",
+      "managersComplete": "Se avisó a los gerentes.",
+      "managersNone": "No había gerentes a quienes avisar.",
+      "managersFailed": "Guardado, pero aún no se pudo avisar a los gerentes.",
+      "managersUnknown": "Guardado. No se confirmó si se avisó a los gerentes."
+    },
+    "blockers": {
+      "boardLoading": "Cargando datos de habitaciones…",
+      "boardUnavailable": "No se pudieron cargar los datos de habitaciones.",
+      "boardStale": "Los datos de habitaciones no están al día.",
+      "inspectionsLoading": "Cargando resultados de inspección…",
+      "inspectionsUnavailable": "No se pudieron verificar los resultados de inspección.",
+      "inspectionsStale": "Los resultados de inspección no están al día.",
+      "dayMismatch": "Las cifras son de días distintos. Actualice para continuar.",
+      "offline": "Conéctese a internet para enviar esta entrega.",
+      "hint": "Actualice las cifras para continuar."
+    },
+    "failure": {
+      "countsChanged": "Los resultados de inspección cambiaron mientras revisaba. Se actualizaron las cifras; revíselas de nuevo.",
+      "departmentMissing": "No se pudo identificar el departamento de limpieza.",
+      "departmentAmbiguous": "Este hotel tiene más de un departamento de limpieza, así que no se puede archivar el informe.",
+      "dateOutOfRange": "La fecha de esta entrega ya no es válida. Actualice y revise de nuevo.",
+      "forbidden": "No tiene permiso para enviar entregas de turno.",
+      "signedOut": "Su sesión terminó. Inicie sesión de nuevo; su nota se conserva.",
+      "rejected": "El servidor no pudo aceptar esta entrega. Revísela e inténtelo de nuevo.",
+      "unconfirmed": "No pudimos confirmar si esta entrega se guardó. No se ha vuelto a enviar.",
+      "verifying": "Comprobando si se guardó…",
+      "verifyFailed": "Aún no se pudo comprobar. Su nota se conserva; vuelva a comprobar cuando tenga conexión.",
+      "notSaved": "No se guardó. Puede enviarla de nuevo sin riesgo.",
+      "notifyFailed": "Todavía no se pudo avisar a los gerentes. Inténtelo más tarde."
+    }
+  },
   "supervisorComms": {
     "offline": "Sin conexión. Vuelve a conectarte para enviar. Tu borrador se conserva.",
     "count": "{{count}} / {{max}}",
@@ -4028,20 +4147,13 @@
     "sending": "Enviando…",
     "sendError": "No se pudo enviar el mensaje. Inténtalo de nuevo."
   },
-  "endShift": {
-    "shortLabel": "Fin turno",
-    "title": "Resumen de Fin de Turno",
-    "subtitle": "Este resumen se enviará a la gerencia.",
-    "statReady": "Listo",
-    "statSubmitted": "Enviado",
-    "statOoo": "FdS",
-    "notesLabel": "Notas del supervisor",
-    "notesPlaceholder": "Algo para el turno entrante…",
-    "submit": "Enviar resumen",
-    "submitting": "Enviando…",
-    "submitError": "No se pudo enviar el resumen. Inténtalo de nuevo."
-  },
   "logbook": {
+    "report": {
+      "title": "Informe guardado",
+      "missing": "Informe no encontrado",
+      "missingBody": "Puede haberse eliminado, o pertenece a otro hotel.",
+      "error": "No se pudo cargar este informe."
+    },
     "title": "Bitácora de Turno",
     "newEntry": "Nueva Entrada",
     "aiSummary": "Resumen de Turno IA",
@@ -4640,8 +4752,7 @@
       "handoff": "Entrega de turno",
       "pickerTitle": "¿A quién le escribes?",
       "offline": "Sin conexión. Reconéctate para enviar.",
-      "staffUnavailable": "Lista de personal no disponible. Desliza hacia abajo para actualizar.",
-      "handoffUnavailable": "Datos de habitaciones no disponibles. Actualiza antes de entregar el turno."
+      "staffUnavailable": "Lista de personal no disponible. Desliza hacia abajo para actualizar."
     },
     "status": {
       "offline": "Sin conexión — mostrando los últimos datos conocidos",

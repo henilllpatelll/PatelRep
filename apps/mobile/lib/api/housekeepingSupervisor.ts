@@ -11,6 +11,7 @@ import {
   buildShiftNotePayload,
   readBroadcastResult,
 } from "@/lib/housekeeping/supervisorComms";
+import { readSavedHandoff, type EndShiftSummaryPayload, type SavedHandoff } from "@/lib/housekeeping/supervisorHandoff";
 
 /* ─── Supervisor housekeeping API ───────────────────────────────────────────
    Typed wrappers around the real endpoint contracts. Assignment saves use
@@ -175,4 +176,59 @@ export async function createShiftNote(departmentId: string, content: string): Pr
 export async function sendTeamBroadcast(message: string, roles: readonly string[] = TEAM_MESSAGE_ROLES): Promise<BroadcastOutcome> {
   const response = await api.post<unknown>("/notifications/broadcast", { message: message.trim(), roles: [...roles] });
   return readBroadcastResult(response);
+}
+
+/* ─── Shift handoff ─────────────────────────────────────────────────────────
+   POST /housekeeping/end-shift-summary saves ONE logbook entry per `client_request_id` and tells the GMs;
+   the same id again returns the same entry. GET /housekeeping/end-shift-summary/{id} reads it back without writing,
+   which is how an unclear failure is resolved. Neither clocks anyone out or touches an operational record. */
+
+/** Resolves only once the server returned a record id; anything else throws so the caller never shows "saved". */
+export async function submitShiftHandoff(payload: EndShiftSummaryPayload): Promise<SavedHandoff> {
+  const saved = readSavedHandoff(await api.post<unknown>("/housekeeping/end-shift-summary", payload));
+  if (!saved) throw new Error("Malformed handoff response");
+  return saved;
+}
+
+/** The report saved under `requestId` by the signed-in person, or null when the server has none (a definite "no"). */
+export async function fetchShiftHandoff(requestId: string): Promise<SavedHandoff | null> {
+  try {
+    const saved = readSavedHandoff(await api.get<unknown>(`/housekeeping/end-shift-summary/${encodeURIComponent(requestId)}`));
+    if (!saved) throw new Error("Malformed handoff response");
+    return saved;
+  } catch (error) {
+    const { status, code } = (error as { status?: unknown; code?: unknown } | null) ?? {};
+    if (status === 404 && code === "handoff_not_found") return null;
+    throw error;
+  }
+}
+
+/** One logbook entry as the report viewer needs it. */
+export interface LogbookReport {
+  id: string;
+  content: string;
+  entryDate: string | null;
+  createdAt: string | null;
+  authorName: string | null;
+  departmentName: string | null;
+}
+
+/** GET /logbook/entries/{id}: tenant-scoped by the server; a record outside the hotel is a 404, not data. */
+export async function fetchLogbookReport(entryId: string): Promise<LogbookReport> {
+  const res = await api.get<{ data?: Record<string, unknown> | null }>(`/logbook/entries/${encodeURIComponent(entryId)}`);
+  const row = res?.data;
+  const id = typeof row?.id === "string" ? row.id : null;
+  const content = typeof row?.content === "string" ? row.content : null;
+  if (!row || !id || content === null) throw new Error("Malformed logbook response");
+  const profile = (row.user_profiles ?? null) as { preferred_name?: unknown; full_name?: unknown } | null;
+  const department = (row.departments ?? null) as { name?: unknown } | null;
+  const name = profile?.preferred_name ?? profile?.full_name;
+  return {
+    id,
+    content,
+    entryDate: typeof row.entry_date === "string" ? row.entry_date : null,
+    createdAt: typeof row.created_at === "string" ? row.created_at : null,
+    authorName: typeof name === "string" ? name : null,
+    departmentName: typeof department?.name === "string" ? department.name : null,
+  };
 }
