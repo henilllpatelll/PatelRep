@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { speechLocale, type SpeechLocale } from "@/lib/voice/locale";
+import { onAssistantSessionReset } from "@/lib/ai/session";
 
 /* ─── AI & voice preferences ────────────────────────────────────────────────
    Four choices, each wired to something real:
@@ -127,6 +128,9 @@ export const useAiPreferences = create<AiPreferencesState>((set, get) => ({
 
   reset: () => set({ ...initial }),
 }));
+
+// A sign-out or account switch drops the previous person's choices at once, before the next person's load.
+onAssistantSessionReset(() => useAiPreferences.getState().reset());
 
 function pick(state: AiPreferences): AiPreferences {
   return {

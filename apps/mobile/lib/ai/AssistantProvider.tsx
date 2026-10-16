@@ -1,3 +1,4 @@
+import { useAiCapability } from "@/lib/ai/capabilities";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { router, usePathname } from "expo-router";
 import type { IntentHint } from "@/lib/ai/contract";
@@ -65,7 +66,11 @@ export function useAssistant(): AssistantApi {
 
 /** For screens that offer the assistant but must keep working without it (tests, or a layout without the provider). */
 export function useAssistantOptional(): AssistantApi | null {
-  return useContext(AssistantContext);
+  const api = useContext(AssistantContext);
+  // An operator can switch the assistant off per hotel: every "Ask the assistant" entry point (they all use
+  // this hook) then disappears together, and the screens keep working without it.
+  const enabled = useAiCapability("unifiedAssistant");
+  return enabled ? api : null;
 }
 
 const COPILOT_ROUTE = /^\/copilot(\/|$)/;

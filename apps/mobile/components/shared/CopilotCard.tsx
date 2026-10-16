@@ -67,6 +67,8 @@ export function CopilotCard({
       <Pressable
         style={[StyleSheet.absoluteFill, styles.scrim]}
         onPress={() => {}}
+        accessible={false}
+        importantForAccessibility="no"
         testID="copilot-card-scrim"
       />
       <View

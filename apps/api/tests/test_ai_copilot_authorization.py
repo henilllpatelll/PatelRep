@@ -7,6 +7,7 @@ hint whitelist, context sanitising, tenant / assignment-scoped context ids, and
 the confirm endpoints' role, room-verification, batch and idempotency rules.
 """
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import HTTPException
@@ -128,6 +129,8 @@ async def test_chat_summary_wording_from_housekeeper_never_reaches_gm_insights(d
 async def test_chat_gm_can_still_run_insights(db, monkeypatch):
     async def _credits(*_a, **_k):
         return 1
+
+    monkeypatch.setattr(ai_copilot, "assert_ai_allowance", AsyncMock())  # pre-flight; the post-call charge is what these tests drive
 
     monkeypatch.setattr(ai_copilot, "check_and_deduct_credits", _credits)
     monkeypatch.setattr(

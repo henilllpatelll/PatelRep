@@ -1,3 +1,4 @@
+import { resetAiCapabilities, setAiCapabilities } from "../helpers/aiCapabilities";
 import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
@@ -132,6 +133,7 @@ beforeEach(async () => {
   mockLanguage = "en";
   mockOnline = true;
   mockAssistantAvailable = true;
+  setAiCapabilities();
   mockSpeech.module = null;
   mockSpeech.available = false;
   serve();
@@ -210,6 +212,25 @@ describe("Tasks — quick task creation", () => {
     );
     await waitFor(() => expect(screen.getByText("Creación rápida de tareas")).toBeTruthy());
     expect(screen.getByText("Describir una tarea")).toBeTruthy();
+  });
+});
+
+describe("Task details — translation follows the hotel's switch", () => {
+  it("offers Translate on a task that is the person's own while the feature is on", async () => {
+    const screen = await ready();
+    await openCard(screen, "Deliver extra towels");
+    expect(within(screen.getByTestId("task-detail-sheet")).getByTestId("task-translate")).toBeTruthy();
+  });
+
+  it("leaves no Translate control when the hotel has switched it off; the original and the lifecycle are untouched", async () => {
+    resetAiCapabilities();
+    const screen = await ready();
+    await openCard(screen, "Deliver extra towels");
+    const sheet = within(screen.getByTestId("task-detail-sheet"));
+    expect(sheet.queryByTestId("task-translate")).toBeNull();
+    expect(sheet.getByText("Deliver two clean bath towels.")).toBeTruthy();
+    expect(screen.getByTestId("detail-start")).toBeTruthy();
+    expect(mockApiPost).not.toHaveBeenCalled();
   });
 });
 

@@ -5,7 +5,7 @@ import anthropic
 import re
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
-from middleware.credits import check_and_deduct_credits, log_ai_interaction
+from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction
 from models.requests import SOPQueryRequest
 from core.database import supabase
 from services.ai.sop_access import visible_document, visible_documents
@@ -272,6 +272,7 @@ async def query_sop_endpoint(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     start = time.time()
+    await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "sop_query")
     try:
         result = query_sop(
             query=request.query,

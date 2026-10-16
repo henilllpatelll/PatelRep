@@ -7,7 +7,6 @@
 
 /** Height of the bottom tab bar in app/(app)/_layout.tsx. */
 export const TAB_BAR_HEIGHT = 76;
-export const FAB_SIZE = 54;
 const GAP_ABOVE_TABS = 16;
 const SIDE_GUTTER = 18;
 

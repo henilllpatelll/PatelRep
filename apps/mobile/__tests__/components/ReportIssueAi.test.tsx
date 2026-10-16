@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { resetAiCapabilities, setAiCapabilities } from "../helpers/aiCapabilities";
 import en from "@/i18n/locales/en.json";
 import es from "@/i18n/locales/es.json";
 
@@ -138,6 +139,7 @@ const isDisabled = (node: { props: { accessibilityState?: { disabled?: boolean }
 
 beforeEach(() => {
   jest.clearAllMocks();
+  setAiCapabilities();
   mockOnline = true;
   mockLanguage = "en";
   mockSpeech.module = null;
@@ -386,6 +388,16 @@ describe("Report Issue — photo and optional photo analysis", () => {
     const screen = renderModal();
     await attachPhoto(screen);
     expect(screen.getByTestId("issue-photo-status").props.children).toContain("not uploaded yet");
+  });
+
+  it("offers no analysis when the hotel has switched it off, and the photo itself still attaches", async () => {
+    resetAiCapabilities();
+    const screen = renderModal();
+    typeDescription(screen);
+    await attachPhoto(screen);
+    expect(screen.getByTestId("issue-photo-preview")).toBeTruthy();
+    expect(screen.queryByTestId("issue-photo-analyze")).toBeNull();
+    expect(mockAnalyze).not.toHaveBeenCalled();
   });
 
   it("explains a refused camera, and an unsupported or oversized file", async () => {

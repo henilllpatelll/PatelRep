@@ -10,6 +10,7 @@ import { useToast } from "@/lib/theme/useToast";
 import { CopilotFailure, type CopilotFailureKind } from "@/lib/ai/contract";
 import { isAbort } from "@/lib/ai/copilotChat";
 import { analyzeIssuePhoto } from "@/lib/ai/photoAnalysis";
+import { useAiCapability } from "@/lib/ai/capabilities";
 import {
   EMPTY_MAINTENANCE_DRAFT,
   MAINTENANCE_CATEGORIES,
@@ -84,6 +85,7 @@ const VOICE_STATUS: Partial<Record<VoiceState, string>> = {
  * uses before anything is created. Everything works with the AI switched off or out of credit.
  */
 export default function ReportIssueModal({ visible, roomId, roomNumber, onClose }: ReportIssueModalProps) {
+  const photoAnalysisOn = useAiCapability("photoAnalysis");
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
@@ -532,7 +534,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             />
           ) : null}
 
-          {!photoRetryOnly && photoUri ? (
+          {!photoRetryOnly && photoUri && photoAnalysisOn ? (
             <PhotoAssist
               online={isOnline}
               locked={locked}

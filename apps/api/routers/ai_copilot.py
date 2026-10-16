@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from middleware.auth import get_current_user, CurrentUser, require_role
-from middleware.credits import check_and_deduct_credits, log_ai_interaction
+from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction, record_cache_hit
 from models.requests import (
     CopilotChatRequest, HousekeepingBriefingRequest, HousekeeperShiftRecapRequest,
     SupervisorBriefingRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
@@ -11,6 +11,7 @@ from models.requests import (
     UpdateAIModelRouteRequest, TaskTranslationRequest,
 )
 from core.database import supabase
+from core.feature_flags import is_feature_enabled, require_feature
 from core.roles import GM_ONLY_ROLES
 from services.ai.task_parser import hotel_zone, normalize_due_at, parse_nl_tasks, try_fast_path
 from services.ai.insights import generate_gm_insights
@@ -21,6 +22,7 @@ from services.ai.sop_access import SopUnavailable
 from services.ai.sop_rag import query_sop
 from services.ai.photo_analysis import MAX_NOTE_CHARS, MAX_UPLOAD_BYTES, PhotoRejected, analyze_photo, prepare_image
 from services.ai.providers import AIProviderConfigurationError
+from services.ai.usage_summary import summarize as summarize_usage
 from services.ai.task_translation import task_source_hash, translate_task_fields
 from services.ai.housekeeping_briefing import generate_shift_briefing
 from services.ai.housekeeper_shift_recap import generate_shift_recap, load_shift_facts
@@ -63,6 +65,9 @@ import logging
 from typing import Optional
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+# Most recent audit-log rows read for one usage summary (the response says when this truncated).
+USAGE_ROW_LIMIT = 20000
 logger = logging.getLogger(__name__)
 
 
@@ -344,6 +349,7 @@ async def copilot_chat(
                 }
             else:
                 ctx = _get_hotel_context(current_user.hotel_id)
+                await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
                 result = parse_nl_tasks(
                     message=request.message,
                     hotel_name=ctx["hotel_name"],
@@ -374,6 +380,7 @@ async def copilot_chat(
                 }
 
         elif intent == "work_order_creation":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = parse_work_orders(request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -394,6 +401,7 @@ async def copilot_chat(
             }
 
         elif intent == "guest_request_creation":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = parse_guest_requests(request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -414,6 +422,7 @@ async def copilot_chat(
             }
 
         elif intent == "task_assignment":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = parse_assignments(request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -455,6 +464,7 @@ async def copilot_chat(
             }
 
         elif intent == "insight_query":
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             result = generate_gm_insights(current_user.hotel_id, query=request.message)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
@@ -472,6 +482,7 @@ async def copilot_chat(
         elif intent == "sop_query":
             # Answers come only from approved, indexed procedures of THIS hotel; with a document in
             # context (already verified above) they come only from that document.
+            await assert_ai_allowance(current_user.hotel_id, current_user.user_id, intent_to_log)
             sop_result = await asyncio.to_thread(
                 query_sop,
                 query=request.message,
@@ -576,6 +587,7 @@ async def housekeeping_shift_briefing(
             .maybe_single()\
             .execute()
         layout_text = _layout_to_context_text((hotel.data or {}).get("layout") if hotel else None)
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "housekeeping_briefing")
         result = generate_shift_briefing(
             [room.model_dump() for room in request.rooms],
             request.language,
@@ -663,9 +675,11 @@ async def housekeeping_shift_recap(
     cache_key = (current_user.hotel_id, current_user.user_id, facts["fingerprint"], request.language)
     cached = _recap_cache_get(cache_key)
     if cached is not None:
+        await record_cache_hit(current_user.hotel_id, current_user.user_id, "housekeeper_shift_recap")
         return {"data": {**cached, "facts": facts, "credits_used": 0, "cached": True}}
 
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "housekeeper_shift_recap")
         result = generate_shift_recap(facts, request.language)
         credits = await check_and_deduct_credits(
             current_user.hotel_id, "housekeeper_shift_recap",
@@ -707,6 +721,7 @@ async def supervisor_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "supervisor_briefing")
         result = generate_supervisor_briefing(
             [room.model_dump() for room in request.rooms],
             [member.model_dump() for member in request.staff],
@@ -751,6 +766,7 @@ async def engineer_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "engineer_briefing")
         result = generate_engineer_briefing(
             [wo.model_dump() for wo in request.work_orders],
             request.pm_due_this_week,
@@ -794,6 +810,7 @@ async def front_desk_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "front_desk_briefing")
         result = generate_front_desk_briefing(
             [gr.model_dump() for gr in request.guest_requests],
             request.ready_room_count,
@@ -837,6 +854,7 @@ async def gm_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "gm_briefing")
         result = generate_gm_briefing(current_user.hotel_id, language)
         credits = await check_and_deduct_credits(
             current_user.hotel_id, "gm_briefing",
@@ -1082,7 +1100,7 @@ async def analyze_issue_photo(
     file: UploadFile = File(...),
     description: Optional[str] = Form(None),
     room_id: Optional[str] = Form(None),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_feature("hk_ai_photo_analysis")),
 ):
     """Suggest a work-order category and a short description from ONE photo the employee chose to send.
 
@@ -1108,6 +1126,7 @@ async def analyze_issue_photo(
     prompt_tokens = 0
     completion_tokens = 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "photo_analysis")
         result = await asyncio.to_thread(analyze_photo, jpeg, note)
         prompt_tokens = result["prompt_tokens"]
         completion_tokens = result["completion_tokens"]
@@ -1141,7 +1160,7 @@ async def analyze_issue_photo(
 async def translate_task_instructions(
     task_id: str,
     request: TaskTranslationRequest,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_feature("hk_ai_task_translation")),
 ):
     """Translate ONE task's title and description for the person who may see it. Read-only: the stored task,
     its status and everything else about it are untouched, and the original text is returned beside the
@@ -1172,6 +1191,7 @@ async def translate_task_instructions(
         cached = []
         logger.warning("Translation cache unreadable hotel=%s", current_user.hotel_id, exc_info=True)
     if cached:
+        await record_cache_hit(current_user.hotel_id, current_user.user_id, "translation")
         return {"data": {
             "original": original, "translated": {"title": cached[0]["translated_title"], "description": cached[0].get("translated_body")},
             "target_language": request.target_language, "cached": True, "ai_generated": True, "credits_used": 0,
@@ -1179,6 +1199,7 @@ async def translate_task_instructions(
 
     credits, prompt_tokens, completion_tokens = 0, 0, 0
     try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "translation")
         result = await asyncio.to_thread(translate_task_fields, title, description, request.target_language)
         prompt_tokens, completion_tokens = result["prompt_tokens"], result["completion_tokens"]
         credits = await check_and_deduct_credits(current_user.hotel_id, "translation", prompt_tokens, completion_tokens)
@@ -1471,6 +1492,46 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
     }
 
 
+# What the app may offer this hotel's staff, so a switched-off AI feature leaves no dead button. The server
+# still enforces the backend-enforced flags on their own routes; this only tells the phone what to show.
+CAPABILITY_FLAGS = {
+    "unified_assistant": "hk_ai_assistant",
+    "photo_analysis": "hk_ai_photo_analysis",
+    "task_translation": "hk_ai_task_translation",
+}
+
+
+@router.get("/capabilities")
+async def get_ai_capabilities(current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": {name: is_feature_enabled(current_user.hotel_id, key) for name, key in CAPABILITY_FLAGS.items()}}
+
+
+@router.get("/usage")
+async def get_ai_usage(
+    days: int = Query(30, ge=1, le=90),
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """This hotel's AI usage for the last `days` days, from the existing `ai_interactions` audit log.
+
+    GM-only and always scoped to the caller's own hotel. Counts, tokens, credits, latency, cap refusals and
+    cache hits per feature and per model; no message text, no person identifiers. The dollar figure is an
+    estimate from recorded tokens (the provider's invoice is authoritative) and unmetered requests are
+    listed rather than treated as free.
+    """
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    result = (
+        supabase.table("ai_interactions")
+        .select("interaction_type, model_used, prompt_tokens, completion_tokens, credits_charged, latency_ms, success, error_message")
+        .eq("tenant_id", current_user.hotel_id)
+        .gte("created_at", since)
+        .order("created_at", desc=True)
+        .limit(USAGE_ROW_LIMIT)
+        .execute()
+    )
+    rows = result.data or []
+    return {"data": {**summarize_usage(rows), "window_days": days, "truncated": len(rows) >= USAGE_ROW_LIMIT}}
+
+
 @router.get("/insights")
 async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user)):
     # Hotel-wide operational analysis is GM-only (same rule as the chat insight intent).
@@ -1478,6 +1539,7 @@ async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user))
         raise HTTPException(status_code=403, detail=PERMISSION_DENIED)
     credits = 0
     start = time.time()
+    await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "gm_insight")
     try:
         result = generate_gm_insights(current_user.hotel_id)
     except Exception as exc:

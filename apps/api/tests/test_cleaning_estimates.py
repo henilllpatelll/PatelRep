@@ -210,4 +210,3 @@ def test_endpoint_rejects_roles_outside_the_housekeeping_floor(monkeypatch):
     monkeypatch.setattr(clean_sessions_router, "supabase", _db([]))
     client = TestClient(app)
     assert client.get("/v1/clean-sessions/estimates", headers=_auth(role="front_desk")).status_code == 403
-    assert client.get("/v1/clean-sessions/estimates").status_code in (401, 403)

@@ -8,6 +8,7 @@ nothing was completed. Synthetic ids and room numbers only.
 """
 
 import json
+from unittest.mock import AsyncMock
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
@@ -341,6 +342,8 @@ def endpoint(monkeypatch):
     async def log(**kwargs):
         state.logs.append(kwargs)
 
+    monkeypatch.setattr(ai_copilot, "assert_ai_allowance", AsyncMock())  # pre-flight; the post-call charge is what these tests drive
+
     monkeypatch.setattr(ai_copilot, "check_and_deduct_credits", charge)
     monkeypatch.setattr(ai_copilot, "log_ai_interaction", log)
     state.facts = _facts(sessions=[_session("r102")])
@@ -401,6 +404,8 @@ async def test_ungrounded_output_is_503_and_not_charged(endpoint, monkeypatch):
 async def test_credit_cap_surfaces_as_402_and_nothing_is_cached(endpoint, monkeypatch):
     async def capped(*args, **kwargs):
         raise HTTPException(status_code=402, detail="Monthly AI credit cap reached.")
+
+    monkeypatch.setattr(ai_copilot, "assert_ai_allowance", AsyncMock())  # pre-flight; the post-call charge is what these tests drive
 
     monkeypatch.setattr(ai_copilot, "check_and_deduct_credits", capped)
     with pytest.raises(HTTPException) as err:

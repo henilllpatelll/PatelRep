@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
+import { onAssistantSessionReset } from "@/lib/ai/session";
 
 /* ─── Learned cleaning-time table ───────────────────────────────────────────
    The API returns, per room type and clean type, a "usually about N minutes" figure learned from this
@@ -143,6 +144,9 @@ export const useEstimateTable = create<EstimateTableState>((set, get) => ({
     return run;
   },
 }));
+
+// A sign-out or account switch drops the previous hotel's figures at once, before any screen renders for the next person.
+onAssistantSessionReset(() => useEstimateTable.setState((state) => ({ scope: null, entries: {}, fetchedAt: null, version: state.version + 1 })));
 
 /** The learned figure for a room type + clean type, or null (no table, too old, or not learned). */
 export function lookupLearned(roomTypeCode: string | null | undefined, cleanType: string | null | undefined, now: number = Date.now()): LearnedEstimate | null {

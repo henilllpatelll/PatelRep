@@ -1,6 +1,6 @@
 import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Tabs, router, usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,7 @@ import { AssistantSheet } from "@/components/ai/AssistantSheet";
 import { AssistantProvider } from "@/lib/ai/AssistantProvider";
 import { useAiPreferences } from "@/lib/ai/preferences";
 import { useEstimateTable } from "@/lib/housekeeping/estimateTable";
+import { useAiCapabilities, useAiCapability } from "@/lib/ai/capabilities";
 import { isAssistantRole } from "@/lib/ai/fab";
 import { speechLocale } from "@/lib/voice/locale";
 import { useCopilotBrief } from "@/lib/ai/copilotCard";
@@ -47,7 +48,8 @@ export default function AppLayout() {
   const hideFab = /^\/my-rooms\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
   // Housekeepers get the unified assistant (floating button + compact sheet); every other role keeps the corner card.
-  const unifiedAssistant = isAssistantRole(effectiveRole);
+  const assistantSwitchedOn = useAiCapability("unifiedAssistant");
+  const unifiedAssistant = isAssistantRole(effectiveRole) && assistantSwitchedOn;
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
@@ -62,6 +64,18 @@ export default function AppLayout() {
   const aiScope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
   useEffect(() => {
     void useAiPreferences.getState().hydrate(aiScope);
+  }, [aiScope]);
+
+  // Which optional AI features the hotel has switched on: asked once per sign-in and again when the app
+  // returns after a while. Unknown reads as off, and nothing here waits on the AI service.
+  useEffect(() => {
+    const store = useAiCapabilities.getState();
+    void store.hydrate(aiScope).then(() => store.refresh(aiScope));
+    if (!aiScope) return undefined;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void useAiCapabilities.getState().refresh(aiScope);
+    });
+    return () => sub.remove();
   }, [aiScope]);
 
   // Learned cleaning-time figures for this person's hotel (housekeeping floor roles only). Free, no AI model:

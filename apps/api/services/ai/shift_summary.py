@@ -20,7 +20,7 @@ from dateutil import tz as dateutil_tz
 from fastapi import HTTPException
 
 from core.database import supabase
-from middleware.credits import check_and_deduct_credits, log_ai_interaction
+from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction
 from services.ai.providers import get_anthropic_client
 
 MODEL_NAME = "claude-sonnet-4-6"
@@ -358,6 +358,7 @@ async def _perform_generation(
     prompt = build_shift_summary_prompt(shift_name, dept_name, shift_date, context)
 
     started_at = time_module.time()
+    await assert_ai_allowance(hotel_id, user_id, "shift_summary")
     client = get_anthropic_client()
     try:
         message = client.messages.create(

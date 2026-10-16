@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useAiCapability } from "@/lib/ai/capabilities";
 import { useAppStore } from "@/stores/appStore";
 import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -121,6 +122,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const voiceEnabled = useVoiceCapability().enabled;
+  const translationOn = useAiCapability("taskTranslation");
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { isOnline, hotelTimezone, user, myRooms } = useAppStore();
   const zone = hotelTimezone ?? null;
@@ -877,7 +879,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
         }}
         savedCopySyncedAt={mine.syncedAt}
         onAskAssistant={assistant && sheetTask && canAskAssistantAbout(sheetTask, viewer) ? askAssistant : undefined}
-        canTranslate={!!sheetTask && canAskAssistantAbout(sheetTask, viewer)}
+        canTranslate={translationOn && !!sheetTask && canAskAssistantAbout(sheetTask, viewer)}
         onFindProcedure={assistant && sheetTask && canAskAssistantAbout(sheetTask, viewer) ? findProcedure : undefined}
         onOpenProcedure={openProcedure}
       />

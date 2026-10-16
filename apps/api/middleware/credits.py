@@ -46,6 +46,11 @@ INTERACTION_MODEL = {
     "gm_briefing": "claude-sonnet",
 }
 
+# error_message on an ai_interactions row that records a refusal because the hotel was at its cap.
+CREDIT_LIMIT_MARKER = "credit_limit"
+# model_used on an ai_interactions row for an answer served without any provider call.
+CACHE_HIT_MODEL = "cache"
+
 DOLLARS_PER_CREDIT = 0.02  # $0.02 per AI credit per CLAUDE.md pricing
 
 
@@ -120,6 +125,54 @@ def compute_credits(interaction_type: str, prompt_tokens: int, completion_tokens
     return round(max(floor, token_credits), 4)
 
 
+CAP_REACHED_MESSAGE = "Monthly AI credit cap reached. Upgrade or wait for next billing period."
+BASE_FEE_CENTS = 9900  # $99.00
+
+
+def _raise_if_cap_reached(hotel_id: str, ledger: dict) -> None:
+    """The one cap rule, shared by the pre-flight and the post-call deduction."""
+    sub_result = supabase.table("subscriptions")\
+        .select("cap_cents, plan_status")\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    if sub_result and sub_result.data:
+        sub = sub_result.data
+        if sub.get("cap_cents"):
+            current_overage = ledger.get("overage_cost_cents", 0)
+            if current_overage >= sub["cap_cents"] - BASE_FEE_CENTS:
+                raise HTTPException(status_code=402, detail=CAP_REACHED_MESSAGE)
+
+
+async def assert_ai_allowance(
+    hotel_id: str,
+    user_id: str | None = None,
+    interaction_type: str | None = None,
+) -> None:
+    """Pre-flight for every paid AI call: refuse BEFORE the provider is contacted once the hotel is at its cap.
+
+    Without this the cap was only enforced after the model had already run, so a hotel past its cap kept
+    incurring provider cost on every retry (and those tokens were never recorded). Read-only: nothing is
+    deducted here; the real deduction still happens after the call from the provider's actual usage.
+    A refusal is recorded (no tokens, no credits) so cap rejections are visible in the usage summary.
+    """
+    if settings.ai_provider.strip().lower() == "ollama":
+        return
+    try:
+        _raise_if_cap_reached(hotel_id, get_or_create_current_period_ledger(hotel_id))
+    except HTTPException:
+        if user_id and interaction_type:
+            try:
+                await log_ai_interaction(
+                    hotel_id=hotel_id, user_id=user_id, interaction_type=interaction_type,
+                    model_used="none", credits_charged=0, success=False, error_message=CREDIT_LIMIT_MARKER,
+                )
+            except Exception:
+                pass  # a log that cannot be written must not turn a clean refusal into a 500
+        raise
+
+
 async def check_and_deduct_credits(
     hotel_id: str,
     interaction_type: str,
@@ -140,23 +193,7 @@ async def check_and_deduct_credits(
 
     ledger = get_or_create_current_period_ledger(hotel_id)
 
-    # Check cap
-    sub_result = supabase.table("subscriptions")\
-        .select("cap_cents, plan_status")\
-        .eq("tenant_id", hotel_id)\
-        .maybe_single()\
-        .execute()
-
-    if sub_result and sub_result.data:
-        sub = sub_result.data
-        if sub.get("cap_cents"):
-            current_overage = ledger.get("overage_cost_cents", 0)
-            base_fee = 9900  # $99.00
-            if current_overage >= sub["cap_cents"] - base_fee:
-                raise HTTPException(
-                    status_code=402,
-                    detail="Monthly AI credit cap reached. Upgrade or wait for next billing period."
-                )
+    _raise_if_cap_reached(hotel_id, ledger)
 
     # Deduct credits
     supabase.rpc("increment_credits_used", {
@@ -165,6 +202,17 @@ async def check_and_deduct_credits(
     }).execute()
 
     return credits
+
+
+async def record_cache_hit(hotel_id: str, user_id: str, interaction_type: str) -> None:
+    """Note that an answer was served from a cache (no provider call, no charge). Best-effort: never raises."""
+    try:
+        await log_ai_interaction(
+            hotel_id=hotel_id, user_id=user_id, interaction_type=interaction_type,
+            model_used=CACHE_HIT_MODEL, credits_charged=0, success=True,
+        )
+    except Exception:
+        pass
 
 
 async def log_ai_interaction(

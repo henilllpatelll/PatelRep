@@ -5,6 +5,7 @@ stripping, the model-output whitelist, and the route's authorization / tenant / 
 Only the provider boundary and the Supabase client are replaced; no live model is ever called.
 """
 import json
+from unittest.mock import AsyncMock
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -237,6 +238,7 @@ def route(monkeypatch):
         state.logged.append(kwargs)
 
     monkeypatch.setattr(ai_copilot, "analyze_photo", fake_analyze)
+    monkeypatch.setattr(ai_copilot, "assert_ai_allowance", AsyncMock())  # pre-flight; the post-call charge is what these tests drive
     monkeypatch.setattr(ai_copilot, "check_and_deduct_credits", fake_charge)
     monkeypatch.setattr(ai_copilot, "log_ai_interaction", fake_log)
     return state
@@ -322,6 +324,8 @@ async def test_unknown_role_is_forbidden(route):
 async def test_credit_cap_reached_is_402_and_logs_nothing_as_success(monkeypatch, route):
     async def capped(*_args, **_kwargs):
         raise HTTPException(status_code=402, detail="Monthly AI credit cap reached.")
+
+    monkeypatch.setattr(ai_copilot, "assert_ai_allowance", AsyncMock())  # pre-flight; the post-call charge is what these tests drive
 
     monkeypatch.setattr(ai_copilot, "check_and_deduct_credits", capped)
     with pytest.raises(HTTPException) as exc:
