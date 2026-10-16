@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { speechModule, useSpeechRecognitionEvent, type SpeechEvent } from "@/lib/voice/speechModule";
-import { speechLocale } from "@/lib/voice/locale";
+import { resolveSpeechLocale, useAiPreferences } from "@/lib/ai/preferences";
 
 /* ─── Voice input for the Describe step ─────────────────────────────────────
    Tap -> (ask for the microphone the first time) -> listen -> the words land in the editable text
@@ -27,7 +27,10 @@ interface Options {
 }
 
 export function useVoiceInput({ language, onTranscript }: Options) {
-  const supported = !!speechModule && (speechModule.isRecognitionAvailable?.() ?? true);
+  const voiceChosen = useAiPreferences((state) => state.voiceInput);
+  const speechLanguage = useAiPreferences((state) => state.speechLanguage);
+  // Off by choice behaves exactly like a phone that cannot listen: no microphone is offered, typing is unchanged.
+  const supported = voiceChosen && !!speechModule && (speechModule.isRecognitionAvailable?.() ?? true);
   const [state, setState] = useState<VoiceState>("idle");
   const [interim, setInterim] = useState("");
   const heard = useRef("");
@@ -94,7 +97,7 @@ export function useVoiceInput({ language, onTranscript }: Options) {
       }
       active.current = true;
       speechModule.start({
-        lang: speechLocale(language),
+        lang: resolveSpeechLocale({ speechLanguage }, language),
         interimResults: true,
         continuous: false,
         // No recordingOptions: the audio is never saved by the app.
@@ -104,7 +107,7 @@ export function useVoiceInput({ language, onTranscript }: Options) {
       active.current = false;
       setState("error");
     }
-  }, [language]);
+  }, [language, speechLanguage]);
 
   const stop = useCallback(() => {
     if (!speechModule || !active.current) return;

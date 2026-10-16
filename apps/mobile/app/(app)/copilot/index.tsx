@@ -31,10 +31,11 @@ import { isValidEntityId } from "@/lib/ai/launch";
 import { chatQuickActions, roomIssueHref } from "@/lib/ai/quickActions";
 import { MAX_MESSAGE_CHARS } from "@/lib/ai/useAssistantConversation";
 import { useAnnounceReplies } from "@/lib/ai/useAssistantA11y";
+import { useAiPreferences } from "@/lib/ai/preferences";
 import { useQuickActions } from "@/lib/ai/useQuickActions";
 import { useRoomQuestions } from "@/lib/ai/useRoomQuestions";
 import { RoomQuestionList } from "@/components/ai/RoomQuestionList";
-import { isSpeechAvailable } from "@/lib/voice/speechModule";
+import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 import { useAppStore } from "@/stores/appStore";
 
 const MAX_FONT_SCALE = 1.6;
@@ -164,8 +165,9 @@ export default function CopilotScreen() {
   };
   const openRoom = (id: string) => router.push(`/(app)/my-rooms/${encodeURIComponent(id)}` as never);
 
-  const quickActions = housekeeper ? chatQuickActions(role) : [];
-  const voiceAvailable = isSpeechAvailable();
+  const suggestions = useAiPreferences((state) => state.suggestions);
+  const quickActions = housekeeper && suggestions ? chatQuickActions(role) : [];
+  const voiceAvailable = useVoiceCapability().enabled;
   const subtitle = housekeeper ? t("assistant.screen.subtitle") : t("assistant.screen.subtitleStaff");
 
   return (
@@ -327,6 +329,7 @@ export default function CopilotScreen() {
           startFresh();
         }}
         onChangeLanguage={() => router.push("/(app)/profile/language" as never)}
+        onOpenSettings={() => router.push("/(app)/profile/ai-voice" as never)}
       />
 
       <BottomSheet visible={voiceOpen} title={t("assistant.voice.title")} onClose={() => setVoiceOpen(false)} grabber dragToDismiss palette={darkTheme} testID="voice-sheet">

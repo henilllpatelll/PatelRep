@@ -1,15 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ShiftBriefing } from "@/lib/ai/briefing";
-import type { ShiftRecap } from "@/lib/ai/shiftRecap";
 import type { Room } from "@/stores/appStore";
 
 const mockFetchBriefing = jest.fn();
-const mockFetchRecap = jest.fn();
 jest.mock("@/lib/ai/briefing", () => ({ fetchShiftBriefing: (...args: unknown[]) => mockFetchBriefing(...args) }));
-jest.mock("@/lib/ai/shiftRecap", () => ({ fetchShiftRecap: (...args: unknown[]) => mockFetchRecap(...args) }));
 
 import { resetBriefingCache, useShiftBriefing } from "@/lib/housekeeping/useShiftBriefing";
-import { resetRecapCache, useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
 
 const t = (key: string) => key;
 const rooms = [{ id: "r1", room_number: "208" }] as unknown as Room[];
@@ -26,7 +22,6 @@ function setup(overrides: Partial<Parameters<typeof useShiftBriefing>[0]> = {}) 
 beforeEach(() => {
   jest.clearAllMocks();
   resetBriefingCache();
-  resetRecapCache();
 });
 
 describe("useShiftBriefing", () => {
@@ -171,48 +166,5 @@ describe("useShiftBriefing", () => {
       await pending;
     });
     expect(result.current.ai).toBeNull();
-  });
-});
-
-describe("useShiftRecap", () => {
-  const recap: ShiftRecap = { headline: "A steady day.", note: null, source: "ai" };
-  const setupRecap = () =>
-    renderHook(
-      (props: Parameters<typeof useShiftRecap>[0]) => useShiftRecap(props),
-      { initialProps: { scope: "hotel-1:user-1", shiftDate: "2026-10-14", language: "en" as const, rooms, isOnline: true, t } },
-    );
-
-  it("never generates a recap by itself, however often Home is reopened", async () => {
-    const first = setupRecap();
-    first.unmount();
-    setupRecap();
-    await waitFor(() => expect(mockFetchRecap).not.toHaveBeenCalled());
-  });
-
-  it("generates on request, stores it for the day, and does not rebuy it", async () => {
-    mockFetchRecap.mockResolvedValue(recap);
-    const first = setupRecap();
-    await act(async () => {
-      await first.result.current.request();
-    });
-    expect(first.result.current.ai).toEqual(recap);
-    first.unmount();
-
-    const again = setupRecap();
-    expect(again.result.current.ai).toEqual(recap);
-    await act(async () => {
-      await again.result.current.request();
-    });
-    expect(mockFetchRecap).toHaveBeenCalledTimes(1);
-  });
-
-  it("treats the local fallback as unavailable, never as an AI recap", async () => {
-    mockFetchRecap.mockResolvedValue({ headline: "You cleaned 4 rooms today.", note: null, source: "local" });
-    const { result } = setupRecap();
-    await act(async () => {
-      await result.current.request();
-    });
-    expect(result.current.ai).toBeNull();
-    expect(result.current.status).toBe("unavailable");
   });
 });

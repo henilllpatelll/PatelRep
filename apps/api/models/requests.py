@@ -1874,8 +1874,14 @@ class HousekeepingBriefingRequest(SanitizedBaseModel):
 
 
 class HousekeeperShiftRecapRequest(SanitizedBaseModel):
-    rooms: List[BriefingRoomItem] = Field(min_length=1, max_length=60)
+    """What the person asks for; the facts are read server-side, never sent by the client.
+
+    A legacy ``rooms`` list from an older app build is ignored (unknown fields are
+    dropped): assigned rooms were never evidence of completed work.
+    """
+
     language: Literal["en", "es"] = "en"
+    shift_date: Optional[date] = None
 
 
 class StaffProgressItem(SanitizedBaseModel):

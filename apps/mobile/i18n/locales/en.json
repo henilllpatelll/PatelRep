@@ -415,7 +415,10 @@
       "noneTitle": "No unread message",
       "noneBody": "There's nothing unread here any more.",
       "openHint": "Opens the full message",
-      "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again."
+      "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again.",
+      "ask": "Ask the assistant about this",
+      "roomNotOnList": "This room isn't on your list now (it may have been reassigned), so it can't be opened from here.",
+      "alreadyRead": "You've already marked this as read."
     },
     "attentionCenter": {
       "title": "Needs attention",
@@ -446,7 +449,30 @@
       "notReadyTitle": "Open Home first",
       "notReadyBody": "This list is built from your Home screen, which hasn't loaded yet.",
       "goHome": "Go to Home",
-      "unavailable": "We can't load your rooms right now."
+      "unavailable": "We can't load your rooms right now.",
+      "ask": "Ask assistant",
+      "summary": {
+        "urgent": "{{count}} urgent",
+        "access": "{{count}} room restriction",
+        "access_plural": "{{count}} room restrictions",
+        "messages": "{{count}} message",
+        "messages_plural": "{{count}} messages",
+        "other": "{{count}} other"
+      },
+      "section": {
+        "critical": "Priority",
+        "actionable": "To do",
+        "message": "Messages",
+        "restricted": "Room restrictions",
+        "info": "For your information"
+      },
+      "why": {
+        "arrival": "Arrival expected at {{time}}.",
+        "deadline": "Needed by {{time}} (set by your supervisor).",
+        "workOrder": "A maintenance work order is open ({{status}}).",
+        "nextInOrder": "Next in your assignment order.",
+        "retry": "Try again at {{time}}."
+      }
     },
     "roomActions": {
       "sectionAssist": "Assistance",
@@ -566,7 +592,11 @@
           "headline": "Needs a look",
           "body": "Open the room for the details."
         }
-      }
+      },
+      "openProcedure": "Open procedure: {{title}}",
+      "openProcedureHint": "The hotel's approved procedure for this.",
+      "ask": "Ask the assistant about this room",
+      "askHint": "It explains and suggests. It can't enter the room or change anything."
     },
     "progressSheet": {
       "title": "Your shift",
@@ -616,7 +646,11 @@
         "exceptions": "{{count}} room left through a documented exception",
         "exceptions_plural": "{{count}} rooms left through documented exceptions",
         "remaining": "{{count}} room still to clean",
-        "remaining_plural": "{{count}} rooms still to clean"
+        "remaining_plural": "{{count}} rooms still to clean",
+        "inProgress": "{{count}} room open right now (not yet submitted)",
+        "inProgress_plural": "{{count}} rooms open right now (not yet submitted)",
+        "notStarted": "{{count}} room not started",
+        "notStarted_plural": "{{count}} rooms not started"
       },
       "sync": {
         "none": "0 changes waiting to sync",
@@ -682,11 +716,21 @@
       "syncUnverified": "Couldn't confirm everything was sent",
       "syncHint": "Your summary is not final until these reach the server.",
       "sectionRecap": "AI recap",
-      "recapAiLabel": "Written by AI from today's room list",
+      "recapAiLabel": "Written by AI from the verified record above. Check it against your records.",
       "recapOptional": "Optional. Your summary above is complete without it.",
       "recapUnavailable": "The AI recap isn't available right now. Your summary above is unaffected.",
       "recapOffline": "Connect to the internet to ask for an AI recap.",
-      "recapRequest": "Add AI recap"
+      "recapRequest": "Add AI recap",
+      "recapVerifiedLabel": "From your shift record",
+      "recapCompletedByYou": "Rooms you completed",
+      "recapStillOpen": "Rooms still open",
+      "recapRecordedTime": "Recorded cleaning time ({{count}} room)",
+      "recapRecordedTime_plural": "Recorded cleaning time ({{count}} rooms)",
+      "recapDiffers": "These counts come from the server's record and may differ from the list on this phone. Pull to refresh Home to compare.",
+      "recapBasis": "Based on verified shift activity. Only the sentence above is written by AI.",
+      "recapBasisSaved": "Saved from earlier for this same shift record. Based on verified shift activity.",
+      "recapCredits": "Your hotel's AI allowance is used up for now. Your summary above is unaffected.",
+      "recapInsufficient": "No completed rooms are on record for this shift yet, so there is nothing for the AI to summarize."
     },
     "syncSheet": {
       "title": "Sync status",
@@ -783,6 +827,17 @@
         "forbidden": "You no longer have access to this.",
         "rejected": "The server didn't accept this change.",
         "expired": "This change is too old to send."
+      },
+      "ai": {
+        "title": "AI help",
+        "online": {
+          "title": "Online AI is available",
+          "body": "It answers only when you ask. AI requests are never saved to send later or sent again on their own."
+        },
+        "offline": {
+          "title": "Online AI isn't available offline",
+          "body": "Your shift plan and the room guidance on this phone still work. Nothing AI-related is waiting to send."
+        }
       }
     },
     "markClean": {
@@ -877,6 +932,20 @@
         "arrivalAt": "Arrival at {{time}}",
         "queue": "Next in your order"
       }
+    },
+    "handoff": {
+      "title": "Handoff summary",
+      "hint": "This is exactly what will be shared, and nothing is sent until you pick who gets it. It lists only items still open in your records.",
+      "share": "Share handoff summary",
+      "heading": "Shift handoff for {{date}}",
+      "sections": {
+        "toClean": "Still to clean",
+        "exceptions": "Rooms left through an exception",
+        "maintenance": "Open maintenance"
+      },
+      "unsynced": "Some changes from this phone had not reached the server when this was written.",
+      "aiNoteLabel": "Note written by AI from the shift record:",
+      "footer": "From PatelRep, based on recorded shift activity."
     }
   },
   "rooms": {
@@ -3181,7 +3250,49 @@
       "viewDetails": "View Details"
     },
     "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
-    "about": { "title": "About PatelRep", "subtitle": "Version and app information" }
+    "about": { "title": "About PatelRep", "subtitle": "Version and app information" },
+    "aiVoice": {
+      "title": "AI & voice",
+      "subtitle": "Assistant language, voice input, saved conversation",
+      "about": "AI suggests and explains. Anything that creates or changes something needs your approval first.",
+      "saveFailed": "Couldn't save this choice on the phone. It applies until you close the app.",
+      "matchApp": "Match app language",
+      "sections": {
+        "voice": "Voice",
+        "speechLanguage": "Speech recognition language",
+        "answerLanguage": "Language of AI answers",
+        "assistance": "Assistance",
+        "privacy": "Privacy"
+      },
+      "voiceInput": "Voice input",
+      "voiceInputHint": "Show the microphone in the assistant, new tasks and issue reports. Typing always works.",
+      "voiceUnsupported": "Speech recognition isn't available on this phone. Typing always works.",
+      "speechLanguageHint": "The language the microphone listens in. Nothing is recorded or kept; your phone turns speech into text and you review it before anything is used.",
+      "answerLanguageHint": "Used for procedure answers and the shift recap. Screens stay in the app language, and the original wording of procedures and records is never changed.",
+      "suggestions": "Helpful suggestions",
+      "suggestionsHint": "Show suggested questions and quick actions in the assistant.",
+      "history": {
+        "title": "Saved conversation",
+        "checking": "Checking…",
+        "none": "Nothing saved on this phone",
+        "saved": "{{count}} message saved on this phone",
+        "saved_plural": "{{count}} messages saved on this phone",
+        "cleared": "Saved conversation cleared from this phone."
+      },
+      "newConversation": "Start a new conversation",
+      "newConversationHint": "Clears the current conversation and its saved copy.",
+      "privacyRow": "How AI uses hotel information",
+      "privacyExtra": {
+        "usage": "The hotel keeps a usage record of each AI request (when, by whom and how much it used) for billing. This app can't delete that record.",
+        "provider": "Requests are processed by the hotel's AI providers under the hotel's agreement. This app can't delete anything held by them."
+      },
+      "clear": {
+        "title": "Clear saved conversation?",
+        "confirm": "Clear conversation",
+        "clears": "This removes the conversation saved on this phone and the one on screen, for your account at this hotel. It can't be undone.",
+        "doesNot": "It doesn't remove the hotel's usage record of AI requests or anything held by the AI providers. Those aren't controlled from this app."
+      }
+    }
   },
   "about": {
     "tagline": "Property operations, simplified.",
@@ -3394,7 +3505,7 @@
       "clearBody": "This removes the conversation saved on this phone and starts a new one. It can't be undone.",
       "clearConfirm": "Clear conversation",
       "voice": "Voice preferences",
-      "voiceBody": "The microphone listens in {{language}}, the same language as the app.",
+      "voiceBody": "The microphone listens in {{language}}. You can change this in AI & voice settings.",
       "micSettings": "Microphone permission",
       "language": "App language",
       "privacy": "Privacy and AI information",
@@ -3406,7 +3517,9 @@
         "confirmFirst": "Nothing is created, changed or sent to anyone until you review it and confirm.",
         "audio": "Your phone turns speech into text. PatelRep never receives or keeps your audio.",
         "saved": "A text-only copy of this conversation is kept securely on this phone for you. You can clear it any time."
-      }
+      },
+      "settings": "AI & voice settings",
+      "voiceOffByChoice": "Voice input is turned off in AI & voice settings. You can still type."
     }
   },
   "copilot": {
@@ -3929,7 +4042,27 @@
   "alertsScreen": {
     "unreadSuffix_one": "{{count}} unread",
     "unreadSuffix_other": "{{count}} unread",
-    "title": "Alerts"
+    "title": "Alerts",
+    "unreadSuffix": "{{count}} unread",
+    "unreadSuffix_plural": "{{count}} unread",
+    "markAllRead": "Mark all read",
+    "clearing": "Clearing…",
+    "unread": "Unread",
+    "filter": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "day": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
+    "stale": "Couldn't refresh. Showing what was loaded earlier.",
+    "loadFailed": "Couldn't load your notifications. Check your connection and try again.",
+    "emptyUnreadTitle": "You're all caught up",
+    "emptyUnreadBody": "No unread alerts right now.",
+    "emptyAllTitle": "No notifications yet",
+    "emptyAllBody": "Alerts and messages from your team will appear here."
   },
   "scheduling": {
     "title": "My shifts",

@@ -7,7 +7,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomeSheetHost, useHomeSheet, type HomeSheetGo } from "@/components/home/HomeSheetHost";
 import { LinkButton, MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { Button } from "@/components/ui/Button";
+import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
+import { isAssistantRole } from "@/lib/ai/fab";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { attentionWhyLines, type WhyLine } from "@/lib/housekeeping/attentionWhy";
 import {
   attentionAction,
   buildAttentionCenter,
@@ -47,6 +50,8 @@ export function AttentionCenterScreen() {
   const bridge = useHomeBridge();
   const model = bridge.scope === scope ? bridge.model : null;
   const sheets = useHomeSheet();
+  const assistant = useAssistantOptional();
+  const role = user?.effective_role ?? user?.role;
   const [filter, setFilter] = useState<AttentionFilter>("all");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -75,12 +80,19 @@ export function AttentionCenterScreen() {
       roomAction: (roomId, action) => router.push(`/(app)/my-rooms/${roomId}?action=${action}&from=attention` as never),
       openWorkOrder: (woId) => router.push(`/(app)/work-orders/${woId}` as never),
       openMyRooms: () => router.push("/(app)/my-rooms" as never),
+      openProcedure: (documentId) => router.push(`/(app)/sop/${documentId}` as never),
+      // Only identifiers this phone already holds are handed over; the server authorises them again.
+      askAboutRoom:
+        assistant && isAssistantRole(role)
+          ? (roomId, roomNumber, live) =>
+              assistant.openAssistant({ contextType: live ? "cleaningSession" : "room", entityId: roomId, label: roomNumber })
+          : undefined,
       openLink: (link) => {
         if (link.kind === "room") router.push(`/(app)/my-rooms/${link.roomId}?from=attention` as never);
         else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
       },
     }),
-    [],
+    [assistant, role],
   );
 
   const open = useCallback(
@@ -141,6 +153,11 @@ export function AttentionCenterScreen() {
   }
 
   const sync = describeSync(model, t, ctx);
+  // "2 urgent · 1 access" from the same counts the filters show, so the line can never disagree with them.
+  const summary = (["urgent", "access", "messages", "other"] as const)
+    .filter((bucket) => center.counts[bucket] > 0)
+    .map((bucket) => t(`home.attentionCenter.summary.${bucket}`, { count: center.counts[bucket] }))
+    .join(" · ");
   const boardDown = model.board.state === "unavailable";
 
   const filterLabel = (value: AttentionFilter) => t(`home.attentionCenter.filter.${value}`);
@@ -176,6 +193,12 @@ export function AttentionCenterScreen() {
         })}
       </View>
 
+      {summary ? (
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.summary, { color: theme.textPrimary }]} accessibilityRole="header" testID="attention-summary">
+          {summary}
+        </Text>
+      ) : null}
+
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sync, { color: theme.textMuted }]} testID="attention-sync">
         {sync.text}
       </Text>
@@ -207,15 +230,33 @@ export function AttentionCenterScreen() {
             />
           )
         }
-        renderItem={({ item: row }) => (
-          <AttentionCard
-            row={row}
-            note={model.supervisorInstruction}
-            ctx={ctx}
-            t={t}
-            onPrimary={() => open(row, "primary")}
-            onDetails={() => open(row, "details")}
-          />
+        renderItem={({ item: row, index }) => (
+          <View style={styles.cardWrap}>
+            {index === 0 || shown[index - 1].group !== row.group ? (
+              <Text
+                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                accessibilityRole="header"
+                style={[styles.sectionTitle, { color: theme.textMuted }]}
+                testID={`attention-section-${row.group}`}
+              >
+                {t(`home.attentionCenter.section.${row.group}`)}
+              </Text>
+            ) : null}
+            <AttentionCard
+              row={row}
+              why={attentionWhyLines(row, model, ctx)}
+              note={model.supervisorInstruction}
+              ctx={ctx}
+              t={t}
+              onPrimary={() => open(row, "primary")}
+              onDetails={() => open(row, "details")}
+              onAsk={
+                go.askAboutRoom && row.item.kind === "room" && row.entry
+                  ? () => go.askAboutRoom?.(row.entry!.room.id, row.entry!.room.room_number, row.entry!.category === "current")
+                  : undefined
+              }
+            />
+          </View>
         )}
         testID="attention-list"
       />
@@ -240,6 +281,8 @@ export function AttentionCenterScreen() {
 
 interface CardProps {
   row: AttentionCenterItem;
+  why: WhyLine[];
+  onAsk?: () => void;
   note: HomeModel["supervisorInstruction"];
   ctx: TextContext;
   t: Translate;
@@ -247,7 +290,7 @@ interface CardProps {
   onDetails: () => void;
 }
 
-function AttentionCard({ row, note, ctx, t, onPrimary, onDetails }: CardProps) {
+function AttentionCard({ row, why, note, ctx, t, onPrimary, onDetails, onAsk }: CardProps) {
   const theme = useTheme();
   const copy = describeAttentionRow(row, note, t, ctx);
   const spec = attentionAction(row.item);
@@ -283,6 +326,16 @@ function AttentionCard({ row, note, ctx, t, onPrimary, onDetails }: CardProps) {
               {copy.detail}
             </Text>
           ) : null}
+          {why.map((line) => (
+            <Text
+              key={line.code}
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              style={[styles.cardWhy, { color: theme.textMuted }]}
+              testID={`attention-why-${row.item.id}-${line.code}`}
+            >
+              {t(`home.attentionCenter.why.${line.code}`, line.values)}
+            </Text>
+          ))}
         </View>
       </View>
       <View style={styles.cardActions}>
@@ -290,6 +343,7 @@ function AttentionCard({ row, note, ctx, t, onPrimary, onDetails }: CardProps) {
         {spec.detailsLink ? (
           <LinkButton label={t("home.attentionCenter.details")} onPress={onDetails} testID={`attention-details-${row.item.id}`} />
         ) : null}
+        {onAsk ? <LinkButton label={t("home.attentionCenter.ask")} onPress={onAsk} testID={`attention-ask-${row.item.id}`} /> : null}
       </View>
     </View>
   );
@@ -304,7 +358,11 @@ const styles = StyleSheet.create({
   filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 16, paddingTop: 12 },
   chip: { minHeight: 44, justifyContent: "center", borderWidth: 1, borderRadius: 22, paddingHorizontal: 16 },
   chipText: { fontSize: 14, fontWeight: "700" },
+  summary: { fontSize: 15, fontWeight: "700", paddingHorizontal: 18, paddingTop: 12 },
   sync: { fontSize: 12, paddingHorizontal: 18, paddingTop: 10 },
+  cardWrap: { gap: 8 },
+  sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase", paddingTop: 6 },
+  cardWhy: { fontSize: 13, lineHeight: 18 },
   list: { paddingHorizontal: 16, paddingTop: 10, gap: 12, flexGrow: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
   empty: { padding: 24, alignItems: "center" },
@@ -315,5 +373,5 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: "800", lineHeight: 22 },
   priority: { fontSize: 12, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
   cardDetail: { fontSize: 14, lineHeight: 20 },
-  cardActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  cardActions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
 });

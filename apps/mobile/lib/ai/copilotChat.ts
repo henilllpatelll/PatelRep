@@ -7,6 +7,7 @@ import {
   type IntentHint,
   type CopilotOutcome,
 } from "@/lib/ai/contract";
+import { currentAiPreferences } from "@/lib/ai/preferences";
 import { CONFIRM_PATH, buildConfirmBody, isPreviewValid, type ActionPreview } from "@/lib/ai/drafts";
 
 // The one place the assistant talks to /ai/copilot/chat and the three confirm endpoints.
@@ -59,7 +60,10 @@ export async function sendCopilotMessage(text: string, options: SendOptions = {}
   return normalizeCopilotResponse(raw);
 }
 
+/** The language to request AI text in: the person's AI-language choice, else the app's own language. */
 function appLanguage(): "en" | "es" | null {
+  const chosen = currentAiPreferences().assistantLanguage;
+  if (chosen !== "app") return chosen;
   const language = typeof i18next.language === "string" ? i18next.language.slice(0, 2).toLowerCase() : "";
   return language === "es" ? "es" : language === "en" ? "en" : null;
 }

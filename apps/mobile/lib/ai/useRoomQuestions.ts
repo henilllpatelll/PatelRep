@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAssistant } from "@/lib/ai/AssistantProvider";
+import { useAiPreferences } from "@/lib/ai/preferences";
 import { roomIdOf } from "@/lib/ai/quickActions";
 import { answerRoomQuestion, roomQuestionIds, type RoomQuestionId } from "@/lib/housekeeping/roomAssist";
 import { selectSession, useCleanSessionStore } from "@/stores/cleanSessionStore";
@@ -22,7 +23,9 @@ export function useRoomQuestions(onNavigate?: (href: string) => void) {
   const hasLive = Boolean(session && !session.completionConfirmed);
   // Offered only for a room that is on this person's list right now; for anything else the server alone decides.
   const onList = useAppStore((state) => Boolean(roomId && state.myRooms.some((candidate) => candidate.id === roomId)));
-  const ids = useMemo(() => (roomId && onList ? roomQuestionIds(hasLive) : []), [roomId, onList, hasLive]);
+  // Suggested questions are a choice (AI & voice settings); typing a question always works.
+  const suggestions = useAiPreferences((state) => state.suggestions);
+  const ids = useMemo(() => (suggestions && roomId && onList ? roomQuestionIds(hasLive) : []), [suggestions, roomId, onList, hasLive]);
 
   const run = useCallback(
     (id: RoomQuestionId) => {

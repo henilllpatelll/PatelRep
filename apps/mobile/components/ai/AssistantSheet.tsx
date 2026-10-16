@@ -16,9 +16,10 @@ import { useAssistant } from "@/lib/ai/AssistantProvider";
 import { sheetQuickActions, roomIssueHref } from "@/lib/ai/quickActions";
 import { MAX_MESSAGE_CHARS } from "@/lib/ai/useAssistantConversation";
 import { useAnnounceReplies } from "@/lib/ai/useAssistantA11y";
+import { useAiPreferences } from "@/lib/ai/preferences";
 import { useQuickActions } from "@/lib/ai/useQuickActions";
 import { useRoomQuestions } from "@/lib/ai/useRoomQuestions";
-import { isSpeechAvailable } from "@/lib/voice/speechModule";
+import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 import { useAppStore } from "@/stores/appStore";
 
 const MAX_FONT_SCALE = 1.6;
@@ -58,8 +59,9 @@ export function AssistantSheet() {
   const user = useAppStore((state) => state.user);
   const myRooms = useAppStore((state) => state.myRooms);
   const role = user?.effective_role ?? user?.role;
-  const actions = sheetQuickActions(role);
-  const voiceAvailable = isSpeechAvailable();
+  const suggestions = useAiPreferences((state) => state.suggestions);
+  const actions = suggestions ? sheetQuickActions(role) : [];
+  const voiceAvailable = useVoiceCapability().enabled;
   const [voiceAuto, setVoiceAuto] = useState(false);
 
   const describeIssue = useCallback(() => {

@@ -30,6 +30,8 @@ export interface HomeSheetGo {
   openMyRooms: () => void;
   /** Point the assistant at one room. Absent for people who have no assistant. */
   askAboutRoom?: (roomId: string, roomNumber: string, live: boolean) => void;
+  /** Open one of the hotel's approved procedures (it has already been found in the list the server allows). */
+  openProcedure?: (documentId: string) => void;
   openLink: (link: Exclude<NotificationLink, { kind: "none" }>) => void;
 }
 
@@ -155,6 +157,12 @@ export function HomeSheetHost({ model, sheet, visible, onClose, role, isOnline, 
           onViewRoom={then(go.openRoom)}
           onAddNote={then((roomId: string) => go.roomAction(roomId, "note"))}
           onViewWorkOrder={then(go.openWorkOrder)}
+          onOpenProcedure={go.openProcedure ? then(go.openProcedure) : undefined}
+          onAsk={
+            go.askAboutRoom
+              ? then((roomId: string, roomNumber: string, live: boolean) => go.askAboutRoom?.(roomId, roomNumber, live))
+              : undefined
+          }
         />
       );
     case "message":

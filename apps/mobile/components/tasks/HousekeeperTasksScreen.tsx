@@ -18,7 +18,7 @@ import { TaskCard, type TaskCardVariant } from "@/components/tasks/TaskCard";
 import { TaskSyncSheet } from "@/components/tasks/TaskSyncSheet";
 import { QuickTaskCard } from "@/components/tasks/QuickTaskCard";
 import { TasksHeader, type Segment, type SummaryValue } from "@/components/tasks/TasksHeader";
-import { isSpeechAvailable } from "@/lib/voice/speechModule";
+import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 import { formatHotelTime, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import { addTaskComment, fetchTask, TASK_NOTE_MAX, type BlockerReason, type Task } from "@/lib/api/tasks";
 import { linkFailureOutcome } from "@/lib/tasks/taskLink";
@@ -120,6 +120,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const voiceEnabled = useVoiceCapability().enabled;
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { isOnline, hotelTimezone, user, myRooms } = useAppStore();
   const zone = hotelTimezone ?? null;
@@ -816,7 +817,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
                   setAddOpen(true);
                 }}
                 onVoice={
-                  isSpeechAvailable()
+                  voiceEnabled
                     ? () => {
                         setAddInitialText(null);
                         setAddAutoVoice(true);

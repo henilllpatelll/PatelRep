@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useRelatedProcedures } from "@/lib/sop/useRelatedProcedures";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { SheetActionRow, SheetFact, SheetGone, SheetNotice, SheetSection } from "@/components/home/sheetParts";
@@ -18,6 +19,10 @@ interface Props {
   onViewRoom: (roomId: string) => void;
   onAddNote: (roomId: string) => void;
   onViewWorkOrder: (workOrderId: string) => void;
+  /** Open a procedure the hotel has approved (only offered when one really matches). */
+  onOpenProcedure?: (documentId: string) => void;
+  /** Point the assistant at this room. Absent for people who have no assistant. */
+  onAsk?: (roomId: string, roomNumber: string, live: boolean) => void;
   onClose: () => void;
 }
 
@@ -29,8 +34,14 @@ type FactLine = { icon: "time-outline" | "information-circle-outline" | "list-ou
  * never offers Start and has no control that clears a restriction; actions are
  * limited to looking at the room and adding a note through the existing form.
  */
-export function IssueDetailsSheet({ visible, view, note, t, ctx, onViewRoom, onAddNote, onViewWorkOrder, onClose }: Props) {
+/** What the drawer looks up in the hotel's procedure list: only conditions that have a procedure of their own. */
+const PROCEDURE_QUERY: Partial<Record<IssueKind, string>> = { dnd: "dnd", maintenance: "maintenance report issue" };
+
+export function IssueDetailsSheet({ visible, view, note, t, ctx, onViewRoom, onAddNote, onViewWorkOrder, onOpenProcedure, onAsk, onClose }: Props) {
   const theme = useTheme();
+  // Hooks first: the same ones run whether or not the issue is still there.
+  const procedureQuery = view.state === "ready" ? (PROCEDURE_QUERY[view.kind] ?? null) : null;
+  const procedure = useRelatedProcedures([procedureQuery], visible && procedureQuery !== null && Boolean(onOpenProcedure))[0] ?? null;
 
   if (view.state === "resolved") {
     return (
@@ -71,7 +82,7 @@ export function IssueDetailsSheet({ visible, view, note, t, ctx, onViewRoom, onA
 
       {restricted ? <SheetNotice tone="warn" text={t("home.issue.waitNotice")} testID="issue-wait-notice" /> : null}
 
-      {canViewRoom || noteAction || workOrderId ? (
+      {canViewRoom || noteAction || workOrderId || procedure || onAsk ? (
         <SheetSection>
           {canViewRoom && entry ? (
             <SheetActionRow
@@ -88,6 +99,24 @@ export function IssueDetailsSheet({ visible, view, note, t, ctx, onViewRoom, onA
               title={t("home.issue.viewWorkOrder")}
               onPress={() => onViewWorkOrder(workOrderId)}
               testID="issue-view-work-order"
+            />
+          ) : null}
+          {procedure && onOpenProcedure ? (
+            <SheetActionRow
+              icon="document-text-outline"
+              title={t("home.issue.openProcedure", { title: procedure.title })}
+              hint={t("home.issue.openProcedureHint")}
+              onPress={() => onOpenProcedure(procedure.id)}
+              testID="issue-open-procedure"
+            />
+          ) : null}
+          {onAsk && entry ? (
+            <SheetActionRow
+              icon="sparkles-outline"
+              title={t("home.issue.ask")}
+              hint={t("home.issue.askHint")}
+              onPress={() => onAsk(entry.room.id, entry.room.room_number, entry.category === "current")}
+              testID="issue-ask"
             />
           ) : null}
           {noteAction && entry ? (

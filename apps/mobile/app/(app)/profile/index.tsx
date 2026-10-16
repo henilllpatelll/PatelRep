@@ -10,6 +10,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { isAssistantRole } from "@/lib/ai/fab";
 import { getAppInfo } from "@/lib/app/appInfo";
 import { useSyncOverview } from "@/lib/offline/useSyncOverview";
 import { useOwnProfile } from "@/lib/settings/useOwnProfile";
@@ -24,6 +25,7 @@ export default function SettingsHomeScreen() {
   const theme = useTheme();
   const { preference } = useAppearancePreference();
   const unreadCount = useAppStore((s) => s.unreadCount);
+  const effectiveRole = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
   const { overview } = useSyncOverview();
   const { user, name, roleLabel, hotelName, connection } = useSettingsIdentity(overview);
   // Refreshes the short-lived photo URL and mirrors the latest display name into the user store.
@@ -137,6 +139,15 @@ export default function SettingsHomeScreen() {
           onPress={() => router.push("/(app)/profile/language")}
           testID="row-language"
         />
+        {isAssistantRole(effectiveRole) ? (
+          <SettingsRow
+            icon="sparkles-outline"
+            label={t("settings.aiVoice.title")}
+            subtitle={t("settings.aiVoice.subtitle")}
+            onPress={() => router.push("/(app)/profile/ai-voice" as never)}
+            testID="row-ai-voice"
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection title={t("profile.myWork")}>

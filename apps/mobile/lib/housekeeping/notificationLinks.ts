@@ -37,6 +37,19 @@ export function resolveNotificationLink(notification: LinkableNotification, room
   return { kind: "none" };
 }
 
+/**
+ * Why a notification that names a room offers no way in: the room is not on this person's list now
+ * (reassigned, finished for the day, or never theirs). Said out loud so a missing button is not a mystery.
+ * Tasks are not judged here: the Tasks screen re-reads the task as the signed-in person.
+ */
+export type NotificationLinkIssue = "room_not_on_list";
+
+export function notificationLinkIssue(notification: LinkableNotification, rooms: readonly Room[]): NotificationLinkIssue | null {
+  const link = resolveNotificationLink(notification, rooms);
+  if (link.kind !== "none") return null;
+  return roomIdFromNotificationData(notification.data ?? null) ? "room_not_on_list" : null;
+}
+
 /** Types written for supervisor / team messages (the Home instruction card and its drawer). */
 export function isMessageNotification(type: string): boolean {
   return type === "direct_message" || type === "broadcast";

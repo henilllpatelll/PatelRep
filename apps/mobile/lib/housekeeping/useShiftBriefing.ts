@@ -4,8 +4,11 @@ import { CopilotFailure, toCopilotFailure } from "@/lib/ai/contract";
 import { briefingCache, briefingCacheKey, notifyBriefingChange } from "@/lib/ai/shiftBriefingSource";
 import type { Room } from "@/stores/appStore";
 
-/** "credits" = the hotel's AI allowance (or rate limit) is used up; the local plan is complete without it. */
-export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable" | "credits";
+/**
+ * "credits" = the hotel's AI allowance (or rate limit) is used up; the local plan is complete without it.
+ * "insufficient" = the server has no completed work on record to write a recap about.
+ */
+export type AiRequestStatus = "idle" | "loading" | "offline" | "unavailable" | "credits" | "insufficient";
 
 export interface BriefingController {
   /** The AI's answer, when there is a fresh one. The deterministic plan never depends on it. */

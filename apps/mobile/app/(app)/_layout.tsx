@@ -13,6 +13,7 @@ import { CopilotBubble, BUBBLE_RIGHT_INSET, type CopilotBubbleState } from "@/co
 import { AssistantFab } from "@/components/ai/AssistantFab";
 import { AssistantSheet } from "@/components/ai/AssistantSheet";
 import { AssistantProvider } from "@/lib/ai/AssistantProvider";
+import { useAiPreferences } from "@/lib/ai/preferences";
 import { isAssistantRole } from "@/lib/ai/fab";
 import { speechLocale } from "@/lib/voice/locale";
 import { useCopilotBrief } from "@/lib/ai/copilotCard";
@@ -55,6 +56,12 @@ export default function AppLayout() {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isLoading]);
+
+  // This person's AI & voice choices, for this hotel. A different person or hotel never sees the previous values.
+  const aiScope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
+  useEffect(() => {
+    void useAiPreferences.getState().hydrate(aiScope);
+  }, [aiScope]);
 
   // Load this person's app-lock choice (and lock on cold start if they turned it on).
   useEffect(() => {

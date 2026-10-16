@@ -415,7 +415,10 @@
       "noneTitle": "Ningún mensaje sin leer",
       "noneBody": "Ya no hay nada sin leer aquí.",
       "openHint": "Abre el mensaje completo",
-      "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo."
+      "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo.",
+      "ask": "Preguntar al asistente sobre esto",
+      "roomNotOnList": "Esta habitación ya no está en tu lista (puede que la hayan reasignado), así que no se puede abrir desde aquí.",
+      "alreadyRead": "Ya marcaste esto como leído."
     },
     "attentionCenter": {
       "title": "Requiere atención",
@@ -446,7 +449,30 @@
       "notReadyTitle": "Abre Inicio primero",
       "notReadyBody": "Esta lista se arma desde tu pantalla de Inicio, que aún no ha cargado.",
       "goHome": "Ir a Inicio",
-      "unavailable": "No podemos cargar tus habitaciones ahora."
+      "unavailable": "No podemos cargar tus habitaciones ahora.",
+      "ask": "Preguntar al asistente",
+      "summary": {
+        "urgent": "{{count}} urgente(s)",
+        "access": "{{count}} restricción de habitación",
+        "access_plural": "{{count}} restricciones de habitación",
+        "messages": "{{count}} mensaje",
+        "messages_plural": "{{count}} mensajes",
+        "other": "{{count}} otro(s)"
+      },
+      "section": {
+        "critical": "Prioridad",
+        "actionable": "Por hacer",
+        "message": "Mensajes",
+        "restricted": "Restricciones de habitación",
+        "info": "Para tu información"
+      },
+      "why": {
+        "arrival": "Llegada prevista a las {{time}}.",
+        "deadline": "Se necesita para las {{time}} (lo fijó tu supervisor).",
+        "workOrder": "Hay una orden de mantenimiento abierta ({{status}}).",
+        "nextInOrder": "Sigue en tu orden de asignación.",
+        "retry": "Vuelve a intentarlo a las {{time}}."
+      }
     },
     "roomActions": {
       "sectionAssist": "Asistencia",
@@ -566,7 +592,11 @@
           "headline": "Requiere revisión",
           "body": "Abre la habitación para ver los detalles."
         }
-      }
+      },
+      "openProcedure": "Abrir procedimiento: {{title}}",
+      "openProcedureHint": "El procedimiento aprobado del hotel para esto.",
+      "ask": "Preguntar al asistente sobre esta habitación",
+      "askHint": "Explica y sugiere. No puede entrar a la habitación ni cambiar nada."
     },
     "progressSheet": {
       "title": "Tu turno",
@@ -616,7 +646,11 @@
         "exceptions": "{{count}} habitación con excepción documentada",
         "exceptions_plural": "{{count}} habitaciones con excepción documentada",
         "remaining": "{{count}} habitación por limpiar",
-        "remaining_plural": "{{count}} habitaciones por limpiar"
+        "remaining_plural": "{{count}} habitaciones por limpiar",
+        "inProgress": "{{count}} habitación abierta ahora (sin enviar todavía)",
+        "inProgress_plural": "{{count}} habitaciones abiertas ahora (sin enviar todavía)",
+        "notStarted": "{{count}} habitación sin empezar",
+        "notStarted_plural": "{{count}} habitaciones sin empezar"
       },
       "sync": {
         "none": "0 cambios esperando sincronización",
@@ -682,11 +716,21 @@
       "syncUnverified": "No se pudo confirmar que todo se envió",
       "syncHint": "Tu resumen no es definitivo hasta que esto llegue al servidor.",
       "sectionRecap": "Resumen con IA",
-      "recapAiLabel": "Escrito por IA a partir de la lista de hoy",
+      "recapAiLabel": "Escrito por IA a partir del registro verificado de arriba. Compruébalo con tus registros.",
       "recapOptional": "Opcional. Tu resumen de arriba está completo sin esto.",
       "recapUnavailable": "El resumen con IA no está disponible ahora. Tu resumen de arriba no cambia.",
       "recapOffline": "Conéctate a internet para pedir un resumen con IA.",
-      "recapRequest": "Agregar resumen con IA"
+      "recapRequest": "Agregar resumen con IA",
+      "recapVerifiedLabel": "De tu registro de turno",
+      "recapCompletedByYou": "Habitaciones que completaste",
+      "recapStillOpen": "Habitaciones pendientes",
+      "recapRecordedTime": "Tiempo de limpieza registrado ({{count}} habitación)",
+      "recapRecordedTime_plural": "Tiempo de limpieza registrado ({{count}} habitaciones)",
+      "recapDiffers": "Estas cifras vienen del registro del servidor y pueden diferir de la lista de este teléfono. Desliza hacia abajo en Inicio para comparar.",
+      "recapBasis": "Basado en la actividad verificada del turno. Solo la frase de arriba la escribe la IA.",
+      "recapBasisSaved": "Guardado de antes para este mismo registro de turno. Basado en la actividad verificada.",
+      "recapCredits": "El límite de IA de tu hotel se agotó por ahora. Tu resumen de arriba no se ve afectado.",
+      "recapInsufficient": "Aún no hay habitaciones completadas en el registro de este turno, así que la IA no tiene nada que resumir."
     },
     "syncSheet": {
       "title": "Estado de sincronización",
@@ -783,6 +827,17 @@
         "forbidden": "Ya no tienes acceso a esto.",
         "rejected": "El servidor no aceptó este cambio.",
         "expired": "Este cambio es demasiado antiguo para enviarse."
+      },
+      "ai": {
+        "title": "Ayuda de IA",
+        "online": {
+          "title": "La IA en línea está disponible",
+          "body": "Solo responde cuando se lo pides. Las solicitudes de IA nunca se guardan para enviarse después ni se reenvían solas."
+        },
+        "offline": {
+          "title": "La IA en línea no está disponible sin conexión",
+          "body": "El plan de tu turno y la guía de habitaciones de este teléfono siguen funcionando. No hay nada de IA esperando para enviarse."
+        }
       }
     },
     "markClean": {
@@ -877,6 +932,20 @@
         "arrivalAt": "Llegada a las {{time}}",
         "queue": "Sigue en tu orden"
       }
+    },
+    "handoff": {
+      "title": "Resumen de relevo",
+      "hint": "Esto es exactamente lo que se compartirá, y no se envía nada hasta que elijas quién lo recibe. Solo lista lo que sigue abierto en tus registros.",
+      "share": "Compartir resumen de relevo",
+      "heading": "Relevo del turno del {{date}}",
+      "sections": {
+        "toClean": "Por limpiar",
+        "exceptions": "Habitaciones dejadas por una excepción",
+        "maintenance": "Mantenimiento abierto"
+      },
+      "unsynced": "Algunos cambios de este teléfono no habían llegado al servidor cuando se escribió esto.",
+      "aiNoteLabel": "Nota escrita por IA a partir del registro del turno:",
+      "footer": "Desde PatelRep, basado en la actividad registrada del turno."
     }
   },
   "rooms": {
@@ -3181,7 +3250,49 @@
       "viewDetails": "Ver detalles"
     },
     "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
-    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" }
+    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" },
+    "aiVoice": {
+      "title": "IA y voz",
+      "subtitle": "Idioma del asistente, entrada de voz, conversación guardada",
+      "about": "La IA sugiere y explica. Todo lo que crea o cambia algo necesita primero tu aprobación.",
+      "saveFailed": "No se pudo guardar esta opción en el teléfono. Se aplica hasta que cierres la app.",
+      "matchApp": "Igual que el idioma de la app",
+      "sections": {
+        "voice": "Voz",
+        "speechLanguage": "Idioma del reconocimiento de voz",
+        "answerLanguage": "Idioma de las respuestas de IA",
+        "assistance": "Ayuda",
+        "privacy": "Privacidad"
+      },
+      "voiceInput": "Entrada de voz",
+      "voiceInputHint": "Muestra el micrófono en el asistente, en tareas nuevas y en reportes de problemas. Siempre puedes escribir.",
+      "voiceUnsupported": "El reconocimiento de voz no está disponible en este teléfono. Siempre puedes escribir.",
+      "speechLanguageHint": "El idioma en que escucha el micrófono. No se graba ni se guarda nada; tu teléfono convierte la voz en texto y tú lo revisas antes de usarlo.",
+      "answerLanguageHint": "Se usa en respuestas sobre procedimientos y en el resumen del turno. Las pantallas siguen en el idioma de la app y el texto original de procedimientos y registros nunca cambia.",
+      "suggestions": "Sugerencias útiles",
+      "suggestionsHint": "Muestra preguntas sugeridas y acciones rápidas en el asistente.",
+      "history": {
+        "title": "Conversación guardada",
+        "checking": "Comprobando…",
+        "none": "No hay nada guardado en este teléfono",
+        "saved": "{{count}} mensaje guardado en este teléfono",
+        "saved_plural": "{{count}} mensajes guardados en este teléfono",
+        "cleared": "Se borró la conversación guardada de este teléfono."
+      },
+      "newConversation": "Empezar una conversación nueva",
+      "newConversationHint": "Borra la conversación actual y su copia guardada.",
+      "privacyRow": "Cómo usa la IA la información del hotel",
+      "privacyExtra": {
+        "usage": "El hotel guarda un registro de uso de cada solicitud de IA (cuándo, quién y cuánto usó) para la facturación. Esta app no puede borrar ese registro.",
+        "provider": "Las solicitudes las procesan los proveedores de IA del hotel según el acuerdo del hotel. Esta app no puede borrar nada que ellos conserven."
+      },
+      "clear": {
+        "title": "¿Borrar la conversación guardada?",
+        "confirm": "Borrar conversación",
+        "clears": "Esto elimina la conversación guardada en este teléfono y la que está en pantalla, para tu cuenta en este hotel. No se puede deshacer.",
+        "doesNot": "No elimina el registro de uso de solicitudes de IA del hotel ni nada que conserven los proveedores de IA. Esta app no controla eso."
+      }
+    }
   },
   "about": {
     "tagline": "Operaciones del hotel, simplificadas.",
@@ -3394,7 +3505,7 @@
       "clearBody": "Esto elimina la conversación guardada en este teléfono y empieza una nueva. No se puede deshacer.",
       "clearConfirm": "Borrar conversación",
       "voice": "Preferencias de voz",
-      "voiceBody": "El micrófono escucha en {{language}}, el mismo idioma de la app.",
+      "voiceBody": "El micrófono escucha en {{language}}. Puedes cambiarlo en Ajustes de IA y voz.",
       "micSettings": "Permiso del micrófono",
       "language": "Idioma de la app",
       "privacy": "Privacidad e información de IA",
@@ -3406,7 +3517,9 @@
         "confirmFirst": "No se crea, cambia ni envía nada a nadie hasta que lo revise y lo confirme.",
         "audio": "Su teléfono convierte la voz en texto. PatelRep nunca recibe ni guarda su audio.",
         "saved": "Se guarda en este teléfono, de forma segura, una copia solo de texto de esta conversación. Puede borrarla cuando quiera."
-      }
+      },
+      "settings": "Ajustes de IA y voz",
+      "voiceOffByChoice": "La entrada de voz está desactivada en Ajustes de IA y voz. Aún puedes escribir."
     }
   },
   "copilot": {
@@ -3929,7 +4042,27 @@
   "alertsScreen": {
     "unreadSuffix_one": "{{count}} sin leer",
     "unreadSuffix_other": "{{count}} sin leer",
-    "title": "Alertas"
+    "title": "Alertas",
+    "unreadSuffix": "{{count}} sin leer",
+    "unreadSuffix_plural": "{{count}} sin leer",
+    "markAllRead": "Marcar todo como leído",
+    "clearing": "Borrando…",
+    "unread": "Sin leer",
+    "filter": {
+      "all": "Todas",
+      "unread": "Sin leer"
+    },
+    "day": {
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "earlier": "Antes"
+    },
+    "stale": "No se pudo actualizar. Se muestra lo cargado antes.",
+    "loadFailed": "No se pudieron cargar tus notificaciones. Revisa tu conexión e inténtalo de nuevo.",
+    "emptyUnreadTitle": "Estás al día",
+    "emptyUnreadBody": "No hay alertas sin leer por ahora.",
+    "emptyAllTitle": "Aún no hay notificaciones",
+    "emptyAllBody": "Las alertas y los mensajes de tu equipo aparecerán aquí."
   },
   "scheduling": {
     "title": "Mis turnos",

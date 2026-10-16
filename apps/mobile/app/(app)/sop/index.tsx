@@ -14,7 +14,7 @@ import { documentStatus, freshnessOf, searchDocuments, sortDocuments, suggestedQ
 import { useAskAboutSop } from "@/lib/sop/useAskAboutSop";
 import { useSopLibrary } from "@/lib/sop/useSopLibrary";
 import { useTheme } from "@/lib/theme/useTheme";
-import { isSpeechAvailable } from "@/lib/voice/speechModule";
+import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 import { useAppStore } from "@/stores/appStore";
 
 const MAX_FONT_SCALE = 1.6;
@@ -54,7 +54,8 @@ export default function SopLibraryScreen() {
     assistant.setPendingHint("sop_query");
     assistant.openAssistant({ contextType: "general", voice: true });
   };
-  const micVisible = !!assistant && isAssistantRole(role) && isSpeechAvailable();
+  const voiceEnabled = useVoiceCapability().enabled;
+  const micVisible = !!assistant && isAssistantRole(role) && voiceEnabled;
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/(app)/home" as never));
   const freshness = savedAt ? freshnessOf(savedAt) : null;

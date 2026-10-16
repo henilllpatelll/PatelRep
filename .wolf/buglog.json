@@ -33844,6 +33844,115 @@
       "occurrences": 1,
       "last_seen": "2026-10-15T23:30:00Z",
       "timestamp": "2026-10-15T23:30:00Z"
+    },
+    {
+      "id": "bug-2051",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "AI shift recap treated every assigned room as completed work",
+      "file": "apps/api/services/ai/housekeeper_shift_recap.py",
+      "root_cause": "The app sent myRooms (assigned, any status, truncated to 60) and the prompt said the rooms were already complete; pace claims used estimated minutes",
+      "fix": "Server builds an aggregate from assignments + room_status + completed clean sessions in the shift window; prompt gets only facts; output validated against them; 409 with no evidence",
+      "tags": [
+        "api",
+        "ai",
+        "recap",
+        "data-contract"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2052",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Database Migration Gate failed: 216_ai_translation_cache.sql destructive without review markers",
+      "file": "supabase/migrations/216_ai_translation_cache.sql",
+      "root_cause": "Drops and re-adds the ai_interactions CHECK without the reviewed-destructive marker and rollback plan",
+      "fix": "Added the two marker lines (no SQL change)",
+      "tags": [
+        "migration",
+        "ci"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2053",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "RoomDetail test ran out of memory (Maximum update depth exceeded)",
+      "file": "apps/mobile/lib/sop/useRelatedProcedures.ts",
+      "root_cause": "setDocs([]) with a new array on every disabled run, and an isOnline dependency that is a new object under a selector-ignoring store mock",
+      "fix": "Keep the same empty array and reduce isOnline to a boolean",
+      "tags": [
+        "mobile",
+        "hooks",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2054",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Notifications screen showed 'You are all caught up' when the request failed",
+      "file": "apps/mobile/app/(app)/notifications/index.tsx",
+      "root_cause": "load() caught the error and set an empty list",
+      "fix": "Failed load keeps previous rows and shows an error/stale state with retry",
+      "tags": [
+        "mobile",
+        "notifications"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2055",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Header unread count showed the raw key alertsScreen.unreadSuffix",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Only _one/_other keys existed but the app uses i18next v3 plurals (key / key_plural)",
+      "fix": "Added unreadSuffix and unreadSuffix_plural (en + es)",
+      "tags": [
+        "mobile",
+        "i18n",
+        "plural"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2056",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "Finish-shift warning said '2 rooms have not been started' while totals said 1 not started + 1 in progress",
+      "file": "apps/mobile/components/home/FinishShiftReviewSheet.tsx",
+      "root_cause": "The warning counted remaining (including the open room)",
+      "fix": "Warning now counts totals.notStarted",
+      "tags": [
+        "mobile",
+        "shift"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
+    },
+    {
+      "id": "bug-2057",
+      "timestamp": "2026-10-16T09:00:00Z",
+      "error_message": "RBAC matrix test failed after editing ai_copilot.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "Generated file records route line numbers",
+      "fix": "Regenerated with scripts/generate_rbac_matrix.py",
+      "tags": [
+        "api",
+        "rbac"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T09:00:00Z"
     }
   ]
 }

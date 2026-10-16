@@ -533,6 +533,7 @@ describe("Settings route registration", () => {
       "profile/notifications",
       "profile/appearance",
       "profile/language",
+      "profile/ai-voice",
       "profile/sync",
       "profile/help",
       "profile/faq",

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Share } from "react-native";
 import { CompletedShiftSummarySheet } from "@/components/home/CompletedShiftSummarySheet";
 import { FinishShiftReviewSheet, type ClockOutError } from "@/components/home/FinishShiftReviewSheet";
 import { MarkCleanConfirmationSheet } from "@/components/home/MarkCleanConfirmationSheet";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/housekeeping/homeBriefing";
 import type { HomeModel } from "@/lib/housekeeping/homeModel";
 import type { TextContext, Translate } from "@/lib/housekeeping/myRoomsText";
+import { buildHandoffText } from "@/lib/housekeeping/handoffText";
 import { buildShiftReview, type ReviewItem } from "@/lib/housekeeping/shiftReview";
 import { buildShiftSummary } from "@/lib/housekeeping/shiftSummary";
 import { buildSyncStatusView } from "@/lib/housekeeping/syncStatus";
@@ -189,11 +191,15 @@ export function HomeServiceSheets({
         />
       );
     }
-    case "summary":
+    case "summary": {
+      const summary = buildShiftSummary(model, new Date());
+      const handoffText = buildHandoffText({ summary, language, t, recap: recap.ai });
       return (
         <CompletedShiftSummarySheet
           visible={visible}
-          summary={buildShiftSummary(model, new Date())}
+          summary={summary}
+          handoffText={handoffText}
+          onShareHandoff={handoffText ? () => void Share.share({ message: handoffText }).catch(() => undefined) : undefined}
           language={language}
           timeZone={model.timeZone}
           online={isOnline}
@@ -206,6 +212,7 @@ export function HomeServiceSheets({
           onClose={onClose}
         />
       );
+    }
     case "sync":
       return (
         <SyncStatusSheet

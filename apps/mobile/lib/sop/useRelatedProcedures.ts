@@ -13,13 +13,15 @@ import { useAppStore } from "@/stores/appStore";
  */
 export function useRelatedProcedures(texts: Array<string | null | undefined>, enabled: boolean): SOPDocument[] {
   const user = useAppStore((state) => state.user);
-  const isOnline = useAppStore((state) => state.isOnline);
+  // Reduced to a boolean so the effect below only re-runs when connectivity really changes.
+  const isOnline = useAppStore((state) => state.isOnline) !== false;
   const scope = assistantScope(user);
   const [docs, setDocs] = useState<SOPDocument[]>([]);
 
   useEffect(() => {
     if (!enabled || !scope) {
-      setDocs([]);
+      // Keep the same array when it is already empty: a new [] every run would re-render forever.
+      setDocs((current) => (current.length === 0 ? current : []));
       return;
     }
     let live = true;

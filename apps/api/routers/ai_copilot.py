@@ -23,7 +23,7 @@ from services.ai.photo_analysis import MAX_NOTE_CHARS, MAX_UPLOAD_BYTES, PhotoRe
 from services.ai.providers import AIProviderConfigurationError
 from services.ai.task_translation import task_source_hash, translate_task_fields
 from services.ai.housekeeping_briefing import generate_shift_briefing
-from services.ai.housekeeper_shift_recap import generate_shift_recap
+from services.ai.housekeeper_shift_recap import generate_shift_recap, load_shift_facts
 from services.ai.supervisor_briefing import generate_supervisor_briefing
 from services.ai.engineer_briefing import generate_engineer_briefing
 from services.ai.front_desk_briefing import generate_front_desk_briefing
@@ -606,24 +606,67 @@ async def housekeeping_shift_briefing(
         raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
 
 
+# A recap is only worth buying once per unchanged shift: the answer is kept per
+# person + shift facts + language, so a second tap (or a second device) on the same
+# facts returns it without another model call or another charge.
+_RECAP_CACHE_TTL_S = 12 * 60 * 60
+_RECAP_CACHE_MAX = 500
+_recap_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+def _recap_cache_get(key: tuple) -> dict | None:
+    hit = _recap_cache.get(key)
+    if not hit:
+        return None
+    if time.time() - hit[0] > _RECAP_CACHE_TTL_S:
+        _recap_cache.pop(key, None)
+        return None
+    return hit[1]
+
+
+def _recap_cache_put(key: tuple, value: dict) -> None:
+    if len(_recap_cache) >= _RECAP_CACHE_MAX:
+        oldest = min(_recap_cache, key=lambda k: _recap_cache[k][0])
+        _recap_cache.pop(oldest, None)
+    _recap_cache[key] = (time.time(), value)
+
+
 @router.post("/housekeeping/shift-summary")
 async def housekeeping_shift_recap(
     request: HousekeeperShiftRecapRequest,
     current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
 ):
-    """AI end-of-shift recap for the housekeeper's completed rooms today.
+    """AI wording for the housekeeper's own end-of-shift recap.
 
-    The mobile app sends compact completed-room summaries and renders a local
-    heuristic recap when this returns 503, so AI failures must not leak
-    provider detail.
+    The facts are computed here from the authoritative tables (assignments, room
+    status, completed clean sessions, the shift record), never taken from the
+    client, and are returned with the wording so the app can show the verified
+    numbers separately from the AI sentence. 409 means there is no completed
+    work on record to write about (no model call, no charge). AI failures must
+    not leak provider detail.
     """
     start = time.time()
     credits = 0
     try:
-        result = generate_shift_recap(
-            [room.model_dump() for room in request.rooms],
-            request.language,
+        facts = load_shift_facts(
+            supabase,
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            shift_date=request.shift_date,
         )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shift facts temporarily unavailable.") from exc
+
+    if facts["evidence"] != "sufficient":
+        raise HTTPException(status_code=409, detail="No completed work is recorded for this shift yet.")
+
+    cache_key = (current_user.hotel_id, current_user.user_id, facts["fingerprint"], request.language)
+    cached = _recap_cache_get(cache_key)
+    if cached is not None:
+        return {"data": {**cached, "facts": facts, "credits_used": 0, "cached": True}}
+
+    try:
+        result = generate_shift_recap(facts, request.language)
         credits = await check_and_deduct_credits(
             current_user.hotel_id, "housekeeper_shift_recap",
             result["prompt_tokens"], result["completion_tokens"],
@@ -635,7 +678,9 @@ async def housekeeping_shift_recap(
             credits_charged=credits, prompt_tokens=result["prompt_tokens"],
             completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
         )
-        return {"data": {**result["recap"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+        body = {**result["recap"], "model_used": "claude-sonnet-4-6"}
+        _recap_cache_put(cache_key, body)
+        return {"data": {**body, "facts": facts, "credits_used": credits, "cached": False}}
     except HTTPException:
         raise
     except Exception as exc:

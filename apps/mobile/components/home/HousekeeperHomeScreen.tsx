@@ -48,6 +48,9 @@ import { briefingCacheKey, publishLocalBriefing } from "@/lib/ai/shiftBriefingSo
 import { nextRoomFromRecommendation } from "@/lib/ai/nextRoom";
 import { buildBriefingFromModel, restrictedRoomNumbers } from "@/lib/housekeeping/homeBriefing";
 import { useShiftBriefing } from "@/lib/housekeeping/useShiftBriefing";
+import { resolveAssistantLanguage, useAiPreferences } from "@/lib/ai/preferences";
+import { summaryFingerprint } from "@/lib/ai/shiftRecap";
+import { buildShiftSummary } from "@/lib/housekeeping/shiftSummary";
 import { useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
 import { useSyncRun } from "@/lib/housekeeping/useSyncRun";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -93,7 +96,11 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
 
   // Paid AI is opt-in: both hooks only ever act on an explicit request from a drawer.
   const briefing = useShiftBriefing({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
-  const recap = useShiftRecap({ scope, shiftDate: model.shiftDate, language, rooms, isOnline, t });
+  const recapFingerprint = useMemo(() => summaryFingerprint(buildShiftSummary(model, new Date())), [model]);
+  // The recap sentence is requested in the person's AI-language choice; the screen itself stays in the app language.
+  const assistantLanguage = useAiPreferences((state) => state.assistantLanguage);
+  const recapLanguage = resolveAssistantLanguage({ assistantLanguage }, language);
+  const recap = useShiftRecap({ scope, shiftDate: model.shiftDate, language: recapLanguage, fingerprint: recapFingerprint, isOnline });
   const syncRun = useSyncRun(refreshHome);
 
   // The floating assistant shows this same briefing (read-only): publish the authoritative,
@@ -173,6 +180,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       roomAction: (roomId, action) => navigate(`/(app)/my-rooms/${roomId}?action=${action}&from=home`),
       openWorkOrder: (woId) => navigate(`/(app)/work-orders/${woId}`),
       openMyRooms,
+      openProcedure: (documentId) => navigate(`/(app)/sop/${documentId}`),
       askAboutRoom:
         assistant && isAssistantRole(user?.effective_role ?? user?.role)
           ? (roomId, roomNumber, live) =>

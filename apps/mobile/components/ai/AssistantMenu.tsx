@@ -4,8 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { usePalette, type Palette } from "@/components/ai/palette";
-import { speechLocale } from "@/lib/voice/locale";
-import { isSpeechAvailable } from "@/lib/voice/speechModule";
+import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -19,6 +18,8 @@ interface Props {
   onClearSaved: () => void;
   /** Open the app's own language settings. */
   onChangeLanguage: () => void;
+  /** Open AI & voice settings (voice on/off, speech and answer language, saved conversation). */
+  onOpenSettings?: () => void;
 }
 
 /**
@@ -26,8 +27,8 @@ interface Props {
  * which language the microphone listens in (it follows the app language) with a way to change it or open the
  * phone's microphone permission, and say plainly what the assistant does with what is said.
  */
-export function AssistantMenu({ visible, onClose, hasMessages, onNewConversation, onClearSaved, onChangeLanguage }: Props) {
-  const { t, i18n } = useTranslation();
+export function AssistantMenu({ visible, onClose, hasMessages, onNewConversation, onClearSaved, onChangeLanguage, onOpenSettings }: Props) {
+  const { t } = useTranslation();
   const theme = usePalette();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const [view, setView] = useState<MenuView>("menu");
@@ -36,7 +37,8 @@ export function AssistantMenu({ visible, onClose, hasMessages, onNewConversation
     if (visible) setView("menu");
   }, [visible]);
 
-  const spoken = speechLocale(i18n.resolvedLanguage ?? i18n.language) === "es-US" ? t("assistant.menu.spanish") : t("assistant.menu.english");
+  const voice = useVoiceCapability();
+  const spoken = voice.locale === "es-US" ? t("assistant.menu.spanish") : t("assistant.menu.english");
 
   const title =
     view === "clear"
@@ -79,6 +81,12 @@ export function AssistantMenu({ visible, onClose, hasMessages, onNewConversation
             onClose();
             onChangeLanguage();
           })}
+          {onOpenSettings
+            ? row("settings", "options-outline", t("assistant.menu.settings"), () => {
+                onClose();
+                onOpenSettings();
+              })
+            : null}
           {row("privacy", "shield-checkmark-outline", t("assistant.menu.privacy"), () => setView("privacy"))}
         </View>
       ) : view === "clear" ? (
@@ -110,7 +118,11 @@ export function AssistantMenu({ visible, onClose, hasMessages, onNewConversation
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.body} testID="assistant-menu-voice-language">
             {t("assistant.menu.voiceBody", { language: spoken })}
           </Text>
-          {isSpeechAvailable() ? null : (
+          {voice.offByChoice ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.muted} testID="assistant-menu-voice-off">
+              {t("assistant.menu.voiceOffByChoice")}
+            </Text>
+          ) : voice.available ? null : (
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.muted}>
               {t("assistant.voice.unavailable")}
             </Text>
