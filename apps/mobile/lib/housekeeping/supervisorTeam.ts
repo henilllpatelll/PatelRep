@@ -116,4 +116,3 @@ export function buildTeamPulse(
     entries === null ? null : entries.filter((entry) => entry.availability === availability && entry.userId !== viewerId).length;
   return { roster: { status: rosterStatus, fetchedAt: fetchedAtOf(roster) }, onShift: count("on_shift"), onBreak: count("on_break"), members, workloads };
 }
-

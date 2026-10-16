@@ -34019,6 +34019,23 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-16T12:00:00Z"
+    },
+    {
+      "id": "bug-2062",
+      "timestamp": "2026-10-17T14:20:00-05:00",
+      "error_message": "test_rbac_matrix_matches_generated_output failed because the committed matrix omitted the new supervisor today-summary route and stale line references.",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "The generated RBAC artifact was not regenerated after Phase 6 added routes to ai_copilot.py.",
+      "fix": "Regenerated apps/api/RBAC-MATRIX.md from the authoritative routers and reran the RBAC contract test.",
+      "tags": [
+        "api",
+        "rbac",
+        "generated-artifact",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-17T14:20:00-05:00"
     }
   ]
 }
