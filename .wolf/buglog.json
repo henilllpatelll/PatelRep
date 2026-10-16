@@ -34060,6 +34060,18 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-16T13:26:00-05:00"
+    },
+    {
+      "id": "bug-2065",
+      "timestamp": "2026-10-16T23:55:00-05:00",
+      "error_message": "PR #162 Room-Board Pixel-Diff Regression timed out in global-setup.ts because both persisted fixture passwords were invalid and the fixture users had no active profile or role records.",
+      "file": "apps/web/e2e/global-setup.ts, apps/web/e2e/fixtures/seed-regression-tenant.mjs",
+      "root_cause": "The CI workflow intentionally has no Supabase service-role credential and does not run the fixture seeder, so commit 8b6ae8db's source-only claim correction did not converge the pre-existing remote accounts.",
+      "fix": "Authorized, isolated reseed of tenant a0000000-0000-4000-a000-000000000001; synchronized the four regression fixture secrets and target URL; added tested redacted diagnostics for any future authentication failure.",
+      "tags": ["ci", "playwright", "regression-fixture", "supabase-auth", "redaction"],
+      "related_bugs": ["bug-1236"],
+      "occurrences": 1,
+      "last_seen": "2026-10-16T23:55:00-05:00"
     }
   ]
 }
