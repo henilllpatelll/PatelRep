@@ -37,6 +37,10 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readFileSync, existsSync, appendFileSync } from 'node:fs'
 import { buildFixtureAuthAttributes } from './regression-fixture-auth.mjs'
+import {
+  FIXTURE_IN_PROGRESS_ROOM_NUMBER,
+  buildRegressionFixtureRoomStatus,
+} from './regression-fixture-status.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const WEB_ROOT = join(__dirname, '..', '..') // apps/web
@@ -261,25 +265,41 @@ async function main() {
     if (roomError) throw roomError
     roomIdByNumber[fixtureRoom.room_number] = room.id
 
-    const { error: statusError } = await supabase.from('room_status').upsert(
-      {
-        room_id: room.id,
-        tenant_id: FIXTURE_TENANT_ID,
-        status: fixtureRoom.status,
-        vip_flag: fixtureRoom.vip,
-        // Cron-inert (see header comment): never eligible for a prediction row.
-        checkin_time: null,
-        checkout_time: null,
-        dnd_flag: false,
-        do_not_service: false,
-        clean_type: null,
-        fo_status: null,
-        assigned_to: null,
-        guest_name: null,
-        notes: null,
-      },
-      { onConflict: 'room_id' },
-    )
+    const canonicalStatus = buildRegressionFixtureRoomStatus({
+      roomId: room.id,
+      tenantId: FIXTURE_TENANT_ID,
+      room: fixtureRoom,
+    })
+
+    // The generic database BEFORE UPDATE trigger always writes updated_at = NOW().
+    // Room 104's checked-in baseline deliberately requires a stale timestamp so
+    // its elapsed-cleaning value remains unavailable and byte-stable. Reinsert
+    // that isolated fixture row (plus its fixture-only history) so its explicit
+    // canonical insert timestamp survives the trigger; all other rows remain
+    // normal upserts.
+    if (fixtureRoom.room_number === FIXTURE_IN_PROGRESS_ROOM_NUMBER) {
+      const { error: historyDeleteError } = await supabase
+        .from('room_status_history')
+        .delete()
+        .eq('tenant_id', FIXTURE_TENANT_ID)
+        .eq('room_id', room.id)
+      if (historyDeleteError) throw historyDeleteError
+
+      const { error: statusDeleteError } = await supabase
+        .from('room_status')
+        .delete()
+        .eq('tenant_id', FIXTURE_TENANT_ID)
+        .eq('room_id', room.id)
+      if (statusDeleteError) throw statusDeleteError
+
+      const { error: statusError } = await supabase.from('room_status').insert(canonicalStatus)
+      if (statusError) throw statusError
+      continue
+    }
+
+    const { error: statusError } = await supabase
+      .from('room_status')
+      .upsert(canonicalStatus, { onConflict: 'room_id' })
     if (statusError) throw statusError
   }
 

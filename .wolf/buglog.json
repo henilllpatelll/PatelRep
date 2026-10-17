@@ -34072,6 +34072,18 @@
       "related_bugs": ["bug-1236"],
       "occurrences": 1,
       "last_seen": "2026-10-16T23:55:00-05:00"
+    },
+    {
+      "id": "bug-2066",
+      "timestamp": "2026-10-17T00:15:00-05:00",
+      "error_message": "After the authorized fixture-auth reseed, all four RoomDetailDrawer Linux baselines drifted because room 104's cleaning-start timestamp was reset to the current time.",
+      "file": "apps/web/e2e/fixtures/seed-regression-tenant.mjs, apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "room_status uses a generic BEFORE UPDATE trigger that rewrites updated_at to NOW(), while the drawer uses that field as its cleaning-start fallback; a normal upsert made a supposedly stable visual fixture time-dependent.",
+      "fix": "The seed now deletes and reinserts only fixture room 104's room_status row with its checked-in stale timestamp, after clearing only that room's fixture history. No screenshot masks, tolerance changes, or baseline regeneration were used.",
+      "tags": ["ci", "playwright", "regression-fixture", "pixel-diff", "database-trigger"],
+      "related_bugs": ["bug-2065"],
+      "occurrences": 1,
+      "last_seen": "2026-10-17T00:15:00-05:00"
     }
   ]
 }
