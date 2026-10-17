@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import re
-from uuid import uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from typing import Optional
 from datetime import date, datetime, time, timedelta, timezone
@@ -13,6 +13,7 @@ from models.requests import (
     RoomAssignmentItem,
     SubmitInspectionRequest,
     BatchRoomReadinessRequest,
+    EndShiftSummaryRequest,
 )
 from core.database import supabase
 from services.reclean_corrections import load_reclean_details
@@ -47,6 +48,19 @@ ALLOWED_INSPECTION_PHOTO_TYPES = {"image/jpeg", "image/jpg", "image/png", "image
 MAX_INSPECTION_PHOTO_BYTES = 5 * 1024 * 1024
 
 HOTEL_ACTIVITY_TIMEZONE = tz.gettz("America/Chicago") or timezone(timedelta(hours=-6))
+
+
+def _hotel_zone(hotel_id: str):
+    result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
+    name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
+    return tz.gettz(name) or HOTEL_ACTIVITY_TIMEZONE
+
+
+def _hotel_reporting_window(start_date: date, end_date: date, zone) -> tuple[str, str]:
+    """[start local midnight, day after end local midnight) in UTC, including DST transitions."""
+    start = datetime.combine(start_date, time.min, tzinfo=zone).astimezone(timezone.utc)
+    end = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=zone).astimezone(timezone.utc)
+    return start.isoformat(), end.isoformat()
 
 
 def _is_missing_clean_type_column_error(exc: Exception) -> bool:
@@ -2364,31 +2378,19 @@ async def list_inspections(
     date_to: Optional[date] = Query(None),
     room_id: Optional[str] = Query(None),
     result: Optional[str] = Query(None),  # passed|failed|conditional
-    tz_offset: Optional[int] = Query(None),  # client UTC offset in minutes (JS getTimezoneOffset)
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """List inspection records with optional filters.
 
-    tz_offset: JS Date.getTimezoneOffset() value (positive = behind UTC, e.g. 300 for CDT).
-    When provided, local-day boundaries are converted to UTC so inspections done
-    in the evening don't fall outside the 'today' window due to UTC date rollover.
+    Date filters always use the hotel's configured time zone. The server resolves
+    both local midnights independently so spring-forward and fall-back days match
+    every reporting surface, regardless of the mobile device's time zone.
     """
-    from datetime import timedelta as _td
-    today = date.today()
+    zone = _hotel_zone(current_user.hotel_id)
+    today = datetime.now(zone).date()
     from_date = date_from or today
     to_date = date_to or today
-
-    if tz_offset is not None:
-        # Convert local midnight/end-of-day to UTC using the client timezone offset.
-        # JS getTimezoneOffset() = -utc_offset_minutes, so CDT(UTC-5) = 300.
-        offset_delta = _td(minutes=tz_offset)
-        start_utc = datetime.combine(from_date, datetime.min.time()) + offset_delta
-        end_utc = datetime.combine(to_date, datetime.max.time().replace(microsecond=0)) + offset_delta
-        start_str = start_utc.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        end_str = end_utc.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    else:
-        start_str = f"{from_date.isoformat()}T00:00:00+00:00"
-        end_str = f"{to_date.isoformat()}T23:59:59+00:00"
+    start_str, end_str = _hotel_reporting_window(from_date, to_date, zone)
 
     query = (
         supabase.table("inspections")
@@ -2398,7 +2400,7 @@ async def list_inspections(
         )
         .eq("tenant_id", current_user.hotel_id)
         .gte("completed_at", start_str)
-        .lte("completed_at", end_str)
+        .lt("completed_at", end_str)
         .order("completed_at", desc=True)
     )
 
@@ -2706,77 +2708,325 @@ async def upload_inspection_photo(
     return {"data": {"url": public_url, "template_item_id": template_item_id}}
 
 
-@router.post("/end-shift-summary")
-async def submit_end_shift_summary(
-    body: dict,
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
-):
-    """Submit an end-of-shift summary to the logbook and notify GMs."""
-    notes = (body.get("notes") or "").strip()
-    stats = body.get("stats") or {}
-    ready = int(stats.get("ready", 0))
-    total = int(stats.get("total", 0))
-    inspected = int(stats.get("inspected", 0))
-    failed = int(stats.get("failed", 0))
-    ooo = int(stats.get("ooo", 0))
+HANDOFF_NOTIFICATION_TYPE = "shift_summary"
+# A handoff covers one hotel-local day; the previous day stays open so an overnight supervisor can still file it.
+HANDOFF_MAX_DAYS_BACK = 1
+HANDOFF_INSPECTION_ROW_LIMIT = 5000
 
-    content = (
-        f"End-of-shift: {ready}/{total} rooms ready, "
-        f"{inspected} passed inspection, {failed} failed, {ooo} OOO."
+
+def _handoff_error(status_code: int, code: str, message: str, **extra) -> HTTPException:
+    return HTTPException(status_code=status_code, detail={"code": code, "message": message, **extra})
+
+
+def _handoff_window(report_date: date, zone) -> tuple[str, str]:
+    """[local midnight, next local midnight) as UTC ISO strings, correct across DST changes."""
+    return _hotel_reporting_window(report_date, report_date, zone)
+
+
+def _count_handoff_inspections(hotel_id: str, start_iso: str, end_iso: str) -> dict:
+    """Completed inspections in the window, counted by recorded result.
+
+    These are ACTIVITY counts: a room inspected twice counts twice, and they have no relationship to how
+    many rooms are ready right now.
+    """
+    rows = (
+        supabase.table("inspections")
+        .select("id, overall_result")
+        .eq("tenant_id", hotel_id)
+        .gte("completed_at", start_iso)
+        .lt("completed_at", end_iso)
+        .limit(HANDOFF_INSPECTION_ROW_LIMIT)
+        .execute()
+        .data
+        or []
     )
-    if notes:
-        content += f"\n\nNotes: {notes}"
+    counts = {"passed": 0, "failed": 0, "conditional": 0}
+    seen: set = set()
+    for row in rows:
+        row_id = row.get("id")
+        if row_id is not None:
+            if row_id in seen:
+                continue
+            seen.add(row_id)
+        result = str(row.get("overall_result") or "").lower()
+        if result in counts:
+            counts[result] += 1
+    return counts
 
-    dept_res = (
+
+def _resolve_handoff_department(hotel_id: str) -> str:
+    """The hotel's Housekeeping department. Never falls back to some other department."""
+    rows = (
         supabase.table("departments")
-        .select("id")
-        .eq("tenant_id", current_user.hotel_id)
-        .ilike("name", "%housekeep%")
+        .select("id, name, code")
+        .eq("tenant_id", hotel_id)
+        .execute()
+        .data
+        or []
+    )
+    ids = {
+        row["id"]
+        for row in rows
+        if row.get("id")
+        and (
+            str(row.get("code") or "").strip().upper() == "HK"
+            or str(row.get("name") or "").strip().lower() == "housekeeping"
+        )
+    }
+    if not ids:
+        raise _handoff_error(422, "housekeeping_department_missing", "Housekeeping department could not be identified.")
+    if len(ids) > 1:
+        raise _handoff_error(
+            422, "housekeeping_department_ambiguous", "More than one Housekeeping department exists for this hotel."
+        )
+    return next(iter(ids))
+
+
+def _room_list(label: str, count: int, numbers: list[str]) -> str:
+    shown = ", ".join(numbers)
+    more = count - len(numbers)
+    if not shown:
+        return label
+    return f"{label} ({shown}{f' +{more} more' if more > 0 else ''})"
+
+
+def build_handoff_content(body: EndShiftSummaryRequest, inspections: dict) -> str:
+    """The saved report text, built only from validated figures so what is stored is what was reviewed."""
+    rooms = body.rooms
+    unresolved = body.unresolved
+    in_service = rooms.total - rooms.out_of_order
+    lines = [
+        f"Housekeeping shift handoff for {body.report_date.isoformat()} (hotel day).",
+        (
+            f"Rooms now: {rooms.ready} of {in_service} in-service rooms ready; {rooms.awaiting_inspection} awaiting "
+            f"inspection, {rooms.in_progress} in progress, {rooms.to_clean} to clean; {rooms.out_of_order} out of order."
+        ),
+        (
+            f"Inspections completed this day: {inspections['passed']} passed, {inspections['failed']} failed, "
+            f"{inspections['conditional']} conditional."
+        ),
+    ]
+    open_items = []
+    if rooms.awaiting_inspection:
+        open_items.append(
+            _room_list(
+                f"{rooms.awaiting_inspection} room(s) awaiting inspection",
+                rooms.awaiting_inspection,
+                unresolved.awaiting_inspection_room_numbers,
+            )
+        )
+    if unresolved.unassigned_rooms:
+        open_items.append(
+            _room_list(
+                f"{unresolved.unassigned_rooms} unassigned room(s)",
+                unresolved.unassigned_rooms,
+                unresolved.unassigned_room_numbers,
+            )
+        )
+    if unresolved.blocked_tasks is None:
+        open_items.append("blocked tasks: not verified")
+    elif unresolved.blocked_tasks:
+        open_items.append(f"{unresolved.blocked_tasks} blocked task(s)")
+    lines.append("Still open: " + "; ".join(open_items) + "." if open_items else "Still open: nothing reported.")
+    if body.notes:
+        lines.append(f"Supervisor notes: {body.notes}")
+    lines.append(
+        "Counts are a snapshot taken at submission. Submitting this report does not complete work or clock anyone out."
+    )
+    return "\n".join(lines)
+
+
+def _find_handoff(hotel_id: str, user_id: str, client_request_id: str) -> Optional[dict]:
+    result = (
+        supabase.table("logbook_entries")
+        .select("id, tenant_id, department_id, entry_date, content, created_at, client_request_id")
+        .eq("tenant_id", hotel_id)
+        .eq("author_id", user_id)
+        .eq("client_request_id", client_request_id)
         .maybe_single()
         .execute()
     )
-    dept_id = (dept_res.data or {}).get("id") if dept_res else None
-    if not dept_id:
-        any_dept = (
-            supabase.table("departments")
-            .select("id")
-            .eq("tenant_id", current_user.hotel_id)
-            .limit(1)
-            .execute()
-        )
-        dept_id = (any_dept.data[0] if any_dept and any_dept.data else {}).get("id")
-    if not dept_id:
-        raise HTTPException(status_code=422, detail="No department found for this hotel")
+    return result.data if result else None
 
-    entry = supabase.table("logbook_entries").insert({
-        "tenant_id": current_user.hotel_id,
-        "department_id": dept_id,
-        "author_id": current_user.user_id,
-        "content": content,
-    }).execute()
 
-    gm_users = (
+def _handoff_manager_ids(hotel_id: str, author_id: str) -> list[str]:
+    rows = (
         supabase.table("user_roles")
         .select("user_id")
-        .eq("tenant_id", current_user.hotel_id)
+        .eq("tenant_id", hotel_id)
         .eq("role", "gm")
+        .eq("is_active", True)
         .execute()
+        .data
+        or []
     )
-    if gm_users and gm_users.data:
-        notifs = [
-            {
-                "tenant_id": current_user.hotel_id,
-                "user_id": gm["user_id"],
-                "title": "End-of-shift summary submitted",
-                "body": f"{ready}/{total} rooms ready." + (f" {notes[:80]}" if notes else ""),
-                "type": "shift_summary",
-            }
-            for gm in gm_users.data
-        ]
-        if notifs:
-            supabase.table("notifications").insert(notifs).execute()
+    return sorted({str(row["user_id"]) for row in rows if row.get("user_id") and str(row["user_id"]) != author_id})
 
-    return {"data": entry.data[0] if entry.data else None}
+
+def _handoff_notification_status(hotel_id: str, author_id: str, entry: dict) -> dict:
+    """Read, never write, the durable GM-notification state for a saved handoff."""
+    recipients = _handoff_manager_ids(hotel_id, author_id)
+    if not recipients:
+        return {"status": "none_needed", "recipients": 0}
+    expected_ids = [str(uuid5(NAMESPACE_URL, f"patelrep:handoff:{entry['id']}:{user_id}")) for user_id in recipients]
+    delivered = (
+        supabase.table("notifications")
+        .select("id")
+        .eq("tenant_id", hotel_id)
+        .eq("type", HANDOFF_NOTIFICATION_TYPE)
+        .in_("id", expected_ids)
+        .execute()
+        .data
+        or []
+    )
+    delivered_ids = {str(row.get("id")) for row in delivered if row.get("id")}
+    return {"status": "complete" if len(delivered_ids) == len(expected_ids) else "failed", "recipients": len(recipients)}
+
+
+def _handoff_payload(entry: dict) -> dict:
+    return {
+        "id": entry.get("id"),
+        "client_request_id": entry.get("client_request_id"),
+        "department_id": entry.get("department_id"),
+        "report_date": entry.get("entry_date"),
+        "content": entry.get("content"),
+        "created_at": entry.get("created_at"),
+    }
+
+
+def _is_unique_violation(exc: Exception) -> bool:
+    return getattr(exc, "code", None) == "23505" or "23505" in str(exc)
+
+
+def _notify_handoff_managers(hotel_id: str, author_id: str, entry: dict, content: str) -> dict:
+    """Tell the hotel's GMs. Safe to run any number of times for one entry.
+
+    Each notification has a deterministic id derived from (entry, recipient) and is written with
+    ignore-duplicates, so a retry fills in whatever is missing and never doubles what was delivered.
+    """
+    try:
+        recipients = _handoff_manager_ids(hotel_id, author_id)
+        if not recipients:
+            return {"status": "none_needed", "recipients": 0}
+        first_line = content.split("\n", 1)[0]
+        rows = [
+            {
+                "id": str(uuid5(NAMESPACE_URL, f"patelrep:handoff:{entry['id']}:{user_id}")),
+                "tenant_id": hotel_id,
+                "user_id": user_id,
+                "title": "Housekeeping shift handoff submitted",
+                "body": first_line,
+                "type": HANDOFF_NOTIFICATION_TYPE,
+                "data": {"entry_id": entry["id"], "href": f"/logbook?entry={entry['id']}"},
+            }
+            for user_id in recipients
+        ]
+        supabase.table("notifications").upsert(rows, on_conflict="id", ignore_duplicates=True).execute()
+        return _handoff_notification_status(hotel_id, author_id, entry)
+    except Exception:  # the report is already saved; a retry of the same submission completes this
+        logging.getLogger(__name__).exception("Handoff notification failed for entry %s", entry.get("id"))
+        return {"status": "failed", "recipients": None}
+
+
+def _handoff_response(entry: dict, replay: bool, notifications: Optional[dict] = None) -> dict:
+    response: dict = {"data": _handoff_payload(entry), "idempotent_replay": replay}
+    if notifications is not None:
+        response["notifications"] = notifications
+    return response
+
+
+@router.post("/end-shift-summary")
+async def submit_end_shift_summary(
+    body: EndShiftSummaryRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Save a supervisor's housekeeping shift handoff to the logbook and notify GMs, exactly once.
+
+    `client_request_id` makes the call replay-safe: the same id from the same person returns the report that
+    was already saved (and finishes any GM notifications that did not go out the first time) instead of
+    writing a second one. The inspection counts are re-derived here from the inspections table; if they no
+    longer match what the supervisor reviewed the call is refused with the current figures (409) so they can
+    review again. The room snapshot is the client's Room Board reading, validated for consistency.
+    """
+    hotel_id, user_id = current_user.hotel_id, current_user.user_id
+    key = str(body.client_request_id)
+
+    existing = _find_handoff(hotel_id, user_id, key)
+    if existing:
+        notifications = _notify_handoff_managers(hotel_id, user_id, existing, existing.get("content") or "")
+        return _handoff_response(existing, True, notifications)
+
+    zone = _hotel_zone(hotel_id)
+    hotel_today = datetime.now(zone).date()
+    if body.report_date > hotel_today or body.report_date < hotel_today - timedelta(days=HANDOFF_MAX_DAYS_BACK):
+        raise _handoff_error(
+            422, "report_date_out_of_range", "A handoff can only cover today or yesterday in the hotel's time zone."
+        )
+
+    start_iso, end_iso = _handoff_window(body.report_date, zone)
+    inspections = _count_handoff_inspections(hotel_id, start_iso, end_iso)
+    reviewed = body.inspections.model_dump()
+    if inspections != reviewed:
+        raise _handoff_error(
+            409,
+            "inspection_counts_changed",
+            "Inspection results changed since this handoff was reviewed.",
+            inspections=inspections,
+        )
+
+    department_id = _resolve_handoff_department(hotel_id)
+    content = build_handoff_content(body, inspections)
+    payload = {
+        "tenant_id": hotel_id,
+        "department_id": department_id,
+        "author_id": user_id,
+        "content": content,
+        "entry_date": body.report_date.isoformat(),
+        "category": "room",
+        "status": "informational",
+        "priority": "normal",
+        "client_request_id": key,
+    }
+    if body.report_date == hotel_today:
+        # Same rule as manual logbook entries: attach the department's active shift only when exactly one is.
+        from routers.logbook import _resolve_active_shift
+
+        active_shift = _resolve_active_shift(hotel_id, department_id)
+        payload["shift_id"] = active_shift["id"] if active_shift else None
+
+    try:
+        result = supabase.table("logbook_entries").insert(payload).execute()
+    except Exception as exc:
+        if not _is_unique_violation(exc):
+            raise
+        # Two copies of the same submission raced; the other one won. Answer with its report.
+        winner = _find_handoff(hotel_id, user_id, key)
+        if not winner:
+            raise
+        return _handoff_response(winner, True, _notify_handoff_managers(hotel_id, user_id, winner, winner.get("content") or ""))
+
+    entry = result.data[0] if result.data else None
+    if not entry:
+        raise _handoff_error(500, "handoff_not_saved", "The handoff could not be saved.")
+    entry.setdefault("client_request_id", key)
+    return _handoff_response(entry, False, _notify_handoff_managers(hotel_id, user_id, entry, content))
+
+
+@router.get("/end-shift-summary/{client_request_id}")
+async def get_end_shift_summary(
+    client_request_id: UUID,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """The handoff this person saved under `client_request_id`, or 404. Lets the app learn whether a
+    submission whose answer never arrived was stored, without writing anything."""
+    entry = _find_handoff(current_user.hotel_id, current_user.user_id, str(client_request_id))
+    if not entry:
+        raise _handoff_error(404, "handoff_not_found", "No handoff was saved under that request.")
+    return _handoff_response(
+        entry,
+        True,
+        _handoff_notification_status(current_user.hotel_id, current_user.user_id, entry),
+    )
 
 
 @router.delete("/inspections/templates/{template_id}", status_code=204)

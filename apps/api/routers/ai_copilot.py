@@ -5,7 +5,7 @@ from middleware.auth import get_current_user, CurrentUser, require_role
 from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction, record_cache_hit
 from models.requests import (
     CopilotChatRequest, HousekeepingBriefingRequest, HousekeeperShiftRecapRequest,
-    SupervisorBriefingRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
+    SupervisorBriefingRequest, SupervisorSummaryRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
     TaskPreview, WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
     AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
     UpdateAIModelRouteRequest, TaskTranslationRequest,
@@ -27,6 +27,7 @@ from services.ai.task_translation import task_source_hash, translate_task_fields
 from services.ai.housekeeping_briefing import generate_shift_briefing
 from services.ai.housekeeper_shift_recap import generate_shift_recap, load_shift_facts
 from services.ai.supervisor_briefing import generate_supervisor_briefing
+from services.ai.supervisor_summary import generate_supervisor_summary
 from services.ai.engineer_briefing import generate_engineer_briefing
 from services.ai.front_desk_briefing import generate_front_desk_briefing
 from services.ai.gm_briefing import generate_gm_briefing
@@ -750,6 +751,67 @@ async def supervisor_shift_briefing(
             latency_ms=latency, success=False, error_message=str(exc),
         )
         raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
+
+
+# Best-effort per-person spacing for the on-demand summary (per API process). The phone already coalesces and
+# spaces requests; this only stops a looping client from turning one tap into a stream of paid calls.
+SUMMARY_COOLDOWN_SECONDS = 15
+_summary_last_call: dict[str, float] = {}
+
+
+@router.post("/supervisor/today-summary")
+async def supervisor_today_summary(
+    request: SupervisorSummaryRequest,
+    current_user: CurrentUser = Depends(require_role("housekeeping_supervisor")),
+):
+    """On-demand wording of the supervisor's verified Today figures (shift overview or handoff-note draft).
+
+    Paid, so: the hotel's AI switch must be on, the credit cap is checked BEFORE the model runs, tokens are
+    billed from real usage, and one person cannot fire it more than once per cooldown. The input is structured
+    (counts, room numbers, enum kinds) and the answer is plain text that is rejected if it contains a number
+    that was not in the input. It returns no ids and performs no action.
+    """
+    if not is_feature_enabled(current_user.hotel_id, "hk_ai_assistant"):
+        raise HTTPException(status_code=403, detail="AI assistant is not enabled for this hotel.")
+    now = time.monotonic()
+    last = _summary_last_call.get(current_user.user_id)
+    if last is not None and now - last < SUMMARY_COOLDOWN_SECONDS:
+        retry_after = int(SUMMARY_COOLDOWN_SECONDS - (now - last)) + 1
+        raise HTTPException(status_code=429, detail="Please wait a moment before asking again.", headers={"Retry-After": str(retry_after)})
+    start = time.time()
+    credits = 0
+    try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "supervisor_briefing")
+        _summary_last_call[current_user.user_id] = now
+        payload = request.model_dump()
+        result = generate_supervisor_summary(payload)
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "supervisor_briefing",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
+        latency = int((time.time() - start) * 1000)
+        valid = result["summary"] is not None
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="supervisor_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=valid,
+            error_message=None if valid else "invalid_ai_response",
+        )
+        if not valid:
+            raise HTTPException(status_code=502, detail="AI response could not be verified.")
+        return {"data": {"summary": result["summary"], "purpose": request.purpose, "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="supervisor_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI summary temporarily unavailable.")
 
 
 @router.post("/engineer/briefing")

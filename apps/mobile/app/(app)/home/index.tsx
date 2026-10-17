@@ -26,7 +26,7 @@ export default function HousekeeperHomeScreen() {
     return <EngineerHome name={displayNameFor(user) || "Engineer"} />;
   }
   if (effectiveRole === "housekeeping_supervisor") {
-    return <SupervisorHome name={displayNameFor(user) || "Supervisor"} />;
+    return <SupervisorHome name={displayNameFor(user)} />;
   }
   if (effectiveRole === "front_desk") {
     return <FrontDeskHomeScreen name={displayNameFor(user) || "Front Desk"} />;

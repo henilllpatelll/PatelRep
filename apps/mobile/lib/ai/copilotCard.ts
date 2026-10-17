@@ -2,17 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import {
-  fetchSupervisorBriefing,
   fetchEngineerBriefing,
   fetchFrontDeskBriefing,
   fetchGmBriefing,
-  type BriefingRoomInput,
-  type StaffProgressInput,
   type WorkOrderBriefingInput,
   type GuestRequestBriefingInput,
   type CopilotBriefing,
 } from "@/lib/api/briefings";
-import { fetchBoard, fetchAssignableStaff } from "@/lib/api/housekeepingSupervisor";
+import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import type { BoardRoomRaw } from "@/lib/housekeeping/supervisor";
 import { listWorkOrders } from "@/lib/api/workOrders";
 import { getGuestRequests } from "@/lib/api/guestRequests";
@@ -106,30 +103,6 @@ export function housekeeperBriefFromShared(t: Translate, shared: SharedBriefingV
   };
 }
 
-async function loadSupervisorBrief(t: Translate, language: "en" | "es"): Promise<CopilotCardBrief | null> {
-  const today = new Date().toISOString().slice(0, 10);
-  const [boardRows, staff] = await Promise.all([fetchBoard(today), fetchAssignableStaff()]);
-
-  const rooms: BriefingRoomInput[] = boardRows.map((r) => ({
-    room_number: r.rooms?.room_number ?? "?",
-    status: r.status,
-    clean_type: r.clean_type ?? null,
-    vip_flag: Boolean(r.vip_flag),
-    dnd_flag: Boolean(r.dnd_flag),
-  }));
-
-  const staffInputs: StaffProgressInput[] = staff
-    .map((member) => {
-      const assigned = boardRows.filter((r) => r.assigned_to === member.userId);
-      const done = assigned.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").length;
-      return { name: member.name, rooms_done: done, rooms_total: assigned.length };
-    })
-    .filter((s) => s.rooms_total > 0);
-
-  const result = await fetchSupervisorBriefing(rooms, staffInputs, language);
-  return result ? mapApiBrief(t, "housekeeping_supervisor", result) : null;
-}
-
 async function loadEngineerBrief(t: Translate, language: "en" | "es"): Promise<CopilotCardBrief | null> {
   const [openWOs, progressWOs, pmRes] = await Promise.all([
     listWorkOrders("open"),
@@ -206,8 +179,9 @@ export function useCopilotBrief() {
   const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
-    // Housekeepers have nothing to load: their briefing is the shared one above.
-    if (!cardRole || cardRole === "housekeeper") {
+    // Housekeepers have nothing to load: their briefing is the shared one above. The supervisor's overview is built
+    // on the phone from the Today snapshot when the card opens; its optional AI wording is a tap, never a load.
+    if (!cardRole || cardRole === "housekeeper" || cardRole === "housekeeping_supervisor") {
       setBrief(null);
       return;
     }
@@ -215,9 +189,7 @@ export function useCopilotBrief() {
     setError(false);
     try {
       let next: CopilotCardBrief | null = null;
-      if (cardRole === "housekeeping_supervisor") {
-        next = await loadSupervisorBrief(t, language);
-      } else if (cardRole === "engineer") {
+      if (cardRole === "engineer") {
         next = await loadEngineerBrief(t, language);
       } else if (cardRole === "front_desk") {
         next = await loadFrontDeskBrief(t, language);
@@ -253,6 +225,9 @@ export function useCopilotBrief() {
 
   if (cardRole === "housekeeper") {
     return { cardRole, brief: housekeeperBrief, loading: false, error: false, reload: load };
+  }
+  if (cardRole === "housekeeping_supervisor") {
+    return { cardRole, brief: null, loading: false, error: false, reload: load };
   }
   return { cardRole, brief, loading, error, reload: load };
 }

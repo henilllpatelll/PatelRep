@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -111,6 +112,10 @@ export default function RoomBoardScreen() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
   const [saving, setSaving] = useState(false);
+  // Deep link from the supervisor Attention Center: `?roomId=` opens that room once, or says it is gone.
+  const { roomId: linkedRoomId } = useLocalSearchParams<{ roomId?: string }>();
+  const [boardLoaded, setBoardLoaded] = useState(false);
+  const [linkMissing, setLinkMissing] = useState(false);
 
   const loadBoard = useCallback(async () => {
     if (!isOnline) {
@@ -121,7 +126,10 @@ export default function RoomBoardScreen() {
       fetchBoard(localDate()),
       fetchAssignableStaff(),
     ]);
-    if (boardRes.status === "fulfilled") setRooms(normalizeBoardRooms(boardRes.value));
+    if (boardRes.status === "fulfilled") {
+      setRooms(normalizeBoardRooms(boardRes.value));
+      setBoardLoaded(true);
+    }
     if (staffRes.status === "fulfilled") setStaff(staffRes.value);
     setLoading(false);
   }, [isOnline]);
@@ -161,6 +169,16 @@ export default function RoomBoardScreen() {
     () => rooms.find((room) => room.roomId === selectedRoomId) ?? null,
     [rooms, selectedRoomId],
   );
+
+  // The link is single-use. It is only judged against a board that really loaded: a failed or offline load
+  // proves nothing about the room, so the link waits for the next successful load.
+  useEffect(() => {
+    const id = typeof linkedRoomId === "string" ? linkedRoomId.trim() : "";
+    if (!id || !boardLoaded) return;
+    if (rooms.some((room) => room.roomId === id)) setSelectedRoomId(id);
+    else setLinkMissing(true);
+    router.setParams({ roomId: undefined });
+  }, [linkedRoomId, boardLoaded, rooms]);
 
   const signals = useMemo<HeroSignal[]>(
     () =>
@@ -299,6 +317,28 @@ export default function RoomBoardScreen() {
           })}
         </View>
 
+        {linkMissing ? (
+          <View
+            style={[styles.linkNotice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+            accessibilityRole="alert"
+            testID="room-board-link-missing"
+          >
+            <View style={styles.linkNoticeText}>
+              <Text style={[styles.linkNoticeTitle, { color: theme.textPrimary }]}>{t("supervisorAttention.roomBoard.missingTitle")}</Text>
+              <Text style={[styles.linkNoticeBody, { color: theme.textSecondary }]}>{t("supervisorAttention.roomBoard.missingBody")}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setLinkMissing(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.close")}
+              hitSlop={8}
+              testID="room-board-link-missing-close"
+            >
+              <Text style={[styles.linkNoticeClose, { color: theme.primaryAction }]}>{t("common.close")}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         <ColorLegend t={t} theme={theme} />
 
         <View style={styles.body}>
@@ -408,6 +448,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   segmentLabel: { fontSize: 12, fontWeight: "700" },
+
+  linkNotice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 18, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
+  linkNoticeText: { flex: 1, gap: 2 },
+  linkNoticeTitle: { fontSize: 14, fontWeight: "700" },
+  linkNoticeBody: { fontSize: 13, lineHeight: 18 },
+  linkNoticeClose: { fontSize: 14, fontWeight: "700", minHeight: 44, textAlignVertical: "center" },
 
   body: { paddingHorizontal: 16, gap: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },

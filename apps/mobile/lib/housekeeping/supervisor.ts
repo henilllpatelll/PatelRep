@@ -117,7 +117,7 @@ export interface FloorSnapshot {
   behindSchedule: number;
 }
 
-function isBehindSchedule(room: FloorRoom, nowMs: number): boolean {
+export function isBehindSchedule(room: FloorRoom, nowMs: number): boolean {
   if (room.status === "INSPECTED" || room.status === "CLEAN" || isOutOfOrder(room.status)) return false;
   if (!isActionable(room.status) && room.status !== "DIRTY" && room.status !== "PICKUP") return false;
   // Departure rooms: behind if checkout_time < now

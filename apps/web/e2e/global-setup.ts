@@ -14,6 +14,7 @@
 import { chromium, type FullConfig } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { createLoginDiagnostics, safeDiagnosticUrl } from './regression-login-diagnostics'
 
 // This project has no "type": "module" in package.json, so Playwright's TS
 // loader transpiles this file to CommonJS — `__dirname` is the Node global,
@@ -48,7 +49,12 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   const baseURL =
     (config.projects[0]?.use?.baseURL as string | undefined) ??
     process.env.PLAYWRIGHT_BASE_URL ??
-    'https://patelrep-production-0ad1.up.railway.app'
+    'https://patelrep-production-6f35.up.railway.app'
+
+  // Identifies the configured regression target without exposing query data,
+  // credentials, or session tokens. Failure details below retain only auth
+  // status/method, page errors, and visible login alerts.
+  console.log(`REGRESSION_LOGIN_TARGET ${safeDiagnosticUrl(baseURL)}`)
 
   const browser = await chromium.launch()
   try {
@@ -58,6 +64,9 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 
       const context = await browser.newContext({ baseURL })
       const page = await context.newPage()
+      const diagnostics = createLoginDiagnostics(role.key, baseURL)
+      page.on('response', (response) => diagnostics.recordAuthResponse(response))
+      page.on('pageerror', (error) => diagnostics.recordPageError(error))
       try {
         await page.goto('/login')
 
@@ -74,7 +83,15 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
           .first()
         await submitButton.click()
 
-        await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 })
+        try {
+          await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 })
+        } catch (error) {
+          const visibleLoginErrors = await page.getByRole('alert').allTextContents()
+          console.error(
+            `REGRESSION_LOGIN_DIAGNOSTICS ${JSON.stringify(diagnostics.snapshot(page.url(), visibleLoginErrors))}`,
+          )
+          throw error
+        }
 
         await context.storageState({ path: role.storageStatePath })
       } finally {
